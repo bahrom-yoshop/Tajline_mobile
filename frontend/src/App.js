@@ -205,6 +205,49 @@ function App() {
     }
   };
 
+  const fetchOperatorCargo = async () => {
+    try {
+      const data = await apiCall('/api/operator/cargo/list');
+      setOperatorCargo(data);
+    } catch (error) {
+      console.error('Error fetching operator cargo:', error);
+    }
+  };
+
+  const fetchAvailableCargo = async () => {
+    try {
+      const data = await apiCall('/api/operator/cargo/available');
+      setAvailableCargo(data);
+    } catch (error) {
+      console.error('Error fetching available cargo:', error);
+    }
+  };
+
+  const fetchCargoHistory = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (historyFilters.status && historyFilters.status !== 'all') {
+        params.append('status', historyFilters.status);
+      }
+      if (historyFilters.search) {
+        params.append('search', historyFilters.search);
+      }
+      const data = await apiCall(`/api/operator/cargo/history?${params}`);
+      setCargoHistory(data);
+    } catch (error) {
+      console.error('Error fetching cargo history:', error);
+    }
+  };
+
+  const fetchAvailableCells = async (warehouseId) => {
+    try {
+      const data = await apiCall(`/api/warehouses/${warehouseId}/available-cells`);
+      setAvailableCells(data.available_cells || []);
+    } catch (error) {
+      console.error('Error fetching available cells:', error);
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
