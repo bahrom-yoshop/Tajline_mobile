@@ -139,8 +139,8 @@ class CargoTransportAPITester:
         
         login_data = [
             {"role": "user", "phone": "+79123456789", "password": "123456"},
-            {"role": "admin", "phone": "+79987654321", "password": "admin123"},
-            {"role": "warehouse_operator", "phone": "+79555666777", "password": "warehouse123"}
+            {"role": "admin", "phone": "+79999888777", "password": "admin123"},
+            {"role": "warehouse_operator", "phone": "+79777888999", "password": "warehouse123"}
         ]
         
         all_success = True
