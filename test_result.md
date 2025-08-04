@@ -364,14 +364,12 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Authentication System - User Registration"
-    - "Authentication System - User Login"
-    - "Authentication System - Role-based Access Control"
-    - "Notification System - Personal Notifications"
-    - "Notification System - System Notifications"
-    - "Database Connectivity - MongoDB Integration"
-    - "API Endpoints - CORS and Error Handling"
-    - "Add notification dropdown menu"
+    - "Transport Management System - Backend API"
+    - "Cargo-Transport Integration System"
+    - "Transport Notification System"
+    - "Transport Dispatch System"
+    - "Transport History System"
+    - "Transport Access Control"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
