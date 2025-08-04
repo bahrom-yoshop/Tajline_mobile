@@ -11,7 +11,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
 import { Textarea } from './components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './components/ui/table';
-import { Truck, Package, Users, Bell, Search, Plus, Edit, Trash2, CheckCircle, Clock, MapPin, User, Shield, Warehouse } from 'lucide-react';
+import { 
+  Truck, Package, Users, Bell, Search, Plus, Edit, Trash2, CheckCircle, 
+  Clock, MapPin, User, Shield, Warehouse, Menu, X, Building, 
+  DollarSign, FileText, Grid3X3, Package2, Home
+} from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
