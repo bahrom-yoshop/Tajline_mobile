@@ -1099,12 +1099,12 @@ class CargoTransportAPITester:
             )
             all_success &= success
         
-        # Test unauthorized access (no token)
+        # Test unauthorized access (no token) - FastAPI returns 403 for missing auth
         success, _ = self.run_test(
             "Unauthorized Access to Transport List",
             "GET",
             "/api/transport/list",
-            401  # Expecting unauthorized
+            403  # FastAPI returns 403 for missing authentication
         )
         all_success &= success
         
