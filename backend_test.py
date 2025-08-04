@@ -365,6 +365,210 @@ class CargoTransportAPITester:
             
         return all_success
 
+    def test_warehouse_management(self):
+        """Test warehouse creation and management"""
+        print("\n🏗️ WAREHOUSE MANAGEMENT")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Test warehouse creation
+        warehouse_data = {
+            "name": "Склад для грузов",
+            "location": "Москва, Складская территория",
+            "blocks_count": 2,
+            "shelves_per_block": 2,
+            "cells_per_shelf": 5
+        }
+        
+        success, warehouse_response = self.run_test(
+            "Create Warehouse",
+            "POST",
+            "/api/warehouses/create",
+            200,
+            warehouse_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        warehouse_id = None
+        if success and 'id' in warehouse_response:
+            warehouse_id = warehouse_response['id']
+            print(f"   🏭 Warehouse created with ID: {warehouse_id}")
+        
+        # Test get warehouses
+        success, warehouses = self.run_test(
+            "Get Warehouses",
+            "GET",
+            "/api/warehouses",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            warehouse_count = len(warehouses) if isinstance(warehouses, list) else 0
+            print(f"   🏭 Found {warehouse_count} warehouses")
+        
+        # Test warehouse structure
+        if warehouse_id:
+            success, structure = self.run_test(
+                "Get Warehouse Structure",
+                "GET",
+                f"/api/warehouses/{warehouse_id}/structure",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                total_cells = structure.get('total_cells', 0)
+                available_cells = structure.get('available_cells', 0)
+                print(f"   📊 Warehouse has {total_cells} total cells, {available_cells} available")
+        
+        # Store warehouse_id for later tests
+        if warehouse_id:
+            self.warehouse_id = warehouse_id
+            
+        return all_success
+
+    def test_operator_cargo_management(self):
+        """Test new operator cargo management functionality"""
+        print("\n📋 OPERATOR CARGO MANAGEMENT")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Test accepting new cargo as specified in requirements
+        cargo_data = {
+            "sender_full_name": "Иванов Сергей Петрович",
+            "sender_phone": "+79111222333",
+            "recipient_full_name": "Рахимов Алишер Камолович",
+            "recipient_phone": "+992444555666",
+            "recipient_address": "Душанбе, ул. Рудаки, 25, кв. 10",
+            "weight": 15.5,
+            "declared_value": 8000.0,
+            "description": "Документы и личные вещи",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, cargo_response = self.run_test(
+            "Accept New Cargo",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            cargo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        operator_cargo_id = None
+        if success and 'id' in cargo_response:
+            operator_cargo_id = cargo_response['id']
+            print(f"   📦 Operator cargo created with ID: {operator_cargo_id}")
+            print(f"   🏷️  Cargo number: {cargo_response.get('cargo_number', 'N/A')}")
+        
+        # Test get operator cargo list
+        success, cargo_list = self.run_test(
+            "Get Operator Cargo List",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            cargo_count = len(cargo_list) if isinstance(cargo_list, list) else 0
+            print(f"   📋 Found {cargo_count} operator cargo items")
+        
+        # Test get available cargo for placement
+        success, available_cargo = self.run_test(
+            "Get Available Cargo for Placement",
+            "GET",
+            "/api/operator/cargo/available",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            available_count = len(available_cargo) if isinstance(available_cargo, list) else 0
+            print(f"   📦 Found {available_count} cargo items available for placement")
+        
+        # Test cargo placement if we have warehouse and cargo
+        if hasattr(self, 'warehouse_id') and operator_cargo_id:
+            # First get available cells
+            success, cells_response = self.run_test(
+                "Get Available Cells",
+                "GET",
+                f"/api/warehouses/{self.warehouse_id}/available-cells",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success and cells_response.get('available_cells'):
+                # Place cargo in first available cell (B1-S1-C1 as specified)
+                placement_data = {
+                    "cargo_id": operator_cargo_id,
+                    "warehouse_id": self.warehouse_id,
+                    "block_number": 1,
+                    "shelf_number": 1,
+                    "cell_number": 1
+                }
+                
+                success, placement_response = self.run_test(
+                    "Place Cargo in Warehouse",
+                    "POST",
+                    "/api/operator/cargo/place",
+                    200,
+                    placement_data,
+                    self.tokens['admin']
+                )
+                all_success &= success
+                
+                if success:
+                    location = placement_response.get('location', 'Unknown')
+                    print(f"   📍 Cargo placed at location: {location}")
+        
+        # Test cargo history
+        success, history = self.run_test(
+            "Get Cargo History",
+            "GET",
+            "/api/operator/cargo/history",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            history_count = len(history) if isinstance(history, list) else 0
+            print(f"   📚 Found {history_count} items in cargo history")
+        
+        # Test cargo history with filters
+        success, filtered_history = self.run_test(
+            "Get Cargo History with Search",
+            "GET",
+            "/api/operator/cargo/history",
+            200,
+            token=self.tokens['admin'],
+            params={"search": "Иванов", "status": "all"}
+        )
+        all_success &= success
+        
+        if success:
+            filtered_count = len(filtered_history) if isinstance(filtered_history, list) else 0
+            print(f"   🔍 Found {filtered_count} items in filtered history")
+            
+        return all_success
+
     def test_notifications(self):
         """Test notification system"""
         print("\n🔔 NOTIFICATIONS")
