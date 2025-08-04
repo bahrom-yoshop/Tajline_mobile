@@ -809,9 +809,12 @@ class CargoTransportAPITester:
             ("My Cargo", self.test_my_cargo),
             ("Cargo Tracking", self.test_cargo_tracking),
             ("Admin Functions", self.test_admin_functions),
+            ("Users by Role", self.test_users_by_role),
             ("Warehouse Functions", self.test_warehouse_functions),
             ("Warehouse Management", self.test_warehouse_management),
+            ("Warehouse Full Layout", self.test_warehouse_full_layout),
             ("Operator Cargo Management", self.test_operator_cargo_management),
+            ("Cashier Functionality", self.test_cashier_functionality),
             ("Notifications", self.test_notifications),
             ("Error Handling", self.test_error_cases)
         ]
