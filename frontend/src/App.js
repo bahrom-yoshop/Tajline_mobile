@@ -3469,6 +3469,142 @@ function App() {
         </DialogContent>
       </Dialog>
 
+      {/* Модальное окно управления транспортом */}
+      <Dialog open={transportManagementModal} onOpenChange={setTransportManagementModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Управление транспортом {selectedTransport?.transport_number}
+            </DialogTitle>
+            <DialogDescription>
+              Выберите функцию для управления транспортом
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedTransport && (
+            <div className="space-y-6">
+              {/* Информация о транспорте */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">Информация о транспорте</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <p><strong>Номер:</strong> {selectedTransport.transport_number}</p>
+                  <p><strong>Водитель:</strong> {selectedTransport.driver_name}</p>
+                  <p><strong>Телефон:</strong> {selectedTransport.driver_phone}</p>
+                  <p><strong>Направление:</strong> {selectedTransport.direction}</p>
+                  <p><strong>Вместимость:</strong> {selectedTransport.capacity_kg} кг</p>
+                  <p><strong>Загрузка:</strong> {selectedTransport.current_load_kg} кг ({Math.round((selectedTransport.current_load_kg / selectedTransport.capacity_kg) * 100)}%)</p>
+                </div>
+              </div>
+
+              {/* Функции управления */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* Размещение груза */}
+                <Card className="p-4">
+                  <h4 className="font-semibold mb-3">Размещение груза</h4>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Разместить груз со склада на транспорт
+                  </p>
+                  
+                  {/* Доступные грузы */}
+                  <div className="mb-4">
+                    <Label>Доступные грузы на складе:</Label>
+                    <div className="max-h-40 overflow-y-auto border rounded mt-2">
+                      {availableCargoForTransport.length === 0 ? (
+                        <p className="p-3 text-gray-500 text-sm">Нет доступных грузов</p>
+                      ) : (
+                        availableCargoForTransport.map((cargo) => (
+                          <div key={cargo.id} className="p-2 border-b flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedCargoForPlacement.includes(cargo.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedCargoForPlacement([...selectedCargoForPlacement, cargo.id]);
+                                } else {
+                                  setSelectedCargoForPlacement(selectedCargoForPlacement.filter(id => id !== cargo.id));
+                                }
+                              }}
+                              className="mr-2"
+                            />
+                            <div className="flex-1 text-sm">
+                              <p><strong>{cargo.cargo_number}</strong> - {cargo.weight} кг</p>
+                              <p className="text-gray-500">{cargo.description}</p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={() => handlePlaceCargoOnTransport(selectedTransport.id, selectedCargoForPlacement)}
+                    disabled={selectedCargoForPlacement.length === 0}
+                    className="w-full"
+                  >
+                    Разместить выбранные грузы
+                  </Button>
+                </Card>
+
+                {/* Список размещенных грузов */}
+                <Card className="p-4">
+                  <h4 className="font-semibold mb-3">Список размещенных грузов</h4>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Общий объём: {transportCargoList.total_weight || 0} кг
+                  </p>
+                  
+                  <div className="max-h-40 overflow-y-auto border rounded">
+                    {!transportCargoList.cargo_list || transportCargoList.cargo_list.length === 0 ? (
+                      <p className="p-3 text-gray-500 text-sm">Груз не размещен</p>
+                    ) : (
+                      transportCargoList.cargo_list.map((cargo) => (
+                        <div key={cargo.id} className="p-2 border-b text-sm">
+                          <p><strong>{cargo.cargo_number}</strong> - {cargo.weight} кг</p>
+                          <p className="text-gray-500">{cargo.description}</p>
+                          <p className="text-gray-500">Получатель: {cargo.recipient_name}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </Card>
+
+                {/* Отправить транспорт */}
+                <Card className="p-4">
+                  <h4 className="font-semibold mb-3">Отправить транспорт</h4>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Отправить транспорт в место назначения. Пользователи получат уведомления.
+                  </p>
+                  <Button 
+                    onClick={() => handleDispatchTransport(selectedTransport.id)}
+                    disabled={selectedTransport.status !== 'filled'}
+                    className="w-full"
+                    variant={selectedTransport.status === 'filled' ? 'default' : 'secondary'}
+                  >
+                    {selectedTransport.status === 'filled' ? 'Отправить транспорт' : 'Транспорт должен быть заполнен'}
+                  </Button>
+                </Card>
+
+                {/* Удалить транспорт */}
+                <Card className="p-4">
+                  <h4 className="font-semibold mb-3">Удалить транспорт</h4>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Удалить транспорт и переместить в историю
+                  </p>
+                  <Button 
+                    onClick={() => handleDeleteTransport(selectedTransport.id)}
+                    variant="destructive"
+                    className="w-full"
+                  >
+                    Удалить транспорт
+                  </Button>
+                </Card>
+
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Alerts */}
       <div className="fixed top-4 right-4 space-y-2 z-50">
         {alerts.map((alert) => (
