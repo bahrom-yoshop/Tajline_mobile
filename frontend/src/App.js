@@ -167,14 +167,20 @@ function App() {
         fetchUsersByRole();
         fetchUnpaidCargo();
         fetchPaymentHistory();
+        fetchCargoRequests();
+        fetchSystemNotifications();
       } else if (user.role === 'warehouse_operator') {
         fetchWarehouseCargo();
         fetchWarehouses();
         fetchOperatorCargo();
         fetchUnpaidCargo();
         fetchPaymentHistory();
+        fetchCargoRequests();
+        fetchSystemNotifications();
       } else {
         fetchMyCargo();
+        fetchMyRequests();
+        fetchSystemNotifications();
       }
     }
   }, [user]);
