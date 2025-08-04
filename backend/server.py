@@ -1190,6 +1190,237 @@ async def get_warehouse_full_layout(
         }
     }
 
+# Управление заявками от пользователей
+@app.post("/api/user/cargo-request")
+async def create_cargo_request(
+    request_data: CargoRequestCreate,
+    current_user: User = Depends(get_current_user)
+):
+    # Только обычные пользователи могут создавать заявки
+    if current_user.role != UserRole.USER:
+        raise HTTPException(status_code=403, detail="Only regular users can create cargo requests")
+    
+    request_id = str(uuid.uuid4())
+    request_number = generate_request_number()
+    
+    cargo_request = {
+        "id": request_id,
+        "request_number": request_number,
+        "sender_full_name": current_user.full_name,
+        "sender_phone": current_user.phone,
+        "recipient_full_name": request_data.recipient_full_name,
+        "recipient_phone": request_data.recipient_phone,
+        "recipient_address": request_data.recipient_address,
+        "pickup_address": request_data.pickup_address,
+        "cargo_name": request_data.cargo_name,
+        "weight": request_data.weight,
+        "declared_value": request_data.declared_value,
+        "description": request_data.description,
+        "route": request_data.route,
+        "status": "pending",
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "created_by": current_user.id,
+        "processed_by": None
+    }
+    
+    db.cargo_requests.insert_one(cargo_request)
+    
+    # Создать системное уведомление для всех операторов и админов
+    create_system_notification(
+        "Новая заявка на груз",
+        f"Пользователь {current_user.full_name} подал заявку на отправку груза №{request_number}",
+        "request",
+        request_id,
+        None,  # Для всех операторов
+        current_user.id
+    )
+    
+    # Создать персональное уведомление для пользователя
+    create_notification(
+        current_user.id,
+        f"Ваша заявка №{request_number} принята к рассмотрению",
+        request_id
+    )
+    
+    return CargoRequest(**cargo_request)
+
+@app.get("/api/admin/cargo-requests")
+async def get_pending_cargo_requests(
+    current_user: User = Depends(get_current_user)
+):
+    # Только админы и операторы могут видеть заявки
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Получаем заявки в статусе pending
+    requests = list(db.cargo_requests.find({"status": "pending"}).sort("created_at", -1))
+    return [CargoRequest(**request) for request in requests]
+
+@app.get("/api/admin/cargo-requests/all")
+async def get_all_cargo_requests(
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    # Только админы и операторы могут видеть все заявки
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    query = {}
+    if status and status != "all":
+        query["status"] = status
+    
+    requests = list(db.cargo_requests.find(query).sort("created_at", -1))
+    return [CargoRequest(**request) for request in requests]
+
+@app.post("/api/admin/cargo-requests/{request_id}/accept")
+async def accept_cargo_request(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    # Только админы и операторы могут принимать заявки
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Найти заявку
+    request = db.cargo_requests.find_one({"id": request_id, "status": "pending"})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found or already processed")
+    
+    # Создать груз на основе заявки
+    cargo_id = str(uuid.uuid4())
+    cargo_number = generate_cargo_number()
+    
+    cargo = {
+        "id": cargo_id,
+        "cargo_number": cargo_number,
+        "sender_full_name": request["sender_full_name"],
+        "sender_phone": request["sender_phone"],
+        "recipient_full_name": request["recipient_full_name"],
+        "recipient_phone": request["recipient_phone"],
+        "recipient_address": request["recipient_address"],
+        "weight": request["weight"],
+        "declared_value": request["declared_value"],
+        "description": request["description"],
+        "route": request["route"],
+        "status": CargoStatus.ACCEPTED,
+        "payment_status": "pending",
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "created_by": current_user.id,
+        "warehouse_location": None,
+        "warehouse_id": None,
+        "block_number": None,
+        "shelf_number": None,
+        "cell_number": None
+    }
+    
+    db.operator_cargo.insert_one(cargo)
+    
+    # Обновить статус заявки
+    db.cargo_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "accepted",
+            "processed_by": current_user.id,
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    # Создать уведомления
+    create_system_notification(
+        "Заявка принята",
+        f"Заявка №{request['request_number']} принята оператором {current_user.full_name} и создан груз №{cargo_number}",
+        "request",
+        request_id,
+        None,
+        current_user.id
+    )
+    
+    create_notification(
+        request["created_by"],
+        f"Ваша заявка №{request['request_number']} принята! Создан груз №{cargo_number}",
+        cargo_id
+    )
+    
+    return {
+        "message": "Request accepted successfully",
+        "cargo_number": cargo_number,
+        "cargo_id": cargo_id
+    }
+
+@app.post("/api/admin/cargo-requests/{request_id}/reject")
+async def reject_cargo_request(
+    request_id: str,
+    reason: str = "",
+    current_user: User = Depends(get_current_user)
+):
+    # Только админы и операторы могут отклонять заявки
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Найти заявку
+    request = db.cargo_requests.find_one({"id": request_id, "status": "pending"})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found or already processed")
+    
+    # Обновить статус заявки
+    db.cargo_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "rejected",
+            "processed_by": current_user.id,
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    # Создать уведомления
+    create_system_notification(
+        "Заявка отклонена",
+        f"Заявка №{request['request_number']} отклонена оператором {current_user.full_name}. Причина: {reason}",
+        "request",
+        request_id,
+        None,
+        current_user.id
+    )
+    
+    create_notification(
+        request["created_by"],
+        f"К сожалению, ваша заявка №{request['request_number']} была отклонена. Причина: {reason}",
+        request_id
+    )
+    
+    return {"message": "Request rejected successfully"}
+
+# Системные уведомления
+@app.get("/api/system-notifications")
+async def get_system_notifications(
+    notification_type: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    query = {}
+    
+    # Операторы и админы видят все уведомления, пользователи - только свои
+    if current_user.role == UserRole.USER:
+        query["$or"] = [
+            {"user_id": current_user.id},
+            {"user_id": None, "notification_type": {"$in": ["cargo_status", "payment"]}}
+        ]
+    
+    if notification_type and notification_type != "all":
+        query["notification_type"] = notification_type
+    
+    notifications = list(db.system_notifications.find(query).sort("created_at", -1).limit(100))
+    return [SystemNotification(**notification) for notification in notifications]
+
+@app.get("/api/user/my-requests")
+async def get_my_cargo_requests(
+    current_user: User = Depends(get_current_user)
+):
+    # Пользователи могут видеть только свои заявки
+    requests = list(db.cargo_requests.find({"created_by": current_user.id}).sort("created_at", -1))
+    return [CargoRequest(**request) for request in requests]
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
