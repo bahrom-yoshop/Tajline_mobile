@@ -1491,6 +1491,7 @@ function App() {
                   )}
                 </div>
               )}
+              {/* Управление пользователями (только для админа) */}
               {activeSection === 'users' && user?.role === 'admin' && (
                 <Card>
                   <CardHeader>
