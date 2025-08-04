@@ -110,6 +110,41 @@ class Notification(BaseModel):
     is_read: bool = False
     created_at: datetime
 
+class WarehouseCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    location: str = Field(..., min_length=5, max_length=200)
+    blocks_count: int = Field(..., ge=1, le=9)
+    shelves_per_block: int = Field(..., ge=1, le=3)
+    cells_per_shelf: int = Field(..., ge=1, le=50)
+
+class Warehouse(BaseModel):
+    id: str
+    name: str
+    location: str
+    blocks_count: int
+    shelves_per_block: int
+    cells_per_shelf: int
+    total_capacity: int
+    created_by: str
+    created_at: datetime
+    is_active: bool = True
+
+class WarehouseBlock(BaseModel):
+    id: str
+    warehouse_id: str
+    block_number: int
+    shelves: List[dict]  # List of shelves with cells
+
+class WarehouseCell(BaseModel):
+    id: str
+    warehouse_id: str
+    block_number: int
+    shelf_number: int
+    cell_number: int
+    is_occupied: bool = False
+    cargo_id: Optional[str] = None
+    location_code: str  # Format: "B1-S2-C3" (Block 1, Shelf 2, Cell 3)
+
 # Утилиты
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
