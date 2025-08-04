@@ -919,6 +919,7 @@ function App() {
     setTransportCargoList([]);
     setAvailableCargoForTransport([]);
     setSelectedCargoForPlacement([]);
+    setContactModal(false);
     showAlert('Вы вышли из системы', 'info');
   };
 
