@@ -104,6 +104,32 @@ class Cargo(BaseModel):
     updated_at: datetime
     warehouse_location: Optional[str] = None
 
+class TransportCreate(BaseModel):
+    driver_name: str = Field(..., min_length=2)
+    driver_phone: str = Field(..., min_length=10)
+    transport_number: str = Field(..., min_length=3)
+    capacity_kg: float = Field(..., gt=0)
+    direction: str = Field(..., min_length=3)
+
+class Transport(BaseModel):
+    id: str
+    transport_number: str
+    driver_name: str
+    driver_phone: str
+    capacity_kg: float
+    direction: str
+    status: TransportStatus
+    current_load_kg: float = 0.0
+    cargo_list: List[str] = []  # List of cargo IDs
+    created_at: datetime
+    updated_at: datetime
+    dispatched_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+
+class TransportCargoPlacement(BaseModel):
+    transport_id: str
+    cargo_ids: List[str]
+
 class NotificationCreate(BaseModel):
     user_id: str
     message: str
