@@ -2105,7 +2105,11 @@ function App() {
                                     Создан: {new Date(warehouse.created_at).toLocaleDateString('ru-RU')}
                                   </span>
                                   <div className="flex space-x-2">
-                                    <Button size="sm" variant="outline">
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      onClick={() => handleOpenWarehouseLayout(warehouse)}
+                                    >
                                       <Grid3X3 className="mr-2 h-4 w-4" />
                                       Управление
                                     </Button>
