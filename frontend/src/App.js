@@ -185,6 +185,7 @@ function App() {
         fetchPaymentHistory();
         fetchCargoRequests();
         fetchSystemNotifications();
+        fetchTransports();
       } else if (user.role === 'warehouse_operator') {
         fetchWarehouseCargo();
         fetchWarehouses();
@@ -193,6 +194,7 @@ function App() {
         fetchPaymentHistory();
         fetchCargoRequests();
         fetchSystemNotifications();
+        fetchTransports();
       } else {
         fetchMyCargo();
         fetchMyRequests();
