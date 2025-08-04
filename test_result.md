@@ -102,7 +102,44 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Implement notification dropdown menu functionality. User requests that clicking the notification bell icon should show dropdown menu with notification content on all relevant pages."
+user_problem_statement: "Add logistics management system with transport handling. User requests adding 'Логистика' category in sidebar menu with subcategories for managing transport vehicles, cargo placement, and transportation tracking. System should handle transport registration, cargo loading, status tracking, and notifications."
+
+backend:
+  - task: "Transport Management System - Backend API"
+    implemented: false
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to implement transport model and CRUD operations for logistics system. Transport fields: driver_name, driver_phone, transport_number, capacity_kg, direction, status (empty/filled)."
+
+  - task: "Cargo-Transport Integration System"
+    implemented: false
+    working: "NA" 
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to implement cargo placement logic from warehouse to transport, warehouse cell liberation, and status tracking system."
+
+  - task: "Transport Notification System"
+    implemented: false
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to implement automatic notifications when transport is dispatched - users should receive notifications about cargo status change to 'shipped to destination'."
 
 backend:
   - task: "Authentication System - User Registration"
