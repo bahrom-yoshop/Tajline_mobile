@@ -1184,8 +1184,8 @@ class CargoTransportAPITester:
             ("Transport Management", self.test_transport_management),
             ("Transport Cargo Placement", self.test_transport_cargo_placement),
             ("Transport Dispatch", self.test_transport_dispatch),
-            ("Transport History", self.test_transport_history),
             ("Transport Access Control", self.test_transport_access_control),
+            ("Transport History", self.test_transport_history),
             ("Transport Deletion", self.test_transport_delete),
             ("Notifications", self.test_notifications),
             ("Error Handling", self.test_error_cases)
