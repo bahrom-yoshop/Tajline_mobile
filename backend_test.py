@@ -644,6 +644,8 @@ class CargoTransportAPITester:
             ("Cargo Tracking", self.test_cargo_tracking),
             ("Admin Functions", self.test_admin_functions),
             ("Warehouse Functions", self.test_warehouse_functions),
+            ("Warehouse Management", self.test_warehouse_management),
+            ("Operator Cargo Management", self.test_operator_cargo_management),
             ("Notifications", self.test_notifications),
             ("Error Handling", self.test_error_cases)
         ]
