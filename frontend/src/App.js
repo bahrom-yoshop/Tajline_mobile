@@ -1042,8 +1042,15 @@ function App() {
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <Truck className="h-8 w-8 text-blue-600 mr-3" />
-                <h1 className="text-2xl font-bold text-gray-900">КаргоТранс</h1>
+                <div className="flex items-center mr-6">
+                  <div className="bg-blue-600 text-white p-2 rounded-lg mr-3">
+                    <Truck className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold text-blue-600">TAJLINE.TJ</h1>
+                    <p className="text-sm text-gray-600">Грузоперевозки Москва-Таджикистан</p>
+                  </div>
+                </div>
               </div>
               
               <div className="flex items-center space-x-4">
