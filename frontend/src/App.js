@@ -329,6 +329,7 @@ function App() {
     setUser(null);
     setCargo([]);
     setUsers([]);
+    setWarehouses([]);
     setNotifications([]);
     showAlert('Вы вышли из системы', 'info');
   };
