@@ -131,9 +131,11 @@ function App() {
         fetchUsers();
         fetchAllCargo();
         fetchWarehouses();
+        fetchOperatorCargo();
       } else if (user.role === 'warehouse_operator') {
         fetchWarehouseCargo();
         fetchWarehouses();
+        fetchOperatorCargo();
       } else {
         fetchMyCargo();
       }
