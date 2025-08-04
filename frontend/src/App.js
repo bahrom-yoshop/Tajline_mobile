@@ -2222,10 +2222,348 @@ function App() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Касса */}
+              {activeSection === 'cashier' && (
+                <div className="space-y-6">
+                  {/* Приём оплаты */}
+                  {activeTab === 'cashier-payment' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <CreditCard className="mr-2 h-5 w-5" />
+                          Приём оплаты
+                        </CardTitle>
+                        <CardDescription>
+                          Поиск груза по номеру и прием оплаты от клиента
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button onClick={() => setPaymentModal(true)} className="mb-4">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Принять оплату
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Не оплачено */}
+                  {(activeTab === 'cashier-unpaid' || !activeTab || activeTab === 'cashier') && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Package className="mr-2 h-5 w-5" />
+                            Не оплачено ({unpaidCargo.length})
+                          </div>
+                          <Button onClick={fetchUnpaidCargo}>
+                            Обновить
+                          </Button>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {unpaidCargo.length === 0 ? (
+                            <div className="text-center py-8">
+                              <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-4" />
+                              <p className="text-gray-500">Все грузы оплачены!</p>
+                            </div>
+                          ) : (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Номер груза</TableHead>
+                                  <TableHead>Отправитель</TableHead>
+                                  <TableHead>Сумма к оплате</TableHead>
+                                  <TableHead>Дата приема</TableHead>
+                                  <TableHead>Действия</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {unpaidCargo.map((item) => (
+                                  <TableRow key={item.id}>
+                                    <TableCell className="font-medium">{item.cargo_number}</TableCell>
+                                    <TableCell>
+                                      <div>
+                                        <div className="font-medium">{item.sender_full_name}</div>
+                                        <div className="text-sm text-gray-500">{item.sender_phone}</div>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="font-bold text-red-600">{item.declared_value} ₽</TableCell>
+                                    <TableCell>{new Date(item.created_at).toLocaleDateString('ru-RU')}</TableCell>
+                                    <TableCell>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => {
+                                          setPaymentForm({...paymentForm, cargo_number: item.cargo_number});
+                                          setPaymentModal(true);
+                                        }}
+                                      >
+                                        <CreditCard className="mr-2 h-4 w-4" />
+                                        Принять оплату
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* История оплаты */}
+                  {activeTab === 'cashier-history' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <FileText className="mr-2 h-5 w-5" />
+                            История оплаты ({paymentHistory.length})
+                          </div>
+                          <Button onClick={fetchPaymentHistory}>
+                            Обновить
+                          </Button>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {paymentHistory.length === 0 ? (
+                            <div className="text-center py-8">
+                              <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                              <p className="text-gray-500">История оплаты пуста</p>
+                            </div>
+                          ) : (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Номер груза</TableHead>
+                                  <TableHead>Клиент</TableHead>
+                                  <TableHead>Сумма к оплате</TableHead>
+                                  <TableHead>Оплачено</TableHead>
+                                  <TableHead>Дата оплаты</TableHead>
+                                  <TableHead>Кассир</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {paymentHistory.map((transaction) => (
+                                  <TableRow key={transaction.id}>
+                                    <TableCell className="font-medium">{transaction.cargo_number}</TableCell>
+                                    <TableCell>
+                                      <div>
+                                        <div className="font-medium">{transaction.customer_name}</div>
+                                        <div className="text-sm text-gray-500">{transaction.customer_phone}</div>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>{transaction.amount_due} ₽</TableCell>
+                                    <TableCell className="font-bold text-green-600">{transaction.amount_paid} ₽</TableCell>
+                                    <TableCell>{new Date(transaction.payment_date).toLocaleDateString('ru-RU')} {new Date(transaction.payment_date).toLocaleTimeString('ru-RU')}</TableCell>
+                                    <TableCell>{transaction.processed_by}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </main>
       </div>
+
+      {/* Модальное окно приема оплаты */}
+      <Dialog open={paymentModal} onOpenChange={setPaymentModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Приём оплаты</DialogTitle>
+            <DialogDescription>
+              Введите номер груза для поиска и приема оплаты
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="cargo_search">Номер груза</Label>
+              <div className="flex space-x-2">
+                <Input
+                  id="cargo_search"
+                  value={paymentForm.cargo_number}
+                  onChange={(e) => setPaymentForm({...paymentForm, cargo_number: e.target.value})}
+                  placeholder="Введите номер груза"
+                />
+                <Button onClick={handleSearchCargoForPayment}>
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {cargoForPayment && (
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <h4 className="font-semibold mb-2">Информация о грузе:</h4>
+                <div className="space-y-2 text-sm">
+                  <p><strong>Номер:</strong> {cargoForPayment.cargo_number}</p>
+                  <p><strong>Отправитель:</strong> {cargoForPayment.sender_full_name}</p>
+                  <p><strong>Телефон:</strong> {cargoForPayment.sender_phone}</p>
+                  <p><strong>Вес:</strong> {cargoForPayment.weight} кг</p>
+                  <p><strong>Описание:</strong> {cargoForPayment.description}</p>
+                  <p><strong>Сумма к оплате:</strong> <span className="text-red-600 font-bold">{cargoForPayment.declared_value} ₽</span></p>
+                  <p><strong>Дата приема:</strong> {new Date(cargoForPayment.created_at).toLocaleDateString('ru-RU')} {new Date(cargoForPayment.created_at).toLocaleTimeString('ru-RU')}</p>
+                </div>
+              </div>
+            )}
+
+            {cargoForPayment && (
+              <>
+                <div>
+                  <Label htmlFor="amount_paid">Сумма оплачена клиентом</Label>
+                  <Input
+                    id="amount_paid"
+                    type="number"
+                    step="0.01"
+                    value={paymentForm.amount_paid}
+                    onChange={(e) => setPaymentForm({...paymentForm, amount_paid: e.target.value})}
+                    placeholder="Введите сумму"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="transaction_type">Способ оплаты</Label>
+                  <Select value={paymentForm.transaction_type} onValueChange={(value) => setPaymentForm({...paymentForm, transaction_type: value})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash">Наличными</SelectItem>
+                      <SelectItem value="card">Картой</SelectItem>
+                      <SelectItem value="transfer">Переводом</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="notes">Примечания (необязательно)</Label>
+                  <Textarea
+                    id="notes"
+                    value={paymentForm.notes}
+                    onChange={(e) => setPaymentForm({...paymentForm, notes: e.target.value})}
+                    placeholder="Дополнительные заметки..."
+                  />
+                </div>
+
+                <div className="flex space-x-2 pt-4">
+                  <Button onClick={handleProcessPayment} className="flex-1">
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Оплатить
+                  </Button>
+                  <Button variant="outline" onClick={() => {
+                    setPaymentModal(false);
+                    setCargoForPayment(null);
+                    setPaymentForm({cargo_number: '', amount_paid: '', transaction_type: 'cash', notes: ''});
+                  }}>
+                    Отмена
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Модальное окно схемы склада */}
+      <Dialog open={layoutModal} onOpenChange={setLayoutModal}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              Схема склада: {selectedWarehouseForLayout?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Карта расположения блоков, полок и ячеек склада
+            </DialogDescription>
+          </DialogHeader>
+          
+          {warehouseLayout && (
+            <div className="space-y-4">
+              {/* Статистика */}
+              <div className="grid grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-blue-50 rounded">
+                  <div className="text-2xl font-bold text-blue-600">{warehouseLayout.statistics.total_cells}</div>
+                  <div className="text-sm">Всего ячеек</div>
+                </div>
+                <div className="text-center p-4 bg-red-50 rounded">
+                  <div className="text-2xl font-bold text-red-600">{warehouseLayout.statistics.occupied_cells}</div>
+                  <div className="text-sm">Занято</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded">
+                  <div className="text-2xl font-bold text-green-600">{warehouseLayout.statistics.available_cells}</div>
+                  <div className="text-sm">Свободно</div>
+                </div>
+                <div className="text-center p-4 bg-gray-50 rounded">
+                  <div className="text-2xl font-bold text-gray-600">{warehouseLayout.statistics.occupancy_rate}%</div>
+                  <div className="text-sm">Заполненность</div>
+                </div>
+              </div>
+
+              {/* Схема склада */}
+              <div className="max-h-96 overflow-auto border rounded-lg p-4">
+                <div className="space-y-6">
+                  {Object.values(warehouseLayout.layout).map((block) => (
+                    <div key={block.block_number} className="border rounded-lg p-4">
+                      <h3 className="font-bold mb-3 text-center bg-gray-100 p-2 rounded">
+                        Блок {block.block_number}
+                      </h3>
+                      <div className="space-y-4">
+                        {Object.values(block.shelves).map((shelf) => (
+                          <div key={shelf.shelf_number}>
+                            <h4 className="font-semibold mb-2 text-sm bg-gray-50 p-1 rounded">
+                              Полка {shelf.shelf_number}
+                            </h4>
+                            <div className="grid grid-cols-5 gap-2">
+                              {shelf.cells.map((cell) => (
+                                <div
+                                  key={cell.id}
+                                  className={`p-2 text-xs text-center rounded border-2 ${
+                                    cell.is_occupied 
+                                      ? 'bg-red-100 border-red-300 text-red-800' 
+                                      : 'bg-green-100 border-green-300 text-green-800'
+                                  }`}
+                                  title={cell.cargo_info ? `${cell.cargo_info.cargo_number} - ${cell.cargo_info.sender_name}` : 'Свободная ячейка'}
+                                >
+                                  <div className="font-bold">Я{cell.cell_number}</div>
+                                  {cell.cargo_info && (
+                                    <div className="mt-1">
+                                      <div className="font-semibold">{cell.cargo_info.cargo_number}</div>
+                                      <div>{cell.cargo_info.weight}кг</div>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center space-x-4 text-sm">
+                <div className="flex items-center">
+                  <div className="w-4 h-4 bg-green-100 border-2 border-green-300 rounded mr-2"></div>
+                  <span>Свободная ячейка</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-4 h-4 bg-red-100 border-2 border-red-300 rounded mr-2"></div>
+                  <span>Занятая ячейка</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Alerts */}
       <div className="fixed top-4 right-4 space-y-2 z-50">
