@@ -93,6 +93,20 @@ function App() {
     admin: [],
     warehouse_operator: []
   });
+  const [cargoRequests, setCargoRequests] = useState([]);
+  const [myRequests, setMyRequests] = useState([]);
+  const [systemNotifications, setSystemNotifications] = useState([]);
+  const [requestForm, setRequestForm] = useState({
+    recipient_full_name: '',
+    recipient_phone: '',
+    recipient_address: '',
+    pickup_address: '',
+    cargo_name: '',
+    weight: '',
+    declared_value: '',
+    description: '',
+    route: 'moscow_to_tajikistan'
+  });
 
   const [alerts, setAlerts] = useState([]);
 
