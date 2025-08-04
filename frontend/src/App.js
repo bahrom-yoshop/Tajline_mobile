@@ -123,6 +123,7 @@ function App() {
   const [availableCargoForTransport, setAvailableCargoForTransport] = useState([]);
   const [selectedCargoForPlacement, setSelectedCargoForPlacement] = useState([]);
   const [transportCargoList, setTransportCargoList] = useState([]);
+  const [contactModal, setContactModal] = useState(false);
 
   const [alerts, setAlerts] = useState([]);
 
