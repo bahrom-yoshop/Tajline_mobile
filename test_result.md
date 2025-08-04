@@ -225,3 +225,5 @@ test_plan:
 agent_communication:
     - agent: "main"
       message: "Starting implementation of notification dropdown menu. Will add DropdownMenu UI components, make Bell icon clickable, and display notifications and system notifications in dropdown format."
+    - agent: "testing"
+      message: "Added backend tasks for comprehensive testing of authentication system, notification system, database connectivity, and API endpoints. These are critical for the dropdown functionality. Starting backend testing now."
