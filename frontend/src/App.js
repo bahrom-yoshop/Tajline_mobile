@@ -1542,6 +1542,17 @@ function App() {
                                     <TableCell>
                                       {new Date(item.created_at).toLocaleDateString('ru-RU')} {new Date(item.created_at).toLocaleTimeString('ru-RU')}
                                     </TableCell>
+                                    <TableCell>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => printCargoInvoice(item)}
+                                        className="flex items-center"
+                                      >
+                                        <Printer className="mr-1 h-4 w-4" />
+                                        Печать накладной
+                                      </Button>
+                                    </TableCell>
                                   </TableRow>
                                 ))}
                               </TableBody>
