@@ -186,6 +186,25 @@ class CargoWithLocation(BaseModel):
     shelf_number: Optional[int] = None
     cell_number: Optional[int] = None
 
+class PaymentTransaction(BaseModel):
+    id: str
+    cargo_id: str
+    cargo_number: str
+    amount_due: float
+    amount_paid: float
+    payment_date: datetime
+    processed_by: str  # ID кассира
+    customer_name: str
+    customer_phone: str
+    transaction_type: str = "cash"  # cash, card, transfer
+    notes: Optional[str] = None
+
+class PaymentCreate(BaseModel):
+    cargo_number: str
+    amount_paid: float
+    transaction_type: str = "cash"
+    notes: Optional[str] = None
+
 # Утилиты
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
