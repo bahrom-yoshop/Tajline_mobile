@@ -503,6 +503,18 @@ function App() {
         ]
       },
       {
+        id: 'cargo-management',
+        label: 'Грузы',
+        icon: <Package className="w-5 h-5" />,
+        section: 'cargo-management',
+        subsections: [
+          { id: 'cargo-accept', label: 'Принимать новый груз' },
+          { id: 'cargo-list', label: 'Список грузов' },
+          { id: 'cargo-placement', label: 'Размещение груза' },
+          { id: 'cargo-history', label: 'История грузов' }
+        ]
+      },
+      {
         id: 'warehouses',
         label: 'Склады',
         icon: <Building className="w-5 h-5" />,
