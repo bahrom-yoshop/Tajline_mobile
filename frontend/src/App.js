@@ -457,6 +457,175 @@ function App() {
     }
   };
 
+  const handleSearchCargoForPayment = async () => {
+    if (!paymentForm.cargo_number.trim()) return;
+    
+    try {
+      const data = await apiCall(`/api/cashier/search-cargo/${paymentForm.cargo_number}`);
+      setCargoForPayment(data);
+      setPaymentForm({...paymentForm, amount_paid: data.declared_value.toString()});
+    } catch (error) {
+      setCargoForPayment(null);
+      console.error('Search cargo for payment error:', error);
+    }
+  };
+
+  const handleProcessPayment = async () => {
+    try {
+      await apiCall('/api/cashier/process-payment', 'POST', {
+        cargo_number: paymentForm.cargo_number,
+        amount_paid: parseFloat(paymentForm.amount_paid),
+        transaction_type: paymentForm.transaction_type,
+        notes: paymentForm.notes
+      });
+      showAlert('Оплата успешно принята!', 'success');
+      setPaymentModal(false);
+      setCargoForPayment(null);
+      setPaymentForm({
+        cargo_number: '',
+        amount_paid: '',
+        transaction_type: 'cash',
+        notes: ''
+      });
+      fetchUnpaidCargo();
+      fetchPaymentHistory();
+      fetchOperatorCargo();
+    } catch (error) {
+      console.error('Process payment error:', error);
+    }
+  };
+
+  const handleOpenWarehouseLayout = async (warehouse) => {
+    setSelectedWarehouseForLayout(warehouse);
+    await fetchWarehouseLayout(warehouse.id);
+    setLayoutModal(true);
+  };
+
+  const printCargoInvoice = (cargo) => {
+    const printWindow = window.open('', '_blank');
+    const invoiceHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Накладная - ${cargo.cargo_number}</title>
+        <style>
+          @page { size: A5; margin: 10mm; }
+          body { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.4; margin: 0; }
+          .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
+          .logo { font-size: 24px; font-weight: bold; color: #0066cc; margin-bottom: 5px; }
+          .company { font-size: 14px; color: #666; }
+          .title { text-align: center; font-size: 16px; font-weight: bold; margin: 15px 0; }
+          .section { margin-bottom: 15px; }
+          .section-title { font-weight: bold; background: #f0f0f0; padding: 5px; margin-bottom: 8px; }
+          .info-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+          .info-label { font-weight: bold; }
+          .footer { margin-top: 20px; text-align: center; font-size: 10px; color: #666; }
+          .signature { margin-top: 30px; display: flex; justify-content: space-between; }
+          .signature div { width: 45%; text-align: center; border-top: 1px solid #333; padding-top: 5px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="logo">TAJLINE.TJ</div>
+          <div class="company">Грузоперевозки Москва-Таджикистан</div>
+        </div>
+        
+        <div class="title">НАКЛАДНАЯ № ${cargo.cargo_number}</div>
+        
+        <div class="section">
+          <div class="section-title">Информация о грузе</div>
+          <div class="info-row">
+            <span class="info-label">Дата приема:</span>
+            <span>${new Date(cargo.created_at).toLocaleDateString('ru-RU')} ${new Date(cargo.created_at).toLocaleTimeString('ru-RU')}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Маршрут:</span>
+            <span>${cargo.route === 'moscow_to_tajikistan' ? 'Москва → Таджикистан' : 'Таджикистан → Москва'}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Описание:</span>
+            <span>${cargo.description}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Вес:</span>
+            <span>${cargo.weight} кг</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Объявленная стоимость:</span>
+            <span>${cargo.declared_value} ₽</span>
+          </div>
+        </div>
+        
+        <div class="section">
+          <div class="section-title">Отправитель</div>
+          <div class="info-row">
+            <span class="info-label">ФИО:</span>
+            <span>${cargo.sender_full_name || cargo.sender_id}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Телефон:</span>
+            <span>${cargo.sender_phone || 'Не указан'}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Адрес:</span>
+            <span>${cargo.sender_address || 'Не указан'}</span>
+          </div>
+        </div>
+        
+        <div class="section">
+          <div class="section-title">Получатель</div>
+          <div class="info-row">
+            <span class="info-label">ФИО:</span>
+            <span>${cargo.recipient_full_name || cargo.recipient_name}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Телефон:</span>
+            <span>${cargo.recipient_phone}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Адрес:</span>
+            <span>${cargo.recipient_address}</span>
+          </div>
+        </div>
+        
+        ${cargo.warehouse_location ? `
+        <div class="section">
+          <div class="section-title">Размещение</div>
+          <div class="info-row">
+            <span class="info-label">Местоположение:</span>
+            <span>${cargo.warehouse_location}</span>
+          </div>
+        </div>
+        ` : ''}
+        
+        <div class="signature">
+          <div>
+            Сдал: ________________<br>
+            <small>подпись отправителя</small>
+          </div>
+          <div>
+            Принял: ________________<br>
+            <small>подпись сотрудника</small>
+          </div>
+        </div>
+        
+        <div class="footer">
+          TAJLINE.TJ - Ваш надежный партнер в грузоперевозках<br>
+          Дата печати: ${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU')}
+        </div>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.write(invoiceHtml);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
+  };
+
   const updateCargoStatus = async (cargoId, status, warehouseLocation = null) => {
     try {
       const params = new URLSearchParams({ status });
