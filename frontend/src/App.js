@@ -864,10 +864,14 @@ function App() {
           <div className="max-w-md mx-auto">
             <div className="text-center mb-8">
               <div className="flex items-center justify-center mb-4">
-                <Truck className="h-12 w-12 text-blue-600 mr-2" />
-                <h1 className="text-3xl font-bold text-gray-900">КаргоТранс</h1>
+                <div className="bg-blue-600 text-white p-2 rounded-lg mr-3">
+                  <Truck className="h-12 w-12" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-blue-600">TAJLINE.TJ</h1>
+                  <p className="text-gray-600">Грузоперевозки Москва-Таджикистан</p>
+                </div>
               </div>
-              <p className="text-gray-600">Грузоперевозки Москва-Таджикистан</p>
             </div>
 
             <Tabs defaultValue="login" className="w-full">
