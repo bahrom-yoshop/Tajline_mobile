@@ -23,9 +23,12 @@ function App() {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [activeTab, setActiveTab] = useState('cargo');
+  const [activeSection, setActiveSection] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [cargo, setCargo] = useState([]);
   const [users, setUsers] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
   const [warehouseCargo, setWarehouseCargo] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -44,6 +47,13 @@ function App() {
     declared_value: '',
     sender_address: '',
     recipient_address: ''
+  });
+  const [warehouseForm, setWarehouseForm] = useState({
+    name: '',
+    location: '',
+    blocks_count: 1,
+    shelves_per_block: 1,
+    cells_per_shelf: 10
   });
 
   const [alerts, setAlerts] = useState([]);
