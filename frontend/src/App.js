@@ -2852,6 +2852,258 @@ function App() {
                   )}
                 </div>
               )}
+
+              {/* Логистика */}
+              {activeSection === 'logistics' && (
+                <div className="space-y-6">
+                  {/* Приём машину */}
+                  {activeTab === 'logistics-add-transport' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Plus className="mr-2 h-5 w-5" />
+                          Приём машину
+                        </CardTitle>
+                        <CardDescription>
+                          Добавить новый транспорт в систему логистики
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <form onSubmit={handleCreateTransport} className="space-y-4 max-w-2xl">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="driver_name">ФИО водителя</Label>
+                              <Input
+                                id="driver_name"
+                                value={transportForm.driver_name}
+                                onChange={(e) => setTransportForm({...transportForm, driver_name: e.target.value})}
+                                placeholder="Иванов Иван Иванович"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="driver_phone">Телефон водителя</Label>
+                              <Input
+                                id="driver_phone"
+                                type="tel"
+                                value={transportForm.driver_phone}
+                                onChange={(e) => setTransportForm({...transportForm, driver_phone: e.target.value})}
+                                placeholder="+79123456789"
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="transport_number">Номер транспорта</Label>
+                              <Input
+                                id="transport_number"
+                                value={transportForm.transport_number}
+                                onChange={(e) => setTransportForm({...transportForm, transport_number: e.target.value})}
+                                placeholder="А123БВ77"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="capacity_kg">Объём допускаемых грузов (кг)</Label>
+                              <Input
+                                id="capacity_kg"
+                                type="number"
+                                step="0.1"
+                                value={transportForm.capacity_kg}
+                                onChange={(e) => setTransportForm({...transportForm, capacity_kg: e.target.value})}
+                                placeholder="5000"
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="direction">Направление</Label>
+                            <Input
+                              id="direction"
+                              value={transportForm.direction}
+                              onChange={(e) => setTransportForm({...transportForm, direction: e.target.value})}
+                              placeholder="Москва - Душанбе"
+                              required
+                            />
+                          </div>
+
+                          <Button type="submit" className="w-full">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Сохранить транспорт
+                          </Button>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Список транспортов */}
+                  {activeTab === 'logistics-transport-list' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Truck className="mr-2 h-5 w-5" />
+                            Список транспортов ({transports.filter(t => t.status === 'empty' || t.status === 'filled').length})
+                          </div>
+                          <Button onClick={() => fetchTransports()}>
+                            Обновить
+                          </Button>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {transports.filter(transport => transport.status === 'empty' || transport.status === 'filled').length === 0 ? (
+                            <div className="col-span-full text-center py-8">
+                              <Truck className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                              <p className="text-gray-500">Нет доступных транспортов</p>
+                            </div>
+                          ) : (
+                            transports.filter(transport => transport.status === 'empty' || transport.status === 'filled').map((transport) => (
+                              <Card key={transport.id} className="p-4">
+                                <div className="space-y-3">
+                                  <div className="flex justify-between items-start">
+                                    <h3 className="font-semibold text-lg">{transport.transport_number}</h3>
+                                    <Badge variant={transport.status === 'empty' ? 'secondary' : 'default'}>
+                                      {transport.status === 'empty' ? 'Пустой' : 'Заполнено'}
+                                    </Badge>
+                                  </div>
+                                  
+                                  <div className="space-y-2 text-sm">
+                                    <p><strong>ФИО водителя:</strong> {transport.driver_name}</p>
+                                    <p><strong>Телефон водителя:</strong> {transport.driver_phone}</p>
+                                    <p><strong>Направление:</strong> {transport.direction}</p>
+                                    <p><strong>Объём:</strong> {transport.current_load_kg} / {transport.capacity_kg} кг</p>
+                                  </div>
+                                  
+                                  <Button 
+                                    onClick={() => {
+                                      setSelectedTransport(transport);
+                                      fetchTransportCargoList(transport.id);
+                                      fetchAvailableCargoForTransport();
+                                      setTransportManagementModal(true);
+                                    }}
+                                    className="w-full"
+                                    variant="outline"
+                                  >
+                                    Управление
+                                  </Button>
+                                </div>
+                              </Card>
+                            ))
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* В пути */}
+                  {activeTab === 'logistics-in-transit' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Clock className="mr-2 h-5 w-5" />
+                          Транспорт в пути ({transports.filter(t => t.status === 'in_transit').length})
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {transports.filter(transport => transport.status === 'in_transit').length === 0 ? (
+                            <div className="text-center py-8">
+                              <Clock className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                              <p className="text-gray-500">Нет транспорта в пути</p>
+                            </div>
+                          ) : (
+                            transports.filter(transport => transport.status === 'in_transit').map((transport) => (
+                              <Card key={transport.id} className="p-4">
+                                <div className="flex justify-between items-start">
+                                  <div className="space-y-2">
+                                    <h3 className="font-semibold text-lg">{transport.transport_number}</h3>
+                                    <p className="text-sm text-gray-600"><strong>Водитель:</strong> {transport.driver_name}</p>
+                                    <p className="text-sm text-gray-600"><strong>Направление:</strong> {transport.direction}</p>
+                                    <p className="text-sm text-gray-600"><strong>Груз:</strong> {transport.current_load_kg} кг ({transport.cargo_list.length} мест)</p>
+                                    <p className="text-sm text-gray-600"><strong>Отправлен:</strong> {new Date(transport.dispatched_at).toLocaleDateString('ru-RU')} {new Date(transport.dispatched_at).toLocaleTimeString('ru-RU')}</p>
+                                  </div>
+                                  <Badge className="bg-yellow-100 text-yellow-800">В пути</Badge>
+                                </div>
+                              </Card>
+                            ))
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* На место назначения */}
+                  {activeTab === 'logistics-arrived' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <MapPin className="mr-2 h-5 w-5" />
+                          На место назначения ({transports.filter(t => t.status === 'arrived').length})
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {transports.filter(transport => transport.status === 'arrived').length === 0 ? (
+                            <div className="text-center py-8">
+                              <MapPin className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                              <p className="text-gray-500">Нет транспорта на месте назначения</p>
+                            </div>
+                          ) : (
+                            transports.filter(transport => transport.status === 'arrived').map((transport) => (
+                              <Card key={transport.id} className="p-4">
+                                <div className="flex justify-between items-start">
+                                  <div className="space-y-2">
+                                    <h3 className="font-semibold text-lg">{transport.transport_number}</h3>
+                                    <p className="text-sm text-gray-600"><strong>Водитель:</strong> {transport.driver_name}</p>
+                                    <p className="text-sm text-gray-600"><strong>Направление:</strong> {transport.direction}</p>
+                                    <p className="text-sm text-gray-600"><strong>Груз:</strong> {transport.current_load_kg} кг ({transport.cargo_list.length} мест)</p>
+                                  </div>
+                                  <Badge className="bg-green-100 text-green-800">Прибыл</Badge>
+                                </div>
+                              </Card>
+                            ))
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* История транспортировки */}
+                  {activeTab === 'logistics-history' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <FileText className="mr-2 h-5 w-5" />
+                          История транспортировки
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {transports.filter(transport => transport.status === 'completed').map((transport) => (
+                            <Card key={transport.id} className="p-4 bg-gray-50">
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-start">
+                                  <h3 className="font-semibold text-lg">{transport.transport_number}</h3>
+                                  <Badge variant="outline">Завершено</Badge>
+                                </div>
+                                <p className="text-sm text-gray-600"><strong>Водитель:</strong> {transport.driver_name}</p>
+                                <p className="text-sm text-gray-600"><strong>Направление:</strong> {transport.direction}</p>
+                                <p className="text-sm text-gray-600"><strong>Груз:</strong> {transport.current_load_kg} кг ({transport.cargo_list.length} мест)</p>
+                                <p className="text-sm text-gray-600"><strong>Завершен:</strong> {transport.completed_at && new Date(transport.completed_at).toLocaleDateString('ru-RU')} {transport.completed_at && new Date(transport.completed_at).toLocaleTimeString('ru-RU')}</p>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+
               {/* Уведомления */}
               {activeSection === 'notifications-management' && (
                 <div className="space-y-6">
