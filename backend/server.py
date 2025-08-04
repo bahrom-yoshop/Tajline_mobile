@@ -473,6 +473,181 @@ async def mark_notification_read(
     
     return {"message": "Notification marked as read"}
 
+# Управление складами
+@app.post("/api/warehouses/create")
+async def create_warehouse(
+    warehouse_data: WarehouseCreate,
+    current_user: User = Depends(get_current_user)
+):
+    # Проверяем права доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    warehouse_id = str(uuid.uuid4())
+    
+    # Рассчитываем общую вместимость
+    total_capacity = warehouse_data.blocks_count * warehouse_data.shelves_per_block * warehouse_data.cells_per_shelf
+    
+    warehouse = {
+        "id": warehouse_id,
+        "name": warehouse_data.name,
+        "location": warehouse_data.location,
+        "blocks_count": warehouse_data.blocks_count,
+        "shelves_per_block": warehouse_data.shelves_per_block,
+        "cells_per_shelf": warehouse_data.cells_per_shelf,
+        "total_capacity": total_capacity,
+        "created_by": current_user.id,
+        "created_at": datetime.utcnow(),
+        "is_active": True
+    }
+    
+    # Создаем склад
+    db.warehouses.insert_one(warehouse)
+    
+    # Генерируем структуру склада (блоки, полки, ячейки)
+    cells_created = generate_warehouse_structure(
+        warehouse_id,
+        warehouse_data.blocks_count,
+        warehouse_data.shelves_per_block,
+        warehouse_data.cells_per_shelf
+    )
+    
+    # Создаем уведомление
+    create_notification(
+        current_user.id,
+        f"Создан новый склад '{warehouse_data.name}' с {cells_created} ячейками",
+        None
+    )
+    
+    return Warehouse(**warehouse)
+
+@app.get("/api/warehouses")
+async def get_warehouses(current_user: User = Depends(get_current_user)):
+    # Проверяем права доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    if current_user.role == UserRole.ADMIN:
+        # Админ видит все склады
+        warehouses = list(db.warehouses.find({"is_active": True}))
+    else:
+        # Оператор видит только свои склады
+        warehouses = list(db.warehouses.find({"created_by": current_user.id, "is_active": True}))
+    
+    return [Warehouse(**warehouse) for warehouse in warehouses]
+
+@app.get("/api/warehouses/{warehouse_id}/structure")
+async def get_warehouse_structure(
+    warehouse_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    # Проверяем права доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Проверяем существование склада
+    warehouse = db.warehouses.find_one({"id": warehouse_id, "is_active": True})
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="Warehouse not found")
+    
+    # Получаем все ячейки склада
+    cells = list(db.warehouse_cells.find({"warehouse_id": warehouse_id}))
+    
+    # Группируем ячейки по блокам и полкам
+    structure = {}
+    for cell in cells:
+        block_key = f"block_{cell['block_number']}"
+        shelf_key = f"shelf_{cell['shelf_number']}"
+        
+        if block_key not in structure:
+            structure[block_key] = {}
+        if shelf_key not in structure[block_key]:
+            structure[block_key][shelf_key] = []
+        
+        structure[block_key][shelf_key].append({
+            "cell_id": cell["id"],
+            "cell_number": cell["cell_number"],
+            "location_code": cell["location_code"],
+            "is_occupied": cell["is_occupied"],
+            "cargo_id": cell.get("cargo_id")
+        })
+    
+    return {
+        "warehouse": Warehouse(**warehouse),
+        "structure": structure,
+        "total_cells": len(cells),
+        "occupied_cells": len([c for c in cells if c["is_occupied"]]),
+        "available_cells": len([c for c in cells if not c["is_occupied"]])
+    }
+
+@app.put("/api/warehouses/{warehouse_id}/assign-cargo")
+async def assign_cargo_to_cell(
+    warehouse_id: str,
+    cargo_id: str,
+    cell_location_code: str,
+    current_user: User = Depends(get_current_user)
+):
+    # Проверяем права доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Проверяем существование груза
+    cargo = db.cargo.find_one({"id": cargo_id})
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Находим ячейку по location_code
+    cell = db.warehouse_cells.find_one({
+        "warehouse_id": warehouse_id,
+        "location_code": cell_location_code,
+        "is_occupied": False
+    })
+    
+    if not cell:
+        raise HTTPException(status_code=400, detail="Cell not found or already occupied")
+    
+    # Обновляем ячейку
+    db.warehouse_cells.update_one(
+        {"id": cell["id"]},
+        {"$set": {"is_occupied": True, "cargo_id": cargo_id}}
+    )
+    
+    # Обновляем груз
+    db.cargo.update_one(
+        {"id": cargo_id},
+        {"$set": {"warehouse_location": cell_location_code, "updated_at": datetime.utcnow()}}
+    )
+    
+    # Создаем уведомление для отправителя
+    create_notification(
+        cargo["sender_id"],
+        f"Груз {cargo['cargo_number']} размещен на складе в ячейке {cell_location_code}",
+        cargo_id
+    )
+    
+    return {"message": "Cargo assigned to cell successfully", "location": cell_location_code}
+
+@app.delete("/api/warehouses/{warehouse_id}")
+async def delete_warehouse(
+    warehouse_id: str,
+    current_user: User = Depends(require_role(UserRole.ADMIN))
+):
+    # Проверяем, есть ли грузы в этом складе
+    occupied_cells = db.warehouse_cells.find_one({"warehouse_id": warehouse_id, "is_occupied": True})
+    if occupied_cells:
+        raise HTTPException(status_code=400, detail="Cannot delete warehouse with occupied cells")
+    
+    # Помечаем склад как неактивный
+    result = db.warehouses.update_one(
+        {"id": warehouse_id},
+        {"$set": {"is_active": False}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Warehouse not found")
+    
+    return {"message": "Warehouse deleted successfully"}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
