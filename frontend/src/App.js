@@ -1806,6 +1806,96 @@ function App() {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              {/* Связаться с нами */}
+              <TabsContent value="contact">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <MessageCircle className="mr-2 h-5 w-5" />
+                      Связаться с нами
+                    </CardTitle>
+                    <CardDescription>
+                      Выберите удобный способ связи с нашей службой поддержки
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* WhatsApp */}
+                      <Card className="p-4 hover:bg-green-50 cursor-pointer transition-colors" onClick={handleWhatsAppContact}>
+                        <div className="text-center space-y-3">
+                          <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto">
+                            <MessageCircle className="w-8 h-8 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-green-700">WhatsApp</h3>
+                            <p className="text-sm text-gray-600">Быстрая связь через мессенджер</p>
+                            <p className="text-xs text-gray-500 mt-1">+7 (912) 345-67-89</p>
+                          </div>
+                          <Button className="w-full bg-green-500 hover:bg-green-600">
+                            Написать в WhatsApp
+                          </Button>
+                        </div>
+                      </Card>
+
+                      {/* Telegram */}
+                      <Card className="p-4 hover:bg-blue-50 cursor-pointer transition-colors" onClick={handleTelegramContact}>
+                        <div className="text-center space-y-3">
+                          <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto">
+                            <MessageCircle className="w-8 h-8 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-blue-700">Telegram</h3>
+                            <p className="text-sm text-gray-600">Общение в мессенджере</p>
+                            <p className="text-xs text-gray-500 mt-1">@tajline_support</p>
+                          </div>
+                          <Button className="w-full bg-blue-500 hover:bg-blue-600">
+                            Написать в Telegram
+                          </Button>
+                        </div>
+                      </Card>
+
+                      {/* Онлайн чат */}
+                      <Card className="p-4 hover:bg-purple-50 cursor-pointer transition-colors" onClick={handleOnlineChat}>
+                        <div className="text-center space-y-3">
+                          <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto">
+                            <MessageCircle className="w-8 h-8 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-purple-700">Онлайн чат</h3>
+                            <p className="text-sm text-gray-600">Прямая связь с оператором</p>
+                            <p className="text-xs text-gray-500 mt-1">Мгновенные ответы</p>
+                          </div>
+                          <Button className="w-full bg-purple-500 hover:bg-purple-600">
+                            Начать чат
+                          </Button>
+                        </div>
+                      </Card>
+                    </div>
+
+                    {/* Информация о времени работы */}
+                    <div className="mt-6 bg-gray-50 p-4 rounded-lg">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <Clock className="w-5 h-5 text-gray-500" />
+                        <span className="font-medium text-gray-700">Время работы поддержки</span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                        <div>
+                          <p><strong>Понедельник - Пятница:</strong></p>
+                          <p>9:00 - 18:00 (МСК)</p>
+                        </div>
+                        <div>
+                          <p><strong>Суббота - Воскресенье:</strong></p>
+                          <p>10:00 - 16:00 (МСК)</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 p-2 bg-green-100 rounded text-sm text-green-700">
+                        💬 WhatsApp и Telegram доступны 24/7
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </Tabs>
           ) : (
             /* Для админа и оператора склада - новый интерфейс с боковым меню */
