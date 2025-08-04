@@ -1172,14 +1172,85 @@ function App() {
                   <Badge variant="outline">{getRoleLabel(user.role)}</Badge>
                 </div>
                 
-                <div className="relative">
-                  <Bell className="h-5 w-5 text-gray-600" />
-                  {notifications.filter(n => !n.is_read).length > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {notifications.filter(n => !n.is_read).length}
-                    </span>
-                  )}
-                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div className="relative cursor-pointer">
+                      <Bell className="h-5 w-5 text-gray-600 hover:text-gray-800 transition-colors" />
+                      {(notifications.filter(n => !n.is_read).length + systemNotifications.filter(n => !n.is_read).length) > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                          {notifications.filter(n => !n.is_read).length + systemNotifications.filter(n => !n.is_read).length}
+                        </span>
+                      )}
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
+                    <div className="px-3 py-2 border-b">
+                      <h3 className="font-semibold text-sm">Уведомления</h3>
+                    </div>
+                    
+                    {/* Личные уведомления */}
+                    {notifications.length > 0 && (
+                      <>
+                        <div className="px-3 py-1 bg-gray-50">
+                          <p className="text-xs font-medium text-gray-600">Личные уведомления</p>
+                        </div>
+                        {notifications.slice(0, 5).map((notification) => (
+                          <DropdownMenuItem key={`notification-${notification.id}`} className="flex-col items-start p-3 cursor-default">
+                            <div className={`w-full ${!notification.is_read ? 'font-medium' : ''}`}>
+                              <p className="text-sm leading-tight">{notification.message}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {new Date(notification.created_at).toLocaleString('ru-RU')}
+                              </p>
+                              {!notification.is_read && (
+                                <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mt-1"></span>
+                              )}
+                            </div>
+                          </DropdownMenuItem>
+                        ))}
+                        {notifications.length > 5 && (
+                          <div className="px-3 py-1 text-xs text-gray-500 text-center">
+                            И еще {notifications.length - 5} уведомлений...
+                          </div>
+                        )}
+                      </>
+                    )}
+                    
+                    {/* Системные уведомления */}
+                    {systemNotifications.length > 0 && (
+                      <>
+                        {notifications.length > 0 && <DropdownMenuSeparator />}
+                        <div className="px-3 py-1 bg-gray-50">
+                          <p className="text-xs font-medium text-gray-600">Системные уведомления</p>
+                        </div>
+                        {systemNotifications.slice(0, 5).map((notification) => (
+                          <DropdownMenuItem key={`system-${notification.id}`} className="flex-col items-start p-3 cursor-default">
+                            <div className={`w-full ${!notification.is_read ? 'font-medium' : ''}`}>
+                              <p className="text-sm leading-tight">{notification.message}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {new Date(notification.created_at).toLocaleString('ru-RU')}
+                              </p>
+                              {!notification.is_read && (
+                                <span className="inline-block w-2 h-2 bg-red-500 rounded-full mt-1"></span>
+                              )}
+                            </div>
+                          </DropdownMenuItem>
+                        ))}
+                        {systemNotifications.length > 5 && (
+                          <div className="px-3 py-1 text-xs text-gray-500 text-center">
+                            И еще {systemNotifications.length - 5} уведомлений...
+                          </div>
+                        )}
+                      </>
+                    )}
+                    
+                    {/* Если нет уведомлений */}
+                    {notifications.length === 0 && systemNotifications.length === 0 && (
+                      <div className="px-3 py-8 text-center text-gray-500 text-sm">
+                        Нет уведомлений
+                      </div>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 
                 <Button variant="outline" onClick={handleLogout}>
                   Выйти
