@@ -20,7 +20,7 @@ class CargoTransportAPITester:
         self.tests_run = 0
         self.tests_passed = 0
         
-        print(f"🚛 КаргоТранс API Tester")
+        print(f"🚛 TAJLINE.TJ API Tester")
         print(f"📡 Base URL: {self.base_url}")
         print("=" * 60)
 
