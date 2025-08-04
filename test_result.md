@@ -104,6 +104,91 @@
 
 user_problem_statement: "Implement notification dropdown menu functionality. User requests that clicking the notification bell icon should show dropdown menu with notification content on all relevant pages."
 
+backend:
+  - task: "Authentication System - User Registration"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test user registration with different roles (user, admin, warehouse_operator) and JWT token generation"
+
+  - task: "Authentication System - User Login"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test user login functionality and JWT token validation"
+
+  - task: "Authentication System - Role-based Access Control"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test if users can access endpoints based on their roles (user, admin, warehouse_operator)"
+
+  - task: "Notification System - Personal Notifications"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test /api/notifications endpoint for personal notification retrieval and filtering"
+
+  - task: "Notification System - System Notifications"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test /api/system-notifications endpoint for system notification functionality"
+
+  - task: "Database Connectivity - MongoDB Integration"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test MongoDB connection, user storage/retrieval, and notification storage"
+
+  - task: "API Endpoints - CORS and Error Handling"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to verify proper CORS configuration and error handling across all endpoints"
+
 frontend:
   - task: "Add notification dropdown menu"
     implemented: false
