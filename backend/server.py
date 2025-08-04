@@ -1526,8 +1526,8 @@ async def get_transport_history(
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Получить завершенные и удаленные транспорты
-    completed_transports = list(db.transports.find({"status": TransportStatus.COMPLETED}).sort("completed_at", -1))
-    deleted_transports = list(db.transport_history.find({}).sort("deleted_at", -1))
+    completed_transports = list(db.transports.find({"status": TransportStatus.COMPLETED}, {"_id": 0}).sort("completed_at", -1))
+    deleted_transports = list(db.transport_history.find({}, {"_id": 0}).sort("deleted_at", -1))
     
     history = []
     
