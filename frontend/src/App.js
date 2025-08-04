@@ -476,6 +476,28 @@ function App() {
     }
   };
 
+  // Contact functions
+  const handleWhatsAppContact = () => {
+    // Открыть WhatsApp с предустановленным сообщением
+    const phoneNumber = "79123456789"; // Номер службы поддержки
+    const message = "Здравствуйте! У меня есть вопрос по грузоперевозкам TAJLINE.TJ";
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const handleTelegramContact = () => {
+    // Открыть Telegram
+    const telegramUsername = "tajline_support"; // Username службы поддержки
+    const telegramUrl = `https://t.me/${telegramUsername}`;
+    window.open(telegramUrl, '_blank');
+  };
+
+  const handleOnlineChat = () => {
+    // Здесь можно интегрировать онлайн чат (например, Tawk.to, Intercom, или собственное решение)
+    showAlert('Онлайн чат временно недоступен. Пожалуйста, используйте WhatsApp или Telegram.', 'info');
+    // Альтернативно можно открыть форму обратной связи
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
