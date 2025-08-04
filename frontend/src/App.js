@@ -678,7 +678,10 @@ function App() {
     setOperatorCargo([]);
     setAvailableCargo([]);
     setCargoHistory([]);
+    setUnpaidCargo([]);
+    setPaymentHistory([]);
     setNotifications([]);
+    setUsersByRole({ user: [], admin: [], warehouse_operator: [] });
     showAlert('Вы вышли из системы', 'info');
   };
 
