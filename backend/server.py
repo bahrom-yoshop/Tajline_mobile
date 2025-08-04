@@ -205,6 +205,48 @@ class PaymentCreate(BaseModel):
     transaction_type: str = "cash"
     notes: Optional[str] = None
 
+class CargoRequest(BaseModel):
+    id: str
+    request_number: str
+    sender_full_name: str
+    sender_phone: str
+    recipient_full_name: str
+    recipient_phone: str
+    recipient_address: str
+    pickup_address: str
+    cargo_name: str
+    weight: float
+    declared_value: float
+    description: str
+    route: RouteType
+    status: str = "pending"  # pending, accepted, rejected
+    created_at: datetime
+    updated_at: datetime
+    created_by: str  # ID пользователя
+    processed_by: Optional[str] = None  # ID оператора, который обработал
+
+class CargoRequestCreate(BaseModel):
+    recipient_full_name: str = Field(..., min_length=2, max_length=100)
+    recipient_phone: str = Field(..., min_length=10, max_length=20)
+    recipient_address: str = Field(..., min_length=5, max_length=200)
+    pickup_address: str = Field(..., min_length=5, max_length=200)
+    cargo_name: str = Field(..., min_length=2, max_length=100)
+    weight: float = Field(..., gt=0, le=1000)
+    declared_value: float = Field(..., gt=0)
+    description: str = Field(..., min_length=1, max_length=500)
+    route: RouteType = RouteType.MOSCOW_TO_TAJIKISTAN
+
+class SystemNotification(BaseModel):
+    id: str
+    title: str
+    message: str
+    notification_type: str  # cargo_status, payment, request, system
+    related_id: Optional[str] = None  # ID груза, заявки и т.д.
+    user_id: Optional[str] = None  # Для персональных уведомлений
+    is_read: bool = False
+    created_at: datetime
+    created_by: str
+
 # Утилиты
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
