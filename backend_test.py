@@ -97,7 +97,7 @@ class CargoTransportAPITester:
                 "name": "Administrator", 
                 "data": {
                     "full_name": "Админ Системы",
-                    "phone": "+79987654321",
+                    "phone": "+79999888777",
                     "password": "admin123",
                     "role": "admin"
                 }
@@ -105,8 +105,8 @@ class CargoTransportAPITester:
             {
                 "name": "Warehouse Operator",
                 "data": {
-                    "full_name": "Склад Операторов", 
-                    "phone": "+79555666777",
+                    "full_name": "Оператор Складской", 
+                    "phone": "+79777888999",
                     "password": "warehouse123",
                     "role": "warehouse_operator"
                 }
