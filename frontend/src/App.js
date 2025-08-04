@@ -150,10 +150,15 @@ function App() {
         fetchAllCargo();
         fetchWarehouses();
         fetchOperatorCargo();
+        fetchUsersByRole();
+        fetchUnpaidCargo();
+        fetchPaymentHistory();
       } else if (user.role === 'warehouse_operator') {
         fetchWarehouseCargo();
         fetchWarehouses();
         fetchOperatorCargo();
+        fetchUnpaidCargo();
+        fetchPaymentHistory();
       } else {
         fetchMyCargo();
       }
