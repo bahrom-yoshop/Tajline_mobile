@@ -1502,6 +1502,7 @@ function App() {
                                   <TableHead>Статус оплаты</TableHead>
                                   <TableHead>Расположение</TableHead>
                                   <TableHead>Дата приема</TableHead>
+                              <TableHead>Действия</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
