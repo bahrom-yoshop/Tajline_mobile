@@ -1454,6 +1454,339 @@ async def get_my_cargo_requests(
     requests = list(db.cargo_requests.find({"created_by": current_user.id}).sort("created_at", -1))
     return [CargoRequest(**request) for request in requests]
 
+# === ТРАНСПОРТ API ===
+
+@app.post("/api/transport/create")
+async def create_transport(
+    transport: TransportCreate,
+    current_user: User = Depends(get_current_user)
+):
+    # Проверка доступа (только админы и операторы)
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Проверка уникальности номера транспорта
+    existing_transport = db.transports.find_one({"transport_number": transport.transport_number})
+    if existing_transport:
+        raise HTTPException(status_code=400, detail="Transport number already exists")
+    
+    transport_id = str(uuid.uuid4())
+    transport_data = {
+        "id": transport_id,
+        "transport_number": transport.transport_number,
+        "driver_name": transport.driver_name,
+        "driver_phone": transport.driver_phone,
+        "capacity_kg": transport.capacity_kg,
+        "direction": transport.direction,
+        "status": TransportStatus.EMPTY,
+        "current_load_kg": 0.0,
+        "cargo_list": [],
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "dispatched_at": None,
+        "completed_at": None
+    }
+    
+    db.transports.insert_one(transport_data)
+    
+    # Создать системное уведомление
+    create_system_notification(
+        "Новый транспорт",
+        f"Добавлен новый транспорт {transport.transport_number} (водитель: {transport.driver_name})",
+        "transport",
+        transport_id,
+        None,
+        current_user.id
+    )
+    
+    return {"message": "Transport created successfully", "transport_id": transport_id}
+
+@app.get("/api/transport/list")
+async def get_transport_list(
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    query = {}
+    if status and status != "all":
+        query["status"] = status
+    
+    transports = list(db.transports.find(query).sort("created_at", -1))
+    return [Transport(**transport) for transport in transports]
+
+@app.get("/api/transport/{transport_id}")
+async def get_transport(
+    transport_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    transport = db.transports.find_one({"id": transport_id})
+    if not transport:
+        raise HTTPException(status_code=404, detail="Transport not found")
+    
+    return Transport(**transport)
+
+@app.get("/api/transport/{transport_id}/cargo-list")
+async def get_transport_cargo(
+    transport_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    transport = db.transports.find_one({"id": transport_id})
+    if not transport:
+        raise HTTPException(status_code=404, detail="Transport not found")
+    
+    # Получить детали грузов
+    cargo_details = []
+    for cargo_id in transport.get("cargo_list", []):
+        cargo = db.cargo.find_one({"id": cargo_id})
+        if cargo:
+            cargo_details.append({
+                "id": cargo["id"],
+                "cargo_number": cargo["cargo_number"],
+                "description": cargo["description"],
+                "weight": cargo["weight"],
+                "declared_value": cargo["declared_value"],
+                "recipient_name": cargo["recipient_name"]
+            })
+    
+    return {
+        "transport": Transport(**transport),
+        "cargo_list": cargo_details,
+        "total_weight": sum(c["weight"] for c in cargo_details),
+        "cargo_count": len(cargo_details)
+    }
+
+@app.post("/api/transport/{transport_id}/place-cargo")
+async def place_cargo_on_transport(
+    transport_id: str,
+    placement: TransportCargoPlacement,
+    current_user: User = Depends(get_current_user)
+):
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    transport = db.transports.find_one({"id": transport_id})
+    if not transport:
+        raise HTTPException(status_code=404, detail="Transport not found")
+    
+    if transport["status"] not in [TransportStatus.EMPTY, TransportStatus.FILLED]:
+        raise HTTPException(status_code=400, detail="Cannot place cargo on transport in current status")
+    
+    # Проверить грузы и их доступность
+    total_weight = 0
+    cargo_details = []
+    
+    for cargo_id in placement.cargo_ids:
+        cargo = db.cargo.find_one({"id": cargo_id})
+        if not cargo:
+            raise HTTPException(status_code=404, detail=f"Cargo {cargo_id} not found")
+        
+        # Проверить, что груз на складе и доступен для загрузки
+        if cargo["status"] not in ["accepted", "arrived_destination"]:
+            raise HTTPException(status_code=400, detail=f"Cargo {cargo['cargo_number']} is not available for loading")
+        
+        if not cargo.get("warehouse_location"):
+            raise HTTPException(status_code=400, detail=f"Cargo {cargo['cargo_number']} is not in warehouse")
+        
+        total_weight += cargo["weight"]
+        cargo_details.append(cargo)
+    
+    # Проверить, что груз помещается в транспорт
+    current_load = transport.get("current_load_kg", 0)
+    if current_load + total_weight > transport["capacity_kg"]:
+        raise HTTPException(status_code=400, detail="Transport capacity exceeded")
+    
+    # Обновить транспорт
+    new_cargo_list = list(set(transport.get("cargo_list", []) + placement.cargo_ids))
+    new_load = current_load + total_weight
+    new_status = TransportStatus.FILLED if new_load >= transport["capacity_kg"] * 0.9 else transport["status"]
+    
+    db.transports.update_one(
+        {"id": transport_id},
+        {"$set": {
+            "cargo_list": new_cargo_list,
+            "current_load_kg": new_load,
+            "status": new_status,
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    # Обновить статус грузов и освободить ячейки склада
+    for cargo in cargo_details:
+        # Обновить статус груза
+        db.cargo.update_one(
+            {"id": cargo["id"]},
+            {"$set": {
+                "status": "in_transit",
+                "updated_at": datetime.utcnow(),
+                "transport_id": transport_id
+            }}
+        )
+        
+        # Освободить ячейку склада
+        if cargo.get("warehouse_location"):
+            # Парсить местоположение (например: "Склад 1 - Блок 1, Полка 2, Ячейка 5")
+            location_parts = cargo["warehouse_location"].split(" - ")
+            if len(location_parts) >= 2:
+                warehouse_name = location_parts[0]
+                warehouse = db.warehouses.find_one({"name": warehouse_name})
+                if warehouse:
+                    # Освободить ячейку (установить cargo_id в null)
+                    location_detail = location_parts[1]  # "Блок 1, Полка 2, Ячейка 5"
+                    # Логика освобождения ячейки может быть добавлена здесь
+        
+        # Создать уведомление пользователю
+        create_notification(
+            cargo["sender_id"],
+            f"Ваш груз {cargo['cargo_number']} загружен в транспорт {transport['transport_number']} и готов к отправке",
+            cargo["id"]
+        )
+    
+    return {"message": f"Successfully placed {len(placement.cargo_ids)} cargo items on transport"}
+
+@app.post("/api/transport/{transport_id}/dispatch")
+async def dispatch_transport(
+    transport_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    transport = db.transports.find_one({"id": transport_id})
+    if not transport:
+        raise HTTPException(status_code=404, detail="Transport not found")
+    
+    if transport["status"] != TransportStatus.FILLED:
+        raise HTTPException(status_code=400, detail="Transport must be filled before dispatch")
+    
+    # Обновить статус транспорта
+    db.transports.update_one(
+        {"id": transport_id},
+        {"$set": {
+            "status": TransportStatus.IN_TRANSIT,
+            "dispatched_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    # Обновить статус всех грузов и отправить уведомления
+    for cargo_id in transport.get("cargo_list", []):
+        cargo = db.cargo.find_one({"id": cargo_id})
+        if cargo:
+            # Обновить статус груза
+            db.cargo.update_one(
+                {"id": cargo_id},
+                {"$set": {
+                    "status": "in_transit",
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+            
+            # Создать уведомление пользователю
+            create_notification(
+                cargo["sender_id"],
+                f"Ваш груз {cargo['cargo_number']} отправлен в место назначения на транспорте {transport['transport_number']}",
+                cargo_id
+            )
+    
+    # Создать системное уведомление
+    create_system_notification(
+        "Транспорт отправлен",
+        f"Транспорт {transport['transport_number']} отправлен в направлении {transport['direction']} с {len(transport.get('cargo_list', []))} грузами",
+        "transport",
+        transport_id,
+        None,
+        current_user.id
+    )
+    
+    return {"message": "Transport dispatched successfully"}
+
+@app.delete("/api/transport/{transport_id}")
+async def delete_transport(
+    transport_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    transport = db.transports.find_one({"id": transport_id})
+    if not transport:
+        raise HTTPException(status_code=404, detail="Transport not found")
+    
+    # Проверить, что транспорт можно удалить (не в пути)
+    if transport["status"] == TransportStatus.IN_TRANSIT:
+        raise HTTPException(status_code=400, detail="Cannot delete transport that is in transit")
+    
+    # Если есть грузы, освободить их
+    if transport.get("cargo_list"):
+        for cargo_id in transport["cargo_list"]:
+            db.cargo.update_one(
+                {"id": cargo_id},
+                {"$set": {
+                    "status": "accepted",  # Вернуть на склад
+                    "updated_at": datetime.utcnow()
+                }, "$unset": {"transport_id": ""}}
+            )
+    
+    # Переместить транспорт в историю
+    transport_history = {
+        **transport,
+        "deleted_at": datetime.utcnow(),
+        "deleted_by": current_user.id
+    }
+    db.transport_history.insert_one(transport_history)
+    
+    # Удалить транспорт из активных
+    db.transports.delete_one({"id": transport_id})
+    
+    return {"message": "Transport deleted and moved to history"}
+
+@app.get("/api/transport/history")
+async def get_transport_history(
+    current_user: User = Depends(get_current_user)
+):
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Получить завершенные и удаленные транспорты
+    completed_transports = list(db.transports.find({"status": TransportStatus.COMPLETED}).sort("completed_at", -1))
+    deleted_transports = list(db.transport_history.find({}).sort("deleted_at", -1))
+    
+    history = []
+    
+    # Добавить завершенные транспорты
+    for transport in completed_transports:
+        history.append({
+            **transport,
+            "history_type": "completed"
+        })
+    
+    # Добавить удаленные транспорты
+    for transport in deleted_transports:
+        history.append({
+            **transport,
+            "history_type": "deleted"
+        })
+    
+    # Сортировать по дате
+    history.sort(key=lambda x: x.get("completed_at") or x.get("deleted_at") or x.get("created_at"), reverse=True)
+    
+    return history
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
