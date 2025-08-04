@@ -736,8 +736,9 @@ function App() {
         section: 'users',
         adminOnly: true,
         subsections: [
-          { id: 'users-list', label: 'Список пользователей' },
-          { id: 'users-roles', label: 'Управление ролями' }
+          { id: 'users-regular', label: 'Пользователи' },
+          { id: 'users-operators', label: 'Операторы склада' },
+          { id: 'users-admins', label: 'Администраторы' }
         ]
       },
       {
@@ -761,6 +762,17 @@ function App() {
           { id: 'warehouses-list', label: 'Список складов' },
           { id: 'warehouses-create', label: 'Создать склад' },
           { id: 'warehouses-manage', label: 'Управление товарами' }
+        ]
+      },
+      {
+        id: 'cashier',
+        label: 'Касса',
+        icon: <DollarSign className="w-5 h-5" />,
+        section: 'cashier',
+        subsections: [
+          { id: 'cashier-payment', label: 'Приём оплаты' },
+          { id: 'cashier-unpaid', label: 'Не оплачено' },
+          { id: 'cashier-history', label: 'История оплаты' }
         ]
       },
       {
