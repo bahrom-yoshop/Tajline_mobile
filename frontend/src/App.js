@@ -110,8 +110,10 @@ function App() {
       if (user.role === 'admin') {
         fetchUsers();
         fetchAllCargo();
+        fetchWarehouses();
       } else if (user.role === 'warehouse_operator') {
         fetchWarehouseCargo();
+        fetchWarehouses();
       } else {
         fetchMyCargo();
       }
