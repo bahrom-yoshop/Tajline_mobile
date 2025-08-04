@@ -109,6 +109,21 @@ function App() {
     route: 'moscow_to_tajikistan'
   });
 
+  // Transport states
+  const [transports, setTransports] = useState([]);
+  const [transportForm, setTransportForm] = useState({
+    driver_name: '',
+    driver_phone: '',
+    transport_number: '',
+    capacity_kg: '',
+    direction: ''
+  });
+  const [selectedTransport, setSelectedTransport] = useState(null);
+  const [transportManagementModal, setTransportManagementModal] = useState(false);
+  const [availableCargoForTransport, setAvailableCargoForTransport] = useState([]);
+  const [selectedCargoForPlacement, setSelectedCargoForPlacement] = useState([]);
+  const [transportCargoList, setTransportCargoList] = useState([]);
+
   const [alerts, setAlerts] = useState([]);
 
   const showAlert = (message, type = 'info') => {
