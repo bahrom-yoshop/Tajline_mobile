@@ -51,6 +51,13 @@ class RouteType(str, Enum):
     MOSCOW_TO_TAJIKISTAN = "moscow_to_tajikistan"
     TAJIKISTAN_TO_MOSCOW = "tajikistan_to_moscow"
 
+class TransportStatus(str, Enum):
+    EMPTY = "empty"
+    FILLED = "filled"
+    IN_TRANSIT = "in_transit"
+    ARRIVED = "arrived"
+    COMPLETED = "completed"
+
 # Pydantic модели
 class UserCreate(BaseModel):
     full_name: str = Field(..., min_length=2)
