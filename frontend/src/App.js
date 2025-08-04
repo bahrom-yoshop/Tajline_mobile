@@ -379,6 +379,100 @@ function App() {
     }
   };
 
+  // Transport functions
+  const fetchTransports = async (status = null) => {
+    try {
+      const params = status ? `?status=${status}` : '';
+      const data = await apiCall(`/api/transport/list${params}`);
+      setTransports(data);
+    } catch (error) {
+      console.error('Error fetching transports:', error);
+    }
+  };
+
+  const fetchTransportCargoList = async (transportId) => {
+    try {
+      const data = await apiCall(`/api/transport/${transportId}/cargo-list`);
+      setTransportCargoList(data);
+    } catch (error) {
+      console.error('Error fetching transport cargo list:', error);
+    }
+  };
+
+  const fetchAvailableCargoForTransport = async () => {
+    try {
+      // Получить грузы, которые находятся на складе и готовы для загрузки
+      const data = await apiCall('/api/operator/cargo/available');
+      setAvailableCargoForTransport(data.filter(cargo => 
+        cargo.status === 'accepted' && cargo.warehouse_location
+      ));
+    } catch (error) {
+      console.error('Error fetching available cargo for transport:', error);
+    }
+  };
+
+  const handleCreateTransport = async (e) => {
+    e.preventDefault();
+    try {
+      await apiCall('/api/transport/create', 'POST', {
+        ...transportForm,
+        capacity_kg: parseFloat(transportForm.capacity_kg)
+      });
+      showAlert('Транспорт успешно добавлен!', 'success');
+      setTransportForm({
+        driver_name: '',
+        driver_phone: '',
+        transport_number: '',
+        capacity_kg: '',
+        direction: ''
+      });
+      fetchTransports();
+    } catch (error) {
+      console.error('Create transport error:', error);
+    }
+  };
+
+  const handlePlaceCargoOnTransport = async (transportId, cargoIds) => {
+    try {
+      await apiCall(`/api/transport/${transportId}/place-cargo`, 'POST', {
+        transport_id: transportId,
+        cargo_ids: cargoIds
+      });
+      showAlert('Груз успешно размещен на транспорте!', 'success');
+      fetchTransports();
+      fetchTransportCargoList(transportId);
+      setSelectedCargoForPlacement([]);
+    } catch (error) {
+      console.error('Place cargo on transport error:', error);
+    }
+  };
+
+  const handleDispatchTransport = async (transportId) => {
+    if (window.confirm('Вы уверены, что хотите отправить этот транспорт?')) {
+      try {
+        await apiCall(`/api/transport/${transportId}/dispatch`, 'POST');
+        showAlert('Транспорт отправлен!', 'success');
+        fetchTransports();
+        setTransportManagementModal(false);
+      } catch (error) {
+        console.error('Dispatch transport error:', error);
+      }
+    }
+  };
+
+  const handleDeleteTransport = async (transportId) => {
+    if (window.confirm('Вы уверены, что хотите удалить этот транспорт?')) {
+      try {
+        await apiCall(`/api/transport/${transportId}`, 'DELETE');
+        showAlert('Транспорт удален!', 'success');
+        fetchTransports();
+        setTransportManagementModal(false);
+      } catch (error) {
+        console.error('Delete transport error:', error);
+      }
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
