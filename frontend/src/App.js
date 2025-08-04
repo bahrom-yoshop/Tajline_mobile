@@ -2656,6 +2656,177 @@ function App() {
                   )}
                 </div>
               )}
+              {/* Уведомления */}
+              {activeSection === 'notifications-management' && (
+                <div className="space-y-6">
+                  {/* Новые заявки */}
+                  {(activeTab === 'notifications-requests' || !activeTab || activeTab === 'notifications-management') && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Bell className="mr-2 h-5 w-5" />
+                            Новые заявки ({cargoRequests.length})
+                          </div>
+                          <Button onClick={fetchCargoRequests}>
+                            Обновить
+                          </Button>
+                        </CardTitle>
+                        <CardDescription>
+                          Заявки от пользователей на отправку грузов
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {cargoRequests.length === 0 ? (
+                            <div className="text-center py-8">
+                              <Bell className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                              <p className="text-gray-500">Новых заявок нет</p>
+                            </div>
+                          ) : (
+                            cargoRequests.map((request) => (
+                              <div key={request.id} className="border rounded-lg p-6 bg-blue-50">
+                                <div className="flex justify-between items-start mb-4">
+                                  <div>
+                                    <h3 className="text-lg font-semibold text-blue-800">{request.request_number}</h3>
+                                    <p className="text-sm text-gray-600">Подана: {new Date(request.created_at).toLocaleDateString('ru-RU')} {new Date(request.created_at).toLocaleTimeString('ru-RU')}</p>
+                                  </div>
+                                  <Badge variant="secondary">Новая заявка</Badge>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                  <div className="space-y-2">
+                                    <h4 className="font-medium text-gray-900">Отправитель</h4>
+                                    <div className="text-sm text-gray-600">
+                                      <p><strong>ФИО:</strong> {request.sender_full_name}</p>
+                                      <p><strong>Телефон:</strong> {request.sender_phone}</p>
+                                      <p><strong>Адрес отправки:</strong> {request.pickup_address}</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    <h4 className="font-medium text-gray-900">Получатель</h4>
+                                    <div className="text-sm text-gray-600">
+                                      <p><strong>ФИО:</strong> {request.recipient_full_name}</p>
+                                      <p><strong>Телефон:</strong> {request.recipient_phone}</p>
+                                      <p><strong>Адрес получения:</strong> {request.recipient_address}</p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                  <div>
+                                    <h4 className="font-medium text-gray-900">Информация о грузе</h4>
+                                    <div className="text-sm text-gray-600">
+                                      <p><strong>Название:</strong> {request.cargo_name}</p>
+                                      <p><strong>Вес:</strong> {request.weight} кг</p>
+                                      <p><strong>Стоимость:</strong> {request.declared_value} ₽</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div>
+                                    <h4 className="font-medium text-gray-900">Маршрут</h4>
+                                    <div className="text-sm text-gray-600">
+                                      <p>{request.route === 'moscow_to_tajikistan' ? 'Москва → Таджикистан' : 'Таджикистан → Москва'}</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div>
+                                    <h4 className="font-medium text-gray-900">Описание</h4>
+                                    <div className="text-sm text-gray-600">
+                                      <p>{request.description}</p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex space-x-3 pt-4 border-t">
+                                  <Button
+                                    onClick={() => handleAcceptRequest(request.id)}
+                                    className="flex-1 bg-green-600 hover:bg-green-700"
+                                  >
+                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                    Принять заявку
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      const reason = prompt('Причина отклонения (необязательно):');
+                                      handleRejectRequest(request.id, reason || '');
+                                    }}
+                                    className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
+                                  >
+                                    <X className="mr-2 h-4 w-4" />
+                                    Отклонить
+                                  </Button>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Системные уведомления */}
+                  {activeTab === 'notifications-system' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Bell className="mr-2 h-5 w-5" />
+                            Системные уведомления ({systemNotifications.length})
+                          </div>
+                          <Button onClick={fetchSystemNotifications}>
+                            Обновить
+                          </Button>
+                        </CardTitle>
+                        <CardDescription>
+                          Уведомления об изменениях статусов грузов и операциях
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {systemNotifications.length === 0 ? (
+                            <div className="text-center py-8">
+                              <Bell className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                              <p className="text-gray-500">Системных уведомлений нет</p>
+                            </div>
+                          ) : (
+                            systemNotifications.map((notification) => (
+                              <div
+                                key={notification.id}
+                                className={`border rounded-lg p-4 ${
+                                  !notification.is_read ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'
+                                }`}
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div className="flex-1">
+                                    <h4 className="font-semibold text-gray-900">{notification.title}</h4>
+                                    <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                                    <div className="flex items-center mt-2 text-xs text-gray-500">
+                                      <span>Тип: {
+                                        notification.notification_type === 'request' ? 'Заявка' :
+                                        notification.notification_type === 'cargo_status' ? 'Статус груза' :
+                                        notification.notification_type === 'payment' ? 'Оплата' : 'Система'
+                                      }</span>
+                                      <span className="ml-4">
+                                        {new Date(notification.created_at).toLocaleDateString('ru-RU')} {new Date(notification.created_at).toLocaleTimeString('ru-RU')}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {!notification.is_read && (
+                                    <Badge variant="secondary" className="ml-2">Новое</Badge>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </main>
