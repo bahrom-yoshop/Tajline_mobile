@@ -330,6 +330,33 @@ function App() {
     }
   };
 
+  const fetchCargoRequests = async () => {
+    try {
+      const data = await apiCall('/api/admin/cargo-requests');
+      setCargoRequests(data);
+    } catch (error) {
+      console.error('Error fetching cargo requests:', error);
+    }
+  };
+
+  const fetchMyRequests = async () => {
+    try {
+      const data = await apiCall('/api/user/my-requests');
+      setMyRequests(data);
+    } catch (error) {
+      console.error('Error fetching my requests:', error);
+    }
+  };
+
+  const fetchSystemNotifications = async () => {
+    try {
+      const data = await apiCall('/api/system-notifications');
+      setSystemNotifications(data);
+    } catch (error) {
+      console.error('Error fetching system notifications:', error);
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
