@@ -673,6 +673,55 @@ function App() {
     }, 500);
   };
 
+  const handleCreateRequest = async (e) => {
+    e.preventDefault();
+    try {
+      await apiCall('/api/user/cargo-request', 'POST', {
+        ...requestForm,
+        weight: parseFloat(requestForm.weight),
+        declared_value: parseFloat(requestForm.declared_value)
+      });
+      showAlert('Заявка на груз успешно подана!', 'success');
+      setRequestForm({
+        recipient_full_name: '',
+        recipient_phone: '',
+        recipient_address: '',
+        pickup_address: '',
+        cargo_name: '',
+        weight: '',
+        declared_value: '',
+        description: '',
+        route: 'moscow_to_tajikistan'
+      });
+      fetchMyRequests();
+    } catch (error) {
+      console.error('Create request error:', error);
+    }
+  };
+
+  const handleAcceptRequest = async (requestId) => {
+    try {
+      await apiCall(`/api/admin/cargo-requests/${requestId}/accept`, 'POST');
+      showAlert('Заявка принята и груз создан!', 'success');
+      fetchCargoRequests();
+      fetchOperatorCargo();
+      fetchSystemNotifications();
+    } catch (error) {
+      console.error('Accept request error:', error);
+    }
+  };
+
+  const handleRejectRequest = async (requestId, reason = '') => {
+    try {
+      await apiCall(`/api/admin/cargo-requests/${requestId}/reject`, 'POST', { reason });
+      showAlert('Заявка отклонена', 'info');
+      fetchCargoRequests();
+      fetchSystemNotifications();
+    } catch (error) {
+      console.error('Reject request error:', error);
+    }
+  };
+
   const updateCargoStatus = async (cargoId, status, warehouseLocation = null) => {
     try {
       const params = new URLSearchParams({ status });
