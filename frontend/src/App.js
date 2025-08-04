@@ -1750,65 +1750,184 @@ function App() {
               )}
               {/* Управление пользователями (только для админа) */}
               {activeSection === 'users' && user?.role === 'admin' && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Users className="mr-2 h-5 w-5" />
-                      Управление пользователями
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>ФИО</TableHead>
-                          <TableHead>Телефон</TableHead>
-                          <TableHead>Роль</TableHead>
-                          <TableHead>Статус</TableHead>
-                          <TableHead>Действия</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {users.map((u) => (
-                          <TableRow key={u.id}>
-                            <TableCell className="font-medium">{u.full_name}</TableCell>
-                            <TableCell>{u.phone}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center">
-                                {getRoleIcon(u.role)}
-                                <span className="ml-2">{getRoleLabel(u.role)}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={u.is_active ? 'default' : 'secondary'}>
-                                {u.is_active ? 'Активен' : 'Заблокирован'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex space-x-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => toggleUserStatus(u.id, u.is_active)}
-                                >
-                                  {u.is_active ? 'Заблокировать' : 'Разблокировать'}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => deleteUser(u.id)}
-                                  className="text-red-600 hover:text-red-700"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
+                <div className="space-y-6">
+                  {/* Пользователи */}
+                  {(activeTab === 'users-regular' || !activeTab || activeTab === 'users') && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <User className="mr-2 h-5 w-5" />
+                          Пользователи ({usersByRole.user.length})
+                        </CardTitle>
+                        <CardDescription>Обычные пользователи системы</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>ФИО</TableHead>
+                              <TableHead>Телефон</TableHead>
+                              <TableHead>Дата регистрации</TableHead>
+                              <TableHead>Статус</TableHead>
+                              <TableHead>Действия</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {usersByRole.user.map((u) => (
+                              <TableRow key={u.id}>
+                                <TableCell className="font-medium">{u.full_name}</TableCell>
+                                <TableCell>{u.phone}</TableCell>
+                                <TableCell>{new Date(u.created_at).toLocaleDateString('ru-RU')}</TableCell>
+                                <TableCell>
+                                  <Badge variant={u.is_active ? 'default' : 'secondary'}>
+                                    {u.is_active ? 'Активен' : 'Заблокирован'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => toggleUserStatus(u.id, u.is_active)}
+                                    >
+                                      {u.is_active ? 'Заблокировать' : 'Разблокировать'}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => deleteUser(u.id)}
+                                      className="text-red-600 hover:text-red-700"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Операторы склада */}
+                  {activeTab === 'users-operators' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Warehouse className="mr-2 h-5 w-5" />
+                          Операторы складов ({usersByRole.warehouse_operator.length})
+                        </CardTitle>
+                        <CardDescription>Операторы складов и кассиры</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>ФИО</TableHead>
+                              <TableHead>Телефон</TableHead>
+                              <TableHead>Дата регистрации</TableHead>
+                              <TableHead>Статус</TableHead>
+                              <TableHead>Действия</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {usersByRole.warehouse_operator.map((u) => (
+                              <TableRow key={u.id}>
+                                <TableCell className="font-medium">{u.full_name}</TableCell>
+                                <TableCell>{u.phone}</TableCell>
+                                <TableCell>{new Date(u.created_at).toLocaleDateString('ru-RU')}</TableCell>
+                                <TableCell>
+                                  <Badge variant={u.is_active ? 'default' : 'secondary'}>
+                                    {u.is_active ? 'Активен' : 'Заблокирован'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => toggleUserStatus(u.id, u.is_active)}
+                                    >
+                                      {u.is_active ? 'Заблокировать' : 'Разблокировать'}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => deleteUser(u.id)}
+                                      className="text-red-600 hover:text-red-700"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Администраторы */}
+                  {activeTab === 'users-admins' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Shield className="mr-2 h-5 w-5" />
+                          Администраторы ({usersByRole.admin.length})
+                        </CardTitle>
+                        <CardDescription>Администраторы системы</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>ФИО</TableHead>
+                              <TableHead>Телефон</TableHead>
+                              <TableHead>Дата регистрации</TableHead>
+                              <TableHead>Статус</TableHead>
+                              <TableHead>Действия</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {usersByRole.admin.map((u) => (
+                              <TableRow key={u.id}>
+                                <TableCell className="font-medium">{u.full_name}</TableCell>
+                                <TableCell>{u.phone}</TableCell>
+                                <TableCell>{new Date(u.created_at).toLocaleDateString('ru-RU')}</TableCell>
+                                <TableCell>
+                                  <Badge variant={u.is_active ? 'default' : 'secondary'}>
+                                    {u.is_active ? 'Активен' : 'Заблокирован'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => toggleUserStatus(u.id, u.is_active)}
+                                    >
+                                      {u.is_active ? 'Заблокировать' : 'Разблокировать'}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => deleteUser(u.id)}
+                                      className="text-red-600 hover:text-red-700"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               )}
 
               {/* Управление складами */}
