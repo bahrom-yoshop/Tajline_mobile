@@ -440,6 +440,9 @@ function App() {
     setCargo([]);
     setUsers([]);
     setWarehouses([]);
+    setOperatorCargo([]);
+    setAvailableCargo([]);
+    setCargoHistory([]);
     setNotifications([]);
     showAlert('Вы вышли из системы', 'info');
   };
