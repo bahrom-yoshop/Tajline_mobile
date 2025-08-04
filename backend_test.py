@@ -1181,6 +1181,12 @@ class CargoTransportAPITester:
             ("Warehouse Full Layout", self.test_warehouse_full_layout),
             ("Operator Cargo Management", self.test_operator_cargo_management),
             ("Cashier Functionality", self.test_cashier_functionality),
+            ("Transport Management", self.test_transport_management),
+            ("Transport Cargo Placement", self.test_transport_cargo_placement),
+            ("Transport Dispatch", self.test_transport_dispatch),
+            ("Transport History", self.test_transport_history),
+            ("Transport Access Control", self.test_transport_access_control),
+            ("Transport Deletion", self.test_transport_delete),
             ("Notifications", self.test_notifications),
             ("Error Handling", self.test_error_cases)
         ]
