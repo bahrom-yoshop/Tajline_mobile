@@ -883,6 +883,19 @@ function App() {
         ]
       },
       {
+        id: 'logistics',
+        label: 'Логистика',
+        icon: <Zap className="w-5 h-5" />,
+        section: 'logistics',
+        subsections: [
+          { id: 'logistics-add-transport', label: 'Приём машину' },
+          { id: 'logistics-transport-list', label: 'Список транспортов' },
+          { id: 'logistics-in-transit', label: 'В пути' },
+          { id: 'logistics-arrived', label: 'На место назначение' },
+          { id: 'logistics-history', label: 'История Транспортировки' }
+        ]
+      },
+      {
         id: 'finances',
         label: 'Финансы',
         icon: <DollarSign className="w-5 h-5" />,
