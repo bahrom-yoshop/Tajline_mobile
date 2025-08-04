@@ -1072,7 +1072,425 @@ function App() {
                 </div>
               )}
 
-              {/* Управление пользователями (только для админа) */}
+              {/* Управление грузами */}
+              {activeSection === 'cargo-management' && (
+                <div className="space-y-6">
+                  {/* Принимать новый груз */}
+                  {activeTab === 'cargo-accept' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Plus className="mr-2 h-5 w-5" />
+                          Принимать новый груз
+                        </CardTitle>
+                        <CardDescription>
+                          Заполните форму для приема нового груза от клиента
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <form onSubmit={handleAcceptCargo} className="space-y-4 max-w-2xl">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="sender_full_name">ФИО отправителя</Label>
+                              <Input
+                                id="sender_full_name"
+                                value={operatorCargoForm.sender_full_name}
+                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, sender_full_name: e.target.value})}
+                                placeholder="Иванов Иван Иванович"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="sender_phone">Телефон отправителя</Label>
+                              <Input
+                                id="sender_phone"
+                                type="tel"
+                                value={operatorCargoForm.sender_phone}
+                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, sender_phone: e.target.value})}
+                                placeholder="+7XXXXXXXXXX"
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="recipient_full_name">ФИО получателя</Label>
+                              <Input
+                                id="recipient_full_name"
+                                value={operatorCargoForm.recipient_full_name}
+                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, recipient_full_name: e.target.value})}
+                                placeholder="Петров Петр Петрович"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="recipient_phone">Телефон получателя</Label>
+                              <Input
+                                id="recipient_phone"
+                                type="tel"
+                                value={operatorCargoForm.recipient_phone}
+                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, recipient_phone: e.target.value})}
+                                placeholder="+992XXXXXXXXX"
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="recipient_address">Адрес получения груза</Label>
+                            <Input
+                              id="recipient_address"
+                              value={operatorCargoForm.recipient_address}
+                              onChange={(e) => setOperatorCargoForm({...operatorCargoForm, recipient_address: e.target.value})}
+                              placeholder="Душанбе, ул. Рудаки, 10, кв. 5"
+                              required
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <Label htmlFor="weight">Вес груза (кг)</Label>
+                              <Input
+                                id="weight"
+                                type="number"
+                                step="0.1"
+                                value={operatorCargoForm.weight}
+                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, weight: e.target.value})}
+                                placeholder="10.5"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="declared_value">Стоимость груза (руб.)</Label>
+                              <Input
+                                id="declared_value"
+                                type="number"
+                                step="0.01"
+                                value={operatorCargoForm.declared_value}
+                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, declared_value: e.target.value})}
+                                placeholder="5000"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="route">Маршрут</Label>
+                              <Select value={operatorCargoForm.route} onValueChange={(value) => setOperatorCargoForm({...operatorCargoForm, route: value})}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="moscow_to_tajikistan">Москва → Таджикистан</SelectItem>
+                                  <SelectItem value="tajikistan_to_moscow">Таджикистан → Москва</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="description">Описание груза</Label>
+                            <Textarea
+                              id="description"
+                              value={operatorCargoForm.description}
+                              onChange={(e) => setOperatorCargoForm({...operatorCargoForm, description: e.target.value})}
+                              placeholder="Личные вещи, документы, подарки..."
+                              required
+                            />
+                          </div>
+
+                          <Button type="submit" className="w-full">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Принять груз
+                          </Button>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Список грузов */}
+                  {(activeTab === 'cargo-list' || !activeTab || activeTab === 'cargo-management') && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Package className="mr-2 h-5 w-5" />
+                            Список грузов
+                          </div>
+                          <Button onClick={() => {setActiveTab('cargo-accept'); fetchOperatorCargo();}}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Принять груз
+                          </Button>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {operatorCargo.length === 0 ? (
+                            <div className="text-center py-8">
+                              <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                              <p className="text-gray-500 mb-4">Нет принятых грузов</p>
+                              <Button onClick={() => setActiveTab('cargo-accept')}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Принять первый груз
+                              </Button>
+                            </div>
+                          ) : (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Номер груза</TableHead>
+                                  <TableHead>Отправитель</TableHead>
+                                  <TableHead>Получатель</TableHead>
+                                  <TableHead>Вес</TableHead>
+                                  <TableHead>Стоимость</TableHead>
+                                  <TableHead>Статус оплаты</TableHead>
+                                  <TableHead>Расположение</TableHead>
+                                  <TableHead>Дата приема</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {operatorCargo.map((item) => (
+                                  <TableRow key={item.id}>
+                                    <TableCell className="font-medium">{item.cargo_number}</TableCell>
+                                    <TableCell>
+                                      <div>
+                                        <div className="font-medium">{item.sender_full_name}</div>
+                                        <div className="text-sm text-gray-500">{item.sender_phone}</div>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div>
+                                        <div className="font-medium">{item.recipient_full_name}</div>
+                                        <div className="text-sm text-gray-500">{item.recipient_phone}</div>
+                                        <div className="text-sm text-gray-500">{item.recipient_address}</div>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>{item.weight} кг</TableCell>
+                                    <TableCell>{item.declared_value} ₽</TableCell>
+                                    <TableCell>
+                                      <Badge variant={item.payment_status === 'paid' ? 'default' : 'secondary'}>
+                                        {item.payment_status === 'paid' ? 'Оплачен' : 'Ожидает оплаты'}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      {item.warehouse_location ? (
+                                        <div className="text-sm">
+                                          <div className="font-medium">{warehouses.find(w => w.id === item.warehouse_id)?.name || 'Склад'}</div>
+                                          <div className="text-blue-600">{item.warehouse_location}</div>
+                                        </div>
+                                      ) : (
+                                        <Badge variant="outline">Не размещен</Badge>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      {new Date(item.created_at).toLocaleDateString('ru-RU')} {new Date(item.created_at).toLocaleTimeString('ru-RU')}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Размещение груза */}
+                  {activeTab === 'cargo-placement' && (
+                    <div className="space-y-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center">
+                            <Grid3X3 className="mr-2 h-5 w-5" />
+                            Размещение груза на складе
+                          </CardTitle>
+                          <CardDescription>
+                            Выберите груз и разместите его в свободной ячейке склада
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Button onClick={fetchAvailableCargo} className="mb-4">
+                            Обновить список грузов
+                          </Button>
+                          
+                          <div className="space-y-4">
+                            {availableCargo.length === 0 ? (
+                              <div className="text-center py-8">
+                                <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                                <p className="text-gray-500">Нет грузов для размещения</p>
+                              </div>
+                            ) : (
+                              availableCargo.map((item) => (
+                                <div key={item.id} className="border rounded-lg p-4">
+                                  <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                      <h3 className="font-semibold text-lg">{item.cargo_number}</h3>
+                                      <div className="text-sm text-gray-600 space-y-1">
+                                        <p><strong>От:</strong> {item.sender_full_name} ({item.sender_phone})</p>
+                                        <p><strong>Для:</strong> {item.recipient_full_name} ({item.recipient_phone})</p>
+                                        <p><strong>Вес:</strong> {item.weight} кг</p>
+                                        <p><strong>Описание:</strong> {item.description}</p>
+                                      </div>
+                                    </div>
+                                    {getStatusBadge(item.status)}
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                    <div>
+                                      <Label>Склад</Label>
+                                      <Select 
+                                        value={selectedWarehouse} 
+                                        onValueChange={(warehouseId) => {
+                                          setSelectedWarehouse(warehouseId);
+                                          fetchAvailableCells(warehouseId);
+                                        }}
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Выберите склад" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {warehouses.map((warehouse) => (
+                                            <SelectItem key={warehouse.id} value={warehouse.id}>
+                                              {warehouse.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    
+                                    {selectedWarehouse && availableCells.length > 0 && (
+                                      <>
+                                        <div>
+                                          <Label>Свободные места</Label>
+                                          <Select onValueChange={(locationCode) => {
+                                            const [block, shelf, cell] = locationCode.split('-').map(part => parseInt(part.substring(1)));
+                                            handlePlaceCargo(item.id, selectedWarehouse, block, shelf, cell);
+                                          }}>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Выберите место" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {availableCells.slice(0, 20).map((cell) => (
+                                                <SelectItem key={cell.id} value={cell.location_code}>
+                                                  {cell.location_code}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                        <div className="text-sm text-green-600">
+                                          Доступно: {availableCells.length} ячеек
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+
+                  {/* История грузов */}
+                  {activeTab === 'cargo-history' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <FileText className="mr-2 h-5 w-5" />
+                          История грузов
+                        </CardTitle>
+                        <CardDescription>
+                          Просмотр доставленных грузов с фильтрами и поиском
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex space-x-4 mb-6">
+                          <div className="flex-1">
+                            <Input
+                              placeholder="Поиск по номеру груза, отправителю или получателю"
+                              value={historyFilters.search}
+                              onChange={(e) => setHistoryFilters({...historyFilters, search: e.target.value})}
+                            />
+                          </div>
+                          <div>
+                            <Select 
+                              value={historyFilters.status} 
+                              onValueChange={(value) => setHistoryFilters({...historyFilters, status: value})}
+                            >
+                              <SelectTrigger className="w-48">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">Все статусы оплаты</SelectItem>
+                                <SelectItem value="paid">Оплачено</SelectItem>
+                                <SelectItem value="pending">Ожидает оплаты</SelectItem>
+                                <SelectItem value="failed">Оплата не прошла</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button onClick={fetchCargoHistory}>
+                            <Search className="mr-2 h-4 w-4" />
+                            Найти
+                          </Button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          {cargoHistory.length === 0 ? (
+                            <div className="text-center py-8">
+                              <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                              <p className="text-gray-500">История грузов пуста</p>
+                            </div>
+                          ) : (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Номер</TableHead>
+                                  <TableHead>Отправитель</TableHead>
+                                  <TableHead>Получатель</TableHead>
+                                  <TableHead>Вес</TableHead>
+                                  <TableHead>Стоимость</TableHead>
+                                  <TableHead>Статус оплаты</TableHead>
+                                  <TableHead>Дата доставки</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {cargoHistory.map((item) => (
+                                  <TableRow key={item.id}>
+                                    <TableCell className="font-medium">{item.cargo_number}</TableCell>
+                                    <TableCell>
+                                      <div>
+                                        <div className="font-medium">{item.sender_full_name}</div>
+                                        <div className="text-sm text-gray-500">{item.sender_phone}</div>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div>
+                                        <div className="font-medium">{item.recipient_full_name}</div>
+                                        <div className="text-sm text-gray-500">{item.recipient_phone}</div>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>{item.weight} кг</TableCell>
+                                    <TableCell>{item.declared_value} ₽</TableCell>
+                                    <TableCell>
+                                      <Badge variant={item.payment_status === 'paid' ? 'default' : 'secondary'}>
+                                        {item.payment_status === 'paid' ? 'Оплачен' : 'Не оплачен'}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      {new Date(item.updated_at).toLocaleDateString('ru-RU')}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
               {activeSection === 'users' && user?.role === 'admin' && (
                 <Card>
                   <CardHeader>
