@@ -689,6 +689,213 @@ async def delete_warehouse(
     
     return {"message": "Warehouse deleted successfully"}
 
+# Управление грузами для операторов
+@app.post("/api/operator/cargo/accept")
+async def accept_new_cargo(
+    cargo_data: OperatorCargoCreate,
+    current_user: User = Depends(get_current_user)
+):
+    # Проверяем права доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    cargo_id = str(uuid.uuid4())
+    cargo_number = generate_cargo_number()
+    
+    cargo = {
+        "id": cargo_id,
+        "cargo_number": cargo_number,
+        "sender_full_name": cargo_data.sender_full_name,
+        "sender_phone": cargo_data.sender_phone,
+        "recipient_full_name": cargo_data.recipient_full_name,
+        "recipient_phone": cargo_data.recipient_phone,
+        "recipient_address": cargo_data.recipient_address,
+        "weight": cargo_data.weight,
+        "declared_value": cargo_data.declared_value,
+        "description": cargo_data.description,
+        "route": cargo_data.route,
+        "status": CargoStatus.ACCEPTED,
+        "payment_status": "pending",
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "created_by": current_user.id,
+        "warehouse_location": None,
+        "warehouse_id": None,
+        "block_number": None,
+        "shelf_number": None,
+        "cell_number": None
+    }
+    
+    db.operator_cargo.insert_one(cargo)
+    
+    # Создание уведомления
+    create_notification(
+        current_user.id,
+        f"Принят новый груз {cargo_number} от {cargo_data.sender_full_name}",
+        cargo_id
+    )
+    
+    return CargoWithLocation(**cargo)
+
+@app.get("/api/operator/cargo/list")
+async def get_operator_cargo_list(
+    current_user: User = Depends(get_current_user)
+):
+    # Проверяем права доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    if current_user.role == UserRole.ADMIN:
+        # Админ видит все грузы
+        cargo_list = list(db.operator_cargo.find({}))
+    else:
+        # Оператор видит только свои принятые грузы
+        cargo_list = list(db.operator_cargo.find({"created_by": current_user.id}))
+    
+    return [CargoWithLocation(**cargo) for cargo in cargo_list]
+
+@app.post("/api/operator/cargo/place")
+async def place_cargo_in_warehouse(
+    placement_data: CargoPlacement,
+    current_user: User = Depends(get_current_user)
+):
+    # Проверяем права доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Проверяем существование груза
+    cargo = db.operator_cargo.find_one({"id": placement_data.cargo_id})
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Проверяем существование склада
+    warehouse = db.warehouses.find_one({"id": placement_data.warehouse_id, "is_active": True})
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="Warehouse not found")
+    
+    # Проверяем валидность позиции
+    if (placement_data.block_number < 1 or placement_data.block_number > warehouse["blocks_count"] or
+        placement_data.shelf_number < 1 or placement_data.shelf_number > warehouse["shelves_per_block"] or
+        placement_data.cell_number < 1 or placement_data.cell_number > warehouse["cells_per_shelf"]):
+        raise HTTPException(status_code=400, detail="Invalid warehouse position")
+    
+    location_code = f"B{placement_data.block_number}-S{placement_data.shelf_number}-C{placement_data.cell_number}"
+    
+    # Проверяем, свободна ли ячейка
+    existing_cell = db.warehouse_cells.find_one({
+        "warehouse_id": placement_data.warehouse_id,
+        "location_code": location_code,
+        "is_occupied": True
+    })
+    
+    if existing_cell:
+        raise HTTPException(status_code=400, detail="Cell is already occupied")
+    
+    # Обновляем ячейку
+    db.warehouse_cells.update_one(
+        {
+            "warehouse_id": placement_data.warehouse_id,
+            "location_code": location_code
+        },
+        {"$set": {"is_occupied": True, "cargo_id": placement_data.cargo_id}}
+    )
+    
+    # Обновляем груз
+    db.operator_cargo.update_one(
+        {"id": placement_data.cargo_id},
+        {"$set": {
+            "warehouse_location": location_code,
+            "warehouse_id": placement_data.warehouse_id,
+            "block_number": placement_data.block_number,
+            "shelf_number": placement_data.shelf_number,
+            "cell_number": placement_data.cell_number,
+            "status": CargoStatus.IN_TRANSIT,
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    # Создаем уведомление
+    create_notification(
+        current_user.id,
+        f"Груз {cargo['cargo_number']} размещен в {warehouse['name']}: {location_code}",
+        placement_data.cargo_id
+    )
+    
+    return {"message": "Cargo placed successfully", "location": location_code, "warehouse": warehouse["name"]}
+
+@app.get("/api/operator/cargo/available")
+async def get_available_cargo_for_placement(
+    current_user: User = Depends(get_current_user)
+):
+    # Проверяем права доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Получаем грузы без размещения
+    query = {"warehouse_location": None, "status": CargoStatus.ACCEPTED}
+    if current_user.role != UserRole.ADMIN:
+        query["created_by"] = current_user.id
+    
+    cargo_list = list(db.operator_cargo.find(query))
+    return [CargoWithLocation(**cargo) for cargo in cargo_list]
+
+@app.get("/api/operator/cargo/history")
+async def get_cargo_history(
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    # Проверяем права доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Базовый запрос для доставленных грузов
+    query = {"status": CargoStatus.COMPLETED}
+    
+    # Фильтр по создателю для операторов
+    if current_user.role != UserRole.ADMIN:
+        query["created_by"] = current_user.id
+    
+    # Дополнительные фильтры
+    if status and status != "all":
+        query["payment_status"] = status
+    
+    if search:
+        query["$or"] = [
+            {"cargo_number": {"$regex": search, "$options": "i"}},
+            {"sender_full_name": {"$regex": search, "$options": "i"}},
+            {"recipient_full_name": {"$regex": search, "$options": "i"}}
+        ]
+    
+    cargo_list = list(db.operator_cargo.find(query).sort("updated_at", -1))
+    return [CargoWithLocation(**cargo) for cargo in cargo_list]
+
+@app.get("/api/warehouses/{warehouse_id}/available-cells")
+async def get_available_cells(
+    warehouse_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    # Проверяем права доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Проверяем существование склада
+    warehouse = db.warehouses.find_one({"id": warehouse_id, "is_active": True})
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="Warehouse not found")
+    
+    # Получаем свободные ячейки
+    available_cells = list(db.warehouse_cells.find({
+        "warehouse_id": warehouse_id,
+        "is_occupied": False
+    }).sort([("block_number", 1), ("shelf_number", 1), ("cell_number", 1)]))
+    
+    return {
+        "warehouse": warehouse,
+        "available_cells": available_cells,
+        "total_available": len(available_cells)
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
