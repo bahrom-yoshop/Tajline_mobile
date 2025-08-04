@@ -1787,39 +1787,6 @@ async def delete_transport(
     
     return {"message": "Transport deleted and moved to history"}
 
-@app.get("/api/transport/history")
-async def get_transport_history(
-    current_user: User = Depends(get_current_user)
-):
-    # Проверка доступа
-    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
-        raise HTTPException(status_code=403, detail="Access denied")
-    
-    # Получить завершенные и удаленные транспорты
-    completed_transports = list(db.transports.find({"status": TransportStatus.COMPLETED}).sort("completed_at", -1))
-    deleted_transports = list(db.transport_history.find({}).sort("deleted_at", -1))
-    
-    history = []
-    
-    # Добавить завершенные транспорты
-    for transport in completed_transports:
-        history.append({
-            **transport,
-            "history_type": "completed"
-        })
-    
-    # Добавить удаленные транспорты
-    for transport in deleted_transports:
-        history.append({
-            **transport,
-            "history_type": "deleted"
-        })
-    
-    # Сортировать по дате
-    history.sort(key=lambda x: x.get("completed_at") or x.get("deleted_at") or x.get("created_at"), reverse=True)
-    
-    return history
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
