@@ -629,6 +629,171 @@ class CargoTransportAPITester:
         
         return all_success
 
+    def test_users_by_role(self):
+        """Test getting users by role (new functionality)"""
+        print("\n👥 USERS BY ROLE")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        roles = ['user', 'admin', 'warehouse_operator']
+        
+        for role in roles:
+            success, users = self.run_test(
+                f"Get Users by Role: {role}",
+                "GET",
+                f"/api/admin/users/by-role/{role}",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                user_count = len(users) if isinstance(users, list) else 0
+                print(f"   👤 Found {user_count} users with role '{role}'")
+        
+        return all_success
+
+    def test_cashier_functionality(self):
+        """Test cashier functionality (new feature)"""
+        print("\n💰 CASHIER FUNCTIONALITY")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # First, create a cargo for payment testing
+        cargo_data = {
+            "sender_full_name": "Тестовый Отправитель",
+            "sender_phone": "+79555666777",
+            "recipient_full_name": "Тестовый Получатель",
+            "recipient_phone": "+992777888999",
+            "recipient_address": "Душанбе, ул. Тестовая, 1",
+            "weight": 10.0,
+            "declared_value": 5000.0,
+            "description": "Тестовый груз для оплаты",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create Cargo for Payment Test",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            cargo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        cargo_number = None
+        if success and 'cargo_number' in cargo_response:
+            cargo_number = cargo_response['cargo_number']
+            print(f"   📦 Created test cargo: {cargo_number}")
+        
+        # Test get unpaid cargo
+        success, unpaid_cargo = self.run_test(
+            "Get Unpaid Cargo",
+            "GET",
+            "/api/cashier/unpaid-cargo",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            unpaid_count = len(unpaid_cargo) if isinstance(unpaid_cargo, list) else 0
+            print(f"   💳 Found {unpaid_count} unpaid cargo items")
+        
+        # Test search cargo for payment
+        if cargo_number:
+            success, cargo_info = self.run_test(
+                f"Search Cargo for Payment: {cargo_number}",
+                "GET",
+                f"/api/cashier/search-cargo/{cargo_number}",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   🔍 Found cargo for payment: {cargo_info.get('sender_full_name', 'Unknown')}")
+            
+            # Test process payment
+            payment_data = {
+                "cargo_number": cargo_number,
+                "amount_paid": 5000.0,
+                "transaction_type": "cash",
+                "notes": "Тестовая оплата наличными"
+            }
+            
+            success, payment_response = self.run_test(
+                "Process Payment",
+                "POST",
+                "/api/cashier/process-payment",
+                200,
+                payment_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                transaction_id = payment_response.get('id', 'Unknown')
+                print(f"   💰 Payment processed, transaction ID: {transaction_id}")
+        
+        # Test payment history
+        success, payment_history = self.run_test(
+            "Get Payment History",
+            "GET",
+            "/api/cashier/payment-history",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            history_count = len(payment_history) if isinstance(payment_history, list) else 0
+            print(f"   📚 Found {history_count} payment transactions")
+        
+        return all_success
+
+    def test_warehouse_full_layout(self):
+        """Test warehouse full layout functionality (new feature)"""
+        print("\n🏗️ WAREHOUSE FULL LAYOUT")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        if not hasattr(self, 'warehouse_id'):
+            print("   ❌ No warehouse available for layout test")
+            return False
+            
+        success, layout_response = self.run_test(
+            "Get Warehouse Full Layout",
+            "GET",
+            f"/api/warehouses/{self.warehouse_id}/full-layout",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        if success:
+            warehouse_info = layout_response.get('warehouse', {})
+            statistics = layout_response.get('statistics', {})
+            layout = layout_response.get('layout', {})
+            
+            print(f"   🏭 Warehouse: {warehouse_info.get('name', 'Unknown')}")
+            print(f"   📊 Total cells: {statistics.get('total_cells', 0)}")
+            print(f"   📊 Occupied cells: {statistics.get('occupied_cells', 0)}")
+            print(f"   📊 Available cells: {statistics.get('available_cells', 0)}")
+            print(f"   📊 Occupancy rate: {statistics.get('occupancy_rate', 0)}%")
+            print(f"   🗂️  Layout blocks: {len(layout)}")
+        
+        return success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
