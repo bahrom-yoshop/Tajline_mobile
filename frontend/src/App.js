@@ -861,14 +861,13 @@ function App() {
         ]
       },
       {
-        id: 'cashier',
-        label: 'Касса',
-        icon: <DollarSign className="w-5 h-5" />,
-        section: 'cashier',
+        id: 'notifications-management',
+        label: 'Уведомления',
+        icon: <Bell className="w-5 h-5" />,
+        section: 'notifications-management',
         subsections: [
-          { id: 'cashier-payment', label: 'Приём оплаты' },
-          { id: 'cashier-unpaid', label: 'Не оплачено' },
-          { id: 'cashier-history', label: 'История оплаты' }
+          { id: 'notifications-requests', label: 'Новые заявки' },
+          { id: 'notifications-system', label: 'Уведомления' }
         ]
       },
       {
