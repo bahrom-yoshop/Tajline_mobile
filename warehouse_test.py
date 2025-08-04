@@ -10,7 +10,7 @@ import json
 from datetime import datetime
 
 class WarehouseAPITester:
-    def __init__(self, base_url="https://ed0a5ce9-6176-44ad-aa59-bdce5a4a2cad.preview.emergentagent.com"):
+    def __init__(self, base_url="https://873fed0e-b84b-4ac6-a207-96c1fbc2a549.preview.emergentagent.com"):
         self.base_url = base_url
         self.admin_token = None
         self.operator_token = None
