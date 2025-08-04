@@ -367,6 +367,121 @@ function App() {
     return labels[role] || role;
   };
 
+  // Боковое меню для админа и оператора склада
+  const SidebarMenu = () => {
+    if (user?.role === 'user') return null;
+
+    const menuItems = [
+      {
+        id: 'dashboard',
+        label: 'Главная',
+        icon: <Home className="w-5 h-5" />,
+        section: 'dashboard'
+      },
+      {
+        id: 'users',
+        label: 'Пользователи',
+        icon: <Users className="w-5 h-5" />,
+        section: 'users',
+        adminOnly: true,
+        subsections: [
+          { id: 'users-list', label: 'Список пользователей' },
+          { id: 'users-roles', label: 'Управление ролями' }
+        ]
+      },
+      {
+        id: 'warehouses',
+        label: 'Склады',
+        icon: <Building className="w-5 h-5" />,
+        section: 'warehouses',
+        subsections: [
+          { id: 'warehouses-list', label: 'Список складов' },
+          { id: 'warehouses-create', label: 'Создать склад' },
+          { id: 'warehouses-manage', label: 'Управление товарами' }
+        ]
+      },
+      {
+        id: 'finances',
+        label: 'Финансы',
+        icon: <DollarSign className="w-5 h-5" />,
+        section: 'finances',
+        adminOnly: true,
+        subsections: [
+          { id: 'finances-overview', label: 'Обзор' },
+          { id: 'finances-transactions', label: 'Транзакции' }
+        ]
+      },
+      {
+        id: 'reports',
+        label: 'Отчеты',
+        icon: <FileText className="w-5 h-5" />,
+        section: 'reports',
+        subsections: [
+          { id: 'reports-cargo', label: 'Отчеты по грузам' },
+          { id: 'reports-performance', label: 'Производительность' }
+        ]
+      }
+    ];
+
+    const filteredItems = menuItems.filter(item => 
+      !item.adminOnly || user?.role === 'admin'
+    );
+
+    return (
+      <div className={`fixed left-0 top-0 h-full bg-gray-900 text-white transition-all duration-300 z-40 ${
+        sidebarOpen ? 'w-64' : 'w-16'
+      }`}>
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-8">
+            {sidebarOpen && (
+              <h2 className="text-xl font-bold">Панель управления</h2>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="text-white hover:bg-gray-800"
+            >
+              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
+          </div>
+
+          <nav className="space-y-2">
+            {filteredItems.map((item) => (
+              <div key={item.id}>
+                <button
+                  onClick={() => setActiveSection(item.section)}
+                  className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${
+                    activeSection === item.section
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  }`}
+                >
+                  {item.icon}
+                  {sidebarOpen && <span className="ml-3">{item.label}</span>}
+                </button>
+                
+                {sidebarOpen && item.subsections && activeSection === item.section && (
+                  <div className="ml-8 mt-2 space-y-1">
+                    {item.subsections.map((sub) => (
+                      <button
+                        key={sub.id}
+                        onClick={() => setActiveTab(sub.id)}
+                        className="block w-full text-left px-3 py-1 text-sm text-gray-400 hover:text-white transition-colors"
+                      >
+                        {sub.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </nav>
+        </div>
+      </div>
+    );
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
