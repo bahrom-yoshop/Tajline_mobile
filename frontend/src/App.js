@@ -1429,7 +1429,7 @@ function App() {
           {/* Для обычных пользователей - старый интерфейс с табами */}
           {user?.role === 'user' ? (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="requests" className="flex items-center">
                   <Plus className="mr-2 h-4 w-4" />
                   Заявки на груз
@@ -1441,6 +1441,10 @@ function App() {
                 <TabsTrigger value="notifications" className="flex items-center">
                   <Bell className="mr-2 h-4 w-4" />
                   Уведомления
+                </TabsTrigger>
+                <TabsTrigger value="contact" className="flex items-center">
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Связаться
                 </TabsTrigger>
               </TabsList>
 
