@@ -888,10 +888,23 @@ async def get_available_cells(
     available_cells = list(db.warehouse_cells.find({
         "warehouse_id": warehouse_id,
         "is_occupied": False
-    }).sort([("block_number", 1), ("shelf_number", 1), ("cell_number", 1)]))
+    }, {"_id": 0}).sort([("block_number", 1), ("shelf_number", 1), ("cell_number", 1)]))
+    
+    # Очищаем данные от MongoDB ObjectId
+    clean_warehouse = {
+        "id": warehouse["id"],
+        "name": warehouse["name"], 
+        "location": warehouse["location"],
+        "blocks_count": warehouse["blocks_count"],
+        "shelves_per_block": warehouse["shelves_per_block"],
+        "cells_per_shelf": warehouse["cells_per_shelf"],
+        "total_capacity": warehouse["total_capacity"],
+        "created_at": warehouse["created_at"],
+        "is_active": warehouse["is_active"]
+    }
     
     return {
-        "warehouse": warehouse,
+        "warehouse": clean_warehouse,
         "available_cells": available_cells,
         "total_available": len(available_cells)
     }
