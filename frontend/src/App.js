@@ -890,6 +890,12 @@ function App() {
     setPaymentHistory([]);
     setNotifications([]);
     setUsersByRole({ user: [], admin: [], warehouse_operator: [] });
+    // Clear transport states
+    setTransports([]);
+    setSelectedTransport(null);
+    setTransportCargoList([]);
+    setAvailableCargoForTransport([]);
+    setSelectedCargoForPlacement([]);
     showAlert('Вы вышли из системы', 'info');
   };
 
