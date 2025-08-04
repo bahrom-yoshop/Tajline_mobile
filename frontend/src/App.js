@@ -108,7 +108,6 @@ function App() {
     description: '',
     route: 'moscow_to_tajikistan'
   });
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const [alerts, setAlerts] = useState([]);
 
