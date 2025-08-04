@@ -888,26 +888,26 @@ class CargoTransportAPITester:
             
         all_success = True
         
-        # First create some cargo for placement
+        # Create cargo using the regular cargo system (not operator system)
+        # since transport system looks for cargo in the 'cargo' collection
         cargo_data = {
-            "sender_full_name": "Отправитель для транспорта",
-            "sender_phone": "+79111222333",
-            "recipient_full_name": "Получатель транспорта",
+            "recipient_name": "Получатель транспорта",
             "recipient_phone": "+992444555666",
-            "recipient_address": "Душанбе, ул. Транспортная, 1",
+            "route": "moscow_to_tajikistan",
             "weight": 100.0,
-            "declared_value": 10000.0,
             "description": "Груз для тестирования транспорта",
-            "route": "moscow_to_tajikistan"
+            "declared_value": 10000.0,
+            "sender_address": "Москва, ул. Отправителя, 1",
+            "recipient_address": "Душанбе, ул. Транспортная, 1"
         }
         
         success, cargo_response = self.run_test(
-            "Create Cargo for Transport",
+            "Create Cargo for Transport (Regular System)",
             "POST",
-            "/api/operator/cargo/accept",
+            "/api/cargo/create",
             200,
             cargo_data,
-            self.tokens['admin']
+            self.tokens['user']  # Use regular user to create cargo
         )
         all_success &= success
         
@@ -916,14 +916,14 @@ class CargoTransportAPITester:
             cargo_id = cargo_response['id']
             print(f"   📦 Created cargo for transport: {cargo_id}")
             
-            # Update cargo status to accepted so it can be placed on transport
+            # Update cargo status to accepted and add warehouse location
             success, _ = self.run_test(
-                "Update Cargo Status to Accepted",
+                "Update Cargo Status to Accepted with Warehouse Location",
                 "PUT",
                 f"/api/cargo/{cargo_id}/status",
                 200,
                 token=self.tokens['admin'],
-                params={"status": "accepted"}
+                params={"status": "accepted", "warehouse_location": "Склад А, Стеллаж 1"}
             )
             all_success &= success
         
