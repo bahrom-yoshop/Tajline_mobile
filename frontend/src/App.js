@@ -55,6 +55,26 @@ function App() {
     shelves_per_block: 1,
     cells_per_shelf: 10
   });
+  const [operatorCargoForm, setOperatorCargoForm] = useState({
+    sender_full_name: '',
+    sender_phone: '',
+    recipient_full_name: '',
+    recipient_phone: '',
+    recipient_address: '',
+    weight: '',
+    declared_value: '',
+    description: '',
+    route: 'moscow_to_tajikistan'
+  });
+  const [operatorCargo, setOperatorCargo] = useState([]);
+  const [availableCargo, setAvailableCargo] = useState([]);
+  const [cargoHistory, setCargoHistory] = useState([]);
+  const [selectedWarehouse, setSelectedWarehouse] = useState('');
+  const [availableCells, setAvailableCells] = useState([]);
+  const [historyFilters, setHistoryFilters] = useState({
+    status: 'all',
+    search: ''
+  });
 
   const [alerts, setAlerts] = useState([]);
 
