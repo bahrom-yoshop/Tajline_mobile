@@ -75,6 +75,24 @@ function App() {
     status: 'all',
     search: ''
   });
+  const [unpaidCargo, setUnpaidCargo] = useState([]);
+  const [paymentHistory, setPaymentHistory] = useState([]);
+  const [paymentModal, setPaymentModal] = useState(false);
+  const [cargoForPayment, setCargoForPayment] = useState(null);
+  const [paymentForm, setPaymentForm] = useState({
+    cargo_number: '',
+    amount_paid: '',
+    transaction_type: 'cash',
+    notes: ''
+  });
+  const [warehouseLayout, setWarehouseLayout] = useState(null);
+  const [selectedWarehouseForLayout, setSelectedWarehouseForLayout] = useState(null);
+  const [layoutModal, setLayoutModal] = useState(false);
+  const [usersByRole, setUsersByRole] = useState({
+    user: [],
+    admin: [],
+    warehouse_operator: []
+  });
 
   const [alerts, setAlerts] = useState([]);
 
