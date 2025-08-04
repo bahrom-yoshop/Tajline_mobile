@@ -258,6 +258,29 @@ function App() {
     }
   };
 
+  const handleCreateWarehouse = async (e) => {
+    e.preventDefault();
+    try {
+      await apiCall('/api/warehouses/create', 'POST', {
+        ...warehouseForm,
+        blocks_count: parseInt(warehouseForm.blocks_count),
+        shelves_per_block: parseInt(warehouseForm.shelves_per_block),
+        cells_per_shelf: parseInt(warehouseForm.cells_per_shelf)
+      });
+      showAlert('Склад успешно создан!', 'success');
+      setWarehouseForm({
+        name: '',
+        location: '',
+        blocks_count: 1,
+        shelves_per_block: 1,
+        cells_per_shelf: 10
+      });
+      fetchWarehouses();
+    } catch (error) {
+      console.error('Create warehouse error:', error);
+    }
+  };
+
   const updateCargoStatus = async (cargoId, status, warehouseLocation = null) => {
     try {
       const params = new URLSearchParams({ status });
