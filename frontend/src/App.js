@@ -346,6 +346,51 @@ function App() {
     }
   };
 
+  const handleAcceptCargo = async (e) => {
+    e.preventDefault();
+    try {
+      await apiCall('/api/operator/cargo/accept', 'POST', {
+        ...operatorCargoForm,
+        weight: parseFloat(operatorCargoForm.weight),
+        declared_value: parseFloat(operatorCargoForm.declared_value)
+      });
+      showAlert('Груз успешно принят!', 'success');
+      setOperatorCargoForm({
+        sender_full_name: '',
+        sender_phone: '',
+        recipient_full_name: '',
+        recipient_phone: '',
+        recipient_address: '',
+        weight: '',
+        declared_value: '',
+        description: '',
+        route: 'moscow_to_tajikistan'
+      });
+      fetchOperatorCargo();
+      fetchAvailableCargo();
+    } catch (error) {
+      console.error('Accept cargo error:', error);
+    }
+  };
+
+  const handlePlaceCargo = async (cargoId, warehouseId, blockNumber, shelfNumber, cellNumber) => {
+    try {
+      await apiCall('/api/operator/cargo/place', 'POST', {
+        cargo_id: cargoId,
+        warehouse_id: warehouseId,
+        block_number: parseInt(blockNumber),
+        shelf_number: parseInt(shelfNumber),
+        cell_number: parseInt(cellNumber)
+      });
+      showAlert('Груз успешно размещен на складе!', 'success');
+      fetchOperatorCargo();
+      fetchAvailableCargo();
+      fetchAvailableCells(warehouseId);
+    } catch (error) {
+      console.error('Place cargo error:', error);
+    }
+  };
+
   const updateCargoStatus = async (cargoId, status, warehouseLocation = null) => {
     try {
       const params = new URLSearchParams({ status });
