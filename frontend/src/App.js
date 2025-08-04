@@ -174,6 +174,15 @@ function App() {
     }
   };
 
+  const fetchWarehouses = async () => {
+    try {
+      const data = await apiCall('/api/warehouses');
+      setWarehouses(data);
+    } catch (error) {
+      console.error('Error fetching warehouses:', error);
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
