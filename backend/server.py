@@ -308,6 +308,25 @@ def create_notification(user_id: str, message: str, cargo_id: str = None):
     }
     db.notifications.insert_one(notification)
 
+def create_system_notification(title: str, message: str, notification_type: str, related_id: str = None, user_id: str = None, created_by: str = None):
+    """Создать системное уведомление"""
+    notification = {
+        "id": str(uuid.uuid4()),
+        "title": title,
+        "message": message,
+        "notification_type": notification_type,
+        "related_id": related_id,
+        "user_id": user_id,
+        "is_read": False,
+        "created_at": datetime.utcnow(),
+        "created_by": created_by or "system"
+    }
+    db.system_notifications.insert_one(notification)
+
+def generate_request_number() -> str:
+    """Генерировать номер заявки"""
+    return f"REQ{datetime.now().strftime('%Y%m%d')}{str(uuid.uuid4())[:8].upper()}"
+
 def generate_warehouse_structure(warehouse_id: str, blocks_count: int, shelves_per_block: int, cells_per_shelf: int):
     """Generate warehouse structure with blocks, shelves and cells"""
     cells = []
