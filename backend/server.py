@@ -206,6 +206,30 @@ def create_notification(user_id: str, message: str, cargo_id: str = None):
     }
     db.notifications.insert_one(notification)
 
+def generate_warehouse_structure(warehouse_id: str, blocks_count: int, shelves_per_block: int, cells_per_shelf: int):
+    """Generate warehouse structure with blocks, shelves and cells"""
+    cells = []
+    for block in range(1, blocks_count + 1):
+        for shelf in range(1, shelves_per_block + 1):
+            for cell in range(1, cells_per_shelf + 1):
+                cell_data = {
+                    "id": str(uuid.uuid4()),
+                    "warehouse_id": warehouse_id,
+                    "block_number": block,
+                    "shelf_number": shelf,
+                    "cell_number": cell,
+                    "is_occupied": False,
+                    "cargo_id": None,
+                    "location_code": f"B{block}-S{shelf}-C{cell}"
+                }
+                cells.append(cell_data)
+    
+    # Bulk insert all cells
+    if cells:
+        db.warehouse_cells.insert_many(cells)
+    
+    return len(cells)
+
 # API Routes
 
 @app.get("/api/health")
