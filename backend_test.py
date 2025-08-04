@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backend API Testing for КаргоТранс Application
-Tests all endpoints including authentication, cargo management, admin functions, and warehouse operations
+Comprehensive Backend API Testing for TAJLINE.TJ Application
+Tests all endpoints including authentication, cargo management, admin functions, warehouse operations,
+cashier functionality, user management by roles, and warehouse layout features
 """
 
 import requests
