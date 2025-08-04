@@ -268,6 +268,49 @@ function App() {
     }
   };
 
+  const fetchUnpaidCargo = async () => {
+    try {
+      const data = await apiCall('/api/cashier/unpaid-cargo');
+      setUnpaidCargo(data);
+    } catch (error) {
+      console.error('Error fetching unpaid cargo:', error);
+    }
+  };
+
+  const fetchPaymentHistory = async () => {
+    try {
+      const data = await apiCall('/api/cashier/payment-history');
+      setPaymentHistory(data);
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+    }
+  };
+
+  const fetchUsersByRole = async () => {
+    try {
+      const roles = ['user', 'admin', 'warehouse_operator'];
+      const usersByRoleData = {};
+      
+      for (const role of roles) {
+        const data = await apiCall(`/api/admin/users/by-role/${role}`);
+        usersByRoleData[role] = data;
+      }
+      
+      setUsersByRole(usersByRoleData);
+    } catch (error) {
+      console.error('Error fetching users by role:', error);
+    }
+  };
+
+  const fetchWarehouseLayout = async (warehouseId) => {
+    try {
+      const data = await apiCall(`/api/warehouses/${warehouseId}/full-layout`);
+      setWarehouseLayout(data);
+    } catch (error) {
+      console.error('Error fetching warehouse layout:', error);
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
