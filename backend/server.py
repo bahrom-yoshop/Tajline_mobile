@@ -820,14 +820,16 @@ async def register(user_data: UserCreate):
     if db.users.find_one({"phone": user_data.phone}):
         raise HTTPException(status_code=400, detail="User with this phone already exists")
     
-    # Создание пользователя
+    # Создание пользователя с ролью по умолчанию USER (функция 3)
+    user_role = UserRole.USER  # Всегда USER для обычной регистрации
+    
     user_id = str(uuid.uuid4())
     user = {
         "id": user_id,
         "full_name": user_data.full_name,
         "phone": user_data.phone,
         "password": hash_password(user_data.password),
-        "role": user_data.role,
+        "role": user_role.value,  # Роль всегда USER
         "is_active": True,
         "created_at": datetime.utcnow()
     }
@@ -847,7 +849,7 @@ async def register(user_data: UserCreate):
             id=user_id,
             full_name=user_data.full_name,
             phone=user_data.phone,
-            role=user_data.role,
+            role=user_role,
             is_active=True,
             created_at=user["created_at"]
         )
