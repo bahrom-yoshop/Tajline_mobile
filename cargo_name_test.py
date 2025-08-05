@@ -514,7 +514,7 @@ class CargoNameTester:
             "/api/cargo/search",
             200,
             token=self.tokens['admin'],
-            params={"query": "Уникальное", "search_type": "comprehensive"}
+            params={"query": "Уникальное", "search_type": "all"}  # Changed from "comprehensive" to "all"
         )
         all_success &= success
         
