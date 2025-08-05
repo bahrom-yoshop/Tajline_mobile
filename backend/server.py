@@ -420,6 +420,93 @@ def generate_cargo_number() -> str:
         import random
         return f"{random.randint(1000, 9999):04d}"
 
+def generate_cargo_qr_code(cargo_data: dict) -> str:
+    """Генерировать QR код для груза с базовой информацией"""
+    try:
+        # Формируем данные для QR кода согласно требованиям пользователя
+        qr_data = {
+            "cargo_number": cargo_data.get("cargo_number", ""),
+            "cargo_name": cargo_data.get("cargo_name", cargo_data.get("description", "Груз")),
+            "weight": f"{cargo_data.get('weight', 0)} кг",
+            "sender": cargo_data.get("sender_full_name", "Не указан"),
+            "sender_phone": cargo_data.get("sender_phone", "Не указан"),
+            "recipient": cargo_data.get("recipient_full_name", cargo_data.get("recipient_name", "Не указан")),
+            "recipient_phone": cargo_data.get("recipient_phone", "Не указан"),
+            "city": cargo_data.get("recipient_address", "Не указан")
+        }
+        
+        # Создаем текстовые данные для QR кода
+        qr_text = f"""ГРУЗ №{qr_data['cargo_number']}
+Наименование: {qr_data['cargo_name']}
+Вес: {qr_data['weight']}
+Отправитель: {qr_data['sender']}
+Тел. отправителя: {qr_data['sender_phone']}
+Получатель: {qr_data['recipient']}
+Тел. получателя: {qr_data['recipient_phone']}
+Город получения: {qr_data['city']}"""
+        
+        # Генерируем QR код
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(qr_text)
+        qr.make(fit=True)
+        
+        # Создаем изображение
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Конвертируем в base64
+        buffer = BytesIO()
+        img.save(buffer, format="PNG")
+        img_data = base64.b64encode(buffer.getvalue()).decode()
+        
+        return f"data:image/png;base64,{img_data}"
+        
+    except Exception as e:
+        print(f"Error generating QR code for cargo: {e}")
+        return ""
+
+def generate_warehouse_cell_qr_code(warehouse_data: dict, block: int, shelf: int, cell: int) -> str:
+    """Генерировать QR код для ячейки склада"""
+    try:
+        cell_location = f"{warehouse_data.get('name', 'Склад')}-Б{block}-П{shelf}-Я{cell}"
+        
+        qr_data = f"""ЯЧЕЙКА СКЛАДА
+Местоположение: {cell_location}
+Склад: {warehouse_data.get('name', 'Неизвестный склад')}
+Адрес склада: {warehouse_data.get('location', 'Не указан')}
+Блок: {block}
+Полка: {shelf}
+Ячейка: {cell}
+ID склада: {warehouse_data.get('id', '')}"""
+        
+        # Генерируем QR код
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=8,
+            border=3,
+        )
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        
+        # Создаем изображение
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Конвертируем в base64
+        buffer = BytesIO()
+        img.save(buffer, format="PNG")
+        img_data = base64.b64encode(buffer.getvalue()).decode()
+        
+        return f"data:image/png;base64,{img_data}"
+        
+    except Exception as e:
+        print(f"Error generating QR code for warehouse cell: {e}")
+        return ""
+
 def create_notification(user_id: str, message: str, cargo_id: str = None):
     notification = {
         "id": str(uuid.uuid4()),
