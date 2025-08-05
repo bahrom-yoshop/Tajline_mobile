@@ -1044,7 +1044,8 @@ function App() {
         subsections: [
           { id: 'users-regular', label: 'Пользователи' },
           { id: 'users-operators', label: 'Операторы склада' },
-          { id: 'users-admins', label: 'Администраторы' }
+          { id: 'users-admins', label: 'Администраторы' },
+          { id: 'users-operator-bindings', label: 'Привязка операторов' }
         ]
       },
       {
