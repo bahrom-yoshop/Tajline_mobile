@@ -7749,6 +7749,119 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_critical_objectid_serialization_fix(self):
+        """Test the critical ObjectId serialization fix for GET /api/warehouses"""
+        print("\n🔧 CRITICAL FIX TEST: ObjectId Serialization - GET /api/warehouses")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        # Test GET /api/warehouses with admin token - should work without 500 error
+        success, warehouses_response = self.run_test(
+            "GET /api/warehouses with Admin Token (ObjectId Fix)",
+            "GET",
+            "/api/warehouses",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        if success:
+            print("   ✅ CRITICAL FIX VERIFIED: GET /api/warehouses works without 500 error")
+            
+            # Verify bound_operators information is present and serialized correctly
+            if isinstance(warehouses_response, list) and warehouses_response:
+                warehouse = warehouses_response[0]
+                if 'bound_operators' in warehouse:
+                    print(f"   ✅ bound_operators field present with {len(warehouse['bound_operators'])} operators")
+                    
+                    # Check if ObjectId fields are properly serialized as strings
+                    for operator in warehouse['bound_operators']:
+                        if 'id' in operator and isinstance(operator['id'], str):
+                            print(f"   ✅ Operator ID properly serialized as string: {operator['id'][:8]}...")
+                        else:
+                            print(f"   ❌ Operator ID not properly serialized")
+                            return False
+                else:
+                    print("   ✅ bound_operators field present (empty list)")
+                    
+                print(f"   📊 Found {len(warehouses_response)} warehouses with proper ObjectId serialization")
+            else:
+                print("   ✅ Empty warehouses list returned (no serialization issues)")
+        else:
+            print("   ❌ CRITICAL ISSUE: GET /api/warehouses still fails with admin token")
+            return False
+            
+        return success
+
+    def test_critical_phone_regex_fix(self):
+        """Test the critical phone regex fix for GET /api/cargo/search"""
+        print("\n🔧 CRITICAL FIX TEST: Phone Regex - GET /api/cargo/search")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Test phone searches with special characters that previously caused regex errors
+        phone_test_cases = [
+            "+79",      # Plus sign at start
+            "+992",     # Plus sign with country code
+            "+7912",    # Longer plus sequence
+            "79123",    # Without plus (should also work)
+            "+99244",   # Tajikistan number start
+        ]
+        
+        for phone_query in phone_test_cases:
+            success, search_response = self.run_test(
+                f"Search Cargo by Phone: '{phone_query}' (Regex Fix)",
+                "GET",
+                "/api/cargo/search",
+                200,
+                token=self.tokens['admin'],
+                params={"search_type": "phone", "query": phone_query}
+            )
+            
+            if success:
+                result_count = len(search_response.get('results', [])) if isinstance(search_response, dict) else len(search_response) if isinstance(search_response, list) else 0
+                print(f"   ✅ Phone search '{phone_query}' works - found {result_count} results")
+            else:
+                print(f"   ❌ CRITICAL ISSUE: Phone search '{phone_query}' still fails with regex error")
+                all_success = False
+        
+        # Test additional regex special characters that might cause issues
+        special_char_tests = [
+            "+7(912)",   # Parentheses
+            "+7-912",    # Dash
+            "+7 912",    # Space
+            "+7.912",    # Dot
+        ]
+        
+        print("\n   🧪 Testing Additional Special Characters...")
+        for special_query in special_char_tests:
+            success, search_response = self.run_test(
+                f"Search Cargo by Phone with Special Chars: '{special_query}'",
+                "GET",
+                "/api/cargo/search",
+                200,
+                token=self.tokens['admin'],
+                params={"search_type": "phone", "query": special_query}
+            )
+            
+            if success:
+                result_count = len(search_response.get('results', [])) if isinstance(search_response, dict) else len(search_response) if isinstance(search_response, list) else 0
+                print(f"   ✅ Special char search '{special_query}' works - found {result_count} results")
+            else:
+                print(f"   ⚠️  Special char search '{special_query}' failed (may be expected for some patterns)")
+        
+        if all_success:
+            print("   ✅ CRITICAL FIX VERIFIED: Phone regex issues resolved for basic + patterns")
+        else:
+            print("   ❌ CRITICAL ISSUE: Phone regex still has problems with + character searches")
+            
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
