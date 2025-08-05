@@ -1571,6 +1571,132 @@ async def get_my_cargo_requests(
     requests = list(db.cargo_requests.find({"created_by": current_user.id}).sort("created_at", -1))
     return [CargoRequest(**request) for request in requests]
 
+# === УПРАВЛЕНИЕ ОПЕРАТОРАМИ И СКЛАДАМИ ===
+
+@app.post("/api/admin/operator-warehouse-binding")
+async def create_operator_warehouse_binding(
+    binding_data: OperatorWarehouseBindingCreate,
+    current_user: User = Depends(get_current_user)
+):
+    # Только админы могут создавать привязки
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can create operator-warehouse bindings")
+    
+    # Проверить, что оператор существует и имеет роль warehouse_operator
+    operator = db.users.find_one({"id": binding_data.operator_id})
+    if not operator or operator["role"] != UserRole.WAREHOUSE_OPERATOR:
+        raise HTTPException(status_code=404, detail="Warehouse operator not found")
+    
+    # Проверить, что склад существует
+    warehouse = db.warehouses.find_one({"id": binding_data.warehouse_id})
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="Warehouse not found")
+    
+    # Проверить, что привязка не существует
+    existing_binding = db.operator_warehouse_bindings.find_one({
+        "operator_id": binding_data.operator_id,
+        "warehouse_id": binding_data.warehouse_id
+    })
+    if existing_binding:
+        raise HTTPException(status_code=400, detail="Binding already exists")
+    
+    # Создать привязку
+    binding_id = str(uuid.uuid4())
+    binding = {
+        "id": binding_id,
+        "operator_id": binding_data.operator_id,
+        "operator_name": operator["full_name"],
+        "operator_phone": operator["phone"],
+        "warehouse_id": binding_data.warehouse_id,
+        "warehouse_name": warehouse["name"],
+        "created_at": datetime.utcnow(),
+        "created_by": current_user.id
+    }
+    
+    db.operator_warehouse_bindings.insert_one(binding)
+    
+    # Создать системное уведомление
+    create_system_notification(
+        "Привязка оператора к складу",
+        f"Оператор {operator['full_name']} привязан к складу {warehouse['name']}",
+        "operator_binding",
+        binding_id,
+        None,
+        current_user.id
+    )
+    
+    return {"message": "Operator-warehouse binding created successfully", "binding_id": binding_id}
+
+@app.get("/api/admin/operator-warehouse-bindings")
+async def get_operator_warehouse_bindings(
+    current_user: User = Depends(get_current_user)
+):
+    # Только админы могут просматривать привязки
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    bindings = list(db.operator_warehouse_bindings.find({}).sort("created_at", -1))
+    return [OperatorWarehouseBinding(**binding) for binding in bindings]
+
+@app.delete("/api/admin/operator-warehouse-binding/{binding_id}")
+async def delete_operator_warehouse_binding(
+    binding_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    # Только админы могут удалять привязки
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    binding = db.operator_warehouse_bindings.find_one({"id": binding_id})
+    if not binding:
+        raise HTTPException(status_code=404, detail="Binding not found")
+    
+    db.operator_warehouse_bindings.delete_one({"id": binding_id})
+    
+    # Создать системное уведомление
+    create_system_notification(
+        "Удалена привязка оператора к складу",
+        f"Удалена привязка оператора {binding['operator_name']} к складу {binding['warehouse_name']}",
+        "operator_binding",
+        binding_id,
+        None,
+        current_user.id
+    )
+    
+    return {"message": "Operator-warehouse binding deleted successfully"}
+
+@app.get("/api/operator/my-warehouses")
+async def get_my_warehouses(
+    current_user: User = Depends(get_current_user)
+):
+    # Только операторы склада могут получать свои склады
+    if current_user.role != UserRole.WAREHOUSE_OPERATOR:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Получить привязки оператора
+    bindings = list(db.operator_warehouse_bindings.find({"operator_id": current_user.id}))
+    warehouse_ids = [binding["warehouse_id"] for binding in bindings]
+    
+    # Получить детали складов
+    warehouses = []
+    for warehouse_id in warehouse_ids:
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if warehouse:
+            warehouses.append(warehouse)
+    
+    return warehouses
+
+@app.get("/api/transport/available-cargo")
+async def get_available_cargo_for_transport_endpoint(
+    current_user: User = Depends(get_current_user)
+):
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    available_cargo = get_available_cargo_for_transport(current_user.id, current_user.role)
+    return available_cargo
+
 # === ТРАНСПОРТ API ===
 
 @app.post("/api/transport/create")
