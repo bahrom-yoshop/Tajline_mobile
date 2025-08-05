@@ -2480,9 +2480,18 @@ async def get_pending_cargo_requests(
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
-    # Получаем заявки в статусе pending
     requests = list(db.cargo_requests.find({"status": "pending"}).sort("created_at", -1))
-    return [CargoRequest(**request) for request in requests]
+    # Сериализация данных
+    normalized_requests = []
+    for request in requests:
+        normalized = serialize_mongo_document(request)
+        normalized.update({
+            'admin_notes': request.get('admin_notes', ''),
+            'processed_by': request.get('processed_by', None)
+        })
+        normalized_requests.append(normalized)
+    
+    return normalized_requests
 
 @app.get("/api/admin/cargo-requests/all")
 async def get_all_cargo_requests(
