@@ -563,6 +563,20 @@ function App() {
     }
   }, [token]);
 
+  // Периодическая проверка валидности токена
+  useEffect(() => {
+    if (token && user) {
+      const interval = setInterval(() => {
+        if (!isTokenValid(token)) {
+          console.log('Token expired during session, logging out');
+          handleLogout();
+        }
+      }, 60000); // Проверяем каждую минуту
+
+      return () => clearInterval(interval);
+    }
+  }, [token, user]);
+
   useEffect(() => {
     if (user) {
       fetchNotifications();
