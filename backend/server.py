@@ -4840,79 +4840,80 @@ async def debug_tracking(tracking_code: str):
 @app.get("/api/cargo/track/{tracking_code}")
 async def track_cargo_by_code(tracking_code: str):
     """Публичный трекинг груза по коду (без авторизации)"""
-    # Найти трекинг
-    tracking = db.cargo_tracking.find_one({"tracking_code": tracking_code, "is_active": True})
-    if not tracking:
-        raise HTTPException(status_code=404, detail="Tracking code not found")
-    
-    # DEBUG: Print tracking info
-    print(f"DEBUG: Found tracking record for {tracking_code}")
-    print(f"DEBUG: Tracking cargo_id: {tracking['cargo_id']}")
-    
-    # Найти груз
-    cargo = db.cargo.find_one({"id": tracking["cargo_id"]})
-    if not cargo:
-        print(f"DEBUG: Cargo not found in 'cargo' collection")
-        cargo = db.operator_cargo.find_one({"id": tracking["cargo_id"]})
+    try:
+        # Найти трекинг
+        tracking = db.cargo_tracking.find_one({"tracking_code": tracking_code, "is_active": True})
+        if not tracking:
+            raise HTTPException(status_code=404, detail="Tracking code not found")
+        
+        # Найти груз
+        cargo = db.cargo.find_one({"id": tracking["cargo_id"]})
         if not cargo:
-            print(f"DEBUG: Cargo not found in 'operator_cargo' collection either")
-            raise HTTPException(status_code=404, detail="Cargo not found")
-        else:
-            print(f"DEBUG: Found cargo in 'operator_cargo' collection")
-    else:
-        print(f"DEBUG: Found cargo in 'cargo' collection")
-    
-    # Обновить счетчик доступа
-    db.cargo_tracking.update_one(
-        {"id": tracking["id"]},
-        {"$set": {"last_accessed": datetime.utcnow()}, "$inc": {"access_count": 1}}
-    )
-    
-    # Получить информацию о складе и транспорте
-    warehouse_info = None
-    if cargo.get("warehouse_id"):
-        warehouse = db.warehouses.find_one({"id": cargo["warehouse_id"]})
-        if warehouse:
-            warehouse_info = {
-                "name": warehouse["name"],
-                "location": warehouse["location"]
-            }
-    
-    transport_info = None
-    if cargo.get("transport_id"):
-        transport = db.transports.find_one({"id": cargo["transport_id"]})
-        if transport:
-            transport_info = {
-                "transport_number": transport["transport_number"],
-                "driver_name": transport["driver_name"],
-                "direction": transport["direction"],
-                "status": transport["status"]
-            }
-    
-    # Получить последние записи истории (публичные только)
-    recent_history = list(db.cargo_history.find(
-        {"cargo_id": cargo["id"], "action_type": {"$in": ["created", "status_changed", "placed_on_transport", "dispatched", "arrived"]}},
-        {"_id": 0, "action_type": 1, "description": 1, "change_date": 1}
-    ).sort("change_date", -1).limit(10))
-    
-    return {
-        "tracking_code": tracking_code,
-        "cargo_number": cargo["cargo_number"],
-        "cargo_name": cargo.get("cargo_name", "Груз"),
-        "status": cargo["status"],
-        "weight": cargo.get("weight", 0),
-        "created_at": cargo["created_at"],
-        "sender_full_name": cargo.get("sender_full_name", "Не указан"),
-        "recipient_full_name": cargo.get("recipient_full_name", cargo.get("recipient_name", "Не указан")),
-        "recipient_address": cargo.get("recipient_address", ""),
-        "current_location": {
-            "warehouse": warehouse_info,
-            "transport": transport_info,
-            "description": _get_location_description(cargo)
-        },
-        "recent_history": recent_history,
-        "last_updated": cargo.get("updated_at", cargo["created_at"])
-    }
+            cargo = db.operator_cargo.find_one({"id": tracking["cargo_id"]})
+            if not cargo:
+                raise HTTPException(status_code=404, detail="Cargo not found")
+        
+        # Обновить счетчик доступа
+        db.cargo_tracking.update_one(
+            {"id": tracking["id"]},
+            {"$set": {"last_accessed": datetime.utcnow()}, "$inc": {"access_count": 1}}
+        )
+        
+        # Получить информацию о складе и транспорте
+        warehouse_info = None
+        if cargo.get("warehouse_id"):
+            warehouse = db.warehouses.find_one({"id": cargo["warehouse_id"]})
+            if warehouse:
+                warehouse_info = {
+                    "name": warehouse["name"],
+                    "location": warehouse["location"]
+                }
+        
+        transport_info = None
+        if cargo.get("transport_id"):
+            transport = db.transports.find_one({"id": cargo["transport_id"]})
+            if transport:
+                transport_info = {
+                    "transport_number": transport["transport_number"],
+                    "driver_name": transport["driver_name"],
+                    "direction": transport["direction"],
+                    "status": transport["status"]
+                }
+        
+        # Получить последние записи истории (публичные только)
+        recent_history = list(db.cargo_history.find(
+            {"cargo_id": cargo["id"], "action_type": {"$in": ["created", "status_changed", "placed_on_transport", "dispatched", "arrived"]}},
+            {"_id": 0, "action_type": 1, "description": 1, "change_date": 1}
+        ).sort("change_date", -1).limit(10))
+        
+        # Serialize all MongoDB documents to avoid ObjectId issues
+        recent_history = serialize_mongo_document(recent_history)
+        
+        return {
+            "tracking_code": tracking_code,
+            "cargo_number": cargo["cargo_number"],
+            "cargo_name": cargo.get("cargo_name", "Груз"),
+            "status": cargo["status"],
+            "weight": cargo.get("weight", 0),
+            "created_at": cargo["created_at"],
+            "sender_full_name": cargo.get("sender_full_name", "Не указан"),
+            "recipient_full_name": cargo.get("recipient_full_name", cargo.get("recipient_name", "Не указан")),
+            "recipient_address": cargo.get("recipient_address", ""),
+            "current_location": {
+                "warehouse": warehouse_info,
+                "transport": transport_info,
+                "description": _get_location_description(cargo)
+            },
+            "recent_history": recent_history,
+            "last_updated": cargo.get("updated_at", cargo["created_at"])
+        }
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        # Log other exceptions and return a generic error
+        print(f"Error in track_cargo_by_code: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/api/notifications/client/send")
 async def send_client_notification(
