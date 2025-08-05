@@ -5696,9 +5696,15 @@ ID склада: {self.warehouse_id}"""
         
         # Place both cargo items on transport
         if len(cargo_ids) >= 2:
+            # Get cargo numbers for placement (the API expects cargo_numbers, not cargo_ids)
+            cargo_numbers = []
+            if success and 'cargo_number' in user_cargo_response:
+                cargo_numbers.append(user_cargo_response['cargo_number'])
+            if success and 'cargo_number' in operator_cargo_response:
+                cargo_numbers.append(operator_cargo_response['cargo_number'])
+            
             placement_data = {
-                "transport_id": arrival_transport_id,
-                "cargo_ids": cargo_ids
+                "cargo_numbers": cargo_numbers
             }
             
             success, _ = self.run_test(
@@ -5712,7 +5718,9 @@ ID склада: {self.warehouse_id}"""
             all_success &= success
             
             if success:
-                print(f"   ✅ Placed {len(cargo_ids)} cargo items on transport")
+                print(f"   ✅ Placed {len(cargo_numbers)} cargo items on transport")
+            else:
+                print(f"   ❌ Failed to place cargo on transport")
         
         # Dispatch transport to IN_TRANSIT status
         success, _ = self.run_test(
