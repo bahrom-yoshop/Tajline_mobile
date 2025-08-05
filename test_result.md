@@ -876,6 +876,9 @@ frontend:
         - working: true
           agent: "main"
           comment: "✅ IMPLEMENTED - Added QR/number-based automatic cargo placement interface: 1) QR Размещение button in arrived transport modal header, 2) QR placement modal with cargo number input and QR data textarea, 3) handleQrCargoPlacement() function for automated placement, 4) Auto-warehouse selection explanation for users, 5) Support for both cargo number direct input and QR code data pasting, 6) Integration with existing arrived transport workflow, 7) Automatic modal closure and data refresh after successful placement. Streamlines cargo placement process with automation."
+        - working: true
+          agent: "main"
+          comment: "✅ UPDATED PER USER REQUEST - Enhanced QR placement interface with manual cell selection: 1) Added cell_qr_data textarea for warehouse cell QR codes, 2) Added manual coordinate inputs (block_number, shelf_number, cell_number), 3) Updated form validation to require either cell QR or manual coordinates, 4) Modified handleQrCargoPlacement() to send cell placement data, 5) Updated UI explanation to reflect new logic: склад автоматически, ячейка вручную или QR, 6) Enhanced success messages to show placement method used."
 
 metadata:
   created_by: "main_agent"
