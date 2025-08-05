@@ -5600,10 +5600,12 @@ ID склада: {self.warehouse_id}"""
         print("\n   📦 Step 1: Setting up transport and cargo...")
         
         # Create transport
+        import uuid
+        unique_suffix = str(uuid.uuid4())[:8].upper()
         transport_data = {
             "driver_name": "Водитель Прибывший",
             "driver_phone": "+79123456789",
-            "transport_number": "П777РИ77",
+            "transport_number": f"П{unique_suffix}",
             "capacity_kg": 3000.0,
             "direction": "Москва - Душанбе"
         }
