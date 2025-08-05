@@ -6006,6 +6006,7 @@ ID склада: {self.warehouse_id}"""
             ("Transport Dispatch", self.test_transport_dispatch),
             ("Transport Volume Validation Override", self.test_transport_volume_validation_override),
             ("Transport Cargo Return System", self.test_transport_cargo_return_system),
+            ("Arrived Transport Cargo Placement System", self.test_arrived_transport_cargo_placement_system),
             ("Transport Access Control", self.test_transport_access_control),
             ("Transport History", self.test_transport_history),
             ("Transport Deletion", self.test_transport_delete),
