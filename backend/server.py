@@ -14,6 +14,8 @@ import qrcode
 from io import BytesIO
 import base64
 from PIL import Image
+import re
+from bson import ObjectId
 
 app = FastAPI()
 
@@ -37,6 +39,34 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 security = HTTPBearer()
+
+# Utility functions for MongoDB ObjectId serialization
+def serialize_mongo_document(document):
+    """Converts ObjectId in a MongoDB document to strings recursively."""
+    if isinstance(document, list):
+        return [serialize_mongo_document(doc) for doc in document]
+    
+    if isinstance(document, dict):
+        serialized = {}
+        for key, value in document.items():
+            if isinstance(value, ObjectId):
+                serialized[key] = str(value)
+            elif isinstance(value, (dict, list)):
+                serialized[key] = serialize_mongo_document(value)
+            else:
+                serialized[key] = value
+        return serialized
+    
+    return document
+
+def escape_regex_special_chars(text):
+    """Escape special regex characters for safe MongoDB regex queries."""
+    # Escape all regex special characters
+    special_chars = r'\.^$*+?{}[]|()'
+    escaped_text = text
+    for char in special_chars:
+        escaped_text = escaped_text.replace(char, '\\' + char)
+    return escaped_text
 
 # Enums
 class UserRole(str, Enum):
