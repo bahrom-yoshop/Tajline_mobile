@@ -4821,12 +4821,22 @@ async def track_cargo_by_code(tracking_code: str):
     if not tracking:
         raise HTTPException(status_code=404, detail="Tracking code not found")
     
+    # DEBUG: Print tracking info
+    print(f"DEBUG: Found tracking record for {tracking_code}")
+    print(f"DEBUG: Tracking cargo_id: {tracking['cargo_id']}")
+    
     # Найти груз
     cargo = db.cargo.find_one({"id": tracking["cargo_id"]})
     if not cargo:
+        print(f"DEBUG: Cargo not found in 'cargo' collection")
         cargo = db.operator_cargo.find_one({"id": tracking["cargo_id"]})
         if not cargo:
+            print(f"DEBUG: Cargo not found in 'operator_cargo' collection either")
             raise HTTPException(status_code=404, detail="Cargo not found")
+        else:
+            print(f"DEBUG: Found cargo in 'operator_cargo' collection")
+    else:
+        print(f"DEBUG: Found cargo in 'cargo' collection")
     
     # Обновить счетчик доступа
     db.cargo_tracking.update_one(
