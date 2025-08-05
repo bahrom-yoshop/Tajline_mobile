@@ -311,6 +311,9 @@ function App() {
         fetchMyCargo();
         fetchMyRequests();
         fetchSystemNotifications();
+        // Новые функции для клиентского дашборда (Функция 1)
+        fetchClientDashboard();
+        fetchClientCargo();
       }
     }
   }, [user]);
