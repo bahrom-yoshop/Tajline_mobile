@@ -2262,6 +2262,160 @@ async def dispatch_transport(
     
     return {"message": "Transport dispatched successfully"}
 
+@app.delete("/api/transport/{transport_id}/remove-cargo/{cargo_id}")
+async def remove_cargo_from_transport(
+    transport_id: str,
+    cargo_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Удалить груз с транспорта и вернуть его в исходное место на складе"""
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Найти транспорт
+    transport = db.transports.find_one({"id": transport_id})
+    if not transport:
+        raise HTTPException(status_code=404, detail="Transport not found")
+    
+    # Проверить, что транспорт не в пути
+    if transport["status"] == TransportStatus.IN_TRANSIT:
+        raise HTTPException(status_code=400, detail="Cannot remove cargo from transport in transit")
+    
+    # Найти груз в обеих коллекциях
+    cargo = db.cargo.find_one({"id": cargo_id})
+    if not cargo:
+        cargo = db.operator_cargo.find_one({"id": cargo_id})
+        collection_name = "operator_cargo"
+    else:
+        collection_name = "cargo"
+    
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Проверить, что груз действительно на этом транспорте
+    if cargo_id not in transport.get("cargo_list", []):
+        raise HTTPException(status_code=400, detail="Cargo is not on this transport")
+    
+    # Получить вес груза для пересчета загрузки транспорта
+    cargo_weight = cargo.get("weight", 0)
+    
+    # Удалить груз из списка транспорта
+    updated_cargo_list = [cid for cid in transport.get("cargo_list", []) if cid != cargo_id]
+    new_load = max(0, transport.get("current_load_kg", 0) - cargo_weight)
+    
+    # Обновить транспорт
+    db.transports.update_one(
+        {"id": transport_id},
+        {"$set": {
+            "cargo_list": updated_cargo_list,
+            "current_load_kg": new_load,
+            "status": TransportStatus.EMPTY if new_load == 0 else transport["status"],
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    # Если у груза было место на складе, вернуть его туда
+    if cargo.get("warehouse_id") and cargo.get("block_number") and cargo.get("shelf_number") and cargo.get("cell_number"):
+        # Найти ячейку на складе
+        location_code = f"{cargo['block_number']}-{cargo['shelf_number']}-{cargo['cell_number']}"
+        warehouse_cell = db.warehouse_cells.find_one({
+            "warehouse_id": cargo["warehouse_id"],
+            "location_code": location_code
+        })
+        
+        if warehouse_cell and not warehouse_cell.get("is_occupied", False):
+            # Вернуть груз в ячейку
+            db.warehouse_cells.update_one(
+                {"_id": warehouse_cell["_id"]},
+                {"$set": {
+                    "is_occupied": True,
+                    "cargo_id": cargo_id,
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+            
+            # Обновить статус груза
+            collection = db[collection_name]
+            collection.update_one(
+                {"id": cargo_id},
+                {"$set": {
+                    "status": CargoStatus.IN_WAREHOUSE,
+                    "transport_id": None,
+                    "updated_at": datetime.utcnow(),
+                    "returned_by_operator": current_user.full_name,
+                    "returned_by_operator_id": current_user.id
+                }}
+            )
+            
+            # Создать уведомление
+            create_notification(
+                cargo["sender_id"], 
+                f"Груз №{cargo['cargo_number']} был возвращен на склад в исходную ячейку",
+                cargo_id
+            )
+            
+            return {
+                "message": f"Cargo {cargo['cargo_number']} successfully returned to warehouse cell {location_code}",
+                "location": location_code,
+                "warehouse_id": cargo["warehouse_id"]
+            }
+        else:
+            # Ячейка занята или не найдена, просто вернуть статус на принят
+            collection = db[collection_name]
+            collection.update_one(
+                {"id": cargo_id},
+                {"$set": {
+                    "status": CargoStatus.ACCEPTED,
+                    "transport_id": None,
+                    "warehouse_id": None,
+                    "warehouse_location": None,
+                    "block_number": None,
+                    "shelf_number": None,
+                    "cell_number": None,
+                    "updated_at": datetime.utcnow(),
+                    "returned_by_operator": current_user.full_name,
+                    "returned_by_operator_id": current_user.id
+                }}
+            )
+            
+            # Создать уведомление
+            create_notification(
+                cargo["sender_id"], 
+                f"Ваш груз №{cargo['cargo_number']} был снят с транспорта и ожидает размещения",
+                cargo_id
+            )
+            
+            return {
+                "message": f"Cargo {cargo['cargo_number']} removed from transport. Original location unavailable, cargo status set to ACCEPTED",
+                "status": "accepted"
+            }
+    else:
+        # Груз не имел места на складе, просто снять с транспорта
+        collection = db[collection_name]
+        collection.update_one(
+            {"id": cargo_id},
+            {"$set": {
+                "status": CargoStatus.ACCEPTED,
+                "transport_id": None,
+                "updated_at": datetime.utcnow(),
+                "returned_by_operator": current_user.full_name,
+                "returned_by_operator_id": current_user.id
+            }}
+        )
+        
+        # Создать уведомление
+        create_notification(
+            cargo["sender_id"], 
+            f"Ваш груз №{cargo['cargo_number']} был снят с транспорта",
+            cargo_id
+        )
+        
+        return {
+            "message": f"Cargo {cargo['cargo_number']} removed from transport",
+            "status": "accepted"
+        }
+
 @app.delete("/api/transport/{transport_id}")
 async def delete_transport(
     transport_id: str,
