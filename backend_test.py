@@ -10736,6 +10736,10 @@ ID склада: {self.warehouse_id}"""
             ("📋 CARGO REQUEST MANAGEMENT SYSTEM", self.test_cargo_request_management_system),
             # SPECIAL TEST: Bahrom User Scenario (Review Request)
             ("👤 БАХРОМ КЛИЕНТ - СПЕЦИАЛЬНЫЙ ТЕСТ", self.test_bahrom_user_scenario),
+            # NEW TESTS FOR REVIEW REQUEST - CARGO NUMBERING AND UNPAID ORDERS
+            ("🔢 NEW CARGO NUMBER SYSTEM (YYMMXXXXXX)", self.test_new_cargo_number_system),
+            ("💰 UNPAID ORDERS SYSTEM", self.test_unpaid_orders_system),
+            ("🔄 FULL WORKFLOW: UNPAID ORDERS", self.test_full_workflow_unpaid_orders),
             ("Notifications", self.test_notifications),
             ("Error Handling", self.test_error_cases)
         ]
