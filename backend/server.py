@@ -5284,6 +5284,279 @@ async def mark_internal_message_read(
     
     return {"message": "Message marked as read"}
 
+# === API ДЛЯ ОФОРМЛЕНИЯ ГРУЗА КЛИЕНТАМИ ===
+
+def calculate_delivery_cost(cargo_data: CargoOrderCreate) -> DeliveryCalculation:
+    """Расчет стоимости доставки груза"""
+    
+    # Базовые тарифы в рублях
+    base_rates = {
+        RouteType.MOSCOW_DUSHANBE: {"base": 2000, "per_kg": 150, "days": 7},
+        RouteType.MOSCOW_KHUJAND: {"base": 1800, "per_kg": 140, "days": 8},
+        RouteType.MOSCOW_KULOB: {"base": 2200, "per_kg": 160, "days": 9},
+        RouteType.MOSCOW_KURGANTYUBE: {"base": 2100, "per_kg": 155, "days": 8}
+    }
+    
+    route_info = base_rates.get(cargo_data.route, base_rates[RouteType.MOSCOW_DUSHANBE])
+    
+    # Базовая стоимость
+    base_cost = route_info["base"]
+    
+    # Стоимость по весу
+    weight_cost = cargo_data.weight * route_info["per_kg"]
+    
+    # Страхование (0.5% от объявленной стоимости, минимум 500 руб)
+    insurance_cost = 0
+    if cargo_data.insurance_requested and cargo_data.insurance_value:
+        insurance_cost = max(cargo_data.insurance_value * 0.005, 500)
+    
+    # Упаковка
+    packaging_cost = 800 if cargo_data.packaging_service else 0
+    
+    # Забор на дому
+    pickup_cost = 1500 if cargo_data.home_pickup else 0
+    
+    # Доставка на дом
+    delivery_cost = 1200 if cargo_data.home_delivery else 0
+    
+    # Надбавка за срочность
+    express_surcharge = 0
+    delivery_days = route_info["days"]
+    
+    if cargo_data.delivery_type == "express":
+        express_surcharge = (base_cost + weight_cost) * 0.5  # +50%
+        delivery_days = max(delivery_days - 2, 3)  # На 2 дня быстрее, минимум 3 дня
+    elif cargo_data.delivery_type == "economy":
+        express_surcharge = -(base_cost + weight_cost) * 0.2  # -20%
+        delivery_days += 3  # На 3 дня дольше
+    
+    # Надбавки за специальные требования
+    special_surcharge = 0
+    if cargo_data.fragile:
+        special_surcharge += 500
+    if cargo_data.temperature_sensitive:
+        special_surcharge += 800
+    
+    total_cost = (
+        base_cost + weight_cost + insurance_cost + packaging_cost + 
+        pickup_cost + delivery_cost + express_surcharge + special_surcharge
+    )
+    
+    return DeliveryCalculation(
+        base_cost=base_cost,
+        weight_cost=weight_cost,
+        insurance_cost=insurance_cost,
+        packaging_cost=packaging_cost,
+        pickup_cost=pickup_cost,
+        delivery_cost=delivery_cost,
+        express_surcharge=express_surcharge,
+        total_cost=round(total_cost, 2),
+        delivery_time_days=delivery_days
+    )
+
+@app.post("/api/client/cargo/calculate")
+async def calculate_cargo_cost(
+    cargo_data: CargoOrderCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Рассчитать стоимость доставки груза"""
+    if current_user.role != UserRole.USER:
+        raise HTTPException(status_code=403, detail="Access denied - Only for clients")
+    
+    try:
+        calculation = calculate_delivery_cost(cargo_data)
+        return {
+            "calculation": calculation,
+            "breakdown": {
+                "Базовая стоимость": calculation.base_cost,
+                "Стоимость по весу": f"{calculation.weight_cost} ({cargo_data.weight} кг)",
+                "Страхование": calculation.insurance_cost if calculation.insurance_cost > 0 else "Не выбрано",
+                "Упаковка": calculation.packaging_cost if calculation.packaging_cost > 0 else "Не выбрано",
+                "Забор на дому": calculation.pickup_cost if calculation.pickup_cost > 0 else "Не выбрано",
+                "Доставка на дом": calculation.delivery_cost if calculation.delivery_cost > 0 else "Не выбрано",
+                "Надбавка за тип доставки": calculation.express_surcharge
+            },
+            "route_info": {
+                "route": cargo_data.route,
+                "delivery_type": cargo_data.delivery_type,
+                "estimated_days": calculation.delivery_time_days
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error calculating cost: {str(e)}")
+
+@app.post("/api/client/cargo/create")
+async def create_cargo_order(
+    cargo_data: CargoOrderCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Создать заказ на груз клиентом"""
+    if current_user.role != UserRole.USER:
+        raise HTTPException(status_code=403, detail="Access denied - Only for clients")
+    
+    try:
+        # Рассчитываем стоимость
+        calculation = calculate_delivery_cost(cargo_data)
+        
+        # Создаем груз
+        cargo_id = str(uuid.uuid4())
+        cargo_number = generate_cargo_number()
+        
+        cargo = {
+            "id": cargo_id,
+            "cargo_number": cargo_number,
+            "cargo_name": cargo_data.cargo_name,
+            "sender_full_name": current_user.full_name,
+            "sender_phone": current_user.phone,
+            "recipient_full_name": cargo_data.recipient_full_name,
+            "recipient_phone": cargo_data.recipient_phone,
+            "recipient_address": cargo_data.recipient_address,
+            "recipient_city": cargo_data.recipient_city,
+            "weight": cargo_data.weight,
+            "declared_value": cargo_data.declared_value,
+            "description": cargo_data.description,
+            "route": cargo_data.route,
+            "status": CargoStatus.CREATED,
+            "payment_status": "pending",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "created_by": current_user.id,
+            "created_by_operator": None,
+            
+            # Стоимость и услуги
+            "total_cost": calculation.total_cost,
+            "base_cost": calculation.base_cost,
+            "estimated_delivery_days": calculation.delivery_time_days,
+            "delivery_type": cargo_data.delivery_type,
+            
+            # Дополнительные услуги
+            "insurance_requested": cargo_data.insurance_requested,
+            "insurance_value": cargo_data.insurance_value,
+            "insurance_cost": calculation.insurance_cost,
+            "packaging_service": cargo_data.packaging_service,
+            "packaging_cost": calculation.packaging_cost,
+            "home_pickup": cargo_data.home_pickup,
+            "pickup_cost": calculation.pickup_cost,
+            "home_delivery": cargo_data.home_delivery,
+            "delivery_cost": calculation.delivery_cost,
+            
+            # Специальные требования
+            "fragile": cargo_data.fragile,
+            "temperature_sensitive": cargo_data.temperature_sensitive,
+            "special_instructions": cargo_data.special_instructions,
+            
+            # Статус обработки
+            "order_type": "client_order",  # Отличаем от заявок
+            "needs_operator_review": True
+        }
+        
+        db.cargo.insert_one(cargo)
+        
+        # Создаем трекинг код автоматически
+        tracking_code = f"TRK{cargo_number}{str(uuid.uuid4())[-8:].upper()}"
+        
+        tracking = {
+            "id": str(uuid.uuid4()),
+            "cargo_id": cargo_id,
+            "cargo_number": cargo_number,
+            "tracking_code": tracking_code,
+            "client_phone": current_user.phone,
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "access_count": 0
+        }
+        
+        db.cargo_tracking.insert_one(tracking)
+        
+        # Добавляем в историю груза
+        add_cargo_history(
+            cargo_id,
+            cargo_number,
+            "created",
+            None,
+            None,
+            "created",
+            f"Груз оформлен клиентом {current_user.full_name}. Стоимость: {calculation.total_cost} руб.",
+            current_user.id,
+            current_user.full_name,
+            "user",
+            {
+                "total_cost": calculation.total_cost,
+                "delivery_type": cargo_data.delivery_type,
+                "route": cargo_data.route,
+                "tracking_code": tracking_code
+            }
+        )
+        
+        # Создаем уведомление для операторов
+        create_system_notification(
+            "Новый заказ от клиента",
+            f"Клиент {current_user.full_name} оформил груз #{cargo_number}. Стоимость: {calculation.total_cost} руб. Требует проверки оператора.",
+            "client_order",
+            cargo_id,
+            {
+                "cargo_number": cargo_number,
+                "client_name": current_user.full_name,
+                "total_cost": calculation.total_cost,
+                "route": cargo_data.route
+            },
+            None  # Для всех операторов
+        )
+        
+        return CargoOrderResponse(
+            cargo_id=cargo_id,
+            cargo_number=cargo_number,
+            total_cost=calculation.total_cost,
+            estimated_delivery_days=calculation.delivery_time_days,
+            status="created",
+            payment_status="pending",
+            tracking_code=tracking_code,
+            created_at=datetime.utcnow()
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error creating cargo order: {str(e)}")
+
+@app.get("/api/client/cargo/delivery-options") 
+async def get_delivery_options(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить доступные опции доставки"""
+    if current_user.role != UserRole.USER:
+        raise HTTPException(status_code=403, detail="Access denied - Only for clients")
+    
+    return {
+        "routes": [
+            {"value": "moscow_dushanbe", "label": "Москва → Душанбе", "base_days": 7},
+            {"value": "moscow_khujand", "label": "Москва → Худжанд", "base_days": 8},
+            {"value": "moscow_kulob", "label": "Москва → Кулоб", "base_days": 9},
+            {"value": "moscow_kurgantyube", "label": "Москва → Курган-Тюбе", "base_days": 8}
+        ],
+        "delivery_types": [
+            {"value": "economy", "label": "Эконом (-20%)", "modifier": -0.2, "days_add": 3},
+            {"value": "standard", "label": "Обычная", "modifier": 0, "days_add": 0},
+            {"value": "express", "label": "Срочная (+50%)", "modifier": 0.5, "days_subtract": 2}
+        ],
+        "additional_services": [
+            {"service": "insurance", "label": "Страхование", "description": "0.5% от стоимости, мин. 500 руб"},
+            {"service": "packaging", "label": "Упаковка", "cost": 800, "description": "Профессиональная упаковка"},
+            {"service": "home_pickup", "label": "Забор на дому", "cost": 1500, "description": "Заберем груз по вашему адресу"},
+            {"service": "home_delivery", "label": "Доставка на дом", "cost": 1200, "description": "Доставим груз по адресу получателя"},
+            {"service": "fragile", "label": "Хрупкий груз", "cost": 500, "description": "Особая осторожность при транспортировке"},
+            {"service": "temperature", "label": "Температурный режим", "cost": 800, "description": "Контроль температуры"}
+        ],
+        "weight_limits": {
+            "min": 0.1,
+            "max": 10000,
+            "unit": "кг"
+        },
+        "value_limits": {
+            "min": 100,
+            "max": 10000000,
+            "unit": "руб"
+        }
+    }
+
 # === API ДЛЯ КЛИЕНТСКОГО ЛИЧНОГО КАБИНЕТА (Функция 1) ===
 
 @app.get("/api/client/dashboard")
