@@ -7523,6 +7523,232 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_new_warehouse_operator_functions(self):
+        """Test the 4 new functions added to backend as requested in review"""
+        print("\n🆕 NEW WAREHOUSE OPERATOR FUNCTIONS (4 NEW FEATURES)")
+        
+        if 'admin' not in self.tokens or 'warehouse_operator' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Function 1: Информация об операторах на складах - GET /api/warehouses
+        print("\n   🏭 Function 1: Warehouse Information with Bound Operators...")
+        success, warehouses_response = self.run_test(
+            "Get Warehouses with Operator Information",
+            "GET",
+            "/api/warehouses",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            warehouse_count = len(warehouses_response) if isinstance(warehouses_response, list) else 0
+            print(f"   📊 Found {warehouse_count} warehouses")
+            
+            # Check if operator information is included
+            if warehouses_response and isinstance(warehouses_response, list):
+                first_warehouse = warehouses_response[0]
+                if 'bound_operators' in first_warehouse and 'operators_count' in first_warehouse:
+                    print(f"   ✅ Warehouse includes bound operators information")
+                    print(f"   👥 First warehouse has {first_warehouse['operators_count']} bound operators")
+                else:
+                    print(f"   ❌ Warehouse missing bound operators information")
+                    all_success = False
+        
+        # Function 2: Расширенный личный кабинет оператора - GET /api/operator/my-warehouses
+        print("\n   👤 Function 2: Enhanced Operator Personal Cabinet...")
+        success, operator_warehouses = self.run_test(
+            "Get Operator's Detailed Warehouses",
+            "GET",
+            "/api/operator/my-warehouses",
+            200,
+            token=self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success:
+            if 'warehouses' in operator_warehouses and 'summary' in operator_warehouses:
+                warehouse_list = operator_warehouses['warehouses']
+                summary = operator_warehouses['summary']
+                
+                print(f"   📊 Operator has access to {len(warehouse_list)} warehouses")
+                print(f"   📈 Total cargo across warehouses: {summary.get('total_cargo_across_warehouses', 0)}")
+                print(f"   📈 Total occupied cells: {summary.get('total_occupied_cells', 0)}")
+                print(f"   📈 Average occupancy: {summary.get('average_occupancy', 0)}%")
+                
+                # Check detailed warehouse information
+                if warehouse_list:
+                    first_warehouse = warehouse_list[0]
+                    required_fields = ['cells_info', 'cargo_info', 'transport_info', 'available_functions']
+                    missing_fields = [field for field in required_fields if field not in first_warehouse]
+                    
+                    if not missing_fields:
+                        print(f"   ✅ Warehouse includes detailed statistics and functions")
+                        print(f"   🔧 Available functions: {len(first_warehouse['available_functions'])} functions")
+                    else:
+                        print(f"   ❌ Warehouse missing fields: {missing_fields}")
+                        all_success = False
+            else:
+                print(f"   ❌ Response missing required structure (warehouses, summary)")
+                all_success = False
+        
+        # Function 3: Список складов для межскладских транспортов - GET /api/warehouses/for-interwarehouse-transport
+        print("\n   🚛 Function 3: Warehouses for Interwarehouse Transport...")
+        success, interwarehouse_response = self.run_test(
+            "Get Warehouses for Interwarehouse Transport",
+            "GET",
+            "/api/warehouses/for-interwarehouse-transport",
+            200,
+            token=self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success:
+            if 'warehouses' in interwarehouse_response and 'auto_source_warehouse' in interwarehouse_response:
+                warehouses = interwarehouse_response['warehouses']
+                auto_source = interwarehouse_response['auto_source_warehouse']
+                
+                print(f"   📊 Found {len(warehouses)} warehouses for interwarehouse transport")
+                
+                if auto_source:
+                    print(f"   🎯 Auto-selected source warehouse: {auto_source['name']}")
+                    print(f"   ✅ Automatic source warehouse selection working")
+                else:
+                    print(f"   ⚠️  No auto-selected source warehouse (may be normal for admin)")
+                
+                # Check warehouse information structure
+                if warehouses:
+                    first_warehouse = warehouses[0]
+                    required_fields = ['ready_cargo_count', 'can_be_source', 'can_be_destination']
+                    missing_fields = [field for field in required_fields if field not in first_warehouse]
+                    
+                    if not missing_fields:
+                        print(f"   ✅ Warehouses include transport-specific information")
+                        print(f"   📦 First warehouse ready cargo: {first_warehouse['ready_cargo_count']}")
+                    else:
+                        print(f"   ❌ Warehouse missing transport fields: {missing_fields}")
+                        all_success = False
+            else:
+                print(f"   ❌ Response missing required structure")
+                all_success = False
+        
+        # Function 4: Расширенный поиск грузов - GET /api/cargo/search
+        print("\n   🔍 Function 4: Enhanced Cargo Search...")
+        
+        # Test different search types
+        search_tests = [
+            ("all", "1001"),  # Search by number
+            ("sender_name", "Иван"),  # Search by sender name
+            ("recipient_name", "Петр"),  # Search by recipient name
+            ("phone", "+79"),  # Search by phone
+            ("cargo_name", "Документы")  # Search by cargo name
+        ]
+        
+        for search_type, query in search_tests:
+            success, search_response = self.run_test(
+                f"Enhanced Cargo Search ({search_type}: {query})",
+                "GET",
+                "/api/cargo/search",
+                200,
+                token=self.tokens['admin'],
+                params={"query": query, "search_type": search_type}
+            )
+            
+            if success:
+                if 'results' in search_response and 'available_search_types' in search_response:
+                    results = search_response['results']
+                    search_types = search_response['available_search_types']
+                    
+                    print(f"   🔍 Search '{query}' ({search_type}): {len(results)} results")
+                    
+                    # Check detailed cargo card structure
+                    if results:
+                        first_result = results[0]
+                        required_fields = ['location', 'operators', 'payment', 'available_functions']
+                        missing_fields = [field for field in required_fields if field not in first_result]
+                        
+                        if not missing_fields:
+                            print(f"   ✅ Cargo cards include detailed information and functions")
+                            functions_count = len(first_result['available_functions'])
+                            print(f"   🔧 Available functions per cargo: {functions_count}")
+                        else:
+                            print(f"   ❌ Cargo card missing fields: {missing_fields}")
+                            all_success = False
+                    
+                    print(f"   📋 Available search types: {len(search_types)}")
+                else:
+                    print(f"   ❌ Search response missing required structure")
+                    all_success = False
+            else:
+                all_success = False
+                break  # Stop testing other search types if one fails
+        
+        # Test POST /api/transport/create-interwarehouse with automatic source selection
+        print("\n   🚛 Function 5: Create Interwarehouse Transport with Auto Source Selection...")
+        
+        # First get warehouses to create transport between them
+        if hasattr(self, 'warehouse_id'):
+            # Create another warehouse for testing
+            warehouse_data = {
+                "name": "Склад назначения для межскладского транспорта",
+                "location": "Москва, Тестовая территория 2",
+                "blocks_count": 1,
+                "shelves_per_block": 1,
+                "cells_per_shelf": 5
+            }
+            
+            success, dest_warehouse_response = self.run_test(
+                "Create Destination Warehouse for Interwarehouse Transport",
+                "POST",
+                "/api/warehouses/create",
+                200,
+                warehouse_data,
+                self.tokens['admin']
+            )
+            
+            if success and 'id' in dest_warehouse_response:
+                dest_warehouse_id = dest_warehouse_response['id']
+                
+                # Test interwarehouse transport creation with auto source selection
+                transport_data = {
+                    "destination_warehouse_id": dest_warehouse_id,
+                    "auto_select_source": True,
+                    "driver_name": "Межскладской Водитель",
+                    "driver_phone": "+79999888777",
+                    "capacity_kg": 2000
+                }
+                
+                success, transport_response = self.run_test(
+                    "Create Interwarehouse Transport with Auto Source",
+                    "POST",
+                    "/api/transport/create-interwarehouse",
+                    200,
+                    transport_data,
+                    self.tokens['warehouse_operator']
+                )
+                all_success &= success
+                
+                if success:
+                    if 'transport_id' in transport_response and 'source_warehouse' in transport_response:
+                        print(f"   ✅ Interwarehouse transport created successfully")
+                        print(f"   🚛 Transport ID: {transport_response['transport_id']}")
+                        print(f"   🏭 Auto-selected source: {transport_response['source_warehouse']['name']}")
+                        print(f"   🎯 Destination: {transport_response['destination_warehouse']['name']}")
+                        
+                        # Check if auto_selected_source flag is set
+                        if transport_response.get('auto_selected_source'):
+                            print(f"   ✅ Auto source selection flag confirmed")
+                        else:
+                            print(f"   ⚠️  Auto source selection flag not set")
+                    else:
+                        print(f"   ❌ Transport response missing required fields")
+                        all_success = False
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
