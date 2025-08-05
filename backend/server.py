@@ -2698,12 +2698,15 @@ async def get_all_orders_with_payments(current_user: User = Depends(get_current_
 @app.post("/api/admin/unpaid-orders/{order_id}/mark-paid")
 async def mark_order_as_paid(
     order_id: str,
-    payment_method: str,
+    payment_data: Dict[str, str],
     current_user: User = Depends(get_current_user)
 ):
     """Отметить заказ как оплаченный"""
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Получить способ оплаты из JSON body
+    payment_method = payment_data.get("payment_method", "cash")
     
     # Найти заказ
     order = db.unpaid_orders.find_one({"id": order_id, "status": "unpaid"})
