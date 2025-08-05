@@ -481,6 +481,8 @@ function App() {
         // Новые функции для клиентского дашборда (Функция 1)
         fetchClientDashboard();
         fetchClientCargo();
+        // Загружаем опции доставки для оформления грузов
+        fetchDeliveryOptions();
       }
     }
   }, [user]);
