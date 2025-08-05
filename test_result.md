@@ -662,40 +662,49 @@ frontend:
           comment: "✅ COMPLETED - Integrated automatic cell liberation with transport placement, enhanced warehouse schema with hover effects and click interactions, real-time cell status updates."
 
   - task: "Fix Search Header Input Issue"
-    implemented: false
-    working: false
+    implemented: true
+    working: true
     file: "/app/frontend/src/App.js"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
     needs_retesting: true
     status_history:
         - working: false
           agent: "user"
           comment: "User reported that search header is not working - not possible to type commands in the search field. Search input may have positioning or z-index issues preventing user interaction."
+        - working: true
+          agent: "main"
+          comment: "✅ FIXED - Removed conflicting z-index styles from search input and clear button. Modified search input positioning and dropdown to fix input interaction issues."
 
   - task: "Fix printInvoice Function Missing"
-    implemented: false
-    working: false
+    implemented: true
+    working: true
     file: "/app/frontend/src/App.js"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
     needs_retesting: true
     status_history:
         - working: false
           agent: "user"
           comment: "Lint error: printInvoice is not defined. Function is being called in cargo detail modal but not implemented."
+        - working: true
+          agent: "main"
+          comment: "✅ IMPLEMENTED - Added comprehensive printInvoice function that generates professional invoice/waybill for individual cargo with full cargo, sender, recipient, warehouse location, and operator information. Function creates printable HTML document with proper styling."
 
   - task: "Enhanced Transport Management Modal"
-    implemented: false
-    working: false
+    implemented: true
+    working: true
     file: "/app/frontend/src/App.js"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
     needs_retesting: true
     status_history:
         - working: false
           agent: "user"
           comment: "Need to enhance the Manage modal in Logistics -> List Transports section to display cargo list, add print functionality, return cargo to original location, and view full cargo information with sender/receiver details."
+        - working: true
+          agent: "main"
+          comment: "✅ ENHANCED - Transport management modal already had most requested features. Added actual return cargo functionality that calls new backend API to remove cargo from transport and return to warehouse. Modal now shows full cargo list, print functionality, and full cargo details with proper return-to-warehouse logic."
 
 metadata:
   created_by: "main_agent"
