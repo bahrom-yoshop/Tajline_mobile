@@ -2340,7 +2340,7 @@ async def remove_cargo_from_transport(
             collection.update_one(
                 {"id": cargo_id},
                 {"$set": {
-                    "status": CargoStatus.IN_WAREHOUSE,
+                    "status": CargoStatus.ACCEPTED,
                     "transport_id": None,
                     "updated_at": datetime.utcnow(),
                     "returned_by_operator": current_user.full_name,
