@@ -712,6 +712,10 @@ async def search_cargo(
             {"recipient_name": {"$regex": query, "$options": "i"}}
         ]
     }))
+    # Ensure cargo_name field exists for backward compatibility
+    for cargo in cargo_list:
+        if 'cargo_name' not in cargo:
+            cargo['cargo_name'] = cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз'
     return [Cargo(**cargo) for cargo in cargo_list]
 
 # Администрирование
