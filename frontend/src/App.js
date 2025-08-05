@@ -5381,6 +5381,209 @@ function App() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Arrived Transport Modal */}
+      <Dialog open={arrivedTransportModal} onOpenChange={setArrivedTransportModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              <Truck className="mr-2 h-5 w-5 inline" />
+              Размещение грузов из транспорта {selectedArrivedTransport?.transport_number}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedArrivedTransport && (
+            <div className="space-y-6">
+              {/* Информация о транспорте */}
+              <div className="p-4 bg-green-50 rounded-lg">
+                <h4 className="font-semibold text-green-800 mb-2">Информация о транспорте</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <p><strong>Номер:</strong> {selectedArrivedTransport.transport_number}</p>
+                  <p><strong>Водитель:</strong> {selectedArrivedTransport.driver_name}</p>
+                  <p><strong>Направление:</strong> {selectedArrivedTransport.direction}</p>
+                  <p><strong>Прибыл:</strong> {new Date(selectedArrivedTransport.arrived_at).toLocaleString('ru-RU')}</p>
+                </div>
+              </div>
+
+              {/* Список грузов для размещения */}
+              <Card className="p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-semibold">Грузы для размещения ({arrivedCargoList.placeable_cargo_count || 0} из {arrivedCargoList.cargo_count || 0})</h4>
+                  <div className="text-sm text-gray-600">
+                    Общий вес: {arrivedCargoList.total_weight || 0} кг
+                  </div>
+                </div>
+                
+                <div className="max-h-80 overflow-y-auto border rounded">
+                  {!arrivedCargoList.cargo_list || arrivedCargoList.cargo_list.length === 0 ? (
+                    <p className="p-4 text-gray-500 text-center">Нет грузов для размещения</p>
+                  ) : (
+                    <div className="space-y-2 p-2">
+                      {arrivedCargoList.cargo_list.map((cargo) => (
+                        <div key={cargo.id} className={`flex justify-between items-center p-3 rounded border ${cargo.can_be_placed ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-4">
+                              <div>
+                                <p className="font-medium">{cargo.cargo_number}</p>
+                                <p className="text-sm text-gray-600">{cargo.cargo_name}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm"><strong>Вес:</strong> {cargo.weight} кг</p>
+                                <p className="text-sm"><strong>Получатель:</strong> {cargo.recipient_full_name}</p>
+                              </div>
+                              <div>
+                                <Badge variant={cargo.can_be_placed ? "default" : "secondary"}>
+                                  {cargo.status === 'arrived_destination' ? 'Готов к размещению' : cargo.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex space-x-2">
+                            {cargo.can_be_placed && (
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedCargoForWarehouse(cargo);
+                                  setCargoPlacementModal(true);
+                                }}
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                              >
+                                <Building className="h-4 w-4 mr-1" />
+                                Разместить
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Cargo Placement Modal */}
+      <Dialog open={cargoPlacementModal} onOpenChange={setCargoPlacementModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              <Building className="mr-2 h-5 w-5 inline" />
+              Размещение груза {selectedCargoForWarehouse?.cargo_number}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <form onSubmit={handlePlaceCargoFromTransport} className="space-y-4">
+            {selectedCargoForWarehouse && (
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <h5 className="font-medium text-blue-800">Информация о грузе</h5>
+                <p className="text-sm"><strong>Номер:</strong> {selectedCargoForWarehouse.cargo_number}</p>
+                <p className="text-sm"><strong>Название:</strong> {selectedCargoForWarehouse.cargo_name}</p>
+                <p className="text-sm"><strong>Вес:</strong> {selectedCargoForWarehouse.weight} кг</p>
+                <p className="text-sm"><strong>Получатель:</strong> {selectedCargoForWarehouse.recipient_full_name}</p>
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="placement_warehouse">Склад</Label>
+              <Select 
+                value={placementForm.warehouse_id} 
+                onValueChange={(value) => setPlacementForm({...placementForm, warehouse_id: value})}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите склад" />
+                </SelectTrigger>
+                <SelectContent>
+                  {warehouses.map((warehouse) => (
+                    <SelectItem key={warehouse.id} value={warehouse.id}>
+                      {warehouse.name} ({warehouse.location})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label htmlFor="placement_block">Блок</Label>
+                <Select 
+                  value={placementForm.block_number.toString()} 
+                  onValueChange={(value) => setPlacementForm({...placementForm, block_number: parseInt(value)})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {placementForm.warehouse_id && warehouses.find(w => w.id === placementForm.warehouse_id) && 
+                      Array.from({length: warehouses.find(w => w.id === placementForm.warehouse_id).blocks_count}, (_, i) => (
+                        <SelectItem key={i+1} value={(i+1).toString()}>{i+1}</SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="placement_shelf">Полка</Label>
+                <Select 
+                  value={placementForm.shelf_number.toString()} 
+                  onValueChange={(value) => setPlacementForm({...placementForm, shelf_number: parseInt(value)})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {placementForm.warehouse_id && warehouses.find(w => w.id === placementForm.warehouse_id) && 
+                      Array.from({length: warehouses.find(w => w.id === placementForm.warehouse_id).shelves_per_block}, (_, i) => (
+                        <SelectItem key={i+1} value={(i+1).toString()}>{i+1}</SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="placement_cell">Ячейка</Label>
+                <Select 
+                  value={placementForm.cell_number.toString()} 
+                  onValueChange={(value) => setPlacementForm({...placementForm, cell_number: parseInt(value)})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {placementForm.warehouse_id && warehouses.find(w => w.id === placementForm.warehouse_id) && 
+                      Array.from({length: warehouses.find(w => w.id === placementForm.warehouse_id).cells_per_shelf}, (_, i) => (
+                        <SelectItem key={i+1} value={(i+1).toString()}>{i+1}</SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex space-x-2 pt-4">
+              <Button type="submit" className="flex-1">
+                <Building className="mr-2 h-4 w-4" />
+                Разместить груз
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setCargoPlacementModal(false);
+                  setSelectedCargoForWarehouse(null);
+                }}
+              >
+                Отмена
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
