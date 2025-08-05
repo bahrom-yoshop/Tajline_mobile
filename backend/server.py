@@ -686,6 +686,10 @@ async def get_warehouse_cargo(current_user: User = Depends(require_role(UserRole
     cargo_list = list(db.cargo.find({
         "status": {"$in": [CargoStatus.CREATED, CargoStatus.ACCEPTED, CargoStatus.IN_TRANSIT]}
     }))
+    # Ensure cargo_name field exists for backward compatibility
+    for cargo in cargo_list:
+        if 'cargo_name' not in cargo:
+            cargo['cargo_name'] = cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз'
     return [Cargo(**cargo) for cargo in cargo_list]
 
 @app.get("/api/warehouse/search")
