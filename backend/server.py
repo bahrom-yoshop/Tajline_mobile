@@ -949,11 +949,14 @@ async def accept_new_cargo(
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
         "created_by": current_user.id,
+        "created_by_operator": current_user.full_name,  # ФИО оператора
         "warehouse_location": None,
         "warehouse_id": None,
         "block_number": None,
         "shelf_number": None,
-        "cell_number": None
+        "cell_number": None,
+        "placed_by_operator": None,
+        "placed_by_operator_id": None
     }
     
     db.operator_cargo.insert_one(cargo)
