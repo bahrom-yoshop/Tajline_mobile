@@ -814,7 +814,7 @@ backend:
 
   - task: "Full Workflow Test - Unpaid Orders"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
@@ -826,6 +826,9 @@ backend:
         - working: false
           agent: "testing"
           comment: "❌ WORKFLOW INCOMPLETE - Full workflow test failed at payment step. WORKFLOW RESULTS: 1) ✅ USER REQUEST: Bahrom user successfully created cargo request (ID: 95b4ed83-4514-4e49-8fc5-ca9959479b2c), 2) ✅ ADMIN ACCEPT: Admin successfully accepted request and created cargo #250851, 3) ✅ UNPAID ORDER: System automatically created unpaid order (Amount: 10000.0 руб, Client: Бахром Клиент, Phone: +992900000000), 4) ❌ MARK PAID: POST /api/admin/unpaid-orders/{order_id}/mark-paid failed with 422 error - missing payment_method parameter, 5) ❌ FINAL STATE: Order status remains 'unpaid', cargo payment status remains 'pending'. BLOCKING ISSUE: Same API parameter problem as individual unpaid orders test - the mark-paid endpoint requires proper parameter handling. WORKFLOW SUCCESS: 3/5 steps completed successfully, payment processing blocked by API implementation issue."
+        - working: true
+          agent: "testing"
+          comment: "✅ COMPLETE WORKFLOW WITH CORRECTED FUNCTIONS WORKING PERFECTLY - Full end-to-end testing shows 100% success! COMPLETE WORKFLOW RESULTS: 1) ✅ USER REQUEST: Bahrom user successfully created cargo request (ID: 7ccab177-c8c2-43ae-9da7-47636e38eb80) with all required fields, 2) ✅ ADMIN ACCEPT: Admin successfully accepted request and created cargo #250110 using CORRECTED numbering format (starts with 2501), 3) ✅ UNPAID ORDER CREATION: System automatically created unpaid order (Amount: 10000.0 руб, Client: Бахром Клиент, ID: 17fe3abb-6e10-4ddb-9141-b256412c7266), 4) ✅ CORRECTED MARK-PAID: POST /api/admin/unpaid-orders/{order_id}/mark-paid successfully processed with JSON body {\"payment_method\": \"cash\"} - returned 200 status, 5) ✅ FINAL STATE VERIFICATION: Order successfully removed from unpaid list, cargo tracking shows status 'accepted' and payment_status 'paid'. INTEGRATION WITH CORRECTED FUNCTIONS: Cargo number 250110 uses corrected 2501XX format, unpaid orders API works with JSON body as expected. WORKFLOW SUCCESS: 5/5 steps completed successfully. SUCCESS RATE: 100% - COMPLETE WORKFLOW WITH ALL CORRECTIONS WORKING PERFECTLY!"
 
 frontend:
   - task: "Client Cargo Ordering System - Frontend Implementation"
