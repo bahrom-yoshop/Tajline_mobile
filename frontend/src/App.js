@@ -520,6 +520,30 @@ function App() {
     // Альтернативно можно открыть форму обратной связи
   };
 
+  // Search functions
+  const handleSearch = async (query) => {
+    if (!query || query.length < 2) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    try {
+      const results = await apiCall(`/api/cargo/search?query=${encodeURIComponent(query)}&search_type=${searchType}`);
+      setSearchResults(results || []);
+      setShowSearchResults(true);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setShowSearchResults(false);
+  };
+
   // Operator-warehouse binding functions
   const fetchOperatorWarehouseBindings = async () => {
     try {
