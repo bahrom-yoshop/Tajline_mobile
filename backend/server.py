@@ -2758,6 +2758,285 @@ def _get_location_description(cargo):
     else:
         return f"Статус: {status}"
 
+# === НОВЫЕ API ЭТАПА 1: ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ ГРУЗОВ ===
+
+@app.post("/api/cargo/photo/upload")
+async def upload_cargo_photo(
+    photo_data: CargoPhotoUpload,
+    current_user: User = Depends(get_current_user)
+):
+    """Загрузить фото груза"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Проверяем существование груза
+    cargo = db.cargo.find_one({"id": photo_data.cargo_id})
+    if not cargo:
+        cargo = db.operator_cargo.find_one({"id": photo_data.cargo_id})
+        if not cargo:
+            raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Валидация base64 изображения
+    try:
+        image_data = base64.b64decode(photo_data.photo_data.split(',')[1] if ',' in photo_data.photo_data else photo_data.photo_data)
+        image = Image.open(BytesIO(image_data))
+        
+        # Получаем размер изображения
+        photo_size = len(image_data)
+        
+        # Ограничиваем размер до 5MB
+        if photo_size > 5 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="Photo size too large (max 5MB)")
+            
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid image data")
+    
+    # Создаем запись фото
+    photo_id = str(uuid.uuid4())
+    photo = {
+        "id": photo_id,
+        "cargo_id": photo_data.cargo_id,
+        "cargo_number": cargo["cargo_number"],
+        "photo_data": photo_data.photo_data,
+        "photo_name": photo_data.photo_name,
+        "photo_size": photo_size,
+        "uploaded_by": current_user.id,
+        "uploaded_by_name": current_user.full_name,
+        "upload_date": datetime.utcnow(),
+        "photo_type": photo_data.photo_type,
+        "description": photo_data.description
+    }
+    
+    db.cargo_photos.insert_one(photo)
+    
+    # Добавляем в историю груза
+    add_cargo_history(
+        photo_data.cargo_id,
+        cargo["cargo_number"],
+        "photo_uploaded",
+        None,
+        None,
+        photo_data.photo_type,
+        f"Загружено фото: {photo_data.photo_name}",
+        current_user.id,
+        current_user.full_name,
+        current_user.role,
+        {"photo_id": photo_id, "photo_type": photo_data.photo_type}
+    )
+    
+    # Создаем уведомление
+    create_notification(
+        current_user.id,
+        f"Загружено фото для груза {cargo['cargo_number']}",
+        photo_data.cargo_id
+    )
+    
+    return {
+        "message": "Photo uploaded successfully",
+        "photo_id": photo_id,
+        "cargo_number": cargo["cargo_number"],
+        "photo_size": photo_size
+    }
+
+@app.get("/api/cargo/{cargo_id}/photos")
+async def get_cargo_photos(
+    cargo_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить все фото груза"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Проверяем существование груза
+    cargo = db.cargo.find_one({"id": cargo_id})
+    if not cargo:
+        cargo = db.operator_cargo.find_one({"id": cargo_id})
+        if not cargo:
+            raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Получаем фото
+    photos = list(db.cargo_photos.find({"cargo_id": cargo_id}, {"_id": 0}).sort("upload_date", -1))
+    
+    return {
+        "cargo_id": cargo_id,
+        "cargo_number": cargo["cargo_number"],
+        "photos": photos,
+        "total_photos": len(photos)
+    }
+
+@app.delete("/api/cargo/photo/{photo_id}")
+async def delete_cargo_photo(
+    photo_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Удалить фото груза"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Проверяем существование фото
+    photo = db.cargo_photos.find_one({"id": photo_id})
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    
+    # Удаляем фото
+    db.cargo_photos.delete_one({"id": photo_id})
+    
+    # Добавляем в историю груза
+    add_cargo_history(
+        photo["cargo_id"],
+        photo["cargo_number"],
+        "photo_deleted",
+        None,
+        None,
+        None,
+        f"Удалено фото: {photo['photo_name']}",
+        current_user.id,
+        current_user.full_name,
+        current_user.role,
+        {"photo_id": photo_id, "photo_name": photo["photo_name"]}
+    )
+    
+    return {"message": "Photo deleted successfully"}
+
+@app.get("/api/cargo/{cargo_id}/history")
+async def get_cargo_history(
+    cargo_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить историю изменений груза"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Проверяем существование груза
+    cargo = db.cargo.find_one({"id": cargo_id})
+    if not cargo:
+        cargo = db.operator_cargo.find_one({"id": cargo_id})
+        if not cargo:
+            raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Получаем историю
+    history = list(db.cargo_history.find({"cargo_id": cargo_id}, {"_id": 0}).sort("change_date", -1))
+    
+    return {
+        "cargo_id": cargo_id,
+        "cargo_number": cargo["cargo_number"],
+        "history": history,
+        "total_changes": len(history)
+    }
+
+@app.post("/api/cargo/comment")
+async def add_cargo_comment(
+    comment_data: CargoCommentCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Добавить комментарий к грузу"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Проверяем существование груза
+    cargo = db.cargo.find_one({"id": comment_data.cargo_id})
+    if not cargo:
+        cargo = db.operator_cargo.find_one({"id": comment_data.cargo_id})
+        if not cargo:
+            raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Создаем комментарий
+    comment_id = str(uuid.uuid4())
+    comment = {
+        "id": comment_id,
+        "cargo_id": comment_data.cargo_id,
+        "cargo_number": cargo["cargo_number"],
+        "comment_text": comment_data.comment_text,
+        "comment_type": comment_data.comment_type,
+        "priority": comment_data.priority,
+        "is_internal": comment_data.is_internal,
+        "author_id": current_user.id,
+        "author_name": current_user.full_name,
+        "author_role": current_user.role,
+        "created_at": datetime.utcnow(),
+        "is_resolved": False
+    }
+    
+    db.cargo_comments.insert_one(comment)
+    
+    # Добавляем в историю груза
+    add_cargo_history(
+        comment_data.cargo_id,
+        cargo["cargo_number"],
+        "comment_added",
+        None,
+        None,
+        comment_data.comment_type,
+        f"Добавлен комментарий ({comment_data.comment_type}): {comment_data.comment_text[:50]}...",
+        current_user.id,
+        current_user.full_name,
+        current_user.role,
+        {"comment_id": comment_id, "priority": comment_data.priority}
+    )
+    
+    return {
+        "message": "Comment added successfully",
+        "comment_id": comment_id,
+        "cargo_number": cargo["cargo_number"]
+    }
+
+@app.get("/api/cargo/{cargo_id}/comments")
+async def get_cargo_comments(
+    cargo_id: str,
+    include_internal: bool = True,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить комментарии к грузу"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Проверяем существование груза
+    cargo = db.cargo.find_one({"id": cargo_id})
+    if not cargo:
+        cargo = db.operator_cargo.find_one({"id": cargo_id})
+        if not cargo:
+            raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Фильтруем комментарии
+    query = {"cargo_id": cargo_id}
+    if not include_internal or current_user.role == UserRole.USER:
+        query["is_internal"] = False
+    
+    comments = list(db.cargo_comments.find(query, {"_id": 0}).sort("created_at", -1))
+    
+    return {
+        "cargo_id": cargo_id,
+        "cargo_number": cargo["cargo_number"],
+        "comments": comments,
+        "total_comments": len(comments)
+    }
+
+# Утилитарная функция для добавления записи в историю груза
+def add_cargo_history(cargo_id: str, cargo_number: str, action_type: str, 
+                     field_name: str = None, old_value: str = None, new_value: str = None,
+                     description: str = "", changed_by: str = "", changed_by_name: str = "",
+                     changed_by_role: str = "", additional_data: dict = None):
+    """Добавить запись в историю изменений груза"""
+    history_id = str(uuid.uuid4())
+    history_record = {
+        "id": history_id,
+        "cargo_id": cargo_id,
+        "cargo_number": cargo_number,
+        "action_type": action_type,
+        "field_name": field_name,
+        "old_value": old_value,
+        "new_value": new_value,
+        "description": description,
+        "changed_by": changed_by,
+        "changed_by_name": changed_by_name,
+        "changed_by_role": changed_by_role,
+        "change_date": datetime.utcnow(),
+        "additional_data": additional_data or {}
+    }
+    
+    db.cargo_history.insert_one(history_record)
+    return history_id
+
 # === ТРАНСПОРТ API ===
 
 @app.post("/api/transport/create")
