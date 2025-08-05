@@ -209,6 +209,7 @@ class OperatorCargoCreate(BaseModel):
     recipient_phone: str = Field(..., min_length=10, max_length=20)
     recipient_address: str = Field(..., min_length=5, max_length=200)
     weight: float = Field(..., gt=0, le=1000)
+    cargo_name: str = Field(..., min_length=2, max_length=100)  # Наименование груза
     declared_value: float = Field(..., gt=0)
     description: str = Field(..., min_length=1, max_length=500)
     route: RouteType = RouteType.MOSCOW_TO_TAJIKISTAN
