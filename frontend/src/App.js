@@ -867,9 +867,9 @@ function App() {
         </head>
         <body>
           <div class="header">
-            <div class="logo">
-              <img src="/logo.png" alt="TAJLINE.TJ" style="height: 40px; width: auto;" onerror="this.style.display='none'; this.nextSibling.style.display='inline';" />
-              <span style="display: none;">📦 TAJLINE.TJ</span>
+            <div class="logo" style="text-align: center; margin-bottom: 10px;">
+              <img src="/logo.png" alt="TAJLINE.TJ" style="height: 60px; width: auto; margin: 0 auto;" onerror="this.style.display='none'; this.nextSibling.style.display='block';" />
+              <div style="display: none; font-size: 24px; font-weight: bold; color: #2563eb;">📦 TAJLINE.TJ</div>
             </div>
             <div class="company">ООО "Таджлайн"</div>
             <div class="title">СПИСОК ГРУЗОВ НА ТРАНСПОРТЕ</div>
