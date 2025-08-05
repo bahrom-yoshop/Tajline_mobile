@@ -548,8 +548,18 @@ function App() {
 
   useEffect(() => {
     if (token) {
-      // Попытка получить информацию о пользователе при загрузке
-      fetchUserData();
+      // Проверяем валидность токена перед использованием
+      if (isTokenValid(token)) {
+        // Попытка получить информацию о пользователе при загрузке
+        fetchUserData();
+      } else {
+        // Токен истек, очищаем его
+        console.log('Token expired on startup, clearing session');
+        localStorage.removeItem('token');
+        setToken(null);
+        setUser(null);
+        showAlert('Ваша сессия истекла. Пожалуйста, войдите в систему снова.', 'warning');
+      }
     }
   }, [token]);
 
