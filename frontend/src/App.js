@@ -1161,9 +1161,9 @@ function App() {
           </head>
           <body>
             <div class="qr-label">
-              <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
-                <img src="/logo.png" alt="TAJLINE.TJ" style="height: 30px; width: auto;" onerror="this.style.display='none'; this.nextSibling.style.display='inline';" />
-                <span style="display: none; font-weight: bold; color: #2563eb;">TAJLINE.TJ</span>
+              <div style="text-align: center; margin-bottom: 15px;">
+                <img src="/logo.png" alt="TAJLINE.TJ" style="height: 40px; width: auto;" onerror="this.style.display='none'; this.nextSibling.style.display='block';" />
+                <div style="display: none; font-weight: bold; color: #2563eb; font-size: 18px;">TAJLINE.TJ</div>
               </div>
               <div class="cargo-info">ГРУЗ №${cargo.cargo_number}</div>
               <div class="qr-code">
