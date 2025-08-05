@@ -345,6 +345,7 @@ function App() {
         fetchSystemNotifications();
         fetchTransports();
         fetchOperatorWarehouseBindings();
+        fetchAllOperators(); // Функция 2 - загрузка операторов для админа
       } else if (user.role === 'warehouse_operator') {
         fetchWarehouseCargo();
         fetchWarehouses();
