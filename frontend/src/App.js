@@ -1869,7 +1869,8 @@ function App() {
                               <div className="flex justify-between items-start mb-2">
                                 <div>
                                   <h3 className="font-semibold">{item.cargo_number}</h3>
-                                  <p className="text-sm text-gray-600">Получатель: {item.recipient_name}</p>
+                                  <p className="text-sm text-gray-600">{item.cargo_name}</p>
+                                  <p className="text-xs text-gray-500">Получатель: {item.recipient_name}</p>
                                 </div>
                                 {getStatusBadge(item.status)}
                               </div>
