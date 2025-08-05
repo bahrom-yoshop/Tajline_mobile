@@ -1268,6 +1268,51 @@ function App() {
     }
   };
 
+  // Operator Functions
+  const fetchOperatorWarehouses = async () => {
+    try {
+      const data = await apiCall('/api/operator/my-warehouses');
+      setOperatorWarehouses(data.warehouses || []);
+    } catch (error) {
+      console.error('Error fetching operator warehouses:', error);
+    }
+  };
+
+  const fetchTransportsList = async () => {
+    try {
+      const data = await apiCall('/api/transport/list');
+      setTransports(data);
+    } catch (error) {
+      console.error('Error fetching transports list:', error);
+    }
+  };
+
+  const handleCreateInterwarehouseTransport = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await apiCall('/api/transport/create-interwarehouse', 'POST', interwarehouseForm);
+      
+      showAlert(
+        `Межскладской транспорт ${response.transport_number} создан успешно! Направление: ${response.direction}`, 
+        'success'
+      );
+      
+      // Обновить данные и закрыть модал
+      fetchTransportsList();
+      setInterwarehouseTransportModal(false);
+      setInterwarehouseForm({
+        source_warehouse_id: '',
+        destination_warehouse_id: '',
+        driver_name: '',
+        driver_phone: '',
+        capacity_kg: 1000
+      });
+    } catch (error) {
+      console.error('Error creating interwarehouse transport:', error);
+      showAlert('Ошибка создания межскладского транспорта', 'error');
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
