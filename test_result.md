@@ -973,7 +973,7 @@ test_plan:
 
   - task: "Расширенный поиск грузов - GET /api/cargo/search"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 1
     priority: "high"
@@ -985,6 +985,9 @@ test_plan:
         - working: false
           agent: "testing"
           comment: "❌ PARTIAL FAILURE - Enhanced cargo search mostly working but has critical regex issue. Working features: 1) Search by number (1001): 1 result with detailed cargo cards ✅, 2) Search by sender_name (Иван): 30 results ✅, 3) Search by recipient_name (Петр): 21 results ✅, 4) Cargo cards include detailed information: location, operators, payment, available_functions (10 functions each) ✅, 5) Available search types: 6 types ✅. CRITICAL ISSUE: Search by phone (+79) fails with 500 Internal Server Error due to MongoDB regex error: 'quantifier does not follow a repeatable item' - phone number search with '+' character breaks regex pattern."
+        - working: true
+          agent: "testing"
+          comment: "✅ CRITICAL FIX VERIFIED - Phone regex issue has been completely resolved! All phone search patterns now work correctly: '+79' (30 results), '+992' (30 results), '+7912' (30 results), '79123' (30 results), '+99244' (30 results). Additional special characters also work: '+7(912)', '+7-912', '+7 912', '+7.912'. The escape_regex_special_chars() function is properly escaping special regex characters including the '+' symbol. Enhanced cargo search system is fully functional with detailed cargo cards, location information, operator tracking, and 10 available functions per cargo."
 
   - task: "Межскладские транспорты с автовыбором - POST /api/transport/create-interwarehouse"
     implemented: true
