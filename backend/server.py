@@ -475,6 +475,26 @@ class InternalMessageCreate(BaseModel):
     priority: str = "normal"
     related_cargo_id: Optional[str] = None
 
+# Модели для создания операторов админом
+class OperatorCreate(BaseModel):
+    full_name: str = Field(..., min_length=2, max_length=100)
+    phone: str = Field(..., min_length=10, max_length=20)
+    address: str = Field(..., min_length=5, max_length=200)  # Адрес проживания
+    password: str = Field(..., min_length=6, max_length=50)
+    warehouse_id: str  # Склад для назначения
+
+class OperatorResponse(BaseModel):
+    id: str
+    full_name: str
+    phone: str
+    address: str
+    role: str
+    warehouse_id: str
+    warehouse_name: str
+    is_active: bool
+    created_at: datetime
+    created_by: str
+
 # Утилиты
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
