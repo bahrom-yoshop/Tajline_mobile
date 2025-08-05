@@ -2200,6 +2200,29 @@ function App() {
     }
   };
 
+  // Функция для проверки валидности токена
+  const isTokenValid = (tokenString) => {
+    if (!tokenString) return false;
+    
+    try {
+      // Декодируем JWT токен без проверки подписи (только для получения exp)
+      const base64Url = tokenString.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      
+      const decoded = JSON.parse(jsonPayload);
+      const currentTime = Date.now() / 1000;
+      
+      // Проверяем, не истек ли токен
+      return decoded.exp && decoded.exp > currentTime;
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return false;
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     setToken(null);
