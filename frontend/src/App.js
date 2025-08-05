@@ -4009,12 +4009,20 @@ function App() {
                               {shelf.cells.map((cell) => (
                                 <div
                                   key={cell.id}
-                                  className={`p-2 text-xs text-center rounded border-2 ${
+                                  className={`p-2 text-xs text-center rounded border-2 transition-all cursor-pointer hover:scale-105 ${
                                     cell.is_occupied 
-                                      ? 'bg-red-100 border-red-300 text-red-800' 
-                                      : 'bg-green-100 border-green-300 text-green-800'
+                                      ? 'bg-red-100 border-red-300 text-red-800 hover:bg-red-200' 
+                                      : 'bg-green-100 border-green-300 text-green-800 hover:bg-green-200'
                                   }`}
                                   title={cell.cargo_info ? `${cell.cargo_info.cargo_number} - ${cell.cargo_info.sender_name}` : 'Свободная ячейка'}
+                                  onClick={() => {
+                                    if (cell.is_occupied && cell.cargo_info) {
+                                      const locationCode = `B${block.block_number}-S${shelf.shelf_number}-C${cell.cell_number}`;
+                                      handleCellClick(selectedWarehouseForLayout.id, locationCode);
+                                    } else {
+                                      showAlert('Ячейка свободна', 'info');
+                                    }
+                                  }}
                                 >
                                   <div className="font-bold">Я{cell.cell_number}</div>
                                   {cell.cargo_info && (
