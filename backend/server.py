@@ -2552,6 +2552,132 @@ async def delete_operator_warehouse_binding(
     
     return {"message": "Operator-warehouse binding deleted successfully"}
 
+@app.post("/api/admin/create-operator")
+async def create_operator_by_admin(
+    operator_data: OperatorCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Создание оператора склада админом (Функция 2)"""
+    # Только админы могут создавать операторов
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Проверка существования пользователя с таким телефоном
+    if db.users.find_one({"phone": operator_data.phone}):
+        raise HTTPException(status_code=400, detail="User with this phone already exists")
+    
+    # Проверка существования склада
+    warehouse = db.warehouses.find_one({"id": operator_data.warehouse_id})
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="Warehouse not found")
+    
+    # Создание оператора
+    operator_id = str(uuid.uuid4())
+    operator = {
+        "id": operator_id,
+        "full_name": operator_data.full_name,
+        "phone": operator_data.phone,
+        "address": operator_data.address,  # Адрес проживания
+        "password": hash_password(operator_data.password),
+        "role": UserRole.WAREHOUSE_OPERATOR.value,  # Всегда оператор склада
+        "is_active": True,
+        "created_at": datetime.utcnow(),
+        "created_by": current_user.id,  # Кто создал
+        "created_by_name": current_user.full_name
+    }
+    
+    db.users.insert_one(operator)
+    
+    # Автоматически создать привязку к складу
+    binding_id = str(uuid.uuid4())
+    binding = {
+        "id": binding_id,
+        "operator_id": operator_id,
+        "operator_name": operator_data.full_name,
+        "warehouse_id": operator_data.warehouse_id,
+        "warehouse_name": warehouse["name"],
+        "created_at": datetime.utcnow(),
+        "created_by": current_user.id,
+        "created_by_name": current_user.full_name
+    }
+    
+    db.operator_warehouse_bindings.insert_one(binding)
+    
+    # Создать системное уведомление
+    create_system_notification(
+        "Создан новый оператор склада",
+        f"Админ {current_user.full_name} создал оператора {operator_data.full_name} для склада {warehouse['name']}",
+        "operator_created",
+        operator_id,
+        {
+            "operator_name": operator_data.full_name,
+            "warehouse_name": warehouse["name"],
+            "phone": operator_data.phone
+        },
+        current_user.id
+    )
+    
+    return {
+        "message": "Operator created successfully",
+        "operator": OperatorResponse(
+            id=operator_id,
+            full_name=operator_data.full_name,
+            phone=operator_data.phone,
+            address=operator_data.address,
+            role=UserRole.WAREHOUSE_OPERATOR.value,
+            warehouse_id=operator_data.warehouse_id,
+            warehouse_name=warehouse["name"],
+            is_active=True,
+            created_at=datetime.utcnow(),
+            created_by=current_user.full_name
+        ),
+        "binding_id": binding_id
+    }
+
+@app.get("/api/admin/operators")
+async def get_all_operators(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить всех операторов с информацией о складах"""
+    # Только админы могут просматривать операторов
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Получить всех операторов
+    operators = list(db.users.find(
+        {"role": UserRole.WAREHOUSE_OPERATOR.value},
+        {"password": 0, "_id": 0}
+    ).sort("created_at", -1))
+    
+    # Получить привязки складов для каждого оператора
+    operators_with_warehouses = []
+    for operator in operators:
+        # Найти привязки оператора к складам
+        bindings = list(db.operator_warehouse_bindings.find({"operator_id": operator["id"]}))
+        
+        warehouses = []
+        for binding in bindings:
+            warehouse = db.warehouses.find_one({"id": binding["warehouse_id"]})
+            if warehouse:
+                warehouses.append({
+                    "id": warehouse["id"],
+                    "name": warehouse["name"],
+                    "location": warehouse["location"],
+                    "binding_id": binding["id"]
+                })
+        
+        operator_with_warehouses = {
+            **operator,
+            "warehouses": warehouses,
+            "warehouses_count": len(warehouses)
+        }
+        operators_with_warehouses.append(operator_with_warehouses)
+    
+    return {
+        "operators": serialize_mongo_document(operators_with_warehouses),
+        "total_operators": len(operators_with_warehouses)
+    }
+
 
 
 @app.get("/api/transport/available-cargo")
