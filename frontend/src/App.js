@@ -844,6 +844,30 @@ function App() {
         </div>
         ` : ''}
         
+        <div class="section">
+          <div class="section-title">Обработка груза</div>
+          ${cargo.created_by_operator ? `
+          <div class="info-row">
+            <span class="info-label">Принял оператор:</span>
+            <span>${cargo.created_by_operator}</span>
+          </div>
+          ` : ''}
+          ${cargo.placed_by_operator ? `
+          <div class="info-row">
+            <span class="info-label">Разместил оператор:</span>
+            <span>${cargo.placed_by_operator}</span>
+          </div>
+          ` : ''}
+          <div class="info-row">
+            <span class="info-label">Текущий статус:</span>
+            <span>${cargo.status === 'created' ? 'Создан' : 
+                   cargo.status === 'accepted' ? 'Принят' : 
+                   cargo.status === 'in_transit' ? 'В пути' : 
+                   cargo.status === 'arrived_destination' ? 'Прибыл в пункт назначения' : 
+                   cargo.status === 'completed' ? 'Доставлен' : cargo.status}</span>
+          </div>
+        </div>
+        
         <div class="signature">
           <div>
             Сдал: ________________<br>
