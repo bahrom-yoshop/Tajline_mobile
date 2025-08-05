@@ -1733,7 +1733,11 @@ function App() {
         </div>
         
         <div class="footer">
-          TAJLINE.TJ - Ваш надежный партнер в грузоперевозках<br>
+          <div style="text-align: center; margin-bottom: 10px;">
+            <img src="/logo.png" alt="TAJLINE.TJ" style="height: 30px; width: auto;" onerror="this.style.display='none'; this.nextSibling.style.display='inline';" />
+            <span style="display: none; font-weight: bold;">TAJLINE.TJ</span>
+          </div>
+          - Ваш надежный партнер в грузоперевозках<br>
           Дата печати: ${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU')}
         </div>
       </body>
