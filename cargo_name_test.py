@@ -15,7 +15,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 class CargoNameTester:
-    def __init__(self, base_url="https://e7681a22-bb30-459c-a757-9886ce0f6847.preview.emergentagent.com"):
+    def __init__(self, base_url="https://5c081739-07da-4f07-a281-dfadcf96e992.preview.emergentagent.com"):
         self.base_url = base_url
         self.tokens = {}
         self.users = {}
