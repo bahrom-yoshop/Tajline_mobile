@@ -489,11 +489,11 @@ backend:
 
   - task: "Operator Warehouse-Based Access Control System"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
     stuck_count: 1
     priority: "critical"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: true
           agent: "main"
@@ -504,6 +504,9 @@ backend:
         - working: true
           agent: "main"
           comment: "✅ CRITICAL FIXES APPLIED - Fixed all 3 failing issues: 1.4) Fixed cargo acceptance - admin users now get proper HTTP 400 error when no active warehouses instead of None target_warehouse_id, 1.5) Removed duplicate /api/transport/list endpoint causing routing conflicts, enhanced remaining endpoint with proper operator filtering based on warehouse bindings and status filtering, 1.6) Verified inter-warehouse transport access control already correctly validates access to both source and destination warehouses. Ready for retesting to confirm all operator permission issues resolved."
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL TESTING RESULTS - Focused testing of the 3 specific operator permission fixes shows MIXED RESULTS: ✅ PROBLEM 1.5 FIXED: Transport filtering for operators working correctly - operator sees 0 transports vs admin sees 35 transports, status filtering works with operator permissions. ✅ PROBLEM 1.6 FIXED: Inter-warehouse transport access control working correctly - operator can create transports between bound warehouses, correctly denied access to unbound warehouses (403 errors), admin can create between any warehouses. ❌ PROBLEM 1.4 STILL FAILING: Cargo acceptance target_warehouse_id assignment NOT working - both operator and admin cargo acceptance return target_warehouse_id as None/missing instead of assigned warehouse ID. SUCCESS RATE: 67% (2/3 critical issues fixed). The cargo acceptance target warehouse assignment still needs to be implemented properly."
 
   - task: "Transport Access Control"
     implemented: true
