@@ -270,8 +270,9 @@ function App() {
         fetchPaymentHistory();
         fetchCargoRequests();
         fetchSystemNotifications();
-        fetchTransports();
+        fetchTransportsList(); // Обновлено для операторов
         fetchArrivedTransports();
+        fetchOperatorWarehouses(); // Добавлено для операторов
       } else {
         fetchMyCargo();
         fetchMyRequests();
