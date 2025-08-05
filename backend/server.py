@@ -2612,6 +2612,27 @@ async def accept_cargo_request(
     
     db.operator_cargo.insert_one(cargo)
     
+    # НОВОЕ: Создать запись о неоплаченном заказе
+    unpaid_order_id = str(uuid.uuid4())
+    unpaid_order = {
+        "id": unpaid_order_id,
+        "cargo_id": cargo_id,
+        "cargo_number": cargo_number,
+        "client_id": request["created_by"],
+        "client_name": request["sender_full_name"],
+        "client_phone": request["sender_phone"],
+        "amount": request["declared_value"],  # Используем объявленную стоимость как сумму к оплате
+        "description": f"Оплата за груз №{cargo_number}: {request.get('cargo_name', request.get('description', 'Груз'))}",
+        "status": "unpaid",
+        "created_at": datetime.utcnow(),
+        "paid_at": None,
+        "payment_method": None,
+        "processed_by": current_user.id
+    }
+    
+    # Сохранить в коллекцию unpaid_orders
+    db.unpaid_orders.insert_one(unpaid_order)
+    
     # Обновить статус заявки
     db.cargo_requests.update_one(
         {"id": request_id},
