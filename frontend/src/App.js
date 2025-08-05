@@ -5999,6 +5999,127 @@ function App() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Interwarehouse Transport Modal */}
+      <Dialog open={interwarehouseTransportModal} onOpenChange={setInterwarehouseTransportModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              <Truck className="mr-2 h-5 w-5 inline" />
+              Создание межскладского транспорта
+            </DialogTitle>
+          </DialogHeader>
+          
+          <form onSubmit={handleCreateInterwarehouseTransport} className="space-y-4">
+            <div className="p-3 bg-blue-50 rounded-lg">
+              <h5 className="font-medium text-blue-800 mb-2">Межскладская перевозка</h5>
+              <p className="text-sm text-blue-700">
+                Создайте транспорт для перевозки грузов между вашими складами. Доступны только склады, к которым у вас есть доступ.
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="source_warehouse">Исходный склад</Label>
+              <Select 
+                value={interwarehouseForm.source_warehouse_id} 
+                onValueChange={(value) => setInterwarehouseForm({...interwarehouseForm, source_warehouse_id: value})}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите исходный склад" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(user?.role === 'admin' ? warehouses : operatorWarehouses).map((warehouse) => (
+                    <SelectItem key={warehouse.id} value={warehouse.id}>
+                      {warehouse.name} ({warehouse.location})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="destination_warehouse">Целевой склад</Label>
+              <Select 
+                value={interwarehouseForm.destination_warehouse_id} 
+                onValueChange={(value) => setInterwarehouseForm({...interwarehouseForm, destination_warehouse_id: value})}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите целевой склад" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(user?.role === 'admin' ? warehouses : operatorWarehouses)
+                    .filter(w => w.id !== interwarehouseForm.source_warehouse_id)
+                    .map((warehouse) => (
+                      <SelectItem key={warehouse.id} value={warehouse.id}>
+                        {warehouse.name} ({warehouse.location})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="iw_driver_name">ФИО водителя</Label>
+              <Input
+                id="iw_driver_name"
+                value={interwarehouseForm.driver_name}
+                onChange={(e) => setInterwarehouseForm({...interwarehouseForm, driver_name: e.target.value})}
+                placeholder="Иван Иванов"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="iw_driver_phone">Телефон водителя</Label>
+              <Input
+                id="iw_driver_phone"
+                value={interwarehouseForm.driver_phone}
+                onChange={(e) => setInterwarehouseForm({...interwarehouseForm, driver_phone: e.target.value})}
+                placeholder="+7 (999) 123-45-67"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="iw_capacity">Грузоподъемность (кг)</Label>
+              <Input
+                id="iw_capacity"
+                type="number"
+                min="100"
+                step="50"
+                value={interwarehouseForm.capacity_kg}
+                onChange={(e) => setInterwarehouseForm({...interwarehouseForm, capacity_kg: parseInt(e.target.value)})}
+                required
+              />
+            </div>
+
+            <div className="flex space-x-2 pt-4">
+              <Button type="submit" className="flex-1">
+                <Truck className="mr-2 h-4 w-4" />
+                Создать транспорт
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setInterwarehouseTransportModal(false);
+                  setInterwarehouseForm({
+                    source_warehouse_id: '',
+                    destination_warehouse_id: '',
+                    driver_name: '',
+                    driver_phone: '',
+                    capacity_kg: 1000
+                  });
+                }}
+              >
+                Отмена
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
