@@ -1766,8 +1766,15 @@ async def get_warehouse_full_layout(
     cargo_ids = [cell["cargo_id"] for cell in cells if cell.get("cargo_id")]
     cargo_info = {}
     if cargo_ids:
-        cargo_list = list(db.operator_cargo.find({"id": {"$in": cargo_ids}}))
-        cargo_info = {cargo["id"]: cargo for cargo in cargo_list}
+        # Поиск в обеих коллекциях
+        cargo_list = list(db.cargo.find({"id": {"$in": cargo_ids}}))
+        operator_cargo_list = list(db.operator_cargo.find({"id": {"$in": cargo_ids}}))
+        
+        # Объединить результаты
+        for cargo in cargo_list:
+            cargo_info[cargo["id"]] = cargo
+        for cargo in operator_cargo_list:
+            cargo_info[cargo["id"]] = cargo
     
     # Группируем ячейки по блокам и полкам
     layout = {}
