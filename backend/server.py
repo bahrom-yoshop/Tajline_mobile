@@ -4827,20 +4827,16 @@ async def debug_tracking(tracking_code: str):
     
     return {
         "tracking_code": tracking_code,
-        "tracking_record": {
+        "tracking_record": serialize_mongo_document({
             "id": tracking["id"],
             "cargo_id": tracking["cargo_id"],
             "cargo_number": tracking["cargo_number"],
             "client_phone": tracking["client_phone"],
             "is_active": tracking["is_active"]
-        },
+        }),
         "cargo_in_cargo_collection": cargo_in_cargo is not None,
         "cargo_in_operator_collection": cargo_in_operator is not None,
-        "cargo_found": cargo_in_cargo or cargo_in_operator,
-        "cargo_details": {
-            "cargo_collection": serialize_mongo_document(cargo_in_cargo) if cargo_in_cargo else None,
-            "operator_collection": serialize_mongo_document(cargo_in_operator) if cargo_in_operator else None
-        }
+        "cargo_found": cargo_in_cargo or cargo_in_operator
     }
 
 @app.get("/api/cargo/track/{tracking_code}")
