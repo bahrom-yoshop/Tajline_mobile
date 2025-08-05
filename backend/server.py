@@ -82,6 +82,7 @@ class CargoCreate(BaseModel):
     recipient_phone: str
     route: RouteType
     weight: float
+    cargo_name: str = Field(..., min_length=2, max_length=100)  # Наименование груза
     description: str
     declared_value: float
     sender_address: str
