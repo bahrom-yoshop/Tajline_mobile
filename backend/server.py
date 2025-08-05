@@ -2371,6 +2371,126 @@ async def get_arrived_transports(
     
     return transport_list
 
+@app.get("/api/transport/{transport_id}/visualization")
+async def get_transport_visualization(
+    transport_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить схему и визуализацию заполнения транспорта"""
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    transport = db.transports.find_one({"id": transport_id})
+    if not transport:
+        raise HTTPException(status_code=404, detail="Transport not found")
+    
+    # Получить детальную информацию о грузах
+    cargo_details = []
+    total_weight = 0
+    total_volume_estimate = 0
+    
+    for cargo_id in transport.get("cargo_list", []):
+        cargo = db.cargo.find_one({"id": cargo_id})
+        collection_name = "cargo"
+        if not cargo:
+            cargo = db.operator_cargo.find_one({"id": cargo_id})
+            collection_name = "operator_cargo"
+        
+        if cargo:
+            weight = cargo.get("weight", 0)
+            total_weight += weight
+            # Примерный расчет объема (можно улучшить)
+            estimated_volume = weight * 0.001  # м³ (примерно 1кг = 1литр = 0.001м³)
+            total_volume_estimate += estimated_volume
+            
+            cargo_details.append({
+                "id": cargo["id"],
+                "cargo_number": cargo["cargo_number"],
+                "cargo_name": cargo.get("cargo_name", cargo.get("description", "Груз")),
+                "weight": weight,
+                "estimated_volume": estimated_volume,
+                "recipient_name": cargo.get("recipient_full_name", cargo.get("recipient_name", "Не указан")),
+                "status": cargo.get("status", "unknown"),
+                "collection": collection_name,
+                "placement_order": len(cargo_details) + 1
+            })
+    
+    # Расчет заполнения
+    capacity_kg = transport.get("capacity_kg", 1000)
+    fill_percentage_weight = (total_weight / capacity_kg * 100) if capacity_kg > 0 else 0
+    
+    # Примерная схема размещения (можно настроить под реальные размеры транспорта)
+    transport_length = 12  # метров
+    transport_width = 2.5   # метров
+    transport_height = 2.8  # метров
+    max_volume = transport_length * transport_width * transport_height  # м³
+    
+    fill_percentage_volume = (total_volume_estimate / max_volume * 100) if max_volume > 0 else 0
+    
+    # Создаем сетку размещения для визуализации (6x3 = 18 позиций)
+    grid_width = 6
+    grid_height = 3
+    placement_grid = []
+    
+    for i in range(grid_height):
+        row = []
+        for j in range(grid_width):
+            position_index = i * grid_width + j
+            if position_index < len(cargo_details):
+                cargo = cargo_details[position_index]
+                row.append({
+                    "occupied": True,
+                    "cargo_id": cargo["id"],
+                    "cargo_number": cargo["cargo_number"],
+                    "cargo_name": cargo["cargo_name"],
+                    "weight": cargo["weight"],
+                    "position": f"{i+1}-{j+1}"
+                })
+            else:
+                row.append({
+                    "occupied": False,
+                    "cargo_id": None,
+                    "cargo_number": None,
+                    "cargo_name": None,
+                    "weight": 0,
+                    "position": f"{i+1}-{j+1}"
+                })
+        placement_grid.append(row)
+    
+    return {
+        "transport": {
+            "id": transport["id"],
+            "transport_number": transport["transport_number"],
+            "driver_name": transport["driver_name"],
+            "direction": transport["direction"],
+            "capacity_kg": capacity_kg,
+            "current_load_kg": total_weight,
+            "status": transport["status"],
+            "dimensions": {
+                "length": transport_length,
+                "width": transport_width,
+                "height": transport_height,
+                "max_volume": max_volume
+            }
+        },
+        "cargo_summary": {
+            "total_items": len(cargo_details),
+            "total_weight": total_weight,
+            "total_volume_estimate": round(total_volume_estimate, 2),
+            "fill_percentage_weight": round(fill_percentage_weight, 1),
+            "fill_percentage_volume": round(fill_percentage_volume, 1),
+            "remaining_capacity_kg": max(0, capacity_kg - total_weight),
+            "cargo_list": cargo_details
+        },
+        "visualization": {
+            "grid_width": grid_width,
+            "grid_height": grid_height,
+            "placement_grid": placement_grid,
+            "utilization_status": "overloaded" if fill_percentage_weight > 100 else "full" if fill_percentage_weight > 90 else "partial" if fill_percentage_weight > 50 else "low"
+        }
+    }
+
 @app.get("/api/transport/{transport_id}")
 async def get_transport(
     transport_id: str,
