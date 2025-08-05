@@ -455,6 +455,52 @@ def generate_warehouse_structure(warehouse_id: str, blocks_count: int, shelves_p
     
     return len(cells)
 
+def get_operator_warehouses(operator_id: str) -> List[str]:
+    """Получить список складов, к которым привязан оператор"""
+    bindings = list(db.operator_warehouse_bindings.find({"operator_id": operator_id}))
+    return [binding["warehouse_id"] for binding in bindings]
+
+def is_operator_allowed_for_warehouse(operator_id: str, warehouse_id: str) -> bool:
+    """Проверить, имеет ли оператор доступ к складу"""
+    binding = db.operator_warehouse_bindings.find_one({
+        "operator_id": operator_id, 
+        "warehouse_id": warehouse_id
+    })
+    return binding is not None
+
+def get_operator_name_by_id(operator_id: str) -> str:
+    """Получить ФИО оператора по ID"""
+    user = db.users.find_one({"id": operator_id})
+    return user["full_name"] if user else "Неизвестный оператор"
+
+def get_available_cargo_for_transport(operator_id: str = None, user_role: str = None) -> List[dict]:
+    """Получить доступные грузы для размещения на транспорт"""
+    if user_role == UserRole.ADMIN:
+        # Админы видят все грузы со всех складов
+        cargo_query = {
+            "status": {"$in": ["accepted", "arrived_destination"]},
+            "warehouse_location": {"$exists": True, "$ne": None}
+        }
+    elif user_role == UserRole.WAREHOUSE_OPERATOR and operator_id:
+        # Операторы видят только грузы со своих складов
+        operator_warehouses = get_operator_warehouses(operator_id)
+        if not operator_warehouses:
+            return []
+        
+        cargo_query = {
+            "status": {"$in": ["accepted", "arrived_destination"]},
+            "warehouse_location": {"$exists": True, "$ne": None},
+            "warehouse_id": {"$in": operator_warehouses}
+        }
+    else:
+        return []
+    
+    # Ищем в обеих коллекциях
+    user_cargo = list(db.cargo.find(cargo_query))
+    operator_cargo = list(db.operator_cargo.find(cargo_query))
+    
+    return user_cargo + operator_cargo
+
 # API Routes
 
 @app.get("/api/health")
