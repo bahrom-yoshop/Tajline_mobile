@@ -495,9 +495,9 @@ def get_available_cargo_for_transport(operator_id: str = None, user_role: str = 
     else:
         return []
     
-    # Ищем в обеих коллекциях
-    user_cargo = list(db.cargo.find(cargo_query))
-    operator_cargo = list(db.operator_cargo.find(cargo_query))
+    # Ищем в обеих коллекциях, исключая MongoDB _id
+    user_cargo = list(db.cargo.find(cargo_query, {"_id": 0}))
+    operator_cargo = list(db.operator_cargo.find(cargo_query, {"_id": 0}))
     
     return user_cargo + operator_cargo
 
