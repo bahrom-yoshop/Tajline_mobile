@@ -484,6 +484,7 @@ function App() {
         fetchTransports();
         fetchOperatorWarehouseBindings();
         fetchAllOperators(); // Функция 2 - загрузка операторов для админа
+        fetchNewOrdersCount(); // Загрузка количества новых заказов
       } else if (user.role === 'warehouse_operator') {
         fetchWarehouseCargo();
         fetchWarehouses();
