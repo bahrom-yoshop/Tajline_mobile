@@ -166,11 +166,13 @@ class CriticalFixesTester:
             self.warehouse_id = warehouse_response['id']
             print(f"   🏭 Warehouse created: {self.warehouse_id}")
         
-        # Create transport
+        # Create transport with unique number
+        import random
+        transport_number = f"TEST{random.randint(1000, 9999)}"
         transport_data = {
             "driver_name": "Тестовый Водитель",
             "driver_phone": "+79555666777",
-            "transport_number": "TEST123",
+            "transport_number": transport_number,
             "capacity_kg": 5000.0,
             "direction": "Москва - Душанбе"
         }
