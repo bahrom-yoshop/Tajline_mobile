@@ -151,6 +151,13 @@ function App() {
     cell_number: ''
   });
 
+  // QR Code states
+  const [qrScannerModal, setQrScannerModal] = useState(false);
+  const [qrPrintModal, setQrPrintModal] = useState(false);
+  const [selectedCargoForQr, setSelectedCargoForQr] = useState(null);
+  const [selectedWarehouseForQr, setSelectedWarehouseForQr] = useState(null);
+  const [qrScanResult, setQrScanResult] = useState(null);
+
   const [alerts, setAlerts] = useState([]);
 
   const showAlert = (message, type = 'info') => {
