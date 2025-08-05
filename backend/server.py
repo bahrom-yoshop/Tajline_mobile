@@ -1027,6 +1027,11 @@ async def get_operator_cargo_list(
         # Оператор видит только свои принятые грузы
         cargo_list = list(db.operator_cargo.find({"created_by": current_user.id}))
     
+    # Ensure cargo_name field exists for backward compatibility
+    for cargo in cargo_list:
+        if 'cargo_name' not in cargo:
+            cargo['cargo_name'] = cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз'
+    
     return [CargoWithLocation(**cargo) for cargo in cargo_list]
 
 @app.post("/api/operator/cargo/place")
