@@ -1528,17 +1528,511 @@ class CargoTransportAPITester:
         
         return all_success
 
+    def test_operator_warehouse_binding_system(self):
+        """Test the new operator-warehouse binding system"""
+        print("\n🔗 OPERATOR-WAREHOUSE BINDING SYSTEM")
+        
+        if 'admin' not in self.tokens or 'warehouse_operator' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Ensure we have a warehouse for binding
+        if not hasattr(self, 'warehouse_id'):
+            print("   ⚠️  No warehouse available, creating one for binding test...")
+            warehouse_data = {
+                "name": "Склад для привязки операторов",
+                "location": "Москва, Тестовая территория",
+                "blocks_count": 2,
+                "shelves_per_block": 2,
+                "cells_per_shelf": 3
+            }
+            
+            success, warehouse_response = self.run_test(
+                "Create Warehouse for Binding",
+                "POST",
+                "/api/warehouses/create",
+                200,
+                warehouse_data,
+                self.tokens['admin']
+            )
+            
+            if success and 'id' in warehouse_response:
+                self.warehouse_id = warehouse_response['id']
+                print(f"   🏭 Created warehouse: {self.warehouse_id}")
+            else:
+                print("   ❌ Failed to create warehouse for binding test")
+                return False
+        
+        # Test 1: Create operator-warehouse binding (admin only)
+        print("\n   🔗 Testing Operator-Warehouse Binding Creation...")
+        operator_id = self.users['warehouse_operator']['id']
+        
+        binding_data = {
+            "operator_id": operator_id,
+            "warehouse_id": self.warehouse_id
+        }
+        
+        success, binding_response = self.run_test(
+            "Create Operator-Warehouse Binding",
+            "POST",
+            "/api/admin/operator-warehouse-binding",
+            200,
+            binding_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        binding_id = None
+        if success and 'binding_id' in binding_response:
+            binding_id = binding_response['binding_id']
+            print(f"   🔗 Created binding: {binding_id}")
+            self.binding_id = binding_id
+        
+        # Test 2: Get all operator-warehouse bindings (admin only)
+        print("\n   📋 Testing Get All Bindings...")
+        success, bindings_list = self.run_test(
+            "Get All Operator-Warehouse Bindings",
+            "GET",
+            "/api/admin/operator-warehouse-bindings",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            binding_count = len(bindings_list) if isinstance(bindings_list, list) else 0
+            print(f"   📊 Found {binding_count} operator-warehouse bindings")
+            
+            # Verify our binding is in the list
+            if binding_id and isinstance(bindings_list, list):
+                found_binding = any(b.get('id') == binding_id for b in bindings_list)
+                if found_binding:
+                    print(f"   ✅ Our binding {binding_id} found in list")
+                else:
+                    print(f"   ❌ Our binding {binding_id} not found in list")
+                    all_success = False
+        
+        # Test 3: Operator can see their assigned warehouses
+        print("\n   🏭 Testing Operator's Assigned Warehouses...")
+        success, operator_warehouses = self.run_test(
+            "Get Operator's Assigned Warehouses",
+            "GET",
+            "/api/operator/my-warehouses",
+            200,
+            token=self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success:
+            warehouse_count = len(operator_warehouses) if isinstance(operator_warehouses, list) else 0
+            print(f"   🏭 Operator has access to {warehouse_count} warehouses")
+            
+            # Verify our warehouse is in the list
+            if isinstance(operator_warehouses, list):
+                found_warehouse = any(w.get('id') == self.warehouse_id for w in operator_warehouses)
+                if found_warehouse:
+                    print(f"   ✅ Operator has access to bound warehouse")
+                else:
+                    print(f"   ❌ Operator doesn't have access to bound warehouse")
+                    all_success = False
+        
+        # Test 4: Test access control - regular user cannot create bindings
+        print("\n   🔒 Testing Access Control...")
+        if 'user' in self.tokens:
+            success, _ = self.run_test(
+                "Regular User Create Binding (Should Fail)",
+                "POST",
+                "/api/admin/operator-warehouse-binding",
+                403,
+                binding_data,
+                self.tokens['user']
+            )
+            all_success &= success
+        
+        # Test 5: Test access control - regular user cannot view bindings
+        if 'user' in self.tokens:
+            success, _ = self.run_test(
+                "Regular User View Bindings (Should Fail)",
+                "GET",
+                "/api/admin/operator-warehouse-bindings",
+                403,
+                token=self.tokens['user']
+            )
+            all_success &= success
+        
+        # Test 6: Test access control - regular user cannot access operator warehouses
+        if 'user' in self.tokens:
+            success, _ = self.run_test(
+                "Regular User Access Operator Warehouses (Should Fail)",
+                "GET",
+                "/api/operator/my-warehouses",
+                403,
+                token=self.tokens['user']
+            )
+            all_success &= success
+        
+        return all_success
+
+    def test_enhanced_cargo_operations_with_operator_tracking(self):
+        """Test enhanced cargo operations with operator tracking"""
+        print("\n📦 ENHANCED CARGO OPERATIONS WITH OPERATOR TRACKING")
+        
+        if 'admin' not in self.tokens or 'warehouse_operator' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Cargo acceptance with operator tracking
+        print("\n   👤 Testing Cargo Acceptance with Operator Tracking...")
+        cargo_data = {
+            "sender_full_name": "Отправитель с Оператором",
+            "sender_phone": "+79111222333",
+            "recipient_full_name": "Получатель с Оператором",
+            "recipient_phone": "+992444555666",
+            "recipient_address": "Душанбе, ул. Операторская, 15",
+            "weight": 12.5,
+            "declared_value": 6500.0,
+            "description": "Груз с отслеживанием оператора",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, cargo_response = self.run_test(
+            "Accept Cargo with Operator Tracking",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            cargo_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        tracked_cargo_id = None
+        if success and 'id' in cargo_response:
+            tracked_cargo_id = cargo_response['id']
+            print(f"   📦 Created tracked cargo: {tracked_cargo_id}")
+            
+            # Verify operator information is saved
+            created_by_operator = cargo_response.get('created_by_operator')
+            if created_by_operator:
+                print(f"   👤 Created by operator: {created_by_operator}")
+                
+                # Verify it matches the warehouse operator's name
+                expected_name = self.users['warehouse_operator']['full_name']
+                if created_by_operator == expected_name:
+                    print(f"   ✅ Operator name correctly saved")
+                else:
+                    print(f"   ❌ Operator name mismatch: expected {expected_name}, got {created_by_operator}")
+                    all_success = False
+            else:
+                print(f"   ❌ No operator name saved in cargo")
+                all_success = False
+        
+        # Test 2: Cargo placement with placement operator tracking
+        print("\n   📍 Testing Cargo Placement with Placement Operator Tracking...")
+        if tracked_cargo_id and hasattr(self, 'warehouse_id'):
+            placement_data = {
+                "cargo_id": tracked_cargo_id,
+                "warehouse_id": self.warehouse_id,
+                "block_number": 1,
+                "shelf_number": 1,
+                "cell_number": 2
+            }
+            
+            success, placement_response = self.run_test(
+                "Place Cargo with Placement Operator Tracking",
+                "POST",
+                "/api/operator/cargo/place",
+                200,
+                placement_data,
+                self.tokens['admin']  # Use admin to place cargo
+            )
+            all_success &= success
+            
+            if success:
+                location = placement_response.get('location', 'Unknown')
+                print(f"   📍 Cargo placed at: {location}")
+                
+                # Get cargo details to verify placement operator tracking
+                success, cargo_list = self.run_test(
+                    "Get Cargo List to Verify Placement Tracking",
+                    "GET",
+                    "/api/operator/cargo/list",
+                    200,
+                    token=self.tokens['admin']
+                )
+                
+                if success and isinstance(cargo_list, list):
+                    # Find our cargo
+                    placed_cargo = next((c for c in cargo_list if c.get('id') == tracked_cargo_id), None)
+                    if placed_cargo:
+                        placed_by_operator = placed_cargo.get('placed_by_operator')
+                        if placed_by_operator:
+                            print(f"   👤 Placed by operator: {placed_by_operator}")
+                            
+                            # Verify it matches the admin's name (who placed it)
+                            expected_name = self.users['admin']['full_name']
+                            if placed_by_operator == expected_name:
+                                print(f"   ✅ Placement operator name correctly saved")
+                            else:
+                                print(f"   ❌ Placement operator name mismatch: expected {expected_name}, got {placed_by_operator}")
+                                all_success = False
+                        else:
+                            print(f"   ❌ No placement operator name saved")
+                            all_success = False
+                    else:
+                        print(f"   ❌ Could not find placed cargo in list")
+                        all_success = False
+        
+        # Test 3: Verify operator information in both user cargo and operator cargo
+        print("\n   🔍 Testing Operator Information in Both Collections...")
+        
+        # Create cargo in user collection with operator acceptance
+        user_cargo_data = {
+            "recipient_name": "Получатель Пользователя",
+            "recipient_phone": "+992777888999",
+            "route": "moscow_to_tajikistan",
+            "weight": 8.0,
+            "description": "Груз пользователя с оператором",
+            "declared_value": 4000.0,
+            "sender_address": "Москва, ул. Пользователя, 1",
+            "recipient_address": "Душанбе, ул. Получателя, 1"
+        }
+        
+        success, user_cargo_response = self.run_test(
+            "Create User Cargo",
+            "POST",
+            "/api/cargo/create",
+            200,
+            user_cargo_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        user_cargo_id = None
+        if success and 'id' in user_cargo_response:
+            user_cargo_id = user_cargo_response['id']
+            
+            # Update cargo status with operator information
+            success, _ = self.run_test(
+                "Update User Cargo Status with Operator",
+                "PUT",
+                f"/api/cargo/{user_cargo_id}/status",
+                200,
+                token=self.tokens['warehouse_operator'],
+                params={"status": "accepted", "warehouse_location": "Склад Б, Стеллаж 3"}
+            )
+            all_success &= success
+            
+            if success:
+                # Verify operator information is saved in user cargo
+                success, updated_cargo = self.run_test(
+                    "Track Updated User Cargo",
+                    "GET",
+                    f"/api/cargo/track/{user_cargo_response['cargo_number']}",
+                    200
+                )
+                
+                if success:
+                    accepted_by_operator = updated_cargo.get('accepted_by_operator')
+                    if accepted_by_operator:
+                        print(f"   👤 User cargo accepted by operator: {accepted_by_operator}")
+                        print(f"   ✅ Operator tracking working in user cargo collection")
+                    else:
+                        print(f"   ⚠️  No operator information in user cargo (may be expected)")
+        
+        return all_success
+
+    def test_available_cargo_for_transport(self):
+        """Test available cargo for transport with operator access control"""
+        print("\n🚛 AVAILABLE CARGO FOR TRANSPORT")
+        
+        if 'admin' not in self.tokens or 'warehouse_operator' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Admin can see cargo from all warehouses
+        print("\n   👑 Testing Admin Access to All Warehouse Cargo...")
+        success, admin_available_cargo = self.run_test(
+            "Get Available Cargo for Transport (Admin)",
+            "GET",
+            "/api/transport/available-cargo",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            admin_cargo_count = len(admin_available_cargo) if isinstance(admin_available_cargo, list) else 0
+            print(f"   📦 Admin can see {admin_cargo_count} cargo items available for transport")
+        
+        # Test 2: Operator can see cargo from their assigned warehouses
+        print("\n   👤 Testing Operator Access to Assigned Warehouse Cargo...")
+        success, operator_available_cargo = self.run_test(
+            "Get Available Cargo for Transport (Operator)",
+            "GET",
+            "/api/transport/available-cargo",
+            200,
+            token=self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success:
+            operator_cargo_count = len(operator_available_cargo) if isinstance(operator_available_cargo, list) else 0
+            print(f"   📦 Operator can see {operator_cargo_count} cargo items available for transport")
+            
+            # Note: Operator might see fewer items than admin if bindings are properly implemented
+            if operator_cargo_count <= admin_cargo_count:
+                print(f"   ✅ Operator sees same or fewer cargo items than admin (expected)")
+            else:
+                print(f"   ⚠️  Operator sees more cargo than admin (unexpected)")
+        
+        # Test 3: Regular user cannot access transport cargo
+        print("\n   🔒 Testing Regular User Access Control...")
+        if 'user' in self.tokens:
+            success, _ = self.run_test(
+                "Regular User Access Transport Cargo (Should Fail)",
+                "GET",
+                "/api/transport/available-cargo",
+                403,
+                token=self.tokens['user']
+            )
+            all_success &= success
+        
+        # Test 4: Unauthorized access
+        success, _ = self.run_test(
+            "Unauthorized Access to Transport Cargo",
+            "GET",
+            "/api/transport/available-cargo",
+            403
+        )
+        all_success &= success
+        
+        return all_success
+
+    def test_operator_warehouse_binding_deletion(self):
+        """Test deletion of operator-warehouse bindings"""
+        print("\n🗑️ OPERATOR-WAREHOUSE BINDING DELETION")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        if not hasattr(self, 'binding_id'):
+            print("   ❌ No binding available for deletion test")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Delete operator-warehouse binding (admin only)
+        print("\n   🗑️ Testing Binding Deletion...")
+        success, delete_response = self.run_test(
+            "Delete Operator-Warehouse Binding",
+            "DELETE",
+            f"/api/admin/operator-warehouse-binding/{self.binding_id}",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print(f"   ✅ Binding {self.binding_id} deleted successfully")
+            
+            # Verify binding is no longer in the list
+            success, bindings_list = self.run_test(
+                "Verify Binding Removed from List",
+                "GET",
+                "/api/admin/operator-warehouse-bindings",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success and isinstance(bindings_list, list):
+                found_binding = any(b.get('id') == self.binding_id for b in bindings_list)
+                if not found_binding:
+                    print(f"   ✅ Binding successfully removed from list")
+                else:
+                    print(f"   ❌ Binding still found in list after deletion")
+                    all_success = False
+            
+            # Verify operator no longer has access to the warehouse
+            success, operator_warehouses = self.run_test(
+                "Verify Operator Lost Warehouse Access",
+                "GET",
+                "/api/operator/my-warehouses",
+                200,
+                token=self.tokens['warehouse_operator']
+            )
+            
+            if success and isinstance(operator_warehouses, list):
+                found_warehouse = any(w.get('id') == self.warehouse_id for w in operator_warehouses)
+                if not found_warehouse:
+                    print(f"   ✅ Operator no longer has access to warehouse")
+                else:
+                    print(f"   ⚠️  Operator still has access to warehouse (may have other bindings)")
+        
+        # Test 2: Test access control for deletion
+        print("\n   🔒 Testing Deletion Access Control...")
+        if 'user' in self.tokens:
+            # Create a new binding first for this test
+            operator_id = self.users['warehouse_operator']['id']
+            binding_data = {
+                "operator_id": operator_id,
+                "warehouse_id": self.warehouse_id
+            }
+            
+            success, new_binding_response = self.run_test(
+                "Create New Binding for Deletion Test",
+                "POST",
+                "/api/admin/operator-warehouse-binding",
+                200,
+                binding_data,
+                self.tokens['admin']
+            )
+            
+            if success and 'binding_id' in new_binding_response:
+                new_binding_id = new_binding_response['binding_id']
+                
+                # Try to delete as regular user (should fail)
+                success, _ = self.run_test(
+                    "Regular User Delete Binding (Should Fail)",
+                    "DELETE",
+                    f"/api/admin/operator-warehouse-binding/{new_binding_id}",
+                    403,
+                    token=self.tokens['user']
+                )
+                all_success &= success
+                
+                # Clean up - delete as admin
+                success, _ = self.run_test(
+                    "Admin Delete Test Binding",
+                    "DELETE",
+                    f"/api/admin/operator-warehouse-binding/{new_binding_id}",
+                    200,
+                    token=self.tokens['admin']
+                )
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
         
         test_results = []
         
-        # Run test suites in order - prioritizing cargo numbering tests
+        # Run test suites in order - prioritizing new operator-warehouse binding tests
         test_suites = [
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            ("Operator-Warehouse Binding System", self.test_operator_warehouse_binding_system),
+            ("Enhanced Cargo Operations with Operator Tracking", self.test_enhanced_cargo_operations_with_operator_tracking),
+            ("Available Cargo for Transport", self.test_available_cargo_for_transport),
+            ("Operator-Warehouse Binding Deletion", self.test_operator_warehouse_binding_deletion),
             ("Cargo Numbering System", self.test_cargo_numbering_system),
             ("Cargo Operations with New Numbers", self.test_cargo_operations_with_new_numbers),
             ("Cargo Number Database Integration", self.test_cargo_number_database_integration),
