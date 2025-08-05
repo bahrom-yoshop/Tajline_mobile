@@ -5586,6 +5586,383 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_arrived_transport_cargo_placement_system(self):
+        """Test the comprehensive arrived transport cargo placement system"""
+        print("\n🚛 ARRIVED TRANSPORT CARGO PLACEMENT SYSTEM")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Step 1: Create transport and cargo for testing
+        print("\n   📦 Step 1: Setting up transport and cargo...")
+        
+        # Create transport
+        transport_data = {
+            "driver_name": "Водитель Прибывший",
+            "driver_phone": "+79123456789",
+            "transport_number": "П777РИ77",
+            "capacity_kg": 3000.0,
+            "direction": "Москва - Душанбе"
+        }
+        
+        success, transport_response = self.run_test(
+            "Create Transport for Arrival Test",
+            "POST",
+            "/api/transport/create",
+            200,
+            transport_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if not success or 'transport_id' not in transport_response:
+            print("   ❌ Failed to create transport")
+            return False
+            
+        arrival_transport_id = transport_response['transport_id']
+        print(f"   🚛 Created transport: {arrival_transport_id}")
+        
+        # Create cargo from both collections for cross-collection testing
+        cargo_ids = []
+        
+        # User cargo (cargo collection)
+        user_cargo_data = {
+            "recipient_name": "Получатель Прибывшего",
+            "recipient_phone": "+992444555666",
+            "route": "moscow_to_tajikistan",
+            "weight": 50.0,
+            "cargo_name": "Груз пользователя для прибытия",
+            "description": "Тестовый груз пользователя",
+            "declared_value": 8000.0,
+            "sender_address": "Москва, ул. Отправителя, 1",
+            "recipient_address": "Душанбе, ул. Получателя, 1"
+        }
+        
+        success, user_cargo_response = self.run_test(
+            "Create User Cargo for Arrival Test",
+            "POST",
+            "/api/cargo/create",
+            200,
+            user_cargo_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        if success and 'id' in user_cargo_response:
+            cargo_ids.append(user_cargo_response['id'])
+            print(f"   📦 Created user cargo: {user_cargo_response['cargo_number']}")
+            
+            # Update cargo status to accepted with warehouse location
+            success, _ = self.run_test(
+                "Update User Cargo Status",
+                "PUT",
+                f"/api/cargo/{user_cargo_response['id']}/status",
+                200,
+                token=self.tokens['admin'],
+                params={"status": "accepted", "warehouse_location": "Склад А, Стеллаж 1"}
+            )
+            all_success &= success
+        
+        # Operator cargo (operator_cargo collection)
+        operator_cargo_data = {
+            "sender_full_name": "Отправитель Оператор Прибытие",
+            "sender_phone": "+79111222333",
+            "recipient_full_name": "Получатель Оператор Прибытие",
+            "recipient_phone": "+992777888999",
+            "recipient_address": "Душанбе, ул. Операторская, 25",
+            "weight": 75.0,
+            "cargo_name": "Груз оператора для прибытия",
+            "declared_value": 12000.0,
+            "description": "Тестовый груз оператора",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, operator_cargo_response = self.run_test(
+            "Create Operator Cargo for Arrival Test",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            operator_cargo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success and 'id' in operator_cargo_response:
+            cargo_ids.append(operator_cargo_response['id'])
+            print(f"   📦 Created operator cargo: {operator_cargo_response['cargo_number']}")
+        
+        # Place both cargo items on transport
+        if len(cargo_ids) >= 2:
+            placement_data = {
+                "transport_id": arrival_transport_id,
+                "cargo_ids": cargo_ids
+            }
+            
+            success, _ = self.run_test(
+                "Place Cargo on Transport",
+                "POST",
+                f"/api/transport/{arrival_transport_id}/place-cargo",
+                200,
+                placement_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Placed {len(cargo_ids)} cargo items on transport")
+        
+        # Dispatch transport to IN_TRANSIT status
+        success, _ = self.run_test(
+            "Dispatch Transport",
+            "POST",
+            f"/api/transport/{arrival_transport_id}/dispatch",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        if success:
+            print("   🚀 Transport dispatched to IN_TRANSIT")
+        else:
+            print("   ⚠️  Transport dispatch may have failed (continuing with test)")
+        
+        # Step 2: Test marking transport as arrived
+        print("\n   📍 Step 2: Testing transport arrival...")
+        
+        success, arrive_response = self.run_test(
+            "Mark Transport as Arrived",
+            "POST",
+            f"/api/transport/{arrival_transport_id}/arrive",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Transport marked as arrived successfully")
+        
+        # Step 3: Test getting list of arrived transports
+        print("\n   📋 Step 3: Testing arrived transports list...")
+        
+        success, arrived_transports = self.run_test(
+            "Get Arrived Transports",
+            "GET",
+            "/api/transport/arrived",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            arrived_count = len(arrived_transports) if isinstance(arrived_transports, list) else 0
+            print(f"   📊 Found {arrived_count} arrived transports")
+            
+            # Verify our transport is in the list
+            if isinstance(arrived_transports, list):
+                found_transport = any(t.get('id') == arrival_transport_id for t in arrived_transports)
+                if found_transport:
+                    print("   ✅ Our transport found in arrived list")
+                    # Show transport details
+                    our_transport = next(t for t in arrived_transports if t.get('id') == arrival_transport_id)
+                    print(f"   📋 Transport details: {our_transport.get('transport_number')}, {our_transport.get('cargo_count')} cargo items")
+                else:
+                    print("   ❌ Our transport not found in arrived list")
+                    all_success = False
+        
+        # Step 4: Test getting cargo from arrived transport
+        print("\n   📦 Step 4: Testing arrived transport cargo retrieval...")
+        
+        success, transport_cargo = self.run_test(
+            "Get Arrived Transport Cargo",
+            "GET",
+            f"/api/transport/{arrival_transport_id}/arrived-cargo",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            cargo_list = transport_cargo.get('cargo_list', [])
+            cargo_count = len(cargo_list)
+            placeable_count = transport_cargo.get('placeable_cargo_count', 0)
+            total_weight = transport_cargo.get('total_weight', 0)
+            
+            print(f"   📊 Transport has {cargo_count} cargo items ({placeable_count} placeable)")
+            print(f"   ⚖️  Total weight: {total_weight}kg")
+            
+            # Verify cross-collection search works
+            collections_found = set(c.get('collection') for c in cargo_list)
+            print(f"   🔍 Collections found: {collections_found}")
+            
+            if 'cargo' in collections_found and 'operator_cargo' in collections_found:
+                print("   ✅ Cross-collection search working correctly")
+            else:
+                print("   ⚠️  Cross-collection search may have issues")
+            
+            # Verify cargo can be placed
+            placeable_cargo = [c for c in cargo_list if c.get('can_be_placed')]
+            if len(placeable_cargo) > 0:
+                print(f"   ✅ {len(placeable_cargo)} cargo items ready for placement")
+            else:
+                print("   ❌ No cargo items ready for placement")
+                all_success = False
+        
+        # Step 5: Test cargo placement to warehouse
+        print("\n   🏭 Step 5: Testing cargo placement to warehouse...")
+        
+        # Ensure we have a warehouse for placement
+        if not hasattr(self, 'warehouse_id'):
+            print("   ⚠️  No warehouse available, creating one for placement test...")
+            warehouse_data = {
+                "name": "Склад для прибывших грузов",
+                "location": "Душанбе, Складская территория",
+                "blocks_count": 3,
+                "shelves_per_block": 2,
+                "cells_per_shelf": 5
+            }
+            
+            success, warehouse_response = self.run_test(
+                "Create Warehouse for Placement",
+                "POST",
+                "/api/warehouses/create",
+                200,
+                warehouse_data,
+                self.tokens['admin']
+            )
+            
+            if success and 'id' in warehouse_response:
+                self.warehouse_id = warehouse_response['id']
+                print(f"   🏭 Created warehouse: {self.warehouse_id}")
+            else:
+                print("   ❌ Failed to create warehouse for placement")
+                return False
+        
+        # Place cargo items one by one
+        if success and transport_cargo and transport_cargo.get('cargo_list'):
+            cargo_list = transport_cargo['cargo_list']
+            placement_count = 0
+            
+            for i, cargo_item in enumerate(cargo_list[:2]):  # Place first 2 cargo items
+                if cargo_item.get('can_be_placed'):
+                    placement_data = {
+                        "cargo_id": cargo_item['id'],
+                        "warehouse_id": self.warehouse_id,
+                        "block_number": 1,
+                        "shelf_number": 1,
+                        "cell_number": i + 1  # Different cells for each cargo
+                    }
+                    
+                    success, placement_response = self.run_test(
+                        f"Place Cargo {cargo_item['cargo_number']} to Warehouse",
+                        "POST",
+                        f"/api/transport/{arrival_transport_id}/place-cargo-to-warehouse",
+                        200,
+                        placement_data,
+                        self.tokens['admin']
+                    )
+                    
+                    if success:
+                        placement_count += 1
+                        location = placement_response.get('location', 'Unknown')
+                        remaining = placement_response.get('remaining_cargo', 0)
+                        transport_status = placement_response.get('transport_status', 'Unknown')
+                        
+                        print(f"   ✅ Cargo {cargo_item['cargo_number']} placed at {location}")
+                        print(f"   📊 Remaining cargo: {remaining}, Transport status: {transport_status}")
+                        
+                        # Check if transport is completed
+                        if transport_status == 'completed':
+                            print("   🎉 Transport automatically completed after all cargo placed!")
+                    else:
+                        all_success = False
+            
+            print(f"   📊 Successfully placed {placement_count} cargo items")
+        
+        # Step 6: Verify transport completion
+        print("\n   🎯 Step 6: Verifying transport completion...")
+        
+        success, final_transport = self.run_test(
+            "Get Final Transport Status",
+            "GET",
+            f"/api/transport/{arrival_transport_id}",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        if success:
+            final_status = final_transport.get('status', 'unknown')
+            remaining_cargo = len(final_transport.get('cargo_list', []))
+            
+            print(f"   📊 Final transport status: {final_status}")
+            print(f"   📦 Remaining cargo on transport: {remaining_cargo}")
+            
+            if final_status == 'completed' and remaining_cargo == 0:
+                print("   ✅ Transport automatically completed when all cargo placed")
+            elif final_status == 'arrived' and remaining_cargo > 0:
+                print("   ✅ Transport still arrived with remaining cargo (expected)")
+            else:
+                print(f"   ⚠️  Unexpected transport state: {final_status} with {remaining_cargo} cargo")
+        
+        # Step 7: Test error scenarios
+        print("\n   ⚠️  Step 7: Testing error scenarios...")
+        
+        # Try to mark non-existent transport as arrived
+        success, _ = self.run_test(
+            "Mark Non-existent Transport as Arrived (Should Fail)",
+            "POST",
+            "/api/transport/nonexistent/arrive",
+            404,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        # Try to access arrived cargo from non-existent transport
+        success, _ = self.run_test(
+            "Get Cargo from Non-existent Transport (Should Fail)",
+            "GET",
+            "/api/transport/nonexistent/arrived-cargo",
+            404,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        # Try to place cargo with invalid data
+        invalid_placement = {
+            "cargo_id": "invalid_cargo_id",
+            "warehouse_id": self.warehouse_id,
+            "block_number": 1,
+            "shelf_number": 1,
+            "cell_number": 1
+        }
+        
+        success, _ = self.run_test(
+            "Place Invalid Cargo (Should Fail)",
+            "POST",
+            f"/api/transport/{arrival_transport_id}/place-cargo-to-warehouse",
+            400,
+            invalid_placement,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        # Test access control - regular user should not access
+        if 'user' in self.tokens:
+            success, _ = self.run_test(
+                "Regular User Access Arrived Transports (Should Fail)",
+                "GET",
+                "/api/transport/arrived",
+                403,
+                token=self.tokens['user']
+            )
+            all_success &= success
+        
+        print(f"\n   🎯 Arrived Transport Cargo Placement System Test Complete")
+        print(f"   📊 Overall Success: {'✅ PASSED' if all_success else '❌ FAILED'}")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
