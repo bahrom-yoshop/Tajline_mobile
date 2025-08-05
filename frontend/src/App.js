@@ -4894,10 +4894,17 @@ function App() {
                   </>
                 )}
                 
-                <Button variant="outline" onClick={() => printInvoice(selectedCellCargo)}>
-                  <Printer className="mr-2 h-4 w-4" />
-                  Печать накладной
-                </Button>
+                <div className="flex space-x-2">
+                  <Button variant="outline" onClick={() => printInvoice(selectedCellCargo)}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    Печать накладной
+                  </Button>
+                  
+                  <Button variant="outline" onClick={() => printCargoQrLabel(selectedCellCargo)}>
+                    <QrCode className="mr-2 h-4 w-4" />
+                    QR этикетка
+                  </Button>
+                </div>
               </div>
             </div>
           )}
