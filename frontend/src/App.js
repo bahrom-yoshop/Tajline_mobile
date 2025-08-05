@@ -437,41 +437,27 @@ function App() {
 
   const handlePlaceCargoOnTransport = async (transportId, cargoNumbers) => {
     try {
-      // Найти ID грузов по их номерам
-      const cargoIds = [];
-      const notFoundCargos = [];
-      
-      for (const cargoNumber of cargoNumbers) {
-        const cargo = availableCargoForTransport.find(c => c.cargo_number === cargoNumber.trim());
-        if (cargo) {
-          cargoIds.push(cargo.id);
-        } else {
-          notFoundCargos.push(cargoNumber.trim());
-        }
-      }
-      
-      // Показать предупреждение о не найденных грузах
-      if (notFoundCargos.length > 0) {
-        showAlert(`Грузы не найдены на складе: ${notFoundCargos.join(', ')}`, 'error');
-        return;
-      }
-      
-      if (cargoIds.length === 0) {
+      if (!cargoNumbers || cargoNumbers.length === 0) {
         showAlert('Не указаны номера грузов для размещения', 'error');
         return;
       }
 
+      // Отправляем номера грузов напрямую, без преобразования в ID
       await apiCall(`/api/transport/${transportId}/place-cargo`, 'POST', {
         transport_id: transportId,
-        cargo_ids: cargoIds
+        cargo_numbers: cargoNumbers
       });
-      showAlert(`Груз успешно размещен на транспорте! (${cargoIds.length} мест)`, 'success');
+      
+      showAlert(`Груз успешно размещен на транспорте! (${cargoNumbers.length} мест)`, 'success');
       fetchTransports();
       fetchTransportCargoList(transportId);
       fetchAvailableCargoForTransport(); // Обновить список доступных грузов
       setSelectedCargoForPlacement([]);
     } catch (error) {
       console.error('Place cargo on transport error:', error);
+      // Показать более подробную ошибку пользователю
+      const errorMessage = error.response?.data?.detail || error.message || 'Ошибка размещения груза';
+      showAlert(errorMessage, 'error');
     }
   };
 
