@@ -548,16 +548,6 @@ function App() {
     }
   };
 
-  // Функция выхода из системы
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
-    setActiveTab('dashboard');
-    setActiveSection('dashboard');
-    showAlert('Вы вышли из системы', 'info');
-  };
-
   const fetchNotifications = async () => {
     try {
       const data = await apiCall('/api/notifications');
