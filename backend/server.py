@@ -1413,14 +1413,47 @@ async def update_cargo_status(
 # Склад
 @app.get("/api/warehouse/cargo")
 async def get_warehouse_cargo(current_user: User = Depends(require_role(UserRole.WAREHOUSE_OPERATOR))):
-    cargo_list = list(db.cargo.find({
+    # Search both user cargo and operator cargo collections
+    user_cargo_list = list(db.cargo.find({
         "status": {"$in": [CargoStatus.CREATED, CargoStatus.ACCEPTED, CargoStatus.IN_TRANSIT]}
     }))
-    # Ensure cargo_name field exists for backward compatibility
-    for cargo in cargo_list:
-        if 'cargo_name' not in cargo:
-            cargo['cargo_name'] = cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз'
-    return [Cargo(**cargo) for cargo in cargo_list]
+    
+    operator_cargo_list = list(db.operator_cargo.find({
+        "status": {"$in": [CargoStatus.CREATED, CargoStatus.ACCEPTED, CargoStatus.IN_TRANSIT]}
+    }))
+    
+    # Normalize and serialize all cargo data
+    normalized_cargo = []
+    
+    # Process user cargo
+    for cargo in user_cargo_list:
+        normalized = serialize_mongo_document(cargo)
+        # Ensure all required fields exist
+        normalized.update({
+            'cargo_name': cargo.get('cargo_name') or cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз',
+            'sender_id': cargo.get('sender_id', 'unknown'),
+            'recipient_name': cargo.get('recipient_name', 'Не указан'),
+            'sender_address': cargo.get('sender_address', 'Не указан'),
+            'recipient_address': cargo.get('recipient_address', 'Не указан'),
+            'recipient_phone': cargo.get('recipient_phone', 'Не указан')
+        })
+        normalized_cargo.append(normalized)
+    
+    # Process operator cargo
+    for cargo in operator_cargo_list:
+        normalized = serialize_mongo_document(cargo)
+        # Map operator cargo fields to standard cargo fields and ensure all required fields exist
+        normalized.update({
+            'cargo_name': cargo.get('cargo_name') or cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз',
+            'sender_id': cargo.get('created_by', 'operator'),
+            'recipient_name': cargo.get('recipient_full_name', cargo.get('recipient_name', 'Не указан')),
+            'sender_address': cargo.get('sender_address', 'Не указан'),
+            'recipient_address': cargo.get('recipient_address', 'Не указан'),
+            'recipient_phone': cargo.get('recipient_phone', 'Не указан')
+        })
+        normalized_cargo.append(normalized)
+    
+    return normalized_cargo
 
 @app.get("/api/warehouse/search")
 async def search_cargo(
