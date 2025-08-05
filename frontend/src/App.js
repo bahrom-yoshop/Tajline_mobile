@@ -272,8 +272,15 @@ function App() {
     }, 5000);
   };
 
-  const apiCall = async (endpoint, method = 'GET', data = null) => {
+  const apiCall = async (endpoint, method = 'GET', data = null, params = null) => {
     try {
+      // Build URL with query parameters if provided
+      let url = `${BACKEND_URL}${endpoint}`;
+      if (params) {
+        const urlParams = new URLSearchParams(params);
+        url += `?${urlParams.toString()}`;
+      }
+
       const config = {
         method,
         headers: {
@@ -289,16 +296,30 @@ function App() {
         config.body = JSON.stringify(data);
       }
 
-      const response = await fetch(`${BACKEND_URL}${endpoint}`, config);
+      const response = await fetch(url, config);
       const result = await response.json();
 
       if (!response.ok) {
+        // Обработка 401 ошибки (unauthorized) - токен истек или невалиден
+        if (response.status === 401) {
+          console.log('Token expired or invalid, logging out user');
+          // Очищаем токен и данные пользователя
+          localStorage.removeItem('token');
+          setToken(null);
+          setUser(null);
+          // Не показываем alert для 401, так как это нормальное поведение при истечении сессии
+          throw new Error('Session expired');
+        }
+        
         throw new Error(result.detail || 'Произошла ошибка');
       }
 
       return result;
     } catch (error) {
-      showAlert(error.message, 'error');
+      // Показываем alert только если это не ошибка истечения сессии
+      if (error.message !== 'Session expired') {
+        showAlert(error.message, 'error');
+      }
       throw error;
     }
   };
