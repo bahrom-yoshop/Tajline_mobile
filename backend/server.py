@@ -685,6 +685,103 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information"""
     return current_user
 
+# QR Code APIs
+@app.get("/api/cargo/{cargo_id}/qr-code")
+async def get_cargo_qr_code(
+    cargo_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить QR код для груза"""
+    # Ищем груз в обеих коллекциях
+    cargo = db.cargo.find_one({"id": cargo_id})
+    if not cargo:
+        cargo = db.operator_cargo.find_one({"id": cargo_id})
+    
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Проверка доступа (пользователь может видеть только свои грузы, админ/оператор - все)
+    if current_user.role == UserRole.USER and cargo.get("sender_id") != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    qr_code_data = generate_cargo_qr_code(cargo)
+    
+    return {
+        "cargo_id": cargo_id,
+        "cargo_number": cargo.get("cargo_number"),
+        "qr_code": qr_code_data
+    }
+
+@app.get("/api/warehouse/{warehouse_id}/cell-qr/{block}/{shelf}/{cell}")
+async def get_warehouse_cell_qr_code(
+    warehouse_id: str,
+    block: int,
+    shelf: int,
+    cell: int,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить QR код для ячейки склада"""
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Найти склад
+    warehouse = db.warehouses.find_one({"id": warehouse_id})
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="Warehouse not found")
+    
+    # Проверить существование ячейки
+    if block > warehouse.get("blocks_count", 0) or shelf > warehouse.get("shelves_per_block", 0) or cell > warehouse.get("cells_per_shelf", 0):
+        raise HTTPException(status_code=404, detail="Cell not found")
+    
+    qr_code_data = generate_warehouse_cell_qr_code(warehouse, block, shelf, cell)
+    
+    return {
+        "warehouse_id": warehouse_id,
+        "warehouse_name": warehouse.get("name"),
+        "location": f"Б{block}-П{shelf}-Я{cell}",
+        "qr_code": qr_code_data
+    }
+
+@app.get("/api/warehouse/{warehouse_id}/all-cells-qr")
+async def get_all_warehouse_cells_qr_codes(
+    warehouse_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить QR коды для всех ячеек склада (для печати)"""
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Найти склад
+    warehouse = db.warehouses.find_one({"id": warehouse_id})
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="Warehouse not found")
+    
+    qr_codes = []
+    blocks_count = warehouse.get("blocks_count", 1)
+    shelves_per_block = warehouse.get("shelves_per_block", 1)
+    cells_per_shelf = warehouse.get("cells_per_shelf", 10)
+    
+    for block in range(1, blocks_count + 1):
+        for shelf in range(1, shelves_per_block + 1):
+            for cell in range(1, cells_per_shelf + 1):
+                qr_code_data = generate_warehouse_cell_qr_code(warehouse, block, shelf, cell)
+                qr_codes.append({
+                    "block": block,
+                    "shelf": shelf,
+                    "cell": cell,
+                    "location": f"Б{block}-П{shelf}-Я{cell}",
+                    "qr_code": qr_code_data
+                })
+    
+    return {
+        "warehouse_id": warehouse_id,
+        "warehouse_name": warehouse.get("name"),
+        "total_cells": len(qr_codes),
+        "qr_codes": qr_codes
+    }
+
 # Управление грузами
 @app.post("/api/cargo/create")
 async def create_cargo(cargo_data: CargoCreate, current_user: User = Depends(get_current_user)):
