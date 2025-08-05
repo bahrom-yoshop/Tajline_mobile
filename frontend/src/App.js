@@ -3559,6 +3559,16 @@ function App() {
                                       <Grid3X3 className="mr-2 h-4 w-4" />
                                       Управление
                                     </Button>
+                                    
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      onClick={() => printWarehouseCellsQr(warehouse)}
+                                      title="Печать QR кодов всех ячеек"
+                                    >
+                                      <QrCode className="mr-2 h-4 w-4" />
+                                      QR ячеек
+                                    </Button>
                                   </div>
                                 </div>
                               </div>
