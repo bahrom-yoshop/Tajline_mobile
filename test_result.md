@@ -786,14 +786,16 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Fix Search Header Input Issue"
+    - "Fix Search Header Input Issue" 
     - "Fix printInvoice Function Missing"
     - "Enhanced Transport Management Modal"
     - "Transport Volume Validation Override"
     - "Transport Cargo Return System"
+    - "QR Code Generation and Management System"
+    - "Transport Cargo List Display Fix"
   stuck_tasks: []
   test_all: false
-  test_priority: "high_first"
+  test_priority: "critical_first"
 
 agent_communication:
     - agent: "main"
