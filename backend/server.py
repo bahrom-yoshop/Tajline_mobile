@@ -1354,6 +1354,7 @@ async def accept_new_cargo(
 async def get_operator_cargo_list(
     current_user: User = Depends(get_current_user)
 ):
+    """Получить список грузов оператора (только с привязанных складов)"""
     # Проверяем права доступа
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
@@ -1362,8 +1363,20 @@ async def get_operator_cargo_list(
         # Админ видит все грузы
         cargo_list = list(db.operator_cargo.find({}))
     else:
-        # Оператор видит только свои принятые грузы
-        cargo_list = list(db.operator_cargo.find({"created_by": current_user.id}))
+        # Оператор видит только грузы на привязанных к нему складах
+        operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+        
+        if not operator_warehouse_ids:
+            # Если оператор не привязан к складам, возвращаем пустой список
+            cargo_list = []
+        else:
+            # Находим грузы на привязанных складах ИЛИ принятые этим оператором
+            cargo_list = list(db.operator_cargo.find({
+                "$or": [
+                    {"warehouse_id": {"$in": operator_warehouse_ids}},  # Грузы на его складах
+                    {"created_by": current_user.id}  # Грузы, принятые им лично
+                ]
+            }))
     
     # Ensure cargo_name field exists for backward compatibility
     for cargo in cargo_list:
