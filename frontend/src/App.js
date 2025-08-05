@@ -983,6 +983,11 @@ function App() {
     setAvailableCargoForTransport([]);
     setSelectedCargoForPlacement([]);
     setContactModal(false);
+    // Clear operator-warehouse binding states
+    setOperatorWarehouseBindings([]);
+    setOperatorBindingModal(false);
+    setSelectedOperatorForBinding('');
+    setSelectedWarehouseForBinding('');
     showAlert('Вы вышли из системы', 'info');
   };
 
