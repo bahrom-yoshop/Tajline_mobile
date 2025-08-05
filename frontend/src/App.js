@@ -3030,7 +3030,7 @@ function App() {
                                   <Select 
                                     value={cargoOrderForm.route} 
                                     onValueChange={(value) => {
-                                      setCargoOrderForm({...cargoOrderForm, route: value});
+                                      handleRouteChange(value); // Используем новую функцию
                                       setCostCalculation(null);
                                     }}
                                   >
