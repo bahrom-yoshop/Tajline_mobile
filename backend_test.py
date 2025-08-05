@@ -9135,6 +9135,8 @@ ID склада: {self.warehouse_id}"""
             ("🆕 NEW FEATURE 1: Admin Operator Creation", self.test_admin_operator_creation),
             ("🆕 NEW FEATURE 2: Updated User Registration", self.test_updated_user_registration),
             ("🆕 NEW FEATURE 3: Client Dashboard System", self.test_client_dashboard_system),
+            # NEW CLIENT CARGO ORDERING SYSTEM
+            ("🆕 CLIENT CARGO ORDERING SYSTEM", self.test_client_cargo_ordering_system),
             ("Notifications", self.test_notifications),
             ("Error Handling", self.test_error_cases)
         ]
