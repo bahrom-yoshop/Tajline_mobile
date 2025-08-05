@@ -1355,7 +1355,7 @@ async def get_warehouses(current_user: User = Depends(get_current_user)):
         # Получаем информацию об операторах
         bound_operators = []
         for binding in bindings:
-            operator = db.users.find_one({"id": binding["operator_id"]}, {"password": 0})
+            operator = db.users.find_one({"id": binding["operator_id"]}, {"password": 0, "_id": 0})
             if operator:
                 bound_operators.append({
                     "id": operator["id"],
@@ -1372,7 +1372,8 @@ async def get_warehouses(current_user: User = Depends(get_current_user)):
         }
         warehouses_with_operators.append(warehouse_with_operators)
     
-    return warehouses_with_operators
+    # Сериализуем все MongoDB ObjectId перед возвратом
+    return serialize_mongo_document(warehouses_with_operators)
 
 @app.get("/api/warehouses/{warehouse_id}/structure")
 async def get_warehouse_structure(
