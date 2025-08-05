@@ -2627,6 +2627,16 @@ function App() {
                     
                     {/* Статистика и быстрый доступ */}
                     <div className="flex items-center space-x-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setQrScannerModal(true)}
+                        title="Сканировать QR код"
+                      >
+                        <Camera className="h-4 w-4 mr-2" />
+                        QR сканер
+                      </Button>
+                      
                       <div className="text-sm text-gray-600">
                         Всего грузов: <span className="font-medium">{cargo.length}</span>
                       </div>
