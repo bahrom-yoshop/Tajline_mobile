@@ -2382,11 +2382,13 @@ async def remove_cargo_from_transport(
             )
             
             # Создать уведомление
-            create_notification(
-                cargo["sender_id"], 
-                f"Ваш груз №{cargo['cargo_number']} был снят с транспорта и ожидает размещения",
-                cargo_id
-            )
+            sender_id = cargo.get("sender_id") or cargo.get("created_by")
+            if sender_id:
+                create_notification(
+                    sender_id, 
+                    f"Ваш груз №{cargo['cargo_number']} был снят с транспорта и ожидает размещения",
+                    cargo_id
+                )
             
             return {
                 "message": f"Cargo {cargo['cargo_number']} removed from transport. Original location unavailable, cargo status set to ACCEPTED",
