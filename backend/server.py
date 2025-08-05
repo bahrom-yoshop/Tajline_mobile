@@ -2632,13 +2632,17 @@ async def get_transports_list(
             return []
         
         # Находим транспорты, направляющиеся к складам оператора или созданные им
-        transports = list(db.transports.find({
+        # Для межскладских транспортов проверяем warehouse_id, для обычных - по direction
+        query = {
             "$or": [
-                {"destination_warehouse_id": {"$in": operator_warehouse_ids}},  # К его складам
-                {"source_warehouse_id": {"$in": operator_warehouse_ids}},      # От его складов  
-                {"created_by": current_user.id}                               # Созданные им
+                {"destination_warehouse_id": {"$in": operator_warehouse_ids}},  # Межскладские к его складам
+                {"source_warehouse_id": {"$in": operator_warehouse_ids}},      # Межскладские от его складов  
+                {"created_by": current_user.id},                               # Созданные им
+                {"is_interwarehouse": {"$ne": True}}                           # Обычные транспорты (пока показываем всем)
             ]
-        }))
+        }
+        
+        transports = list(db.transports.find(query))
     
     transport_list = []
     for transport in transports:
