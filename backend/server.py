@@ -645,6 +645,10 @@ async def track_cargo(cargo_number: str):
 @app.get("/api/cargo/all")
 async def get_all_cargo(current_user: User = Depends(require_role(UserRole.ADMIN))):
     cargo_list = list(db.cargo.find({}))
+    # Ensure cargo_name field exists for backward compatibility
+    for cargo in cargo_list:
+        if 'cargo_name' not in cargo:
+            cargo['cargo_name'] = cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз'
     return [Cargo(**cargo) for cargo in cargo_list]
 
 @app.put("/api/cargo/{cargo_id}/status")
