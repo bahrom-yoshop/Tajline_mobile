@@ -955,6 +955,7 @@ async def accept_new_cargo(
         "recipient_phone": cargo_data.recipient_phone,
         "recipient_address": cargo_data.recipient_address,
         "weight": cargo_data.weight,
+        "cargo_name": cargo_data.cargo_name,
         "declared_value": cargo_data.declared_value,
         "description": cargo_data.description,
         "route": cargo_data.route,
