@@ -363,26 +363,33 @@ class CriticalFixesTester:
         cargo_found = {"cargo": False, "operator_cargo": False}
         cargo_details_found = []
         
+        print(f"   🔍 DEBUG: Layout structure keys: {list(layout.keys())}")
+        
         for block_key, block_data in layout.items():
+            print(f"   🔍 DEBUG: Block {block_key} type: {type(block_data)}")
             if isinstance(block_data, dict):
                 for shelf_key, shelf_data in block_data.items():
+                    print(f"   🔍 DEBUG: Shelf {shelf_key} type: {type(shelf_data)}")
                     if isinstance(shelf_data, list):
                         for cell in shelf_data:
-                            if cell.get('is_occupied') and cell.get('cargo_details'):
-                                cargo_details = cell['cargo_details']
+                            print(f"   🔍 DEBUG: Cell data: {cell}")
+                            if cell.get('is_occupied'):
+                                print(f"   🔍 DEBUG: Found occupied cell: {cell}")
+                                cargo_details = cell.get('cargo_details') or cell.get('cargo_info') or cell
                                 cargo_number = cargo_details.get('cargo_number')
                                 
-                                # Check if this cargo matches our test cargo
-                                for collection_name, cargo_list in self.cargo_ids.items():
-                                    for cargo_info in cargo_list:
-                                        if cargo_info['number'] == cargo_number:
-                                            cargo_found[collection_name] = True
-                                            cargo_details_found.append({
-                                                'number': cargo_number,
-                                                'collection': collection_name,
-                                                'cell': cell.get('location_code'),
-                                                'name': cargo_details.get('cargo_name', 'N/A')
-                                            })
+                                if cargo_number:
+                                    # Check if this cargo matches our test cargo
+                                    for collection_name, cargo_list in self.cargo_ids.items():
+                                        for cargo_info in cargo_list:
+                                            if cargo_info['number'] == cargo_number:
+                                                cargo_found[collection_name] = True
+                                                cargo_details_found.append({
+                                                    'number': cargo_number,
+                                                    'collection': collection_name,
+                                                    'cell': cell.get('location_code') or f"{block_key}-{shelf_key}",
+                                                    'name': cargo_details.get('cargo_name', 'N/A')
+                                                })
         
         # Report findings
         print(f"\n   📋 CARGO FOUND IN WAREHOUSE LAYOUT:")
