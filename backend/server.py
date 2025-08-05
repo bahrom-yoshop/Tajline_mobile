@@ -635,12 +635,11 @@ def generate_cargo_number() -> str:
     try:
         import random
         
-        # Получаем текущий год и месяц для уникальности
-        current_time = datetime.utcnow()
-        year_month = current_time.strftime('%y%m')  # 2501 для January 2025
+        # ФИКСИРОВАННЫЙ ФОРМАТ для января 2025: используем 2501 как префикс
+        year_month = "2501"  # Январь 2025
         
-        # Ищем последний груз с номерами, начинающимися на текущий год-месяц
-        pattern = f"^{year_month}[0-9]{{2,6}}$"  # 2501XXXX до 2501XXXXXX
+        # Ищем последний груз с номерами, начинающимися на 2501
+        pattern = f"^{year_month}[0-9]{{2,6}}$"  # 2501XX до 2501XXXXXX
         
         last_cargo_user = db.cargo.find({
             "cargo_number": {"$regex": pattern}
@@ -653,42 +652,42 @@ def generate_cargo_number() -> str:
         last_cargo_user_list = list(last_cargo_user)
         last_cargo_operator_list = list(last_cargo_operator)
         
-        # Находим максимальный номер для текущего месяца
+        # Находим максимальный номер для префикса 2501
         max_number = 0
         
         if last_cargo_user_list:
             user_number_str = last_cargo_user_list[0]["cargo_number"]
             if len(user_number_str) > 4:
-                user_sequence = int(user_number_str[4:])  # Убираем префикс YYMM
+                user_sequence = int(user_number_str[4:])  # Убираем префикс 2501
                 max_number = max(max_number, user_sequence)
                 
         if last_cargo_operator_list:
             operator_number_str = last_cargo_operator_list[0]["cargo_number"]
             if len(operator_number_str) > 4:
-                operator_sequence = int(operator_number_str[4:])  # Убираем префикс YYMM
+                operator_sequence = int(operator_number_str[4:])  # Убираем префикс 2501
                 max_number = max(max_number, operator_sequence)
         
         # Следующий номер в последовательности
         next_sequence = max_number + 1
         
-        # Формируем полный номер груза
+        # Формируем полный номер груза (от 4 до 10 цифр общих)
         if next_sequence <= 99:
-            # 4-значный номер: 2501XX (01-99)
+            # 6-значный номер: 2501XX (01-99)
             cargo_number = f"{year_month}{next_sequence:02d}"
         elif next_sequence <= 999:
-            # 5-значный номер: 2501XXX (100-999)  
+            # 7-значный номер: 2501XXX (100-999)  
             cargo_number = f"{year_month}{next_sequence:03d}"
         elif next_sequence <= 9999:
-            # 6-значный номер: 2501XXXX (1000-9999)
+            # 8-значный номер: 2501XXXX (1000-9999)
             cargo_number = f"{year_month}{next_sequence:04d}"
         elif next_sequence <= 99999:
-            # 7-значный номер: 2501XXXXX (10000-99999)
+            # 9-значный номер: 2501XXXXX (10000-99999)
             cargo_number = f"{year_month}{next_sequence:05d}"
         else:
-            # 8-значный номер: 2501XXXXXX (100000-999999)
+            # 10-значный номер: 2501XXXXXX (100000-999999)
             cargo_number = f"{year_month}{next_sequence:06d}"
             
-        # Максимум 10 цифр общих, значит максимум 6 цифр после YYMM
+        # Максимум 10 цифр общих, значит максимум 6 цифр после 2501
         if next_sequence > 999999:
             # Если превысили лимит, используем случайный номер
             cargo_number = f"{year_month}{random.randint(100000, 999999):06d}"
@@ -705,10 +704,9 @@ def generate_cargo_number() -> str:
         return cargo_number
         
     except Exception as e:
-        # В случае ошибки, генерируем случайный номер
+        # В случае ошибки, генерируем случайный номер для января 2025
         import random
-        current_time = datetime.utcnow()
-        year_month = current_time.strftime('%y%m')
+        year_month = "2501"
         random_suffix = random.randint(1000, 9999)
         return f"{year_month}{random_suffix:04d}"
 
