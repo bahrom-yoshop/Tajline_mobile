@@ -2391,12 +2391,12 @@ async def get_available_cargo_for_transport_endpoint(
     return available_cargo
 
 @app.get("/api/cargo/search")
-async def search_cargo(
+async def search_cargo_detailed(
     query: str = "",
-    search_type: str = "all",  # all, number, sender_name, recipient_name, phone
+    search_type: str = "all",  # all, number, sender_name, recipient_name, phone, cargo_name
     current_user: User = Depends(get_current_user)
 ):
-    """Расширенный поиск грузов по различным критериям"""
+    """Расширенный поиск грузов с детальными карточками и функциями (Функция 4)"""
     # Проверка доступа
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Access denied")
@@ -2425,16 +2425,17 @@ async def search_cargo(
     
     if search_type == "all" or search_type == "cargo_name":
         search_criteria.append({"cargo_name": {"$regex": query, "$options": "i"}})
+        search_criteria.append({"description": {"$regex": query, "$options": "i"}})
     
     if not search_criteria:
-        return []
+        return {"results": [], "total_found": 0, "search_query": query, "search_type": search_type}
     
     # Поиск в коллекции пользовательских грузов
     user_cargo_query = {"$or": search_criteria}
-    user_cargo = list(db.cargo.find(user_cargo_query, {"_id": 0}).limit(20))
+    user_cargo = list(db.cargo.find(user_cargo_query, {"_id": 0}).limit(30))
     
     # Поиск в коллекции операторских грузов  
-    operator_cargo = list(db.operator_cargo.find(user_cargo_query, {"_id": 0}).limit(20))
+    operator_cargo = list(db.operator_cargo.find(user_cargo_query, {"_id": 0}).limit(30))
     
     # Объединить результаты
     all_results = user_cargo + operator_cargo
@@ -2443,7 +2444,164 @@ async def search_cargo(
     if search_type == "number" or query.isdigit():
         all_results.sort(key=lambda x: 0 if x.get("cargo_number", "").lower() == query.lower() else 1)
     
-    return all_results[:50]  # Ограничить до 50 результатов
+    # Обогащаем каждый результат дополнительными данными и функциями
+    enriched_results = []
+    for cargo in all_results[:30]:  # Ограничить до 30 результатов
+        cargo_id = cargo["id"]
+        
+        # Получаем информацию о расположении груза
+        warehouse_info = None
+        location_info = None
+        
+        if cargo.get("warehouse_id"):
+            warehouse = db.warehouses.find_one({"id": cargo["warehouse_id"]}, {"_id": 0})
+            if warehouse:
+                warehouse_info = {
+                    "id": warehouse["id"],
+                    "name": warehouse["name"],
+                    "location": warehouse["location"]
+                }
+                
+                # Информация о конкретной ячейке
+                if cargo.get("block_number") and cargo.get("shelf_number") and cargo.get("cell_number"):
+                    location_info = {
+                        "block": cargo["block_number"],
+                        "shelf": cargo["shelf_number"], 
+                        "cell": cargo["cell_number"],
+                        "location_code": f"Б{cargo['block_number']}-П{cargo['shelf_number']}-Я{cargo['cell_number']}"
+                    }
+        
+        # Получаем информацию о транспорте (если груз на транспорте)
+        transport_info = None
+        if cargo.get("transport_id"):
+            transport = db.transports.find_one({"id": cargo["transport_id"]}, {"_id": 0})
+            if transport:
+                transport_info = {
+                    "id": transport["id"],
+                    "transport_number": transport["transport_number"],
+                    "driver_name": transport["driver_name"],
+                    "status": transport["status"],
+                    "direction": transport["direction"]
+                }
+        
+        # Получаем информацию об операторах
+        operator_info = {
+            "created_by_operator": cargo.get("created_by_operator"),
+            "placed_by_operator": cargo.get("placed_by_operator"),
+            "updated_by_operator": cargo.get("updated_by_operator")
+        }
+        
+        # Определяем доступные функции для этого груза
+        available_functions = {
+            "view_details": True,
+            "edit_cargo": True,
+            "move_between_cells": cargo.get("status") == "placed_in_warehouse",
+            "remove_from_cell": cargo.get("status") == "placed_in_warehouse", 
+            "place_on_transport": cargo.get("status") in ["placed_in_warehouse", "accepted"],
+            "process_payment": cargo.get("payment_status") == "pending",
+            "print_invoice": True,
+            "generate_qr_code": True,
+            "track_cargo": True,
+            "add_notes": True
+        }
+        
+        # Подсчитываем финансовую информацию
+        payment_info = {
+            "declared_value": cargo.get("declared_value", 0),
+            "payment_status": cargo.get("payment_status", "pending"),
+            "amount_paid": 0,  # Можно получить из коллекции payments если нужно
+            "amount_due": cargo.get("declared_value", 0)
+        }
+        
+        # Создаем обогащенную карточку груза
+        enriched_cargo = {
+            # Основная информация о грузе
+            "id": cargo["id"],
+            "cargo_number": cargo["cargo_number"],
+            "cargo_name": cargo.get("cargo_name", cargo.get("description", "Груз")[:50]),
+            "description": cargo.get("description", ""),
+            "weight": cargo.get("weight", 0),
+            "status": cargo.get("status", "unknown"),
+            "created_at": cargo.get("created_at"),
+            "updated_at": cargo.get("updated_at"),
+            
+            # Информация об отправителе
+            "sender": {
+                "full_name": cargo.get("sender_full_name", "Не указано"),
+                "phone": cargo.get("sender_phone", "Не указано")
+            },
+            
+            # Информация о получателе  
+            "recipient": {
+                "full_name": cargo.get("recipient_full_name", "Не указано"),
+                "phone": cargo.get("recipient_phone", "Не указано"),
+                "address": cargo.get("recipient_address", "Не указано")
+            },
+            
+            # Расположение груза
+            "location": {
+                "warehouse": warehouse_info,
+                "cell": location_info,
+                "transport": transport_info,
+                "status_description": get_location_description(cargo)
+            },
+            
+            # Информация об операторах
+            "operators": operator_info,
+            
+            # Финансовая информация
+            "payment": payment_info,
+            
+            # Доступные функции
+            "available_functions": available_functions,
+            
+            # Дополнительные поля
+            "route": cargo.get("route", "unknown"),
+            "qr_code": cargo.get("qr_code", ""),
+            "collection_source": "operator_cargo" if cargo.get("created_by_operator") else "cargo"
+        }
+        
+        enriched_results.append(enriched_cargo)
+    
+    return {
+        "results": enriched_results,
+        "total_found": len(enriched_results),
+        "search_query": query,
+        "search_type": search_type,
+        "user_role": current_user.role,
+        "user_name": current_user.full_name,
+        "search_performed_at": datetime.utcnow(),
+        "available_search_types": [
+            {"value": "all", "label": "Все поля"},
+            {"value": "number", "label": "По номеру"},
+            {"value": "sender_name", "label": "По ФИО отправителя"},
+            {"value": "recipient_name", "label": "По ФИО получателя"},
+            {"value": "phone", "label": "По телефону"},
+            {"value": "cargo_name", "label": "По названию груза"}
+        ]
+    }
+
+def get_location_description(cargo):
+    """Получить описание местоположения груза"""
+    status = cargo.get("status", "unknown")
+    
+    if status == "placed_in_warehouse" and cargo.get("warehouse_id"):
+        if cargo.get("block_number"):
+            return f"На складе в ячейке Б{cargo['block_number']}-П{cargo['shelf_number']}-Я{cargo['cell_number']}"
+        else:
+            return "На складе (ячейка не указана)"
+    elif status == "on_transport" and cargo.get("transport_id"):
+        return "На транспорте"
+    elif status == "in_transit":
+        return "В пути"
+    elif status == "accepted":
+        return "Принят, ожидает размещения"
+    elif status == "delivered":
+        return "Доставлен"
+    elif status == "arrived_destination":
+        return "Прибыл в пункт назначения"
+    else:
+        return f"Статус: {status}"
 
 # === ТРАНСПОРТ API ===
 
