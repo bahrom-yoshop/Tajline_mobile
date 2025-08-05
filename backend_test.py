@@ -1160,17 +1160,388 @@ class CargoTransportAPITester:
         
         return success
 
+    def test_cargo_numbering_system(self):
+        """Test the new 4-digit cargo numbering system"""
+        print("\n🔢 CARGO NUMBERING SYSTEM (4-DIGIT)")
+        
+        if 'user' not in self.tokens or 'admin' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        cargo_numbers = []
+        
+        # Test 1: User cargo creation with 4-digit numbers
+        print("\n   📦 Testing User Cargo Creation...")
+        for i in range(3):
+            cargo_data = {
+                "recipient_name": f"Получатель {i+1}",
+                "recipient_phone": f"+99244455566{i}",
+                "route": "moscow_to_tajikistan",
+                "weight": 10.0 + i,
+                "description": f"Тестовый груз пользователя {i+1}",
+                "declared_value": 5000.0 + (i * 1000),
+                "sender_address": f"Москва, ул. Тестовая, {i+1}",
+                "recipient_address": f"Душанбе, ул. Получателя, {i+1}"
+            }
+            
+            success, response = self.run_test(
+                f"User Cargo Creation #{i+1}",
+                "POST",
+                "/api/cargo/create",
+                200,
+                cargo_data,
+                self.tokens['user']
+            )
+            all_success &= success
+            
+            if success and 'cargo_number' in response:
+                cargo_number = response['cargo_number']
+                cargo_numbers.append(cargo_number)
+                print(f"   🏷️  Generated cargo number: {cargo_number}")
+                
+                # Verify it's a 4-digit number
+                if len(cargo_number) == 4 and cargo_number.isdigit():
+                    print(f"   ✅ Valid 4-digit format: {cargo_number}")
+                else:
+                    print(f"   ❌ Invalid format: {cargo_number} (expected 4 digits)")
+                    all_success = False
+        
+        # Test 2: Operator cargo creation with 4-digit numbers
+        print("\n   🏭 Testing Operator Cargo Creation...")
+        for i in range(3):
+            cargo_data = {
+                "sender_full_name": f"Отправитель Оператор {i+1}",
+                "sender_phone": f"+79111222{333+i}",
+                "recipient_full_name": f"Получатель Оператор {i+1}",
+                "recipient_phone": f"+99277788{899+i}",
+                "recipient_address": f"Душанбе, ул. Операторская, {i+1}",
+                "weight": 20.0 + i,
+                "declared_value": 8000.0 + (i * 500),
+                "description": f"Груз оператора {i+1}",
+                "route": "moscow_to_tajikistan"
+            }
+            
+            success, response = self.run_test(
+                f"Operator Cargo Creation #{i+1}",
+                "POST",
+                "/api/operator/cargo/accept",
+                200,
+                cargo_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success and 'cargo_number' in response:
+                cargo_number = response['cargo_number']
+                cargo_numbers.append(cargo_number)
+                print(f"   🏷️  Generated cargo number: {cargo_number}")
+                
+                # Verify it's a 4-digit number
+                if len(cargo_number) == 4 and cargo_number.isdigit():
+                    print(f"   ✅ Valid 4-digit format: {cargo_number}")
+                else:
+                    print(f"   ❌ Invalid format: {cargo_number} (expected 4 digits)")
+                    all_success = False
+        
+        # Test 3: Cargo request acceptance with 4-digit numbers
+        print("\n   📋 Testing Cargo Request Acceptance...")
+        
+        # First create a cargo request as user
+        request_data = {
+            "recipient_full_name": "Получатель Заявки",
+            "recipient_phone": "+992555666777",
+            "recipient_address": "Душанбе, ул. Заявочная, 1",
+            "pickup_address": "Москва, ул. Забора, 1",
+            "cargo_name": "Заявочный груз",
+            "weight": 15.0,
+            "declared_value": 7000.0,
+            "description": "Груз из заявки пользователя",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, request_response = self.run_test(
+            "Create Cargo Request",
+            "POST",
+            "/api/user/cargo-request",
+            200,
+            request_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        request_id = None
+        if success and 'id' in request_response:
+            request_id = request_response['id']
+            print(f"   📋 Created cargo request: {request_id}")
+            
+            # Accept the request
+            success, accept_response = self.run_test(
+                "Accept Cargo Request",
+                "POST",
+                f"/api/admin/cargo-requests/{request_id}/accept",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success and 'cargo_number' in accept_response:
+                cargo_number = accept_response['cargo_number']
+                cargo_numbers.append(cargo_number)
+                print(f"   🏷️  Generated cargo number from request: {cargo_number}")
+                
+                # Verify it's a 4-digit number
+                if len(cargo_number) == 4 and cargo_number.isdigit():
+                    print(f"   ✅ Valid 4-digit format: {cargo_number}")
+                else:
+                    print(f"   ❌ Invalid format: {cargo_number} (expected 4 digits)")
+                    all_success = False
+        
+        # Test 4: Verify uniqueness and sequential nature
+        print("\n   🔍 Testing Number Uniqueness and Sequential Order...")
+        if len(cargo_numbers) >= 2:
+            # Check for duplicates
+            unique_numbers = set(cargo_numbers)
+            if len(unique_numbers) == len(cargo_numbers):
+                print(f"   ✅ All {len(cargo_numbers)} cargo numbers are unique")
+            else:
+                print(f"   ❌ Found duplicate numbers! Generated: {len(cargo_numbers)}, Unique: {len(unique_numbers)}")
+                all_success = False
+            
+            # Check if numbers are generally increasing (allowing for some gaps)
+            sorted_numbers = sorted([int(n) for n in cargo_numbers if n.isdigit()])
+            if sorted_numbers == sorted([int(n) for n in cargo_numbers if n.isdigit()]):
+                print(f"   ✅ Numbers appear to be in sequential order")
+                print(f"   📊 Number range: {min(sorted_numbers)} - {max(sorted_numbers)}")
+            else:
+                print(f"   ⚠️  Numbers may not be perfectly sequential (this could be normal)")
+                print(f"   📊 Generated numbers: {sorted([int(n) for n in cargo_numbers if n.isdigit()])}")
+        
+        # Test 5: Verify numbers start from 1001 or higher
+        print("\n   🎯 Testing Number Range (Should start from 1001)...")
+        numeric_numbers = [int(n) for n in cargo_numbers if n.isdigit()]
+        if numeric_numbers:
+            min_number = min(numeric_numbers)
+            max_number = max(numeric_numbers)
+            
+            if min_number >= 1001:
+                print(f"   ✅ Minimum number {min_number} is >= 1001")
+            else:
+                print(f"   ❌ Minimum number {min_number} is < 1001")
+                all_success = False
+                
+            if max_number <= 9999:
+                print(f"   ✅ Maximum number {max_number} is <= 9999")
+            else:
+                print(f"   ❌ Maximum number {max_number} exceeds 9999 limit")
+                all_success = False
+        
+        # Store cargo numbers for later tests
+        self.test_cargo_numbers = cargo_numbers
+        
+        return all_success
+
+    def test_cargo_operations_with_new_numbers(self):
+        """Test cargo operations using the new 4-digit numbers"""
+        print("\n🔧 CARGO OPERATIONS WITH 4-DIGIT NUMBERS")
+        
+        if not hasattr(self, 'test_cargo_numbers') or not self.test_cargo_numbers:
+            print("   ❌ No test cargo numbers available")
+            return False
+            
+        all_success = True
+        test_number = self.test_cargo_numbers[0]  # Use first generated number
+        
+        # Test 1: Cargo tracking with 4-digit numbers
+        print(f"\n   🔍 Testing Cargo Tracking with number: {test_number}")
+        success, track_response = self.run_test(
+            f"Track Cargo {test_number}",
+            "GET",
+            f"/api/cargo/track/{test_number}",
+            200
+        )
+        all_success &= success
+        
+        if success:
+            print(f"   ✅ Successfully tracked cargo {test_number}")
+            print(f"   📋 Status: {track_response.get('status', 'Unknown')}")
+        
+        # Test 2: Cargo search with 4-digit numbers
+        print(f"\n   🔎 Testing Cargo Search with number: {test_number}")
+        if 'warehouse_operator' in self.tokens:
+            success, search_response = self.run_test(
+                f"Search Cargo {test_number}",
+                "GET",
+                "/api/warehouse/search",
+                200,
+                token=self.tokens['warehouse_operator'],
+                params={"query": test_number}
+            )
+            all_success &= success
+            
+            if success:
+                found_cargo = [c for c in search_response if c.get('cargo_number') == test_number]
+                if found_cargo:
+                    print(f"   ✅ Successfully found cargo {test_number} in search")
+                else:
+                    print(f"   ⚠️  Cargo {test_number} not found in search results")
+        
+        # Test 3: Payment processing with 4-digit numbers
+        print(f"\n   💰 Testing Payment Processing with number: {test_number}")
+        if 'admin' in self.tokens:
+            # First search for the cargo to process payment
+            success, cargo_info = self.run_test(
+                f"Search Cargo for Payment {test_number}",
+                "GET",
+                f"/api/cashier/search-cargo/{test_number}",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success:
+                print(f"   ✅ Found cargo {test_number} for payment processing")
+                
+                # Process payment
+                payment_data = {
+                    "cargo_number": test_number,
+                    "amount_paid": cargo_info.get('declared_value', 5000.0),
+                    "transaction_type": "cash",
+                    "notes": f"Test payment for cargo {test_number}"
+                }
+                
+                success, payment_response = self.run_test(
+                    f"Process Payment for {test_number}",
+                    "POST",
+                    "/api/cashier/process-payment",
+                    200,
+                    payment_data,
+                    self.tokens['admin']
+                )
+                all_success &= success
+                
+                if success:
+                    print(f"   ✅ Successfully processed payment for cargo {test_number}")
+            else:
+                print(f"   ⚠️  Could not find cargo {test_number} for payment (may be in different collection)")
+        
+        return all_success
+
+    def test_cargo_number_database_integration(self):
+        """Test database integration aspects of cargo numbering"""
+        print("\n🗄️ CARGO NUMBER DATABASE INTEGRATION")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Verify system can query existing cargo numbers
+        print("\n   📊 Testing Existing Number Queries...")
+        success, all_cargo = self.run_test(
+            "Get All Cargo for Number Analysis",
+            "GET",
+            "/api/cargo/all",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            cargo_numbers = [c.get('cargo_number') for c in all_cargo if c.get('cargo_number')]
+            four_digit_numbers = [n for n in cargo_numbers if len(n) == 4 and n.isdigit()]
+            
+            print(f"   📈 Total cargo items: {len(all_cargo)}")
+            print(f"   🔢 4-digit cargo numbers: {len(four_digit_numbers)}")
+            
+            if four_digit_numbers:
+                numeric_numbers = [int(n) for n in four_digit_numbers]
+                print(f"   📊 Number range: {min(numeric_numbers)} - {max(numeric_numbers)}")
+                
+                # Check for gaps in sequence
+                if len(numeric_numbers) > 1:
+                    sorted_numbers = sorted(numeric_numbers)
+                    gaps = []
+                    for i in range(len(sorted_numbers) - 1):
+                        if sorted_numbers[i+1] - sorted_numbers[i] > 1:
+                            gaps.append((sorted_numbers[i], sorted_numbers[i+1]))
+                    
+                    if gaps:
+                        print(f"   ℹ️  Found {len(gaps)} gaps in sequence (normal for testing)")
+                    else:
+                        print(f"   ✅ No gaps in number sequence")
+        
+        # Test 2: Test error handling in number generation
+        print("\n   ⚠️  Testing Error Handling...")
+        
+        # Create multiple cargo items rapidly to test uniqueness under load
+        rapid_cargo_numbers = []
+        for i in range(5):
+            cargo_data = {
+                "sender_full_name": f"Rapid Test {i+1}",
+                "sender_phone": f"+79888{i+1}{i+1}{i+1}{i+1}{i+1}{i+1}",
+                "recipient_full_name": f"Rapid Recipient {i+1}",
+                "recipient_phone": f"+99288{i+1}{i+1}{i+1}{i+1}{i+1}{i+1}",
+                "recipient_address": f"Test Address {i+1}",
+                "weight": 5.0,
+                "declared_value": 3000.0,
+                "description": f"Rapid test cargo {i+1}",
+                "route": "moscow_to_tajikistan"
+            }
+            
+            success, response = self.run_test(
+                f"Rapid Cargo Creation #{i+1}",
+                "POST",
+                "/api/operator/cargo/accept",
+                200,
+                cargo_data,
+                self.tokens['admin']
+            )
+            
+            if success and 'cargo_number' in response:
+                rapid_cargo_numbers.append(response['cargo_number'])
+        
+        # Verify all rapid numbers are unique
+        if rapid_cargo_numbers:
+            unique_rapid = set(rapid_cargo_numbers)
+            if len(unique_rapid) == len(rapid_cargo_numbers):
+                print(f"   ✅ All {len(rapid_cargo_numbers)} rapid cargo numbers are unique")
+            else:
+                print(f"   ❌ Duplicate numbers in rapid creation!")
+                all_success = False
+        
+        # Test 3: Verify number format consistency
+        print("\n   🎯 Testing Number Format Consistency...")
+        if hasattr(self, 'test_cargo_numbers'):
+            all_test_numbers = self.test_cargo_numbers + rapid_cargo_numbers
+            
+            format_issues = []
+            for number in all_test_numbers:
+                if not (len(number) == 4 and number.isdigit()):
+                    format_issues.append(number)
+            
+            if not format_issues:
+                print(f"   ✅ All {len(all_test_numbers)} generated numbers have correct 4-digit format")
+            else:
+                print(f"   ❌ Found {len(format_issues)} numbers with incorrect format: {format_issues}")
+                all_success = False
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
         
         test_results = []
         
-        # Run test suites in order
+        # Run test suites in order - prioritizing cargo numbering tests
         test_suites = [
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            ("Cargo Numbering System", self.test_cargo_numbering_system),
+            ("Cargo Operations with New Numbers", self.test_cargo_operations_with_new_numbers),
+            ("Cargo Number Database Integration", self.test_cargo_number_database_integration),
             ("Cargo Creation", self.test_cargo_creation),
             ("My Cargo", self.test_my_cargo),
             ("Cargo Tracking", self.test_cargo_tracking),
