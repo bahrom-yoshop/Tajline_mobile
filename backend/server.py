@@ -134,6 +134,10 @@ class TransportCargoPlacement(BaseModel):
     transport_id: str
     cargo_ids: List[str]
 
+class TransportCargoPlacementByNumbers(BaseModel):
+    transport_id: str
+    cargo_numbers: List[str]  # Номера грузов вместо ID
+
 class OperatorWarehouseBinding(BaseModel):
     id: str
     operator_id: str
