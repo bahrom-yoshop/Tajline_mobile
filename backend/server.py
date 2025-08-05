@@ -231,11 +231,14 @@ class CargoWithLocation(BaseModel):
     created_at: datetime
     updated_at: datetime
     created_by: str  # ID оператора, который принял груз
+    created_by_operator: Optional[str] = None  # ФИО оператора, который принял груз
     warehouse_location: Optional[str] = None
     warehouse_id: Optional[str] = None
     block_number: Optional[int] = None
     shelf_number: Optional[int] = None
     cell_number: Optional[int] = None
+    placed_by_operator: Optional[str] = None  # ФИО оператора, разместившего груз
+    placed_by_operator_id: Optional[str] = None  # ID оператора
 
 class PaymentTransaction(BaseModel):
     id: str
