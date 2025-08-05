@@ -455,6 +455,7 @@ class CargoTransportAPITester:
             "recipient_phone": "+992444555666",
             "recipient_address": "Душанбе, ул. Рудаки, 25, кв. 10",
             "weight": 15.5,
+            "cargo_name": "Документы и личные вещи",
             "declared_value": 8000.0,
             "description": "Документы и личные вещи",
             "route": "moscow_to_tajikistan"
