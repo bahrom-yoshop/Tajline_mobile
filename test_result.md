@@ -925,7 +925,7 @@ test_plan:
 
   - task: "Информация об операторах на складах - GET /api/warehouses"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 1
     priority: "high"
@@ -937,6 +937,9 @@ test_plan:
         - working: false
           agent: "testing"
           comment: "❌ CRITICAL ISSUE - GET /api/warehouses endpoint fails with 500 Internal Server Error when accessed with admin token due to MongoDB ObjectId serialization issue. The endpoint works with warehouse_operator token but returns empty list. Error: 'ObjectId' object is not iterable - indicates ObjectId fields are not being properly converted to strings in the response. The bound_operators information structure is implemented correctly but fails during JSON serialization."
+        - working: true
+          agent: "testing"
+          comment: "✅ CRITICAL FIX VERIFIED - ObjectId serialization issue has been resolved! GET /api/warehouses endpoint now works without 500 error with admin token. Found 67 warehouses with proper ObjectId serialization. The bound_operators field is present and ObjectId fields are properly serialized as strings. The serialize_mongo_document() function is correctly handling MongoDB ObjectId conversion throughout the response structure."
 
   - task: "Расширенный личный кабинет оператора - GET /api/operator/my-warehouses"
     implemented: true
