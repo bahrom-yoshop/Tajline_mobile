@@ -441,27 +441,33 @@ backend:
 
   - task: "Transport Visualization System"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: true
           agent: "main"
           comment: "✅ NEW FEATURE - Added GET /api/transport/{transport_id}/visualization endpoint for transport loading visualization: 1) Detailed cargo summary with weight and volume calculations, 2) Fill percentage calculations for weight and volume, 3) Grid-based placement visualization (6x3 layout), 4) Transport dimensions and capacity information, 5) Cargo details with placement order. Provides comprehensive visual representation of transport loading for better logistics management."
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL ISSUES FOUND - Transport Visualization System has implementation problems: 1) Cargo placement on transport fails due to API schema mismatch - endpoint expects 'cargo_numbers' field but receives 'cargo_ids' (422 error), 2) Without cargo on transport, visualization shows empty results (0 cargo items, 0 weight), 3) Grid layout structure is correct (6x3), access control works, but core functionality blocked by cargo placement issue, 4) Weight and volume calculations cannot be tested due to empty transport. The visualization endpoint itself works but depends on successful cargo placement which is currently broken."
 
   - task: "Automated QR/Number Cargo Placement System"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: true
           agent: "main"
           comment: "✅ NEW AUTOMATION FEATURE - Added POST /api/transport/{transport_id}/place-cargo-by-number endpoint for automated cargo placement: 1) Accepts cargo_number or qr_data for cargo identification, 2) Automatic warehouse selection based on operator-warehouse bindings, 3) Automatic free cell finding and placement, 4) Cross-collection cargo search (cargo + operator_cargo), 5) Smart QR code parsing for cargo number extraction, 6) Admin gets access to all warehouses, operators only to bound warehouses, 7) Automatic notifications and transport completion tracking."
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL DEPENDENCY ISSUE - Automated QR/Number Cargo Placement System cannot be properly tested due to upstream cargo placement failure: 1) Transport cargo placement fails with 422 error (missing 'cargo_numbers' field), preventing cargo from being placed on transport, 2) Without cargo on transport, automated placement endpoint correctly returns 'Cargo X is not on this transport' error, 3) Cross-collection search works correctly (finds cargo in both collections), 4) Error handling works (non-existent cargo returns 404, invalid QR data returns 400), 5) Access control works (regular users get 403), 6) The automated placement logic appears sound but cannot be fully tested without cargo successfully placed on arrived transports."
 
   - task: "Transport Access Control"
     implemented: true
