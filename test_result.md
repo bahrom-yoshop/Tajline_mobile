@@ -196,6 +196,21 @@ backend:
           agent: "main"
           comment: "✅ COMPLETED - Added comprehensive search endpoint `/api/cargo/search` with multiple search types: number, sender name, recipient name, phone, cargo name, and combined search."
 
+  - task: "Cargo Request Management System"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test new API endpoints for managing customer orders: 1) GET /api/admin/new-orders-count - check getting count of new orders, 2) GET /api/admin/cargo-requests/{request_id} - check getting order details, 3) PUT /api/admin/cargo-requests/{request_id}/update - check updating order information, 4) Check updated endpoints with serialization, 5) Test full workflow from client request creation to admin processing."
+        - working: true
+          agent: "testing"
+          comment: "✅ COMPREHENSIVE TESTING COMPLETE - All cargo request management endpoints are working perfectly! FULL WORKFLOW TESTED: 1) Client cargo request creation via POST /api/user/cargo-request ✅, 2) GET /api/admin/new-orders-count correctly returns pending orders count, new today count, and has_new_orders flag ✅, 3) GET /api/admin/cargo-requests returns pending requests with proper serialization (no ObjectId issues) and includes admin_notes and processed_by fields ✅, 4) GET /api/admin/cargo-requests/all returns all requests with status filtering and proper serialization ✅, 5) GET /api/admin/cargo-requests/{request_id} returns detailed request information with all required fields and proper serialization ✅, 6) PUT /api/admin/cargo-requests/{request_id}/update successfully updates all request fields and sets processed_by to admin ID ✅, 7) Cross-collection search functionality works correctly - accepted requests create cargo in operator_cargo collection and are searchable ✅, 8) Full accept/reject workflow tested - requests change status correctly and create cargo when accepted ✅, 9) Access control properly implemented - regular users cannot access admin endpoints (403 errors) ✅, 10) Error handling works correctly for non-existent requests (404 errors) ✅. SERIALIZATION VERIFIED: All MongoDB ObjectId fields are properly serialized using serialize_mongo_document function. NEW FIELDS SUPPORTED: admin_notes and processed_by fields are correctly included in all responses. SUCCESS RATE: 100% (26/26 individual API calls passed). The cargo request management system is fully functional and ready for production use."
+
 backend:
   - task: "Operator-Warehouse Binding System"
     implemented: true
