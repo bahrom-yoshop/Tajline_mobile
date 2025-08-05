@@ -365,16 +365,31 @@ backend:
           comment: "✅ PASSED - Transport History System working correctly. Get transport history endpoint ✅, shows both completed and deleted transports ✅, proper data archiving when transport is deleted ✅. Fixed FastAPI routing issue where history endpoint was conflicting with parameterized routes."
 
   - task: "Transport Volume Validation Override"
-    implemented: false
-    working: false
+    implemented: true
+    working: true
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
     needs_retesting: true
     status_history:
         - working: false
           agent: "user"
           comment: "User requested to allow transport dispatch with any volume of cargo, overriding previous volume validation limits. Need to modify transport dispatch logic to send transport with any placed cargo volume."
+        - working: true
+          agent: "main"
+          comment: "✅ IMPLEMENTED - Modified transport dispatch logic to remove strict requirement for transport to be FILLED before dispatch. Now allows dispatching transport with any cargo volume while preventing duplicate dispatches for transports already in transit."
+
+  - task: "Transport Cargo Return System"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ NEW ENDPOINT - Added DELETE /api/transport/{transport_id}/remove-cargo/{cargo_id} endpoint for removing cargo from transport and returning to warehouse. Includes comprehensive logic for returning cargo to original warehouse cells or setting appropriate status if cell unavailable."
 
   - task: "Transport Access Control"
     implemented: true
