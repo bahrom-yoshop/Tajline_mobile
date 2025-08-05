@@ -2762,6 +2762,445 @@ function App() {
                   </Card>
                 </TabsContent>
 
+                {/* Create Cargo Order Tab */}
+                <TabsContent value="create-order" className="space-y-6">
+                  <div className="max-w-4xl mx-auto">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Plus className="mr-2 h-5 w-5 text-blue-600" />
+                          Оформление груза
+                        </CardTitle>
+                        <CardDescription>
+                          Рассчитайте стоимость и оформите груз для доставки
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <form onSubmit={handleCreateCargoOrder} className="space-y-6">
+                          {/* Основная информация о грузе */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                                Информация о грузе
+                              </h3>
+                              
+                              <div>
+                                <Label htmlFor="cargo_name">Название груза *</Label>
+                                <Input
+                                  id="cargo_name"
+                                  value={cargoOrderForm.cargo_name}
+                                  onChange={(e) => setCargoOrderForm({...cargoOrderForm, cargo_name: e.target.value})}
+                                  placeholder="Документы, одежда, подарки..."
+                                  required
+                                />
+                              </div>
+
+                              <div>
+                                <Label htmlFor="description">Описание содержимого *</Label>
+                                <Textarea
+                                  id="description"
+                                  value={cargoOrderForm.description}
+                                  onChange={(e) => setCargoOrderForm({...cargoOrderForm, description: e.target.value})}
+                                  placeholder="Подробное описание содержимого груза"
+                                  required
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <Label htmlFor="weight">Вес (кг) *</Label>
+                                  <Input
+                                    id="weight"
+                                    type="number"
+                                    step="0.1"
+                                    min="0.1"
+                                    max="10000"
+                                    value={cargoOrderForm.weight}
+                                    onChange={(e) => {
+                                      setCargoOrderForm({...cargoOrderForm, weight: e.target.value});
+                                      setCostCalculation(null);
+                                    }}
+                                    placeholder="5.0"
+                                    required
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="declared_value">Объявленная стоимость (₽) *</Label>
+                                  <Input
+                                    id="declared_value"
+                                    type="number"
+                                    min="100"
+                                    max="10000000"
+                                    value={cargoOrderForm.declared_value}
+                                    onChange={(e) => {
+                                      setCargoOrderForm({...cargoOrderForm, declared_value: e.target.value});
+                                      setCostCalculation(null);
+                                    }}
+                                    placeholder="25000"
+                                    required
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <Label htmlFor="route">Маршрут *</Label>
+                                  <Select 
+                                    value={cargoOrderForm.route} 
+                                    onValueChange={(value) => {
+                                      setCargoOrderForm({...cargoOrderForm, route: value});
+                                      setCostCalculation(null);
+                                    }}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {deliveryOptions?.routes?.map((route) => (
+                                        <SelectItem key={route.value} value={route.value}>
+                                          {route.label} ({route.base_days} дней)
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <Label htmlFor="delivery_type">Тип доставки *</Label>
+                                  <Select 
+                                    value={cargoOrderForm.delivery_type} 
+                                    onValueChange={(value) => {
+                                      setCargoOrderForm({...cargoOrderForm, delivery_type: value});
+                                      setCostCalculation(null);
+                                    }}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {deliveryOptions?.delivery_types?.map((type) => (
+                                        <SelectItem key={type.value} value={type.value}>
+                                          {type.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="space-y-4">
+                              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                                Информация о получателе
+                              </h3>
+                              
+                              <div>
+                                <Label htmlFor="recipient_full_name">ФИО получателя *</Label>
+                                <Input
+                                  id="recipient_full_name"
+                                  value={cargoOrderForm.recipient_full_name}
+                                  onChange={(e) => setCargoOrderForm({...cargoOrderForm, recipient_full_name: e.target.value})}
+                                  placeholder="Алиев Фарход Рахимович"
+                                  required
+                                />
+                              </div>
+
+                              <div>
+                                <Label htmlFor="recipient_phone">Телефон получателя *</Label>
+                                <Input
+                                  id="recipient_phone"
+                                  type="tel"
+                                  value={cargoOrderForm.recipient_phone}
+                                  onChange={(e) => setCargoOrderForm({...cargoOrderForm, recipient_phone: e.target.value})}
+                                  placeholder="+992901234567"
+                                  required
+                                />
+                              </div>
+
+                              <div>
+                                <Label htmlFor="recipient_address">Адрес получателя *</Label>
+                                <Input
+                                  id="recipient_address"
+                                  value={cargoOrderForm.recipient_address}
+                                  onChange={(e) => setCargoOrderForm({...cargoOrderForm, recipient_address: e.target.value})}
+                                  placeholder="ул. Рудаки, 15, кв. 25"
+                                  required
+                                />
+                              </div>
+
+                              <div>
+                                <Label htmlFor="recipient_city">Город получателя *</Label>
+                                <Input
+                                  id="recipient_city"
+                                  value={cargoOrderForm.recipient_city}
+                                  onChange={(e) => setCargoOrderForm({...cargoOrderForm, recipient_city: e.target.value})}
+                                  placeholder="Душанбе"
+                                  required
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Дополнительные услуги */}
+                          <div className="border-t pt-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                              Дополнительные услуги
+                            </h3>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {/* Страхование */}
+                              <div className="flex items-center space-x-2 p-4 border rounded-lg">
+                                <input
+                                  type="checkbox"
+                                  id="insurance_requested"
+                                  checked={cargoOrderForm.insurance_requested}
+                                  onChange={(e) => {
+                                    setCargoOrderForm({
+                                      ...cargoOrderForm, 
+                                      insurance_requested: e.target.checked,
+                                      insurance_value: e.target.checked ? cargoOrderForm.declared_value : ''
+                                    });
+                                    setCostCalculation(null);
+                                  }}
+                                  className="rounded"
+                                />
+                                <div className="flex-1">
+                                  <Label htmlFor="insurance_requested" className="font-medium">
+                                    Страхование
+                                  </Label>
+                                  <p className="text-sm text-gray-600">
+                                    0.5% от стоимости, мин. 500 ₽
+                                  </p>
+                                  {cargoOrderForm.insurance_requested && (
+                                    <Input
+                                      type="number"
+                                      value={cargoOrderForm.insurance_value}
+                                      onChange={(e) => {
+                                        setCargoOrderForm({...cargoOrderForm, insurance_value: e.target.value});
+                                        setCostCalculation(null);
+                                      }}
+                                      placeholder="Сумма страхования"
+                                      className="mt-2"
+                                    />
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Упаковка */}
+                              <div className="flex items-center space-x-2 p-4 border rounded-lg">
+                                <input
+                                  type="checkbox"
+                                  id="packaging_service"
+                                  checked={cargoOrderForm.packaging_service}
+                                  onChange={(e) => {
+                                    setCargoOrderForm({...cargoOrderForm, packaging_service: e.target.checked});
+                                    setCostCalculation(null);
+                                  }}
+                                  className="rounded"
+                                />
+                                <div>
+                                  <Label htmlFor="packaging_service" className="font-medium">
+                                    Упаковка
+                                  </Label>
+                                  <p className="text-sm text-gray-600">
+                                    Профессиональная упаковка - 800 ₽
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Забор на дому */}
+                              <div className="flex items-center space-x-2 p-4 border rounded-lg">
+                                <input
+                                  type="checkbox"
+                                  id="home_pickup"
+                                  checked={cargoOrderForm.home_pickup}
+                                  onChange={(e) => {
+                                    setCargoOrderForm({...cargoOrderForm, home_pickup: e.target.checked});
+                                    setCostCalculation(null);
+                                  }}
+                                  className="rounded"
+                                />
+                                <div>
+                                  <Label htmlFor="home_pickup" className="font-medium">
+                                    Забор на дому
+                                  </Label>
+                                  <p className="text-sm text-gray-600">
+                                    Заберем груз по адресу - 1500 ₽
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Доставка на дом */}
+                              <div className="flex items-center space-x-2 p-4 border rounded-lg">
+                                <input
+                                  type="checkbox"
+                                  id="home_delivery"
+                                  checked={cargoOrderForm.home_delivery}
+                                  onChange={(e) => {
+                                    setCargoOrderForm({...cargoOrderForm, home_delivery: e.target.checked});
+                                    setCostCalculation(null);
+                                  }}
+                                  className="rounded"
+                                />
+                                <div>
+                                  <Label htmlFor="home_delivery" className="font-medium">
+                                    Доставка на дом
+                                  </Label>
+                                  <p className="text-sm text-gray-600">
+                                    Доставим груз получателю - 1200 ₽
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Хрупкий груз */}
+                              <div className="flex items-center space-x-2 p-4 border rounded-lg">
+                                <input
+                                  type="checkbox"
+                                  id="fragile"
+                                  checked={cargoOrderForm.fragile}
+                                  onChange={(e) => {
+                                    setCargoOrderForm({...cargoOrderForm, fragile: e.target.checked});
+                                    setCostCalculation(null);
+                                  }}
+                                  className="rounded"
+                                />
+                                <div>
+                                  <Label htmlFor="fragile" className="font-medium">
+                                    Хрупкий груз
+                                  </Label>
+                                  <p className="text-sm text-gray-600">
+                                    Особая осторожность - 500 ₽
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Температурный режим */}
+                              <div className="flex items-center space-x-2 p-4 border rounded-lg">
+                                <input
+                                  type="checkbox"
+                                  id="temperature_sensitive"
+                                  checked={cargoOrderForm.temperature_sensitive}
+                                  onChange={(e) => {
+                                    setCargoOrderForm({...cargoOrderForm, temperature_sensitive: e.target.checked});
+                                    setCostCalculation(null);
+                                  }}
+                                  className="rounded"
+                                />
+                                <div>
+                                  <Label htmlFor="temperature_sensitive" className="font-medium">
+                                    Температурный режим
+                                  </Label>
+                                  <p className="text-sm text-gray-600">
+                                    Контроль температуры - 800 ₽
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Специальные инструкции */}
+                          <div>
+                            <Label htmlFor="special_instructions">Специальные инструкции</Label>
+                            <Textarea
+                              id="special_instructions"
+                              value={cargoOrderForm.special_instructions}
+                              onChange={(e) => setCargoOrderForm({...cargoOrderForm, special_instructions: e.target.value})}
+                              placeholder="Дополнительные требования или инструкции..."
+                            />
+                          </div>
+
+                          {/* Расчет стоимости */}
+                          <div className="border-t pt-6">
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="text-lg font-semibold text-gray-900">
+                                Стоимость доставки
+                              </h3>
+                              <Button 
+                                type="button"
+                                variant="outline"
+                                onClick={calculateCargoCost}
+                                disabled={isCalculating || !cargoOrderForm.weight || !cargoOrderForm.declared_value}
+                              >
+                                <Calculator className="mr-2 h-4 w-4" />
+                                {isCalculating ? 'Расчет...' : 'Рассчитать стоимость'}
+                              </Button>
+                            </div>
+
+                            {costCalculation && (
+                              <div className="bg-blue-50 p-6 rounded-lg">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                  <div>
+                                    <h4 className="font-semibold mb-3">Детализация стоимости:</h4>
+                                    <div className="space-y-2">
+                                      {Object.entries(costCalculation.breakdown).map(([key, value]) => (
+                                        <div key={key} className="flex justify-between text-sm">
+                                          <span>{key}:</span>
+                                          <span className="font-medium">{value}{typeof value === 'number' ? ' ₽' : ''}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-3xl font-bold text-blue-600 mb-2">
+                                      {costCalculation.calculation.total_cost} ₽
+                                    </div>
+                                    <div className="text-lg text-gray-600 mb-2">
+                                      Срок доставки: {costCalculation.calculation.delivery_time_days} дней
+                                    </div>
+                                    <div className="text-sm text-gray-500">
+                                      Маршрут: {costCalculation.route_info.route.replace('_', ' → ')}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Кнопки */}
+                          <div className="flex items-center justify-between pt-6 border-t">
+                            <Button 
+                              type="button" 
+                              variant="outline"
+                              onClick={() => {
+                                setCargoOrderForm({
+                                  cargo_name: '',
+                                  description: '',
+                                  weight: '',
+                                  declared_value: '',
+                                  recipient_full_name: '',
+                                  recipient_phone: '',
+                                  recipient_address: '',
+                                  recipient_city: '',
+                                  route: 'moscow_dushanbe',
+                                  delivery_type: 'standard',
+                                  insurance_requested: false,
+                                  insurance_value: '',
+                                  packaging_service: false,
+                                  home_pickup: false,
+                                  home_delivery: false,
+                                  fragile: false,
+                                  temperature_sensitive: false,
+                                  special_instructions: ''
+                                });
+                                setCostCalculation(null);
+                              }}
+                            >
+                              Очистить форму
+                            </Button>
+                            <Button 
+                              type="submit" 
+                              className="bg-blue-600 hover:bg-blue-700"
+                              disabled={!costCalculation}
+                            >
+                              <Package className="mr-2 h-4 w-4" />
+                              Оформить груз
+                            </Button>
+                          </div>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+
                 {/* Cargo Tab */}
                 <TabsContent value="cargo" className="space-y-6">
                   <div className="flex items-center justify-between">
