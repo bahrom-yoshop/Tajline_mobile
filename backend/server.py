@@ -2487,10 +2487,10 @@ async def get_cargo_details(
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Access denied")
     
-    # Найти груз в обеих коллекциях
-    cargo = db.cargo.find_one({"id": cargo_id})
+    # Найти груз в обеих коллекциях, исключая MongoDB _id
+    cargo = db.cargo.find_one({"id": cargo_id}, {"_id": 0})
     if not cargo:
-        cargo = db.operator_cargo.find_one({"id": cargo_id})
+        cargo = db.operator_cargo.find_one({"id": cargo_id}, {"_id": 0})
     
     if not cargo:
         raise HTTPException(status_code=404, detail="Cargo not found")
