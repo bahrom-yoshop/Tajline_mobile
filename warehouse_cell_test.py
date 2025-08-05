@@ -411,6 +411,26 @@ class WarehouseCellTester:
         print("\n🚛 TESTING AUTOMATIC CELL LIBERATION")
         all_success = True
         
+        # First create operator-warehouse binding
+        binding_data = {
+            "operator_id": self.users['warehouse_operator']['id'],
+            "warehouse_id": self.warehouse_id
+        }
+        
+        success, _ = self.run_test(
+            "Create Operator-Warehouse Binding",
+            "POST",
+            "/api/admin/operator-warehouse-binding",
+            200,
+            binding_data,
+            self.tokens['admin']
+        )
+        
+        if success:
+            print(f"   ✅ Operator-warehouse binding created")
+        else:
+            print(f"   ⚠️ Binding may already exist, continuing...")
+        
         # Create cargo for liberation test
         liberation_cargo_data = {
             "sender_full_name": "Освобождение Отправитель",
