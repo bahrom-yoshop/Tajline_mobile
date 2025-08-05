@@ -1502,18 +1502,52 @@ async def search_cargo(
     query: str,
     current_user: User = Depends(require_role(UserRole.WAREHOUSE_OPERATOR))
 ):
-    # Поиск по номеру груза или имени получателя
-    cargo_list = list(db.cargo.find({
+    # Search in both collections
+    user_cargo_list = list(db.cargo.find({
         "$or": [
             {"cargo_number": {"$regex": query, "$options": "i"}},
             {"recipient_name": {"$regex": query, "$options": "i"}}
         ]
     }))
-    # Ensure cargo_name field exists for backward compatibility
-    for cargo in cargo_list:
-        if 'cargo_name' not in cargo:
-            cargo['cargo_name'] = cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз'
-    return [Cargo(**cargo) for cargo in cargo_list]
+    
+    operator_cargo_list = list(db.operator_cargo.find({
+        "$or": [
+            {"cargo_number": {"$regex": query, "$options": "i"}},
+            {"recipient_name": {"$regex": query, "$options": "i"}},
+            {"recipient_full_name": {"$regex": query, "$options": "i"}}
+        ]
+    }))
+    
+    # Normalize all cargo data
+    normalized_cargo = []
+    
+    # Process user cargo
+    for cargo in user_cargo_list:
+        normalized = serialize_mongo_document(cargo)
+        normalized.update({
+            'cargo_name': cargo.get('cargo_name') or cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз',
+            'sender_id': cargo.get('sender_id', 'unknown'),
+            'recipient_name': cargo.get('recipient_name', 'Не указан'),
+            'sender_address': cargo.get('sender_address', 'Не указан'),
+            'recipient_address': cargo.get('recipient_address', 'Не указан'),
+            'recipient_phone': cargo.get('recipient_phone', 'Не указан')
+        })
+        normalized_cargo.append(normalized)
+    
+    # Process operator cargo
+    for cargo in operator_cargo_list:
+        normalized = serialize_mongo_document(cargo)
+        normalized.update({
+            'cargo_name': cargo.get('cargo_name') or cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз',
+            'sender_id': cargo.get('created_by', 'operator'),
+            'recipient_name': cargo.get('recipient_full_name', cargo.get('recipient_name', 'Не указан')),
+            'sender_address': cargo.get('sender_address', 'Не указан'),
+            'recipient_address': cargo.get('recipient_address', 'Не указан'),
+            'recipient_phone': cargo.get('recipient_phone', 'Не указан')
+        })
+        normalized_cargo.append(normalized)
+    
+    return normalized_cargo
 
 # Администрирование
 @app.get("/api/admin/users")
