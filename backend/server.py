@@ -2339,6 +2339,38 @@ async def get_transport_history(
     
     return history
 
+@app.get("/api/transport/arrived")
+async def get_arrived_transports(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить список прибывших транспортов с грузами для размещения"""
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Найти все прибывшие транспорты
+    transports = list(db.transports.find({"status": TransportStatus.ARRIVED}))
+    
+    transport_list = []
+    for transport in transports:
+        # Получить количество грузов для размещения
+        cargo_count = len(transport.get("cargo_list", []))
+        
+        transport_list.append({
+            "id": transport["id"],
+            "transport_number": transport["transport_number"],
+            "driver_name": transport["driver_name"],
+            "driver_phone": transport["driver_phone"],
+            "direction": transport["direction"],
+            "capacity_kg": transport["capacity_kg"],
+            "current_load_kg": transport["current_load_kg"],
+            "arrived_at": transport.get("arrived_at"),
+            "cargo_count": cargo_count,
+            "status": transport["status"]
+        })
+    
+    return transport_list
+
 @app.get("/api/transport/{transport_id}")
 async def get_transport(
     transport_id: str,
