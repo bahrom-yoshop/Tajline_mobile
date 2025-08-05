@@ -244,6 +244,7 @@ function App() {
         fetchCargoRequests();
         fetchSystemNotifications();
         fetchTransports();
+        fetchArrivedTransports();
       } else {
         fetchMyCargo();
         fetchMyRequests();
