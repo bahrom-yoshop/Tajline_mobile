@@ -5820,9 +5820,9 @@ function App() {
           
           <form onSubmit={handleQrCargoPlacement} className="space-y-4">
             <div className="p-3 bg-purple-50 rounded-lg">
-              <h5 className="font-medium text-purple-800 mb-2">Автоматическое размещение</h5>
+              <h5 className="font-medium text-purple-800 mb-2">Размещение груза</h5>
               <p className="text-sm text-purple-700">
-                Груз будет автоматически размещен на первый доступный склад, к которому привязан ваш аккаунт, в первую свободную ячейку.
+                Склад будет выбран автоматически на основе ваших привязок. Вы должны указать конкретную ячейку для размещения вручную или через QR код ячейки.
               </p>
             </div>
 
@@ -5840,22 +5840,76 @@ function App() {
             <div className="text-center text-sm text-gray-500">или</div>
 
             <div>
-              <Label htmlFor="qr_data">Данные QR кода</Label>
+              <Label htmlFor="qr_data">QR код груза</Label>
               <textarea
                 id="qr_data"
                 className="w-full mt-2 p-3 border rounded-md"
-                rows="4"
+                rows="3"
                 value={qrPlacementForm.qr_data}
                 onChange={(e) => setQrPlacementForm({...qrPlacementForm, qr_data: e.target.value})}
-                placeholder="Вставьте содержимое QR кода..."
+                placeholder="Вставьте QR код груза..."
                 required={!qrPlacementForm.cargo_number}
               />
             </div>
 
+            <div className="border-t pt-4">
+              <Label>Размещение в ячейке</Label>
+              
+              <div className="mt-2">
+                <Label htmlFor="cell_qr_data">QR код ячейки склада</Label>
+                <textarea
+                  id="cell_qr_data"
+                  className="w-full mt-2 p-3 border rounded-md"
+                  rows="3"
+                  value={qrPlacementForm.cell_qr_data}
+                  onChange={(e) => setQrPlacementForm({...qrPlacementForm, cell_qr_data: e.target.value})}
+                  placeholder="Отсканируйте QR код ячейки склада..."
+                />
+              </div>
+
+              <div className="text-center text-sm text-gray-500 my-2">или укажите координаты вручную</div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label htmlFor="manual_block">Блок</Label>
+                  <Input
+                    id="manual_block"
+                    type="number"
+                    min="1"
+                    value={qrPlacementForm.block_number}
+                    onChange={(e) => setQrPlacementForm({...qrPlacementForm, block_number: e.target.value})}
+                    placeholder="1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="manual_shelf">Полка</Label>
+                  <Input
+                    id="manual_shelf"
+                    type="number"
+                    min="1"
+                    value={qrPlacementForm.shelf_number}
+                    onChange={(e) => setQrPlacementForm({...qrPlacementForm, shelf_number: e.target.value})}
+                    placeholder="1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="manual_cell">Ячейка</Label>
+                  <Input
+                    id="manual_cell"
+                    type="number"
+                    min="1"
+                    value={qrPlacementForm.cell_number}
+                    onChange={(e) => setQrPlacementForm({...qrPlacementForm, cell_number: e.target.value})}
+                    placeholder="1"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="flex space-x-2 pt-4">
               <Button type="submit" className="flex-1">
-                <QrCode className="mr-2 h-4 w-4" />
-                Разместить автоматически
+                <Building className="mr-2 h-4 w-4" />
+                Разместить груз
               </Button>
               <Button 
                 type="button" 
@@ -5864,7 +5918,11 @@ function App() {
                   setQrPlacementModal(false);
                   setQrPlacementForm({
                     cargo_number: '',
-                    qr_data: ''
+                    qr_data: '',
+                    cell_qr_data: '',
+                    block_number: 1,
+                    shelf_number: 1,
+                    cell_number: 1
                   });
                 }}
               >
