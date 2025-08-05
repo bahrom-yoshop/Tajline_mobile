@@ -2910,6 +2910,12 @@ function App() {
                                   <h3 className="font-semibold">{item.cargo_number}</h3>
                                   <p className="text-sm text-gray-600">Получатель: {item.recipient_name}</p>
                                   <p className="text-sm text-gray-600">Вес: {item.weight} кг</p>
+                                  {item.accepted_by_operator && (
+                                    <p className="text-sm text-gray-500">Принял: {item.accepted_by_operator}</p>
+                                  )}
+                                  {item.placed_by_operator && (
+                                    <p className="text-sm text-gray-500">Разместил: {item.placed_by_operator}</p>
+                                  )}
                                 </div>
                                 {getStatusBadge(item.status)}
                               </div>
