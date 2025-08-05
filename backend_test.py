@@ -4528,6 +4528,768 @@ class CargoTransportAPITester:
         
         return all_success
 
+    def test_qr_code_generation_and_management(self):
+        """Test comprehensive QR code generation and management system"""
+        print("\n📱 QR CODE GENERATION AND MANAGEMENT SYSTEM")
+        
+        if 'admin' not in self.tokens or 'user' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Create cargo with auto QR generation
+        print("\n   📦 Testing Cargo Creation with Auto QR Generation...")
+        cargo_data = {
+            "recipient_name": "QR Тест Получатель",
+            "recipient_phone": "+992777888999",
+            "route": "moscow_to_tajikistan",
+            "weight": 15.5,
+            "cargo_name": "QR Тестовый груз",
+            "description": "Груз для тестирования QR кодов",
+            "declared_value": 8500.0,
+            "sender_address": "Москва, ул. QR Тестовая, 1",
+            "recipient_address": "Душанбе, ул. QR Получателя, 10"
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create Cargo with Auto QR Generation",
+            "POST",
+            "/api/cargo/create",
+            200,
+            cargo_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        qr_test_cargo_id = None
+        qr_test_cargo_number = None
+        if success and 'id' in cargo_response:
+            qr_test_cargo_id = cargo_response['id']
+            qr_test_cargo_number = cargo_response.get('cargo_number')
+            print(f"   📦 Created cargo for QR testing: {qr_test_cargo_id}")
+            print(f"   🏷️  Cargo number: {qr_test_cargo_number}")
+            
+            # Check if QR code was auto-generated
+            if 'qr_code' in cargo_response:
+                print(f"   ✅ QR code auto-generated during cargo creation")
+            else:
+                print(f"   ⚠️  QR code not found in cargo creation response")
+        
+        # Test 2: Get cargo QR code via API
+        print("\n   📱 Testing Cargo QR Code API...")
+        if qr_test_cargo_id:
+            # Test user access to own cargo QR
+            success, qr_response = self.run_test(
+                "Get Cargo QR Code (User Access)",
+                "GET",
+                f"/api/cargo/{qr_test_cargo_id}/qr-code",
+                200,
+                token=self.tokens['user']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ User can access own cargo QR code")
+                if 'qr_code' in qr_response and qr_response['qr_code'].startswith('data:image/png;base64,'):
+                    print(f"   ✅ QR code returned in correct base64 format")
+                else:
+                    print(f"   ❌ QR code format incorrect")
+                    all_success = False
+                    
+                if qr_response.get('cargo_number') == qr_test_cargo_number:
+                    print(f"   ✅ Correct cargo number in QR response")
+                else:
+                    print(f"   ❌ Incorrect cargo number in QR response")
+                    all_success = False
+            
+            # Test admin access to any cargo QR
+            success, admin_qr_response = self.run_test(
+                "Get Cargo QR Code (Admin Access)",
+                "GET",
+                f"/api/cargo/{qr_test_cargo_id}/qr-code",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Admin can access any cargo QR code")
+        
+        # Test 3: Test access control for cargo QR codes
+        print("\n   🔒 Testing Cargo QR Code Access Control...")
+        if qr_test_cargo_id and 'warehouse_operator' in self.tokens:
+            # Warehouse operator should be able to access cargo QR codes
+            success, operator_qr_response = self.run_test(
+                "Get Cargo QR Code (Operator Access)",
+                "GET",
+                f"/api/cargo/{qr_test_cargo_id}/qr-code",
+                200,
+                token=self.tokens['warehouse_operator']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Warehouse operator can access cargo QR codes")
+        
+        # Test 4: Create operator cargo with QR generation
+        print("\n   🏭 Testing Operator Cargo Creation with QR...")
+        operator_cargo_data = {
+            "sender_full_name": "QR Отправитель Оператор",
+            "sender_phone": "+79111222333",
+            "recipient_full_name": "QR Получатель Оператор",
+            "recipient_phone": "+992444555666",
+            "recipient_address": "Душанбе, ул. QR Операторская, 25",
+            "weight": 20.0,
+            "cargo_name": "QR Груз оператора",
+            "declared_value": 12000.0,
+            "description": "Груз оператора с QR кодом",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, operator_cargo_response = self.run_test(
+            "Accept Operator Cargo with QR Generation",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            operator_cargo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        operator_cargo_id = None
+        if success and 'id' in operator_cargo_response:
+            operator_cargo_id = operator_cargo_response['id']
+            print(f"   📦 Created operator cargo: {operator_cargo_id}")
+            
+            # Check if QR code was auto-generated
+            if 'qr_code' in operator_cargo_response:
+                print(f"   ✅ QR code auto-generated for operator cargo")
+            else:
+                print(f"   ⚠️  QR code not found in operator cargo response")
+        
+        # Test 5: Warehouse cell QR codes
+        print("\n   🏭 Testing Warehouse Cell QR Codes...")
+        if hasattr(self, 'warehouse_id'):
+            # Test individual cell QR code
+            success, cell_qr_response = self.run_test(
+                "Get Warehouse Cell QR Code",
+                "GET",
+                f"/api/warehouse/{self.warehouse_id}/cell-qr/1/1/1",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Successfully generated warehouse cell QR code")
+                if 'qr_code' in cell_qr_response and cell_qr_response['qr_code'].startswith('data:image/png;base64,'):
+                    print(f"   ✅ Cell QR code in correct base64 format")
+                else:
+                    print(f"   ❌ Cell QR code format incorrect")
+                    all_success = False
+                    
+                expected_location = "Б1-П1-Я1"
+                if cell_qr_response.get('location') == expected_location:
+                    print(f"   ✅ Correct cell location in QR response")
+                else:
+                    print(f"   ❌ Incorrect cell location: expected {expected_location}, got {cell_qr_response.get('location')}")
+                    all_success = False
+            
+            # Test access control for warehouse cell QR codes
+            if 'user' in self.tokens:
+                success, _ = self.run_test(
+                    "Regular User Access Cell QR (Should Fail)",
+                    "GET",
+                    f"/api/warehouse/{self.warehouse_id}/cell-qr/1/1/1",
+                    403,
+                    token=self.tokens['user']
+                )
+                all_success &= success
+                
+                if success:
+                    print(f"   ✅ Regular users correctly denied access to cell QR codes")
+            
+            # Test warehouse operator access to cell QR codes
+            if 'warehouse_operator' in self.tokens:
+                success, _ = self.run_test(
+                    "Warehouse Operator Access Cell QR",
+                    "GET",
+                    f"/api/warehouse/{self.warehouse_id}/cell-qr/1/1/1",
+                    200,
+                    token=self.tokens['warehouse_operator']
+                )
+                all_success &= success
+                
+                if success:
+                    print(f"   ✅ Warehouse operators can access cell QR codes")
+            
+            # Test bulk warehouse cell QR codes
+            print("\n   📋 Testing Bulk Warehouse Cell QR Codes...")
+            success, bulk_qr_response = self.run_test(
+                "Get All Warehouse Cells QR Codes",
+                "GET",
+                f"/api/warehouse/{self.warehouse_id}/all-cells-qr",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                qr_codes = bulk_qr_response.get('qr_codes', [])
+                total_cells = bulk_qr_response.get('total_cells', 0)
+                print(f"   ✅ Generated QR codes for {len(qr_codes)} warehouse cells")
+                print(f"   📊 Total cells reported: {total_cells}")
+                
+                if len(qr_codes) == total_cells:
+                    print(f"   ✅ QR code count matches total cells")
+                else:
+                    print(f"   ❌ QR code count mismatch")
+                    all_success = False
+                
+                # Verify format of first QR code
+                if qr_codes and 'qr_code' in qr_codes[0]:
+                    if qr_codes[0]['qr_code'].startswith('data:image/png;base64,'):
+                        print(f"   ✅ Bulk QR codes in correct format")
+                    else:
+                        print(f"   ❌ Bulk QR codes format incorrect")
+                        all_success = False
+        
+        # Store test data for QR scanning tests
+        self.qr_test_cargo_id = qr_test_cargo_id
+        self.qr_test_cargo_number = qr_test_cargo_number
+        self.operator_cargo_id = operator_cargo_id
+        
+        return all_success
+
+    def test_qr_code_scanning_system(self):
+        """Test QR code scanning and parsing functionality"""
+        print("\n🔍 QR CODE SCANNING SYSTEM")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ Admin token not available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Scan cargo QR code
+        print("\n   📦 Testing Cargo QR Code Scanning...")
+        if hasattr(self, 'qr_test_cargo_number') and self.qr_test_cargo_number:
+            # Create mock cargo QR data as it would appear when scanned
+            cargo_qr_text = f"""ГРУЗ №{self.qr_test_cargo_number}
+Наименование: QR Тестовый груз
+Вес: 15.5 кг
+Отправитель: {self.users['user']['full_name']}
+Тел. отправителя: {self.users['user']['phone']}
+Получатель: QR Тест Получатель
+Тел. получателя: +992777888999
+Город получения: Душанбе, ул. QR Получателя, 10"""
+            
+            scan_data = {"qr_text": cargo_qr_text}
+            
+            success, scan_response = self.run_test(
+                "Scan Cargo QR Code",
+                "POST",
+                "/api/qr/scan",
+                200,
+                scan_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Successfully scanned cargo QR code")
+                
+                # Verify response format
+                if scan_response.get('type') == 'cargo':
+                    print(f"   ✅ Correctly identified as cargo QR")
+                else:
+                    print(f"   ❌ Incorrect QR type identification")
+                    all_success = False
+                
+                if scan_response.get('cargo_number') == self.qr_test_cargo_number:
+                    print(f"   ✅ Correct cargo number extracted from QR")
+                else:
+                    print(f"   ❌ Incorrect cargo number extracted")
+                    all_success = False
+                
+                # Check other fields
+                expected_fields = ['cargo_id', 'cargo_name', 'status', 'weight', 'sender', 'recipient', 'location']
+                for field in expected_fields:
+                    if field in scan_response:
+                        print(f"   ✅ Field '{field}' present in scan response")
+                    else:
+                        print(f"   ⚠️  Field '{field}' missing from scan response")
+        
+        # Test 2: Scan warehouse cell QR code
+        print("\n   🏭 Testing Warehouse Cell QR Code Scanning...")
+        if hasattr(self, 'warehouse_id'):
+            # Create mock warehouse cell QR data
+            warehouse_qr_text = f"""ЯЧЕЙКА СКЛАДА
+Местоположение: Склад для грузов-Б1-П1-Я1
+Склад: Склад для грузов
+Адрес склада: Москва, Складская территория
+Блок: 1
+Полка: 1
+Ячейка: 1
+ID склада: {self.warehouse_id}"""
+            
+            scan_data = {"qr_text": warehouse_qr_text}
+            
+            success, scan_response = self.run_test(
+                "Scan Warehouse Cell QR Code",
+                "POST",
+                "/api/qr/scan",
+                200,
+                scan_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Successfully scanned warehouse cell QR code")
+                
+                # Verify response format
+                if scan_response.get('type') == 'warehouse_cell':
+                    print(f"   ✅ Correctly identified as warehouse cell QR")
+                else:
+                    print(f"   ❌ Incorrect QR type identification")
+                    all_success = False
+                
+                if scan_response.get('warehouse_id') == self.warehouse_id:
+                    print(f"   ✅ Correct warehouse ID extracted from QR")
+                else:
+                    print(f"   ❌ Incorrect warehouse ID extracted")
+                    all_success = False
+                
+                # Check cell coordinates
+                if (scan_response.get('block') == 1 and 
+                    scan_response.get('shelf') == 1 and 
+                    scan_response.get('cell') == 1):
+                    print(f"   ✅ Correct cell coordinates extracted")
+                else:
+                    print(f"   ❌ Incorrect cell coordinates")
+                    all_success = False
+        
+        # Test 3: Test access control for QR scanning
+        print("\n   🔒 Testing QR Scanning Access Control...")
+        if 'user' in self.tokens and hasattr(self, 'qr_test_cargo_number'):
+            # User should be able to scan their own cargo QR
+            cargo_qr_text = f"""ГРУЗ №{self.qr_test_cargo_number}
+Наименование: QR Тестовый груз
+Вес: 15.5 кг
+Отправитель: {self.users['user']['full_name']}
+Тел. отправителя: {self.users['user']['phone']}
+Получатель: QR Тест Получатель
+Тел. получателя: +992777888999
+Город получения: Душанбе, ул. QR Получателя, 10"""
+            
+            scan_data = {"qr_text": cargo_qr_text}
+            
+            success, _ = self.run_test(
+                "User Scan Own Cargo QR",
+                "POST",
+                "/api/qr/scan",
+                200,
+                scan_data,
+                self.tokens['user']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Users can scan their own cargo QR codes")
+        
+        # Test 4: Test invalid QR code handling
+        print("\n   ⚠️  Testing Invalid QR Code Handling...")
+        
+        # Test empty QR data
+        success, _ = self.run_test(
+            "Scan Empty QR Code",
+            "POST",
+            "/api/qr/scan",
+            400,
+            {"qr_text": ""},
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print(f"   ✅ Empty QR code correctly rejected")
+        
+        # Test invalid QR format
+        success, _ = self.run_test(
+            "Scan Invalid QR Format",
+            "POST",
+            "/api/qr/scan",
+            400,
+            {"qr_text": "This is not a valid QR code format"},
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print(f"   ✅ Invalid QR format correctly rejected")
+        
+        # Test non-existent cargo QR
+        invalid_cargo_qr = """ГРУЗ №9999
+Наименование: Несуществующий груз
+Вес: 10.0 кг
+Отправитель: Тест
+Тел. отправителя: +79999999999
+Получатель: Тест
+Тел. получателя: +99999999999
+Город получения: Тест"""
+        
+        success, _ = self.run_test(
+            "Scan Non-existent Cargo QR",
+            "POST",
+            "/api/qr/scan",
+            404,
+            {"qr_text": invalid_cargo_qr},
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print(f"   ✅ Non-existent cargo QR correctly handled")
+        
+        return all_success
+
+    def test_qr_code_content_format_verification(self):
+        """Test QR code content format matches specifications"""
+        print("\n📋 QR CODE CONTENT FORMAT VERIFICATION")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ Admin token not available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Verify cargo QR content format
+        print("\n   📦 Testing Cargo QR Content Format...")
+        if hasattr(self, 'qr_test_cargo_id') and self.qr_test_cargo_id:
+            success, qr_response = self.run_test(
+                "Get Cargo QR for Format Verification",
+                "GET",
+                f"/api/cargo/{self.qr_test_cargo_id}/qr-code",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success and 'qr_code' in qr_response:
+                # We can't decode the actual QR image, but we can verify the API response structure
+                print(f"   ✅ Cargo QR code generated successfully")
+                
+                # Verify response contains required fields
+                required_fields = ['cargo_id', 'cargo_number', 'qr_code']
+                for field in required_fields:
+                    if field in qr_response:
+                        print(f"   ✅ Required field '{field}' present")
+                    else:
+                        print(f"   ❌ Required field '{field}' missing")
+                        all_success = False
+                
+                # Verify QR code is base64 encoded image
+                qr_code = qr_response['qr_code']
+                if qr_code.startswith('data:image/png;base64,'):
+                    print(f"   ✅ QR code in correct base64 PNG format")
+                    
+                    # Check if base64 data is valid (basic check)
+                    try:
+                        import base64
+                        base64_data = qr_code.split(',')[1]
+                        decoded = base64.b64decode(base64_data)
+                        if len(decoded) > 100:  # Basic size check
+                            print(f"   ✅ QR code base64 data appears valid")
+                        else:
+                            print(f"   ❌ QR code base64 data too small")
+                            all_success = False
+                    except Exception as e:
+                        print(f"   ❌ QR code base64 data invalid: {e}")
+                        all_success = False
+                else:
+                    print(f"   ❌ QR code not in correct format")
+                    all_success = False
+        
+        # Test 2: Verify warehouse cell QR content format
+        print("\n   🏭 Testing Warehouse Cell QR Content Format...")
+        if hasattr(self, 'warehouse_id'):
+            success, cell_qr_response = self.run_test(
+                "Get Warehouse Cell QR for Format Verification",
+                "GET",
+                f"/api/warehouse/{self.warehouse_id}/cell-qr/1/2/3",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Warehouse cell QR code generated successfully")
+                
+                # Verify response contains required fields
+                required_fields = ['warehouse_id', 'warehouse_name', 'location', 'qr_code']
+                for field in required_fields:
+                    if field in cell_qr_response:
+                        print(f"   ✅ Required field '{field}' present")
+                    else:
+                        print(f"   ❌ Required field '{field}' missing")
+                        all_success = False
+                
+                # Verify location format
+                expected_location = "Б1-П2-Я3"
+                if cell_qr_response.get('location') == expected_location:
+                    print(f"   ✅ Cell location format correct: {expected_location}")
+                else:
+                    print(f"   ❌ Cell location format incorrect: expected {expected_location}, got {cell_qr_response.get('location')}")
+                    all_success = False
+                
+                # Verify QR code format
+                qr_code = cell_qr_response.get('qr_code', '')
+                if qr_code.startswith('data:image/png;base64,'):
+                    print(f"   ✅ Cell QR code in correct base64 PNG format")
+                else:
+                    print(f"   ❌ Cell QR code not in correct format")
+                    all_success = False
+        
+        # Test 3: Test bulk QR generation format
+        print("\n   📋 Testing Bulk QR Generation Format...")
+        if hasattr(self, 'warehouse_id'):
+            success, bulk_response = self.run_test(
+                "Get Bulk Warehouse QR for Format Verification",
+                "GET",
+                f"/api/warehouse/{self.warehouse_id}/all-cells-qr",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Bulk warehouse QR codes generated successfully")
+                
+                # Verify response structure
+                required_fields = ['warehouse_id', 'warehouse_name', 'total_cells', 'qr_codes']
+                for field in required_fields:
+                    if field in bulk_response:
+                        print(f"   ✅ Required field '{field}' present")
+                    else:
+                        print(f"   ❌ Required field '{field}' missing")
+                        all_success = False
+                
+                # Verify QR codes array
+                qr_codes = bulk_response.get('qr_codes', [])
+                if qr_codes:
+                    print(f"   ✅ QR codes array contains {len(qr_codes)} items")
+                    
+                    # Check first QR code structure
+                    first_qr = qr_codes[0]
+                    qr_required_fields = ['block', 'shelf', 'cell', 'location', 'qr_code']
+                    for field in qr_required_fields:
+                        if field in first_qr:
+                            print(f"   ✅ QR item field '{field}' present")
+                        else:
+                            print(f"   ❌ QR item field '{field}' missing")
+                            all_success = False
+                    
+                    # Verify location format in bulk
+                    expected_location_pattern = "Б{block}-П{shelf}-Я{cell}"
+                    actual_location = first_qr.get('location', '')
+                    if actual_location.startswith('Б') and '-П' in actual_location and '-Я' in actual_location:
+                        print(f"   ✅ Bulk QR location format correct: {actual_location}")
+                    else:
+                        print(f"   ❌ Bulk QR location format incorrect: {actual_location}")
+                        all_success = False
+                else:
+                    print(f"   ❌ No QR codes in bulk response")
+                    all_success = False
+        
+        return all_success
+
+    def test_qr_code_integration_with_existing_features(self):
+        """Test QR code integration with existing cargo and warehouse features"""
+        print("\n🔗 QR CODE INTEGRATION WITH EXISTING FEATURES")
+        
+        if 'admin' not in self.tokens or 'user' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: QR code generation during regular cargo creation
+        print("\n   📦 Testing QR Integration with Regular Cargo Creation...")
+        cargo_data = {
+            "recipient_name": "Интеграция QR Получатель",
+            "recipient_phone": "+992888999000",
+            "route": "moscow_to_tajikistan",
+            "weight": 18.0,
+            "cargo_name": "Интеграционный груз",
+            "description": "Груз для тестирования интеграции QR",
+            "declared_value": 9500.0,
+            "sender_address": "Москва, ул. Интеграционная, 5",
+            "recipient_address": "Душанбе, ул. QR Интеграции, 15"
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create Cargo with QR Integration",
+            "POST",
+            "/api/cargo/create",
+            200,
+            cargo_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        integration_cargo_id = None
+        if success and 'id' in cargo_response:
+            integration_cargo_id = cargo_response['id']
+            print(f"   📦 Created integration test cargo: {integration_cargo_id}")
+            
+            # Verify QR code field is present
+            if 'qr_code' in cargo_response:
+                print(f"   ✅ QR code automatically generated during cargo creation")
+            else:
+                print(f"   ❌ QR code not generated during cargo creation")
+                all_success = False
+        
+        # Test 2: QR code generation during operator cargo acceptance
+        print("\n   🏭 Testing QR Integration with Operator Cargo Acceptance...")
+        operator_cargo_data = {
+            "sender_full_name": "QR Интеграция Отправитель",
+            "sender_phone": "+79222333444",
+            "recipient_full_name": "QR Интеграция Получатель",
+            "recipient_phone": "+992555666777",
+            "recipient_address": "Душанбе, ул. Операторской Интеграции, 20",
+            "weight": 22.5,
+            "cargo_name": "Операторский интеграционный груз",
+            "declared_value": 11000.0,
+            "description": "Груз оператора с QR интеграцией",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, operator_cargo_response = self.run_test(
+            "Accept Operator Cargo with QR Integration",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            operator_cargo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success and 'id' in operator_cargo_response:
+            print(f"   📦 Created operator integration cargo")
+            
+            # Verify QR code field is present
+            if 'qr_code' in operator_cargo_response:
+                print(f"   ✅ QR code automatically generated during operator cargo acceptance")
+            else:
+                print(f"   ❌ QR code not generated during operator cargo acceptance")
+                all_success = False
+        
+        # Test 3: Test QR code accessibility through existing cargo endpoints
+        print("\n   🔍 Testing QR Code Accessibility Through Existing Endpoints...")
+        if integration_cargo_id:
+            # Test through "My Cargo" endpoint
+            success, my_cargo_response = self.run_test(
+                "Get My Cargo (Check QR Integration)",
+                "GET",
+                "/api/cargo/my",
+                200,
+                token=self.tokens['user']
+            )
+            all_success &= success
+            
+            if success:
+                # Find our integration cargo in the list
+                integration_cargo = None
+                for cargo in my_cargo_response:
+                    if cargo.get('id') == integration_cargo_id:
+                        integration_cargo = cargo
+                        break
+                
+                if integration_cargo:
+                    print(f"   ✅ Integration cargo found in 'My Cargo' list")
+                    # Note: QR code might not be included in list view for performance
+                else:
+                    print(f"   ❌ Integration cargo not found in 'My Cargo' list")
+                    all_success = False
+            
+            # Test through cargo tracking
+            cargo_number = cargo_response.get('cargo_number')
+            if cargo_number:
+                success, track_response = self.run_test(
+                    "Track Cargo (Check QR Integration)",
+                    "GET",
+                    f"/api/cargo/track/{cargo_number}",
+                    200
+                )
+                all_success &= success
+                
+                if success:
+                    print(f"   ✅ Integration cargo trackable by number")
+                    # Note: QR code might not be included in tracking for performance
+        
+        # Test 4: Test QR code with warehouse operations
+        print("\n   🏭 Testing QR Integration with Warehouse Operations...")
+        if hasattr(self, 'warehouse_id') and integration_cargo_id:
+            # First update cargo status to accepted
+            success, _ = self.run_test(
+                "Update Integration Cargo Status",
+                "PUT",
+                f"/api/cargo/{integration_cargo_id}/status",
+                200,
+                token=self.tokens['admin'],
+                params={"status": "accepted", "warehouse_location": "Склад QR Интеграции"}
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Integration cargo status updated for warehouse operations")
+                
+                # Now get the QR code after warehouse operations
+                success, updated_qr_response = self.run_test(
+                    "Get QR Code After Warehouse Operations",
+                    "GET",
+                    f"/api/cargo/{integration_cargo_id}/qr-code",
+                    200,
+                    token=self.tokens['admin']
+                )
+                all_success &= success
+                
+                if success:
+                    print(f"   ✅ QR code still accessible after warehouse operations")
+        
+        # Test 5: Test error handling for non-existent cargo QR requests
+        print("\n   ⚠️  Testing Error Handling for QR Integration...")
+        fake_cargo_id = "fake-cargo-id-12345"
+        success, _ = self.run_test(
+            "Get QR for Non-existent Cargo",
+            "GET",
+            f"/api/cargo/{fake_cargo_id}/qr-code",
+            404,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print(f"   ✅ Non-existent cargo QR request correctly handled")
+        
+        # Test 6: Test QR code with invalid warehouse cell coordinates
+        if hasattr(self, 'warehouse_id'):
+            success, _ = self.run_test(
+                "Get QR for Invalid Warehouse Cell",
+                "GET",
+                f"/api/warehouse/{self.warehouse_id}/cell-qr/99/99/99",
+                404,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Invalid warehouse cell QR request correctly handled")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
