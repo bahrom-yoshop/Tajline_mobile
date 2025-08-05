@@ -85,6 +85,10 @@ class CargoStatus(str, Enum):
 class RouteType(str, Enum):
     MOSCOW_TO_TAJIKISTAN = "moscow_to_tajikistan"
     TAJIKISTAN_TO_MOSCOW = "tajikistan_to_moscow"
+    MOSCOW_DUSHANBE = "moscow_dushanbe"
+    MOSCOW_KHUJAND = "moscow_khujand"
+    MOSCOW_KULOB = "moscow_kulob"
+    MOSCOW_KURGANTYUBE = "moscow_kurgantyube"
 
 class TransportStatus(str, Enum):
     EMPTY = "empty"
