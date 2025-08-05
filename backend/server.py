@@ -3062,7 +3062,7 @@ async def place_cargo_from_transport_by_number(
     placement_data: dict,
     current_user: User = Depends(get_current_user)
 ):
-    """Разместить груз из транспорта по номеру/QR коду с автоматическим выбором склада"""
+    """Разместить груз из транспорта по номеру/QR коду с автоматическим выбором склада, но ручным выбором ячейки"""
     # Проверка доступа
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Access denied")
@@ -3077,12 +3077,18 @@ async def place_cargo_from_transport_by_number(
     cargo_number = placement_data.get("cargo_number", "").strip()
     qr_data = placement_data.get("qr_data", "").strip()
     
+    # Получение данных ячейки: может быть QR ячейки или координаты ячейки
+    cell_qr_data = placement_data.get("cell_qr_data", "").strip()
+    block_number = placement_data.get("block_number")
+    shelf_number = placement_data.get("shelf_number")
+    cell_number = placement_data.get("cell_number")
+    
     # Определить номер груза из QR кода или использовать прямой номер
     if qr_data and "ГРУЗ №" in qr_data:
         try:
             cargo_number = qr_data.split("ГРУЗ №")[1].split("\n")[0].strip()
         except:
-            raise HTTPException(status_code=400, detail="Invalid QR code format")
+            raise HTTPException(status_code=400, detail="Invalid cargo QR code format")
     
     if not cargo_number:
         raise HTTPException(status_code=400, detail="Cargo number or QR data required")
@@ -3119,54 +3125,51 @@ async def place_cargo_from_transport_by_number(
     if not available_warehouse_ids:
         raise HTTPException(status_code=403, detail="No available warehouses for placement")
     
-    # Выбираем первый доступный склад (можно улучшить логику выбора)
+    # Выбираем первый доступный склад (автоматически)
     selected_warehouse_id = available_warehouse_ids[0]
     warehouse = db.warehouses.find_one({"id": selected_warehouse_id})
     
     if not warehouse:
         raise HTTPException(status_code=404, detail="Selected warehouse not found")
     
-    # Найти свободную ячейку в выбранном складе
-    blocks_count = warehouse.get("blocks_count", 1)
-    shelves_per_block = warehouse.get("shelves_per_block", 1)
-    cells_per_shelf = warehouse.get("cells_per_shelf", 10)
+    # Определить ячейку из QR кода ячейки или из координат
+    if cell_qr_data and "ЯЧЕЙКА СКЛАДА" in cell_qr_data:
+        # Парсим QR код ячейки
+        try:
+            lines = cell_qr_data.split("\n")
+            location_line = [line for line in lines if "Местоположение:" in line][0]
+            location = location_line.split("Местоположение: ")[1].strip()
+            
+            # Извлекаем блок, полку, ячейку из локации (например: "Склад-А-Б1-П2-Я5")
+            parts = location.split("-")
+            if len(parts) >= 3:
+                block_number = int(parts[-3][1:])  # Убираем "Б"
+                shelf_number = int(parts[-2][1:])  # Убираем "П" 
+                cell_number = int(parts[-1][1:])   # Убираем "Я"
+        except Exception as e:
+            raise HTTPException(status_code=400, detail="Invalid cell QR code format")
     
-    found_free_cell = False
-    selected_block = 1
-    selected_shelf = 1
-    selected_cell = 1
+    # Проверить, что координаты ячейки указаны
+    if not all([block_number, shelf_number, cell_number]):
+        raise HTTPException(status_code=400, detail="Cell coordinates (block, shelf, cell) or cell QR code required")
     
-    # Поиск первой свободной ячейки
-    for block in range(1, blocks_count + 1):
-        for shelf in range(1, shelves_per_block + 1):
-            for cell in range(1, cells_per_shelf + 1):
-                location_code = f"{block}-{shelf}-{cell}"
-                existing_cell = db.warehouse_cells.find_one({
-                    "warehouse_id": selected_warehouse_id,
-                    "location_code": location_code
-                })
-                
-                if not existing_cell or not existing_cell.get("is_occupied", False):
-                    selected_block = block
-                    selected_shelf = shelf
-                    selected_cell = cell
-                    found_free_cell = True
-                    break
-            if found_free_cell:
-                break
-        if found_free_cell:
-            break
+    # Проверить валидность ячейки
+    if (block_number > warehouse.get("blocks_count", 0) or 
+        shelf_number > warehouse.get("shelves_per_block", 0) or 
+        cell_number > warehouse.get("cells_per_shelf", 0)):
+        raise HTTPException(status_code=400, detail="Invalid cell coordinates")
     
-    if not found_free_cell:
-        raise HTTPException(status_code=400, detail=f"No free cells available in warehouse {warehouse.get('name')}")
-    
-    # Размещение груза в найденную ячейку
-    location_code = f"{selected_block}-{selected_shelf}-{selected_cell}"
+    # Проверить доступность ячейки
+    location_code = f"{block_number}-{shelf_number}-{cell_number}"
     existing_cell = db.warehouse_cells.find_one({
         "warehouse_id": selected_warehouse_id,
         "location_code": location_code
     })
     
+    if existing_cell and existing_cell.get("is_occupied", False):
+        raise HTTPException(status_code=400, detail=f"Cell {location_code} is already occupied")
+    
+    # Размещение груза в указанную ячейку
     if existing_cell:
         # Обновить существующую ячейку
         db.warehouse_cells.update_one(
@@ -3184,9 +3187,9 @@ async def place_cargo_from_transport_by_number(
         db.warehouse_cells.insert_one({
             "warehouse_id": selected_warehouse_id,
             "location_code": location_code,
-            "block_number": selected_block,
-            "shelf_number": selected_shelf,
-            "cell_number": selected_cell,
+            "block_number": block_number,
+            "shelf_number": shelf_number,
+            "cell_number": cell_number,
             "is_occupied": True,
             "cargo_id": cargo["id"],
             "placed_at": datetime.utcnow(),
@@ -3203,9 +3206,9 @@ async def place_cargo_from_transport_by_number(
             "status": CargoStatus.IN_WAREHOUSE,
             "warehouse_id": selected_warehouse_id,
             "warehouse_location": warehouse.get("name"),
-            "block_number": selected_block,
-            "shelf_number": selected_shelf,
-            "cell_number": selected_cell,
+            "block_number": block_number,
+            "shelf_number": shelf_number,
+            "cell_number": cell_number,
             "placed_by_operator": current_user.full_name,
             "placed_by_operator_id": current_user.id,
             "placed_at": datetime.utcnow(),
@@ -3236,14 +3239,14 @@ async def place_cargo_from_transport_by_number(
         create_personal_notification(
             cargo["sender_id"], 
             "Груз размещен на складе", 
-            f"Ваш груз №{cargo['cargo_number']} автоматически размещен на складе {warehouse.get('name')} в ячейке Б{selected_block}-П{selected_shelf}-Я{selected_cell}",
+            f"Ваш груз №{cargo['cargo_number']} размещен на складе {warehouse.get('name')} в ячейке Б{block_number}-П{shelf_number}-Я{cell_number}",
             "cargo",
             cargo["id"]
         )
     
     create_system_notification(
-        "Груз размещен автоматически",
-        f"Груз №{cargo['cargo_number']} автоматически размещен из транспорта {transport['transport_number']} на склад {warehouse.get('name')} в ячейку {location_code}",
+        "Груз размещен",
+        f"Груз №{cargo['cargo_number']} размещен на складе {warehouse.get('name')} в ячейку {location_code}. Склад выбран автоматически, ячейка - {'по QR коду' if cell_qr_data else 'вручную'}",
         "cargo",
         cargo["id"],
         None,
@@ -3251,12 +3254,12 @@ async def place_cargo_from_transport_by_number(
     )
     
     return {
-        "message": f"Cargo {cargo['cargo_number']} successfully placed automatically",
+        "message": f"Cargo {cargo['cargo_number']} successfully placed",
         "cargo_number": cargo["cargo_number"],
         "warehouse_name": warehouse.get("name"),
-        "location": f"Б{selected_block}-П{selected_shelf}-Я{selected_cell}",
-        "auto_selected_warehouse": True,
-        "placement_method": "qr_number" if qr_data else "number",
+        "warehouse_auto_selected": True,
+        "location": f"Б{block_number}-П{shelf_number}-Я{cell_number}",
+        "placement_method": "cell_qr" if cell_qr_data else ("qr_number" if qr_data else "number_manual"),
         "transport_status": new_status,
         "remaining_cargo": len(updated_cargo_list)
     }
