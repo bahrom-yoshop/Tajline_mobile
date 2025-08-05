@@ -2695,9 +2695,12 @@ async def create_interwarehouse_transport(
     if current_user.role == UserRole.WAREHOUSE_OPERATOR:
         operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
         
-        # Оператор должен иметь доступ хотя бы к одному из складов (исходному или целевому)
-        if source_warehouse_id not in operator_warehouse_ids and destination_warehouse_id not in operator_warehouse_ids:
-            raise HTTPException(status_code=403, detail="No access to specified warehouses")
+        # Оператор должен иметь доступ к ОБОИМ складам (исходному И целевому)
+        if source_warehouse_id not in operator_warehouse_ids:
+            raise HTTPException(status_code=403, detail="No access to source warehouse")
+        
+        if destination_warehouse_id not in operator_warehouse_ids:
+            raise HTTPException(status_code=403, detail="No access to destination warehouse")
     
     # Проверяем существование складов
     source_warehouse = db.warehouses.find_one({"id": source_warehouse_id})
