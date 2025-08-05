@@ -1208,6 +1208,10 @@ async def get_available_cargo_for_placement(
         query["created_by"] = current_user.id
     
     cargo_list = list(db.operator_cargo.find(query))
+    # Ensure cargo_name field exists for backward compatibility
+    for cargo in cargo_list:
+        if 'cargo_name' not in cargo:
+            cargo['cargo_name'] = cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз'
     return [CargoWithLocation(**cargo) for cargo in cargo_list]
 
 @app.get("/api/operator/cargo/history")
