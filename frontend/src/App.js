@@ -2025,6 +2025,97 @@ function App() {
           ) : (
             /* Для админа и оператора склада - новый интерфейс с боковым меню */
             <div className="space-y-6">
+              
+              {/* Шапка с поиском и уведомлениями */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    
+                    {/* Поиск */}
+                    <div className="flex-1 max-w-md">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          placeholder="Поиск по номеру, ФИО, телефону..."
+                          value={searchQuery}
+                          onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            if (e.target.value.length >= 2) {
+                              handleSearch(e.target.value);
+                            } else {
+                              clearSearch();
+                            }
+                          }}
+                          className="pl-10"
+                        />
+                        {searchQuery && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                            onClick={clearSearch}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      
+                      {/* Результаты поиска */}
+                      {showSearchResults && (
+                        <div className="absolute z-10 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          {searchResults.length === 0 ? (
+                            <div className="p-4 text-gray-500 text-center">Ничего не найдено</div>
+                          ) : (
+                            searchResults.map((result) => (
+                              <div key={result.id} className="p-3 border-b hover:bg-gray-50">
+                                <div className="font-medium">{result.cargo_number}</div>
+                                <div className="text-sm text-gray-600">{result.cargo_name}</div>
+                                <div className="text-xs text-gray-500">
+                                  {result.sender_full_name} → {result.recipient_full_name || result.recipient_name}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Фильтр поиска */}
+                    <Select value={searchType} onValueChange={setSearchType}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Везде</SelectItem>
+                        <SelectItem value="number">По номеру</SelectItem>
+                        <SelectItem value="sender_name">По отправителю</SelectItem>
+                        <SelectItem value="recipient_name">По получателю</SelectItem>
+                        <SelectItem value="phone">По телефону</SelectItem>
+                        <SelectItem value="cargo_name">По названию</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {/* Статистика и быстрый доступ */}
+                    <div className="flex items-center space-x-4">
+                      <div className="text-sm text-gray-600">
+                        Всего грузов: <span className="font-medium">{cargo.length}</span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          fetchNotifications();
+                          fetchSystemNotifications();
+                        }}
+                      >
+                        <Bell className="h-4 w-4 mr-2" />
+                        Обновить
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Dashboard */}
               {activeSection === 'dashboard' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
