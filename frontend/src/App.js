@@ -1731,6 +1731,7 @@ function App() {
                               </div>
                               <div className="text-sm text-gray-600 space-y-1">
                                 <p><strong>Получатель:</strong> {request.recipient_full_name}</p>
+                                <p><strong>Название груза:</strong> {request.cargo_name}</p>
                                 <p><strong>Вес:</strong> {request.weight} кг</p>
                                 <p><strong>Маршрут:</strong> {request.route === 'moscow_to_tajikistan' ? 'Москва → Таджикистан' : 'Таджикистан → Москва'}</p>
                                 <p><strong>Дата подачи:</strong> {new Date(request.created_at).toLocaleDateString('ru-RU')}</p>
