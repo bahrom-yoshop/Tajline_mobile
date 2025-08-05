@@ -8659,6 +8659,414 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_client_cargo_ordering_system(self):
+        """Test new client cargo ordering endpoints"""
+        print("\n📦 CLIENT CARGO ORDERING SYSTEM")
+        
+        if 'user' not in self.tokens:
+            print("   ❌ No user token available")
+            return False
+        
+        all_success = True
+        
+        # Test 1: GET /api/client/cargo/delivery-options
+        print("\n   🚚 Test 1: Get Delivery Options")
+        success, response = self.run_test(
+            "Get Delivery Options",
+            "GET",
+            "/api/client/cargo/delivery-options",
+            200,
+            token=self.tokens['user']
+        )
+        
+        if success:
+            # Verify response structure
+            required_keys = ['routes', 'delivery_types', 'additional_services', 'weight_limits', 'value_limits']
+            if all(key in response for key in required_keys):
+                print("   ✅ Delivery options structure verified")
+                
+                # Check routes
+                routes = response.get('routes', [])
+                if len(routes) >= 4:
+                    print(f"   ✅ Found {len(routes)} available routes")
+                    # Check for specific routes
+                    route_values = [r.get('value') for r in routes]
+                    expected_routes = ['moscow_dushanbe', 'moscow_khujand', 'moscow_kulob', 'moscow_kurgantyube']
+                    if all(route in route_values for route in expected_routes):
+                        print("   ✅ All expected routes available")
+                    else:
+                        print("   ❌ Missing expected routes")
+                        all_success = False
+                else:
+                    print("   ❌ Insufficient routes available")
+                    all_success = False
+                
+                # Check delivery types
+                delivery_types = response.get('delivery_types', [])
+                if len(delivery_types) >= 3:
+                    print(f"   ✅ Found {len(delivery_types)} delivery types")
+                    type_values = [dt.get('value') for dt in delivery_types]
+                    expected_types = ['economy', 'standard', 'express']
+                    if all(dt_type in type_values for dt_type in expected_types):
+                        print("   ✅ All expected delivery types available")
+                    else:
+                        print("   ❌ Missing expected delivery types")
+                        all_success = False
+                else:
+                    print("   ❌ Insufficient delivery types")
+                    all_success = False
+                
+                # Check additional services
+                services = response.get('additional_services', [])
+                if len(services) >= 6:
+                    print(f"   ✅ Found {len(services)} additional services")
+                else:
+                    print("   ❌ Insufficient additional services")
+                    all_success = False
+                    
+            else:
+                print("   ❌ Delivery options structure verification failed")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 2: Access control - only USER role should access
+        print("\n   🔒 Test 2: Access Control for Delivery Options")
+        if 'admin' in self.tokens:
+            success, _ = self.run_test(
+                "Admin Cannot Access Delivery Options",
+                "GET",
+                "/api/client/cargo/delivery-options",
+                403,
+                token=self.tokens['admin']
+            )
+            if success:
+                print("   ✅ Access control working - admin denied")
+            else:
+                print("   ❌ Access control failed - admin allowed")
+                all_success = False
+        
+        if 'warehouse_operator' in self.tokens:
+            success, _ = self.run_test(
+                "Operator Cannot Access Delivery Options",
+                "GET",
+                "/api/client/cargo/delivery-options",
+                403,
+                token=self.tokens['warehouse_operator']
+            )
+            if success:
+                print("   ✅ Access control working - operator denied")
+            else:
+                print("   ❌ Access control failed - operator allowed")
+                all_success = False
+        
+        # Test 3: POST /api/client/cargo/calculate - Basic cargo calculation
+        print("\n   💰 Test 3: Basic Cargo Cost Calculation")
+        basic_cargo_data = {
+            "cargo_name": "Документы и подарки",
+            "description": "Личные документы и небольшие подарки для семьи",
+            "weight": 5.0,
+            "declared_value": 25000.0,
+            "recipient_full_name": "Алиев Фарход Рахимович",
+            "recipient_phone": "+992987654321",
+            "recipient_address": "ул. Рудаки, 15, кв. 25",
+            "recipient_city": "Душанбе",
+            "route": "moscow_dushanbe",
+            "delivery_type": "standard",
+            "insurance_requested": False,
+            "packaging_service": False,
+            "home_pickup": False,
+            "home_delivery": False,
+            "fragile": False,
+            "temperature_sensitive": False
+        }
+        
+        success, response = self.run_test(
+            "Calculate Basic Cargo Cost",
+            "POST",
+            "/api/client/cargo/calculate",
+            200,
+            basic_cargo_data,
+            self.tokens['user']
+        )
+        
+        if success:
+            # Verify calculation structure
+            if 'calculation' in response and 'breakdown' in response and 'route_info' in response:
+                calculation = response['calculation']
+                breakdown = response['breakdown']
+                route_info = response['route_info']
+                
+                # Check calculation fields
+                required_calc_fields = ['base_cost', 'weight_cost', 'total_cost', 'delivery_time_days']
+                if all(field in calculation for field in required_calc_fields):
+                    print("   ✅ Calculation structure verified")
+                    print(f"   💰 Total cost: {calculation['total_cost']} руб")
+                    print(f"   📅 Delivery time: {calculation['delivery_time_days']} days")
+                    
+                    # Verify cost calculation logic
+                    expected_base = 2000  # Moscow-Dushanbe base rate
+                    expected_weight = 5.0 * 150  # 5kg * 150 per kg
+                    expected_total = expected_base + expected_weight
+                    
+                    if abs(calculation['total_cost'] - expected_total) < 1:
+                        print("   ✅ Cost calculation logic verified")
+                    else:
+                        print(f"   ❌ Cost calculation mismatch: expected ~{expected_total}, got {calculation['total_cost']}")
+                        all_success = False
+                else:
+                    print("   ❌ Calculation structure incomplete")
+                    all_success = False
+            else:
+                print("   ❌ Response structure verification failed")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 4: POST /api/client/cargo/calculate - Cargo with additional services
+        print("\n   🎁 Test 4: Cargo with Additional Services")
+        premium_cargo_data = {
+            "cargo_name": "Хрупкие сувениры",
+            "description": "Керамические изделия и стеклянные сувениры",
+            "weight": 15.0,
+            "declared_value": 75000.0,
+            "recipient_full_name": "Назарова Гульнара Абдуллоевна",
+            "recipient_phone": "+992901234567",
+            "recipient_address": "пр. Исмоили Сомони, 45",
+            "recipient_city": "Душанбе",
+            "route": "moscow_dushanbe",
+            "delivery_type": "express",
+            "insurance_requested": True,
+            "insurance_value": 75000.0,
+            "packaging_service": True,
+            "home_pickup": True,
+            "home_delivery": True,
+            "fragile": True,
+            "temperature_sensitive": False
+        }
+        
+        success, response = self.run_test(
+            "Calculate Premium Cargo Cost",
+            "POST",
+            "/api/client/cargo/calculate",
+            200,
+            premium_cargo_data,
+            self.tokens['user']
+        )
+        
+        if success:
+            calculation = response.get('calculation', {})
+            total_cost = calculation.get('total_cost', 0)
+            
+            # Verify additional services are included
+            if (calculation.get('insurance_cost', 0) > 0 and
+                calculation.get('packaging_cost', 0) > 0 and
+                calculation.get('pickup_cost', 0) > 0 and
+                calculation.get('delivery_cost', 0) > 0 and
+                calculation.get('express_surcharge', 0) > 0):
+                print("   ✅ All additional services calculated")
+                print(f"   💰 Premium total cost: {total_cost} руб")
+                
+                # Verify express delivery reduces time
+                delivery_days = calculation.get('delivery_time_days', 0)
+                if delivery_days < 7:  # Should be less than standard 7 days
+                    print(f"   ✅ Express delivery time reduced: {delivery_days} days")
+                else:
+                    print(f"   ❌ Express delivery time not reduced: {delivery_days} days")
+                    all_success = False
+            else:
+                print("   ❌ Additional services not properly calculated")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 5: POST /api/client/cargo/calculate - Different routes
+        print("\n   🗺️ Test 5: Different Routes Calculation")
+        routes_to_test = [
+            {"route": "moscow_khujand", "expected_base": 1800},
+            {"route": "moscow_kulob", "expected_base": 2200},
+            {"route": "moscow_kurgantyube", "expected_base": 2100}
+        ]
+        
+        for route_test in routes_to_test:
+            route_cargo_data = basic_cargo_data.copy()
+            route_cargo_data["route"] = route_test["route"]
+            
+            success, response = self.run_test(
+                f"Calculate Cost for {route_test['route']}",
+                "POST",
+                "/api/client/cargo/calculate",
+                200,
+                route_cargo_data,
+                self.tokens['user']
+            )
+            
+            if success:
+                calculation = response.get('calculation', {})
+                base_cost = calculation.get('base_cost', 0)
+                if abs(base_cost - route_test['expected_base']) < 1:
+                    print(f"   ✅ {route_test['route']} base cost correct: {base_cost}")
+                else:
+                    print(f"   ❌ {route_test['route']} base cost incorrect: expected {route_test['expected_base']}, got {base_cost}")
+                    all_success = False
+            else:
+                all_success = False
+        
+        # Test 6: POST /api/client/cargo/create - Create basic cargo order
+        print("\n   📦 Test 6: Create Basic Cargo Order")
+        success, response = self.run_test(
+            "Create Basic Cargo Order",
+            "POST",
+            "/api/client/cargo/create",
+            200,
+            basic_cargo_data,
+            self.tokens['user']
+        )
+        
+        created_cargo_id = None
+        created_cargo_number = None
+        created_tracking_code = None
+        
+        if success:
+            # Verify response structure
+            required_fields = ['cargo_id', 'cargo_number', 'total_cost', 'estimated_delivery_days', 'status', 'payment_status', 'tracking_code']
+            if all(field in response for field in required_fields):
+                print("   ✅ Cargo order response structure verified")
+                
+                created_cargo_id = response['cargo_id']
+                created_cargo_number = response['cargo_number']
+                created_tracking_code = response['tracking_code']
+                
+                print(f"   📋 Cargo ID: {created_cargo_id}")
+                print(f"   🏷️  Cargo Number: {created_cargo_number}")
+                print(f"   🔍 Tracking Code: {created_tracking_code}")
+                print(f"   💰 Total Cost: {response['total_cost']} руб")
+                print(f"   📅 Estimated Days: {response['estimated_delivery_days']}")
+                
+                # Verify status
+                if response['status'] == 'created' and response['payment_status'] == 'pending':
+                    print("   ✅ Cargo status correctly set")
+                else:
+                    print("   ❌ Cargo status incorrect")
+                    all_success = False
+                
+                # Verify tracking code format
+                if created_tracking_code.startswith('TRK') and len(created_tracking_code) > 10:
+                    print("   ✅ Tracking code format verified")
+                else:
+                    print("   ❌ Tracking code format incorrect")
+                    all_success = False
+                    
+            else:
+                print("   ❌ Cargo order response structure incomplete")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 7: POST /api/client/cargo/create - Create premium cargo order
+        print("\n   🎁 Test 7: Create Premium Cargo Order")
+        success, response = self.run_test(
+            "Create Premium Cargo Order",
+            "POST",
+            "/api/client/cargo/create",
+            200,
+            premium_cargo_data,
+            self.tokens['user']
+        )
+        
+        if success:
+            premium_cost = response.get('total_cost', 0)
+            basic_cost = 2750  # Expected from basic cargo
+            
+            if premium_cost > basic_cost * 2:  # Should be significantly more expensive
+                print(f"   ✅ Premium cargo cost appropriately higher: {premium_cost} руб")
+            else:
+                print(f"   ❌ Premium cargo cost not sufficiently higher: {premium_cost} руб")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 8: Access control for cargo creation
+        print("\n   🔒 Test 8: Access Control for Cargo Creation")
+        if 'admin' in self.tokens:
+            success, _ = self.run_test(
+                "Admin Cannot Create Client Cargo",
+                "POST",
+                "/api/client/cargo/create",
+                403,
+                basic_cargo_data,
+                self.tokens['admin']
+            )
+            if success:
+                print("   ✅ Access control working - admin denied cargo creation")
+            else:
+                print("   ❌ Access control failed - admin allowed cargo creation")
+                all_success = False
+        
+        # Test 9: Verify cargo appears in database
+        if created_cargo_id:
+            print("\n   🔍 Test 9: Verify Cargo in Database")
+            success, response = self.run_test(
+                "Get Created Cargo Details",
+                "GET",
+                f"/api/cargo/track/{created_cargo_number}",
+                200
+            )
+            
+            if success:
+                if (response.get('id') == created_cargo_id and
+                    response.get('cargo_number') == created_cargo_number and
+                    response.get('status') == 'created'):
+                    print("   ✅ Created cargo verified in database")
+                else:
+                    print("   ❌ Created cargo verification failed")
+                    all_success = False
+            else:
+                all_success = False
+        
+        # Test 10: Edge cases and validation
+        print("\n   ⚠️  Test 10: Edge Cases and Validation")
+        
+        # Test invalid weight
+        invalid_cargo = basic_cargo_data.copy()
+        invalid_cargo["weight"] = -5.0  # Negative weight
+        
+        success, _ = self.run_test(
+            "Invalid Weight Validation",
+            "POST",
+            "/api/client/cargo/calculate",
+            422,  # Validation error
+            invalid_cargo,
+            self.tokens['user']
+        )
+        
+        if success:
+            print("   ✅ Weight validation working")
+        else:
+            print("   ❌ Weight validation failed")
+            all_success = False
+        
+        # Test invalid declared value
+        invalid_cargo2 = basic_cargo_data.copy()
+        invalid_cargo2["declared_value"] = -1000.0  # Negative value
+        
+        success, _ = self.run_test(
+            "Invalid Declared Value Validation",
+            "POST",
+            "/api/client/cargo/calculate",
+            422,  # Validation error
+            invalid_cargo2,
+            self.tokens['user']
+        )
+        
+        if success:
+            print("   ✅ Declared value validation working")
+        else:
+            print("   ❌ Declared value validation failed")
+            all_success = False
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
