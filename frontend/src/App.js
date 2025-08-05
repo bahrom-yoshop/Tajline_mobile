@@ -88,6 +88,10 @@ function App() {
         return '60'; // Москва → Худжанд: 60 рублей
       case 'moscow_dushanbe':
         return '80'; // Москва → Душанбе: 80 рублей
+      case 'moscow_kulob':
+        return '80'; // Москва → Кулоб: 80 рублей 
+      case 'moscow_kurgantyube':
+        return '80'; // Москва → Курган-Тюбе: 80 рублей
       case 'moscow_to_tajikistan':
         return '80'; // По умолчанию для общего маршрута
       default:
