@@ -8306,6 +8306,8 @@ ID склада: {self.warehouse_id}"""
             ("Enhanced QR Code Integration System", self.test_enhanced_qr_code_integration_system),
             # NEW: Test the 4 new functions requested in review
             ("New Warehouse Operator Functions (4 NEW FEATURES)", self.test_new_warehouse_operator_functions),
+            # STAGE 1 FEATURES - NEW TESTS
+            ("🎯 STAGE 1 FEATURES", self.test_stage1_features),
             ("Notifications", self.test_notifications),
             ("Error Handling", self.test_error_cases)
         ]
