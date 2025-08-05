@@ -2746,6 +2746,89 @@ async def get_transports_list(
     
     return transport_list
 
+@app.get("/api/warehouses/for-interwarehouse-transport") 
+async def get_warehouses_for_interwarehouse_transport(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить список складов для создания межскладских транспортов (Функция 3)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Получаем все активные склады
+    all_warehouses = list(db.warehouses.find({"is_active": True}))
+    
+    # Определяем доступные склады в зависимости от роли
+    if current_user.role == UserRole.ADMIN:
+        # Админ видит все склады
+        accessible_warehouses = all_warehouses
+        operator_warehouses = []  # У админа нет привязанных складов
+    else:
+        # Оператор видит только свои привязанные склады
+        operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+        accessible_warehouses = [w for w in all_warehouses if w["id"] in operator_warehouse_ids]
+        operator_warehouses = operator_warehouse_ids
+    
+    # Автоматически определяем исходный склад для оператора
+    auto_source_warehouse = None
+    if current_user.role == UserRole.WAREHOUSE_OPERATOR and accessible_warehouses:
+        # Для оператора автоматически выбираем первый привязанный склад как исходный
+        auto_source_warehouse = accessible_warehouses[0]
+    
+    # Формируем список складов с дополнительной информацией
+    warehouses_info = []
+    for warehouse in accessible_warehouses:
+        # Подсчитываем грузы готовые к отправке
+        ready_cargo_user = db.cargo.count_documents({
+            "warehouse_id": warehouse["id"], 
+            "status": {"$in": ["placed_in_warehouse", "accepted"]}
+        })
+        ready_cargo_operator = db.operator_cargo.count_documents({
+            "warehouse_id": warehouse["id"], 
+            "status": {"$in": ["placed_in_warehouse", "accepted"]}
+        })
+        total_ready_cargo = ready_cargo_user + ready_cargo_operator
+        
+        # Получаем операторов, привязанных к складу (для админов)
+        bound_operators = []
+        if current_user.role == UserRole.ADMIN:
+            bindings = list(db.operator_warehouse_bindings.find({"warehouse_id": warehouse["id"]}))
+            for binding in bindings:
+                operator = db.users.find_one({"id": binding["operator_id"]}, {"password": 0})
+                if operator:
+                    bound_operators.append({
+                        "id": operator["id"],
+                        "full_name": operator["full_name"],
+                        "phone": operator["phone"]
+                    })
+        
+        warehouse_info = {
+            "id": warehouse["id"],
+            "name": warehouse["name"],
+            "location": warehouse["location"],
+            "ready_cargo_count": total_ready_cargo,
+            "bound_operators": bound_operators,
+            "can_be_source": True,  # Все доступные склады могут быть исходными
+            "can_be_destination": True,  # Все доступные склады могут быть целевыми
+            "is_operator_warehouse": warehouse["id"] in operator_warehouses if current_user.role == UserRole.WAREHOUSE_OPERATOR else False
+        }
+        warehouses_info.append(warehouse_info)
+    
+    return {
+        "warehouses": warehouses_info,
+        "user_role": current_user.role,
+        "user_name": current_user.full_name,
+        "auto_source_warehouse": {
+            "id": auto_source_warehouse["id"],
+            "name": auto_source_warehouse["name"],
+            "location": auto_source_warehouse["location"]
+        } if auto_source_warehouse else None,
+        "total_accessible_warehouses": len(accessible_warehouses),
+        "instructions": {
+            "for_admin": "Админ может создавать транспорты между любыми складами",
+            "for_operator": "Оператор может создавать транспорты только между привязанными складами. Исходный склад выбирается автоматически."
+        }
+    }
+
 @app.post("/api/transport/create-interwarehouse")
 async def create_interwarehouse_transport(
     transport_data: dict,
