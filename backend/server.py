@@ -3047,6 +3047,211 @@ async def place_cargo_from_transport_to_warehouse(
         "remaining_cargo": len(updated_cargo_list)
     }
 
+@app.post("/api/transport/{transport_id}/place-cargo-by-number")
+async def place_cargo_from_transport_by_number(
+    transport_id: str,
+    placement_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Разместить груз из транспорта по номеру/QR коду с автоматическим выбором склада"""
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    transport = db.transports.find_one({"id": transport_id})
+    if not transport:
+        raise HTTPException(status_code=404, detail="Transport not found")
+    
+    if transport["status"] != TransportStatus.ARRIVED:
+        raise HTTPException(status_code=400, detail="Transport must be arrived to place cargo")
+    
+    cargo_number = placement_data.get("cargo_number", "").strip()
+    qr_data = placement_data.get("qr_data", "").strip()
+    
+    # Определить номер груза из QR кода или использовать прямой номер
+    if qr_data and "ГРУЗ №" in qr_data:
+        try:
+            cargo_number = qr_data.split("ГРУЗ №")[1].split("\n")[0].strip()
+        except:
+            raise HTTPException(status_code=400, detail="Invalid QR code format")
+    
+    if not cargo_number:
+        raise HTTPException(status_code=400, detail="Cargo number or QR data required")
+    
+    # Найти груз по номеру в обеих коллекциях
+    cargo = db.cargo.find_one({"cargo_number": cargo_number})
+    collection_name = "cargo"
+    if not cargo:
+        cargo = db.operator_cargo.find_one({"cargo_number": cargo_number})
+        collection_name = "operator_cargo"
+    
+    if not cargo:
+        raise HTTPException(status_code=404, detail=f"Cargo {cargo_number} not found")
+    
+    # Проверить, что груз на этом транспорте
+    if cargo["id"] not in transport.get("cargo_list", []):
+        raise HTTPException(status_code=400, detail=f"Cargo {cargo_number} is not on this transport")
+    
+    if cargo.get("status") != CargoStatus.ARRIVED_DESTINATION:
+        raise HTTPException(status_code=400, detail="Cargo must be in arrived_destination status to place")
+    
+    # Автоматический выбор склада на основе привязки оператора
+    available_warehouse_ids = []
+    
+    if current_user.role == UserRole.ADMIN:
+        # Админ может размещать на любые склады
+        warehouses = list(db.warehouses.find({}))
+        available_warehouse_ids = [w["id"] for w in warehouses]
+    else:
+        # Оператор может размещать только на привязанные склады
+        bindings = list(db.operator_warehouse_bindings.find({"operator_id": current_user.id}))
+        available_warehouse_ids = [b["warehouse_id"] for b in bindings]
+    
+    if not available_warehouse_ids:
+        raise HTTPException(status_code=403, detail="No available warehouses for placement")
+    
+    # Выбираем первый доступный склад (можно улучшить логику выбора)
+    selected_warehouse_id = available_warehouse_ids[0]
+    warehouse = db.warehouses.find_one({"id": selected_warehouse_id})
+    
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="Selected warehouse not found")
+    
+    # Найти свободную ячейку в выбранном складе
+    blocks_count = warehouse.get("blocks_count", 1)
+    shelves_per_block = warehouse.get("shelves_per_block", 1)
+    cells_per_shelf = warehouse.get("cells_per_shelf", 10)
+    
+    found_free_cell = False
+    selected_block = 1
+    selected_shelf = 1
+    selected_cell = 1
+    
+    # Поиск первой свободной ячейки
+    for block in range(1, blocks_count + 1):
+        for shelf in range(1, shelves_per_block + 1):
+            for cell in range(1, cells_per_shelf + 1):
+                location_code = f"{block}-{shelf}-{cell}"
+                existing_cell = db.warehouse_cells.find_one({
+                    "warehouse_id": selected_warehouse_id,
+                    "location_code": location_code
+                })
+                
+                if not existing_cell or not existing_cell.get("is_occupied", False):
+                    selected_block = block
+                    selected_shelf = shelf
+                    selected_cell = cell
+                    found_free_cell = True
+                    break
+            if found_free_cell:
+                break
+        if found_free_cell:
+            break
+    
+    if not found_free_cell:
+        raise HTTPException(status_code=400, detail=f"No free cells available in warehouse {warehouse.get('name')}")
+    
+    # Размещение груза в найденную ячейку
+    location_code = f"{selected_block}-{selected_shelf}-{selected_cell}"
+    existing_cell = db.warehouse_cells.find_one({
+        "warehouse_id": selected_warehouse_id,
+        "location_code": location_code
+    })
+    
+    if existing_cell:
+        # Обновить существующую ячейку
+        db.warehouse_cells.update_one(
+            {"_id": existing_cell["_id"]},
+            {"$set": {
+                "is_occupied": True,
+                "cargo_id": cargo["id"],
+                "placed_at": datetime.utcnow(),
+                "placed_by": current_user.id,
+                "updated_at": datetime.utcnow()
+            }}
+        )
+    else:
+        # Создать новую ячейку
+        db.warehouse_cells.insert_one({
+            "warehouse_id": selected_warehouse_id,
+            "location_code": location_code,
+            "block_number": selected_block,
+            "shelf_number": selected_shelf,
+            "cell_number": selected_cell,
+            "is_occupied": True,
+            "cargo_id": cargo["id"],
+            "placed_at": datetime.utcnow(),
+            "placed_by": current_user.id,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        })
+    
+    # Обновить груз
+    collection = db[collection_name]
+    collection.update_one(
+        {"id": cargo["id"]},
+        {"$set": {
+            "status": CargoStatus.IN_WAREHOUSE,
+            "warehouse_id": selected_warehouse_id,
+            "warehouse_location": warehouse.get("name"),
+            "block_number": selected_block,
+            "shelf_number": selected_shelf,
+            "cell_number": selected_cell,
+            "placed_by_operator": current_user.full_name,
+            "placed_by_operator_id": current_user.id,
+            "placed_at": datetime.utcnow(),
+            "transport_id": None,
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    # Удалить груз из списка транспорта
+    updated_cargo_list = [cid for cid in transport.get("cargo_list", []) if cid != cargo["id"]]
+    new_load = max(0, transport.get("current_load_kg", 0) - cargo.get("weight", 0))
+    
+    # Обновить транспорт
+    new_status = TransportStatus.COMPLETED if len(updated_cargo_list) == 0 else TransportStatus.ARRIVED
+    db.transports.update_one(
+        {"id": transport_id},
+        {"$set": {
+            "cargo_list": updated_cargo_list,
+            "current_load_kg": new_load,
+            "status": new_status,
+            "completed_at": datetime.utcnow() if new_status == TransportStatus.COMPLETED else None,
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    # Создать уведомления
+    if collection_name == "cargo":
+        create_personal_notification(
+            cargo["sender_id"], 
+            "Груз размещен на складе", 
+            f"Ваш груз №{cargo['cargo_number']} автоматически размещен на складе {warehouse.get('name')} в ячейке Б{selected_block}-П{selected_shelf}-Я{selected_cell}",
+            "cargo",
+            cargo["id"]
+        )
+    
+    create_system_notification(
+        "Груз размещен автоматически",
+        f"Груз №{cargo['cargo_number']} автоматически размещен из транспорта {transport['transport_number']} на склад {warehouse.get('name')} в ячейку {location_code}",
+        "cargo",
+        cargo["id"],
+        None,
+        current_user.id
+    )
+    
+    return {
+        "message": f"Cargo {cargo['cargo_number']} successfully placed automatically",
+        "cargo_number": cargo["cargo_number"],
+        "warehouse_name": warehouse.get("name"),
+        "location": f"Б{selected_block}-П{selected_shelf}-Я{selected_cell}",
+        "auto_selected_warehouse": True,
+        "placement_method": "qr_number" if qr_data else "number",
+        "transport_status": new_status,
+        "remaining_cargo": len(updated_cargo_list)
+    }
+
 @app.delete("/api/transport/{transport_id}/remove-cargo/{cargo_id}")
 async def remove_cargo_from_transport(
     transport_id: str,
