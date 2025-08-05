@@ -5614,7 +5614,9 @@ def calculate_delivery_cost(cargo_data: CargoOrderCreate) -> DeliveryCalculation
     # Страхование (0.5% от объявленной стоимости, минимум 500 руб)
     insurance_cost = 0
     if cargo_data.insurance_requested and cargo_data.insurance_value:
-        insurance_cost = max(cargo_data.insurance_value * 0.005, 500)
+        # Используем final_declared_value для расчета страхования
+        insurance_value = cargo_data.insurance_value or final_declared_value
+        insurance_cost = max(insurance_value * 0.005, 500)
     
     # Упаковка
     packaging_cost = 800 if cargo_data.packaging_service else 0
