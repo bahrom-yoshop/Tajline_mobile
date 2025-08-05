@@ -1799,10 +1799,12 @@ async def get_warehouse_full_layout(
             cargo = cargo_info[cell["cargo_id"]]
             cell_data["cargo_info"] = {
                 "cargo_number": cargo["cargo_number"],
-                "sender_name": cargo["sender_full_name"],
-                "recipient_name": cargo["recipient_full_name"],
+                "sender_name": cargo.get("sender_full_name", "Не указан"),
+                "recipient_name": cargo.get("recipient_full_name", cargo.get("recipient_name", "Не указан")),
                 "weight": cargo["weight"],
-                "description": cargo["description"]
+                "description": cargo.get("description", cargo.get("cargo_name", "Груз")),
+                "cargo_name": cargo.get("cargo_name", cargo.get("description", "Груз")),
+                "status": cargo.get("status", "unknown")
             }
         
         layout[block_key]["shelves"][shelf_key]["cells"].append(cell_data)
