@@ -136,6 +136,20 @@ function App() {
   const [selectedOperatorForBinding, setSelectedOperatorForBinding] = useState('');
   const [selectedWarehouseForBinding, setSelectedWarehouseForBinding] = useState('');
 
+  // Warehouse cell management states
+  const [selectedCellCargo, setSelectedCellCargo] = useState(null);
+  const [cargoDetailModal, setCargoDetailModal] = useState(false);
+  const [cargoEditModal, setCargoEditModal] = useState(false);
+  const [cargoMoveModal, setCargoMoveModal] = useState(false);
+  const [editingCargo, setEditingCargo] = useState(null);
+  const [cargoEditForm, setCargoEditForm] = useState({});
+  const [cargoMoveForm, setCargoMoveForm] = useState({
+    warehouse_id: '',
+    block_number: '',
+    shelf_number: '',
+    cell_number: ''
+  });
+
   const [alerts, setAlerts] = useState([]);
 
   const showAlert = (message, type = 'info') => {
