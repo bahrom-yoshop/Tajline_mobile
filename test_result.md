@@ -102,7 +102,44 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Enhance user experience with automatic warehouse selection, cargo naming, and improved header functionality. User requests: 1) Automatic warehouse selection for operators during cargo placement (operators choose only block/shelf, warehouse auto-selected from bindings), 2) Add cargo name field and display it in all cargo lists after cargo number, 3) Add header with all notifications and cargo search functionality (by number, sender name, recipient name, phone) for operators and admins."
+user_problem_statement: "Add advanced warehouse cell management and cargo detail viewing. User requests: 1) Automatically free warehouse cells when cargo is placed on transport, 2) Enhanced warehouse schema management - click on occupied cells to view cargo details with move/delete options, 3) Add dedicated cargo search button with detailed cargo cards and edit functionality for comprehensive cargo management."
+
+backend:
+  - task: "Automatic Cell Liberation on Transport Placement"
+    implemented: false
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to implement automatic warehouse cell liberation when cargo is placed on transport, freeing up cells for new cargo placement."
+
+  - task: "Warehouse Cell Management with Cargo Details"
+    implemented: false
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to add endpoints for getting cargo details by warehouse cell, moving cargo between cells, and removing cargo from cells."
+
+  - task: "Enhanced Cargo Detail and Edit System"
+    implemented: false
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to add comprehensive cargo detail viewing and editing endpoints with full cargo information display and modification capabilities."
 
 backend:
   - task: "Automatic Warehouse Selection for Operators"
