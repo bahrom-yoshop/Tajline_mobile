@@ -388,11 +388,14 @@ backend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: true
           agent: "main"
           comment: "✅ NEW ENDPOINT - Added DELETE /api/transport/{transport_id}/remove-cargo/{cargo_id} endpoint for removing cargo from transport and returning to warehouse. Includes comprehensive logic for returning cargo to original warehouse cells or setting appropriate status if cell unavailable."
+        - working: true
+          agent: "testing"
+          comment: "✅ PASSED - Transport Cargo Return System fully implemented and working correctly. All core functionality tested successfully: 1) DELETE /api/transport/{transport_id}/remove-cargo/{cargo_id} endpoint works correctly ✅, 2) Searches cargo in both cargo and operator_cargo collections ✅, 3) Returns cargo to original warehouse cell if available ✅, 4) Sets status to ACCEPTED if original cell unavailable ✅, 5) Updates transport load calculations correctly (prevents negative loads) ✅, 6) Creates user notifications for cargo returns ✅, 7) Tracks operator who performed the return (returned_by_operator fields) ✅, 8) Access control works (admin/warehouse_operator only) ✅, 9) Error handling works for invalid transport/cargo IDs ✅, 10) Prevents cargo removal from IN_TRANSIT transports ✅. The system provides comprehensive cargo return functionality with proper data integrity and user notifications."
 
   - task: "Transport Access Control"
     implemented: true
