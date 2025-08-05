@@ -2167,9 +2167,9 @@ function App() {
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     
                     {/* Поиск */}
-                    <div className="flex-1 max-w-md">
+                    <div className="flex-1 max-w-md relative">
                       <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
                         <Input
                           placeholder="Поиск по номеру, ФИО, телефону..."
                           value={searchQuery}
@@ -2181,13 +2181,13 @@ function App() {
                               clearSearch();
                             }
                           }}
-                          className="pl-10"
+                          className="pl-10 relative z-10"
                         />
                         {searchQuery && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 z-20"
                             onClick={clearSearch}
                           >
                             <X className="h-4 w-4" />
@@ -2197,7 +2197,9 @@ function App() {
                       
                       {/* Результаты поиска */}
                       {showSearchResults && (
-                        <div className="absolute z-10 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        <div className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                             style={{top: '100%', left: 0}}
+                        >
                           {searchResults.length === 0 ? (
                             <div className="p-4 text-gray-500 text-center">Ничего не найдено</div>
                           ) : (
