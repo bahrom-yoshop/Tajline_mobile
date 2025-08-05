@@ -4553,6 +4553,15 @@ function App() {
                             <Button
                               size="sm"
                               variant="outline"
+                              onClick={() => printCargoQrLabel(cargo)}
+                              title="Печать QR этикетки"
+                            >
+                              <QrCode className="h-4 w-4" />
+                            </Button>
+                            
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={async () => {
                                 if (window.confirm(`Вернуть груз ${cargo.cargo_number} в исходное место на складе?`)) {
                                   try {
