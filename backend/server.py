@@ -1080,6 +1080,95 @@ async def place_cargo_in_warehouse(
     
     return {"message": "Cargo placed successfully", "location": location_code, "warehouse": warehouse["name"]}
 
+@app.post("/api/operator/cargo/place-auto")
+async def place_cargo_in_warehouse_auto(
+    placement_data: CargoPlacementAuto,
+    current_user: User = Depends(get_current_user)
+):
+    """Размещение груза с автоматическим выбором склада для оператора"""
+    # Проверяем права доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Если оператор склада, получаем его привязанные склады
+    if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+        operator_warehouses = get_operator_warehouses(current_user.id)
+        if not operator_warehouses:
+            raise HTTPException(status_code=403, detail="No warehouses assigned to this operator")
+        
+        # Используем первый привязанный склад (можно дать пользователю выбор, если их несколько)
+        warehouse_id = operator_warehouses[0]
+    else:
+        # Для админа нужно указать склад или использовать default
+        raise HTTPException(status_code=400, detail="Admin must use regular placement endpoint with warehouse selection")
+    
+    # Проверяем существование груза
+    cargo = db.operator_cargo.find_one({"id": placement_data.cargo_id})
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Проверяем существование склада
+    warehouse = db.warehouses.find_one({"id": warehouse_id, "is_active": True})
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="Assigned warehouse not found")
+    
+    # Проверяем валидность позиции
+    if (placement_data.block_number < 1 or placement_data.block_number > warehouse["blocks_count"] or
+        placement_data.shelf_number < 1 or placement_data.shelf_number > warehouse["shelves_per_block"] or
+        placement_data.cell_number < 1 or placement_data.cell_number > warehouse["cells_per_shelf"]):
+        raise HTTPException(status_code=400, detail="Invalid warehouse position")
+    
+    location_code = f"B{placement_data.block_number}-S{placement_data.shelf_number}-C{placement_data.cell_number}"
+    
+    # Проверяем, свободна ли ячейка
+    existing_cell = db.warehouse_cells.find_one({
+        "warehouse_id": warehouse_id,
+        "location_code": location_code,
+        "is_occupied": True
+    })
+    
+    if existing_cell:
+        raise HTTPException(status_code=400, detail="Cell is already occupied")
+    
+    # Создаем ячейку если не существует
+    db.warehouse_cells.update_one(
+        {
+            "warehouse_id": warehouse_id,
+            "location_code": location_code
+        },
+        {
+            "$set": {
+                "warehouse_id": warehouse_id,
+                "location_code": location_code,
+                "block_number": placement_data.block_number,
+                "shelf_number": placement_data.shelf_number,
+                "cell_number": placement_data.cell_number,
+                "is_occupied": True,
+                "cargo_id": placement_data.cargo_id,
+                "updated_at": datetime.utcnow()
+            }
+        },
+        upsert=True
+    )
+    
+    # Обновляем груз
+    db.operator_cargo.update_one(
+        {"id": placement_data.cargo_id},
+        {"$set": {
+            "warehouse_location": f"{warehouse['name']} - Блок {placement_data.block_number}, Полка {placement_data.shelf_number}, Ячейка {placement_data.cell_number}",
+            "warehouse_id": warehouse_id,
+            "block_number": placement_data.block_number,
+            "shelf_number": placement_data.shelf_number,
+            "cell_number": placement_data.cell_number,
+            "status": CargoStatus.IN_TRANSIT,
+            "updated_at": datetime.utcnow(),
+            "placed_by_operator": current_user.full_name,
+            "placed_by_operator_id": current_user.id
+        }}
+    )
+    
+    return {"message": "Cargo placed successfully in assigned warehouse", "warehouse_name": warehouse["name"]}
+
 @app.get("/api/operator/cargo/available")
 async def get_available_cargo_for_placement(
     current_user: User = Depends(get_current_user)
