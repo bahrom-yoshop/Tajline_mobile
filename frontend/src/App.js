@@ -4361,6 +4361,239 @@ function App() {
         </DialogContent>
       </Dialog>
 
+      {/* Модальное окно детального просмотра груза */}
+      <Dialog open={cargoDetailModal} onOpenChange={setCargoDetailModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Детальная информация о грузе {selectedCellCargo?.cargo_number}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedCellCargo && (
+            <div className="space-y-4">
+              {/* Основная информация */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <p><strong>Номер груза:</strong> {selectedCellCargo.cargo_number}</p>
+                  <p><strong>Название:</strong> {selectedCellCargo.cargo_name || 'Не указано'}</p>
+                  <p><strong>Вес:</strong> {selectedCellCargo.weight} кг</p>
+                  <p><strong>Стоимость:</strong> {selectedCellCargo.declared_value} руб.</p>
+                </div>
+                <div>
+                  <p><strong>Дата приёма:</strong> {new Date(selectedCellCargo.created_at).toLocaleDateString('ru-RU')}</p>
+                  <p><strong>Статус:</strong> {selectedCellCargo.status}</p>
+                  <p><strong>Статус оплаты:</strong> {selectedCellCargo.payment_status || 'pending'}</p>
+                  {selectedCellCargo.warehouse_location && (
+                    <p><strong>Местоположение:</strong> {selectedCellCargo.warehouse_location}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Информация об отправителе */}
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-semibold mb-2">Отправитель</h3>
+                <p><strong>ФИО:</strong> {selectedCellCargo.sender_full_name}</p>
+                <p><strong>Телефон:</strong> {selectedCellCargo.sender_phone}</p>
+              </div>
+
+              {/* Информация о получателе */}
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-semibold mb-2">Получатель</h3>
+                <p><strong>ФИО:</strong> {selectedCellCargo.recipient_full_name || selectedCellCargo.recipient_name}</p>
+                <p><strong>Телефон:</strong> {selectedCellCargo.recipient_phone}</p>
+                <p><strong>Адрес:</strong> {selectedCellCargo.recipient_address}</p>
+              </div>
+
+              {/* Информация об операторах */}
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <h3 className="font-semibold mb-2">Обработка</h3>
+                {selectedCellCargo.created_by_operator && (
+                  <p><strong>Принял оператор:</strong> {selectedCellCargo.created_by_operator}</p>
+                )}
+                {selectedCellCargo.placed_by_operator && (
+                  <p><strong>Разместил оператор:</strong> {selectedCellCargo.placed_by_operator}</p>
+                )}
+              </div>
+
+              {/* Кнопки действий */}
+              <div className="flex flex-wrap gap-2 pt-4">
+                <Button onClick={() => handleEditCargo(selectedCellCargo)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Редактировать
+                </Button>
+                
+                {selectedCellCargo.warehouse_location && (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleMoveCargo(selectedCellCargo)}
+                    >
+                      <Package className="mr-2 h-4 w-4" />
+                      Переместить
+                    </Button>
+                    
+                    <Button
+                      variant="destructive"
+                      onClick={() => handleRemoveCargoFromCell(selectedCellCargo)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Удалить из ячейки
+                    </Button>
+                  </>
+                )}
+                
+                <Button variant="outline" onClick={() => printInvoice(selectedCellCargo)}>
+                  <Printer className="mr-2 h-4 w-4" />
+                  Печать накладной
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Модальное окно редактирования груза */}
+      <Dialog open={cargoEditModal} onOpenChange={setCargoEditModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Редактирование груза {editingCargo?.cargo_number}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit_cargo_name">Название груза</Label>
+                <Input
+                  id="edit_cargo_name"
+                  value={cargoEditForm.cargo_name || ''}
+                  onChange={(e) => setCargoEditForm({...cargoEditForm, cargo_name: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit_weight">Вес (кг)</Label>
+                <Input
+                  id="edit_weight"
+                  type="number"
+                  step="0.1"
+                  value={cargoEditForm.weight || ''}
+                  onChange={(e) => setCargoEditForm({...cargoEditForm, weight: parseFloat(e.target.value)})}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="edit_description">Описание</Label>
+              <Textarea
+                id="edit_description"
+                value={cargoEditForm.description || ''}
+                onChange={(e) => setCargoEditForm({...cargoEditForm, description: e.target.value})}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit_sender_name">ФИО отправителя</Label>
+                <Input
+                  id="edit_sender_name"
+                  value={cargoEditForm.sender_full_name || ''}
+                  onChange={(e) => setCargoEditForm({...cargoEditForm, sender_full_name: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit_sender_phone">Телефон отправителя</Label>
+                <Input
+                  id="edit_sender_phone"
+                  value={cargoEditForm.sender_phone || ''}
+                  onChange={(e) => setCargoEditForm({...cargoEditForm, sender_phone: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => setCargoEditModal(false)}>
+                Отмена
+              </Button>
+              <Button onClick={handleUpdateCargo}>
+                Сохранить изменения
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Модальное окно перемещения груза */}
+      <Dialog open={cargoMoveModal} onOpenChange={setCargoMoveModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Перемещение груза {editingCargo?.cargo_number}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="move_warehouse">Склад</Label>
+              <Select
+                value={cargoMoveForm.warehouse_id}
+                onValueChange={(value) => setCargoMoveForm({...cargoMoveForm, warehouse_id: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите склад" />
+                </SelectTrigger>
+                <SelectContent>
+                  {warehouses.map((warehouse) => (
+                    <SelectItem key={warehouse.id} value={warehouse.id}>
+                      {warehouse.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="move_block">Блок</Label>
+                <Input
+                  id="move_block"
+                  type="number"
+                  min="1"
+                  value={cargoMoveForm.block_number}
+                  onChange={(e) => setCargoMoveForm({...cargoMoveForm, block_number: parseInt(e.target.value)})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="move_shelf">Полка</Label>
+                <Input
+                  id="move_shelf"
+                  type="number"
+                  min="1"
+                  value={cargoMoveForm.shelf_number}
+                  onChange={(e) => setCargoMoveForm({...cargoMoveForm, shelf_number: parseInt(e.target.value)})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="move_cell">Ячейка</Label>
+                <Input
+                  id="move_cell"
+                  type="number"
+                  min="1"
+                  value={cargoMoveForm.cell_number}
+                  onChange={(e) => setCargoMoveForm({...cargoMoveForm, cell_number: parseInt(e.target.value)})}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => setCargoMoveModal(false)}>
+                Отмена
+              </Button>
+              <Button onClick={handleMoveCargoSubmit}>
+                Переместить
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Alerts */}
       <div className="fixed top-4 right-4 space-y-2 z-50">
         {alerts.map((alert) => (
