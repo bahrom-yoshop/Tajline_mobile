@@ -3587,6 +3587,24 @@ function App() {
                               required
                             />
                           </div>
+                          <div>
+                            <Label htmlFor="pickup_address">Адрес забора груза</Label>
+                            <Input
+                              id="pickup_address"
+                              value={requestForm.pickup_address}
+                              onChange={(e) => setRequestForm({...requestForm, pickup_address: e.target.value})}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="cargo_name">Название груза</Label>
+                            <Input
+                              id="cargo_name"
+                              value={requestForm.cargo_name}
+                              onChange={(e) => setRequestForm({...requestForm, cargo_name: e.target.value})}
+                              required
+                            />
+                          </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <Label htmlFor="weight">Вес (кг)</Label>
