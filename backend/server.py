@@ -2543,7 +2543,7 @@ async def search_cargo_detailed(
                 "warehouse": warehouse_info,
                 "cell": location_info,
                 "transport": transport_info,
-                "status_description": get_location_description(cargo)
+                "status_description": _get_location_description(cargo)
             },
             
             # Информация об операторах
@@ -2581,7 +2581,7 @@ async def search_cargo_detailed(
         ]
     }
 
-def get_location_description(cargo):
+def _get_location_description(cargo):
     """Получить описание местоположения груза"""
     status = cargo.get("status", "unknown")
     
