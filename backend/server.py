@@ -36,7 +36,7 @@ db = client.cargo_transport
 # JWT настройки
 SECRET_KEY = "cargo_transport_secret_key_2025"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 часов для более удобной работы
 
 security = HTTPBearer()
 
