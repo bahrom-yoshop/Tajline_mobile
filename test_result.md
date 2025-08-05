@@ -397,6 +397,18 @@ backend:
           agent: "testing"
           comment: "✅ PASSED - Transport Cargo Return System fully implemented and working correctly. All core functionality tested successfully: 1) DELETE /api/transport/{transport_id}/remove-cargo/{cargo_id} endpoint works correctly ✅, 2) Searches cargo in both cargo and operator_cargo collections ✅, 3) Returns cargo to original warehouse cell if available ✅, 4) Sets status to ACCEPTED if original cell unavailable ✅, 5) Updates transport load calculations correctly (prevents negative loads) ✅, 6) Creates user notifications for cargo returns ✅, 7) Tracks operator who performed the return (returned_by_operator fields) ✅, 8) Access control works (admin/warehouse_operator only) ✅, 9) Error handling works for invalid transport/cargo IDs ✅, 10) Prevents cargo removal from IN_TRANSIT transports ✅. The system provides comprehensive cargo return functionality with proper data integrity and user notifications."
 
+  - task: "QR Code Generation and Management System"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ IMPLEMENTED - Added comprehensive QR code system: 1) generate_cargo_qr_code() function creates QR with cargo details (number, name, weight, sender, recipient, phones, city), 2) generate_warehouse_cell_qr_code() for warehouse cells, 3) Auto-generation of QR codes during cargo creation, 4) API endpoints: GET /api/cargo/{cargo_id}/qr-code, GET /api/warehouse/{warehouse_id}/cell-qr/{block}/{shelf}/{cell}, GET /api/warehouse/{warehouse_id}/all-cells-qr, POST /api/qr/scan for QR scanning."
+
   - task: "Transport Access Control"
     implemented: true
     working: true
