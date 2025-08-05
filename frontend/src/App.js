@@ -125,6 +125,10 @@ function App() {
   const [transportCargoList, setTransportCargoList] = useState([]);
   const [contactModal, setContactModal] = useState(false);
 
+  // Search and header states
+  const [searchType, setSearchType] = useState('all');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+
   // Operator-warehouse management states
   const [operatorWarehouseBindings, setOperatorWarehouseBindings] = useState([]);
   const [operatorBindingModal, setOperatorBindingModal] = useState(false);
