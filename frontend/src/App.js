@@ -3347,7 +3347,7 @@ function App() {
                                 type="button"
                                 variant="outline"
                                 onClick={calculateCargoCost}
-                                disabled={isCalculating || !cargoOrderForm.weight || !cargoOrderForm.declared_value}
+                                disabled={isCalculating || !cargoOrderForm.weight || !cargoOrderForm.declared_value || !cargoOrderForm.cargo_name}
                               >
                                 <Calculator className="mr-2 h-4 w-4" />
                                 {isCalculating ? 'Расчет...' : 'Рассчитать стоимость'}
