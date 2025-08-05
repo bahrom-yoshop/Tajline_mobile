@@ -1368,9 +1368,26 @@ async def accept_new_cargo(
     cargo_data: OperatorCargoCreate,
     current_user: User = Depends(get_current_user)
 ):
+    """Принять новый груз оператором (1.4 - только на привязанные склады)"""
     # Проверяем права доступа
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Для операторов проверяем привязки к складам
+    if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+        operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+        if not operator_warehouse_ids:
+            raise HTTPException(status_code=403, detail="No warehouses assigned to this operator. Cannot accept cargo.")
+        
+        # Автоматически выбираем первый привязанный склад как целевой
+        target_warehouse_id = operator_warehouse_ids[0]
+        warehouse = db.warehouses.find_one({"id": target_warehouse_id})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Target warehouse not found")
+    else:
+        # Админ может принимать грузы на любой склад (пока без указания конкретного)
+        target_warehouse_id = None
+        warehouse = None
     
     cargo_id = str(uuid.uuid4())
     cargo_number = generate_cargo_number()
@@ -1394,6 +1411,8 @@ async def accept_new_cargo(
         "updated_at": datetime.utcnow(),
         "created_by": current_user.id,
         "created_by_operator": current_user.full_name,  # ФИО оператора
+        "target_warehouse_id": target_warehouse_id,  # Целевой склад для размещения
+        "target_warehouse_name": warehouse.get("name") if warehouse else None,
         "warehouse_location": None,
         "warehouse_id": None,
         "block_number": None,
@@ -1408,10 +1427,14 @@ async def accept_new_cargo(
     
     db.operator_cargo.insert_one(cargo)
     
-    # Создание уведомления
+    # Создание уведомления с информацией о целевом складе
+    notification_message = f"Принят новый груз {cargo_number} от {cargo_data.sender_full_name}"
+    if warehouse:
+        notification_message += f" (целевой склад: {warehouse['name']})"
+    
     create_notification(
         current_user.id,
-        f"Принят новый груз {cargo_number} от {cargo_data.sender_full_name}",
+        notification_message,
         cargo_id
     )
     
