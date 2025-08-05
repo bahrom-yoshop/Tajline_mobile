@@ -58,7 +58,7 @@ function App() {
     cargo_name: '',
     description: '',
     weight: '',
-    declared_value: '',
+    declared_value: '80', // По умолчанию для Москва → Душанбе
     recipient_full_name: '',
     recipient_phone: '',
     recipient_address: '',
