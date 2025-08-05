@@ -1379,6 +1379,11 @@ async def get_unpaid_cargo(
         "payment_status": {"$ne": "paid"}
     }).sort("created_at", -1))
     
+    # Ensure cargo_name field exists for backward compatibility
+    for cargo in unpaid_cargo:
+        if 'cargo_name' not in cargo:
+            cargo['cargo_name'] = cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз'
+    
     return [CargoWithLocation(**cargo) for cargo in unpaid_cargo]
 
 @app.get("/api/cashier/payment-history")
