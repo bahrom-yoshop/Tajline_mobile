@@ -3267,6 +3267,759 @@ class CargoTransportAPITester:
         
         return all_success
 
+    def test_warehouse_cell_management_system(self):
+        """Test new warehouse cell management endpoints"""
+        print("\n🏢 WAREHOUSE CELL MANAGEMENT SYSTEM")
+        all_success = True
+        
+        # First, ensure we have a warehouse and some cargo
+        if not hasattr(self, 'warehouse_id') or not self.warehouse_id:
+            print("   ⚠️ No warehouse available, creating one...")
+            warehouse_data = {
+                "name": "Тестовый Склад для Ячеек",
+                "location": "Москва, ул. Ячеечная, 1",
+                "blocks_count": 2,
+                "shelves_per_block": 2,
+                "cells_per_shelf": 3
+            }
+            
+            success, warehouse_response = self.run_test(
+                "Create Warehouse for Cell Management",
+                "POST",
+                "/api/warehouses/create",
+                200,
+                warehouse_data,
+                self.tokens['admin']
+            )
+            
+            if success and 'id' in warehouse_response:
+                self.warehouse_id = warehouse_response['id']
+            else:
+                print("   ❌ Failed to create warehouse for cell management tests")
+                return False
+        
+        # Create test cargo for cell management
+        test_cargo_data = {
+            "sender_full_name": "Ячейка Отправитель",
+            "sender_phone": "+79111222333",
+            "recipient_full_name": "Ячейка Получатель", 
+            "recipient_phone": "+992444555666",
+            "recipient_address": "Душанбе, ул. Ячеечная, 10",
+            "weight": 5.0,
+            "cargo_name": "Тестовый Груз для Ячеек",
+            "declared_value": 2500.0,
+            "description": "Груз для тестирования управления ячейками",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create Cargo for Cell Management",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            test_cargo_data,
+            self.tokens['warehouse_operator']
+        )
+        
+        if not success or 'id' not in cargo_response:
+            print("   ❌ Failed to create cargo for cell management tests")
+            return False
+            
+        cell_cargo_id = cargo_response['id']
+        cell_cargo_number = cargo_response['cargo_number']
+        
+        # Place cargo in warehouse cell
+        placement_data = {
+            "cargo_id": cell_cargo_id,
+            "block_number": 1,
+            "shelf_number": 1,
+            "cell_number": 1
+        }
+        
+        success, _ = self.run_test(
+            "Place Cargo in Cell for Management Tests",
+            "POST",
+            "/api/operator/cargo/place-auto",
+            200,
+            placement_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if not success:
+            print("   ❌ Failed to place cargo in cell")
+            return False
+        
+        # Test 1: Get cargo information from specific warehouse cell
+        print("\n   📍 Testing Get Cargo in Cell...")
+        location_code = "B1-S1-C1"
+        success, cell_cargo_response = self.run_test(
+            "Get Cargo in Warehouse Cell",
+            "GET",
+            f"/api/warehouse/{self.warehouse_id}/cell/{location_code}/cargo",
+            200,
+            None,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success and cell_cargo_response:
+            print(f"   ✅ Found cargo in cell: {cell_cargo_response.get('cargo_number', 'Unknown')}")
+            if cell_cargo_response.get('id') == cell_cargo_id:
+                print(f"   ✅ Correct cargo found in cell")
+            else:
+                print(f"   ❌ Wrong cargo found in cell")
+                all_success = False
+        
+        # Test 2: Get cargo details endpoint
+        print("\n   📋 Testing Get Cargo Details...")
+        success, cargo_details = self.run_test(
+            "Get Comprehensive Cargo Details",
+            "GET",
+            f"/api/cargo/{cell_cargo_id}/details",
+            200,
+            None,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success and cargo_details:
+            print(f"   ✅ Cargo details retrieved: {cargo_details.get('cargo_number', 'Unknown')}")
+            expected_fields = ['cargo_number', 'sender_full_name', 'recipient_full_name', 'weight', 'warehouse_location']
+            missing_fields = [field for field in expected_fields if field not in cargo_details]
+            if not missing_fields:
+                print(f"   ✅ All expected fields present in cargo details")
+            else:
+                print(f"   ⚠️ Missing fields in cargo details: {missing_fields}")
+        
+        # Test 3: Update cargo details with field validation
+        print("\n   ✏️ Testing Update Cargo Details...")
+        update_data = {
+            "cargo_name": "Обновленное Название Груза",
+            "description": "Обновленное описание груза",
+            "weight": 5.5,
+            "declared_value": 2750.0,
+            "recipient_address": "Душанбе, ул. Обновленная, 15"
+        }
+        
+        success, _ = self.run_test(
+            "Update Cargo Details",
+            "PUT",
+            f"/api/cargo/{cell_cargo_id}/update",
+            200,
+            update_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        # Verify update worked
+        if success:
+            success, updated_cargo = self.run_test(
+                "Verify Cargo Update",
+                "GET",
+                f"/api/cargo/{cell_cargo_id}/details",
+                200,
+                None,
+                self.tokens['warehouse_operator']
+            )
+            
+            if success and updated_cargo:
+                if updated_cargo.get('cargo_name') == update_data['cargo_name']:
+                    print(f"   ✅ Cargo name updated successfully")
+                else:
+                    print(f"   ❌ Cargo name not updated properly")
+                    all_success = False
+                
+                if 'updated_by_operator' in updated_cargo:
+                    print(f"   ✅ Operator tracking added to update")
+                else:
+                    print(f"   ❌ Operator tracking missing from update")
+                    all_success = False
+        
+        # Test 4: Try to update with invalid fields (should be filtered)
+        print("\n   🚫 Testing Update Field Validation...")
+        invalid_update_data = {
+            "cargo_number": "9999",  # Should not be allowed
+            "id": "fake-id",  # Should not be allowed
+            "cargo_name": "Valid Update",  # Should be allowed
+            "invalid_field": "Should be ignored"  # Should be ignored
+        }
+        
+        success, _ = self.run_test(
+            "Update with Invalid Fields",
+            "PUT",
+            f"/api/cargo/{cell_cargo_id}/update",
+            200,
+            invalid_update_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        # Verify invalid fields were not updated
+        if success:
+            success, cargo_after_invalid = self.run_test(
+                "Verify Invalid Fields Not Updated",
+                "GET",
+                f"/api/cargo/{cell_cargo_id}/details",
+                200,
+                None,
+                self.tokens['warehouse_operator']
+            )
+            
+            if success and cargo_after_invalid:
+                if cargo_after_invalid.get('cargo_number') != "9999":
+                    print(f"   ✅ Cargo number protected from unauthorized update")
+                else:
+                    print(f"   ❌ Cargo number was illegally updated")
+                    all_success = False
+                
+                if cargo_after_invalid.get('cargo_name') == "Valid Update":
+                    print(f"   ✅ Valid field was updated")
+                else:
+                    print(f"   ❌ Valid field was not updated")
+                    all_success = False
+        
+        # Test 5: Move cargo between cells
+        print("\n   🔄 Testing Move Cargo Between Cells...")
+        new_location = {
+            "warehouse_id": self.warehouse_id,
+            "block_number": 1,
+            "shelf_number": 2,
+            "cell_number": 1
+        }
+        
+        success, move_response = self.run_test(
+            "Move Cargo to Different Cell",
+            "POST",
+            f"/api/warehouse/cargo/{cell_cargo_id}/move",
+            200,
+            new_location,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success and move_response:
+            new_location_code = move_response.get('new_location')
+            print(f"   ✅ Cargo moved to new location: {new_location_code}")
+            
+            # Verify old cell is now empty
+            success, _ = self.run_test(
+                "Verify Old Cell is Empty",
+                "GET",
+                f"/api/warehouse/{self.warehouse_id}/cell/B1-S1-C1/cargo",
+                404,  # Should not find cargo
+                None,
+                self.tokens['warehouse_operator']
+            )
+            
+            if success:
+                print(f"   ✅ Old cell is now empty")
+            else:
+                print(f"   ❌ Old cell still shows as occupied")
+                all_success = False
+            
+            # Verify cargo is in new cell
+            success, new_cell_cargo = self.run_test(
+                "Verify Cargo in New Cell",
+                "GET",
+                f"/api/warehouse/{self.warehouse_id}/cell/{new_location_code}/cargo",
+                200,
+                None,
+                self.tokens['warehouse_operator']
+            )
+            
+            if success and new_cell_cargo and new_cell_cargo.get('id') == cell_cargo_id:
+                print(f"   ✅ Cargo found in new cell")
+            else:
+                print(f"   ❌ Cargo not found in new cell")
+                all_success = False
+        
+        # Test 6: Try to move cargo to occupied cell (should fail)
+        print("\n   🚫 Testing Move to Occupied Cell...")
+        
+        # First create another cargo and place it
+        another_cargo_data = {
+            "sender_full_name": "Другой Отправитель",
+            "sender_phone": "+79777888999",
+            "recipient_full_name": "Другой Получатель",
+            "recipient_phone": "+992111222333",
+            "recipient_address": "Душанбе, ул. Другая, 20",
+            "weight": 3.0,
+            "cargo_name": "Другой Груз",
+            "declared_value": 1500.0,
+            "description": "Другой груз для тестирования",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, another_cargo_response = self.run_test(
+            "Create Another Cargo for Occupied Cell Test",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            another_cargo_data,
+            self.tokens['warehouse_operator']
+        )
+        
+        if success and 'id' in another_cargo_response:
+            another_cargo_id = another_cargo_response['id']
+            
+            # Place it in a different cell
+            another_placement_data = {
+                "cargo_id": another_cargo_id,
+                "block_number": 2,
+                "shelf_number": 1,
+                "cell_number": 1
+            }
+            
+            success, _ = self.run_test(
+                "Place Another Cargo in Different Cell",
+                "POST",
+                "/api/operator/cargo/place-auto",
+                200,
+                another_placement_data,
+                self.tokens['warehouse_operator']
+            )
+            
+            if success:
+                # Now try to move first cargo to the occupied cell
+                occupied_location = {
+                    "warehouse_id": self.warehouse_id,
+                    "block_number": 2,
+                    "shelf_number": 1,
+                    "cell_number": 1
+                }
+                
+                success, _ = self.run_test(
+                    "Move Cargo to Occupied Cell (Should Fail)",
+                    "POST",
+                    f"/api/warehouse/cargo/{cell_cargo_id}/move",
+                    400,  # Should fail
+                    occupied_location,
+                    self.tokens['warehouse_operator']
+                )
+                all_success &= success
+        
+        # Test 7: Remove cargo from cell
+        print("\n   🗑️ Testing Remove Cargo from Cell...")
+        success, _ = self.run_test(
+            "Remove Cargo from Cell",
+            "DELETE",
+            f"/api/warehouse/cargo/{cell_cargo_id}/remove",
+            200,
+            None,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success:
+            # Verify cell is now empty
+            success, _ = self.run_test(
+                "Verify Cell is Empty After Removal",
+                "GET",
+                f"/api/warehouse/{self.warehouse_id}/cell/B1-S2-C1/cargo",
+                404,  # Should not find cargo
+                None,
+                self.tokens['warehouse_operator']
+            )
+            
+            if success:
+                print(f"   ✅ Cell is now empty after cargo removal")
+            else:
+                print(f"   ❌ Cell still shows as occupied after removal")
+                all_success = False
+            
+            # Verify cargo status was reset
+            success, removed_cargo = self.run_test(
+                "Verify Cargo Status After Removal",
+                "GET",
+                f"/api/cargo/{cell_cargo_id}/details",
+                200,
+                None,
+                self.tokens['warehouse_operator']
+            )
+            
+            if success and removed_cargo:
+                if removed_cargo.get('status') == 'accepted':
+                    print(f"   ✅ Cargo status reset to 'accepted'")
+                else:
+                    print(f"   ❌ Cargo status not properly reset: {removed_cargo.get('status')}")
+                    all_success = False
+                
+                if not removed_cargo.get('warehouse_location'):
+                    print(f"   ✅ Cargo warehouse location cleared")
+                else:
+                    print(f"   ❌ Cargo warehouse location not cleared")
+                    all_success = False
+        
+        return all_success
+
+    def test_automatic_cell_liberation_on_transport(self):
+        """Test automatic cell liberation when cargo is placed on transport"""
+        print("\n🚛 AUTOMATIC CELL LIBERATION ON TRANSPORT")
+        all_success = True
+        
+        # Create test cargo and place in warehouse
+        liberation_cargo_data = {
+            "sender_full_name": "Освобождение Отправитель",
+            "sender_phone": "+79555666777",
+            "recipient_full_name": "Освобождение Получатель",
+            "recipient_phone": "+992888999000",
+            "recipient_address": "Душанбе, ул. Освобождения, 25",
+            "weight": 4.0,
+            "cargo_name": "Груз для Освобождения",
+            "declared_value": 2000.0,
+            "description": "Груз для тестирования автоматического освобождения ячеек",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, liberation_cargo_response = self.run_test(
+            "Create Cargo for Liberation Test",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            liberation_cargo_data,
+            self.tokens['warehouse_operator']
+        )
+        
+        if not success or 'id' not in liberation_cargo_response:
+            print("   ❌ Failed to create cargo for liberation test")
+            return False
+        
+        liberation_cargo_id = liberation_cargo_response['id']
+        liberation_cargo_number = liberation_cargo_response['cargo_number']
+        
+        # Place cargo in warehouse cell
+        liberation_placement_data = {
+            "cargo_id": liberation_cargo_id,
+            "block_number": 1,
+            "shelf_number": 1,
+            "cell_number": 2
+        }
+        
+        success, _ = self.run_test(
+            "Place Cargo for Liberation Test",
+            "POST",
+            "/api/operator/cargo/place-auto",
+            200,
+            liberation_placement_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if not success:
+            print("   ❌ Failed to place cargo for liberation test")
+            return False
+        
+        # Verify cargo is in cell
+        success, cell_cargo = self.run_test(
+            "Verify Cargo is in Cell Before Transport",
+            "GET",
+            f"/api/warehouse/{self.warehouse_id}/cell/B1-S1-C2/cargo",
+            200,
+            None,
+            self.tokens['warehouse_operator']
+        )
+        
+        if success and cell_cargo and cell_cargo.get('id') == liberation_cargo_id:
+            print(f"   ✅ Cargo confirmed in cell before transport placement")
+        else:
+            print(f"   ❌ Cargo not found in expected cell")
+            return False
+        
+        # Create transport for testing
+        transport_data = {
+            "driver_name": "Водитель Освобождения",
+            "driver_phone": "+79111222333",
+            "transport_number": "LIB001",
+            "capacity_kg": 1000.0,
+            "direction": "Москва → Душанбе"
+        }
+        
+        success, transport_response = self.run_test(
+            "Create Transport for Liberation Test",
+            "POST",
+            "/api/transport/create",
+            200,
+            transport_data,
+            self.tokens['admin']
+        )
+        
+        if not success or 'id' not in transport_response:
+            print("   ❌ Failed to create transport for liberation test")
+            return False
+        
+        liberation_transport_id = transport_response['id']
+        
+        # Place cargo on transport (this should automatically free the warehouse cell)
+        transport_placement_data = {
+            "transport_id": liberation_transport_id,
+            "cargo_numbers": [liberation_cargo_number]
+        }
+        
+        success, placement_response = self.run_test(
+            "Place Cargo on Transport (Should Free Cell)",
+            "POST",
+            f"/api/transport/{liberation_transport_id}/place-cargo",
+            200,
+            transport_placement_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success:
+            print(f"   ✅ Cargo placed on transport successfully")
+            
+            # Test automatic cell liberation - cell should now be empty
+            success, _ = self.run_test(
+                "Verify Cell is Automatically Freed",
+                "GET",
+                f"/api/warehouse/{self.warehouse_id}/cell/B1-S1-C2/cargo",
+                404,  # Should not find cargo
+                None,
+                self.tokens['warehouse_operator']
+            )
+            
+            if success:
+                print(f"   ✅ Warehouse cell automatically freed when cargo placed on transport")
+            else:
+                print(f"   ❌ Warehouse cell not automatically freed")
+                all_success = False
+            
+            # Verify cargo location fields are cleared
+            success, cargo_after_transport = self.run_test(
+                "Verify Cargo Location Cleared",
+                "GET",
+                f"/api/cargo/{liberation_cargo_id}/details",
+                200,
+                None,
+                self.tokens['warehouse_operator']
+            )
+            
+            if success and cargo_after_transport:
+                if not cargo_after_transport.get('warehouse_location'):
+                    print(f"   ✅ Cargo warehouse_location cleared")
+                else:
+                    print(f"   ❌ Cargo warehouse_location not cleared: {cargo_after_transport.get('warehouse_location')}")
+                    all_success = False
+                
+                if not cargo_after_transport.get('warehouse_id'):
+                    print(f"   ✅ Cargo warehouse_id cleared")
+                else:
+                    print(f"   ❌ Cargo warehouse_id not cleared")
+                    all_success = False
+                
+                if cargo_after_transport.get('status') == 'in_transit':
+                    print(f"   ✅ Cargo status updated to 'in_transit'")
+                else:
+                    print(f"   ❌ Cargo status not updated properly: {cargo_after_transport.get('status')}")
+                    all_success = False
+                
+                if cargo_after_transport.get('transport_id') == liberation_transport_id:
+                    print(f"   ✅ Cargo transport_id set correctly")
+                else:
+                    print(f"   ❌ Cargo transport_id not set")
+                    all_success = False
+        
+        return all_success
+
+    def test_full_warehouse_cell_integration_flow(self):
+        """Test complete warehouse cell management workflow"""
+        print("\n🔄 FULL WAREHOUSE CELL INTEGRATION FLOW")
+        all_success = True
+        
+        # Step 1: Create operator-warehouse binding (if not exists)
+        if not hasattr(self, 'binding_created') or not self.binding_created:
+            binding_data = {
+                "operator_id": self.users['warehouse_operator']['id'],
+                "warehouse_id": self.warehouse_id
+            }
+            
+            success, _ = self.run_test(
+                "Create Operator-Warehouse Binding for Integration",
+                "POST",
+                "/api/admin/operator-warehouse-binding",
+                200,
+                binding_data,
+                self.tokens['admin']
+            )
+            
+            if success:
+                self.binding_created = True
+                print(f"   ✅ Operator-warehouse binding created")
+            else:
+                print(f"   ⚠️ Binding may already exist, continuing...")
+        
+        # Step 2: Create and place cargo in warehouse cell
+        integration_cargo_data = {
+            "sender_full_name": "Интеграция Отправитель",
+            "sender_phone": "+79666777888",
+            "recipient_full_name": "Интеграция Получатель",
+            "recipient_phone": "+992333444555",
+            "recipient_address": "Душанбе, ул. Интеграционная, 30",
+            "weight": 7.0,
+            "cargo_name": "Интеграционный Груз",
+            "declared_value": 3500.0,
+            "description": "Груз для полного интеграционного тестирования",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, integration_cargo_response = self.run_test(
+            "Create Cargo for Integration Flow",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            integration_cargo_data,
+            self.tokens['warehouse_operator']
+        )
+        
+        if not success or 'id' not in integration_cargo_response:
+            print("   ❌ Failed to create cargo for integration flow")
+            return False
+        
+        integration_cargo_id = integration_cargo_response['id']
+        integration_cargo_number = integration_cargo_response['cargo_number']
+        
+        # Place cargo in warehouse cell
+        integration_placement_data = {
+            "cargo_id": integration_cargo_id,
+            "block_number": 2,
+            "shelf_number": 1,
+            "cell_number": 2
+        }
+        
+        success, _ = self.run_test(
+            "Place Cargo in Cell (Integration Flow)",
+            "POST",
+            "/api/operator/cargo/place-auto",
+            200,
+            integration_placement_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if not success:
+            return False
+        
+        print(f"   ✅ Step 1: Cargo placed in warehouse cell")
+        
+        # Step 3: View cargo details and edit
+        success, cargo_details = self.run_test(
+            "View Cargo Details (Integration Flow)",
+            "GET",
+            f"/api/cargo/{integration_cargo_id}/details",
+            200,
+            None,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success:
+            print(f"   ✅ Step 2: Cargo details viewed successfully")
+            
+            # Edit cargo details
+            edit_data = {
+                "cargo_name": "Отредактированный Интеграционный Груз",
+                "description": "Обновленное описание для интеграционного тестирования",
+                "weight": 7.5
+            }
+            
+            success, _ = self.run_test(
+                "Edit Cargo Details (Integration Flow)",
+                "PUT",
+                f"/api/cargo/{integration_cargo_id}/update",
+                200,
+                edit_data,
+                self.tokens['warehouse_operator']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Step 3: Cargo details edited successfully")
+        
+        # Step 4: Move cargo to different cell
+        new_integration_location = {
+            "warehouse_id": self.warehouse_id,
+            "block_number": 2,
+            "shelf_number": 2,
+            "cell_number": 1
+        }
+        
+        success, move_response = self.run_test(
+            "Move Cargo to Different Cell (Integration Flow)",
+            "POST",
+            f"/api/warehouse/cargo/{integration_cargo_id}/move",
+            200,
+            new_integration_location,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success:
+            print(f"   ✅ Step 4: Cargo moved to different cell")
+        
+        # Step 5: Create transport and place cargo on it (verify cell liberation)
+        integration_transport_data = {
+            "driver_name": "Интеграционный Водитель",
+            "driver_phone": "+79444555666",
+            "transport_number": "INT001",
+            "capacity_kg": 2000.0,
+            "direction": "Москва → Душанбе (Интеграция)"
+        }
+        
+        success, integration_transport_response = self.run_test(
+            "Create Transport (Integration Flow)",
+            "POST",
+            "/api/transport/create",
+            200,
+            integration_transport_data,
+            self.tokens['admin']
+        )
+        
+        if success and 'id' in integration_transport_response:
+            integration_transport_id = integration_transport_response['id']
+            
+            # Place cargo on transport
+            integration_transport_placement = {
+                "transport_id": integration_transport_id,
+                "cargo_numbers": [integration_cargo_number]
+            }
+            
+            success, _ = self.run_test(
+                "Place Cargo on Transport (Integration Flow)",
+                "POST",
+                f"/api/transport/{integration_transport_id}/place-cargo",
+                200,
+                integration_transport_placement,
+                self.tokens['warehouse_operator']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Step 5: Cargo placed on transport with automatic cell liberation")
+                
+                # Verify cell is freed
+                success, _ = self.run_test(
+                    "Verify Cell Liberation (Integration Flow)",
+                    "GET",
+                    f"/api/warehouse/{self.warehouse_id}/cell/B2-S2-C1/cargo",
+                    404,
+                    None,
+                    self.tokens['warehouse_operator']
+                )
+                
+                if success:
+                    print(f"   ✅ Step 6: Warehouse cell automatically liberated")
+                else:
+                    print(f"   ❌ Step 6: Cell not properly liberated")
+                    all_success = False
+        
+        if all_success:
+            print(f"   🎉 FULL INTEGRATION FLOW COMPLETED SUCCESSFULLY")
+        else:
+            print(f"   ❌ Integration flow had issues")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
