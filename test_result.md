@@ -102,7 +102,44 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Add advanced logistics management with operator-warehouse binding and enhanced cargo placement. User requests: 1) Allow cargo placement on transport from all warehouses by number for admin/operators, 2) Bind operators to specific warehouses by name and phone - operators can only work with their assigned warehouses, 3) Display operator name who accepted/placed cargo on all cargo cards and invoices."
+user_problem_statement: "Enhance user experience with automatic warehouse selection, cargo naming, and improved header functionality. User requests: 1) Automatic warehouse selection for operators during cargo placement (operators choose only block/shelf, warehouse auto-selected from bindings), 2) Add cargo name field and display it in all cargo lists after cargo number, 3) Add header with all notifications and cargo search functionality (by number, sender name, recipient name, phone) for operators and admins."
+
+backend:
+  - task: "Automatic Warehouse Selection for Operators"
+    implemented: false
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to modify cargo placement logic to automatically select warehouse for operators based on their bindings, operators should only choose block and shelf."
+
+  - task: "Cargo Name Field Integration"
+    implemented: false
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to add cargo name field to cargo models and ensure it's displayed in all cargo lists after cargo number."
+
+  - task: "Advanced Cargo Search System"
+    implemented: false
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to implement advanced search functionality for cargo by number, sender name, recipient name, and phone number for operators and admins."
 
 backend:
   - task: "Operator-Warehouse Binding System"
