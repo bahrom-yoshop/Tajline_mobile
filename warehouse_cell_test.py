@@ -10,7 +10,7 @@ import json
 from datetime import datetime
 
 class WarehouseCellTester:
-    def __init__(self, base_url="https://0e35b3b9-2501-4852-a355-3ced71c42616.preview.emergentagent.com"):
+    def __init__(self, base_url="https://e7681a22-bb30-459c-a757-9886ce0f6847.preview.emergentagent.com"):
         self.base_url = base_url
         self.tokens = {}
         self.users = {}

@@ -7,7 +7,7 @@ import requests
 import json
 
 def test_debug_endpoint():
-    base_url = "https://0e35b3b9-2501-4852-a355-3ced71c42616.preview.emergentagent.com"
+    base_url = "https://e7681a22-bb30-459c-a757-9886ce0f6847.preview.emergentagent.com"
     
     print("🔧 TESTING DEBUG ENDPOINT")
     print("="*30)
