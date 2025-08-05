@@ -15,7 +15,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { 
   Truck, Package, Users, Bell, Search, Plus, Edit, Trash2, CheckCircle, 
   Clock, MapPin, User, Shield, Warehouse, Menu, X, Building, 
-  DollarSign, FileText, Grid3X3, Package2, Home, CreditCard, Printer, Zap, MessageCircle
+  DollarSign, FileText, Grid3X3, Package2, Home, CreditCard, Printer, Zap, MessageCircle,
+  QrCode, Camera, Download
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
