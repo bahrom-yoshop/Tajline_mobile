@@ -2736,10 +2736,10 @@ function App() {
                         <Button 
                           className="h-20 flex-col" 
                           variant="outline"
-                          onClick={() => setActiveTab('requests')}
+                          onClick={() => setActiveTab('create-order')}
                         >
                           <Plus className="h-6 w-6 mb-2" />
-                          Подать заявку на груз
+                          Оформить груз
                         </Button>
                         <Button 
                           className="h-20 flex-col" 
