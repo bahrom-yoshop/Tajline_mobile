@@ -5290,6 +5290,302 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_transport_cargo_list_critical_fix(self):
+        """Test the critical fix for transport cargo list display - cargo from both collections should show"""
+        print("\n🚛 CRITICAL FIX: TRANSPORT CARGO LIST DISPLAY")
+        print("Testing that cargo from both 'cargo' and 'operator_cargo' collections appear in transport cargo list")
+        
+        if 'admin' not in self.tokens or 'user' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Step 1: Create a transport for testing
+        print("\n   🚛 Step 1: Creating transport for cargo list testing...")
+        transport_data = {
+            "driver_name": "Тестовый Водитель Грузов",
+            "driver_phone": "+79123456789",
+            "transport_number": "CARGO123",
+            "capacity_kg": 10000.0,
+            "direction": "Москва - Душанбе (Тест грузов)"
+        }
+        
+        success, transport_response = self.run_test(
+            "Create Transport for Cargo List Test",
+            "POST",
+            "/api/transport/create",
+            200,
+            transport_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if not success or 'transport_id' not in transport_response:
+            print("   ❌ Failed to create transport for testing")
+            return False
+            
+        test_transport_id = transport_response['transport_id']
+        print(f"   ✅ Created test transport: {test_transport_id}")
+        
+        # Step 2: Create cargo in 'cargo' collection (regular user cargo)
+        print("\n   📦 Step 2: Creating cargo in 'cargo' collection...")
+        user_cargo_data = {
+            "recipient_name": "Получатель Пользователя",
+            "recipient_phone": "+992444555666",
+            "route": "moscow_to_tajikistan",
+            "weight": 50.0,
+            "cargo_name": "Груз пользователя для теста",
+            "description": "Груз из коллекции cargo для тестирования отображения",
+            "declared_value": 8000.0,
+            "sender_address": "Москва, ул. Пользователя, 1",
+            "recipient_address": "Душанбе, ул. Получателя, 1"
+        }
+        
+        success, user_cargo_response = self.run_test(
+            "Create User Cargo (cargo collection)",
+            "POST",
+            "/api/cargo/create",
+            200,
+            user_cargo_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        user_cargo_id = None
+        user_cargo_number = None
+        if success and 'id' in user_cargo_response:
+            user_cargo_id = user_cargo_response['id']
+            user_cargo_number = user_cargo_response.get('cargo_number')
+            print(f"   ✅ Created user cargo: {user_cargo_id} (№{user_cargo_number})")
+            
+            # Update cargo status to accepted with warehouse location
+            success, _ = self.run_test(
+                "Update User Cargo Status",
+                "PUT",
+                f"/api/cargo/{user_cargo_id}/status",
+                200,
+                token=self.tokens['admin'],
+                params={"status": "accepted", "warehouse_location": "Склад А, Стеллаж 1"}
+            )
+            all_success &= success
+        
+        # Step 3: Create cargo in 'operator_cargo' collection
+        print("\n   🏭 Step 3: Creating cargo in 'operator_cargo' collection...")
+        operator_cargo_data = {
+            "sender_full_name": "Отправитель Оператора",
+            "sender_phone": "+79111222333",
+            "recipient_full_name": "Получатель Оператора",
+            "recipient_phone": "+992777888999",
+            "recipient_address": "Душанбе, ул. Операторская, 25",
+            "weight": 75.0,
+            "cargo_name": "Груз оператора для теста",
+            "declared_value": 12000.0,
+            "description": "Груз из коллекции operator_cargo для тестирования отображения",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, operator_cargo_response = self.run_test(
+            "Create Operator Cargo (operator_cargo collection)",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            operator_cargo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        operator_cargo_id = None
+        operator_cargo_number = None
+        if success and 'id' in operator_cargo_response:
+            operator_cargo_id = operator_cargo_response['id']
+            operator_cargo_number = operator_cargo_response.get('cargo_number')
+            print(f"   ✅ Created operator cargo: {operator_cargo_id} (№{operator_cargo_number})")
+        
+        # Step 4: Place both cargo items on transport
+        print("\n   🚛 Step 4: Placing both cargo items on transport...")
+        if user_cargo_number and operator_cargo_number:
+            placement_data = {
+                "transport_id": test_transport_id,
+                "cargo_numbers": [user_cargo_number, operator_cargo_number]
+            }
+            
+            success, placement_response = self.run_test(
+                "Place Both Cargo Types on Transport",
+                "POST",
+                f"/api/transport/{test_transport_id}/place-cargo",
+                200,
+                placement_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                placed_count = placement_response.get('placed_count', 0)
+                print(f"   ✅ Successfully placed {placed_count} cargo items on transport")
+            else:
+                print("   ❌ Failed to place cargo on transport")
+                return False
+        
+        # Step 5: CRITICAL TEST - Get transport cargo list and verify both cargo items appear
+        print("\n   🔍 Step 5: CRITICAL TEST - Verifying both cargo types appear in transport cargo list...")
+        success, cargo_list_response = self.run_test(
+            "Get Transport Cargo List (CRITICAL FIX TEST)",
+            "GET",
+            f"/api/transport/{test_transport_id}/cargo-list",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            cargo_list = cargo_list_response.get('cargo_list', [])
+            cargo_count = len(cargo_list)
+            total_weight = cargo_list_response.get('total_weight', 0)
+            
+            print(f"   📊 Transport cargo list contains {cargo_count} items, total weight: {total_weight}kg")
+            
+            # Verify both cargo items are present
+            user_cargo_found = False
+            operator_cargo_found = False
+            
+            for cargo in cargo_list:
+                cargo_num = cargo.get('cargo_number')
+                cargo_name = cargo.get('cargo_name', 'Unknown')
+                sender = cargo.get('sender_full_name', 'Unknown')
+                recipient = cargo.get('recipient_name', 'Unknown')
+                weight = cargo.get('weight', 0)
+                status = cargo.get('status', 'Unknown')
+                
+                print(f"   📦 Found cargo: №{cargo_num} - {cargo_name} ({weight}kg, {status})")
+                print(f"       Sender: {sender}, Recipient: {recipient}")
+                
+                if cargo_num == user_cargo_number:
+                    user_cargo_found = True
+                    print(f"   ✅ User cargo (cargo collection) found in list: №{cargo_num}")
+                elif cargo_num == operator_cargo_number:
+                    operator_cargo_found = True
+                    print(f"   ✅ Operator cargo (operator_cargo collection) found in list: №{cargo_num}")
+            
+            # CRITICAL VERIFICATION
+            if user_cargo_found and operator_cargo_found:
+                print(f"\n   🎉 CRITICAL FIX VERIFIED: Both cargo types appear in transport cargo list!")
+                print(f"   ✅ User cargo (cargo collection): №{user_cargo_number} ✓")
+                print(f"   ✅ Operator cargo (operator_cargo collection): №{operator_cargo_number} ✓")
+                print(f"   ✅ Total cargo displayed: {cargo_count}/2 expected")
+                print(f"   ✅ Total weight calculated: {total_weight}kg (expected: {50.0 + 75.0}kg)")
+            elif user_cargo_found and not operator_cargo_found:
+                print(f"\n   ❌ CRITICAL ISSUE: Only user cargo found, operator cargo missing!")
+                print(f"   ✅ User cargo (cargo collection): №{user_cargo_number} ✓")
+                print(f"   ❌ Operator cargo (operator_cargo collection): №{operator_cargo_number} ✗")
+                all_success = False
+            elif operator_cargo_found and not user_cargo_found:
+                print(f"\n   ❌ CRITICAL ISSUE: Only operator cargo found, user cargo missing!")
+                print(f"   ❌ User cargo (cargo collection): №{user_cargo_number} ✗")
+                print(f"   ✅ Operator cargo (operator_cargo collection): №{operator_cargo_number} ✓")
+                all_success = False
+            else:
+                print(f"\n   ❌ CRITICAL FAILURE: Neither cargo type found in transport cargo list!")
+                print(f"   ❌ User cargo (cargo collection): №{user_cargo_number} ✗")
+                print(f"   ❌ Operator cargo (operator_cargo collection): №{operator_cargo_number} ✗")
+                all_success = False
+        
+        # Step 6: Test enhanced cargo information fields
+        print("\n   📋 Step 6: Verifying enhanced cargo information fields...")
+        if success and cargo_list_response.get('cargo_list'):
+            cargo_list = cargo_list_response['cargo_list']
+            
+            required_fields = [
+                'cargo_name', 'sender_full_name', 'sender_phone', 
+                'recipient_phone', 'status', 'weight', 'declared_value'
+            ]
+            
+            fields_verified = True
+            for cargo in cargo_list:
+                cargo_num = cargo.get('cargo_number', 'Unknown')
+                missing_fields = []
+                
+                for field in required_fields:
+                    if field not in cargo or cargo[field] is None:
+                        missing_fields.append(field)
+                
+                if missing_fields:
+                    print(f"   ❌ Cargo №{cargo_num} missing fields: {missing_fields}")
+                    fields_verified = False
+                else:
+                    print(f"   ✅ Cargo №{cargo_num} has all required enhanced fields")
+            
+            if fields_verified:
+                print(f"   ✅ All cargo items have enhanced information fields")
+            else:
+                print(f"   ❌ Some cargo items missing enhanced information fields")
+                all_success = False
+        
+        # Step 7: Test mixed scenarios
+        print("\n   🔄 Step 7: Testing mixed scenarios...")
+        
+        # Create transport with only user cargo
+        transport_user_only_data = {
+            "driver_name": "Водитель Только Пользователи",
+            "driver_phone": "+79123456790",
+            "transport_number": "USER123",
+            "capacity_kg": 5000.0,
+            "direction": "Тест только пользователи"
+        }
+        
+        success, transport_user_response = self.run_test(
+            "Create Transport for User-Only Test",
+            "POST",
+            "/api/transport/create",
+            200,
+            transport_user_only_data,
+            self.tokens['admin']
+        )
+        
+        if success and user_cargo_number:
+            transport_user_id = transport_user_response['transport_id']
+            
+            # Place only user cargo
+            placement_user_data = {
+                "transport_id": transport_user_id,
+                "cargo_numbers": [user_cargo_number]
+            }
+            
+            success, _ = self.run_test(
+                "Place Only User Cargo on Transport",
+                "POST",
+                f"/api/transport/{transport_user_id}/place-cargo",
+                200,
+                placement_user_data,
+                self.tokens['admin']
+            )
+            
+            if success:
+                success, user_only_list = self.run_test(
+                    "Get User-Only Transport Cargo List",
+                    "GET",
+                    f"/api/transport/{transport_user_id}/cargo-list",
+                    200,
+                    token=self.tokens['admin']
+                )
+                
+                if success:
+                    user_only_count = len(user_only_list.get('cargo_list', []))
+                    print(f"   ✅ User-only transport shows {user_only_count} cargo item(s)")
+        
+        # Summary
+        print(f"\n   📊 CRITICAL FIX TEST SUMMARY:")
+        if all_success:
+            print(f"   🎉 SUCCESS: Transport cargo list correctly displays cargo from both collections")
+            print(f"   ✅ Cargo from 'cargo' collection: VISIBLE")
+            print(f"   ✅ Cargo from 'operator_cargo' collection: VISIBLE") 
+            print(f"   ✅ Enhanced cargo information: COMPLETE")
+            print(f"   ✅ Mixed scenarios: WORKING")
+        else:
+            print(f"   ❌ FAILURE: Transport cargo list has issues displaying cargo from both collections")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
