@@ -2090,13 +2090,26 @@ function App() {
         pickup_address: '',
         cargo_name: '',
         weight: '',
-        declared_value: '',
+        declared_value: getDefaultDeclaredValue('moscow_to_tajikistan'), // Используем значение по умолчанию
         description: '',
         route: 'moscow_to_tajikistan'
       });
       fetchMyRequests();
     } catch (error) {
       console.error('Create request error:', error);
+      
+      // Правильная обработка ошибок
+      let errorMessage = 'Неизвестная ошибка при подаче заявки';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error.detail) {
+        errorMessage = error.detail;
+      }
+      
+      showAlert('Ошибка подачи заявки: ' + errorMessage, 'error');
     }
   };
 
