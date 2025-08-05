@@ -2299,6 +2299,249 @@ async def delete_transport(
     
     return {"message": "Transport deleted and moved to history"}
 
+# === УПРАВЛЕНИЕ ЯЧЕЙКАМИ СКЛАДА ===
+
+@app.get("/api/warehouse/{warehouse_id}/cell/{location_code}/cargo")
+async def get_cargo_in_cell(
+    warehouse_id: str,
+    location_code: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить информацию о грузе в конкретной ячейке"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Найти ячейку
+    cell = db.warehouse_cells.find_one({
+        "warehouse_id": warehouse_id,
+        "location_code": location_code,
+        "is_occupied": True
+    })
+    
+    if not cell or not cell.get("cargo_id"):
+        raise HTTPException(status_code=404, detail="No cargo found in this cell")
+    
+    cargo_id = cell["cargo_id"]
+    
+    # Найти груз в обеих коллекциях
+    cargo = db.cargo.find_one({"id": cargo_id})
+    if not cargo:
+        cargo = db.operator_cargo.find_one({"id": cargo_id})
+    
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    return cargo
+
+@app.post("/api/warehouse/cargo/{cargo_id}/move")
+async def move_cargo_between_cells(
+    cargo_id: str,
+    new_location: dict,  # {"warehouse_id", "block_number", "shelf_number", "cell_number"}
+    current_user: User = Depends(get_current_user)
+):
+    """Перемещение груза между ячейками"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Найти груз
+    cargo = db.cargo.find_one({"id": cargo_id})
+    collection = db.cargo
+    if not cargo:
+        cargo = db.operator_cargo.find_one({"id": cargo_id})
+        collection = db.operator_cargo
+    
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Проверить новое местоположение
+    new_warehouse_id = new_location["warehouse_id"]
+    new_block = new_location["block_number"]
+    new_shelf = new_location["shelf_number"] 
+    new_cell = new_location["cell_number"]
+    new_location_code = f"B{new_block}-S{new_shelf}-C{new_cell}"
+    
+    # Проверить, свободна ли новая ячейка
+    existing_cell = db.warehouse_cells.find_one({
+        "warehouse_id": new_warehouse_id,
+        "location_code": new_location_code,
+        "is_occupied": True
+    })
+    
+    if existing_cell:
+        raise HTTPException(status_code=400, detail="Target cell is already occupied")
+    
+    # Освободить старую ячейку
+    if cargo.get("warehouse_id") and cargo.get("block_number"):
+        old_location_code = f"B{cargo['block_number']}-S{cargo['shelf_number']}-C{cargo['cell_number']}"
+        db.warehouse_cells.update_one(
+            {
+                "warehouse_id": cargo["warehouse_id"],
+                "location_code": old_location_code,
+                "cargo_id": cargo_id
+            },
+            {"$set": {
+                "is_occupied": False,
+                "updated_at": datetime.utcnow()
+            }, "$unset": {"cargo_id": ""}}
+        )
+    
+    # Занять новую ячейку
+    db.warehouse_cells.update_one(
+        {
+            "warehouse_id": new_warehouse_id,
+            "location_code": new_location_code
+        },
+        {
+            "$set": {
+                "warehouse_id": new_warehouse_id,
+                "location_code": new_location_code,
+                "block_number": new_block,
+                "shelf_number": new_shelf,
+                "cell_number": new_cell,
+                "is_occupied": True,
+                "cargo_id": cargo_id,
+                "updated_at": datetime.utcnow()
+            }
+        },
+        upsert=True
+    )
+    
+    # Получить название нового склада
+    new_warehouse = db.warehouses.find_one({"id": new_warehouse_id})
+    new_warehouse_name = new_warehouse["name"] if new_warehouse else "Неизвестный склад"
+    
+    # Обновить груз
+    collection.update_one(
+        {"id": cargo_id},
+        {"$set": {
+            "warehouse_location": f"{new_warehouse_name} - Блок {new_block}, Полка {new_shelf}, Ячейка {new_cell}",
+            "warehouse_id": new_warehouse_id,
+            "block_number": new_block,
+            "shelf_number": new_shelf,
+            "cell_number": new_cell,
+            "updated_at": datetime.utcnow(),
+            "placed_by_operator": current_user.full_name,
+            "placed_by_operator_id": current_user.id
+        }}
+    )
+    
+    return {"message": "Cargo moved successfully", "new_location": new_location_code}
+
+@app.delete("/api/warehouse/cargo/{cargo_id}/remove")
+async def remove_cargo_from_cell(
+    cargo_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Удалить груз из ячейки (освободить ячейку)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Найти груз
+    cargo = db.cargo.find_one({"id": cargo_id})
+    collection = db.cargo
+    if not cargo:
+        cargo = db.operator_cargo.find_one({"id": cargo_id})
+        collection = db.operator_cargo
+    
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Освободить ячейку
+    if cargo.get("warehouse_id") and cargo.get("block_number"):
+        location_code = f"B{cargo['block_number']}-S{cargo['shelf_number']}-C{cargo['cell_number']}"
+        db.warehouse_cells.update_one(
+            {
+                "warehouse_id": cargo["warehouse_id"],
+                "location_code": location_code,
+                "cargo_id": cargo_id
+            },
+            {"$set": {
+                "is_occupied": False,
+                "updated_at": datetime.utcnow()
+            }, "$unset": {"cargo_id": ""}}
+        )
+    
+    # Обновить груз (убрать местоположение)
+    collection.update_one(
+        {"id": cargo_id},
+        {"$set": {
+            "status": "accepted",  # Вернуть в статус "принят"
+            "updated_at": datetime.utcnow()
+        }, "$unset": {
+            "warehouse_location": "",
+            "warehouse_id": "",
+            "block_number": "",
+            "shelf_number": "",
+            "cell_number": ""
+        }}
+    )
+    
+    return {"message": "Cargo removed from cell successfully"}
+
+@app.get("/api/cargo/{cargo_id}/details")
+async def get_cargo_details(
+    cargo_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить полную информацию о грузе"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Найти груз в обеих коллекциях
+    cargo = db.cargo.find_one({"id": cargo_id})
+    if not cargo:
+        cargo = db.operator_cargo.find_one({"id": cargo_id})
+    
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    return cargo
+
+@app.put("/api/cargo/{cargo_id}/update")
+async def update_cargo_details(
+    cargo_id: str,
+    update_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Обновить информацию о грузе"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Найти груз в обеих коллекциях
+    cargo = db.cargo.find_one({"id": cargo_id})
+    collection = db.cargo
+    if not cargo:
+        cargo = db.operator_cargo.find_one({"id": cargo_id})
+        collection = db.operator_cargo
+    
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Фильтровать разрешенные поля для обновления
+    allowed_fields = [
+        "cargo_name", "description", "weight", "declared_value",
+        "sender_full_name", "sender_phone", "recipient_full_name", 
+        "recipient_phone", "recipient_address", "status"
+    ]
+    
+    filtered_update = {k: v for k, v in update_data.items() if k in allowed_fields}
+    
+    if not filtered_update:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
+    
+    # Добавить информацию об обновлении
+    filtered_update["updated_at"] = datetime.utcnow()
+    filtered_update["updated_by_operator"] = current_user.full_name
+    filtered_update["updated_by_operator_id"] = current_user.id
+    
+    # Обновить груз
+    collection.update_one(
+        {"id": cargo_id},
+        {"$set": filtered_update}
+    )
+    
+    return {"message": "Cargo updated successfully"}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
