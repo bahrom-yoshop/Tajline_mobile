@@ -330,6 +330,7 @@ class CargoRequest(BaseModel):
     description: str
     route: RouteType
     status: str = "pending"  # pending, accepted, rejected
+    admin_notes: Optional[str] = None  # Заметки администратора
     created_at: datetime
     updated_at: datetime
     created_by: str  # ID пользователя
