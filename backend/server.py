@@ -4747,6 +4747,301 @@ async def update_cargo_details(
     
     return {"message": "Cargo updated successfully"}
 
+# === API ДЛЯ ТРЕКИНГА ГРУЗА КЛИЕНТАМИ И УВЕДОМЛЕНИЙ ===
+
+@app.post("/api/cargo/tracking/create")
+async def create_cargo_tracking(
+    tracking_data: CargoTrackingCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Создать трекинг код для груза"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Найти груз по номеру
+    cargo = db.cargo.find_one({"cargo_number": tracking_data.cargo_number})
+    if not cargo:
+        cargo = db.operator_cargo.find_one({"cargo_number": tracking_data.cargo_number})
+        if not cargo:
+            raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Проверить существующий трекинг
+    existing_tracking = db.cargo_tracking.find_one({"cargo_id": cargo["id"]})
+    if existing_tracking:
+        return {
+            "message": "Tracking already exists",
+            "tracking_code": existing_tracking["tracking_code"],
+            "cargo_number": cargo["cargo_number"]
+        }
+    
+    # Создать уникальный трекинг код
+    tracking_code = f"TRK{cargo['cargo_number']}{str(uuid.uuid4())[-8:].upper()}"
+    
+    tracking_id = str(uuid.uuid4())
+    tracking = {
+        "id": tracking_id,
+        "cargo_id": cargo["id"],
+        "cargo_number": cargo["cargo_number"],
+        "tracking_code": tracking_code,
+        "client_phone": tracking_data.client_phone,
+        "is_active": True,
+        "created_at": datetime.utcnow(),
+        "access_count": 0
+    }
+    
+    db.cargo_tracking.insert_one(tracking)
+    
+    # Добавить в историю груза
+    add_cargo_history(
+        cargo["id"],
+        cargo["cargo_number"],
+        "tracking_created",
+        None,
+        None,
+        tracking_code,
+        f"Создан трекинг код для клиента {tracking_data.client_phone}",
+        current_user.id,
+        current_user.full_name,
+        current_user.role,
+        {"tracking_code": tracking_code, "client_phone": tracking_data.client_phone}
+    )
+    
+    return {
+        "message": "Tracking created successfully",
+        "tracking_code": tracking_code,
+        "cargo_number": cargo["cargo_number"],
+        "client_phone": tracking_data.client_phone
+    }
+
+@app.get("/api/cargo/track/{tracking_code}")
+async def track_cargo_by_code(tracking_code: str):
+    """Публичный трекинг груза по коду (без авторизации)"""
+    # Найти трекинг
+    tracking = db.cargo_tracking.find_one({"tracking_code": tracking_code, "is_active": True})
+    if not tracking:
+        raise HTTPException(status_code=404, detail="Tracking code not found")
+    
+    # Найти груз
+    cargo = db.cargo.find_one({"id": tracking["cargo_id"]})
+    if not cargo:
+        cargo = db.operator_cargo.find_one({"id": tracking["cargo_id"]})
+        if not cargo:
+            raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Обновить счетчик доступа
+    db.cargo_tracking.update_one(
+        {"id": tracking["id"]},
+        {"$set": {"last_accessed": datetime.utcnow()}, "$inc": {"access_count": 1}}
+    )
+    
+    # Получить информацию о складе и транспорте
+    warehouse_info = None
+    if cargo.get("warehouse_id"):
+        warehouse = db.warehouses.find_one({"id": cargo["warehouse_id"]})
+        if warehouse:
+            warehouse_info = {
+                "name": warehouse["name"],
+                "location": warehouse["location"]
+            }
+    
+    transport_info = None
+    if cargo.get("transport_id"):
+        transport = db.transports.find_one({"id": cargo["transport_id"]})
+        if transport:
+            transport_info = {
+                "transport_number": transport["transport_number"],
+                "driver_name": transport["driver_name"],
+                "direction": transport["direction"],
+                "status": transport["status"]
+            }
+    
+    # Получить последние записи истории (публичные только)
+    recent_history = list(db.cargo_history.find(
+        {"cargo_id": cargo["id"], "action_type": {"$in": ["created", "status_changed", "placed_on_transport", "dispatched", "arrived"]}},
+        {"_id": 0, "action_type": 1, "description": 1, "change_date": 1}
+    ).sort("change_date", -1).limit(10))
+    
+    return {
+        "tracking_code": tracking_code,
+        "cargo_number": cargo["cargo_number"],
+        "cargo_name": cargo.get("cargo_name", "Груз"),
+        "status": cargo["status"],
+        "weight": cargo.get("weight", 0),
+        "created_at": cargo["created_at"],
+        "sender_full_name": cargo["sender_full_name"],
+        "recipient_full_name": cargo["recipient_full_name"],
+        "recipient_address": cargo.get("recipient_address", ""),
+        "current_location": {
+            "warehouse": warehouse_info,
+            "transport": transport_info,
+            "description": _get_location_description(cargo)
+        },
+        "recent_history": recent_history,
+        "last_updated": cargo.get("updated_at", cargo["created_at"])
+    }
+
+@app.post("/api/notifications/client/send")
+async def send_client_notification(
+    notification_data: ClientNotificationCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Отправить уведомление клиенту"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Найти груз
+    cargo = db.cargo.find_one({"id": notification_data.cargo_id})
+    if not cargo:
+        cargo = db.operator_cargo.find_one({"id": notification_data.cargo_id})
+        if not cargo:
+            raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Создать уведомление
+    notification_id = str(uuid.uuid4())
+    notification = {
+        "id": notification_id,
+        "cargo_id": notification_data.cargo_id,
+        "cargo_number": cargo["cargo_number"],
+        "client_phone": notification_data.client_phone,
+        "notification_type": notification_data.notification_type,
+        "message_text": notification_data.message_text,
+        "status": "pending",
+        "created_by": current_user.id,
+        "created_at": datetime.utcnow()
+    }
+    
+    db.client_notifications.insert_one(notification)
+    
+    # Здесь будет интеграция с SMS/Email/WhatsApp сервисами
+    # Пока что помечаем как отправленное
+    db.client_notifications.update_one(
+        {"id": notification_id},
+        {"$set": {"status": "sent", "sent_at": datetime.utcnow()}}
+    )
+    
+    # Добавить в историю груза
+    add_cargo_history(
+        notification_data.cargo_id,
+        cargo["cargo_number"],
+        "client_notification_sent",
+        None,
+        None,
+        notification_data.notification_type,
+        f"Отправлено {notification_data.notification_type} уведомление клиенту {notification_data.client_phone}",
+        current_user.id,
+        current_user.full_name,
+        current_user.role,
+        {"notification_id": notification_id, "message_preview": notification_data.message_text[:50]}
+    )
+    
+    return {
+        "message": "Notification sent successfully",
+        "notification_id": notification_id,
+        "cargo_number": cargo["cargo_number"],
+        "notification_type": notification_data.notification_type
+    }
+
+@app.post("/api/messages/internal/send")
+async def send_internal_message(
+    message_data: InternalMessageCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Отправить внутреннее сообщение другому оператору"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Проверить существование получателя
+    recipient = db.users.find_one({"id": message_data.recipient_id})
+    if not recipient:
+        raise HTTPException(status_code=404, detail="Recipient not found")
+    
+    if recipient["role"] not in [UserRole.ADMIN.value, UserRole.WAREHOUSE_OPERATOR.value]:
+        raise HTTPException(status_code=400, detail="Can only send messages to admins and operators")
+    
+    # Проверить груз если указан
+    cargo_number = None
+    if message_data.related_cargo_id:
+        cargo = db.cargo.find_one({"id": message_data.related_cargo_id})
+        if not cargo:
+            cargo = db.operator_cargo.find_one({"id": message_data.related_cargo_id})
+        if cargo:
+            cargo_number = cargo["cargo_number"]
+    
+    # Создать сообщение
+    message_id = str(uuid.uuid4())
+    message = {
+        "id": message_id,
+        "sender_id": current_user.id,
+        "sender_name": current_user.full_name,
+        "recipient_id": message_data.recipient_id,
+        "recipient_name": recipient["full_name"],
+        "message_subject": message_data.message_subject,
+        "message_text": message_data.message_text,
+        "priority": message_data.priority,
+        "related_cargo_id": message_data.related_cargo_id,
+        "related_cargo_number": cargo_number,
+        "is_read": False,
+        "sent_at": datetime.utcnow()
+    }
+    
+    db.internal_messages.insert_one(message)
+    
+    # Создать уведомление для получателя
+    create_notification(
+        message_data.recipient_id,
+        f"Новое сообщение от {current_user.full_name}: {message_data.message_subject}",
+        message_data.related_cargo_id
+    )
+    
+    return {
+        "message": "Internal message sent successfully",
+        "message_id": message_id,
+        "recipient_name": recipient["full_name"]
+    }
+
+@app.get("/api/messages/internal/inbox")
+async def get_internal_messages_inbox(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить входящие внутренние сообщения"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    messages = list(db.internal_messages.find(
+        {"recipient_id": current_user.id},
+        {"_id": 0}
+    ).sort("sent_at", -1))
+    
+    unread_count = db.internal_messages.count_documents({
+        "recipient_id": current_user.id,
+        "is_read": False
+    })
+    
+    return {
+        "messages": messages,
+        "total_messages": len(messages),
+        "unread_count": unread_count
+    }
+
+@app.put("/api/messages/internal/{message_id}/read")
+async def mark_internal_message_read(
+    message_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Отметить внутреннее сообщение как прочитанное"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    result = db.internal_messages.update_one(
+        {"id": message_id, "recipient_id": current_user.id},
+        {"$set": {"is_read": True, "read_at": datetime.utcnow()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    return {"message": "Message marked as read"}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
