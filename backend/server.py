@@ -2631,18 +2631,24 @@ async def get_transports_list(
         if not operator_warehouse_ids:
             return []
         
-        # Находим транспорты, направляющиеся к складам оператора или созданные им
-        # Для межскладских транспортов проверяем warehouse_id, для обычных - по direction
-        query = {
-            "$or": [
-                {"destination_warehouse_id": {"$in": operator_warehouse_ids}},  # Межскладские к его складам
-                {"source_warehouse_id": {"$in": operator_warehouse_ids}},      # Межскладские от его складов  
-                {"created_by": current_user.id},                               # Созданные им
-                {"is_interwarehouse": {"$ne": True}}                           # Обычные транспорты (пока показываем всем)
-            ]
-        }
+        # Получаем названия складов оператора для фильтрации по direction
+        operator_warehouses = list(db.warehouses.find({
+            "id": {"$in": operator_warehouse_ids}
+        }))
+        operator_warehouse_names = [w["name"] for w in operator_warehouses]
         
-        transports = list(db.transports.find(query))
+        # Строим сложный запрос для фильтрации транспортов
+        query_conditions = [
+            {"destination_warehouse_id": {"$in": operator_warehouse_ids}},  # Межскладские к его складам
+            {"source_warehouse_id": {"$in": operator_warehouse_ids}},      # Межскладские от его складов
+            {"created_by": current_user.id}                                # Созданные им лично
+        ]
+        
+        # Для обычных транспортов проверяем direction (содержит название склада)
+        for warehouse_name in operator_warehouse_names:
+            query_conditions.append({"direction": {"$regex": warehouse_name, "$options": "i"}})
+        
+        transports = list(db.transports.find({"$or": query_conditions}))
     
     transport_list = []
     for transport in transports:
