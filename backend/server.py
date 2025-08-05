@@ -1391,8 +1391,8 @@ async def accept_new_cargo(
             target_warehouse_id = all_warehouses[0]["id"]
             warehouse = all_warehouses[0]
         else:
-            target_warehouse_id = None
-            warehouse = None
+            # Если нет активных складов, создаем ошибку вместо None
+            raise HTTPException(status_code=400, detail="No active warehouses available for cargo acceptance")
     
     cargo_id = str(uuid.uuid4())
     cargo_number = generate_cargo_number()
