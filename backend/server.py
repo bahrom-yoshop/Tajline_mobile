@@ -1566,7 +1566,7 @@ async def accept_cargo_request(
         "recipient_phone": request["recipient_phone"],
         "recipient_address": request["recipient_address"],
         "weight": request["weight"],
-        "cargo_name": request.get("cargo_name", request.get("description", "Груз")),  # Используем cargo_name или описание
+        "cargo_name": request.get("cargo_name") or request.get("description", "Груз")[:50],  # Использовать cargo_name или описание
         "declared_value": request["declared_value"],
         "description": request["description"],
         "route": request["route"],
