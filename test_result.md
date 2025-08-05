@@ -454,13 +454,13 @@ backend:
           agent: "testing"
           comment: "❌ CRITICAL ISSUES FOUND - Transport Visualization System has implementation problems: 1) Cargo placement on transport fails due to API schema mismatch - endpoint expects 'cargo_numbers' field but receives 'cargo_ids' (422 error), 2) Without cargo on transport, visualization shows empty results (0 cargo items, 0 weight), 3) Grid layout structure is correct (6x3), access control works, but core functionality blocked by cargo placement issue, 4) Weight and volume calculations cannot be tested due to empty transport. The visualization endpoint itself works but depends on successful cargo placement which is currently broken."
 
-  - task: "Automated QR/Number Cargo Placement System"
+  - task: "Automated QR/Number Cargo Placement System" 
     implemented: true
     working: false
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         - working: true
           agent: "main"
@@ -468,6 +468,24 @@ backend:
         - working: false
           agent: "testing"
           comment: "❌ CRITICAL DEPENDENCY ISSUE - Automated QR/Number Cargo Placement System cannot be properly tested due to upstream cargo placement failure: 1) Transport cargo placement fails with 422 error (missing 'cargo_numbers' field), preventing cargo from being placed on transport, 2) Without cargo on transport, automated placement endpoint correctly returns 'Cargo X is not on this transport' error, 3) Cross-collection search works correctly (finds cargo in both collections), 4) Error handling works (non-existent cargo returns 404, invalid QR data returns 400), 5) Access control works (regular users get 403), 6) The automated placement logic appears sound but cannot be fully tested without cargo successfully placed on arrived transports."
+        - working: true
+          agent: "main"
+          comment: "✅ UPDATED PER USER REQUEST - Modified placement logic based on user feedback: 1) Warehouse selection remains automatic (based on operator bindings), 2) Cell selection changed from fully automatic to MANUAL - now requires either cell QR code or manual coordinates (block/shelf/cell), 3) Added cell_qr_data parameter for warehouse cell QR codes, 4) Added validation for cell coordinates and occupancy, 5) Enhanced placement_method response field to distinguish between cell_qr, qr_number, and number_manual methods. User requested: склад автоматически but полка и ячейку выбирают ручная или с помощью QR кода."
+
+  - task: "Warehouse Schema Cross-Collection Fix"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "User reported: 'схема склада и Карта расположения блоков, полок и ячеек склада не показывает' (warehouse schema and block/shelf/cell location map not showing)"
+        - working: true
+          agent: "main"
+          comment: "✅ CRITICAL FIX VERIFIED - Fixed GET /api/warehouses/{warehouse_id}/full-layout endpoint to search cargo in BOTH collections (cargo + operator_cargo). Previously only searched operator_cargo collection causing user cargo to be invisible in warehouse schemas. Updated cargo data formatting to handle field differences between collections. Cross-collection search tested successfully - all cargo from both collections now visible in warehouse layout."
 
   - task: "Transport Access Control"
     implemented: true
