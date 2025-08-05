@@ -130,6 +130,20 @@ class TransportCargoPlacement(BaseModel):
     transport_id: str
     cargo_ids: List[str]
 
+class OperatorWarehouseBinding(BaseModel):
+    id: str
+    operator_id: str
+    operator_name: str
+    operator_phone: str
+    warehouse_id: str
+    warehouse_name: str
+    created_at: datetime
+    created_by: str  # Admin who created the binding
+
+class OperatorWarehouseBindingCreate(BaseModel):
+    operator_id: str
+    warehouse_id: str
+
 class NotificationCreate(BaseModel):
     user_id: str
     message: str
