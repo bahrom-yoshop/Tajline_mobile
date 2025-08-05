@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Найти пользователя 'Бахром Клиент' и протестировать его формы заявки и заказа груза: 1) Поиск пользователя Бахрома или создание с телефоном +992900000000, 2) Тестирование аутентификации, 3) Проверка форм оформления груза (GET delivery-options, POST calculate, POST create), 4) Тестирование заявок на груз (POST cargo-request, GET my-requests), 5) Проверка отслеживания груза и валидации данных."
+user_problem_statement: "Протестировать новые функции системы номеров грузов и неоплаченных заказов: 1) Тест новой системы номеров грузов (формат YYMMXXXXXX от 4 до 10 цифр, начинающиеся с 2501 для января 2025), 2) Тест системы неоплаченных заказов (создание заявки пользователем Бахромом, принятие админом, проверка GET /api/admin/unpaid-orders, POST /api/admin/unpaid-orders/{order_id}/mark-paid), 3) Полный workflow тест от заявки до оплаты."
 
 backend:
   - task: "Bahrom Client User Testing - Cargo Ordering and Request Forms"
