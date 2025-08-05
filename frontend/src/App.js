@@ -188,6 +188,17 @@ function App() {
     cell_number: 1
   });
 
+  // Operator-specific states
+  const [operatorWarehouses, setOperatorWarehouses] = useState([]);
+  const [interwarehouseTransportModal, setInterwarehouseTransportModal] = useState(false);
+  const [interwarehouseForm, setInterwarehouseForm] = useState({
+    source_warehouse_id: '',
+    destination_warehouse_id: '',
+    driver_name: '',
+    driver_phone: '',
+    capacity_kg: 1000
+  });
+
   const [alerts, setAlerts] = useState([]);
 
   const showAlert = (message, type = 'info') => {
