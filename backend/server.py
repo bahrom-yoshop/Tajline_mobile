@@ -2147,10 +2147,42 @@ async def place_cargo_on_transport(
         )
         
         # Освободить ячейку склада
-        if cargo.get("warehouse_location"):
-            # Освободить ячейку в соответствующем складе
-            # Логика освобождения ячейки может быть добавлена здесь
-            pass
+        if cargo.get("warehouse_location") and cargo.get("warehouse_id"):
+            # Найти и освободить ячейку
+            warehouse_id = cargo["warehouse_id"]
+            block_num = cargo.get("block_number")
+            shelf_num = cargo.get("shelf_number") 
+            cell_num = cargo.get("cell_number")
+            
+            if block_num and shelf_num and cell_num:
+                location_code = f"B{block_num}-S{shelf_num}-C{cell_num}"
+                
+                # Освободить ячейку
+                db.warehouse_cells.update_one(
+                    {
+                        "warehouse_id": warehouse_id,
+                        "location_code": location_code,
+                        "cargo_id": cargo["id"]
+                    },
+                    {"$set": {
+                        "is_occupied": False,
+                        "updated_at": datetime.utcnow()
+                    }, "$unset": {"cargo_id": ""}}
+                )
+                
+                print(f"Freed warehouse cell {location_code} in warehouse {warehouse_id} for cargo {cargo['cargo_number']}")
+        
+        # Очистить местоположение груза 
+        collection.update_one(
+            {"id": cargo["id"]},
+            {"$unset": {
+                "warehouse_location": "",
+                "warehouse_id": "",
+                "block_number": "",
+                "shelf_number": "",
+                "cell_number": ""
+            }}
+        )
         
         # Создать уведомление пользователю (если есть sender_id)
         sender_id = cargo.get("sender_id") or cargo.get("created_by")
