@@ -714,6 +714,18 @@ backend:
           comment: "✅ PASSED - Internal messaging system working perfectly: POST /api/messages/internal/send (message sending between operators) ✅, GET /api/messages/internal/inbox (inbox retrieval with unread counts) ✅, PUT /api/messages/internal/{message_id}/read (mark as read functionality) ✅. Complete messaging system with proper access control, cargo association, priority levels, and read status tracking."
 
 frontend:
+  - task: "Client Cargo Ordering System - Frontend Implementation"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL FRONTEND ERROR FOUND - Client cargo ordering system has a blocking JavaScript error: 'Calculator is not defined' causing React app to crash with red error screen. The application cannot load properly, preventing access to the cargo ordering functionality. Error occurs during component rendering and blocks all user interactions. Frontend shows 'Uncaught runtime errors' with ReferenceError. This prevents testing of the cargo ordering form, cost calculation, and order creation features. The cargo ordering functionality appears to be implemented in the code but is not accessible due to this critical error."
+
   - task: "Add notification dropdown menu"
     implemented: true
     working: true
