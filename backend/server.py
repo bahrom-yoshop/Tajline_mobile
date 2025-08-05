@@ -2834,13 +2834,23 @@ async def create_interwarehouse_transport(
     transport_data: dict,
     current_user: User = Depends(get_current_user)
 ):
-    """Создать межскладской транспорт (1.6)"""
+    """Создать улучшенный межскладской транспорт с автоматическим выбором исходного склада (Функция 3)"""
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Access denied")
     
     source_warehouse_id = transport_data.get("source_warehouse_id")
     destination_warehouse_id = transport_data.get("destination_warehouse_id")
+    auto_select_source = transport_data.get("auto_select_source", False)
     
+    # Автоматический выбор исходного склада для операторов
+    if current_user.role == UserRole.WAREHOUSE_OPERATOR and (auto_select_source or not source_warehouse_id):
+        operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+        if not operator_warehouse_ids:
+            raise HTTPException(status_code=403, detail="No warehouses assigned to this operator")
+        
+        # Автоматически выбираем первый привязанный склад как исходный
+        source_warehouse_id = operator_warehouse_ids[0]
+        
     if not source_warehouse_id or not destination_warehouse_id:
         raise HTTPException(status_code=400, detail="Source and destination warehouses required")
     
@@ -2865,6 +2875,17 @@ async def create_interwarehouse_transport(
     if not source_warehouse or not destination_warehouse:
         raise HTTPException(status_code=404, detail="Source or destination warehouse not found")
     
+    # Подсчитываем доступные грузы на исходном складе
+    available_cargo_user = db.cargo.count_documents({
+        "warehouse_id": source_warehouse_id, 
+        "status": {"$in": ["placed_in_warehouse", "accepted"]}
+    })
+    available_cargo_operator = db.operator_cargo.count_documents({
+        "warehouse_id": source_warehouse_id, 
+        "status": {"$in": ["placed_in_warehouse", "accepted"]}
+    })
+    total_available_cargo = available_cargo_user + available_cargo_operator
+    
     # Создаем транспорт
     transport_id = str(uuid.uuid4())
     transport_number = f"IW-{transport_id[-8:].upper()}"  # Межскладской префикс
@@ -2881,22 +2902,28 @@ async def create_interwarehouse_transport(
         "current_load_kg": 0,
         "status": TransportStatus.EMPTY,
         "cargo_list": [],
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
-        "created_by": current_user.id,
-        "created_by_operator": current_user.full_name,
-        "source_warehouse_id": source_warehouse_id,
-        "destination_warehouse_id": destination_warehouse_id,
         "is_interwarehouse": True,
-        "route_type": "interwarehouse"
+        "source_warehouse_id": source_warehouse_id,
+        "source_warehouse_name": source_warehouse["name"],
+        "destination_warehouse_id": destination_warehouse_id,
+        "destination_warehouse_name": destination_warehouse["name"],
+        "created_at": datetime.utcnow(),
+        "created_by": current_user.id,
+        "created_by_name": current_user.full_name,
+        "auto_selected_source": auto_select_source or (current_user.role == UserRole.WAREHOUSE_OPERATOR and not transport_data.get("source_warehouse_id")),
+        "available_cargo_at_source": total_available_cargo
     }
     
     db.transports.insert_one(transport)
     
     # Создать уведомление
+    notification_message = f"Создан межскладской транспорт {transport_number}: {direction}"
+    if transport["auto_selected_source"]:
+        notification_message += f" (исходный склад выбран автоматически)"
+    
     create_system_notification(
-        "Межскладской транспорт создан",
-        f"Создан межскладской транспорт {transport_number}: {direction}",
+        "Новый межскладской транспорт",
+        notification_message,
         "transport",
         transport_id,
         None,
@@ -2904,10 +2931,20 @@ async def create_interwarehouse_transport(
     )
     
     return {
-        "message": "Interwarehouse transport created successfully",
+        "message": "Interwarehouse transport created successfully", 
         "transport_id": transport_id,
         "transport_number": transport_number,
-        "direction": direction
+        "source_warehouse": {
+            "id": source_warehouse_id,
+            "name": source_warehouse["name"]
+        },
+        "destination_warehouse": {
+            "id": destination_warehouse_id, 
+            "name": destination_warehouse["name"]
+        },
+        "auto_selected_source": transport["auto_selected_source"],
+        "available_cargo_at_source": total_available_cargo,
+        "created_by": current_user.full_name
     }
 
 @app.get("/api/transport/{transport_id}")
