@@ -221,6 +221,13 @@ class CargoPlacement(BaseModel):
     shelf_number: int
     cell_number: int
 
+class CargoPlacementAuto(BaseModel):
+    cargo_id: str
+    block_number: int
+    shelf_number: int  
+    cell_number: int
+    # warehouse_id will be determined automatically from operator binding
+
 class CargoWithLocation(BaseModel):
     id: str
     cargo_number: str
