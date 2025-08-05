@@ -999,7 +999,8 @@ test_plan:
     - "Client Cargo Delivery Options API"
     - "Client Cargo Cost Calculation API" 
     - "Client Cargo Order Creation API"
-  stuck_tasks: []
+  stuck_tasks: 
+    - "Client Cargo Ordering System - Frontend Implementation"
   test_all: false
   test_priority: "high_first"
 
