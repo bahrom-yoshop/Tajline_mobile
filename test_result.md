@@ -364,6 +364,18 @@ backend:
           agent: "testing"
           comment: "✅ PASSED - Transport History System working correctly. Get transport history endpoint ✅, shows both completed and deleted transports ✅, proper data archiving when transport is deleted ✅. Fixed FastAPI routing issue where history endpoint was conflicting with parameterized routes."
 
+  - task: "Transport Volume Validation Override"
+    implemented: false
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "User requested to allow transport dispatch with any volume of cargo, overriding previous volume validation limits. Need to modify transport dispatch logic to send transport with any placed cargo volume."
+
   - task: "Transport Access Control"
     implemented: true
     working: true
