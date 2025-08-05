@@ -42,6 +42,17 @@ function App() {
   const [clientCargo, setClientCargo] = useState([]);
   const [clientCargoDetails, setClientCargoDetails] = useState(null);
 
+  // Новые состояния для создания оператора (Функция 2)
+  const [operatorCreateForm, setOperatorCreateForm] = useState({
+    full_name: '',
+    phone: '',
+    address: '',
+    password: '',
+    warehouse_id: ''
+  });
+  const [operatorCreationModal, setOperatorCreationModal] = useState(false);
+  const [allOperators, setAllOperators] = useState([]);
+
   // Form states
   const [loginForm, setLoginForm] = useState({ phone: '', password: '' });
   const [registerForm, setRegisterForm] = useState({ full_name: '', phone: '', password: '' }); // Убрана роль (Функция 3)
