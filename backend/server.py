@@ -346,12 +346,134 @@ class SystemNotification(BaseModel):
     id: str
     title: str
     message: str
-    notification_type: str  # cargo_status, payment, request, system
-    related_id: Optional[str] = None  # ID груза, заявки и т.д.
-    user_id: Optional[str] = None  # Для персональных уведомлений
-    is_read: bool = False
+    notification_type: str
+    related_id: Optional[str] = None
+    related_data: Optional[dict] = None
+    created_by: Optional[str] = None
     created_at: datetime
+    is_read: bool = False
+
+# === НОВЫЕ МОДЕЛИ ДЛЯ ЭТАПА 1 ===
+
+# Модели для фото груза
+class CargoPhoto(BaseModel):
+    id: str
+    cargo_id: str
+    cargo_number: str
+    photo_data: str  # base64 encoded image
+    photo_name: str
+    photo_size: int  # размер в байтах
+    uploaded_by: str  # ID пользователя
+    uploaded_by_name: str  # ФИО пользователя
+    upload_date: datetime
+    photo_type: str = "cargo_photo"  # cargo_photo, damage_photo, packaging_photo
+    description: Optional[str] = None
+
+class CargoPhotoUpload(BaseModel):
+    cargo_id: str
+    photo_data: str  # base64 encoded image  
+    photo_name: str
+    photo_type: str = "cargo_photo"
+    description: Optional[str] = None
+
+# Модели для истории изменений груза
+class CargoHistory(BaseModel):
+    id: str
+    cargo_id: str
+    cargo_number: str
+    action_type: str  # created, updated, moved, status_changed, placed_on_transport, etc
+    field_name: Optional[str] = None  # какое поле изменено
+    old_value: Optional[str] = None
+    new_value: Optional[str] = None
+    description: str  # описание изменения
+    changed_by: str  # ID пользователя 
+    changed_by_name: str  # ФИО пользователя
+    changed_by_role: str  # роль пользователя
+    change_date: datetime
+    additional_data: Optional[dict] = None
+
+# Модели для комментариев к грузам
+class CargoComment(BaseModel):
+    id: str
+    cargo_id: str
+    cargo_number: str
+    comment_text: str
+    comment_type: str = "general"  # general, issue, note, instruction
+    priority: str = "normal"  # low, normal, high, urgent
+    is_internal: bool = False  # внутренний комментарий (не видим клиенту)
+    author_id: str
+    author_name: str
+    author_role: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    is_resolved: bool = False  # для комментариев типа issue
+
+class CargoCommentCreate(BaseModel):
+    cargo_id: str
+    comment_text: str = Field(..., min_length=1, max_length=1000)
+    comment_type: str = "general"
+    priority: str = "normal"
+    is_internal: bool = False
+
+# Модели для трекинга груза клиентами
+class CargoTracking(BaseModel):
+    id: str
+    cargo_id: str
+    cargo_number: str
+    tracking_code: str  # уникальный код для клиента
+    client_phone: str  # телефон клиента для доступа
+    is_active: bool = True
+    created_at: datetime
+    last_accessed: Optional[datetime] = None
+    access_count: int = 0
+
+class CargoTrackingCreate(BaseModel):
+    cargo_number: str
+    client_phone: str
+
+# Модели для уведомлений клиентам
+class ClientNotification(BaseModel):
+    id: str
+    cargo_id: str
+    cargo_number: str
+    client_phone: str
+    notification_type: str  # sms, email, whatsapp
+    message_text: str
+    status: str = "pending"  # pending, sent, delivered, failed
+    sent_at: Optional[datetime] = None
+    delivered_at: Optional[datetime] = None
+    error_message: Optional[str] = None
     created_by: str
+    created_at: datetime
+
+class ClientNotificationCreate(BaseModel):
+    cargo_id: str
+    client_phone: str
+    notification_type: str
+    message_text: str = Field(..., min_length=1, max_length=500)
+
+# Модели для внутренних сообщений операторов
+class InternalMessage(BaseModel):
+    id: str
+    sender_id: str
+    sender_name: str
+    recipient_id: str
+    recipient_name: str
+    message_subject: str
+    message_text: str
+    priority: str = "normal"  # low, normal, high, urgent
+    related_cargo_id: Optional[str] = None
+    related_cargo_number: Optional[str] = None
+    is_read: bool = False
+    sent_at: datetime
+    read_at: Optional[datetime] = None
+
+class InternalMessageCreate(BaseModel):
+    recipient_id: str
+    message_subject: str = Field(..., min_length=1, max_length=200)
+    message_text: str = Field(..., min_length=1, max_length=2000)
+    priority: str = "normal"
+    related_cargo_id: Optional[str] = None
 
 # Утилиты
 def hash_password(password: str) -> str:
