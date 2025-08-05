@@ -24,7 +24,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 function App() {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
-  const [activeTab, setActiveTab] = useState('cargo');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notifications, setNotifications] = useState([]);
