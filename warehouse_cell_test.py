@@ -98,7 +98,7 @@ class WarehouseCellTester:
         
         # Login as warehouse operator
         operator_login = {
-            "phone": "+79123456791",
+            "phone": "+79666666666",
             "password": "123456"
         }
         
