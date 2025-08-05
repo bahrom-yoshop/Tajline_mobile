@@ -8244,6 +8244,421 @@ ID склада: {self.warehouse_id}"""
         
         return stage1_results
 
+    def test_admin_operator_creation(self):
+        """Test NEW FEATURE 1: Admin operator creation and management"""
+        print("\n🆕 NEW FEATURE 1: ADMIN OPERATOR CREATION")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+        
+        all_success = True
+        
+        # First, create a warehouse for operator assignment
+        warehouse_data = {
+            "name": "Тестовый склад для операторов",
+            "location": "Москва, ул. Складская, 15",
+            "blocks_count": 2,
+            "shelves_per_block": 2,
+            "cells_per_shelf": 10
+        }
+        
+        success, warehouse_response = self.run_test(
+            "Create Warehouse for Operator",
+            "POST",
+            "/api/warehouses/create",
+            200,
+            warehouse_data,
+            self.tokens['admin']
+        )
+        
+        if not success:
+            print("   ❌ Failed to create warehouse for operator testing")
+            return False
+        
+        warehouse_id = warehouse_response.get('id')
+        print(f"   📦 Created warehouse ID: {warehouse_id}")
+        
+        # Test 1.1: Create operator by admin
+        operator_data = {
+            "full_name": "Новый Оператор Склада",
+            "phone": "+79555123456",
+            "address": "Москва, ул. Операторская, 25",
+            "password": "operator123",
+            "warehouse_id": warehouse_id
+        }
+        
+        success, response = self.run_test(
+            "Create Operator by Admin",
+            "POST",
+            "/api/admin/create-operator",
+            200,
+            operator_data,
+            self.tokens['admin']
+        )
+        
+        if success:
+            operator_id = response.get('operator', {}).get('id')
+            binding_id = response.get('binding_id')
+            print(f"   👤 Created operator ID: {operator_id}")
+            print(f"   🔗 Created binding ID: {binding_id}")
+            
+            # Verify operator details
+            operator_info = response.get('operator', {})
+            if (operator_info.get('full_name') == operator_data['full_name'] and
+                operator_info.get('phone') == operator_data['phone'] and
+                operator_info.get('address') == operator_data['address'] and
+                operator_info.get('role') == 'warehouse_operator' and
+                operator_info.get('warehouse_id') == warehouse_id):
+                print("   ✅ Operator details verified correctly")
+            else:
+                print("   ❌ Operator details verification failed")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 1.2: Get all operators with warehouse info
+        success, response = self.run_test(
+            "Get All Operators",
+            "GET",
+            "/api/admin/operators",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        if success:
+            operators = response.get('operators', [])
+            total_operators = response.get('total_operators', 0)
+            print(f"   📊 Found {total_operators} operators")
+            
+            # Find our created operator
+            created_operator = None
+            for op in operators:
+                if op.get('phone') == operator_data['phone']:
+                    created_operator = op
+                    break
+            
+            if created_operator:
+                warehouses = created_operator.get('warehouses', [])
+                if len(warehouses) > 0 and warehouses[0].get('id') == warehouse_id:
+                    print("   ✅ Operator-warehouse binding verified in operators list")
+                else:
+                    print("   ❌ Operator-warehouse binding not found in operators list")
+                    all_success = False
+            else:
+                print("   ❌ Created operator not found in operators list")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 1.3: Test access control - regular user should not be able to create operators
+        if 'user' in self.tokens:
+            success, response = self.run_test(
+                "User Cannot Create Operator (Access Control)",
+                "POST",
+                "/api/admin/create-operator",
+                403,  # Should be forbidden
+                operator_data,
+                self.tokens['user']
+            )
+            
+            if success:
+                print("   ✅ Access control working - regular users cannot create operators")
+            else:
+                print("   ❌ Access control failed - regular users can create operators")
+                all_success = False
+        
+        # Test 1.4: Test duplicate phone validation
+        duplicate_operator_data = {
+            **operator_data,
+            "full_name": "Другой Оператор"
+        }
+        
+        success, response = self.run_test(
+            "Duplicate Phone Validation",
+            "POST",
+            "/api/admin/create-operator",
+            400,  # Should fail with duplicate phone
+            duplicate_operator_data,
+            self.tokens['admin']
+        )
+        
+        if success:
+            print("   ✅ Duplicate phone validation working")
+        else:
+            print("   ❌ Duplicate phone validation failed")
+            all_success = False
+        
+        return all_success
+
+    def test_updated_user_registration(self):
+        """Test NEW FEATURE 2: Updated user registration always creates USER role"""
+        print("\n🆕 NEW FEATURE 2: UPDATED USER REGISTRATION")
+        
+        all_success = True
+        
+        # Test 2.1: Register with admin role - should become USER
+        admin_attempt_data = {
+            "full_name": "Попытка Админа",
+            "phone": "+79666777888",
+            "password": "admin123",
+            "role": "admin"  # This should be ignored
+        }
+        
+        success, response = self.run_test(
+            "Register with Admin Role (Should Become USER)",
+            "POST",
+            "/api/auth/register",
+            200,
+            admin_attempt_data
+        )
+        
+        if success:
+            user_role = response.get('user', {}).get('role')
+            if user_role == 'user':
+                print("   ✅ Admin role request correctly converted to USER")
+            else:
+                print(f"   ❌ Expected USER role, got {user_role}")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 2.2: Register with warehouse_operator role - should become USER
+        operator_attempt_data = {
+            "full_name": "Попытка Оператора",
+            "phone": "+79777888999",
+            "password": "operator123",
+            "role": "warehouse_operator"  # This should be ignored
+        }
+        
+        success, response = self.run_test(
+            "Register with Operator Role (Should Become USER)",
+            "POST",
+            "/api/auth/register",
+            200,
+            operator_attempt_data
+        )
+        
+        if success:
+            user_role = response.get('user', {}).get('role')
+            if user_role == 'user':
+                print("   ✅ Operator role request correctly converted to USER")
+            else:
+                print(f"   ❌ Expected USER role, got {user_role}")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 2.3: Register with no role specified - should become USER
+        no_role_data = {
+            "full_name": "Без Роли",
+            "phone": "+79888999000",
+            "password": "norole123"
+            # No role field
+        }
+        
+        success, response = self.run_test(
+            "Register without Role (Should Become USER)",
+            "POST",
+            "/api/auth/register",
+            200,
+            no_role_data
+        )
+        
+        if success:
+            user_role = response.get('user', {}).get('role')
+            if user_role == 'user':
+                print("   ✅ No role request correctly defaulted to USER")
+            else:
+                print(f"   ❌ Expected USER role, got {user_role}")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 2.4: Register with user role - should remain USER
+        user_role_data = {
+            "full_name": "Обычный Пользователь",
+            "phone": "+79999000111",
+            "password": "user123",
+            "role": "user"
+        }
+        
+        success, response = self.run_test(
+            "Register with USER Role (Should Remain USER)",
+            "POST",
+            "/api/auth/register",
+            200,
+            user_role_data
+        )
+        
+        if success:
+            user_role = response.get('user', {}).get('role')
+            if user_role == 'user':
+                print("   ✅ USER role request correctly maintained as USER")
+            else:
+                print(f"   ❌ Expected USER role, got {user_role}")
+                all_success = False
+        else:
+            all_success = False
+        
+        return all_success
+
+    def test_client_dashboard_system(self):
+        """Test NEW FEATURE 3: Client dashboard system"""
+        print("\n🆕 NEW FEATURE 3: CLIENT DASHBOARD SYSTEM")
+        
+        if 'user' not in self.tokens:
+            print("   ❌ No user token available")
+            return False
+        
+        all_success = True
+        
+        # Test 3.1: Get client dashboard
+        success, response = self.run_test(
+            "Get Client Dashboard",
+            "GET",
+            "/api/client/dashboard",
+            200,
+            token=self.tokens['user']
+        )
+        
+        if success:
+            # Verify dashboard structure
+            client_info = response.get('client_info', {})
+            cargo_summary = response.get('cargo_summary', {})
+            recent_cargo = response.get('recent_cargo', [])
+            
+            if (client_info.get('full_name') and 
+                client_info.get('phone') and
+                'total_cargo' in cargo_summary and
+                'status_breakdown' in cargo_summary and
+                isinstance(recent_cargo, list)):
+                print("   ✅ Dashboard structure verified correctly")
+                print(f"   📊 Total cargo: {cargo_summary.get('total_cargo', 0)}")
+                print(f"   📋 Recent cargo items: {len(recent_cargo)}")
+            else:
+                print("   ❌ Dashboard structure verification failed")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 3.2: Get client cargo list
+        success, response = self.run_test(
+            "Get Client Cargo List",
+            "GET",
+            "/api/client/cargo",
+            200,
+            token=self.tokens['user']
+        )
+        
+        if success:
+            cargo_list = response.get('cargo', [])
+            total_count = response.get('total_count', 0)
+            filters = response.get('filters', {})
+            
+            if (isinstance(cargo_list, list) and
+                isinstance(total_count, int) and
+                'available_statuses' in filters and
+                'current_filter' in filters):
+                print("   ✅ Cargo list structure verified correctly")
+                print(f"   📦 Total cargo count: {total_count}")
+                print(f"   🔍 Available filters: {len(filters.get('available_statuses', []))}")
+            else:
+                print("   ❌ Cargo list structure verification failed")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 3.3: Get client cargo with status filter
+        success, response = self.run_test(
+            "Get Client Cargo with Status Filter",
+            "GET",
+            "/api/client/cargo",
+            200,
+            token=self.tokens['user'],
+            params={"status": "created"}
+        )
+        
+        if success:
+            filters = response.get('filters', {})
+            current_filter = filters.get('current_filter')
+            if current_filter == 'created':
+                print("   ✅ Status filtering working correctly")
+            else:
+                print(f"   ❌ Status filtering failed - expected 'created', got '{current_filter}'")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 3.4: Get cargo details (if we have cargo)
+        if self.cargo_ids:
+            cargo_id = self.cargo_ids[0]
+            success, response = self.run_test(
+                "Get Client Cargo Details",
+                "GET",
+                f"/api/client/cargo/{cargo_id}/details",
+                200,
+                token=self.tokens['user']
+            )
+            
+            if success:
+                cargo_details = response.get('cargo', {})
+                photos = response.get('photos', [])
+                comments = response.get('comments', [])
+                history = response.get('history', [])
+                available_actions = response.get('available_actions', {})
+                
+                if (cargo_details.get('id') == cargo_id and
+                    isinstance(photos, list) and
+                    isinstance(comments, list) and
+                    isinstance(history, list) and
+                    isinstance(available_actions, dict)):
+                    print("   ✅ Cargo details structure verified correctly")
+                    print(f"   📸 Photos: {len(photos)}")
+                    print(f"   💬 Comments: {len(comments)}")
+                    print(f"   📜 History entries: {len(history)}")
+                else:
+                    print("   ❌ Cargo details structure verification failed")
+                    all_success = False
+            else:
+                all_success = False
+        else:
+            print("   ⚠️  No cargo available for details testing")
+        
+        # Test 3.5: Access control - admin should not access client endpoints
+        if 'admin' in self.tokens:
+            success, response = self.run_test(
+                "Admin Cannot Access Client Dashboard (Access Control)",
+                "GET",
+                "/api/client/dashboard",
+                403,  # Should be forbidden
+                token=self.tokens['admin']
+            )
+            
+            if success:
+                print("   ✅ Access control working - admin cannot access client dashboard")
+            else:
+                print("   ❌ Access control failed - admin can access client dashboard")
+                all_success = False
+        
+        # Test 3.6: Access control - warehouse operator should not access client endpoints
+        if 'warehouse_operator' in self.tokens:
+            success, response = self.run_test(
+                "Operator Cannot Access Client Dashboard (Access Control)",
+                "GET",
+                "/api/client/dashboard",
+                403,  # Should be forbidden
+                token=self.tokens['warehouse_operator']
+            )
+            
+            if success:
+                print("   ✅ Access control working - operator cannot access client dashboard")
+            else:
+                print("   ❌ Access control failed - operator can access client dashboard")
+                all_success = False
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
