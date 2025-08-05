@@ -2308,479 +2308,494 @@ function App() {
 
         {/* Main Content */}
         <main className="container mx-auto px-4 py-8">
-          {/* Для обычных пользователей - старый интерфейс с табами */}
+          {/* Новая главная страница для клиентов с личным кабинетом (Функция 1) */}
           {user?.role === 'user' ? (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="requests" className="flex items-center">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Заявки на груз
-                </TabsTrigger>
-                <TabsTrigger value="cargo" className="flex items-center">
-                  <Package className="mr-2 h-4 w-4" />
-                  Мои грузы
-                </TabsTrigger>
-                <TabsTrigger value="notifications" className="flex items-center">
-                  <Bell className="mr-2 h-4 w-4" />
-                  Уведомления
-                </TabsTrigger>
-                <TabsTrigger value="contact" className="flex items-center">
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  Связаться
-                </TabsTrigger>
-              </TabsList>
+            <div className="space-y-6">
+              {/* Client Dashboard Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Добро пожаловать, {user.full_name}!</h1>
+                  <p className="text-gray-600 mt-1">Ваш личный кабинет для управления грузами</p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      fetchClientDashboard();
+                      fetchClientCargo();
+                    }}
+                  >
+                    <Package className="mr-2 h-4 w-4" />
+                    Обновить
+                  </Button>
+                </div>
+              </div>
 
-              {/* Заявки на груз */}
-              <TabsContent value="requests" className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Создание заявки */}
+              {/* Client Dashboard Stats */}
+              {clientDashboard && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <Plus className="mr-2 h-5 w-5" />
-                        Подать заявку на груз
-                      </CardTitle>
-                      <CardDescription>
-                        Заполните форму для подачи заявки на отправку груза
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <form onSubmit={handleCreateRequest} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="recipient_full_name">ФИО получателя</Label>
-                            <Input
-                              id="recipient_full_name"
-                              value={requestForm.recipient_full_name}
-                              onChange={(e) => setRequestForm({...requestForm, recipient_full_name: e.target.value})}
-                              placeholder="Иванов Иван Иванович"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="recipient_phone">Телефон получателя</Label>
-                            <Input
-                              id="recipient_phone"
-                              type="tel"
-                              value={requestForm.recipient_phone}
-                              onChange={(e) => setRequestForm({...requestForm, recipient_phone: e.target.value})}
-                              placeholder="+992XXXXXXXXX"
-                              required
-                            />
-                          </div>
+                    <CardContent className="p-6">
+                      <div className="flex items-center">
+                        <Package className="h-8 w-8 text-blue-600" />
+                        <div className="ml-4">
+                          <p className="text-sm font-medium text-gray-600">Всего грузов</p>
+                          <p className="text-2xl font-bold text-gray-900">
+                            {clientDashboard.cargo_summary?.total_cargo || 0}
+                          </p>
                         </div>
-
-                        <div>
-                          <Label htmlFor="recipient_address">Адрес получения груза</Label>
-                          <Input
-                            id="recipient_address"
-                            value={requestForm.recipient_address}
-                            onChange={(e) => setRequestForm({...requestForm, recipient_address: e.target.value})}
-                            placeholder="Душанбе, ул. Рудаки, 10, кв. 5"
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="pickup_address">Адрес отправки груза</Label>
-                          <Input
-                            id="pickup_address"
-                            value={requestForm.pickup_address}
-                            onChange={(e) => setRequestForm({...requestForm, pickup_address: e.target.value})}
-                            placeholder="Москва, ул. Тверская, 1"
-                            required
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="cargo_name">Название груза</Label>
-                            <Input
-                              id="cargo_name"
-                              value={requestForm.cargo_name}
-                              onChange={(e) => setRequestForm({...requestForm, cargo_name: e.target.value})}
-                              placeholder="Документы, личные вещи"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="route">Маршрут</Label>
-                            <Select value={requestForm.route} onValueChange={(value) => setRequestForm({...requestForm, route: value})}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="moscow_to_tajikistan">Москва → Таджикистан</SelectItem>
-                                <SelectItem value="tajikistan_to_moscow">Таджикистан → Москва</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="weight">Вес груза (кг)</Label>
-                            <Input
-                              id="weight"
-                              type="number"
-                              step="0.1"
-                              value={requestForm.weight}
-                              onChange={(e) => setRequestForm({...requestForm, weight: e.target.value})}
-                              placeholder="10.5"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="declared_value">Объявленная стоимость (руб.)</Label>
-                            <Input
-                              id="declared_value"
-                              type="number"
-                              step="0.01"
-                              value={requestForm.declared_value}
-                              onChange={(e) => setRequestForm({...requestForm, declared_value: e.target.value})}
-                              placeholder="5000"
-                              required
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <Label htmlFor="description">Описание груза</Label>
-                          <Textarea
-                            id="description"
-                            value={requestForm.description}
-                            onChange={(e) => setRequestForm({...requestForm, description: e.target.value})}
-                            placeholder="Подробное описание содержимого груза..."
-                            required
-                          />
-                        </div>
-
-                        <Button type="submit" className="w-full">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Подать заявку
-                        </Button>
-                      </form>
+                      </div>
                     </CardContent>
                   </Card>
 
-                  {/* Мои заявки */}
                   <Card>
-                    <CardHeader>
-                      <CardTitle>Мои заявки ({myRequests.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {myRequests.length === 0 ? (
-                          <p className="text-gray-500 text-center py-4">У вас пока нет заявок</p>
-                        ) : (
-                          myRequests.map((request) => (
-                            <div key={request.id} className="border rounded-lg p-4">
-                              <div className="flex justify-between items-start mb-2">
+                    <CardContent className="p-6">
+                      <div className="flex items-center">
+                        <Clock className="h-8 w-8 text-yellow-600" />
+                        <div className="ml-4">
+                          <p className="text-sm font-medium text-gray-600">В пути</p>
+                          <p className="text-2xl font-bold text-gray-900">
+                            {clientDashboard.cargo_summary?.status_breakdown?.in_transit || 0}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center">
+                        <CheckCircle className="h-8 w-8 text-green-600" />
+                        <div className="ml-4">  
+                          <p className="text-sm font-medium text-gray-600">Доставлено</p>
+                          <p className="text-2xl font-bold text-gray-900">
+                            {clientDashboard.cargo_summary?.status_breakdown?.delivered || 0}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center">
+                        <CreditCard className="h-8 w-8 text-red-600" />
+                        <div className="ml-4">
+                          <p className="text-sm font-medium text-gray-600">К оплате</p>
+                          <p className="text-2xl font-bold text-gray-900">
+                            {clientDashboard.cargo_summary?.unpaid_cargo_count || 0}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Client Navigation Tabs */}
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="dashboard" className="flex items-center">
+                    <Home className="mr-2 h-4 w-4" />
+                    Главная
+                  </TabsTrigger>
+                  <TabsTrigger value="cargo" className="flex items-center">
+                    <Package className="mr-2 h-4 w-4" />
+                    Мои грузы
+                  </TabsTrigger>
+                  <TabsTrigger value="requests" className="flex items-center">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Заявки
+                  </TabsTrigger>
+                  <TabsTrigger value="contact" className="flex items-center">
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Связь
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Dashboard Tab */}
+                <TabsContent value="dashboard" className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Recent Cargo */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Package className="mr-2 h-5 w-5" />
+                          Последние грузы
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {clientDashboard?.recent_cargo && clientDashboard.recent_cargo.length > 0 ? (
+                            clientDashboard.recent_cargo.slice(0, 3).map((cargo) => (
+                              <div key={cargo.id} className="flex items-center justify-between p-3 border rounded-lg">
                                 <div>
-                                  <h3 className="font-semibold">{request.request_number}</h3>
-                                  <p className="text-sm text-gray-600">{request.cargo_name}</p>
+                                  <div className="font-medium">#{cargo.cargo_number}</div>
+                                  <div className="text-sm text-gray-600">{cargo.cargo_name || 'Груз'}</div>
+                                  <div className="text-xs text-gray-500">
+                                    {cargo.recipient_full_name}
+                                  </div>
                                 </div>
-                                <Badge variant={
-                                  request.status === 'pending' ? 'secondary' :
-                                  request.status === 'accepted' ? 'default' : 'destructive'
-                                }>
-                                  {request.status === 'pending' ? 'На рассмотрении' :
-                                   request.status === 'accepted' ? 'Принята' : 'Отклонена'}
+                                <Badge variant={cargo.status === 'delivered' ? 'default' : 'outline'}>
+                                  {cargo.status}
                                 </Badge>
                               </div>
-                              <div className="text-sm text-gray-600 space-y-1">
-                                <p><strong>Получатель:</strong> {request.recipient_full_name}</p>
-                                <p><strong>Название груза:</strong> {request.cargo_name}</p>
-                                <p><strong>Вес:</strong> {request.weight} кг</p>
-                                <p><strong>Маршрут:</strong> {request.route === 'moscow_to_tajikistan' ? 'Москва → Таджикистан' : 'Таджикистан → Москва'}</p>
-                                <p><strong>Дата подачи:</strong> {new Date(request.created_at).toLocaleDateString('ru-RU')}</p>
+                            ))
+                          ) : (
+                            <p className="text-gray-500 text-center py-4">Нет последних грузов</p>
+                          )}
+                        </div>
+                        <div className="mt-4">
+                          <Button 
+                            variant="outline" 
+                            className="w-full" 
+                            onClick={() => {
+                              setActiveTab('cargo');
+                              fetchClientCargo();
+                            }}
+                          >
+                            Посмотреть все грузы
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Unpaid Cargo */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <CreditCard className="mr-2 h-5 w-5 text-red-600" />
+                          К оплате
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {clientDashboard?.unpaid_cargo && clientDashboard.unpaid_cargo.length > 0 ? (
+                            clientDashboard.unpaid_cargo.slice(0, 3).map((cargo) => (
+                              <div key={cargo.id} className="flex items-center justify-between p-3 border rounded-lg bg-red-50">
+                                <div>
+                                  <div className="font-medium">#{cargo.cargo_number}</div>
+                                  <div className="text-sm text-gray-600">{cargo.cargo_name || 'Груз'}</div>
+                                  <div className="text-sm font-medium text-red-600">
+                                    {cargo.declared_value} ₽
+                                  </div>
+                                </div>
+                                <Button size="sm" variant="outline">
+                                  Оплатить
+                                </Button>
                               </div>
-                            </div>
-                          ))
-                        )}
+                            ))
+                          ) : (
+                            <p className="text-gray-500 text-center py-4">Все грузы оплачены!</p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Быстрые действия</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Button 
+                          className="h-20 flex-col" 
+                          variant="outline"
+                          onClick={() => setActiveTab('requests')}
+                        >
+                          <Plus className="h-6 w-6 mb-2" />
+                          Подать заявку на груз
+                        </Button>
+                        <Button 
+                          className="h-20 flex-col" 
+                          variant="outline"
+                          onClick={() => setActiveTab('cargo')}
+                        >
+                          <Package className="h-6 w-6 mb-2" />
+                          Отследить груз
+                        </Button>
+                        <Button 
+                          className="h-20 flex-col" 
+                          variant="outline"
+                          onClick={() => setActiveTab('contact')}
+                        >
+                          <MessageCircle className="h-6 w-6 mb-2" />
+                          Связаться с нами
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
-                </div>
-              </TabsContent>
-              <TabsContent value="cargo" className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Создание нового груза */}
+                </TabsContent>
+
+                {/* Cargo Tab */}
+                <TabsContent value="cargo" className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">Мои грузы</h2>
+                    <div className="flex items-center space-x-2">
+                      <Select defaultValue="all" onValueChange={(value) => fetchClientCargo(value === 'all' ? null : value)}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Все статусы</SelectItem>
+                          <SelectItem value="accepted">Принят</SelectItem>
+                          <SelectItem value="placed_in_warehouse">На складе</SelectItem>
+                          <SelectItem value="on_transport">На транспорте</SelectItem>
+                          <SelectItem value="in_transit">В пути</SelectItem>
+                          <SelectItem value="delivered">Доставлен</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => fetchClientCargo()}
+                      >
+                        Обновить
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {clientCargo.length === 0 ? (
+                      <Card>
+                        <CardContent className="p-8 text-center">
+                          <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                          <p className="text-gray-500">У вас пока нет грузов</p>
+                          <Button 
+                            className="mt-4" 
+                            onClick={() => setActiveTab('requests')}
+                          >
+                            Подать заявку на груз
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      clientCargo.map((cargo) => (
+                        <Card key={cargo.id}>
+                          <CardContent className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                              <div>
+                                <h3 className="font-semibold text-lg">#{cargo.cargo_number}</h3>
+                                <p className="text-gray-600">{cargo.cargo_name || 'Груз'}</p>
+                              </div>
+                              <Badge variant={cargo.status === 'delivered' ? 'default' : 'outline'}>
+                                {cargo.status}
+                              </Badge>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                              <div>
+                                <p className="text-sm text-gray-600">Получатель:</p>
+                                <p className="font-medium">{cargo.recipient_full_name}</p>
+                                <p className="text-sm text-gray-600">{cargo.recipient_phone}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-600">Вес:</p>
+                                <p className="font-medium">{cargo.weight} кг</p>
+                                <p className="text-sm text-gray-600">Стоимость: {cargo.declared_value} ₽</p>
+                              </div>
+                            </div>
+
+                            {cargo.location_description && (
+                              <div className="mb-4">
+                                <p className="text-sm text-gray-600">Местоположение:</p>
+                                <p className="font-medium">{cargo.location_description}</p>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-4 text-sm text-gray-600">
+                                {cargo.tracking_code && (
+                                  <span className="flex items-center">
+                                    <QrCode className="mr-1 h-4 w-4" />
+                                    Трекинг: {cargo.tracking_code}
+                                  </span>
+                                )}
+                                {cargo.photo_count > 0 && (
+                                  <span className="flex items-center">
+                                    <Camera className="mr-1 h-4 w-4" />
+                                    {cargo.photo_count} фото
+                                  </span>
+                                )}
+                                {cargo.comment_count > 0 && (
+                                  <span className="flex items-center">
+                                    <MessageCircle className="mr-1 h-4 w-4" />
+                                    {cargo.comment_count} комментариев
+                                  </span>
+                                )}
+                              </div>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => fetchClientCargoDetails(cargo.id)}
+                              >
+                                Подробнее
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    )}
+                  </div>
+                </TabsContent>
+
+                {/* Keep existing Requests and Contact tabs */}
+                <TabsContent value="requests" className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Создание заявки */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Plus className="mr-2 h-5 w-5" />
+                          Подать заявку на груз
+                        </CardTitle>
+                        <CardDescription>
+                          Заполните форму для подачи заявки на отправку груза
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <form onSubmit={handleCreateRequest} className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="recipient_full_name">ФИО получателя</Label>
+                              <Input
+                                id="recipient_full_name"
+                                value={requestForm.recipient_full_name}
+                                onChange={(e) => setRequestForm({...requestForm, recipient_full_name: e.target.value})}
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="recipient_phone">Телефон получателя</Label>
+                              <Input
+                                id="recipient_phone"
+                                type="tel"
+                                value={requestForm.recipient_phone}
+                                onChange={(e) => setRequestForm({...requestForm, recipient_phone: e.target.value})}
+                                required
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label htmlFor="recipient_address">Адрес получателя</Label>
+                            <Input
+                              id="recipient_address"
+                              value={requestForm.recipient_address}
+                              onChange={(e) => setRequestForm({...requestForm, recipient_address: e.target.value})}
+                              required
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="weight">Вес (кг)</Label>
+                              <Input
+                                id="weight"
+                                type="number"
+                                step="0.1"
+                                value={requestForm.weight}
+                                onChange={(e) => setRequestForm({...requestForm, weight: e.target.value})}
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="declared_value">Объявленная стоимость (₽)</Label>
+                              <Input
+                                id="declared_value"
+                                type="number"
+                                value={requestForm.declared_value}
+                                onChange={(e) => setRequestForm({...requestForm, declared_value: e.target.value})}
+                                required
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label htmlFor="description">Описание груза</Label>
+                            <Textarea
+                              id="description"
+                              value={requestForm.description}
+                              onChange={(e) => setRequestForm({...requestForm, description: e.target.value})}
+                              required
+                            />
+                          </div>
+                          <Button type="submit" className="w-full">
+                            Подать заявку
+                          </Button>
+                        </form>
+                      </CardContent>
+                    </Card>
+
+                    {/* Мои заявки */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <FileText className="mr-2 h-5 w-5" />
+                          Мои заявки
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {myRequests.length === 0 ? (
+                            <p className="text-gray-500 text-center py-4">У вас пока нет заявок</p>
+                          ) : (
+                            myRequests.map((request) => (
+                              <div key={request.id} className="border rounded-lg p-4">
+                                <div className="flex justify-between items-start mb-2">
+                                  <div>
+                                    <div className="font-medium">{request.recipient_full_name}</div>
+                                    <div className="text-sm text-gray-600">{request.recipient_phone}</div>
+                                  </div>
+                                  <Badge variant={request.status === 'approved' ? 'default' : 'outline'}>
+                                    {request.status}
+                                  </Badge>
+                                </div>
+                                <div className="text-sm text-gray-600 mb-2">
+                                  {request.description}
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span>Вес: {request.weight} кг</span>
+                                  <span>Стоимость: {request.declared_value} ₽</span>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="contact" className="space-y-6">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center">
-                        <Plus className="mr-2 h-5 w-5" />
-                        Создать новый груз
+                        <MessageCircle className="mr-2 h-5 w-5" />
+                        Связаться с нами
                       </CardTitle>
+                      <CardDescription>
+                        Выберите удобный способ связи
+                      </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <form onSubmit={handleCreateCargo} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="recipient_name">Имя получателя</Label>
-                            <Input
-                              id="recipient_name"
-                              value={cargoForm.recipient_name}
-                              onChange={(e) => setCargoForm({...cargoForm, recipient_name: e.target.value})}
-                              required
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="recipient_phone">Телефон получателя</Label>
-                            <Input
-                              id="recipient_phone"
-                              type="tel"
-                              value={cargoForm.recipient_phone}
-                              onChange={(e) => setCargoForm({...cargoForm, recipient_phone: e.target.value})}
-                              required
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <Label htmlFor="route">Маршрут</Label>
-                          <Select value={cargoForm.route} onValueChange={(value) => setCargoForm({...cargoForm, route: value})}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="moscow_to_tajikistan">Москва → Таджикистан</SelectItem>
-                              <SelectItem value="tajikistan_to_moscow">Таджикистан → Москва</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="weight">Вес (кг)</Label>
-                            <Input
-                              id="weight"
-                              type="number"
-                              step="0.1"
-                              value={cargoForm.weight}
-                              onChange={(e) => setCargoForm({...cargoForm, weight: e.target.value})}
-                              required
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="declared_value">Объявленная стоимость</Label>
-                            <Input
-                              id="declared_value"
-                              type="number"
-                              step="0.01"
-                              value={cargoForm.declared_value}
-                              onChange={(e) => setCargoForm({...cargoForm, declared_value: e.target.value})}
-                              required
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <Label htmlFor="description">Описание груза</Label>
-                          <Textarea
-                            id="description"
-                            value={cargoForm.description}
-                            onChange={(e) => setCargoForm({...cargoForm, description: e.target.value})}
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="sender_address">Адрес отправителя</Label>
-                          <Input
-                            id="sender_address"
-                            value={cargoForm.sender_address}
-                            onChange={(e) => setCargoForm({...cargoForm, sender_address: e.target.value})}
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="recipient_address">Адрес получателя</Label>
-                          <Input
-                            id="recipient_address"
-                            value={cargoForm.recipient_address}
-                            onChange={(e) => setCargoForm({...cargoForm, recipient_address: e.target.value})}
-                            required
-                          />
-                        </div>
-
-                        <Button type="submit" className="w-full">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Создать груз
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Button className="h-20 flex-col" variant="outline">
+                          <MessageCircle className="h-6 w-6 mb-2" />
+                          WhatsApp
                         </Button>
-                      </form>
-                    </CardContent>
-                  </Card>
-
-                  {/* Мои грузы */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Мои грузы</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {cargo.length === 0 ? (
-                          <p className="text-gray-500 text-center py-4">У вас пока нет грузов</p>
-                        ) : (
-                          cargo.map((item) => (
-                            <div key={item.id} className="border rounded-lg p-4">
-                              <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  <h3 className="font-semibold">{item.cargo_number}</h3>
-                                  <p className="text-sm text-gray-600">{item.cargo_name}</p>
-                                  <p className="text-xs text-gray-500">Получатель: {item.recipient_name}</p>
-                                </div>
-                                {getStatusBadge(item.status)}
-                              </div>
-                              <p className="text-sm text-gray-600 mb-2">{item.description}</p>
-                              <div className="flex justify-between items-center text-sm">
-                                <span>{item.weight} кг</span>
-                                <span>{item.route === 'moscow_to_tajikistan' ? 'Москва → Таджикистан' : 'Таджикистан → Москва'}</span>
-                              </div>
-                              {item.warehouse_location && (
-                                <p className="text-sm text-blue-600 mt-2">
-                                  <MapPin className="inline h-4 w-4 mr-1" />
-                                  {item.warehouse_location}
-                                </p>
-                              )}
-                            </div>
-                          ))
-                        )}
+                        <Button className="h-20 flex-col" variant="outline">
+                          <MessageCircle className="h-6 w-6 mb-2" />
+                          Telegram
+                        </Button>
+                        <Button className="h-20 flex-col" variant="outline">
+                          <MessageCircle className="h-6 w-6 mb-2" />
+                          Онлайн чат
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
-                </div>
-              </TabsContent>
-
-              {/* Уведомления */}
-              <TabsContent value="notifications">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Bell className="mr-2 h-5 w-5" />
-                      Уведомления
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {notifications.length === 0 ? (
-                        <p className="text-gray-500 text-center py-4">Уведомлений нет</p>
-                      ) : (
-                        notifications.map((notification) => (
-                          <div
-                            key={notification.id}
-                            className={`border rounded-lg p-4 ${!notification.is_read ? 'bg-blue-50 border-blue-200' : ''}`}
-                          >
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1">
-                                <p className="text-sm">{notification.message}</p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  {new Date(notification.created_at).toLocaleString('ru-RU')}
-                                </p>
-                              </div>
-                              {!notification.is_read && (
-                                <Badge variant="secondary" className="ml-2">Новое</Badge>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Связаться с нами */}
-              <TabsContent value="contact">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <MessageCircle className="mr-2 h-5 w-5" />
-                      Связаться с нами
-                    </CardTitle>
-                    <CardDescription>
-                      Выберите удобный способ связи с нашей службой поддержки
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* WhatsApp */}
-                      <Card className="p-4 hover:bg-green-50 cursor-pointer transition-colors" onClick={handleWhatsAppContact}>
-                        <div className="text-center space-y-3">
-                          <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto">
-                            <MessageCircle className="w-8 h-8 text-white" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-green-700">WhatsApp</h3>
-                            <p className="text-sm text-gray-600">Быстрая связь через мессенджер</p>
-                            <p className="text-xs text-gray-500 mt-1">+7 (912) 345-67-89</p>
-                          </div>
-                          <Button className="w-full bg-green-500 hover:bg-green-600">
-                            Написать в WhatsApp
-                          </Button>
-                        </div>
-                      </Card>
-
-                      {/* Telegram */}
-                      <Card className="p-4 hover:bg-blue-50 cursor-pointer transition-colors" onClick={handleTelegramContact}>
-                        <div className="text-center space-y-3">
-                          <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto">
-                            <MessageCircle className="w-8 h-8 text-white" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-blue-700">Telegram</h3>
-                            <p className="text-sm text-gray-600">Общение в мессенджере</p>
-                            <p className="text-xs text-gray-500 mt-1">@tajline_support</p>
-                          </div>
-                          <Button className="w-full bg-blue-500 hover:bg-blue-600">
-                            Написать в Telegram
-                          </Button>
-                        </div>
-                      </Card>
-
-                      {/* Онлайн чат */}
-                      <Card className="p-4 hover:bg-purple-50 cursor-pointer transition-colors" onClick={handleOnlineChat}>
-                        <div className="text-center space-y-3">
-                          <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto">
-                            <MessageCircle className="w-8 h-8 text-white" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-purple-700">Онлайн чат</h3>
-                            <p className="text-sm text-gray-600">Прямая связь с оператором</p>
-                            <p className="text-xs text-gray-500 mt-1">Мгновенные ответы</p>
-                          </div>
-                          <Button className="w-full bg-purple-500 hover:bg-purple-600">
-                            Начать чат
-                          </Button>
-                        </div>
-                      </Card>
-                    </div>
-
-                    {/* Информация о времени работы */}
-                    <div className="mt-6 bg-gray-50 p-4 rounded-lg">
-                      <div className="flex items-center space-x-2 mb-3">
-                        <Clock className="w-5 h-5 text-gray-500" />
-                        <span className="font-medium text-gray-700">Время работы поддержки</span>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                        <div>
-                          <p><strong>Понедельник - Пятница:</strong></p>
-                          <p>9:00 - 18:00 (МСК)</p>
-                        </div>
-                        <div>
-                          <p><strong>Суббота - Воскресенье:</strong></p>
-                          <p>10:00 - 16:00 (МСК)</p>
-                        </div>
-                      </div>
-                      <div className="mt-3 p-2 bg-green-100 rounded text-sm text-green-700">
-                        💬 WhatsApp и Telegram доступны 24/7
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+                </TabsContent>
+              </Tabs>
+            </div>
           ) : (
             /* Для админа и оператора склада - новый интерфейс с боковым меню */
             <div className="space-y-6">
