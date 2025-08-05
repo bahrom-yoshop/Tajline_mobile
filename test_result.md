@@ -744,6 +744,21 @@ frontend:
           agent: "main"
           comment: "✅ CRITICAL ISSUE RESOLVED - Calculator import error was already fixed in App.js line 19. Frontend loads properly without JavaScript errors. User can successfully login with valid credentials (+79123456789/123456) and access personal dashboard. Cargo order form ('Оформить груз') is accessible and functional. The 'Invalid phone or password' error was not a bug but expected behavior for invalid credentials - backend testing provided working test credentials for all user roles."
 
+  - task: "Customer Order Management Interface - Admin Panel"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test new customer order management functionality in admin panel: navigation to Уведомления → Новые заказы section, interface elements, order management functions, orange color scheme, and required icons."
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL NAVIGATION ISSUE FOUND - Customer order management interface testing reveals session management problems preventing complete testing. FINDINGS: ✅ Admin login works correctly (+79999888777/admin123), ✅ Admin dashboard loads with proper sidebar menu including 'Уведомления' section, ✅ Can see 'Новые заказы (2)' submenu with counter in expanded notifications menu, ❌ Session persistence issues cause frequent logouts during navigation testing, ❌ Cannot complete full interface testing due to session instability. PARTIAL VERIFICATION: Navigation structure exists correctly, submenu with counter is present, admin interface loads properly. CRITICAL ISSUE: Session management prevents thorough testing of the new orders interface, modals, and order management functions. The functionality appears to be implemented but cannot be fully verified due to authentication session problems."
+
   - task: "Authentication System Session Management"
     implemented: true
     working: false
