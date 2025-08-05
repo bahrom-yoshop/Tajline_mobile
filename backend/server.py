@@ -1718,6 +1718,61 @@ async def get_available_cargo_for_transport_endpoint(
     available_cargo = get_available_cargo_for_transport(current_user.id, current_user.role)
     return available_cargo
 
+@app.get("/api/cargo/search")
+async def search_cargo(
+    query: str = "",
+    search_type: str = "all",  # all, number, sender_name, recipient_name, phone
+    current_user: User = Depends(get_current_user)
+):
+    """Расширенный поиск грузов по различным критериям"""
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    if not query or len(query.strip()) < 2:
+        raise HTTPException(status_code=400, detail="Query must be at least 2 characters long")
+    
+    query = query.strip()
+    
+    # Построить поисковые критерии
+    search_criteria = []
+    
+    if search_type == "all" or search_type == "number":
+        search_criteria.append({"cargo_number": {"$regex": query, "$options": "i"}})
+    
+    if search_type == "all" or search_type == "sender_name":
+        search_criteria.append({"sender_full_name": {"$regex": query, "$options": "i"}})
+    
+    if search_type == "all" or search_type == "recipient_name":
+        search_criteria.append({"recipient_full_name": {"$regex": query, "$options": "i"}})
+        search_criteria.append({"recipient_name": {"$regex": query, "$options": "i"}})
+    
+    if search_type == "all" or search_type == "phone":
+        search_criteria.append({"sender_phone": {"$regex": query, "$options": "i"}})
+        search_criteria.append({"recipient_phone": {"$regex": query, "$options": "i"}})
+    
+    if search_type == "all" or search_type == "cargo_name":
+        search_criteria.append({"cargo_name": {"$regex": query, "$options": "i"}})
+    
+    if not search_criteria:
+        return []
+    
+    # Поиск в коллекции пользовательских грузов
+    user_cargo_query = {"$or": search_criteria}
+    user_cargo = list(db.cargo.find(user_cargo_query, {"_id": 0}).limit(20))
+    
+    # Поиск в коллекции операторских грузов  
+    operator_cargo = list(db.operator_cargo.find(user_cargo_query, {"_id": 0}).limit(20))
+    
+    # Объединить результаты
+    all_results = user_cargo + operator_cargo
+    
+    # Сортировать по релевантности (точные совпадения номера сначала)
+    if search_type == "number" or query.isdigit():
+        all_results.sort(key=lambda x: 0 if x.get("cargo_number", "").lower() == query.lower() else 1)
+    
+    return all_results[:50]  # Ограничить до 50 результатов
+
 # === ТРАНСПОРТ API ===
 
 @app.post("/api/transport/create")
