@@ -5706,6 +5706,7 @@ ID склада: {self.warehouse_id}"""
                 cargo_numbers.append(operator_cargo_response['cargo_number'])
             
             placement_data = {
+                "transport_id": arrival_transport_id,
                 "cargo_numbers": cargo_numbers
             }
             
