@@ -515,6 +515,51 @@ function App() {
     // Альтернативно можно открыть форму обратной связи
   };
 
+  // Operator-warehouse binding functions
+  const fetchOperatorWarehouseBindings = async () => {
+    try {
+      const data = await apiCall('/api/admin/operator-warehouse-bindings');
+      setOperatorWarehouseBindings(data);
+    } catch (error) {
+      console.error('Error fetching operator-warehouse bindings:', error);
+    }
+  };
+
+  const handleCreateOperatorBinding = async () => {
+    if (!selectedOperatorForBinding || !selectedWarehouseForBinding) {
+      showAlert('Выберите оператора и склад для привязки', 'error');
+      return;
+    }
+
+    try {
+      await apiCall('/api/admin/operator-warehouse-binding', 'POST', {
+        operator_id: selectedOperatorForBinding,
+        warehouse_id: selectedWarehouseForBinding
+      });
+      showAlert('Привязка оператора к складу создана успешно!', 'success');
+      setOperatorBindingModal(false);
+      setSelectedOperatorForBinding('');
+      setSelectedWarehouseForBinding('');
+      fetchOperatorWarehouseBindings();
+    } catch (error) {
+      console.error('Create operator binding error:', error);
+      const errorMessage = error.response?.data?.detail || 'Ошибка создания привязки';
+      showAlert(errorMessage, 'error');
+    }
+  };
+
+  const handleDeleteOperatorBinding = async (bindingId) => {
+    if (window.confirm('Вы уверены, что хотите удалить эту привязку?')) {
+      try {
+        await apiCall(`/api/admin/operator-warehouse-binding/${bindingId}`, 'DELETE');
+        showAlert('Привязка удалена успешно!', 'success');
+        fetchOperatorWarehouseBindings();
+      } catch (error) {
+        console.error('Delete operator binding error:', error);
+      }
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
