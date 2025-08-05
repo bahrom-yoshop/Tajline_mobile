@@ -4573,6 +4573,10 @@ class CargoTransportAPITester:
             ("Transport Access Control", self.test_transport_access_control),
             ("Transport History", self.test_transport_history),
             ("Transport Deletion", self.test_transport_delete),
+            ("QR Code Generation and Management", self.test_qr_code_generation_and_management),
+            ("QR Code Scanning System", self.test_qr_code_scanning_system),
+            ("QR Code Content Format Verification", self.test_qr_code_content_format_verification),
+            ("QR Code Integration with Existing Features", self.test_qr_code_integration_with_existing_features),
             ("Notifications", self.test_notifications),
             ("Error Handling", self.test_error_cases)
         ]
