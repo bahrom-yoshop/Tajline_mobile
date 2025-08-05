@@ -7250,6 +7250,370 @@ function App() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* НОВЫЕ МОДАЛЫ ДЛЯ УПРАВЛЕНИЯ ЗАКАЗАМИ КЛИЕНТОВ */}
+
+      {/* Модальное окно детального просмотра заказа клиента */}
+      <Dialog open={orderDetailsModal} onOpenChange={setOrderDetailsModal}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <ShoppingCart className="w-5 h-5 mr-2 text-orange-600" />
+              Детали заказа №{selectedOrder?.request_number}
+            </DialogTitle>
+            <DialogDescription>
+              Просмотр полной информации о заказе клиента
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedOrder && (
+            <div className="space-y-6">
+              {/* Основная информация */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-sm text-gray-600"><strong>Номер заказа:</strong></p>
+                  <p className="font-medium">{selectedOrder.request_number}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600"><strong>Дата создания:</strong></p>
+                  <p className="font-medium">
+                    {new Date(selectedOrder.created_at).toLocaleDateString('ru-RU')} {' '}
+                    {new Date(selectedOrder.created_at).toLocaleTimeString('ru-RU')}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600"><strong>Статус:</strong></p>
+                  <Badge variant={selectedOrder.status === 'pending' ? 'destructive' : 'default'}>
+                    {selectedOrder.status === 'pending' ? 'Ожидает обработки' : selectedOrder.status}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600"><strong>Маршрут:</strong></p>
+                  <p className="font-medium">
+                    {selectedOrder.route === 'moscow_to_tajikistan' ? 'Москва → Таджикистан' : 'Таджикистан → Москва'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Информация об отправителе */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold text-lg mb-3 flex items-center">
+                  <User className="w-5 h-5 mr-2 text-blue-600" />
+                  Отправитель
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>ФИО:</strong></p>
+                    <p className="font-medium">{selectedOrder.sender_full_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>Телефон:</strong></p>
+                    <p className="font-medium">{selectedOrder.sender_phone}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-gray-600"><strong>Адрес забора:</strong></p>
+                    <p className="font-medium">{selectedOrder.pickup_address}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Информация о получателе */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold text-lg mb-3 flex items-center">
+                  <MapPin className="w-5 h-5 mr-2 text-green-600" />
+                  Получатель
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>ФИО:</strong></p>
+                    <p className="font-medium">{selectedOrder.recipient_full_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>Телефон:</strong></p>
+                    <p className="font-medium">{selectedOrder.recipient_phone}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-gray-600"><strong>Адрес доставки:</strong></p>
+                    <p className="font-medium">{selectedOrder.recipient_address}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Информация о грузе */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold text-lg mb-3 flex items-center">
+                  <Package className="w-5 h-5 mr-2 text-purple-600" />
+                  Информация о грузе
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>Название груза:</strong></p>
+                    <p className="font-medium">{selectedOrder.cargo_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>Вес:</strong></p>
+                    <p className="font-medium">{selectedOrder.weight} кг</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>Объявленная стоимость:</strong></p>
+                    <p className="font-medium">{selectedOrder.declared_value} ₽</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-gray-600"><strong>Описание:</strong></p>
+                    <p className="font-medium">{selectedOrder.description}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Заметки администратора */}
+              {selectedOrder.admin_notes && (
+                <div className="border rounded-lg p-4 bg-blue-50">
+                  <h3 className="font-semibold text-lg mb-3 flex items-center">
+                    <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                    Заметки администратора
+                  </h3>
+                  <p className="text-gray-700">{selectedOrder.admin_notes}</p>
+                </div>
+              )}
+
+              {/* Действия */}
+              <div className="flex justify-between items-center pt-4 border-t">
+                <div className="space-x-2">
+                  <Button 
+                    onClick={() => {
+                      handleOrderEdit(selectedOrder);
+                      setOrderDetailsModal(false);
+                    }}
+                    variant="outline"
+                    className="flex items-center"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Редактировать
+                  </Button>
+                </div>
+                <div className="space-x-2">
+                  <Button 
+                    onClick={() => handleAcceptOrder(selectedOrder.id)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Принять заказ
+                  </Button>
+                  <Button 
+                    onClick={() => handleRejectOrder(selectedOrder.id, 'Заказ отклонен администратором')}
+                    variant="destructive"
+                  >
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Отклонить
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Модальное окно редактирования заказа клиента */}
+      <Dialog open={editOrderModal} onOpenChange={setEditOrderModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Edit className="w-5 h-5 mr-2 text-blue-600" />
+              Редактирование заказа №{selectedOrder?.request_number}
+            </DialogTitle>
+            <DialogDescription>
+              Изменение информации о получателе, отправителе и грузе
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={(e) => { e.preventDefault(); handleSaveOrderChanges(); }}>
+            <div className="space-y-6">
+              {/* Информация об отправителе */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold text-lg mb-4 flex items-center">
+                  <User className="w-5 h-5 mr-2 text-blue-600" />
+                  Отправитель
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="sender_full_name">ФИО отправителя</Label>
+                    <Input
+                      id="sender_full_name"
+                      value={orderEditForm.sender_full_name}
+                      onChange={(e) => setOrderEditForm({...orderEditForm, sender_full_name: e.target.value})}
+                      placeholder="Иван Иванович Петров"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="sender_phone">Телефон отправителя</Label>
+                    <Input
+                      id="sender_phone"
+                      value={orderEditForm.sender_phone}
+                      onChange={(e) => setOrderEditForm({...orderEditForm, sender_phone: e.target.value})}
+                      placeholder="+7 900 123-45-67"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="pickup_address">Адрес забора</Label>
+                    <Input
+                      id="pickup_address"
+                      value={orderEditForm.pickup_address}
+                      onChange={(e) => setOrderEditForm({...orderEditForm, pickup_address: e.target.value})}
+                      placeholder="г. Москва, ул. Тверская, д. 1"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Информация о получателе */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold text-lg mb-4 flex items-center">
+                  <MapPin className="w-5 h-5 mr-2 text-green-600" />
+                  Получатель
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="recipient_full_name">ФИО получателя</Label>
+                    <Input
+                      id="recipient_full_name"
+                      value={orderEditForm.recipient_full_name}
+                      onChange={(e) => setOrderEditForm({...orderEditForm, recipient_full_name: e.target.value})}
+                      placeholder="Петр Петрович Иванов"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="recipient_phone">Телефон получателя</Label>
+                    <Input
+                      id="recipient_phone"
+                      value={orderEditForm.recipient_phone}
+                      onChange={(e) => setOrderEditForm({...orderEditForm, recipient_phone: e.target.value})}
+                      placeholder="+992 900 123456"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="recipient_address">Адрес доставки</Label>
+                    <Input
+                      id="recipient_address"
+                      value={orderEditForm.recipient_address}
+                      onChange={(e) => setOrderEditForm({...orderEditForm, recipient_address: e.target.value})}
+                      placeholder="г. Душанбе, ул. Рудаки, д. 10"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Информация о грузе */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold text-lg mb-4 flex items-center">
+                  <Package className="w-5 h-5 mr-2 text-purple-600" />
+                  Груз
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="cargo_name">Название груза</Label>
+                    <Input
+                      id="cargo_name"
+                      value={orderEditForm.cargo_name}
+                      onChange={(e) => setOrderEditForm({...orderEditForm, cargo_name: e.target.value})}
+                      placeholder="Документы"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="route">Маршрут</Label>
+                    <Select value={orderEditForm.route} onValueChange={(value) => setOrderEditForm({...orderEditForm, route: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите маршрут" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="moscow_to_tajikistan">Москва → Таджикистан</SelectItem>
+                        <SelectItem value="tajikistan_to_moscow">Таджикистан → Москва</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="weight">Вес (кг)</Label>
+                    <Input
+                      id="weight"
+                      type="number"
+                      value={orderEditForm.weight}
+                      onChange={(e) => setOrderEditForm({...orderEditForm, weight: e.target.value})}
+                      placeholder="1.5"
+                      step="0.1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="declared_value">Объявленная стоимость (₽)</Label>
+                    <Input
+                      id="declared_value"
+                      type="number"
+                      value={orderEditForm.declared_value}
+                      onChange={(e) => setOrderEditForm({...orderEditForm, declared_value: e.target.value})}
+                      placeholder="10000"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="description">Описание груза</Label>
+                    <Textarea
+                      id="description"
+                      value={orderEditForm.description}
+                      onChange={(e) => setOrderEditForm({...orderEditForm, description: e.target.value})}
+                      placeholder="Подробное описание груза"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Заметки администратора */}
+              <div className="border rounded-lg p-4 bg-blue-50">
+                <h3 className="font-semibold text-lg mb-4 flex items-center">
+                  <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                  Заметки администратора
+                </h3>
+                <Textarea
+                  value={orderEditForm.admin_notes}
+                  onChange={(e) => setOrderEditForm({...orderEditForm, admin_notes: e.target.value})}
+                  placeholder="Добавьте заметки по обработке заказа..."
+                  rows={3}
+                />
+              </div>
+
+              {/* Кнопки действий */}
+              <div className="flex justify-between items-center pt-4 border-t">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setEditOrderModal(false);
+                    setOrderEditForm({
+                      sender_full_name: '',
+                      sender_phone: '',
+                      recipient_full_name: '',
+                      recipient_phone: '',
+                      recipient_address: '',
+                      pickup_address: '',
+                      cargo_name: '',
+                      weight: '',
+                      declared_value: '',
+                      description: '',
+                      route: '',
+                      admin_notes: ''
+                    });
+                  }}
+                >
+                  Отмена
+                </Button>
+                <div className="space-x-2">
+                  <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                    <Save className="w-4 h-4 mr-2" />
+                    Сохранить изменения
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
