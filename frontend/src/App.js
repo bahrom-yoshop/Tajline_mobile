@@ -5672,6 +5672,196 @@ function App() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Transport Visualization Modal */}
+      <Dialog open={transportVisualizationModal} onOpenChange={setTransportVisualizationModal}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              <Truck className="mr-2 h-5 w-5 inline" />
+              Схема заполнения транспорта {selectedTransportForVisualization?.transport_number}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {transportVisualizationData && (
+            <div className="space-y-6">
+              {/* Статистика транспорта */}
+              <div className="grid grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">{transportVisualizationData.cargo_summary.total_items}</div>
+                  <div className="text-sm">Грузов</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">{transportVisualizationData.cargo_summary.total_weight} кг</div>
+                  <div className="text-sm">Общий вес</div>
+                </div>
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600">{transportVisualizationData.cargo_summary.fill_percentage_weight}%</div>
+                  <div className="text-sm">Заполнение по весу</div>
+                </div>
+                <div className="text-center p-4 bg-orange-50 rounded-lg">
+                  <div className="text-2xl font-bold text-orange-600">{transportVisualizationData.cargo_summary.total_volume_estimate} м³</div>
+                  <div className="text-sm">Примерный объём</div>
+                </div>
+              </div>
+
+              {/* Прогресс бар заполнения */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Заполнение по весу</span>
+                  <span>{transportVisualizationData.cargo_summary.fill_percentage_weight}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div 
+                    className={`h-3 rounded-full ${
+                      transportVisualizationData.cargo_summary.fill_percentage_weight > 100 ? 'bg-red-500' :
+                      transportVisualizationData.cargo_summary.fill_percentage_weight > 90 ? 'bg-orange-500' :
+                      transportVisualizationData.cargo_summary.fill_percentage_weight > 70 ? 'bg-yellow-500' : 'bg-green-500'
+                    }`}
+                    style={{width: `${Math.min(transportVisualizationData.cargo_summary.fill_percentage_weight, 100)}%`}}
+                  />
+                </div>
+              </div>
+
+              {/* Схема размещения грузов */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg">Схема размещения грузов в транспорте</h4>
+                <div className="border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
+                  <div className="text-center mb-2 text-sm font-medium text-gray-600">
+                    ← Передняя часть ({transportVisualizationData.transport.dimensions.length}м x {transportVisualizationData.transport.dimensions.width}м)
+                  </div>
+                  <div className="grid grid-cols-6 gap-2">
+                    {transportVisualizationData.visualization.placement_grid.map((row, rowIndex) =>
+                      row.map((cell, cellIndex) => (
+                        <div 
+                          key={`${rowIndex}-${cellIndex}`}
+                          className={`
+                            relative h-16 border-2 rounded transition-all
+                            ${cell.occupied 
+                              ? 'bg-blue-100 border-blue-300 hover:bg-blue-200' 
+                              : 'bg-white border-gray-300 border-dashed'
+                            }
+                          `}
+                          title={cell.occupied ? `Груз ${cell.cargo_number}: ${cell.cargo_name} (${cell.weight}кг)` : 'Свободное место'}
+                        >
+                          {cell.occupied && (
+                            <div className="absolute inset-0 p-1 flex flex-col justify-center items-center text-xs">
+                              <div className="font-bold text-blue-800">{cell.cargo_number}</div>
+                              <div className="text-blue-600 text-center leading-tight">{cell.weight}кг</div>
+                            </div>
+                          )}
+                          <div className="absolute bottom-0 right-0 text-xs text-gray-400 p-1">
+                            {cell.position}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="text-center mt-2 text-sm font-medium text-gray-600">
+                    Задняя часть →
+                  </div>
+                </div>
+              </div>
+
+              {/* Детальный список грузов */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg">Детальный список грузов ({transportVisualizationData.cargo_summary.total_items})</h4>
+                <div className="max-h-64 overflow-y-auto border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>№ Груза</TableHead>
+                        <TableHead>Наименование</TableHead>
+                        <TableHead>Вес (кг)</TableHead>
+                        <TableHead>Получатель</TableHead>
+                        <TableHead>Позиция</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {transportVisualizationData.cargo_summary.cargo_list.map((cargo, index) => (
+                        <TableRow key={cargo.id}>
+                          <TableCell className="font-medium">{cargo.cargo_number}</TableCell>
+                          <TableCell>{cargo.cargo_name}</TableCell>
+                          <TableCell>{cargo.weight}</TableCell>
+                          <TableCell>{cargo.recipient_name}</TableCell>
+                          <TableCell>{Math.floor(index / 6) + 1}-{(index % 6) + 1}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* QR/Number Cargo Placement Modal */}
+      <Dialog open={qrPlacementModal} onOpenChange={setQrPlacementModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              <QrCode className="mr-2 h-5 w-5 inline" />
+              Размещение груза по номеру/QR
+            </DialogTitle>
+          </DialogHeader>
+          
+          <form onSubmit={handleQrCargoPlacement} className="space-y-4">
+            <div className="p-3 bg-purple-50 rounded-lg">
+              <h5 className="font-medium text-purple-800 mb-2">Автоматическое размещение</h5>
+              <p className="text-sm text-purple-700">
+                Груз будет автоматически размещен на первый доступный склад, к которому привязан ваш аккаунт, в первую свободную ячейку.
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="cargo_number">Номер груза</Label>
+              <Input
+                id="cargo_number"
+                value={qrPlacementForm.cargo_number}
+                onChange={(e) => setQrPlacementForm({...qrPlacementForm, cargo_number: e.target.value})}
+                placeholder="1234"
+                required={!qrPlacementForm.qr_data}
+              />
+            </div>
+
+            <div className="text-center text-sm text-gray-500">или</div>
+
+            <div>
+              <Label htmlFor="qr_data">Данные QR кода</Label>
+              <textarea
+                id="qr_data"
+                className="w-full mt-2 p-3 border rounded-md"
+                rows="4"
+                value={qrPlacementForm.qr_data}
+                onChange={(e) => setQrPlacementForm({...qrPlacementForm, qr_data: e.target.value})}
+                placeholder="Вставьте содержимое QR кода..."
+                required={!qrPlacementForm.cargo_number}
+              />
+            </div>
+
+            <div className="flex space-x-2 pt-4">
+              <Button type="submit" className="flex-1">
+                <QrCode className="mr-2 h-4 w-4" />
+                Разместить автоматически
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setQrPlacementModal(false);
+                  setQrPlacementForm({
+                    cargo_number: '',
+                    qr_data: ''
+                  });
+                }}
+              >
+                Отмена
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
