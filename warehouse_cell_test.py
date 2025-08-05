@@ -503,10 +503,12 @@ class WarehouseCellTester:
             return False
         
         # Create transport
+        import time
+        unique_suffix = str(int(time.time()))[-6:]  # Last 6 digits of timestamp
         transport_data = {
             "driver_name": "Водитель Освобождения",
             "driver_phone": "+79111222333",
-            "transport_number": "LIB001TEST",
+            "transport_number": f"LIB{unique_suffix}",
             "capacity_kg": 1000.0,
             "direction": "Москва → Душанбе"
         }
