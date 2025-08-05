@@ -487,6 +487,18 @@ backend:
           agent: "main"
           comment: "✅ CRITICAL FIX VERIFIED - Fixed GET /api/warehouses/{warehouse_id}/full-layout endpoint to search cargo in BOTH collections (cargo + operator_cargo). Previously only searched operator_cargo collection causing user cargo to be invisible in warehouse schemas. Updated cargo data formatting to handle field differences between collections. Cross-collection search tested successfully - all cargo from both collections now visible in warehouse layout."
 
+  - task: "Operator Warehouse-Based Access Control System"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ IMPLEMENTED - Created comprehensive warehouse-based permission system for operators: 1.1) Updated GET /api/operator/cargo/list to filter cargo only from operator's assigned warehouses, 1.2) Added GET /api/operator/my-warehouses with detailed statistics for assigned warehouses, 1.3) Operators get full access to assigned warehouse operations, 1.4) Updated POST /api/operator/cargo/accept to restrict cargo acceptance only to assigned warehouses with automatic target warehouse assignment, 1.5) Added GET /api/transport/list with filtering for operator's warehouse-related transports, 1.6) Added POST /api/transport/create-interwarehouse for creating inter-warehouse transports between operator's accessible warehouses. Multi-tenant warehouse security implemented."
+
   - task: "Transport Access Control"
     implemented: true
     working: true
