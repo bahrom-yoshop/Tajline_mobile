@@ -2086,19 +2086,7 @@ function App() {
                           required
                         />
                       </div>
-                      <div>
-                        <Label htmlFor="register-role">Роль</Label>
-                        <Select value={registerForm.role} onValueChange={(value) => setRegisterForm({...registerForm, role: value})}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="user">Пользователь</SelectItem>
-                            <SelectItem value="admin">Администратор</SelectItem>
-                            <SelectItem value="warehouse_operator">Оператор склада</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {/* Роль убрана - всегда USER по умолчанию (Функция 3) */}
                       <Button type="submit" className="w-full">Зарегистрироваться</Button>
                     </form>
                   </CardContent>
