@@ -2202,7 +2202,20 @@ function App() {
                             <div className="p-4 text-gray-500 text-center">Ничего не найдено</div>
                           ) : (
                             searchResults.map((result) => (
-                              <div key={result.id} className="p-3 border-b hover:bg-gray-50">
+                              <div
+                                key={result.id}
+                                className="p-3 border-b hover:bg-gray-50 cursor-pointer"
+                                onClick={async () => {
+                                  try {
+                                    const cargoDetails = await fetchCargoDetails(result.id);
+                                    setSelectedCellCargo(cargoDetails);
+                                    setCargoDetailModal(true);
+                                    clearSearch();
+                                  } catch (error) {
+                                    console.error('Error fetching cargo details:', error);
+                                  }
+                                }}
+                              >
                                 <div className="font-medium">{result.cargo_number}</div>
                                 <div className="text-sm text-gray-600">{result.cargo_name}</div>
                                 <div className="text-xs text-gray-500">
