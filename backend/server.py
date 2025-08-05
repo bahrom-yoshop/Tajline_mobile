@@ -252,6 +252,8 @@ class CargoWithLocation(BaseModel):
     updated_at: datetime
     created_by: str  # ID оператора, который принял груз
     created_by_operator: Optional[str] = None  # ФИО оператора, который принял груз
+    target_warehouse_id: Optional[str] = None  # Целевой склад для размещения
+    target_warehouse_name: Optional[str] = None  # Название целевого склада
     warehouse_location: Optional[str] = None
     warehouse_id: Optional[str] = None
     block_number: Optional[int] = None
