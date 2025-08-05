@@ -2665,6 +2665,93 @@ async def accept_cargo_request(
         "cargo_id": cargo_id
     }
 
+# НОВЫЕ ENDPOINTS ДЛЯ УПРАВЛЕНИЯ ОПЛАТАМИ
+
+@app.get("/api/admin/unpaid-orders")
+async def get_unpaid_orders(current_user: User = Depends(get_current_user)):
+    """Получить список неоплаченных заказов"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    orders = list(db.unpaid_orders.find({"status": "unpaid"}).sort("created_at", -1))
+    # Сериализация данных
+    normalized_orders = []
+    for order in orders:
+        normalized = serialize_mongo_document(order)
+        normalized_orders.append(normalized)
+    
+    return normalized_orders
+
+@app.get("/api/admin/unpaid-orders/all")
+async def get_all_orders_with_payments(current_user: User = Depends(get_current_user)):
+    """Получить все заказы (оплаченные и неоплаченные)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    orders = list(db.unpaid_orders.find({}).sort("created_at", -1))
+    # Сериализация данных
+    normalized_orders = []
+    for order in orders:
+        normalized = serialize_mongo_document(order)
+        normalized_orders.append(normalized)
+    
+    return normalized_orders
+
+@app.post("/api/admin/unpaid-orders/{order_id}/mark-paid")
+async def mark_order_as_paid(
+    order_id: str,
+    payment_method: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Отметить заказ как оплаченный"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Найти заказ
+    order = db.unpaid_orders.find_one({"id": order_id, "status": "unpaid"})
+    if not order:
+        raise HTTPException(status_code=404, detail="Unpaid order not found")
+    
+    # Обновить статус заказа
+    db.unpaid_orders.update_one(
+        {"id": order_id},
+        {"$set": {
+            "status": "paid",
+            "paid_at": datetime.utcnow(),
+            "payment_method": payment_method,
+            "processed_by": current_user.id
+        }}
+    )
+    
+    # Обновить статус груза на "paid"
+    db.operator_cargo.update_one(
+        {"id": order["cargo_id"]},
+        {"$set": {"payment_status": "paid"}}
+    )
+    
+    # Создать уведомление клиенту
+    create_notification(
+        order["client_id"],
+        f"Оплата за груз №{order['cargo_number']} получена. Сумма: {order['amount']} рублей. Способ оплаты: {payment_method}",
+        order["cargo_id"]
+    )
+    
+    # Системное уведомление
+    create_system_notification(
+        "Оплата получена",
+        f"Получена оплата за груз №{order['cargo_number']} от {order['client_name']}. Сумма: {order['amount']} рублей",
+        "payment",
+        order_id,
+        order["cargo_id"],
+        current_user.id
+    )
+    
+    return {
+        "message": "Order marked as paid successfully",
+        "cargo_number": order["cargo_number"],
+        "amount": order["amount"]
+    }
+
 @app.post("/api/admin/cargo-requests/{request_id}/reject")
 async def reject_cargo_request(
     request_id: str,
