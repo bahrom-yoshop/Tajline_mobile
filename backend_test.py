@@ -1531,8 +1531,8 @@ class CargoTransportAPITester:
         return all_success
 
     def test_client_cargo_ordering_system(self):
-        """Test client cargo ordering system with declared value logic"""
-        print("\n📦 CLIENT CARGO ORDERING SYSTEM")
+        """Test client cargo ordering system with UPDATED declared value logic"""
+        print("\n📦 CLIENT CARGO ORDERING SYSTEM WITH DECLARED VALUE LOGIC")
         
         if 'user' not in self.tokens:
             print("   ❌ No user token available")
@@ -1569,27 +1569,72 @@ class CargoTransportAPITester:
                     print(f"   ❌ Route {expected_route} missing")
                     all_success = False
         
-        # Test 2: Test cargo cost calculation for different routes
-        print("\n   💰 Testing Cost Calculation for Different Routes...")
+        # Test 2: Test DECLARED VALUE DEFAULT LOGIC for different routes
+        print("\n   💰 Testing DECLARED VALUE DEFAULT LOGIC...")
         
-        test_routes = [
-            {"route": "moscow_khujand", "expected_declared_value": 60, "description": "Москва → Худжанд"},
-            {"route": "moscow_dushanbe", "expected_declared_value": 80, "description": "Москва → Душанбе"},
-            {"route": "moscow_kulob", "expected_declared_value": 80, "description": "Москва → Кулоб"},
-            {"route": "moscow_kurgantyube", "expected_declared_value": 80, "description": "Москва → Курган-Тюбе"}
+        test_scenarios = [
+            # Test moscow_khujand with value below minimum (should become 60)
+            {
+                "route": "moscow_khujand", 
+                "input_declared_value": 50.0, 
+                "expected_minimum": 60.0,
+                "description": "Москва → Худжанд (50 → 60)"
+            },
+            # Test moscow_khujand with value at minimum (should stay 60)
+            {
+                "route": "moscow_khujand", 
+                "input_declared_value": 60.0, 
+                "expected_minimum": 60.0,
+                "description": "Москва → Худжанд (60 → 60)"
+            },
+            # Test moscow_dushanbe with value below minimum (should become 80)
+            {
+                "route": "moscow_dushanbe", 
+                "input_declared_value": 70.0, 
+                "expected_minimum": 80.0,
+                "description": "Москва → Душанбе (70 → 80)"
+            },
+            # Test moscow_dushanbe with value at minimum (should stay 80)
+            {
+                "route": "moscow_dushanbe", 
+                "input_declared_value": 80.0, 
+                "expected_minimum": 80.0,
+                "description": "Москва → Душанбе (80 → 80)"
+            },
+            # Test moscow_kulob with value below minimum (should become 80)
+            {
+                "route": "moscow_kulob", 
+                "input_declared_value": 75.0, 
+                "expected_minimum": 80.0,
+                "description": "Москва → Кулоб (75 → 80)"
+            },
+            # Test moscow_kurgantyube with value below minimum (should become 80)
+            {
+                "route": "moscow_kurgantyube", 
+                "input_declared_value": 65.0, 
+                "expected_minimum": 80.0,
+                "description": "Москва → Курган-Тюбе (65 → 80)"
+            },
+            # Test with value above minimum (should stay as provided)
+            {
+                "route": "moscow_khujand", 
+                "input_declared_value": 100.0, 
+                "expected_minimum": 100.0,
+                "description": "Москва → Худжанд (100 → 100, выше минимума)"
+            }
         ]
         
-        for route_test in test_routes:
+        for scenario in test_scenarios:
             cargo_data = {
-                "cargo_name": f"Тестовый груз для {route_test['description']}",
-                "description": "Тестовый груз для проверки стоимости",
+                "cargo_name": f"Тест {scenario['description']}",
+                "description": "Тестовый груз для проверки объявленной стоимости",
                 "weight": 10.0,
-                "declared_value": 5000.0,  # Will test if default logic overrides this
+                "declared_value": scenario['input_declared_value'],
                 "recipient_full_name": "Тестовый Получатель",
                 "recipient_phone": "+992444555666",
                 "recipient_address": "Тестовый адрес получателя",
                 "recipient_city": "Душанбе",
-                "route": route_test['route'],
+                "route": scenario['route'],
                 "delivery_type": "standard",
                 "insurance_requested": False,
                 "packaging_service": False,
@@ -1600,7 +1645,7 @@ class CargoTransportAPITester:
             }
             
             success, calculation = self.run_test(
-                f"Calculate Cost for {route_test['description']}",
+                f"Calculate Cost: {scenario['description']}",
                 "POST",
                 "/api/client/cargo/calculate",
                 200,
@@ -1613,81 +1658,95 @@ class CargoTransportAPITester:
                 calc_data = calculation.get('calculation', {})
                 total_cost = calc_data.get('total_cost', 0)
                 delivery_days = calc_data.get('delivery_time_days', 0)
-                print(f"   💰 {route_test['description']}: {total_cost} руб, {delivery_days} дней")
+                print(f"   💰 {scenario['description']}: {total_cost} руб, {delivery_days} дней")
                 
-                # Check if declared value logic is implemented
-                # Note: The current implementation doesn't seem to have default declared value logic
-                # This test will help identify if it needs to be implemented
+                # Check if the declared value logic is working
                 breakdown = calculation.get('breakdown', {})
                 print(f"   📊 Breakdown: {breakdown}")
         
-        # Test 3: Test full cargo creation workflow
-        print("\n   📦 Testing Full Cargo Creation Workflow...")
+        # Test 3: Test CARGO CREATION with declared value logic
+        print("\n   📦 Testing Cargo Creation with Declared Value Logic...")
         
-        # Test cargo creation for moscow_khujand route
-        cargo_order_data = {
-            "cargo_name": "Документы и личные вещи",
-            "description": "Важные документы и личные вещи для доставки",
-            "weight": 5.5,
-            "declared_value": 3000.0,
-            "recipient_full_name": "Рахимов Алишер Камолович",
-            "recipient_phone": "+992901234567",
-            "recipient_address": "ул. Рудаки, 25, кв. 10",
-            "recipient_city": "Худжанд",
-            "route": "moscow_khujand",
-            "delivery_type": "standard",
-            "insurance_requested": True,
-            "insurance_value": 3000.0,
-            "packaging_service": False,
-            "home_pickup": False,
-            "home_delivery": True,
-            "fragile": False,
-            "temperature_sensitive": False,
-            "special_instructions": "Доставить в рабочее время"
-        }
+        creation_tests = [
+            {
+                "route": "moscow_khujand",
+                "declared_value": 50.0,  # Below minimum, should become 60
+                "expected_final_value": 60.0,
+                "description": "moscow_khujand с 50 руб (должно стать 60)"
+            },
+            {
+                "route": "moscow_dushanbe", 
+                "declared_value": 70.0,  # Below minimum, should become 80
+                "expected_final_value": 80.0,
+                "description": "moscow_dushanbe с 70 руб (должно стать 80)"
+            },
+            {
+                "route": "moscow_kulob",
+                "declared_value": 100.0,  # Above minimum, should stay 100
+                "expected_final_value": 100.0,
+                "description": "moscow_kulob с 100 руб (должно остаться 100)"
+            }
+        ]
         
-        success, order_response = self.run_test(
-            "Create Cargo Order (moscow_khujand)",
-            "POST",
-            "/api/client/cargo/create",
-            200,
-            cargo_order_data,
-            self.tokens['user']
-        )
-        all_success &= success
+        created_cargo_numbers = []
         
-        created_cargo_id = None
-        created_cargo_number = None
-        created_tracking_code = None
-        
-        if success:
-            created_cargo_id = order_response.get('cargo_id')
-            created_cargo_number = order_response.get('cargo_number')
-            created_tracking_code = order_response.get('tracking_code')
-            total_cost = order_response.get('total_cost')
-            estimated_days = order_response.get('estimated_delivery_days')
+        for test in creation_tests:
+            cargo_order_data = {
+                "cargo_name": f"Тест {test['description']}",
+                "description": "Тестовый груз для проверки объявленной стоимости при создании",
+                "weight": 5.5,
+                "declared_value": test['declared_value'],
+                "recipient_full_name": "Рахимов Алишер Камолович",
+                "recipient_phone": "+992901234567",
+                "recipient_address": "ул. Рудаки, 25, кв. 10",
+                "recipient_city": "Худжанд",
+                "route": test['route'],
+                "delivery_type": "standard",
+                "insurance_requested": False,
+                "packaging_service": False,
+                "home_pickup": False,
+                "home_delivery": False,
+                "fragile": False,
+                "temperature_sensitive": False
+            }
             
-            print(f"   📦 Created cargo: {created_cargo_number}")
-            print(f"   🏷️  Cargo ID: {created_cargo_id}")
-            print(f"   🔍 Tracking code: {created_tracking_code}")
-            print(f"   💰 Total cost: {total_cost} руб")
-            print(f"   📅 Estimated delivery: {estimated_days} дней")
+            success, order_response = self.run_test(
+                f"Create Cargo: {test['description']}",
+                "POST",
+                "/api/client/cargo/create",
+                200,
+                cargo_order_data,
+                self.tokens['user']
+            )
+            all_success &= success
             
-            # Verify cargo number format
-            if created_cargo_number and len(created_cargo_number) == 4 and created_cargo_number.isdigit():
-                print(f"   ✅ Cargo number format is correct (4-digit)")
-            else:
-                print(f"   ❌ Invalid cargo number format: {created_cargo_number}")
-                all_success = False
+            if success:
+                created_cargo_id = order_response.get('cargo_id')
+                created_cargo_number = order_response.get('cargo_number')
+                total_cost = order_response.get('total_cost')
+                
+                print(f"   📦 Created cargo: {created_cargo_number}")
+                print(f"   💰 Total cost: {total_cost} руб")
+                
+                if created_cargo_number:
+                    created_cargo_numbers.append(created_cargo_number)
+                    
+                    # Verify cargo number format
+                    if len(created_cargo_number) == 4 and created_cargo_number.isdigit():
+                        print(f"   ✅ Cargo number format is correct (4-digit)")
+                    else:
+                        print(f"   ❌ Invalid cargo number format: {created_cargo_number}")
+                        all_success = False
         
-        # Test 4: Verify cargo was created in database
-        print("\n   🗄️  Testing Cargo Database Creation...")
+        # Test 4: Verify declared values in database
+        print("\n   🗄️  Testing Declared Values in Database...")
         
-        if created_cargo_number:
-            # Test cargo tracking (public endpoint)
-            success, tracking_data = self.run_test(
-                f"Track Created Cargo {created_cargo_number}",
-                "GET",
+        for i, cargo_number in enumerate(created_cargo_numbers):
+            if cargo_number:
+                # Test cargo tracking to verify declared value was saved correctly
+                success, tracking_data = self.run_test(
+                    f"Track Cargo {cargo_number} for Declared Value Check",
+                    "GET",
                 f"/api/cargo/track/{created_cargo_number}",
                 200
             )
