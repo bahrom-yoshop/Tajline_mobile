@@ -681,6 +681,113 @@ function App() {
     }
   };
 
+  // НОВЫЕ ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ ЗАКАЗАМИ КЛИЕНТОВ
+
+  const fetchNewOrdersCount = async () => {
+    try {
+      const data = await apiCall('/api/admin/new-orders-count');
+      setNewOrdersCount(data.pending_orders);
+    } catch (error) {
+      console.error('Error fetching new orders count:', error);
+    }
+  };
+
+  const fetchOrderDetails = async (orderId) => {
+    try {
+      const data = await apiCall(`/api/admin/cargo-requests/${orderId}`);
+      setSelectedOrder(data);
+      return data;
+    } catch (error) {
+      console.error('Error fetching order details:', error);
+      return null;
+    }
+  };
+
+  const handleOrderDetailsView = async (order) => {
+    const details = await fetchOrderDetails(order.id);
+    if (details) {
+      setOrderDetailsModal(true);
+    }
+  };
+
+  const handleOrderEdit = async (order) => {
+    const details = await fetchOrderDetails(order.id);
+    if (details) {
+      // Заполнить форму редактирования данными заказа
+      setOrderEditForm({
+        sender_full_name: details.sender_full_name || '',
+        sender_phone: details.sender_phone || '',
+        recipient_full_name: details.recipient_full_name || '',
+        recipient_phone: details.recipient_phone || '',
+        recipient_address: details.recipient_address || '',
+        pickup_address: details.pickup_address || '',
+        cargo_name: details.cargo_name || '',
+        weight: details.weight || '',
+        declared_value: details.declared_value || '',
+        description: details.description || '',
+        route: details.route || '',
+        admin_notes: details.admin_notes || ''
+      });
+      setEditOrderModal(true);
+    }
+  };
+
+  const handleSaveOrderChanges = async () => {
+    try {
+      const updateData = { ...orderEditForm };
+      
+      // Преобразовать числовые поля
+      if (updateData.weight) updateData.weight = parseFloat(updateData.weight);
+      if (updateData.declared_value) updateData.declared_value = parseFloat(updateData.declared_value);
+
+      await apiCall(`/api/admin/cargo-requests/${selectedOrder.id}/update`, 'PUT', updateData);
+      
+      showAlert('Заказ успешно обновлен!', 'success');
+      setEditOrderModal(false);
+      
+      // Обновить данные
+      fetchCargoRequests();
+      fetchNewOrdersCount();
+      
+    } catch (error) {
+      console.error('Error updating order:', error);
+      showAlert('Ошибка обновления заказа: ' + (error.message || 'Неизвестная ошибка'), 'error');
+    }
+  };
+
+  const handleAcceptOrder = async (orderId) => {
+    try {
+      await apiCall(`/api/admin/cargo-requests/${orderId}/accept`, 'POST');
+      showAlert('Заказ принят и груз создан!', 'success');
+      
+      // Обновить данные
+      fetchCargoRequests();
+      fetchNewOrdersCount();
+      fetchAllCargo();
+      setOrderDetailsModal(false);
+      
+    } catch (error) {
+      console.error('Error accepting order:', error);
+      showAlert('Ошибка принятия заказа: ' + (error.message || 'Неизвестная ошибка'), 'error');
+    }
+  };
+
+  const handleRejectOrder = async (orderId, reason = '') => {
+    try {
+      await apiCall(`/api/admin/cargo-requests/${orderId}/reject`, 'POST', { reason });
+      showAlert('Заказ отклонен!', 'success');
+      
+      // Обновить данные
+      fetchCargoRequests();
+      fetchNewOrdersCount();
+      setOrderDetailsModal(false);
+      
+    } catch (error) {
+      console.error('Error rejecting order:', error);
+      showAlert('Ошибка отклонения заказа: ' + (error.message || 'Неизвестная ошибка'), 'error');
+    }
+  };
+
   const fetchSystemNotifications = async () => {
     try {
       const data = await apiCall('/api/system-notifications');
