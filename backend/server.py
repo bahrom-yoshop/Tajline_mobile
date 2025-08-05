@@ -4868,8 +4868,8 @@ async def track_cargo_by_code(tracking_code: str):
         "status": cargo["status"],
         "weight": cargo.get("weight", 0),
         "created_at": cargo["created_at"],
-        "sender_full_name": cargo["sender_full_name"],
-        "recipient_full_name": cargo["recipient_full_name"],
+        "sender_full_name": cargo.get("sender_full_name", "Не указан"),
+        "recipient_full_name": cargo.get("recipient_full_name", cargo.get("recipient_name", "Не указан")),
         "recipient_address": cargo.get("recipient_address", ""),
         "current_location": {
             "warehouse": warehouse_info,
