@@ -626,8 +626,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Cargo Name Field Integration"
-    - "Automatic Warehouse Selection for Operators"
+    - "Automatic Cell Liberation on Transport Placement"
+    - "Warehouse Cell Management with Cargo Details"
+    - "Enhanced Cargo Detail and Edit System"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
