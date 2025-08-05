@@ -923,6 +923,81 @@ test_plan:
   test_all: false
   test_priority: "critical_first"
 
+  - task: "Информация об операторах на складах - GET /api/warehouses"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to test GET /api/warehouses endpoint that should return information about bound operators for each warehouse"
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL ISSUE - GET /api/warehouses endpoint fails with 500 Internal Server Error when accessed with admin token due to MongoDB ObjectId serialization issue. The endpoint works with warehouse_operator token but returns empty list. Error: 'ObjectId' object is not iterable - indicates ObjectId fields are not being properly converted to strings in the response. The bound_operators information structure is implemented correctly but fails during JSON serialization."
+
+  - task: "Расширенный личный кабинет оператора - GET /api/operator/my-warehouses"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to test GET /api/operator/my-warehouses endpoint that should return detailed information about warehouses with functions and statistics"
+        - working: true
+          agent: "testing"
+          comment: "✅ PASSED - Enhanced operator personal cabinet working perfectly. GET /api/operator/my-warehouses returns comprehensive warehouse information: 1) Operator has access to 12 warehouses ✅, 2) Summary statistics include total_cargo_across_warehouses: 17, total_occupied_cells: 17, average_occupancy: 8.6% ✅, 3) Each warehouse includes detailed fields: cells_info, cargo_info, transport_info, available_functions ✅, 4) Available functions: 10 functions per warehouse ✅. All required fields present and properly structured."
+
+  - task: "Список складов для межскладских транспортов - GET /api/warehouses/for-interwarehouse-transport"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to test GET /api/warehouses/for-interwarehouse-transport endpoint that should show all warehouses with auto-selection of source warehouse"
+        - working: true
+          agent: "testing"
+          comment: "✅ PASSED - Warehouses for interwarehouse transport working perfectly. GET /api/warehouses/for-interwarehouse-transport returns: 1) Found 12 warehouses for interwarehouse transport ✅, 2) Auto-selected source warehouse: 'Тестовый Склад 2709' ✅, 3) Automatic source warehouse selection working correctly ✅, 4) Each warehouse includes transport-specific fields: ready_cargo_count, can_be_source, can_be_destination ✅, 5) First warehouse ready cargo count properly displayed ✅. All required functionality implemented and working."
+
+  - task: "Расширенный поиск грузов - GET /api/cargo/search"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to test GET /api/cargo/search endpoint that should return detailed cargo cards with full information and available functions"
+        - working: false
+          agent: "testing"
+          comment: "❌ PARTIAL FAILURE - Enhanced cargo search mostly working but has critical regex issue. Working features: 1) Search by number (1001): 1 result with detailed cargo cards ✅, 2) Search by sender_name (Иван): 30 results ✅, 3) Search by recipient_name (Петр): 21 results ✅, 4) Cargo cards include detailed information: location, operators, payment, available_functions (10 functions each) ✅, 5) Available search types: 6 types ✅. CRITICAL ISSUE: Search by phone (+79) fails with 500 Internal Server Error due to MongoDB regex error: 'quantifier does not follow a repeatable item' - phone number search with '+' character breaks regex pattern."
+
+  - task: "Межскладские транспорты с автовыбором - POST /api/transport/create-interwarehouse"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to test POST /api/transport/create-interwarehouse with new automatic source warehouse selection function"
+        - working: true
+          agent: "testing"
+          comment: "✅ PASSED - Interwarehouse transport creation with auto source selection working perfectly. Both manual and automatic modes tested successfully: 1) Manual source selection: Transport created successfully with specified source and destination warehouses ✅, 2) Auto source selection (auto_select_source: true): Transport created with automatically selected source warehouse 'Тестовый Склад 2709' ✅, 3) Auto selection flag properly set in response ✅, 4) Both source_warehouse and destination_warehouse details included in response ✅, 5) Proper access control - operators can only use warehouses they have access to ✅. All functionality working as expected."
+
 agent_communication:
     - agent: "main"
       message: "Starting implementation of notification dropdown menu. Will add DropdownMenu UI components, make Bell icon clickable, and display notifications and system notifications in dropdown format."
@@ -934,6 +1009,8 @@ agent_communication:
       message: "✅ TASK COMPLETE - Successfully implemented notification dropdown menu. User confirmed 'да всё работает' (everything is working). The dropdown shows both personal and system notifications when clicking the bell icon, with proper unread counters and styling."
     - agent: "testing"
       message: "🚛 TRANSPORT MANAGEMENT TESTING COMPLETE - Comprehensive testing of the new transport management system completed successfully! All major transport features working: Transport CRUD operations ✅, Cargo placement on transport ✅, Transport dispatch system ✅, Transport history ✅, Access control ✅. Success rate: 93.1% (54/58 tests passed, 20/21 test suites passed). The transport management backend API is fully functional and ready for frontend integration. Fixed FastAPI routing issue with transport history endpoint. Only minor issue: User registration fails because users already exist (expected behavior)."
+    - agent: "testing"
+      message: "🆕 NEW WAREHOUSE OPERATOR FUNCTIONS TESTING COMPLETE - Tested the 4 new backend functions as requested in review. Results: ✅ Function 2 (Enhanced Operator Personal Cabinet): PASSED - GET /api/operator/my-warehouses working perfectly with detailed warehouse info and statistics. ✅ Function 3 (Interwarehouse Transport Warehouses): PASSED - GET /api/warehouses/for-interwarehouse-transport working with auto source selection. ✅ Function 5 (Interwarehouse Transport Creation): PASSED - POST /api/transport/create-interwarehouse working with both manual and auto source selection. ❌ Function 1 (Warehouse Operator Info): FAILED - GET /api/warehouses has ObjectId serialization issue with admin token. ❌ Function 4 (Enhanced Cargo Search): PARTIAL - Most search types work but phone search fails due to regex issue with '+' character. 3/5 functions fully working, 2 need fixes."
     - agent: "testing"
       message: "🔢 CARGO NUMBERING SYSTEM TESTING COMPLETE - Comprehensive testing of the updated 4-digit cargo numbering system completed successfully! CRITICAL ISSUE FOUND AND FIXED: The generate_cargo_number() function was only checking db.cargo collection but operator cargo is stored in db.operator_cargo, causing duplicate numbers. Fixed by updating function to check both collections. All tests now pass: Cargo number generation ✅, Uniqueness validation ✅, Sequential numbering ✅, 4-digit format ✅, Range validation (1001-9999) ✅, Database integration ✅, Cargo operations with new numbers ✅. Success rate: 100% (75/75 tests passed, 24/24 test suites passed). The 4-digit cargo numbering system is fully functional and ready for production use."
     - agent: "testing"
