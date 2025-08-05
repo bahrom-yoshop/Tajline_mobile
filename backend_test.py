@@ -4568,6 +4568,8 @@ class CargoTransportAPITester:
             ("Transport Management", self.test_transport_management),
             ("Transport Cargo Placement", self.test_transport_cargo_placement),
             ("Transport Dispatch", self.test_transport_dispatch),
+            ("Transport Volume Validation Override", self.test_transport_volume_validation_override),
+            ("Transport Cargo Return System", self.test_transport_cargo_return_system),
             ("Transport Access Control", self.test_transport_access_control),
             ("Transport History", self.test_transport_history),
             ("Transport Deletion", self.test_transport_delete),
