@@ -5577,6 +5577,24 @@ async def mark_internal_message_read(
 def calculate_delivery_cost(cargo_data: CargoOrderCreate) -> DeliveryCalculation:
     """Расчет стоимости доставки груза"""
     
+    # Логика объявленной стоимости по умолчанию в зависимости от маршрута
+    default_declared_values = {
+        RouteType.MOSCOW_KHUJAND: 60.0,      # Москва → Худжанд: 60 рублей
+        RouteType.MOSCOW_DUSHANBE: 80.0,     # Москва → Душанбе: 80 рублей  
+        RouteType.MOSCOW_KULOB: 80.0,        # Москва → Кулоб: 80 рублей
+        RouteType.MOSCOW_KURGANTYUBE: 80.0,  # Москва → Курган-Тюбе: 80 рублей
+        RouteType.MOSCOW_TO_TAJIKISTAN: 80.0 # Общий маршрут: 80 рублей
+    }
+    
+    # Если declared_value не указана или равна значению по умолчанию, используем значение маршрута
+    final_declared_value = cargo_data.declared_value
+    route_default = default_declared_values.get(cargo_data.route, 80.0)
+    
+    # Если пользователь не указал declared_value или указал значение по умолчанию маршрута,
+    # используем стандартное значение маршрута
+    if cargo_data.declared_value == route_default or cargo_data.declared_value <= route_default:
+        final_declared_value = route_default
+    
     # Базовые тарифы в рублях
     base_rates = {
         RouteType.MOSCOW_DUSHANBE: {"base": 2000, "per_kg": 150, "days": 7},
