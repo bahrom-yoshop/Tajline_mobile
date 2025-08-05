@@ -729,9 +729,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Automatic Cell Liberation on Transport Placement"
-    - "Warehouse Cell Management with Cargo Details"
-    - "Enhanced Cargo Detail and Edit System"
+    - "Fix Search Header Input Issue"
+    - "Fix printInvoice Function Missing"
+    - "Enhanced Transport Management Modal"
+    - "Transport Volume Validation Override"
+    - "Transport Cargo Return System"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
