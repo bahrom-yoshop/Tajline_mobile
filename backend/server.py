@@ -2377,26 +2377,7 @@ async def delete_operator_warehouse_binding(
     
     return {"message": "Operator-warehouse binding deleted successfully"}
 
-@app.get("/api/operator/my-warehouses")
-async def get_my_warehouses(
-    current_user: User = Depends(get_current_user)
-):
-    # Только операторы склада могут получать свои склады
-    if current_user.role != UserRole.WAREHOUSE_OPERATOR:
-        raise HTTPException(status_code=403, detail="Access denied")
-    
-    # Получить привязки оператора
-    bindings = list(db.operator_warehouse_bindings.find({"operator_id": current_user.id}))
-    warehouse_ids = [binding["warehouse_id"] for binding in bindings]
-    
-    # Получить детали складов
-    warehouses = []
-    for warehouse_id in warehouse_ids:
-        warehouse = db.warehouses.find_one({"id": warehouse_id}, {"_id": 0})  # Exclude MongoDB _id
-        if warehouse:
-            warehouses.append(warehouse)
-    
-    return warehouses
+
 
 @app.get("/api/transport/available-cargo")
 async def get_available_cargo_for_transport_endpoint(
