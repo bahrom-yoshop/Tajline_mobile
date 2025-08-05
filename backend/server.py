@@ -2507,7 +2507,17 @@ async def get_all_cargo_requests(
         query["status"] = status
     
     requests = list(db.cargo_requests.find(query).sort("created_at", -1))
-    return [CargoRequest(**request) for request in requests]
+    # Сериализация данных
+    normalized_requests = []
+    for request in requests:
+        normalized = serialize_mongo_document(request)
+        normalized.update({
+            'admin_notes': request.get('admin_notes', ''),
+            'processed_by': request.get('processed_by', None)
+        })
+        normalized_requests.append(normalized)
+    
+    return normalized_requests
 
 @app.post("/api/admin/cargo-requests/{request_id}/accept")
 async def accept_cargo_request(
