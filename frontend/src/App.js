@@ -3638,36 +3638,46 @@ function App() {
                 <Card className="p-4">
                   <h4 className="font-semibold mb-3">Размещение груза</h4>
                   <p className="text-sm text-gray-600 mb-4">
-                    Разместить груз со склада на транспорт
+                    Введите номера грузов для размещения на транспорт
                   </p>
                   
-                  {/* Доступные грузы */}
+                  {/* Поле ввода номеров грузов */}
                   <div className="mb-4">
-                    <Label>Доступные грузы на складе:</Label>
-                    <div className="max-h-40 overflow-y-auto border rounded mt-2">
+                    <Label htmlFor="cargo-numbers">Номера грузов (через запятую):</Label>
+                    <Input
+                      id="cargo-numbers"
+                      placeholder="Например: CRG001, CRG002, CRG003"
+                      value={selectedCargoForPlacement.join(', ')}
+                      onChange={(e) => {
+                        const cargoNumbers = e.target.value.split(',').map(num => num.trim()).filter(num => num);
+                        setSelectedCargoForPlacement(cargoNumbers);
+                      }}
+                      className="mt-2"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Введите номера грузов через запятую. Грузы должны находиться на складе.
+                    </p>
+                  </div>
+
+                  {/* Показать доступные грузы для справки */}
+                  <div className="mb-4">
+                    <Label className="text-xs text-gray-600">Доступные грузы на складе:</Label>
+                    <div className="max-h-32 overflow-y-auto border rounded mt-1 p-2">
                       {availableCargoForTransport.length === 0 ? (
-                        <p className="p-3 text-gray-500 text-sm">Нет доступных грузов</p>
+                        <p className="text-gray-500 text-xs">Нет доступных грузов</p>
                       ) : (
-                        availableCargoForTransport.map((cargo) => (
-                          <div key={cargo.id} className="p-2 border-b flex items-center">
-                            <input
-                              type="checkbox"
-                              checked={selectedCargoForPlacement.includes(cargo.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedCargoForPlacement([...selectedCargoForPlacement, cargo.id]);
-                                } else {
-                                  setSelectedCargoForPlacement(selectedCargoForPlacement.filter(id => id !== cargo.id));
-                                }
-                              }}
-                              className="mr-2"
-                            />
-                            <div className="flex-1 text-sm">
-                              <p><strong>{cargo.cargo_number}</strong> - {cargo.weight} кг</p>
-                              <p className="text-gray-500">{cargo.description}</p>
+                        <div className="grid grid-cols-2 gap-1 text-xs">
+                          {availableCargoForTransport.slice(0, 10).map((cargo) => (
+                            <div key={cargo.id} className="text-gray-600">
+                              <span className="font-mono">{cargo.cargo_number}</span> ({cargo.weight}кг)
                             </div>
-                          </div>
-                        ))
+                          ))}
+                          {availableCargoForTransport.length > 10 && (
+                            <div className="text-gray-400 text-xs col-span-2">
+                              ...и ещё {availableCargoForTransport.length - 10} грузов
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -3677,7 +3687,7 @@ function App() {
                     disabled={selectedCargoForPlacement.length === 0}
                     className="w-full"
                   >
-                    Разместить выбранные грузы
+                    Разместить груз
                   </Button>
                 </Card>
 
