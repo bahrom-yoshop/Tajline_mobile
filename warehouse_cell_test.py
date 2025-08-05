@@ -76,7 +76,7 @@ class WarehouseCellTester:
         
         # Login as admin
         admin_login = {
-            "phone": "+79123456790",
+            "phone": "+79999999999",
             "password": "123456"
         }
         
