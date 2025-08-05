@@ -2461,6 +2461,812 @@ class CargoTransportAPITester:
         
         return all_success
 
+    def test_cargo_name_integration(self):
+        """Test cargo name field integration across all cargo operations"""
+        print("\n🏷️ CARGO NAME INTEGRATION")
+        
+        if 'user' not in self.tokens or 'admin' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: User cargo creation with cargo_name
+        print("\n   👤 Testing User Cargo Creation with Cargo Name...")
+        cargo_data = {
+            "recipient_name": "Получатель с Именем Груза",
+            "recipient_phone": "+992555666777",
+            "route": "moscow_to_tajikistan",
+            "weight": 20.0,
+            "cargo_name": "Электроника и гаджеты",
+            "description": "Смартфоны, планшеты и аксессуары",
+            "declared_value": 25000.0,
+            "sender_address": "Москва, ул. Электронная, 5",
+            "recipient_address": "Душанбе, ул. Технологий, 10"
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create User Cargo with Cargo Name",
+            "POST",
+            "/api/cargo/create",
+            200,
+            cargo_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        user_cargo_number = None
+        if success and 'cargo_name' in cargo_response:
+            user_cargo_number = cargo_response.get('cargo_number')
+            print(f"   ✅ User cargo created with cargo_name: {cargo_response['cargo_name']}")
+            print(f"   🏷️  Cargo number: {user_cargo_number}")
+            
+            # Verify cargo_name is stored correctly
+            if cargo_response['cargo_name'] == cargo_data['cargo_name']:
+                print(f"   ✅ Cargo name stored correctly in user cargo")
+            else:
+                print(f"   ❌ Cargo name mismatch in user cargo")
+                all_success = False
+        
+        # Test 2: Operator cargo creation with cargo_name
+        print("\n   🏭 Testing Operator Cargo Creation with Cargo Name...")
+        operator_cargo_data = {
+            "sender_full_name": "Отправитель Оператора",
+            "sender_phone": "+79111222333",
+            "recipient_full_name": "Получатель Оператора",
+            "recipient_phone": "+992777888999",
+            "recipient_address": "Душанбе, ул. Операторская, 20",
+            "weight": 30.0,
+            "cargo_name": "Одежда и текстиль",
+            "declared_value": 12000.0,
+            "description": "Зимняя одежда и обувь",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, operator_cargo_response = self.run_test(
+            "Create Operator Cargo with Cargo Name",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            operator_cargo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        operator_cargo_number = None
+        if success and 'cargo_name' in operator_cargo_response:
+            operator_cargo_number = operator_cargo_response.get('cargo_number')
+            print(f"   ✅ Operator cargo created with cargo_name: {operator_cargo_response['cargo_name']}")
+            print(f"   🏷️  Cargo number: {operator_cargo_number}")
+            
+            # Verify cargo_name is stored correctly
+            if operator_cargo_response['cargo_name'] == operator_cargo_data['cargo_name']:
+                print(f"   ✅ Cargo name stored correctly in operator cargo")
+            else:
+                print(f"   ❌ Cargo name mismatch in operator cargo")
+                all_success = False
+        
+        # Test 3: Cargo request with cargo_name
+        print("\n   📋 Testing Cargo Request with Cargo Name...")
+        request_data = {
+            "recipient_full_name": "Получатель Заявки",
+            "recipient_phone": "+992333444555",
+            "recipient_address": "Душанбе, ул. Заявочная, 15",
+            "pickup_address": "Москва, ул. Забора, 5",
+            "cargo_name": "Медицинские препараты",
+            "weight": 5.0,
+            "declared_value": 15000.0,
+            "description": "Лекарства и медицинские изделия",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, request_response = self.run_test(
+            "Create Cargo Request with Cargo Name",
+            "POST",
+            "/api/user/cargo-request",
+            200,
+            request_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        request_id = None
+        if success and 'cargo_name' in request_response:
+            request_id = request_response['id']
+            print(f"   ✅ Cargo request created with cargo_name: {request_response['cargo_name']}")
+            
+            # Accept the request and verify cargo_name is preserved
+            success, accept_response = self.run_test(
+                "Accept Cargo Request with Cargo Name",
+                "POST",
+                f"/api/admin/cargo-requests/{request_id}/accept",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success and 'cargo_number' in accept_response:
+                request_cargo_number = accept_response['cargo_number']
+                print(f"   ✅ Cargo request accepted, cargo number: {request_cargo_number}")
+                
+                # Verify cargo_name is preserved in the created cargo
+                success, cargo_list = self.run_test(
+                    "Get Operator Cargo List to Verify Cargo Name",
+                    "GET",
+                    "/api/operator/cargo/list",
+                    200,
+                    token=self.tokens['admin']
+                )
+                
+                if success and isinstance(cargo_list, list):
+                    created_cargo = next((c for c in cargo_list if c.get('cargo_number') == request_cargo_number), None)
+                    if created_cargo and created_cargo.get('cargo_name') == request_data['cargo_name']:
+                        print(f"   ✅ Cargo name preserved in accepted request: {created_cargo['cargo_name']}")
+                    else:
+                        print(f"   ❌ Cargo name not preserved in accepted request")
+                        all_success = False
+        
+        # Test 4: Verify cargo_name appears in cargo listings
+        print("\n   📋 Testing Cargo Name in Listings...")
+        
+        # Get user cargo list
+        success, user_cargo_list = self.run_test(
+            "Get User Cargo List",
+            "GET",
+            "/api/cargo/my",
+            200,
+            token=self.tokens['user']
+        )
+        all_success &= success
+        
+        if success and isinstance(user_cargo_list, list):
+            cargo_with_names = [c for c in user_cargo_list if c.get('cargo_name')]
+            print(f"   📊 Found {len(cargo_with_names)} user cargo items with cargo_name")
+            
+            if user_cargo_number:
+                user_cargo_item = next((c for c in user_cargo_list if c.get('cargo_number') == user_cargo_number), None)
+                if user_cargo_item and user_cargo_item.get('cargo_name'):
+                    print(f"   ✅ User cargo {user_cargo_number} has cargo_name in listing: {user_cargo_item['cargo_name']}")
+                else:
+                    print(f"   ❌ User cargo {user_cargo_number} missing cargo_name in listing")
+                    all_success = False
+        
+        # Get operator cargo list
+        success, operator_cargo_list = self.run_test(
+            "Get Operator Cargo List",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success and isinstance(operator_cargo_list, list):
+            cargo_with_names = [c for c in operator_cargo_list if c.get('cargo_name')]
+            print(f"   📊 Found {len(cargo_with_names)} operator cargo items with cargo_name")
+            
+            if operator_cargo_number:
+                operator_cargo_item = next((c for c in operator_cargo_list if c.get('cargo_number') == operator_cargo_number), None)
+                if operator_cargo_item and operator_cargo_item.get('cargo_name'):
+                    print(f"   ✅ Operator cargo {operator_cargo_number} has cargo_name in listing: {operator_cargo_item['cargo_name']}")
+                else:
+                    print(f"   ❌ Operator cargo {operator_cargo_number} missing cargo_name in listing")
+                    all_success = False
+        
+        # Store cargo numbers for search testing
+        self.cargo_name_test_numbers = []
+        if user_cargo_number:
+            self.cargo_name_test_numbers.append(user_cargo_number)
+        if operator_cargo_number:
+            self.cargo_name_test_numbers.append(operator_cargo_number)
+        
+        return all_success
+
+    def test_advanced_cargo_search_system(self):
+        """Test the advanced cargo search system with different search types"""
+        print("\n🔍 ADVANCED CARGO SEARCH SYSTEM")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Ensure we have test cargo with known data
+        test_cargo_data = {
+            "sender_full_name": "Поисковый Отправитель Тестов",
+            "sender_phone": "+79555123456",
+            "recipient_full_name": "Поисковый Получатель Тестов",
+            "recipient_phone": "+992666789012",
+            "recipient_address": "Душанбе, ул. Поисковая, 100",
+            "weight": 25.0,
+            "cargo_name": "Поисковые Товары",
+            "declared_value": 10000.0,
+            "description": "Товары для тестирования поиска",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, search_cargo_response = self.run_test(
+            "Create Cargo for Search Testing",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            test_cargo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        search_cargo_number = None
+        if success and 'cargo_number' in search_cargo_response:
+            search_cargo_number = search_cargo_response['cargo_number']
+            print(f"   📦 Created search test cargo: {search_cargo_number}")
+        
+        # Test 1: Search by cargo number
+        print("\n   🔢 Testing Search by Cargo Number...")
+        if search_cargo_number:
+            success, number_results = self.run_test(
+                f"Search by Cargo Number: {search_cargo_number}",
+                "GET",
+                "/api/cargo/search",
+                200,
+                token=self.tokens['admin'],
+                params={"query": search_cargo_number, "search_type": "number"}
+            )
+            all_success &= success
+            
+            if success and isinstance(number_results, list):
+                found_cargo = next((c for c in number_results if c.get('cargo_number') == search_cargo_number), None)
+                if found_cargo:
+                    print(f"   ✅ Found cargo by number: {found_cargo['cargo_number']}")
+                else:
+                    print(f"   ❌ Cargo not found by number search")
+                    all_success = False
+        
+        # Test 2: Search by sender name
+        print("\n   👤 Testing Search by Sender Name...")
+        success, sender_results = self.run_test(
+            "Search by Sender Name",
+            "GET",
+            "/api/cargo/search",
+            200,
+            token=self.tokens['admin'],
+            params={"query": "Поисковый Отправитель", "search_type": "sender_name"}
+        )
+        all_success &= success
+        
+        if success and isinstance(sender_results, list):
+            found_by_sender = [c for c in sender_results if "Поисковый Отправитель" in c.get('sender_full_name', '')]
+            if found_by_sender:
+                print(f"   ✅ Found {len(found_by_sender)} cargo items by sender name")
+            else:
+                print(f"   ❌ No cargo found by sender name")
+                all_success = False
+        
+        # Test 3: Search by recipient name
+        print("\n   👥 Testing Search by Recipient Name...")
+        success, recipient_results = self.run_test(
+            "Search by Recipient Name",
+            "GET",
+            "/api/cargo/search",
+            200,
+            token=self.tokens['admin'],
+            params={"query": "Поисковый Получатель", "search_type": "recipient_name"}
+        )
+        all_success &= success
+        
+        if success and isinstance(recipient_results, list):
+            found_by_recipient = [c for c in recipient_results if "Поисковый Получатель" in c.get('recipient_full_name', '')]
+            if found_by_recipient:
+                print(f"   ✅ Found {len(found_by_recipient)} cargo items by recipient name")
+            else:
+                print(f"   ❌ No cargo found by recipient name")
+                all_success = False
+        
+        # Test 4: Search by phone number
+        print("\n   📞 Testing Search by Phone Number...")
+        success, phone_results = self.run_test(
+            "Search by Phone Number",
+            "GET",
+            "/api/cargo/search",
+            200,
+            token=self.tokens['admin'],
+            params={"query": "+79555123456", "search_type": "phone"}
+        )
+        all_success &= success
+        
+        if success and isinstance(phone_results, list):
+            found_by_phone = [c for c in phone_results if "+79555123456" in c.get('sender_phone', '')]
+            if found_by_phone:
+                print(f"   ✅ Found {len(found_by_phone)} cargo items by phone number")
+            else:
+                print(f"   ❌ No cargo found by phone number")
+                all_success = False
+        
+        # Test 5: Search by cargo name
+        print("\n   🏷️ Testing Search by Cargo Name...")
+        success, cargo_name_results = self.run_test(
+            "Search by Cargo Name",
+            "GET",
+            "/api/cargo/search",
+            200,
+            token=self.tokens['admin'],
+            params={"query": "Поисковые Товары", "search_type": "cargo_name"}
+        )
+        all_success &= success
+        
+        if success and isinstance(cargo_name_results, list):
+            found_by_cargo_name = [c for c in cargo_name_results if "Поисковые Товары" in c.get('cargo_name', '')]
+            if found_by_cargo_name:
+                print(f"   ✅ Found {len(found_by_cargo_name)} cargo items by cargo name")
+            else:
+                print(f"   ❌ No cargo found by cargo name")
+                all_success = False
+        
+        # Test 6: Search "all" (comprehensive search)
+        print("\n   🌐 Testing Comprehensive Search (all)...")
+        success, all_results = self.run_test(
+            "Search All Types",
+            "GET",
+            "/api/cargo/search",
+            200,
+            token=self.tokens['admin'],
+            params={"query": "Поисковый", "search_type": "all"}
+        )
+        all_success &= success
+        
+        if success and isinstance(all_results, list):
+            print(f"   📊 Comprehensive search found {len(all_results)} results")
+            
+            # Verify it finds cargo by different criteria
+            found_by_different_criteria = []
+            for cargo in all_results:
+                if ("Поисковый" in cargo.get('sender_full_name', '') or
+                    "Поисковый" in cargo.get('recipient_full_name', '') or
+                    "Поисковые" in cargo.get('cargo_name', '')):
+                    found_by_different_criteria.append(cargo)
+            
+            if found_by_different_criteria:
+                print(f"   ✅ Comprehensive search found {len(found_by_different_criteria)} relevant results")
+            else:
+                print(f"   ❌ Comprehensive search didn't find expected results")
+                all_success = False
+        
+        # Test 7: Search across both collections (cargo and operator_cargo)
+        print("\n   🔄 Testing Cross-Collection Search...")
+        
+        # Create user cargo for cross-collection testing
+        user_search_cargo = {
+            "recipient_name": "Кросс-Коллекция Получатель",
+            "recipient_phone": "+992777888999",
+            "route": "moscow_to_tajikistan",
+            "weight": 15.0,
+            "cargo_name": "Кросс-Коллекция Товар",
+            "description": "Товар для тестирования поиска между коллекциями",
+            "declared_value": 8000.0,
+            "sender_address": "Москва, ул. Кросс, 1",
+            "recipient_address": "Душанбе, ул. Коллекция, 1"
+        }
+        
+        success, user_search_response = self.run_test(
+            "Create User Cargo for Cross-Collection Search",
+            "POST",
+            "/api/cargo/create",
+            200,
+            user_search_cargo,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        if success:
+            # Search for "Кросс-Коллекция" which should find cargo in both collections
+            success, cross_results = self.run_test(
+                "Cross-Collection Search",
+                "GET",
+                "/api/cargo/search",
+                200,
+                token=self.tokens['admin'],
+                params={"query": "Кросс-Коллекция", "search_type": "all"}
+            )
+            all_success &= success
+            
+            if success and isinstance(cross_results, list):
+                user_cargo_found = any("Кросс-Коллекция Получатель" in c.get('recipient_name', '') for c in cross_results)
+                operator_cargo_found = any("Поисковый" in c.get('sender_full_name', '') for c in cross_results)
+                
+                print(f"   📊 Cross-collection search found {len(cross_results)} total results")
+                if len(cross_results) > 0:
+                    print(f"   ✅ Search successfully queries both collections")
+                else:
+                    print(f"   ❌ Cross-collection search failed")
+                    all_success = False
+        
+        # Test 8: Search result limiting and relevance
+        print("\n   📏 Testing Search Result Limiting...")
+        success, limited_results = self.run_test(
+            "Search with Common Term (should be limited)",
+            "GET",
+            "/api/cargo/search",
+            200,
+            token=self.tokens['admin'],
+            params={"query": "груз", "search_type": "all"}
+        )
+        all_success &= success
+        
+        if success and isinstance(limited_results, list):
+            result_count = len(limited_results)
+            print(f"   📊 Search for common term returned {result_count} results")
+            
+            if result_count <= 50:  # Should be limited to 50 as per implementation
+                print(f"   ✅ Search results properly limited (≤50)")
+            else:
+                print(f"   ❌ Search results not properly limited (>{result_count})")
+                all_success = False
+        
+        # Test 9: Error handling for short queries
+        print("\n   ⚠️ Testing Search Error Handling...")
+        success, _ = self.run_test(
+            "Search with Short Query (Should Fail)",
+            "GET",
+            "/api/cargo/search",
+            400,
+            token=self.tokens['admin'],
+            params={"query": "a", "search_type": "all"}
+        )
+        all_success &= success
+        
+        # Test 10: Access control
+        print("\n   🔒 Testing Search Access Control...")
+        if 'user' in self.tokens:
+            success, _ = self.run_test(
+                "Regular User Search Access (Should Fail)",
+                "GET",
+                "/api/cargo/search",
+                403,
+                token=self.tokens['user'],
+                params={"query": "test", "search_type": "all"}
+            )
+            all_success &= success
+        
+        return all_success
+
+    def test_automatic_warehouse_selection_for_operators(self):
+        """Test automatic warehouse selection for operators during cargo placement"""
+        print("\n🏭 AUTOMATIC WAREHOUSE SELECTION FOR OPERATORS")
+        
+        if 'admin' not in self.tokens or 'warehouse_operator' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Ensure we have a warehouse and operator binding
+        if not hasattr(self, 'warehouse_id'):
+            print("   ⚠️ No warehouse available, creating one for auto placement test...")
+            warehouse_data = {
+                "name": "Склад Автоматического Размещения",
+                "location": "Москва, Автоматическая территория",
+                "blocks_count": 3,
+                "shelves_per_block": 2,
+                "cells_per_shelf": 5
+            }
+            
+            success, warehouse_response = self.run_test(
+                "Create Warehouse for Auto Placement",
+                "POST",
+                "/api/warehouses/create",
+                200,
+                warehouse_data,
+                self.tokens['admin']
+            )
+            
+            if success and 'id' in warehouse_response:
+                self.warehouse_id = warehouse_response['id']
+                print(f"   🏭 Created warehouse: {self.warehouse_id}")
+            else:
+                print("   ❌ Failed to create warehouse for auto placement test")
+                return False
+        
+        # Create operator-warehouse binding
+        print("\n   🔗 Setting up Operator-Warehouse Binding...")
+        operator_id = self.users['warehouse_operator']['id']
+        
+        binding_data = {
+            "operator_id": operator_id,
+            "warehouse_id": self.warehouse_id
+        }
+        
+        success, binding_response = self.run_test(
+            "Create Operator-Warehouse Binding for Auto Placement",
+            "POST",
+            "/api/admin/operator-warehouse-binding",
+            200,
+            binding_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success and 'binding_id' in binding_response:
+            auto_binding_id = binding_response['binding_id']
+            print(f"   🔗 Created binding: {auto_binding_id}")
+        
+        # Test 1: Create cargo for auto placement
+        print("\n   📦 Creating Cargo for Auto Placement...")
+        auto_cargo_data = {
+            "sender_full_name": "Автоматический Отправитель",
+            "sender_phone": "+79111333555",
+            "recipient_full_name": "Автоматический Получатель",
+            "recipient_phone": "+992444777999",
+            "recipient_address": "Душанбе, ул. Автоматическая, 50",
+            "weight": 18.0,
+            "cargo_name": "Автоматически Размещаемый Товар",
+            "declared_value": 9000.0,
+            "description": "Товар для тестирования автоматического размещения",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, auto_cargo_response = self.run_test(
+            "Create Cargo for Auto Placement",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            auto_cargo_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        auto_cargo_id = None
+        auto_cargo_number = None
+        if success and 'id' in auto_cargo_response:
+            auto_cargo_id = auto_cargo_response['id']
+            auto_cargo_number = auto_cargo_response.get('cargo_number')
+            print(f"   📦 Created cargo for auto placement: {auto_cargo_number}")
+        
+        # Test 2: Test automatic warehouse selection for operator
+        print("\n   🤖 Testing Automatic Warehouse Selection...")
+        if auto_cargo_id:
+            auto_placement_data = {
+                "cargo_id": auto_cargo_id,
+                "block_number": 1,
+                "shelf_number": 1,
+                "cell_number": 1
+                # Note: warehouse_id is NOT provided - should be auto-selected
+            }
+            
+            success, auto_placement_response = self.run_test(
+                "Auto Place Cargo (Operator)",
+                "POST",
+                "/api/operator/cargo/place-auto",
+                200,
+                auto_placement_data,
+                self.tokens['warehouse_operator']
+            )
+            all_success &= success
+            
+            if success:
+                warehouse_name = auto_placement_response.get('warehouse_name', 'Unknown')
+                print(f"   ✅ Cargo automatically placed in warehouse: {warehouse_name}")
+                
+                # Verify cargo was placed correctly
+                success, cargo_list = self.run_test(
+                    "Verify Auto Placed Cargo",
+                    "GET",
+                    "/api/operator/cargo/list",
+                    200,
+                    token=self.tokens['warehouse_operator']
+                )
+                
+                if success and isinstance(cargo_list, list):
+                    placed_cargo = next((c for c in cargo_list if c.get('id') == auto_cargo_id), None)
+                    if placed_cargo and placed_cargo.get('warehouse_location'):
+                        print(f"   ✅ Cargo location updated: {placed_cargo['warehouse_location']}")
+                        print(f"   👤 Placed by operator: {placed_cargo.get('placed_by_operator', 'Unknown')}")
+                    else:
+                        print(f"   ❌ Cargo location not updated after auto placement")
+                        all_success = False
+        
+        # Test 3: Test that admin gets error when trying to use auto placement
+        print("\n   🔒 Testing Admin Auto Placement Restriction...")
+        if auto_cargo_id:
+            # Create another cargo as admin
+            admin_cargo_data = {
+                "sender_full_name": "Админский Отправитель",
+                "sender_phone": "+79222444666",
+                "recipient_full_name": "Админский Получатель",
+                "recipient_phone": "+992555777888",
+                "recipient_address": "Душанбе, ул. Админская, 25",
+                "weight": 12.0,
+                "cargo_name": "Админский Товар",
+                "declared_value": 7000.0,
+                "description": "Товар созданный админом",
+                "route": "moscow_to_tajikistan"
+            }
+            
+            success, admin_cargo_response = self.run_test(
+                "Create Admin Cargo",
+                "POST",
+                "/api/operator/cargo/accept",
+                200,
+                admin_cargo_data,
+                self.tokens['admin']
+            )
+            
+            if success and 'id' in admin_cargo_response:
+                admin_cargo_id = admin_cargo_response['id']
+                
+                admin_auto_placement_data = {
+                    "cargo_id": admin_cargo_id,
+                    "block_number": 2,
+                    "shelf_number": 1,
+                    "cell_number": 1
+                }
+                
+                success, _ = self.run_test(
+                    "Admin Auto Place Cargo (Should Fail)",
+                    "POST",
+                    "/api/operator/cargo/place-auto",
+                    400,  # Should fail with bad request
+                    admin_auto_placement_data,
+                    self.tokens['admin']
+                )
+                all_success &= success
+                
+                if success:
+                    print(f"   ✅ Admin correctly blocked from using auto placement")
+        
+        # Test 4: Test operator without warehouse binding
+        print("\n   🚫 Testing Operator Without Warehouse Binding...")
+        
+        # Create a new operator without warehouse binding
+        new_operator_data = {
+            "full_name": "Оператор Без Склада",
+            "phone": "+79888777666",
+            "password": "operator123",
+            "role": "warehouse_operator"
+        }
+        
+        success, new_operator_response = self.run_test(
+            "Register Operator Without Binding",
+            "POST",
+            "/api/auth/register",
+            200,
+            new_operator_data
+        )
+        
+        if success and 'access_token' in new_operator_response:
+            unbound_operator_token = new_operator_response['access_token']
+            
+            # Create cargo with unbound operator
+            unbound_cargo_data = {
+                "sender_full_name": "Несвязанный Отправитель",
+                "sender_phone": "+79333555777",
+                "recipient_full_name": "Несвязанный Получатель",
+                "recipient_phone": "+992666888000",
+                "recipient_address": "Душанбе, ул. Несвязанная, 10",
+                "weight": 8.0,
+                "cargo_name": "Несвязанный Товар",
+                "declared_value": 4000.0,
+                "description": "Товар от несвязанного оператора",
+                "route": "moscow_to_tajikistan"
+            }
+            
+            success, unbound_cargo_response = self.run_test(
+                "Create Cargo with Unbound Operator",
+                "POST",
+                "/api/operator/cargo/accept",
+                200,
+                unbound_cargo_data,
+                unbound_operator_token
+            )
+            
+            if success and 'id' in unbound_cargo_response:
+                unbound_cargo_id = unbound_cargo_response['id']
+                
+                unbound_placement_data = {
+                    "cargo_id": unbound_cargo_id,
+                    "block_number": 1,
+                    "shelf_number": 2,
+                    "cell_number": 1
+                }
+                
+                success, _ = self.run_test(
+                    "Unbound Operator Auto Place (Should Fail)",
+                    "POST",
+                    "/api/operator/cargo/place-auto",
+                    403,  # Should fail with forbidden
+                    unbound_placement_data,
+                    unbound_operator_token
+                )
+                all_success &= success
+                
+                if success:
+                    print(f"   ✅ Unbound operator correctly blocked from auto placement")
+        
+        # Test 5: Test access control for auto placement endpoint
+        print("\n   🔒 Testing Auto Placement Access Control...")
+        if 'user' in self.tokens and auto_cargo_id:
+            user_auto_placement_data = {
+                "cargo_id": auto_cargo_id,
+                "block_number": 3,
+                "shelf_number": 1,
+                "cell_number": 1
+            }
+            
+            success, _ = self.run_test(
+                "Regular User Auto Place (Should Fail)",
+                "POST",
+                "/api/operator/cargo/place-auto",
+                403,
+                user_auto_placement_data,
+                self.tokens['user']
+            )
+            all_success &= success
+        
+        # Test 6: Test auto placement with invalid cargo
+        print("\n   ⚠️ Testing Auto Placement Error Handling...")
+        invalid_placement_data = {
+            "cargo_id": "invalid-cargo-id",
+            "block_number": 1,
+            "shelf_number": 1,
+            "cell_number": 1
+        }
+        
+        success, _ = self.run_test(
+            "Auto Place Invalid Cargo (Should Fail)",
+            "POST",
+            "/api/operator/cargo/place-auto",
+            404,
+            invalid_placement_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        # Test 7: Test auto placement with invalid warehouse position
+        if auto_cargo_id:
+            # Create another cargo for invalid position test
+            invalid_pos_cargo_data = {
+                "sender_full_name": "Позиция Отправитель",
+                "sender_phone": "+79444666888",
+                "recipient_full_name": "Позиция Получатель",
+                "recipient_phone": "+992777999111",
+                "recipient_address": "Душанбе, ул. Позиционная, 5",
+                "weight": 6.0,
+                "cargo_name": "Позиционный Товар",
+                "declared_value": 3000.0,
+                "description": "Товар для тестирования позиции",
+                "route": "moscow_to_tajikistan"
+            }
+            
+            success, invalid_pos_cargo_response = self.run_test(
+                "Create Cargo for Invalid Position Test",
+                "POST",
+                "/api/operator/cargo/accept",
+                200,
+                invalid_pos_cargo_data,
+                self.tokens['warehouse_operator']
+            )
+            
+            if success and 'id' in invalid_pos_cargo_response:
+                invalid_pos_cargo_id = invalid_pos_cargo_response['id']
+                
+                invalid_position_data = {
+                    "cargo_id": invalid_pos_cargo_id,
+                    "block_number": 999,  # Invalid block number
+                    "shelf_number": 1,
+                    "cell_number": 1
+                }
+                
+                success, _ = self.run_test(
+                    "Auto Place with Invalid Position (Should Fail)",
+                    "POST",
+                    "/api/operator/cargo/place-auto",
+                    400,
+                    invalid_position_data,
+                    self.tokens['warehouse_operator']
+                )
+                all_success &= success
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
