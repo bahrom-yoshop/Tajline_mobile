@@ -2624,6 +2624,76 @@ function App() {
                       </CardContent>
                     </Card>
                   )}
+
+                  {/* Привязка операторов к складам */}
+                  {activeTab === 'users-operator-bindings' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Users className="mr-2 h-5 w-5" />
+                            Привязка операторов к складам ({operatorWarehouseBindings.length})
+                          </div>
+                          <Button onClick={() => setOperatorBindingModal(true)}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Создать привязку
+                          </Button>
+                        </CardTitle>
+                        <CardDescription>
+                          Управление доступом операторов к складам
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {operatorWarehouseBindings.length === 0 ? (
+                          <div className="text-center py-8">
+                            <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                            <p className="text-gray-500">Нет привязок операторов к складам</p>
+                            <Button 
+                              onClick={() => setOperatorBindingModal(true)}
+                              className="mt-4"
+                            >
+                              Создать первую привязку
+                            </Button>
+                          </div>
+                        ) : (
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Оператор</TableHead>
+                                <TableHead>Телефон</TableHead>
+                                <TableHead>Склад</TableHead>
+                                <TableHead>Дата создания</TableHead>
+                                <TableHead>Действия</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {operatorWarehouseBindings.map((binding) => (
+                                <TableRow key={binding.id}>
+                                  <TableCell className="font-medium">{binding.operator_name}</TableCell>
+                                  <TableCell>{binding.operator_phone}</TableCell>
+                                  <TableCell>{binding.warehouse_name}</TableCell>
+                                  <TableCell>
+                                    {new Date(binding.created_at).toLocaleDateString('ru-RU')}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleDeleteOperatorBinding(binding.id)}
+                                      className="text-red-600 hover:text-red-700"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                      Удалить
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               )}
 
