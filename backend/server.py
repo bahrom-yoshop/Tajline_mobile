@@ -5737,7 +5737,7 @@ async def create_cargo_order(
             "recipient_address": cargo_data.recipient_address,
             "recipient_city": cargo_data.recipient_city,
             "weight": cargo_data.weight,
-            "declared_value": cargo_data.declared_value,
+            "declared_value": final_declared_value,  # Используем рассчитанное значение
             "description": cargo_data.description,
             "route": cargo_data.route,
             "status": CargoStatus.CREATED,
