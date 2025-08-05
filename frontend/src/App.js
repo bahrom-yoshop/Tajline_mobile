@@ -172,6 +172,18 @@ function App() {
     cell_number: 1
   });
 
+  // Transport visualization states
+  const [transportVisualizationModal, setTransportVisualizationModal] = useState(false);
+  const [selectedTransportForVisualization, setSelectedTransportForVisualization] = useState(null);
+  const [transportVisualizationData, setTransportVisualizationData] = useState(null);
+
+  // QR/Number cargo placement states
+  const [qrPlacementModal, setQrPlacementModal] = useState(false);
+  const [qrPlacementForm, setQrPlacementForm] = useState({
+    cargo_number: '',
+    qr_data: ''
+  });
+
   const [alerts, setAlerts] = useState([]);
 
   const showAlert = (message, type = 'info') => {
