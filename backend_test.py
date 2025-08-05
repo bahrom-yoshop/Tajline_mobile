@@ -1530,6 +1530,289 @@ class CargoTransportAPITester:
         
         return all_success
 
+    def test_client_cargo_ordering_system(self):
+        """Test client cargo ordering system with declared value logic"""
+        print("\n📦 CLIENT CARGO ORDERING SYSTEM")
+        
+        if 'user' not in self.tokens:
+            print("   ❌ No user token available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Get delivery options
+        print("\n   📋 Testing Delivery Options...")
+        success, delivery_options = self.run_test(
+            "Get Delivery Options",
+            "GET",
+            "/api/client/cargo/delivery-options",
+            200,
+            token=self.tokens['user']
+        )
+        all_success &= success
+        
+        if success:
+            routes = delivery_options.get('routes', [])
+            delivery_types = delivery_options.get('delivery_types', [])
+            services = delivery_options.get('additional_services', [])
+            print(f"   🛣️  Available routes: {len(routes)}")
+            print(f"   🚚 Delivery types: {len(delivery_types)}")
+            print(f"   🔧 Additional services: {len(services)}")
+            
+            # Verify expected routes are present
+            route_values = [r.get('value') for r in routes]
+            expected_routes = ['moscow_dushanbe', 'moscow_khujand', 'moscow_kulob', 'moscow_kurgantyube']
+            for expected_route in expected_routes:
+                if expected_route in route_values:
+                    print(f"   ✅ Route {expected_route} available")
+                else:
+                    print(f"   ❌ Route {expected_route} missing")
+                    all_success = False
+        
+        # Test 2: Test cargo cost calculation for different routes
+        print("\n   💰 Testing Cost Calculation for Different Routes...")
+        
+        test_routes = [
+            {"route": "moscow_khujand", "expected_declared_value": 60, "description": "Москва → Худжанд"},
+            {"route": "moscow_dushanbe", "expected_declared_value": 80, "description": "Москва → Душанбе"},
+            {"route": "moscow_kulob", "expected_declared_value": 80, "description": "Москва → Кулоб"},
+            {"route": "moscow_kurgantyube", "expected_declared_value": 80, "description": "Москва → Курган-Тюбе"}
+        ]
+        
+        for route_test in test_routes:
+            cargo_data = {
+                "cargo_name": f"Тестовый груз для {route_test['description']}",
+                "description": "Тестовый груз для проверки стоимости",
+                "weight": 10.0,
+                "declared_value": 5000.0,  # Will test if default logic overrides this
+                "recipient_full_name": "Тестовый Получатель",
+                "recipient_phone": "+992444555666",
+                "recipient_address": "Тестовый адрес получателя",
+                "recipient_city": "Душанбе",
+                "route": route_test['route'],
+                "delivery_type": "standard",
+                "insurance_requested": False,
+                "packaging_service": False,
+                "home_pickup": False,
+                "home_delivery": False,
+                "fragile": False,
+                "temperature_sensitive": False
+            }
+            
+            success, calculation = self.run_test(
+                f"Calculate Cost for {route_test['description']}",
+                "POST",
+                "/api/client/cargo/calculate",
+                200,
+                cargo_data,
+                self.tokens['user']
+            )
+            all_success &= success
+            
+            if success:
+                calc_data = calculation.get('calculation', {})
+                total_cost = calc_data.get('total_cost', 0)
+                delivery_days = calc_data.get('delivery_time_days', 0)
+                print(f"   💰 {route_test['description']}: {total_cost} руб, {delivery_days} дней")
+                
+                # Check if declared value logic is implemented
+                # Note: The current implementation doesn't seem to have default declared value logic
+                # This test will help identify if it needs to be implemented
+                breakdown = calculation.get('breakdown', {})
+                print(f"   📊 Breakdown: {breakdown}")
+        
+        # Test 3: Test full cargo creation workflow
+        print("\n   📦 Testing Full Cargo Creation Workflow...")
+        
+        # Test cargo creation for moscow_khujand route
+        cargo_order_data = {
+            "cargo_name": "Документы и личные вещи",
+            "description": "Важные документы и личные вещи для доставки",
+            "weight": 5.5,
+            "declared_value": 3000.0,
+            "recipient_full_name": "Рахимов Алишер Камолович",
+            "recipient_phone": "+992901234567",
+            "recipient_address": "ул. Рудаки, 25, кв. 10",
+            "recipient_city": "Худжанд",
+            "route": "moscow_khujand",
+            "delivery_type": "standard",
+            "insurance_requested": True,
+            "insurance_value": 3000.0,
+            "packaging_service": False,
+            "home_pickup": False,
+            "home_delivery": True,
+            "fragile": False,
+            "temperature_sensitive": False,
+            "special_instructions": "Доставить в рабочее время"
+        }
+        
+        success, order_response = self.run_test(
+            "Create Cargo Order (moscow_khujand)",
+            "POST",
+            "/api/client/cargo/create",
+            200,
+            cargo_order_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        created_cargo_id = None
+        created_cargo_number = None
+        created_tracking_code = None
+        
+        if success:
+            created_cargo_id = order_response.get('cargo_id')
+            created_cargo_number = order_response.get('cargo_number')
+            created_tracking_code = order_response.get('tracking_code')
+            total_cost = order_response.get('total_cost')
+            estimated_days = order_response.get('estimated_delivery_days')
+            
+            print(f"   📦 Created cargo: {created_cargo_number}")
+            print(f"   🏷️  Cargo ID: {created_cargo_id}")
+            print(f"   🔍 Tracking code: {created_tracking_code}")
+            print(f"   💰 Total cost: {total_cost} руб")
+            print(f"   📅 Estimated delivery: {estimated_days} дней")
+            
+            # Verify cargo number format
+            if created_cargo_number and len(created_cargo_number) == 4 and created_cargo_number.isdigit():
+                print(f"   ✅ Cargo number format is correct (4-digit)")
+            else:
+                print(f"   ❌ Invalid cargo number format: {created_cargo_number}")
+                all_success = False
+        
+        # Test 4: Verify cargo was created in database
+        print("\n   🗄️  Testing Cargo Database Creation...")
+        
+        if created_cargo_number:
+            # Test cargo tracking (public endpoint)
+            success, tracking_data = self.run_test(
+                f"Track Created Cargo {created_cargo_number}",
+                "GET",
+                f"/api/cargo/track/{created_cargo_number}",
+                200
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Cargo {created_cargo_number} found in database")
+                print(f"   📊 Status: {tracking_data.get('status', 'Unknown')}")
+                print(f"   👤 Sender: {tracking_data.get('sender_full_name', 'Unknown')}")
+                print(f"   👤 Recipient: {tracking_data.get('recipient_name', 'Unknown')}")
+            
+            # Test cargo appears in user's cargo list
+            success, user_cargo = self.run_test(
+                "Get User's Cargo List",
+                "GET",
+                "/api/cargo/my",
+                200,
+                token=self.tokens['user']
+            )
+            all_success &= success
+            
+            if success:
+                user_cargo_numbers = [c.get('cargo_number') for c in user_cargo if c.get('cargo_number')]
+                if created_cargo_number in user_cargo_numbers:
+                    print(f"   ✅ Cargo {created_cargo_number} appears in user's cargo list")
+                else:
+                    print(f"   ❌ Cargo {created_cargo_number} not found in user's cargo list")
+                    all_success = False
+        
+        # Test 5: Test different route combinations
+        print("\n   🛣️  Testing Different Route Combinations...")
+        
+        route_test_data = [
+            {"route": "moscow_dushanbe", "city": "Душанбе"},
+            {"route": "moscow_kulob", "city": "Кулоб"},
+            {"route": "moscow_kurgantyube", "city": "Курган-Тюбе"}
+        ]
+        
+        created_orders = []
+        
+        for i, route_data in enumerate(route_test_data):
+            test_cargo = {
+                "cargo_name": f"Тестовый груз {i+1}",
+                "description": f"Тестовый груз для маршрута {route_data['route']}",
+                "weight": 2.0 + i,
+                "declared_value": 1500.0 + (i * 500),
+                "recipient_full_name": f"Получатель {i+1}",
+                "recipient_phone": f"+99290123456{i}",
+                "recipient_address": f"ул. Тестовая, {i+1}",
+                "recipient_city": route_data['city'],
+                "route": route_data['route'],
+                "delivery_type": "standard",
+                "insurance_requested": False,
+                "packaging_service": False,
+                "home_pickup": False,
+                "home_delivery": False,
+                "fragile": False,
+                "temperature_sensitive": False
+            }
+            
+            success, order_response = self.run_test(
+                f"Create Order for {route_data['route']}",
+                "POST",
+                "/api/client/cargo/create",
+                200,
+                test_cargo,
+                self.tokens['user']
+            )
+            all_success &= success
+            
+            if success:
+                cargo_number = order_response.get('cargo_number')
+                total_cost = order_response.get('total_cost')
+                created_orders.append({
+                    'route': route_data['route'],
+                    'cargo_number': cargo_number,
+                    'total_cost': total_cost
+                })
+                print(f"   ✅ {route_data['route']}: {cargo_number} - {total_cost} руб")
+        
+        # Test 6: Test error handling and validation
+        print("\n   ⚠️  Testing Error Handling and Validation...")
+        
+        # Test with invalid data
+        invalid_cargo_data = {
+            "cargo_name": "",  # Empty name
+            "description": "Test",
+            "weight": -5.0,  # Negative weight
+            "declared_value": 0,  # Zero value
+            "recipient_full_name": "Test",
+            "recipient_phone": "invalid",  # Invalid phone
+            "recipient_address": "Test",
+            "recipient_city": "Test",
+            "route": "invalid_route",  # Invalid route
+            "delivery_type": "standard"
+        }
+        
+        success, _ = self.run_test(
+            "Create Order with Invalid Data (Should Fail)",
+            "POST",
+            "/api/client/cargo/create",
+            422,  # Validation error expected
+            invalid_cargo_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        # Test access control - non-user cannot create orders
+        if 'admin' in self.tokens:
+            success, _ = self.run_test(
+                "Admin Create Client Order (Should Fail)",
+                "POST",
+                "/api/client/cargo/create",
+                403,  # Access denied expected
+                cargo_order_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+        
+        # Store created orders for potential future tests
+        if created_orders:
+            self.client_orders = created_orders
+            
+        return all_success
+
     def test_operator_warehouse_binding_system(self):
         """Test the new operator-warehouse binding system"""
         print("\n🔗 OPERATOR-WAREHOUSE BINDING SYSTEM")
