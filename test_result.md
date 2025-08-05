@@ -684,11 +684,11 @@ frontend:
 
   - task: "Fix Search Header Input Issue"
     implemented: true
-    working: true
+    working: false
     file: "/app/frontend/src/App.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: false
           agent: "user"
@@ -696,6 +696,9 @@ frontend:
         - working: true
           agent: "main"
           comment: "✅ FIXED - Removed conflicting z-index styles from search input and clear button. Modified search input positioning and dropdown to fix input interaction issues."
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL ISSUE - Search header input is NOT VISIBLE in admin/operator interface. Comprehensive testing with multiple user roles (regular user, admin registration) shows no search header with placeholder 'Поиск по номеру, ФИО, телефону...' in any interface. The search functionality appears to be missing from the admin/operator interface where it should be located according to the review request. Users cannot access the search feature that was supposedly fixed."
 
   - task: "Fix printInvoice Function Missing"
     implemented: true
