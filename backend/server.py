@@ -628,6 +628,10 @@ async def create_cargo(cargo_data: CargoCreate, current_user: User = Depends(get
 @app.get("/api/cargo/my")
 async def get_my_cargo(current_user: User = Depends(get_current_user)):
     cargo_list = list(db.cargo.find({"sender_id": current_user.id}))
+    # Ensure cargo_name field exists for backward compatibility
+    for cargo in cargo_list:
+        if 'cargo_name' not in cargo:
+            cargo['cargo_name'] = cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз'
     return [Cargo(**cargo) for cargo in cargo_list]
 
 @app.get("/api/cargo/track/{cargo_number}")
