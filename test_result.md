@@ -423,6 +423,18 @@ backend:
         - working: true
           agent: "main"
           comment: "✅ CRITICAL FIX VERIFIED - Fixed GET /api/transport/{transport_id}/cargo-list to search both 'cargo' and 'operator_cargo' collections. Previously only searched 'cargo' collection causing operator cargo to be invisible in transport lists. Now correctly displays all cargo regardless of source collection with enhanced information (cargo_name, sender_full_name, sender_phone, recipient_phone, status). Cross-collection search implemented and tested successfully."
+
+  - task: "Arrived Transport Cargo Placement System"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ NEW SYSTEM IMPLEMENTED - Created comprehensive system for placing cargo from arrived transports to warehouses: 1) POST /api/transport/{transport_id}/arrive - mark transport as arrived, 2) GET /api/transport/arrived - list arrived transports, 3) GET /api/transport/{transport_id}/arrived-cargo - get cargo from arrived transport, 4) POST /api/transport/{transport_id}/place-cargo-to-warehouse - place cargo from transport to warehouse cell. System includes proper status management, notifications, operator access control, and automatic transport completion when all cargo is placed."
         - working: true
           agent: "testing"
           comment: "✅ COMPREHENSIVE QR SYSTEM TESTING COMPLETE - Tested all 4 major QR code components with excellent results: 1) QR Code Generation and Management ✅ - Cargo QR API works correctly, warehouse cell QR generation works, bulk QR generation works, proper access control implemented, 2) QR Code Scanning System ❌ - Minor issue with non-existent cargo error handling (expected 404 but got 400), otherwise all scanning functionality works correctly, 3) QR Code Content Format Verification ✅ - All QR codes generated in correct base64 PNG format, proper response structure, correct location formatting, 4) QR Code Integration ❌ - Minor issue: QR codes not auto-generated in cargo creation response (but accessible via dedicated API). SUCCESS RATE: 75% (3/4 test suites passed). Core QR functionality is fully working - users can generate, scan, and manage QR codes for both cargo and warehouse cells. The system correctly implements the specified QR content format and provides proper access control. Minor issues are related to response formatting and error message consistency, not core functionality."
