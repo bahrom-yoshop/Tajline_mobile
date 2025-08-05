@@ -720,11 +720,11 @@ frontend:
 
   - task: "Enhanced Transport Management Modal"
     implemented: true
-    working: true
+    working: "NA"
     file: "/app/frontend/src/App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: false
           agent: "user"
@@ -732,6 +732,9 @@ frontend:
         - working: true
           agent: "main"
           comment: "✅ ENHANCED - Transport management modal already had most requested features. Added actual return cargo functionality that calls new backend API to remove cargo from transport and return to warehouse. Modal now shows full cargo list, print functionality, and full cargo details with proper return-to-warehouse logic."
+        - working: "NA"
+          agent: "testing"
+          comment: "⚠️ CANNOT TEST - Unable to access admin/operator interface where Logistics → List Transports section should be located. Testing shows no navigation to logistics section, no transport management features, and no transport management modals in the accessible user interface. The enhanced transport management modal functionality cannot be verified without proper admin/operator access."
 
 metadata:
   created_by: "main_agent"
