@@ -433,13 +433,13 @@ class CriticalFixesTester:
         if self.cargo_ids['cargo']:
             cargo_info = self.cargo_ids['cargo'][0]
             placement_data = {
-                "cargo_numbers": [cargo_info['number']]  # Use cargo_numbers instead of cargo_ids
+                "cargo_numbers": [cargo_info['number']]  # Use cargo_numbers
             }
             
             success, _ = self.run_test(
                 "Place Cargo on Transport by Number",
                 "POST",
-                f"/api/transport/{self.transport_id}/place-cargo-by-numbers",
+                f"/api/transport/{self.transport_id}/place-cargo",
                 200,
                 placement_data,
                 self.tokens['admin']
