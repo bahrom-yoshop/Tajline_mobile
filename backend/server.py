@@ -103,6 +103,10 @@ class Cargo(BaseModel):
     created_at: datetime
     updated_at: datetime
     warehouse_location: Optional[str] = None
+    accepted_by_operator: Optional[str] = None  # ФИО оператора, принявшего груз
+    accepted_by_operator_id: Optional[str] = None  # ID оператора
+    placed_by_operator: Optional[str] = None  # ФИО оператора, разместившего груз
+    placed_by_operator_id: Optional[str] = None  # ID оператора
 
 class TransportCreate(BaseModel):
     driver_name: str = Field(..., min_length=2)
