@@ -489,15 +489,18 @@ backend:
 
   - task: "Operator Warehouse-Based Access Control System"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "critical"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: true
           agent: "main"
           comment: "✅ IMPLEMENTED - Created comprehensive warehouse-based permission system for operators: 1.1) Updated GET /api/operator/cargo/list to filter cargo only from operator's assigned warehouses, 1.2) Added GET /api/operator/my-warehouses with detailed statistics for assigned warehouses, 1.3) Operators get full access to assigned warehouse operations, 1.4) Updated POST /api/operator/cargo/accept to restrict cargo acceptance only to assigned warehouses with automatic target warehouse assignment, 1.5) Added GET /api/transport/list with filtering for operator's warehouse-related transports, 1.6) Added POST /api/transport/create-interwarehouse for creating inter-warehouse transports between operator's accessible warehouses. Multi-tenant warehouse security implemented."
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL ISSUES FOUND - Comprehensive testing of operator permissions system reveals 3 major failures: 1.4) Cargo acceptance does NOT assign target_warehouse_id (returns None instead of assigned warehouse), 1.5) Transport filtering NOT working - all operators see ALL transports (33 transports) instead of only warehouse-related ones, 1.6) Inter-warehouse transport access control BROKEN - operators can create transports between ANY warehouses, not just assigned ones. ✅ WORKING: 1.1) Cargo visibility filtering works correctly, 1.2) Warehouse function access works correctly, Cross-tenant security works correctly. SUCCESS RATE: 50% (3/6 requirements passed). System needs immediate fixes for cargo acceptance, transport filtering, and inter-warehouse access control."
 
   - task: "Transport Access Control"
     implemented: true
