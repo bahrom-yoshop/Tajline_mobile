@@ -102,7 +102,44 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Add logistics management system with transport handling. User requests adding 'Логистика' category in sidebar menu with subcategories for managing transport vehicles, cargo placement, and transportation tracking. System should handle transport registration, cargo loading, status tracking, and notifications."
+user_problem_statement: "Add advanced logistics management with operator-warehouse binding and enhanced cargo placement. User requests: 1) Allow cargo placement on transport from all warehouses by number for admin/operators, 2) Bind operators to specific warehouses by name and phone - operators can only work with their assigned warehouses, 3) Display operator name who accepted/placed cargo on all cargo cards and invoices."
+
+backend:
+  - task: "Operator-Warehouse Binding System"
+    implemented: false
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to implement operator-warehouse binding system where each operator is assigned to specific warehouses and can only access cargo/transport operations for their assigned warehouses."
+
+  - task: "Enhanced Cargo Placement System" 
+    implemented: false
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to enhance cargo placement on transport to allow selection from all warehouses by cargo number, not limited to single warehouse. Admin and operators should be able to place any cargo on transport."
+
+  - task: "Operator Tracking in Cargo Operations"
+    implemented: false
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to add operator name tracking to cargo records - store which operator accepted and placed each cargo, display this info on cargo cards and invoices."
 
 backend:
   - task: "4-Digit Cargo Numbering System"
