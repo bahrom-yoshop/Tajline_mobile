@@ -2412,21 +2412,6 @@ async def create_transport(
     
     return {"message": "Transport created successfully", "transport_id": transport_id}
 
-@app.get("/api/transport/list")
-async def get_transport_list(
-    status: Optional[str] = None,
-    current_user: User = Depends(get_current_user)
-):
-    # Проверка доступа
-    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
-        raise HTTPException(status_code=403, detail="Access denied")
-    
-    query = {}
-    if status and status != "all":
-        query["status"] = status
-    
-    transports = list(db.transports.find(query).sort("created_at", -1))
-    return [Transport(**transport) for transport in transports]
 
 @app.get("/api/transport/history")
 async def get_transport_history(
