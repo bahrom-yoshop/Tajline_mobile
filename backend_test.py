@@ -7862,6 +7862,388 @@ ID склада: {self.warehouse_id}"""
             
         return all_success
 
+    def test_stage1_cargo_photos(self):
+        """Test Stage 1: Cargo Photo Management"""
+        print("\n📸 STAGE 1: CARGO PHOTO MANAGEMENT")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Get a cargo ID for testing
+        cargo_id = None
+        if self.cargo_ids:
+            cargo_id = self.cargo_ids[0]
+        else:
+            # Create a test cargo
+            cargo_data = {
+                "recipient_name": "Получатель для фото",
+                "recipient_phone": "+992555666777",
+                "route": "moscow_to_tajikistan",
+                "weight": 10.0,
+                "cargo_name": "Груз для тестирования фото",
+                "description": "Тестовый груз для фото",
+                "declared_value": 5000.0,
+                "sender_address": "Москва, ул. Фото, 1",
+                "recipient_address": "Душанбе, ул. Получателя, 1"
+            }
+            
+            success, response = self.run_test(
+                "Create Cargo for Photo Test",
+                "POST",
+                "/api/cargo/create",
+                200,
+                cargo_data,
+                self.tokens['user']
+            )
+            
+            if success and 'id' in response:
+                cargo_id = response['id']
+                self.cargo_ids.append(cargo_id)
+        
+        if not cargo_id:
+            print("   ❌ No cargo available for photo testing")
+            return False
+        
+        # Test 1: Upload cargo photo
+        print("\n   📤 Testing Photo Upload...")
+        # Create a simple base64 image (1x1 pixel PNG)
+        test_image_b64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAI9jU77zgAAAABJRU5ErkJggg=="
+        
+        photo_data = {
+            "cargo_id": cargo_id,
+            "photo_data": test_image_b64,
+            "photo_name": "test_cargo_photo.png",
+            "photo_type": "cargo_photo",
+            "description": "Тестовое фото груза"
+        }
+        
+        success, photo_response = self.run_test(
+            "Upload Cargo Photo",
+            "POST",
+            "/api/cargo/photo/upload",
+            200,
+            photo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        photo_id = None
+        if success and 'photo_id' in photo_response:
+            photo_id = photo_response['photo_id']
+            print(f"   📸 Photo uploaded with ID: {photo_id}")
+        
+        # Test 2: Get cargo photos
+        print("\n   📋 Testing Get Cargo Photos...")
+        success, photos_response = self.run_test(
+            "Get Cargo Photos",
+            "GET",
+            f"/api/cargo/{cargo_id}/photos",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            photo_count = photos_response.get('total_photos', 0)
+            print(f"   📊 Found {photo_count} photos for cargo")
+        
+        # Test 3: Delete cargo photo
+        if photo_id:
+            print("\n   🗑️ Testing Photo Deletion...")
+            success, _ = self.run_test(
+                "Delete Cargo Photo",
+                "DELETE",
+                f"/api/cargo/photo/{photo_id}",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+        
+        return all_success
+
+    def test_stage1_cargo_history(self):
+        """Test Stage 1: Cargo History"""
+        print("\n📚 STAGE 1: CARGO HISTORY")
+        
+        if 'admin' not in self.tokens or not self.cargo_ids:
+            print("   ❌ Required tokens or cargo not available")
+            return False
+            
+        cargo_id = self.cargo_ids[0]
+        
+        success, history_response = self.run_test(
+            "Get Cargo History",
+            "GET",
+            f"/api/cargo/{cargo_id}/history",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        if success:
+            history_count = history_response.get('total_changes', 0)
+            print(f"   📊 Found {history_count} history entries for cargo")
+            
+            if history_response.get('history'):
+                latest_change = history_response['history'][0]
+                print(f"   📝 Latest change: {latest_change.get('action_type', 'Unknown')}")
+        
+        return success
+
+    def test_stage1_cargo_comments(self):
+        """Test Stage 1: Cargo Comments"""
+        print("\n💬 STAGE 1: CARGO COMMENTS")
+        
+        if 'admin' not in self.tokens or not self.cargo_ids:
+            print("   ❌ Required tokens or cargo not available")
+            return False
+            
+        all_success = True
+        cargo_id = self.cargo_ids[0]
+        
+        # Test 1: Add cargo comment
+        print("\n   ✍️ Testing Add Comment...")
+        comment_data = {
+            "cargo_id": cargo_id,
+            "comment_text": "Это тестовый комментарий к грузу",
+            "comment_type": "general",
+            "priority": "normal",
+            "is_internal": False
+        }
+        
+        success, comment_response = self.run_test(
+            "Add Cargo Comment",
+            "POST",
+            "/api/cargo/comment",
+            200,
+            comment_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            comment_id = comment_response.get('comment_id')
+            print(f"   💬 Comment added with ID: {comment_id}")
+        
+        # Test 2: Get cargo comments
+        print("\n   📋 Testing Get Comments...")
+        success, comments_response = self.run_test(
+            "Get Cargo Comments",
+            "GET",
+            f"/api/cargo/{cargo_id}/comments",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            comment_count = comments_response.get('total_comments', 0)
+            print(f"   📊 Found {comment_count} comments for cargo")
+        
+        return all_success
+
+    def test_stage1_cargo_tracking(self):
+        """Test Stage 1: Client Cargo Tracking"""
+        print("\n🔍 STAGE 1: CLIENT CARGO TRACKING")
+        
+        if 'admin' not in self.tokens or not self.cargo_ids:
+            print("   ❌ Required tokens or cargo not available")
+            return False
+            
+        all_success = True
+        
+        # Get cargo number for testing
+        success, my_cargo = self.run_test(
+            "Get Cargo for Tracking Test",
+            "GET",
+            "/api/cargo/my",
+            200,
+            token=self.tokens['user']
+        )
+        
+        if not success or not my_cargo:
+            print("   ❌ Could not get cargo for tracking test")
+            return False
+            
+        cargo_number = my_cargo[0].get('cargo_number') if my_cargo else None
+        if not cargo_number:
+            print("   ❌ No cargo number found")
+            return False
+        
+        # Test 1: Create tracking code
+        print("\n   🏷️ Testing Create Tracking Code...")
+        tracking_data = {
+            "cargo_number": cargo_number,
+            "client_phone": "+992555666777"
+        }
+        
+        success, tracking_response = self.run_test(
+            "Create Cargo Tracking",
+            "POST",
+            "/api/cargo/tracking/create",
+            200,
+            tracking_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        tracking_code = None
+        if success and 'tracking_code' in tracking_response:
+            tracking_code = tracking_response['tracking_code']
+            print(f"   🔑 Tracking code created: {tracking_code}")
+        
+        # Test 2: Public tracking (no auth required)
+        if tracking_code:
+            print("\n   🌐 Testing Public Tracking...")
+            success, track_response = self.run_test(
+                "Track Cargo by Code (Public)",
+                "GET",
+                f"/api/cargo/track/{tracking_code}",
+                200
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   📦 Tracked cargo: {track_response.get('cargo_number')}")
+                print(f"   📊 Status: {track_response.get('status')}")
+                print(f"   📍 Location: {track_response.get('current_location', {}).get('description', 'Unknown')}")
+        
+        return all_success
+
+    def test_stage1_client_notifications(self):
+        """Test Stage 1: Client Notifications"""
+        print("\n📱 STAGE 1: CLIENT NOTIFICATIONS")
+        
+        if 'admin' not in self.tokens or not self.cargo_ids:
+            print("   ❌ Required tokens or cargo not available")
+            return False
+            
+        cargo_id = self.cargo_ids[0]
+        
+        notification_data = {
+            "cargo_id": cargo_id,
+            "client_phone": "+992555666777",
+            "notification_type": "sms",
+            "message_text": "Ваш груз принят на склад и готов к отправке"
+        }
+        
+        success, notification_response = self.run_test(
+            "Send Client Notification",
+            "POST",
+            "/api/notifications/client/send",
+            200,
+            notification_data,
+            self.tokens['admin']
+        )
+        
+        if success:
+            notification_id = notification_response.get('notification_id')
+            print(f"   📨 Notification sent with ID: {notification_id}")
+        
+        return success
+
+    def test_stage1_internal_messages(self):
+        """Test Stage 1: Internal Messages"""
+        print("\n💌 STAGE 1: INTERNAL MESSAGES")
+        
+        if 'admin' not in self.tokens or 'warehouse_operator' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Send internal message
+        print("\n   📤 Testing Send Internal Message...")
+        operator_id = self.users['warehouse_operator']['id']
+        
+        message_data = {
+            "recipient_id": operator_id,
+            "message_subject": "Тестовое внутреннее сообщение",
+            "message_text": "Это тестовое сообщение между операторами системы",
+            "priority": "normal",
+            "related_cargo_id": self.cargo_ids[0] if self.cargo_ids else None
+        }
+        
+        success, message_response = self.run_test(
+            "Send Internal Message",
+            "POST",
+            "/api/messages/internal/send",
+            200,
+            message_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        message_id = None
+        if success and 'message_id' in message_response:
+            message_id = message_response['message_id']
+            print(f"   💌 Message sent with ID: {message_id}")
+        
+        # Test 2: Get inbox messages
+        print("\n   📥 Testing Get Inbox Messages...")
+        success, inbox_response = self.run_test(
+            "Get Internal Messages Inbox",
+            "GET",
+            "/api/messages/internal/inbox",
+            200,
+            token=self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success:
+            message_count = inbox_response.get('total_messages', 0)
+            unread_count = inbox_response.get('unread_count', 0)
+            print(f"   📊 Found {message_count} messages ({unread_count} unread)")
+        
+        # Test 3: Mark message as read
+        if message_id:
+            print("\n   ✅ Testing Mark Message as Read...")
+            success, _ = self.run_test(
+                "Mark Internal Message as Read",
+                "PUT",
+                f"/api/messages/internal/{message_id}/read",
+                200,
+                token=self.tokens['warehouse_operator']
+            )
+            all_success &= success
+        
+        return all_success
+
+    def test_stage1_features(self):
+        """Test all Stage 1 features"""
+        print("\n🎯 TESTING STAGE 1 FEATURES")
+        print("=" * 60)
+        
+        stage1_results = []
+        
+        # Test all Stage 1 features
+        stage1_results.append(("Cargo Photos", self.test_stage1_cargo_photos()))
+        stage1_results.append(("Cargo History", self.test_stage1_cargo_history()))
+        stage1_results.append(("Cargo Comments", self.test_stage1_cargo_comments()))
+        stage1_results.append(("Cargo Tracking", self.test_stage1_cargo_tracking()))
+        stage1_results.append(("Client Notifications", self.test_stage1_client_notifications()))
+        stage1_results.append(("Internal Messages", self.test_stage1_internal_messages()))
+        
+        # Print Stage 1 summary
+        print("\n" + "=" * 60)
+        print("🎯 STAGE 1 FEATURES TEST SUMMARY")
+        print("=" * 60)
+        
+        passed = 0
+        for test_name, result in stage1_results:
+            status = "✅ PASSED" if result else "❌ FAILED"
+            print(f"{status} - {test_name}")
+            if result:
+                passed += 1
+        
+        print(f"\n📊 Stage 1 Results: {passed}/{len(stage1_results)} tests passed")
+        success_rate = (passed / len(stage1_results)) * 100
+        print(f"📈 Success Rate: {success_rate:.1f}%")
+        
+        return stage1_results
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
