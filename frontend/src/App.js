@@ -3972,6 +3972,68 @@ function App() {
         </DialogContent>
       </Dialog>
 
+      {/* Модальное окно создания привязки оператора к складу */}
+      <Dialog open={operatorBindingModal} onOpenChange={setOperatorBindingModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Привязать оператора к складу</DialogTitle>
+            <DialogDescription>
+              Выберите оператора и склад для создания привязки
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="operator-select">Выберите оператора</Label>
+              <Select value={selectedOperatorForBinding} onValueChange={setSelectedOperatorForBinding}>
+                <SelectTrigger id="operator-select">
+                  <SelectValue placeholder="Выберите оператора склада" />
+                </SelectTrigger>
+                <SelectContent>
+                  {usersByRole.warehouse_operator.map((operator) => (
+                    <SelectItem key={operator.id} value={operator.id}>
+                      {operator.full_name} ({operator.phone})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="warehouse-select">Выберите склад</Label>
+              <Select value={selectedWarehouseForBinding} onValueChange={setSelectedWarehouseForBinding}>
+                <SelectTrigger id="warehouse-select">
+                  <SelectValue placeholder="Выберите склад" />
+                </SelectTrigger>
+                <SelectContent>
+                  {warehouses.map((warehouse) => (
+                    <SelectItem key={warehouse.id} value={warehouse.id}>
+                      {warehouse.name} ({warehouse.location})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setOperatorBindingModal(false);
+                  setSelectedOperatorForBinding('');
+                  setSelectedWarehouseForBinding('');
+                }}
+              >
+                Отмена
+              </Button>
+              <Button onClick={handleCreateOperatorBinding}>
+                Создать привязку
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Alerts */}
       <div className="fixed top-4 right-4 space-y-2 z-50">
         {alerts.map((alert) => (
