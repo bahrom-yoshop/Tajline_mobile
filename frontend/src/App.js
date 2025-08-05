@@ -4135,27 +4135,42 @@ function App() {
                       <CardHeader>
                         <CardTitle className="flex items-center">
                           <MapPin className="mr-2 h-5 w-5" />
-                          На место назначения ({transports.filter(t => t.status === 'arrived').length})
+                          Прибывшие транспорты для размещения ({arrivedTransports.length})
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
-                          {transports.filter(transport => transport.status === 'arrived').length === 0 ? (
+                          {arrivedTransports.length === 0 ? (
                             <div className="text-center py-8">
                               <MapPin className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                              <p className="text-gray-500">Нет транспорта на месте назначения</p>
+                              <p className="text-gray-500">Нет прибывших транспортов для размещения</p>
                             </div>
                           ) : (
-                            transports.filter(transport => transport.status === 'arrived').map((transport) => (
-                              <Card key={transport.id} className="p-4">
+                            arrivedTransports.map((transport) => (
+                              <Card key={transport.id} className="p-4 border-green-200">
                                 <div className="flex justify-between items-start">
-                                  <div className="space-y-2">
-                                    <h3 className="font-semibold text-lg">{transport.transport_number}</h3>
+                                  <div className="space-y-2 flex-1">
+                                    <h3 className="font-semibold text-lg text-green-800">{transport.transport_number}</h3>
                                     <p className="text-sm text-gray-600"><strong>Водитель:</strong> {transport.driver_name}</p>
                                     <p className="text-sm text-gray-600"><strong>Направление:</strong> {transport.direction}</p>
-                                    <p className="text-sm text-gray-600"><strong>Груз:</strong> {transport.current_load_kg} кг ({transport.cargo_list.length} мест)</p>
+                                    <p className="text-sm text-gray-600"><strong>Груз:</strong> {transport.current_load_kg} кг ({transport.cargo_count} мест)</p>
+                                    <p className="text-sm text-gray-600"><strong>Прибыл:</strong> {new Date(transport.arrived_at).toLocaleDateString('ru-RU')} {new Date(transport.arrived_at).toLocaleTimeString('ru-RU')}</p>
                                   </div>
-                                  <Badge className="bg-green-100 text-green-800">Прибыл</Badge>
+                                  <div className="flex flex-col items-end space-y-2">
+                                    <Badge className="bg-green-100 text-green-800">Прибыл</Badge>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedArrivedTransport(transport);
+                                        fetchArrivedTransportCargo(transport.id);
+                                        setArrivedTransportModal(true);
+                                      }}
+                                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    >
+                                      <Package className="mr-1 h-3 w-3" />
+                                      Разместить грузы
+                                    </Button>
+                                  </div>
                                 </div>
                               </Card>
                             ))
