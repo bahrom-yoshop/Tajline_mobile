@@ -232,9 +232,12 @@ function App() {
 
   const fetchUserData = async () => {
     try {
-      // Здесь можно добавить endpoint для получения данных пользователя
-      // Пока оставим заглушку
+      // Get user data from backend using the token
+      const userData = await apiCall('/api/auth/me', 'GET');
+      setUser(userData);
     } catch (error) {
+      console.error('Failed to fetch user data:', error);
+      // Token is invalid, clear it
       localStorage.removeItem('token');
       setToken(null);
       setUser(null);
