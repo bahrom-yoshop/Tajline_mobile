@@ -4074,13 +4074,13 @@ function App() {
 
       {/* Модальное окно управления транспортом */}
       <Dialog open={transportManagementModal} onOpenChange={setTransportManagementModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               Управление транспортом {selectedTransport?.transport_number}
             </DialogTitle>
             <DialogDescription>
-              Выберите функцию для управления транспортом
+              Полная информация и управление транспортом
             </DialogDescription>
           </DialogHeader>
           
@@ -4089,111 +4089,167 @@ function App() {
               {/* Информация о транспорте */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="font-semibold mb-2">Информация о транспорте</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-3 gap-4 text-sm">
                   <p><strong>Номер:</strong> {selectedTransport.transport_number}</p>
                   <p><strong>Водитель:</strong> {selectedTransport.driver_name}</p>
                   <p><strong>Телефон:</strong> {selectedTransport.driver_phone}</p>
                   <p><strong>Направление:</strong> {selectedTransport.direction}</p>
                   <p><strong>Вместимость:</strong> {selectedTransport.capacity_kg} кг</p>
-                  <p><strong>Загрузка:</strong> {selectedTransport.current_load_kg} кг ({Math.round((selectedTransport.current_load_kg / selectedTransport.capacity_kg) * 100)}%)</p>
+                  <p><strong>Текущая загрузка:</strong> {selectedTransport.current_load_kg} кг</p>
+                  <p><strong>Процент загрузки:</strong> {Math.round((selectedTransport.current_load_kg / selectedTransport.capacity_kg) * 100)}%</p>
+                  <p><strong>Статус:</strong> 
+                    <Badge className="ml-2" variant={selectedTransport.status === 'empty' ? 'secondary' : 'default'}>
+                      {selectedTransport.status === 'empty' ? 'Пустой' : selectedTransport.status === 'filled' ? 'Заполнено' : selectedTransport.status}
+                    </Badge>
+                  </p>
+                  <p><strong>Количество грузов:</strong> {transportCargoList.cargo_count || 0} мест</p>
                 </div>
               </div>
 
-              {/* Функции управления */}
+              {/* Список размещенных грузов */}
+              <Card className="p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-semibold">Грузы на транспорте ({transportCargoList.cargo_count || 0} мест)</h4>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (transportCargoList.cargo_list && transportCargoList.cargo_list.length > 0) {
+                          printTransportCargoList(selectedTransport, transportCargoList.cargo_list);
+                        }
+                      }}
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      Печать списка
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="max-h-60 overflow-y-auto border rounded">
+                  {!transportCargoList.cargo_list || transportCargoList.cargo_list.length === 0 ? (
+                    <p className="p-4 text-gray-500 text-center">Груз не размещен</p>
+                  ) : (
+                    <div className="space-y-2 p-2">
+                      {transportCargoList.cargo_list.map((cargo, index) => (
+                        <div key={cargo.id} className="flex justify-between items-center p-3 bg-gray-50 rounded border">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-4">
+                              <div>
+                                <p className="font-medium">{cargo.cargo_number}</p>
+                                <p className="text-sm text-gray-600">{cargo.cargo_name || 'Груз'}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm"><strong>Вес:</strong> {cargo.weight} кг</p>
+                                <p className="text-sm"><strong>Получатель:</strong> {cargo.recipient_name}</p>
+                              </div>
+                            </div>
+                            <div className="mt-2 text-xs text-gray-500">
+                              <p><strong>Отправитель:</strong> {cargo.sender_full_name || 'Не указан'} - {cargo.sender_phone || 'Нет телефона'}</p>
+                              <p><strong>Получатель:</strong> {cargo.recipient_full_name || cargo.recipient_name} - {cargo.recipient_phone || 'Нет телефона'}</p>
+                              {cargo.recipient_address && (
+                                <p><strong>Адрес:</strong> {cargo.recipient_address}</p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                try {
+                                  const fullCargoDetails = await fetchCargoDetails(cargo.id);
+                                  setSelectedCellCargo(fullCargoDetails);
+                                  setCargoDetailModal(true);
+                                } catch (error) {
+                                  console.error('Error fetching cargo details:', error);
+                                }
+                              }}
+                            >
+                              <User className="h-4 w-4" />
+                            </Button>
+                            
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                if (window.confirm(`Вернуть груз ${cargo.cargo_number} в исходное место на складе?`)) {
+                                  try {
+                                    // Здесь можно добавить функцию возврата груза
+                                    showAlert('Функция возврата груза в разработке', 'info');
+                                  } catch (error) {
+                                    console.error('Error returning cargo:', error);
+                                  }
+                                }
+                              }}
+                              className="text-orange-600 hover:text-orange-700"
+                            >
+                              <Package className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                {transportCargoList.cargo_list && transportCargoList.cargo_list.length > 0 && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded">
+                    <p className="text-sm"><strong>Общий вес:</strong> {transportCargoList.total_weight || 0} кг</p>
+                    <p className="text-sm"><strong>Остаток вместимости:</strong> {selectedTransport.capacity_kg - (transportCargoList.total_weight || 0)} кг</p>
+                  </div>
+                )}
+              </Card>
+
+              {/* Размещение нового груза */}
+              <Card className="p-4">
+                <h4 className="font-semibold mb-3">Размещение нового груза</h4>
+                <p className="text-sm text-gray-600 mb-4">
+                  Введите номера грузов для размещения на транспорт
+                </p>
+                
+                <div className="mb-4">
+                  <Label htmlFor="cargo-numbers">Номера грузов (через запятую):</Label>
+                  <Input
+                    id="cargo-numbers"
+                    placeholder="Например: 1001, 1002, 1003"
+                    value={selectedCargoForPlacement.join(', ')}
+                    onChange={(e) => {
+                      const cargoNumbers = e.target.value.split(',').map(num => num.trim()).filter(num => num);
+                      setSelectedCargoForPlacement(cargoNumbers);
+                    }}
+                    className="mt-2"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Введите номера грузов через запятую. Грузы должны находиться на складе.
+                  </p>
+                </div>
+                
+                <Button 
+                  onClick={() => handlePlaceCargoOnTransport(selectedTransport.id, selectedCargoForPlacement)}
+                  disabled={selectedCargoForPlacement.length === 0}
+                  className="w-full"
+                >
+                  Разместить груз
+                </Button>
+              </Card>
+
+              {/* Действия с транспортом */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
-                {/* Размещение груза */}
-                <Card className="p-4">
-                  <h4 className="font-semibold mb-3">Размещение груза</h4>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Введите номера грузов для размещения на транспорт
-                  </p>
-                  
-                  {/* Поле ввода номеров грузов */}
-                  <div className="mb-4">
-                    <Label htmlFor="cargo-numbers">Номера грузов (через запятую):</Label>
-                    <Input
-                      id="cargo-numbers"
-                      placeholder="Например: CRG001, CRG002, CRG003"
-                      value={selectedCargoForPlacement.join(', ')}
-                      onChange={(e) => {
-                        const cargoNumbers = e.target.value.split(',').map(num => num.trim()).filter(num => num);
-                        setSelectedCargoForPlacement(cargoNumbers);
-                      }}
-                      className="mt-2"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Введите номера грузов через запятую. Грузы должны находиться на складе.
-                    </p>
-                  </div>
-
-                  {/* Показать доступные грузы для справки */}
-                  <div className="mb-4">
-                    <Label className="text-xs text-gray-600">Доступные грузы на складе:</Label>
-                    <div className="max-h-32 overflow-y-auto border rounded mt-1 p-2">
-                      {availableCargoForTransport.length === 0 ? (
-                        <p className="text-gray-500 text-xs">Нет доступных грузов</p>
-                      ) : (
-                        <div className="grid grid-cols-2 gap-1 text-xs">
-                          {availableCargoForTransport.slice(0, 10).map((cargo) => (
-                            <div key={cargo.id} className="text-gray-600">
-                              <span className="font-mono">{cargo.cargo_number}</span> ({cargo.weight}кг)
-                            </div>
-                          ))}
-                          {availableCargoForTransport.length > 10 && (
-                            <div className="text-gray-400 text-xs col-span-2">
-                              ...и ещё {availableCargoForTransport.length - 10} грузов
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    onClick={() => handlePlaceCargoOnTransport(selectedTransport.id, selectedCargoForPlacement)}
-                    disabled={selectedCargoForPlacement.length === 0}
-                    className="w-full"
-                  >
-                    Разместить груз
-                  </Button>
-                </Card>
-
-                {/* Список размещенных грузов */}
-                <Card className="p-4">
-                  <h4 className="font-semibold mb-3">Список размещенных грузов</h4>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Общий объём: {transportCargoList.total_weight || 0} кг
-                  </p>
-                  
-                  <div className="max-h-40 overflow-y-auto border rounded">
-                    {!transportCargoList.cargo_list || transportCargoList.cargo_list.length === 0 ? (
-                      <p className="p-3 text-gray-500 text-sm">Груз не размещен</p>
-                    ) : (
-                      transportCargoList.cargo_list.map((cargo) => (
-                        <div key={cargo.id} className="p-2 border-b text-sm">
-                          <p><strong>{cargo.cargo_number}</strong> - {cargo.weight} кг</p>
-                          <p className="text-gray-500">{cargo.description}</p>
-                          <p className="text-gray-500">Получатель: {cargo.recipient_name}</p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </Card>
-
                 {/* Отправить транспорт */}
                 <Card className="p-4">
                   <h4 className="font-semibold mb-3">Отправить транспорт</h4>
                   <p className="text-sm text-gray-600 mb-4">
-                    Отправить транспорт в место назначения. Пользователи получат уведомления.
+                    Отправить транспорт в место назначения с любым количеством груза
                   </p>
                   <Button 
                     onClick={() => handleDispatchTransport(selectedTransport.id)}
-                    disabled={selectedTransport.status !== 'filled'}
+                    disabled={selectedTransport.status === 'in_transit'}
                     className="w-full"
-                    variant={selectedTransport.status === 'filled' ? 'default' : 'secondary'}
                   >
-                    {selectedTransport.status === 'filled' ? 'Отправить транспорт' : 'Транспорт должен быть заполнен'}
+                    {selectedTransport.status === 'in_transit' ? 'Транспорт уже в пути' : 'Отправить транспорт'}
                   </Button>
                 </Card>
 
