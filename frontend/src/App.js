@@ -666,6 +666,7 @@ function App() {
     try {
       const data = await apiCall('/api/admin/cargo-requests');
       setCargoRequests(data);
+      setPendingOrders(data); // Также устанавливаем для нового функционала
     } catch (error) {
       console.error('Error fetching cargo requests:', error);
     }
