@@ -2350,14 +2350,22 @@ async def get_transport_cargo(
     cargo_details = []
     for cargo_id in transport.get("cargo_list", []):
         cargo = db.cargo.find_one({"id": cargo_id})
+        if not cargo:
+            cargo = db.operator_cargo.find_one({"id": cargo_id})
+        
         if cargo:
             cargo_details.append({
                 "id": cargo["id"],
                 "cargo_number": cargo["cargo_number"],
-                "description": cargo["description"],
+                "cargo_name": cargo.get("cargo_name", cargo.get("description", "Груз")),
+                "description": cargo.get("description", ""),
                 "weight": cargo["weight"],
                 "declared_value": cargo["declared_value"],
-                "recipient_name": cargo["recipient_name"]
+                "recipient_name": cargo.get("recipient_name") or cargo.get("recipient_full_name", "Не указан"),
+                "sender_full_name": cargo.get("sender_full_name", "Не указан"),
+                "sender_phone": cargo.get("sender_phone", "Не указан"),
+                "recipient_phone": cargo.get("recipient_phone", "Не указан"),
+                "status": cargo.get("status", "unknown")
             })
     
     return {
