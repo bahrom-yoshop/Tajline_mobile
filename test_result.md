@@ -996,16 +996,12 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Fix Search Header Input Issue" 
-    - "Fix printInvoice Function Missing"
-    - "Enhanced Transport Management Modal"
-    - "Transport Volume Validation Override"
-    - "Transport Cargo Return System"
-    - "QR Code Generation and Management System"
-    - "Transport Cargo List Display Fix"
+    - "Client Cargo Delivery Options API"
+    - "Client Cargo Cost Calculation API" 
+    - "Client Cargo Order Creation API"
   stuck_tasks: []
   test_all: false
-  test_priority: "critical_first"
+  test_priority: "high_first"
 
   - task: "Информация об операторах на складах - GET /api/warehouses"
     implemented: true
