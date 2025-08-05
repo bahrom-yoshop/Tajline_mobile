@@ -2096,25 +2096,23 @@ function App() {
           <div className="max-w-md mx-auto">
             <div className="text-center mb-8">
               <div className="flex items-center justify-center mb-4">
-                <div className="mr-3">
-                  <img 
-                    src="/logo.png" 
-                    alt="TAJLINE.TJ" 
-                    className="h-12 w-auto"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'block';
-                    }}
-                  />
-                  <div className="hidden bg-blue-600 text-white p-2 rounded-lg">
+                <img 
+                  src="/logo.png" 
+                  alt="TAJLINE.TJ" 
+                  className="h-16 w-auto"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'block';
+                  }}
+                />
+                <div className="hidden">
+                  <div className="bg-blue-600 text-white p-2 rounded-lg">
                     <Truck className="h-12 w-12" />
                   </div>
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-blue-600">TAJLINE.TJ</h1>
-                  <p className="text-gray-600">Грузоперевозки Москва-Таджикистан</p>
+                  <h1 className="text-3xl font-bold text-blue-600 mt-2">TAJLINE.TJ</h1>
                 </div>
               </div>
+              <p className="text-gray-600">Грузоперевозки Москва-Таджикистан</p>
             </div>
 
             <Tabs defaultValue="login" className="w-full">
