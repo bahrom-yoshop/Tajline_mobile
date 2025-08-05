@@ -2623,17 +2623,21 @@ function App() {
 
               {/* Client Navigation Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="dashboard" className="flex items-center">
                     <Home className="mr-2 h-4 w-4" />
                     Главная
+                  </TabsTrigger>
+                  <TabsTrigger value="create-order" className="flex items-center">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Оформить груз
                   </TabsTrigger>
                   <TabsTrigger value="cargo" className="flex items-center">
                     <Package className="mr-2 h-4 w-4" />
                     Мои грузы
                   </TabsTrigger>
                   <TabsTrigger value="requests" className="flex items-center">
-                    <Plus className="mr-2 h-4 w-4" />
+                    <FileText className="mr-2 h-4 w-4" />
                     Заявки
                   </TabsTrigger>
                   <TabsTrigger value="contact" className="flex items-center">
