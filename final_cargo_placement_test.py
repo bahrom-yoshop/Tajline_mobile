@@ -12,7 +12,7 @@ from typing import Dict, Any, Optional
 import random
 
 class FinalCargoPlacementTester:
-    def __init__(self, base_url="https://873fed0e-b84b-4ac6-a207-96c1fbc2a549.preview.emergentagent.com"):
+    def __init__(self, base_url="https://cd485ffd-e8f2-472d-82c1-9eb6caf7d39e.preview.emergentagent.com"):
         self.base_url = base_url
         self.tokens = {}
         self.users = {}
