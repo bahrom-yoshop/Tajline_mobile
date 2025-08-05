@@ -3641,6 +3641,145 @@ function App() {
                     </Card>
                   )}
 
+                  {/* Создание оператора склада (Функция 2) */}
+                  {activeTab === 'users-create-operator' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Plus className="mr-2 h-5 w-5" />
+                          Создать нового оператора склада
+                        </CardTitle>
+                        <CardDescription>
+                          Создание оператора с автоматической привязкой к складу
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <form onSubmit={handleCreateOperator} className="space-y-4 max-w-md">
+                          <div>
+                            <Label htmlFor="operator-full-name">ФИО оператора</Label>
+                            <Input
+                              id="operator-full-name"
+                              value={operatorCreateForm.full_name}
+                              onChange={(e) => setOperatorCreateForm({...operatorCreateForm, full_name: e.target.value})}
+                              placeholder="Иванов Иван Иванович"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="operator-phone">Телефон</Label>
+                            <Input
+                              id="operator-phone"
+                              type="tel"
+                              value={operatorCreateForm.phone}
+                              onChange={(e) => setOperatorCreateForm({...operatorCreateForm, phone: e.target.value})}
+                              placeholder="+79XXXXXXXXX"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="operator-address">Адрес проживания</Label>
+                            <Input
+                              id="operator-address"
+                              value={operatorCreateForm.address}
+                              onChange={(e) => setOperatorCreateForm({...operatorCreateForm, address: e.target.value})}
+                              placeholder="Москва, ул. Примерная, 10, кв. 5"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="operator-password">Пароль</Label>
+                            <Input
+                              id="operator-password"
+                              type="password"
+                              value={operatorCreateForm.password}
+                              onChange={(e) => setOperatorCreateForm({...operatorCreateForm, password: e.target.value})}
+                              placeholder="Минимум 6 символов"
+                              minLength={6}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="operator-warehouse">Назначить на склад</Label>
+                            <Select 
+                              value={operatorCreateForm.warehouse_id} 
+                              onValueChange={(value) => setOperatorCreateForm({...operatorCreateForm, warehouse_id: value})}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Выберите склад" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {warehouses.map((warehouse) => (
+                                  <SelectItem key={warehouse.id} value={warehouse.id}>
+                                    {warehouse.name} - {warehouse.location}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button type="submit" className="w-full">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Создать оператора
+                          </Button>
+                        </form>
+
+                        {/* Список созданных операторов */}
+                        <div className="mt-8">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold">Созданные операторы</h3>
+                            <Button 
+                              variant="outline" 
+                              onClick={fetchAllOperators}
+                            >
+                              Обновить список
+                            </Button>
+                          </div>
+                          {allOperators.length === 0 ? (
+                            <div className="text-center py-8">
+                              <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                              <p className="text-gray-500">Операторы не созданы</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              {allOperators.map((operator) => (
+                                <div key={operator.id} className="border rounded-lg p-4">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <h4 className="font-semibold">{operator.full_name}</h4>
+                                      <p className="text-sm text-gray-600">{operator.phone}</p>
+                                      <p className="text-sm text-gray-600">{operator.address}</p>
+                                      <div className="flex items-center mt-2">
+                                        <Badge variant="outline" className="mr-2">
+                                          {operator.role}
+                                        </Badge>
+                                        <span className="text-xs text-gray-500">
+                                          Создан: {new Date(operator.created_at).toLocaleDateString('ru-RU')}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-sm font-medium">Склады ({operator.warehouses_count})</p>
+                                      {operator.warehouses && operator.warehouses.length > 0 ? (
+                                        <div className="text-xs text-gray-600">
+                                          {operator.warehouses.map((warehouse) => (
+                                            <div key={warehouse.id}>
+                                              {warehouse.name}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <span className="text-xs text-red-600">Нет складов</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   {/* Привязка операторов к складам */}
                   {activeTab === 'users-operator-bindings' && (
                     <Card>
