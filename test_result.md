@@ -629,6 +629,78 @@ backend:
           agent: "testing"
           comment: "✅ PASSED - CORS working correctly (all API calls successful from external domain). Error handling working for invalid login (401), non-existent cargo (404). Minor: One error handling test expected 401 but got 403 for unauthorized access, but this is acceptable behavior."
 
+  - task: "Stage 1: Cargo Photo Management"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASSED - All cargo photo management functionality working perfectly: POST /api/cargo/photo/upload (photo upload with base64 validation and size limits) ✅, GET /api/cargo/{cargo_id}/photos (photo retrieval with metadata) ✅, DELETE /api/cargo/photo/{photo_id} (photo deletion with history tracking) ✅. Proper access control (admin/operator only), automatic history logging, and integration with cargo management system."
+
+  - task: "Stage 1: Cargo History Tracking"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASSED - Cargo history tracking working perfectly: GET /api/cargo/{cargo_id}/history endpoint returns complete change history ✅, shows all cargo operations including photo uploads/deletions ✅, proper chronological ordering ✅, includes detailed metadata (action_type, changed_by, timestamps) ✅. History automatically populated by all cargo operations."
+
+  - task: "Stage 1: Cargo Comments System"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASSED - Cargo comments system working perfectly: POST /api/cargo/comment (comment creation with metadata) ✅, GET /api/cargo/{cargo_id}/comments (comment retrieval with filtering) ✅. Supports comment types, priority levels, internal/external visibility, automatic history integration ✅. Proper access control and author tracking implemented."
+
+  - task: "Stage 1: Client Cargo Tracking"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ PARTIAL - Tracking code creation working (POST /api/cargo/tracking/create) ✅, but public tracking lookup failing (GET /api/cargo/track/{tracking_code}) ❌. Issue: tracking code exists in database but cargo lookup fails with 404 'Cargo not found'. Possible cargo ID mismatch between tracking record and cargo collections. Needs investigation of cargo ID consistency."
+
+  - task: "Stage 1: Client Notifications System"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASSED - Client notifications system working perfectly: POST /api/notifications/client/send endpoint functional ✅, supports multiple notification types (SMS, email, WhatsApp) ✅, proper cargo association and client phone validation ✅, automatic history logging ✅. Notification status tracking and delivery confirmation implemented."
+
+  - task: "Stage 1: Internal Operator Messages"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASSED - Internal messaging system working perfectly: POST /api/messages/internal/send (message sending between operators) ✅, GET /api/messages/internal/inbox (inbox retrieval with unread counts) ✅, PUT /api/messages/internal/{message_id}/read (mark as read functionality) ✅. Complete messaging system with proper access control, cargo association, priority levels, and read status tracking."
+
 frontend:
   - task: "Add notification dropdown menu"
     implemented: true
