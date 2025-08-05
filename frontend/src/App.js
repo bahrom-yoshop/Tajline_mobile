@@ -79,6 +79,32 @@ function App() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [cargoOrderResult, setCargoOrderResult] = useState(null);
 
+  // НОВЫЕ ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ ЗАКАЗАМИ КЛИЕНТОВ
+
+  // Функция для установки объявленной стоимости по умолчанию в зависимости от маршрута
+  const getDefaultDeclaredValue = (route) => {
+    switch(route) {
+      case 'moscow_khujand':
+        return '60'; // Москва → Худжанд: 60 рублей
+      case 'moscow_dushanbe':
+        return '80'; // Москва → Душанбе: 80 рублей
+      case 'moscow_to_tajikistan':
+        return '80'; // По умолчанию для общего маршрута
+      default:
+        return '80'; // По умолчанию
+    }
+  };
+
+  // Обработчик изменения маршрута с автоматическим обновлением стоимости
+  const handleRouteChange = (newRoute) => {
+    const defaultValue = getDefaultDeclaredValue(newRoute);
+    setCargoOrderForm(prevForm => ({
+      ...prevForm,
+      route: newRoute,
+      declared_value: defaultValue
+    }));
+  };
+
   // Новые состояния для управления заказами клиентов
   const [pendingOrders, setPendingOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
