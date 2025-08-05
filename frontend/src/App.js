@@ -4164,9 +4164,19 @@ function App() {
                             <Truck className="mr-2 h-5 w-5" />
                             Список транспортов ({transports.filter(t => t.status === 'empty' || t.status === 'filled').length})
                           </div>
-                          <Button onClick={() => fetchTransports()}>
-                            Обновить
-                          </Button>
+                          <div className="flex space-x-2">
+                            <Button 
+                              variant="outline" 
+                              onClick={() => setInterwarehouseTransportModal(true)}
+                              disabled={user?.role !== 'admin' && user?.role !== 'warehouse_operator'}
+                            >
+                              <Plus className="mr-2 h-4 w-4" />
+                              Межскладской
+                            </Button>
+                            <Button onClick={() => fetchTransportsList()}>
+                              Обновить
+                            </Button>
+                          </div>
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
