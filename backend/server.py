@@ -495,6 +495,58 @@ class OperatorResponse(BaseModel):
     created_at: datetime
     created_by: str
 
+# Модели для оформления груза клиентами
+class CargoOrderCreate(BaseModel):
+    # Основная информация о грузе
+    cargo_name: str = Field(..., min_length=2, max_length=200)
+    description: str = Field(..., min_length=5, max_length=500)
+    weight: float = Field(..., gt=0, le=10000)  # Максимум 10 тонн
+    declared_value: float = Field(..., gt=0, le=10000000)  # Максимум 10 млн
+    
+    # Информация о получателе
+    recipient_full_name: str = Field(..., min_length=2, max_length=100)
+    recipient_phone: str = Field(..., min_length=10, max_length=20)
+    recipient_address: str = Field(..., min_length=5, max_length=200)
+    recipient_city: str = Field(..., min_length=2, max_length=50)
+    
+    # Маршрут и услуги
+    route: RouteType = RouteType.MOSCOW_DUSHANBE
+    delivery_type: str = "standard"  # standard, express, economy
+    
+    # Дополнительные услуги
+    insurance_requested: bool = False
+    insurance_value: Optional[float] = None
+    packaging_service: bool = False
+    home_pickup: bool = False
+    home_delivery: bool = False
+    
+    # Специальные требования
+    fragile: bool = False
+    temperature_sensitive: bool = False
+    special_instructions: Optional[str] = None
+
+class DeliveryCalculation(BaseModel):
+    base_cost: float
+    weight_cost: float
+    insurance_cost: float
+    packaging_cost: float
+    pickup_cost: float
+    delivery_cost: float
+    express_surcharge: float
+    total_cost: float
+    delivery_time_days: int
+    currency: str = "RUB"
+
+class CargoOrderResponse(BaseModel):
+    cargo_id: str
+    cargo_number: str
+    total_cost: float
+    estimated_delivery_days: int
+    status: str
+    payment_status: str
+    tracking_code: Optional[str] = None
+    created_at: datetime
+
 # Утилиты
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
