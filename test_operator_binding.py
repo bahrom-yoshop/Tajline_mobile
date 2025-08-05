@@ -8,7 +8,7 @@ import sys
 import json
 
 class OperatorBindingTester:
-    def __init__(self, base_url="https://cd485ffd-e8f2-472d-82c1-9eb6caf7d39e.preview.emergentagent.com"):
+    def __init__(self, base_url="https://0e35b3b9-2501-4852-a355-3ced71c42616.preview.emergentagent.com"):
         self.base_url = base_url
         self.tokens = {}
         self.users = {}
