@@ -700,6 +700,95 @@ function App() {
     }
   };
 
+  // Print transport cargo list
+  const printTransportCargoList = (transport, cargoList) => {
+    const printWindow = window.open('', '_blank');
+    const totalWeight = cargoList.reduce((sum, cargo) => sum + cargo.weight, 0);
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Список грузов - ${transport.transport_number}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; font-size: 12px; }
+            .header { text-align: center; margin-bottom: 20px; }
+            .logo { font-size: 24px; font-weight: bold; color: #1f2937; margin-bottom: 10px; }
+            .company { font-size: 18px; margin-bottom: 5px; }
+            .title { font-size: 16px; font-weight: bold; margin: 20px 0; }
+            .info-section { margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; }
+            .info-title { font-weight: bold; margin-bottom: 5px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .summary { margin-top: 20px; padding: 10px; background-color: #f9f9f9; border: 1px solid #ddd; }
+            .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo">📦 TAJLINE.TJ</div>
+            <div class="company">ООО "Таджлайн"</div>
+            <div class="title">СПИСОК ГРУЗОВ НА ТРАНСПОРТЕ</div>
+          </div>
+
+          <div class="info-section">
+            <div class="info-title">Информация о транспорте</div>
+            <p><strong>Номер транспорта:</strong> ${transport.transport_number}</p>
+            <p><strong>Водитель:</strong> ${transport.driver_name}</p>
+            <p><strong>Телефон водителя:</strong> ${transport.driver_phone}</p>
+            <p><strong>Направление:</strong> ${transport.direction}</p>
+            <p><strong>Вместимость:</strong> ${transport.capacity_kg} кг</p>
+            <p><strong>Дата формирования:</strong> ${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU')}</p>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>№</th>
+                <th>Номер груза</th>
+                <th>Название</th>
+                <th>Вес (кг)</th>
+                <th>Отправитель</th>
+                <th>Получатель</th>
+                <th>Телефон получателя</th>
+                <th>Адрес доставки</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${cargoList.map((cargo, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td><strong>${cargo.cargo_number}</strong></td>
+                  <td>${cargo.cargo_name || 'Груз'}</td>
+                  <td>${cargo.weight}</td>
+                  <td>${cargo.sender_full_name || 'Не указан'}<br><small>${cargo.sender_phone || ''}</small></td>
+                  <td>${cargo.recipient_full_name || cargo.recipient_name}</td>
+                  <td>${cargo.recipient_phone || 'Не указан'}</td>
+                  <td>${cargo.recipient_address || 'Не указан'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="summary">
+            <p><strong>Всего грузов:</strong> ${cargoList.length} мест</p>
+            <p><strong>Общий вес:</strong> ${totalWeight} кг</p>
+            <p><strong>Заполненность транспорта:</strong> ${Math.round((totalWeight / transport.capacity_kg) * 100)}%</p>
+            <p><strong>Остаток вместимости:</strong> ${transport.capacity_kg - totalWeight} кг</p>
+          </div>
+
+          <div class="footer">
+            <p>Этот документ сформирован автоматически системой TAJLINE.TJ</p>
+            <p>Дата и время: ${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU')}</p>
+          </div>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   const handleDeleteOperatorBinding = async (bindingId) => {
     if (window.confirm('Вы уверены, что хотите удалить эту привязку?')) {
       try {
