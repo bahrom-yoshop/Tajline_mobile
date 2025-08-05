@@ -125,6 +125,12 @@ function App() {
   const [transportCargoList, setTransportCargoList] = useState([]);
   const [contactModal, setContactModal] = useState(false);
 
+  // Operator-warehouse management states
+  const [operatorWarehouseBindings, setOperatorWarehouseBindings] = useState([]);
+  const [operatorBindingModal, setOperatorBindingModal] = useState(false);
+  const [selectedOperatorForBinding, setSelectedOperatorForBinding] = useState('');
+  const [selectedWarehouseForBinding, setSelectedWarehouseForBinding] = useState('');
+
   const [alerts, setAlerts] = useState([]);
 
   const showAlert = (message, type = 'info') => {
