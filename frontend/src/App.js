@@ -5486,8 +5486,19 @@ function App() {
               <Card className="p-4">
                 <div className="flex justify-between items-center mb-4">
                   <h4 className="font-semibold">Грузы для размещения ({arrivedCargoList.placeable_cargo_count || 0} из {arrivedCargoList.cargo_count || 0})</h4>
-                  <div className="text-sm text-gray-600">
-                    Общий вес: {arrivedCargoList.total_weight || 0} кг
+                  <div className="flex items-center space-x-4">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setQrPlacementModal(true)}
+                      className="text-purple-600 hover:text-purple-700"
+                    >
+                      <QrCode className="h-4 w-4 mr-1" />
+                      QR Размещение
+                    </Button>
+                    <div className="text-sm text-gray-600">
+                      Общий вес: {arrivedCargoList.total_weight || 0} кг
+                    </div>
                   </div>
                 </div>
                 
