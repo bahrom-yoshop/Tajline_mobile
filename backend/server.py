@@ -1048,7 +1048,9 @@ async def place_cargo_in_warehouse(
             "shelf_number": placement_data.shelf_number,
             "cell_number": placement_data.cell_number,
             "status": CargoStatus.IN_TRANSIT,
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.utcnow(),
+            "placed_by_operator": current_user.full_name,
+            "placed_by_operator_id": current_user.id
         }}
     )
     
