@@ -804,8 +804,13 @@ async def create_cargo(cargo_data: CargoCreate, current_user: User = Depends(get
         "status": CargoStatus.CREATED,
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
-        "warehouse_location": None
+        "warehouse_location": None,
+        "sender_full_name": current_user.full_name,  # Добавляем для QR кода
+        "sender_phone": current_user.phone  # Добавляем для QR кода
     }
+    
+    # Генерируем QR код для груза
+    cargo["qr_code"] = generate_cargo_qr_code(cargo)
     
     db.cargo.insert_one(cargo)
     
