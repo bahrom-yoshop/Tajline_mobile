@@ -4026,11 +4026,14 @@ class CargoTransportAPITester:
         
         test_results = []
         
-        # Run test suites in order - prioritizing enhanced cargo placement tests
+        # Run test suites in order - prioritizing warehouse cell management tests
         test_suites = [
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            ("Warehouse Cell Management System", self.test_warehouse_cell_management_system),
+            ("Automatic Cell Liberation on Transport", self.test_automatic_cell_liberation_on_transport),
+            ("Full Warehouse Cell Integration Flow", self.test_full_warehouse_cell_integration_flow),
             ("Cargo Name Integration", self.test_cargo_name_integration),
             ("Advanced Cargo Search System", self.test_advanced_cargo_search_system),
             ("Automatic Warehouse Selection for Operators", self.test_automatic_warehouse_selection_for_operators),
