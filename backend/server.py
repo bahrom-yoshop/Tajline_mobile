@@ -396,6 +396,22 @@ class CargoPhotoUpload(BaseModel):
     photo_type: str = "cargo_photo"
     description: Optional[str] = None
 
+# Модель для неоплаченных заказов
+class UnpaidOrder(BaseModel):
+    id: str
+    cargo_id: str
+    cargo_number: str
+    client_id: str
+    client_name: str
+    client_phone: str
+    amount: float
+    description: str
+    status: str = "unpaid"  # unpaid, paid, cancelled
+    created_at: datetime
+    paid_at: Optional[datetime] = None
+    payment_method: Optional[str] = None  # cash, card, bank_transfer
+    processed_by: Optional[str] = None  # ID администратора/оператора
+
 # Модели для истории изменений груза
 class CargoHistory(BaseModel):
     id: str
