@@ -4125,18 +4125,30 @@ function App() {
                                     <p><strong>Объём:</strong> {transport.current_load_kg} / {transport.capacity_kg} кг</p>
                                   </div>
                                   
-                                  <Button 
-                                    onClick={() => {
-                                      setSelectedTransport(transport);
-                                      fetchTransportCargoList(transport.id);
-                                      fetchAvailableCargoForTransport();
-                                      setTransportManagementModal(true);
-                                    }}
-                                    className="w-full"
-                                    variant="outline"
-                                  >
-                                    Управление
-                                  </Button>
+                                  <div className="flex space-x-2">
+                                    <Button 
+                                      onClick={() => {
+                                        setSelectedTransport(transport);
+                                        fetchTransportCargoList(transport.id);
+                                        fetchAvailableCargoForTransport();
+                                        setTransportManagementModal(true);
+                                      }}
+                                      className="flex-1"
+                                      variant="outline"
+                                    >
+                                      <Truck className="mr-1 h-3 w-3" />
+                                      Управление
+                                    </Button>
+                                    
+                                    <Button 
+                                      onClick={() => openTransportVisualization(transport)}
+                                      variant="outline"
+                                      size="sm"
+                                      title="Схема загрузки транспорта"
+                                    >
+                                      <Grid3X3 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
                                 </div>
                               </Card>
                             ))
