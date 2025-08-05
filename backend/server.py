@@ -5706,6 +5706,22 @@ async def create_cargo_order(
         # Рассчитываем стоимость
         calculation = calculate_delivery_cost(cargo_data)
         
+        # Получаем правильное значение объявленной стоимости по умолчанию
+        default_declared_values = {
+            RouteType.MOSCOW_KHUJAND: 60.0,      # Москва → Худжанд: 60 рублей
+            RouteType.MOSCOW_DUSHANBE: 80.0,     # Москва → Душанбе: 80 рублей  
+            RouteType.MOSCOW_KULOB: 80.0,        # Москва → Кулоб: 80 рублей
+            RouteType.MOSCOW_KURGANTYUBE: 80.0,  # Москва → Курган-Тюбе: 80 рублей
+            RouteType.MOSCOW_TO_TAJIKISTAN: 80.0 # Общий маршрут: 80 рублей
+        }
+        
+        route_default = default_declared_values.get(cargo_data.route, 80.0)
+        final_declared_value = cargo_data.declared_value
+        
+        # Если пользователь указал значение меньше или равное минимальному для маршрута, используем минимум
+        if cargo_data.declared_value <= route_default:
+            final_declared_value = route_default
+        
         # Создаем груз
         cargo_id = str(uuid.uuid4())
         cargo_number = generate_cargo_number()
