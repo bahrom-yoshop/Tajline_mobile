@@ -1146,9 +1146,12 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Client Cargo Ordering System with Declared Value Logic"
+    - "New Cargo Number System (YYMMXXXXXX Format)"
+    - "Unpaid Orders System"
+    - "Full Workflow Test - Unpaid Orders"
   stuck_tasks: 
-    - "Default Declared Value Logic Implementation"
+    - "New Cargo Number System (YYMMXXXXXX Format)"
+    - "Unpaid Orders System"
   test_all: false
   test_priority: "high_first"
 
