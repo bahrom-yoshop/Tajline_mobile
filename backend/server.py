@@ -546,6 +546,11 @@ def create_personal_notification(user_id: str, title: str, message: str, notific
     }
     db.notifications.insert_one(notification)
 
+def get_operator_warehouse_ids(operator_id: str) -> list:
+    """Получить список ID складов, привязанных к оператору"""
+    bindings = list(db.operator_warehouse_bindings.find({"operator_id": operator_id}))
+    return [b["warehouse_id"] for b in bindings]
+
 def check_operator_warehouse_binding(operator_id: str, warehouse_id: str) -> bool:
     """Проверить, привязан ли оператор к складу"""
     binding = db.operator_warehouse_bindings.find_one({
