@@ -960,6 +960,73 @@ async def create_cargo(cargo_data: CargoCreate, current_user: User = Depends(get
     
     return Cargo(**cargo)
 
+@app.get("/api/operator/my-warehouses")
+async def get_operator_warehouses_detailed(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить детальную информацию о складах, привязанных к оператору (1.2, 1.3)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    if current_user.role == UserRole.ADMIN:
+        # Админ видит все склады
+        warehouses = list(db.warehouses.find({"is_active": True}))
+        is_admin = True
+    else:
+        # Оператор видит только привязанные склады
+        operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+        
+        if not operator_warehouse_ids:
+            return {"warehouses": [], "message": "No warehouses assigned to this operator"}
+        
+        warehouses = list(db.warehouses.find({
+            "id": {"$in": operator_warehouse_ids}, 
+            "is_active": True
+        }))
+        is_admin = False
+    
+    # Получаем статистику по каждому складу
+    warehouse_list = []
+    for warehouse in warehouses:
+        # Подсчитываем грузы на складе
+        cargo_count_user = db.cargo.count_documents({"warehouse_id": warehouse["id"]})
+        cargo_count_operator = db.operator_cargo.count_documents({"warehouse_id": warehouse["id"]})
+        total_cargo = cargo_count_user + cargo_count_operator
+        
+        # Подсчитываем занятые ячейки
+        occupied_cells = db.warehouse_cells.count_documents({
+            "warehouse_id": warehouse["id"], 
+            "is_occupied": True
+        })
+        
+        total_cells = warehouse["blocks_count"] * warehouse["shelves_per_block"] * warehouse["cells_per_shelf"]
+        
+        warehouse_info = {
+            "id": warehouse["id"],
+            "name": warehouse["name"],
+            "location": warehouse["location"],
+            "blocks_count": warehouse["blocks_count"],
+            "shelves_per_block": warehouse["shelves_per_block"],
+            "cells_per_shelf": warehouse["cells_per_shelf"],
+            "total_cells": total_cells,
+            "occupied_cells": occupied_cells,
+            "free_cells": total_cells - occupied_cells,
+            "occupancy_percentage": round((occupied_cells / total_cells) * 100, 1) if total_cells > 0 else 0,
+            "total_cargo": total_cargo,
+            "cargo_breakdown": {
+                "user_cargo": cargo_count_user,
+                "operator_cargo": cargo_count_operator
+            }
+        }
+        warehouse_list.append(warehouse_info)
+    
+    return {
+        "warehouses": warehouse_list,
+        "total_warehouses": len(warehouse_list),
+        "is_admin": is_admin,
+        "message": f"Access to {len(warehouse_list)} warehouse(s)"
+    }
+
 @app.get("/api/cargo/my")
 async def get_my_cargo(current_user: User = Depends(get_current_user)):
     cargo_list = list(db.cargo.find({"sender_id": current_user.id}))
