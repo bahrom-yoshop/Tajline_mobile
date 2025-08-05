@@ -640,6 +640,10 @@ async def track_cargo(cargo_number: str):
     if not cargo:
         raise HTTPException(status_code=404, detail="Cargo not found")
     
+    # Ensure cargo_name field exists for backward compatibility
+    if 'cargo_name' not in cargo:
+        cargo['cargo_name'] = cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз'
+    
     return Cargo(**cargo)
 
 @app.get("/api/cargo/all")
