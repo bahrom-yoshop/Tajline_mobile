@@ -922,7 +922,10 @@ function App() {
           </div>
 
           <div class="footer">
-            <p>Этот документ сформирован автоматически системой TAJLINE.TJ</p>
+            <p>Этот документ сформирован автоматически системой 
+              <img src="/logo.png" alt="TAJLINE.TJ" style="height: 16px; width: auto; vertical-align: middle; margin: 0 5px;" onerror="this.style.display='none'; this.nextSibling.style.display='inline';" />
+              <span style="display: none; font-weight: bold;">TAJLINE.TJ</span>
+            </p>
             <p>Дата и время: ${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU')}</p>
           </div>
         </body>
