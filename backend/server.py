@@ -1199,6 +1199,9 @@ async def accept_new_cargo(
         "placed_by_operator_id": None
     }
     
+    # Генерируем QR код для груза
+    cargo["qr_code"] = generate_cargo_qr_code(cargo)
+    
     db.operator_cargo.insert_one(cargo)
     
     # Создание уведомления
