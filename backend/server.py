@@ -4887,25 +4887,28 @@ async def track_cargo_by_code(tracking_code: str):
         ).sort("change_date", -1).limit(10))
         
         # Serialize all MongoDB documents to avoid ObjectId issues
+        serialized_cargo = serialize_mongo_document(cargo)
+        serialized_warehouse_info = serialize_mongo_document(warehouse_info) if warehouse_info else None
+        serialized_transport_info = serialize_mongo_document(transport_info) if transport_info else None
         recent_history = serialize_mongo_document(recent_history)
         
         return {
             "tracking_code": tracking_code,
-            "cargo_number": cargo["cargo_number"],
-            "cargo_name": cargo.get("cargo_name", "Груз"),
-            "status": cargo["status"],
-            "weight": cargo.get("weight", 0),
-            "created_at": cargo["created_at"],
-            "sender_full_name": cargo.get("sender_full_name", "Не указан"),
-            "recipient_full_name": cargo.get("recipient_full_name", cargo.get("recipient_name", "Не указан")),
-            "recipient_address": cargo.get("recipient_address", ""),
+            "cargo_number": serialized_cargo["cargo_number"],
+            "cargo_name": serialized_cargo.get("cargo_name", "Груз"),
+            "status": serialized_cargo["status"],
+            "weight": serialized_cargo.get("weight", 0),
+            "created_at": serialized_cargo["created_at"],
+            "sender_full_name": serialized_cargo.get("sender_full_name", "Не указан"),
+            "recipient_full_name": serialized_cargo.get("recipient_full_name", serialized_cargo.get("recipient_name", "Не указан")),
+            "recipient_address": serialized_cargo.get("recipient_address", ""),
             "current_location": {
-                "warehouse": warehouse_info,
-                "transport": transport_info,
-                "description": _get_location_description(cargo)
+                "warehouse": serialized_warehouse_info,
+                "transport": serialized_transport_info,
+                "description": _get_location_description(serialized_cargo)
             },
             "recent_history": recent_history,
-            "last_updated": cargo.get("updated_at", cargo["created_at"])
+            "last_updated": serialized_cargo.get("updated_at", serialized_cargo["created_at"])
         }
     except HTTPException:
         # Re-raise HTTP exceptions
