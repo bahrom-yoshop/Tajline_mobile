@@ -1354,28 +1354,27 @@ async def get_my_cargo(current_user: User = Depends(get_current_user)):
 
 @app.get("/api/cargo/track/{cargo_number}")
 async def track_cargo(cargo_number: str):
+    # Search in both collections
     cargo = db.cargo.find_one({"cargo_number": cargo_number})
+    if not cargo:
+        cargo = db.operator_cargo.find_one({"cargo_number": cargo_number})
+    
     if not cargo:
         raise HTTPException(status_code=404, detail="Cargo not found")
     
-    # Ensure cargo_name field exists for backward compatibility
-    if 'cargo_name' not in cargo:
-        cargo['cargo_name'] = cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз'
+    # Normalize cargo data
+    normalized = serialize_mongo_document(cargo)
+    # Ensure all required fields exist
+    normalized.update({
+        'cargo_name': cargo.get('cargo_name') or cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз',
+        'sender_id': cargo.get('sender_id', cargo.get('created_by', 'unknown')),
+        'recipient_name': cargo.get('recipient_name', cargo.get('recipient_full_name', 'Не указан')),
+        'sender_address': cargo.get('sender_address', 'Не указан'),
+        'recipient_address': cargo.get('recipient_address', 'Не указан'),
+        'recipient_phone': cargo.get('recipient_phone', 'Не указан')
+    })
     
-    # Handle client cargo format compatibility
-    if 'recipient_full_name' in cargo and 'recipient_name' not in cargo:
-        cargo['recipient_name'] = cargo['recipient_full_name']
-    
-    if 'sender_full_name' in cargo and 'sender_id' not in cargo:
-        cargo['sender_id'] = cargo.get('created_by', 'unknown')
-    
-    if 'recipient_address' not in cargo:
-        cargo['recipient_address'] = cargo.get('recipient_address', 'Не указан')
-    
-    if 'sender_address' not in cargo:
-        cargo['sender_address'] = 'Не указан'
-    
-    return Cargo(**cargo)
+    return normalized
 
 @app.get("/api/cargo/all")
 async def get_all_cargo(current_user: User = Depends(require_role(UserRole.ADMIN))):
