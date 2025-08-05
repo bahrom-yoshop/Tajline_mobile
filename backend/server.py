@@ -1332,12 +1332,25 @@ async def get_operator_warehouses_detailed(
 
 @app.get("/api/cargo/my")
 async def get_my_cargo(current_user: User = Depends(get_current_user)):
-    cargo_list = list(db.cargo.find({"sender_id": current_user.id}))
-    # Ensure cargo_name field exists for backward compatibility
-    for cargo in cargo_list:
-        if 'cargo_name' not in cargo:
-            cargo['cargo_name'] = cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз'
-    return [Cargo(**cargo) for cargo in cargo_list]
+    # Search in both collections for user's cargo
+    user_cargo_list = list(db.cargo.find({"sender_id": current_user.id}))
+    
+    # Normalize cargo data
+    normalized_cargo = []
+    for cargo in user_cargo_list:
+        normalized = serialize_mongo_document(cargo)
+        # Ensure all required fields exist
+        normalized.update({
+            'cargo_name': cargo.get('cargo_name') or cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз',
+            'sender_id': cargo.get('sender_id', current_user.id),
+            'recipient_name': cargo.get('recipient_name', 'Не указан'),
+            'sender_address': cargo.get('sender_address', 'Не указан'),
+            'recipient_address': cargo.get('recipient_address', 'Не указан'),
+            'recipient_phone': cargo.get('recipient_phone', 'Не указан')
+        })
+        normalized_cargo.append(normalized)
+    
+    return normalized_cargo
 
 @app.get("/api/cargo/track/{cargo_number}")
 async def track_cargo(cargo_number: str):
