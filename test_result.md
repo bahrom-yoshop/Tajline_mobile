@@ -649,6 +649,42 @@ frontend:
           agent: "main"
           comment: "✅ COMPLETED - Integrated automatic cell liberation with transport placement, enhanced warehouse schema with hover effects and click interactions, real-time cell status updates."
 
+  - task: "Fix Search Header Input Issue"
+    implemented: false
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "User reported that search header is not working - not possible to type commands in the search field. Search input may have positioning or z-index issues preventing user interaction."
+
+  - task: "Fix printInvoice Function Missing"
+    implemented: false
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "Lint error: printInvoice is not defined. Function is being called in cargo detail modal but not implemented."
+
+  - task: "Enhanced Transport Management Modal"
+    implemented: false
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "Need to enhance the Manage modal in Logistics -> List Transports section to display cargo list, add print functionality, return cargo to original location, and view full cargo information with sender/receiver details."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
