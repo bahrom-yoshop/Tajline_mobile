@@ -867,7 +867,10 @@ function App() {
         </head>
         <body>
           <div class="header">
-            <div class="logo">📦 TAJLINE.TJ</div>
+            <div class="logo">
+              <img src="/logo.png" alt="TAJLINE.TJ" style="height: 40px; width: auto;" onerror="this.style.display='none'; this.nextSibling.style.display='inline';" />
+              <span style="display: none;">📦 TAJLINE.TJ</span>
+            </div>
             <div class="company">ООО "Таджлайн"</div>
             <div class="title">СПИСОК ГРУЗОВ НА ТРАНСПОРТЕ</div>
           </div>
