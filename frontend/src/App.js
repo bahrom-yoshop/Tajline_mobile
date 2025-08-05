@@ -2283,6 +2283,12 @@ function App() {
                                         <p><strong>Для:</strong> {item.recipient_full_name} ({item.recipient_phone})</p>
                                         <p><strong>Вес:</strong> {item.weight} кг</p>
                                         <p><strong>Описание:</strong> {item.description}</p>
+                                        {item.created_by_operator && (
+                                          <p><strong>Принял:</strong> {item.created_by_operator}</p>
+                                        )}
+                                        {item.placed_by_operator && (
+                                          <p><strong>Разместил:</strong> {item.placed_by_operator}</p>
+                                        )}
                                       </div>
                                     </div>
                                     {getStatusBadge(item.status)}
