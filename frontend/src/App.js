@@ -181,7 +181,11 @@ function App() {
   const [qrPlacementModal, setQrPlacementModal] = useState(false);
   const [qrPlacementForm, setQrPlacementForm] = useState({
     cargo_number: '',
-    qr_data: ''
+    qr_data: '',
+    cell_qr_data: '',
+    block_number: 1,
+    shelf_number: 1,
+    cell_number: 1
   });
 
   const [alerts, setAlerts] = useState([]);
