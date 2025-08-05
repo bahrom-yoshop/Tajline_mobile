@@ -9608,6 +9608,8 @@ ID склада: {self.warehouse_id}"""
             ("🆕 NEW FEATURE 3: Client Dashboard System", self.test_client_dashboard_system),
             # NEW CLIENT CARGO ORDERING SYSTEM
             ("🆕 CLIENT CARGO ORDERING SYSTEM", self.test_client_cargo_ordering_system),
+            # NEW CARGO REQUEST MANAGEMENT SYSTEM (Review Request)
+            ("📋 CARGO REQUEST MANAGEMENT SYSTEM", self.test_cargo_request_management_system),
             ("Notifications", self.test_notifications),
             ("Error Handling", self.test_error_cases)
         ]
