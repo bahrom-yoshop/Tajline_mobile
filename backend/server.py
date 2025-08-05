@@ -2451,8 +2451,10 @@ async def search_cargo_detailed(
         search_criteria.append({"recipient_name": {"$regex": query, "$options": "i"}})
     
     if search_type == "all" or search_type == "phone":
-        search_criteria.append({"sender_phone": {"$regex": query, "$options": "i"}})
-        search_criteria.append({"recipient_phone": {"$regex": query, "$options": "i"}})
+        # Экранируем специальные символы regex для безопасного поиска телефонов
+        escaped_query = escape_regex_special_chars(query)
+        search_criteria.append({"sender_phone": {"$regex": escaped_query, "$options": "i"}})
+        search_criteria.append({"recipient_phone": {"$regex": escaped_query, "$options": "i"}})
     
     if search_type == "all" or search_type == "cargo_name":
         search_criteria.append({"cargo_name": {"$regex": query, "$options": "i"}})
