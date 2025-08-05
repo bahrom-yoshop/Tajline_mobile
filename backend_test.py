@@ -4020,6 +4020,514 @@ class CargoTransportAPITester:
         
         return all_success
 
+    def test_transport_volume_validation_override(self):
+        """Test transport dispatch with volume validation override"""
+        print("\n🚛 TRANSPORT VOLUME VALIDATION OVERRIDE")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Create a transport for testing
+        transport_data = {
+            "driver_name": "Тестовый Водитель",
+            "driver_phone": "+79123456789",
+            "transport_number": "TEST001",
+            "capacity_kg": 1000.0,
+            "direction": "Москва - Душанбе"
+        }
+        
+        success, transport_response = self.run_test(
+            "Create Transport for Volume Override Test",
+            "POST",
+            "/api/transport/create",
+            200,
+            transport_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        transport_id = None
+        if success and 'transport_id' in transport_response:
+            transport_id = transport_response['transport_id']
+            print(f"   🚛 Created transport: {transport_id}")
+        
+        if not transport_id:
+            print("   ❌ Failed to create transport for testing")
+            return False
+        
+        # Test 1: Dispatch empty transport (should work with override)
+        print("\n   📦 Testing Empty Transport Dispatch...")
+        success, dispatch_response = self.run_test(
+            "Dispatch Empty Transport",
+            "POST",
+            f"/api/transport/{transport_id}/dispatch",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Empty transport dispatched successfully (volume validation overridden)")
+            
+            # Verify transport status changed to IN_TRANSIT
+            success, transport_details = self.run_test(
+                "Check Transport Status After Empty Dispatch",
+                "GET",
+                f"/api/transport/{transport_id}",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success and transport_details.get('status') == 'in_transit':
+                print("   ✅ Transport status correctly updated to IN_TRANSIT")
+            else:
+                print(f"   ❌ Transport status not updated correctly: {transport_details.get('status', 'unknown')}")
+                all_success = False
+        
+        # Test 2: Try to dispatch already IN_TRANSIT transport (should fail)
+        print("\n   🚫 Testing Duplicate Dispatch Prevention...")
+        success, _ = self.run_test(
+            "Attempt Duplicate Dispatch (Should Fail)",
+            "POST",
+            f"/api/transport/{transport_id}/dispatch",
+            400,  # Should fail with 400 Bad Request
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Duplicate dispatch correctly prevented")
+        
+        # Test 3: Create another transport with some cargo and test partial dispatch
+        print("\n   📦 Testing Partially Filled Transport Dispatch...")
+        
+        # Create another transport
+        transport_data_2 = {
+            "driver_name": "Водитель Два",
+            "driver_phone": "+79987654321",
+            "transport_number": "TEST002",
+            "capacity_kg": 2000.0,
+            "direction": "Москва - Душанбе"
+        }
+        
+        success, transport_response_2 = self.run_test(
+            "Create Second Transport for Partial Fill Test",
+            "POST",
+            "/api/transport/create",
+            200,
+            transport_data_2,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        transport_id_2 = None
+        if success and 'transport_id' in transport_response_2:
+            transport_id_2 = transport_response_2['transport_id']
+            print(f"   🚛 Created second transport: {transport_id_2}")
+            
+            # Create some cargo and place it on transport (partial fill)
+            cargo_data = {
+                "recipient_name": "Получатель Частичный",
+                "recipient_phone": "+992444555666",
+                "route": "moscow_to_tajikistan",
+                "weight": 100.0,  # Only 100kg out of 2000kg capacity (5%)
+                "description": "Груз для частичного заполнения",
+                "declared_value": 5000.0,
+                "sender_address": "Москва, ул. Тестовая, 1",
+                "recipient_address": "Душанбе, ул. Тестовая, 1"
+            }
+            
+            success, cargo_response = self.run_test(
+                "Create Cargo for Partial Fill",
+                "POST",
+                "/api/cargo/create",
+                200,
+                cargo_data,
+                self.tokens['user']
+            )
+            
+            if success and 'id' in cargo_response:
+                cargo_id = cargo_response['id']
+                
+                # Update cargo status to accepted with warehouse location
+                success, _ = self.run_test(
+                    "Update Cargo Status for Transport Placement",
+                    "PUT",
+                    f"/api/cargo/{cargo_id}/status",
+                    200,
+                    token=self.tokens['admin'],
+                    params={"status": "accepted", "warehouse_location": "Склад А, Стеллаж 1"}
+                )
+                
+                if success:
+                    # Place cargo on transport
+                    placement_data = {
+                        "transport_id": transport_id_2,
+                        "cargo_ids": [cargo_id]
+                    }
+                    
+                    success, _ = self.run_test(
+                        "Place Cargo on Second Transport",
+                        "POST",
+                        f"/api/transport/{transport_id_2}/place-cargo",
+                        200,
+                        placement_data,
+                        self.tokens['admin']
+                    )
+                    
+                    if success:
+                        print("   📦 Cargo placed on transport (5% capacity)")
+                        
+                        # Now dispatch partially filled transport
+                        success, _ = self.run_test(
+                            "Dispatch Partially Filled Transport",
+                            "POST",
+                            f"/api/transport/{transport_id_2}/dispatch",
+                            200,
+                            token=self.tokens['admin']
+                        )
+                        all_success &= success
+                        
+                        if success:
+                            print("   ✅ Partially filled transport (5% capacity) dispatched successfully")
+                        else:
+                            print("   ❌ Failed to dispatch partially filled transport")
+        
+        return all_success
+
+    def test_transport_cargo_return_system(self):
+        """Test the new transport cargo return system"""
+        print("\n🔄 TRANSPORT CARGO RETURN SYSTEM")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Setup: Create transport, warehouse, and cargo for testing
+        print("\n   🏗️ Setting up test environment...")
+        
+        # Create warehouse if not exists
+        if not hasattr(self, 'warehouse_id'):
+            warehouse_data = {
+                "name": "Склад для возврата грузов",
+                "location": "Москва, Тестовая территория",
+                "blocks_count": 2,
+                "shelves_per_block": 2,
+                "cells_per_shelf": 5
+            }
+            
+            success, warehouse_response = self.run_test(
+                "Create Warehouse for Return Test",
+                "POST",
+                "/api/warehouses/create",
+                200,
+                warehouse_data,
+                self.tokens['admin']
+            )
+            
+            if success and 'id' in warehouse_response:
+                self.warehouse_id = warehouse_response['id']
+                print(f"   🏭 Created warehouse: {self.warehouse_id}")
+            else:
+                print("   ❌ Failed to create warehouse")
+                return False
+        
+        # Create transport
+        transport_data = {
+            "driver_name": "Водитель Возврата",
+            "driver_phone": "+79123456789",
+            "transport_number": "RETURN001",
+            "capacity_kg": 1500.0,
+            "direction": "Москва - Душанбе"
+        }
+        
+        success, transport_response = self.run_test(
+            "Create Transport for Return Test",
+            "POST",
+            "/api/transport/create",
+            200,
+            transport_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        transport_id = None
+        if success and 'transport_id' in transport_response:
+            transport_id = transport_response['transport_id']
+            print(f"   🚛 Created transport: {transport_id}")
+        
+        if not transport_id:
+            print("   ❌ Failed to create transport")
+            return False
+        
+        # Test 1: Create operator cargo and place it in warehouse, then on transport
+        print("\n   📦 Testing Operator Cargo Return...")
+        
+        operator_cargo_data = {
+            "sender_full_name": "Отправитель Возврата",
+            "sender_phone": "+79111222333",
+            "recipient_full_name": "Получатель Возврата",
+            "recipient_phone": "+992444555666",
+            "recipient_address": "Душанбе, ул. Возвратная, 1",
+            "weight": 50.0,
+            "declared_value": 3000.0,
+            "description": "Груз для тестирования возврата",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, operator_cargo_response = self.run_test(
+            "Create Operator Cargo for Return Test",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            operator_cargo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        operator_cargo_id = None
+        if success and 'id' in operator_cargo_response:
+            operator_cargo_id = operator_cargo_response['id']
+            print(f"   📦 Created operator cargo: {operator_cargo_id}")
+            
+            # Place cargo in warehouse cell
+            placement_data = {
+                "cargo_id": operator_cargo_id,
+                "warehouse_id": self.warehouse_id,
+                "block_number": 1,
+                "shelf_number": 1,
+                "cell_number": 1
+            }
+            
+            success, _ = self.run_test(
+                "Place Operator Cargo in Warehouse",
+                "POST",
+                "/api/operator/cargo/place",
+                200,
+                placement_data,
+                self.tokens['admin']
+            )
+            
+            if success:
+                print("   📍 Operator cargo placed in warehouse cell B1-S1-C1")
+                
+                # Place cargo on transport using cargo numbers
+                transport_placement_data = {
+                    "transport_id": transport_id,
+                    "cargo_numbers": [operator_cargo_response['cargo_number']]
+                }
+                
+                success, _ = self.run_test(
+                    "Place Operator Cargo on Transport",
+                    "POST",
+                    f"/api/transport/{transport_id}/place-cargo-by-numbers",
+                    200,
+                    transport_placement_data,
+                    self.tokens['admin']
+                )
+                
+                if success:
+                    print("   🚛 Operator cargo placed on transport")
+                    
+                    # Test removing cargo and returning to warehouse
+                    success, return_response = self.run_test(
+                        "Remove Operator Cargo from Transport",
+                        "DELETE",
+                        f"/api/transport/{transport_id}/remove-cargo/{operator_cargo_id}",
+                        200,
+                        token=self.tokens['admin']
+                    )
+                    all_success &= success
+                    
+                    if success:
+                        print("   ✅ Operator cargo successfully removed from transport")
+                        print(f"   📍 Return location: {return_response.get('location', 'N/A')}")
+                        
+                        # Verify cargo is back in warehouse cell
+                        success, warehouse_structure = self.run_test(
+                            "Check Warehouse Structure After Return",
+                            "GET",
+                            f"/api/warehouses/{self.warehouse_id}/structure",
+                            200,
+                            token=self.tokens['admin']
+                        )
+                        
+                        if success:
+                            # Check if cell B1-S1-C1 is occupied again
+                            structure = warehouse_structure.get('structure', {})
+                            block_1 = structure.get('block_1', {})
+                            shelf_1 = block_1.get('shelf_1', [])
+                            cell_1 = next((cell for cell in shelf_1 if cell['cell_number'] == 1), None)
+                            
+                            if cell_1 and cell_1.get('is_occupied'):
+                                print("   ✅ Cargo successfully returned to original warehouse cell")
+                            else:
+                                print("   ❌ Cargo not found in original warehouse cell")
+                                all_success = False
+        
+        # Test 2: Create regular user cargo and test return
+        print("\n   📦 Testing User Cargo Return...")
+        
+        user_cargo_data = {
+            "recipient_name": "Получатель Пользователя",
+            "recipient_phone": "+992777888999",
+            "route": "moscow_to_tajikistan",
+            "weight": 75.0,
+            "description": "Груз пользователя для возврата",
+            "declared_value": 4000.0,
+            "sender_address": "Москва, ул. Пользователя, 1",
+            "recipient_address": "Душанбе, ул. Пользователя, 1"
+        }
+        
+        success, user_cargo_response = self.run_test(
+            "Create User Cargo for Return Test",
+            "POST",
+            "/api/cargo/create",
+            200,
+            user_cargo_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        user_cargo_id = None
+        if success and 'id' in user_cargo_response:
+            user_cargo_id = user_cargo_response['id']
+            print(f"   📦 Created user cargo: {user_cargo_id}")
+            
+            # Update cargo status and add warehouse location
+            success, _ = self.run_test(
+                "Update User Cargo Status",
+                "PUT",
+                f"/api/cargo/{user_cargo_id}/status",
+                200,
+                token=self.tokens['admin'],
+                params={"status": "accepted", "warehouse_location": "Склад А, Стеллаж 2"}
+            )
+            
+            if success:
+                # Place cargo on transport
+                placement_data = {
+                    "transport_id": transport_id,
+                    "cargo_ids": [user_cargo_id]
+                }
+                
+                success, _ = self.run_test(
+                    "Place User Cargo on Transport",
+                    "POST",
+                    f"/api/transport/{transport_id}/place-cargo",
+                    200,
+                    placement_data,
+                    self.tokens['admin']
+                )
+                
+                if success:
+                    print("   🚛 User cargo placed on transport")
+                    
+                    # Test removing cargo (should set status to ACCEPTED since no specific cell)
+                    success, return_response = self.run_test(
+                        "Remove User Cargo from Transport",
+                        "DELETE",
+                        f"/api/transport/{transport_id}/remove-cargo/{user_cargo_id}",
+                        200,
+                        token=self.tokens['admin']
+                    )
+                    all_success &= success
+                    
+                    if success:
+                        print("   ✅ User cargo successfully removed from transport")
+                        print(f"   📊 Return status: {return_response.get('status', 'N/A')}")
+                        
+                        # Verify cargo status is ACCEPTED
+                        success, cargo_details = self.run_test(
+                            "Check User Cargo Status After Return",
+                            "GET",
+                            f"/api/cargo/track/{user_cargo_response['cargo_number']}",
+                            200
+                        )
+                        
+                        if success and cargo_details.get('status') == 'accepted':
+                            print("   ✅ User cargo status correctly set to ACCEPTED")
+                        else:
+                            print(f"   ❌ User cargo status incorrect: {cargo_details.get('status', 'unknown')}")
+                            all_success = False
+        
+        # Test 3: Test error cases
+        print("\n   ⚠️ Testing Error Cases...")
+        
+        # Test removing non-existent cargo
+        success, _ = self.run_test(
+            "Remove Non-existent Cargo (Should Fail)",
+            "DELETE",
+            f"/api/transport/{transport_id}/remove-cargo/non-existent-id",
+            404,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Non-existent cargo removal correctly rejected")
+        
+        # Test removing cargo from non-existent transport
+        if operator_cargo_id:
+            success, _ = self.run_test(
+                "Remove Cargo from Non-existent Transport (Should Fail)",
+                "DELETE",
+                f"/api/transport/non-existent-transport/remove-cargo/{operator_cargo_id}",
+                404,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Cargo removal from non-existent transport correctly rejected")
+        
+        # Test 4: Test access control
+        print("\n   🔒 Testing Access Control...")
+        
+        if 'user' in self.tokens and operator_cargo_id:
+            success, _ = self.run_test(
+                "Regular User Remove Cargo (Should Fail)",
+                "DELETE",
+                f"/api/transport/{transport_id}/remove-cargo/{operator_cargo_id}",
+                403,
+                token=self.tokens['user']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Regular user access correctly denied")
+        
+        # Test 5: Test transport load recalculation
+        print("\n   ⚖️ Testing Transport Load Recalculation...")
+        
+        # Get transport details to check load
+        success, transport_details = self.run_test(
+            "Check Transport Load After Cargo Removals",
+            "GET",
+            f"/api/transport/{transport_id}",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        if success:
+            current_load = transport_details.get('current_load_kg', 0)
+            cargo_count = len(transport_details.get('cargo_list', []))
+            print(f"   ⚖️ Transport current load: {current_load}kg")
+            print(f"   📦 Remaining cargo count: {cargo_count}")
+            
+            if current_load >= 0:  # Load should never be negative
+                print("   ✅ Transport load calculation is valid")
+            else:
+                print("   ❌ Transport load calculation error (negative load)")
+                all_success = False
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
