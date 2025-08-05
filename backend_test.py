@@ -9067,6 +9067,477 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_cargo_request_management_system(self):
+        """Test the new cargo request management endpoints as specified in review request"""
+        print("\n📋 CARGO REQUEST MANAGEMENT SYSTEM")
+        
+        if 'admin' not in self.tokens or 'user' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Step 1: Create cargo requests by clients
+        print("\n   👤 Step 1: Creating cargo requests by clients...")
+        
+        test_requests = []
+        for i in range(3):
+            request_data = {
+                "recipient_full_name": f"Получатель Заявки {i+1}",
+                "recipient_phone": f"+99244455566{i}",
+                "recipient_address": f"Душанбе, ул. Заявочная, {i+1}",
+                "pickup_address": f"Москва, ул. Забора, {i+1}",
+                "cargo_name": f"Заявочный груз {i+1}",
+                "weight": 15.0 + (i * 5),
+                "declared_value": 7000.0 + (i * 1000),
+                "description": f"Груз из заявки пользователя {i+1}",
+                "route": "moscow_to_tajikistan"
+            }
+            
+            success, request_response = self.run_test(
+                f"Create Cargo Request #{i+1}",
+                "POST",
+                "/api/user/cargo-request",
+                200,
+                request_data,
+                self.tokens['user']
+            )
+            all_success &= success
+            
+            if success and 'id' in request_response:
+                request_id = request_response['id']
+                request_number = request_response.get('request_number', f'REQ{i+1}')
+                test_requests.append({
+                    'id': request_id,
+                    'number': request_number,
+                    'data': request_data
+                })
+                print(f"   📋 Created request: {request_number} (ID: {request_id})")
+        
+        if not test_requests:
+            print("   ❌ No cargo requests created, cannot continue test")
+            return False
+        
+        # Step 2: Test GET /api/admin/new-orders-count
+        print("\n   🔢 Step 2: Testing new orders count endpoint...")
+        
+        success, count_response = self.run_test(
+            "Get New Orders Count",
+            "GET",
+            "/api/admin/new-orders-count",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            pending_orders = count_response.get('pending_orders', 0)
+            new_today = count_response.get('new_today', 0)
+            has_new_orders = count_response.get('has_new_orders', False)
+            
+            print(f"   📊 Pending orders: {pending_orders}")
+            print(f"   📊 New today: {new_today}")
+            print(f"   📊 Has new orders: {has_new_orders}")
+            
+            if pending_orders >= len(test_requests):
+                print(f"   ✅ Pending orders count includes our test requests")
+            else:
+                print(f"   ❌ Pending orders count ({pending_orders}) less than expected ({len(test_requests)})")
+                all_success = False
+        
+        # Step 3: Test GET /api/admin/cargo-requests (with serialization)
+        print("\n   📋 Step 3: Testing get pending cargo requests with serialization...")
+        
+        success, pending_requests = self.run_test(
+            "Get Pending Cargo Requests",
+            "GET",
+            "/api/admin/cargo-requests",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            request_count = len(pending_requests) if isinstance(pending_requests, list) else 0
+            print(f"   📊 Found {request_count} pending requests")
+            
+            # Verify serialization and new fields
+            if isinstance(pending_requests, list) and pending_requests:
+                for request in pending_requests[:2]:  # Check first 2 requests
+                    request_id = request.get('id', 'Unknown')
+                    
+                    # Check serialization (no ObjectId fields)
+                    serialization_ok = True
+                    for key, value in request.items():
+                        if str(value).startswith('ObjectId('):
+                            print(f"   ❌ Request {request_id} has unserialized ObjectId in field '{key}': {value}")
+                            serialization_ok = False
+                            all_success = False
+                    
+                    if serialization_ok:
+                        print(f"   ✅ Request {request_id} properly serialized")
+                    
+                    # Check new fields admin_notes and processed_by
+                    admin_notes = request.get('admin_notes', None)
+                    processed_by = request.get('processed_by', None)
+                    
+                    if 'admin_notes' in request:
+                        print(f"   ✅ Request {request_id} has admin_notes field: '{admin_notes}'")
+                    else:
+                        print(f"   ❌ Request {request_id} missing admin_notes field")
+                        all_success = False
+                    
+                    if 'processed_by' in request:
+                        print(f"   ✅ Request {request_id} has processed_by field: {processed_by}")
+                    else:
+                        print(f"   ❌ Request {request_id} missing processed_by field")
+                        all_success = False
+        
+        # Step 4: Test GET /api/admin/cargo-requests/all (with serialization)
+        print("\n   📋 Step 4: Testing get all cargo requests with serialization...")
+        
+        success, all_requests = self.run_test(
+            "Get All Cargo Requests",
+            "GET",
+            "/api/admin/cargo-requests/all",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            all_request_count = len(all_requests) if isinstance(all_requests, list) else 0
+            print(f"   📊 Found {all_request_count} total requests")
+            
+            # Test with status filter
+            success, pending_filtered = self.run_test(
+                "Get Pending Requests with Filter",
+                "GET",
+                "/api/admin/cargo-requests/all",
+                200,
+                token=self.tokens['admin'],
+                params={"status": "pending"}
+            )
+            
+            if success:
+                filtered_count = len(pending_filtered) if isinstance(pending_filtered, list) else 0
+                print(f"   📊 Found {filtered_count} pending requests with filter")
+        
+        # Step 5: Test GET /api/admin/cargo-requests/{request_id} - get order details
+        print("\n   🔍 Step 5: Testing get cargo request details...")
+        
+        test_request = test_requests[0]  # Use first request for detailed testing
+        success, request_details = self.run_test(
+            f"Get Cargo Request Details {test_request['number']}",
+            "GET",
+            f"/api/admin/cargo-requests/{test_request['id']}",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print(f"   📋 Retrieved details for request: {request_details.get('request_number', 'Unknown')}")
+            
+            # Verify serialization
+            serialization_ok = True
+            for key, value in request_details.items():
+                if str(value).startswith('ObjectId('):
+                    print(f"   ❌ Request details has unserialized ObjectId in field '{key}': {value}")
+                    serialization_ok = False
+                    all_success = False
+            
+            if serialization_ok:
+                print(f"   ✅ Request details properly serialized")
+            
+            # Verify required fields
+            required_fields = ['id', 'request_number', 'sender_full_name', 'sender_phone', 
+                             'recipient_full_name', 'recipient_phone', 'cargo_name', 'status',
+                             'admin_notes', 'processed_by']
+            
+            missing_fields = [field for field in required_fields if field not in request_details]
+            if not missing_fields:
+                print(f"   ✅ Request details has all required fields")
+            else:
+                print(f"   ❌ Request details missing fields: {missing_fields}")
+                all_success = False
+        
+        # Step 6: Test PUT /api/admin/cargo-requests/{request_id}/update - update order information
+        print("\n   ✏️  Step 6: Testing cargo request update...")
+        
+        update_data = {
+            "sender_full_name": "Обновленный Отправитель",
+            "sender_phone": "+79999888777",
+            "recipient_full_name": "Обновленный Получатель",
+            "recipient_phone": "+992888777666",
+            "recipient_address": "Душанбе, ул. Обновленная, 99",
+            "pickup_address": "Москва, ул. Новая, 99",
+            "cargo_name": "Обновленный груз",
+            "weight": 25.0,
+            "declared_value": 12000.0,
+            "description": "Обновленное описание груза",
+            "route": "moscow_dushanbe",
+            "admin_notes": "Заметки администратора о заказе"
+        }
+        
+        success, update_response = self.run_test(
+            f"Update Cargo Request {test_request['number']}",
+            "PUT",
+            f"/api/admin/cargo-requests/{test_request['id']}/update",
+            200,
+            update_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print(f"   ✅ Request updated successfully")
+            
+            # Verify the update by getting details again
+            success, updated_details = self.run_test(
+                f"Verify Updated Request Details",
+                "GET",
+                f"/api/admin/cargo-requests/{test_request['id']}",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success:
+                # Check if fields were updated
+                updated_fields = []
+                for field, expected_value in update_data.items():
+                    actual_value = updated_details.get(field)
+                    if actual_value == expected_value:
+                        updated_fields.append(field)
+                    else:
+                        print(f"   ❌ Field '{field}' not updated correctly: expected '{expected_value}', got '{actual_value}'")
+                        all_success = False
+                
+                if len(updated_fields) == len(update_data):
+                    print(f"   ✅ All {len(updated_fields)} fields updated correctly")
+                else:
+                    print(f"   ❌ Only {len(updated_fields)}/{len(update_data)} fields updated correctly")
+                
+                # Check processed_by field was set
+                processed_by = updated_details.get('processed_by')
+                if processed_by == self.users['admin']['id']:
+                    print(f"   ✅ processed_by field correctly set to admin ID")
+                else:
+                    print(f"   ❌ processed_by field incorrect: expected '{self.users['admin']['id']}', got '{processed_by}'")
+                    all_success = False
+        
+        # Step 7: Test cross-collection search functionality
+        print("\n   🔍 Step 7: Testing cross-collection search functionality...")
+        
+        # First accept one of the requests to create cargo in operator_cargo collection
+        if len(test_requests) > 1:
+            accept_request = test_requests[1]
+            success, accept_response = self.run_test(
+                f"Accept Cargo Request {accept_request['number']}",
+                "POST",
+                f"/api/admin/cargo-requests/{accept_request['id']}/accept",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success and 'cargo_number' in accept_response:
+                accepted_cargo_number = accept_response['cargo_number']
+                print(f"   ✅ Request accepted, created cargo: {accepted_cargo_number}")
+                
+                # Test search in both collections
+                success, search_results = self.run_test(
+                    f"Search Cargo Cross-Collection {accepted_cargo_number}",
+                    "GET",
+                    "/api/warehouse/search",
+                    200,
+                    token=self.tokens['admin'],
+                    params={"query": accepted_cargo_number}
+                )
+                
+                if success:
+                    found_cargo = [c for c in search_results if c.get('cargo_number') == accepted_cargo_number]
+                    if found_cargo:
+                        print(f"   ✅ Cross-collection search found accepted cargo: {accepted_cargo_number}")
+                        
+                        # Verify it's from operator_cargo collection
+                        cargo_item = found_cargo[0]
+                        if 'sender_full_name' in cargo_item:  # operator_cargo has sender_full_name
+                            print(f"   ✅ Found cargo from operator_cargo collection")
+                        else:
+                            print(f"   ⚠️  Cargo may be from cargo collection")
+                    else:
+                        print(f"   ❌ Cross-collection search did not find accepted cargo")
+                        all_success = False
+        
+        # Step 8: Test full workflow - accept/reject requests
+        print("\n   🔄 Step 8: Testing full workflow - accept/reject requests...")
+        
+        if len(test_requests) > 2:
+            # Accept one request
+            accept_request = test_requests[2]
+            success, accept_response = self.run_test(
+                f"Accept Request {accept_request['number']}",
+                "POST",
+                f"/api/admin/cargo-requests/{accept_request['id']}/accept",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success:
+                cargo_number = accept_response.get('cargo_number')
+                print(f"   ✅ Request accepted, cargo created: {cargo_number}")
+                
+                # Verify request status changed
+                success, accepted_details = self.run_test(
+                    f"Verify Accepted Request Status",
+                    "GET",
+                    f"/api/admin/cargo-requests/{accept_request['id']}",
+                    200,
+                    token=self.tokens['admin']
+                )
+                
+                if success:
+                    status = accepted_details.get('status')
+                    if status == 'accepted':
+                        print(f"   ✅ Request status correctly changed to 'accepted'")
+                    else:
+                        print(f"   ❌ Request status incorrect: expected 'accepted', got '{status}'")
+                        all_success = False
+            
+            # Reject another request if we have more
+            if len(test_requests) > 0:
+                # Create one more request for rejection test
+                reject_request_data = {
+                    "recipient_full_name": "Получатель для Отклонения",
+                    "recipient_phone": "+992555666777",
+                    "recipient_address": "Душанбе, ул. Отклонения, 1",
+                    "pickup_address": "Москва, ул. Отклонения, 1",
+                    "cargo_name": "Груз для отклонения",
+                    "weight": 10.0,
+                    "declared_value": 5000.0,
+                    "description": "Груз который будет отклонен",
+                    "route": "moscow_to_tajikistan"
+                }
+                
+                success, reject_request_response = self.run_test(
+                    "Create Request for Rejection Test",
+                    "POST",
+                    "/api/user/cargo-request",
+                    200,
+                    reject_request_data,
+                    self.tokens['user']
+                )
+                
+                if success and 'id' in reject_request_response:
+                    reject_request_id = reject_request_response['id']
+                    reject_request_number = reject_request_response.get('request_number')
+                    
+                    # Reject the request
+                    success, reject_response = self.run_test(
+                        f"Reject Request {reject_request_number}",
+                        "POST",
+                        f"/api/admin/cargo-requests/{reject_request_id}/reject",
+                        200,
+                        token=self.tokens['admin']
+                    )
+                    
+                    if success:
+                        print(f"   ✅ Request rejected successfully")
+                        
+                        # Verify request status changed
+                        success, rejected_details = self.run_test(
+                            f"Verify Rejected Request Status",
+                            "GET",
+                            f"/api/admin/cargo-requests/{reject_request_id}",
+                            200,
+                            token=self.tokens['admin']
+                        )
+                        
+                        if success:
+                            status = rejected_details.get('status')
+                            if status == 'rejected':
+                                print(f"   ✅ Request status correctly changed to 'rejected'")
+                            else:
+                                print(f"   ❌ Request status incorrect: expected 'rejected', got '{status}'")
+                                all_success = False
+        
+        # Step 9: Test access control
+        print("\n   🔒 Step 9: Testing access control...")
+        
+        # Test regular user cannot access admin endpoints
+        if test_requests:
+            test_request = test_requests[0]
+            
+            # User cannot get new orders count
+            success, _ = self.run_test(
+                "User Access New Orders Count (Should Fail)",
+                "GET",
+                "/api/admin/new-orders-count",
+                403,
+                token=self.tokens['user']
+            )
+            all_success &= success
+            
+            # User cannot get pending requests
+            success, _ = self.run_test(
+                "User Access Pending Requests (Should Fail)",
+                "GET",
+                "/api/admin/cargo-requests",
+                403,
+                token=self.tokens['user']
+            )
+            all_success &= success
+            
+            # User cannot get request details
+            success, _ = self.run_test(
+                "User Access Request Details (Should Fail)",
+                "GET",
+                f"/api/admin/cargo-requests/{test_request['id']}",
+                403,
+                token=self.tokens['user']
+            )
+            all_success &= success
+            
+            # User cannot update request
+            success, _ = self.run_test(
+                "User Update Request (Should Fail)",
+                "PUT",
+                f"/api/admin/cargo-requests/{test_request['id']}/update",
+                403,
+                {"admin_notes": "User trying to update"},
+                token=self.tokens['user']
+            )
+            all_success &= success
+        
+        # Step 10: Test error handling
+        print("\n   ⚠️  Step 10: Testing error handling...")
+        
+        # Test non-existent request
+        success, _ = self.run_test(
+            "Get Non-existent Request Details (Should Fail)",
+            "GET",
+            "/api/admin/cargo-requests/non-existent-id",
+            404,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        # Test update non-existent request
+        success, _ = self.run_test(
+            "Update Non-existent Request (Should Fail)",
+            "PUT",
+            "/api/admin/cargo-requests/non-existent-id/update",
+            404,
+            {"admin_notes": "Test"},
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        print(f"\n   🎯 Cargo Request Management System Test Complete")
+        print(f"   📊 Overall Success: {'✅ PASSED' if all_success else '❌ FAILED'}")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
