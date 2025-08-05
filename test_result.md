@@ -186,7 +186,8 @@ backend:
           agent: "testing"
           comment: "✅ PASSED - Cargo-Transport Integration working perfectly. Cargo placement on transport ✅, capacity validation ✅, cargo availability checks ✅, warehouse cell liberation ✅, status tracking ✅. Successfully tested placing cargo from warehouse to transport with proper weight calculations and status updates."
 
-  - task: "Transport Notification System"
+backend:
+  - task: "4-Digit Cargo Numbering System"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -196,10 +197,10 @@ backend:
     status_history:
         - working: "NA"
           agent: "main"
-          comment: "Need to implement automatic notifications when transport is dispatched - users should receive notifications about cargo status change to 'shipped to destination'."
+          comment: "Need to implement 4-digit cargo numbering system (1001-9999) instead of long UUID-based numbers for easier operation by staff and customers"
         - working: true
           agent: "testing"
-          comment: "✅ PASSED - Transport Notification System working correctly. Automatic notifications created when transport is dispatched ✅, cargo status updates to 'in_transit' ✅, user notifications sent for cargo placement and dispatch ✅. System notifications created for transport creation and dispatch events."
+          comment: "✅ COMPLETED and FIXED - Successfully implemented 4-digit cargo numbering system. Fixed critical duplicate number issue by checking both cargo and operator_cargo collections. All cargo creation methods generate unique sequential numbers starting from 1001."
 
   - task: "Transport Dispatch System"
     implemented: true
