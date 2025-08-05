@@ -79,6 +79,27 @@ function App() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [cargoOrderResult, setCargoOrderResult] = useState(null);
 
+  // Новые состояния для управления заказами клиентов
+  const [pendingOrders, setPendingOrders] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [orderDetailsModal, setOrderDetailsModal] = useState(false);
+  const [editOrderModal, setEditOrderModal] = useState(false);
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
+  const [orderEditForm, setOrderEditForm] = useState({
+    sender_full_name: '',
+    sender_phone: '',
+    recipient_full_name: '',
+    recipient_phone: '',
+    recipient_address: '',
+    pickup_address: '',
+    cargo_name: '',
+    weight: '',
+    declared_value: '',
+    description: '',
+    route: '',
+    admin_notes: ''
+  });
+
   // Form states
   const [loginForm, setLoginForm] = useState({ phone: '', password: '' });
   const [registerForm, setRegisterForm] = useState({ full_name: '', phone: '', password: '' }); // Убрана роль (Функция 3)
