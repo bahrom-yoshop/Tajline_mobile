@@ -2623,6 +2623,125 @@ async def reject_cargo_request(
     
     return {"message": "Request rejected successfully"}
 
+# НОВЫЕ ENDPOINTS ДЛЯ УПРАВЛЕНИЯ ЗАКАЗАМИ КЛИЕНТОВ
+
+@app.get("/api/admin/cargo-requests/{request_id}")
+async def get_cargo_request_details(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить детальную информацию о заказе"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    request = db.cargo_requests.find_one({"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    # Сериализация и нормализация данных
+    normalized_request = serialize_mongo_document(request)
+    normalized_request.update({
+        'admin_notes': request.get('admin_notes', ''),
+        'processed_by': request.get('processed_by', None)
+    })
+    
+    return normalized_request
+
+@app.put("/api/admin/cargo-requests/{request_id}/update")
+async def update_cargo_request(
+    request_id: str,
+    update_data: CargoRequestUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Обновить информацию о заказе (получатель, отправитель, груз)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Найти заявку
+    request = db.cargo_requests.find_one({"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    # Подготовить данные для обновления
+    update_fields = {}
+    update_fields["updated_at"] = datetime.utcnow()
+    update_fields["processed_by"] = current_user.id
+    
+    # Обновить только те поля, которые были переданы
+    if update_data.sender_full_name is not None:
+        update_fields["sender_full_name"] = update_data.sender_full_name
+    if update_data.sender_phone is not None:
+        update_fields["sender_phone"] = update_data.sender_phone
+    if update_data.recipient_full_name is not None:
+        update_fields["recipient_full_name"] = update_data.recipient_full_name
+    if update_data.recipient_phone is not None:
+        update_fields["recipient_phone"] = update_data.recipient_phone
+    if update_data.recipient_address is not None:
+        update_fields["recipient_address"] = update_data.recipient_address
+    if update_data.pickup_address is not None:
+        update_fields["pickup_address"] = update_data.pickup_address
+    if update_data.cargo_name is not None:
+        update_fields["cargo_name"] = update_data.cargo_name
+    if update_data.weight is not None:
+        update_fields["weight"] = update_data.weight
+    if update_data.declared_value is not None:
+        update_fields["declared_value"] = update_data.declared_value
+    if update_data.description is not None:
+        update_fields["description"] = update_data.description
+    if update_data.route is not None:
+        update_fields["route"] = update_data.route
+    if update_data.admin_notes is not None:
+        update_fields["admin_notes"] = update_data.admin_notes
+    
+    # Обновить заявку
+    db.cargo_requests.update_one(
+        {"id": request_id},
+        {"$set": update_fields}
+    )
+    
+    # Создать системное уведомление об изменении
+    create_system_notification(
+        "Заказ обновлен",
+        f"Заказ №{request['request_number']} был обновлен оператором {current_user.full_name}",
+        "request_updated",
+        request_id,
+        None,
+        current_user.id
+    )
+    
+    # Уведомить клиента об изменениях
+    create_notification(
+        request["created_by"],
+        f"Информация по вашему заказу №{request['request_number']} была обновлена. Проверьте детали в личном кабинете.",
+        request_id
+    )
+    
+    return {"message": "Request updated successfully", "request_id": request_id}
+
+@app.get("/api/admin/new-orders-count")
+async def get_new_orders_count(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить количество новых заказов для уведомлений"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Подсчитать количество pending заявок
+    pending_count = db.cargo_requests.count_documents({"status": "pending"})
+    
+    # Подсчитать количество заявок, созданных за последние 24 часа
+    twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
+    new_today_count = db.cargo_requests.count_documents({
+        "created_at": {"$gte": twenty_four_hours_ago},
+        "status": "pending"
+    })
+    
+    return {
+        "pending_orders": pending_count,
+        "new_today": new_today_count,
+        "has_new_orders": pending_count > 0
+    }
+
 # Системные уведомления
 @app.get("/api/system-notifications")
 async def get_system_notifications(
