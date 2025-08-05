@@ -1349,6 +1349,19 @@ async def track_cargo(cargo_number: str):
     if 'cargo_name' not in cargo:
         cargo['cargo_name'] = cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз'
     
+    # Handle client cargo format compatibility
+    if 'recipient_full_name' in cargo and 'recipient_name' not in cargo:
+        cargo['recipient_name'] = cargo['recipient_full_name']
+    
+    if 'sender_full_name' in cargo and 'sender_id' not in cargo:
+        cargo['sender_id'] = cargo.get('created_by', 'unknown')
+    
+    if 'recipient_address' not in cargo:
+        cargo['recipient_address'] = cargo.get('recipient_address', 'Не указан')
+    
+    if 'sender_address' not in cargo:
+        cargo['sender_address'] = 'Не указан'
+    
     return Cargo(**cargo)
 
 @app.get("/api/cargo/all")
