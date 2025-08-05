@@ -2346,6 +2346,7 @@ function App() {
                                     <div>
                                       <h3 className="font-semibold text-lg">{item.cargo_number}</h3>
                                       <div className="text-sm text-gray-600 space-y-1">
+                                        <p><strong>Название:</strong> {item.cargo_name}</p>
                                         <p><strong>От:</strong> {item.sender_full_name} ({item.sender_phone})</p>
                                         <p><strong>Для:</strong> {item.recipient_full_name} ({item.recipient_phone})</p>
                                         <p><strong>Вес:</strong> {item.weight} кг</p>
