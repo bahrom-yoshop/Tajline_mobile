@@ -2143,6 +2143,17 @@ function App() {
                             />
                           </div>
 
+                          <div>
+                            <Label htmlFor="cargo_name">Название груза</Label>
+                            <Input
+                              id="cargo_name"
+                              value={operatorCargoForm.cargo_name}
+                              onChange={(e) => setOperatorCargoForm({...operatorCargoForm, cargo_name: e.target.value})}
+                              placeholder="Документы, личные вещи, электроника"
+                              required
+                            />
+                          </div>
+
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                               <Label htmlFor="weight">Вес груза (кг)</Label>
