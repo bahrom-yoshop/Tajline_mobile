@@ -966,7 +966,7 @@ async def create_cargo(cargo_data: CargoCreate, current_user: User = Depends(get
 async def get_operator_warehouses_detailed(
     current_user: User = Depends(get_current_user)
 ):
-    """Получить детальную информацию о складах, привязанных к оператору (1.2, 1.3)"""
+    """Расширенный личный кабинет оператора - показать все склады и функции (Функция 2)"""
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Access denied")
     
@@ -987,7 +987,7 @@ async def get_operator_warehouses_detailed(
         }))
         is_admin = False
     
-    # Получаем статистику по каждому складу
+    # Получаем расширенную статистику и функции по каждому складу
     warehouse_list = []
     for warehouse in warehouses:
         # Подсчитываем грузы на складе
@@ -1003,6 +1003,36 @@ async def get_operator_warehouses_detailed(
         
         total_cells = warehouse["blocks_count"] * warehouse["shelves_per_block"] * warehouse["cells_per_shelf"]
         
+        # Подсчитываем транспорты связанные с этим складом
+        related_transports = db.transports.count_documents({
+            "$or": [
+                {"destination_warehouse_id": warehouse["id"]},
+                {"source_warehouse_id": warehouse["id"]},
+                {"direction": {"$regex": warehouse["name"], "$options": "i"}}
+            ]
+        })
+        
+        # Подсчитываем грузы в разных статусах
+        cargo_statuses = {}
+        for status in ['accepted', 'placed_in_warehouse', 'on_transport', 'in_transit', 'arrived_destination', 'delivered']:
+            count_user = db.cargo.count_documents({"warehouse_id": warehouse["id"], "status": status})
+            count_operator = db.operator_cargo.count_documents({"warehouse_id": warehouse["id"], "status": status})
+            cargo_statuses[status] = count_user + count_operator
+        
+        # Получаем список других операторов этого склада (для админов)
+        bound_operators = []
+        if is_admin:
+            bindings = list(db.operator_warehouse_bindings.find({"warehouse_id": warehouse["id"]}))
+            for binding in bindings:
+                operator = db.users.find_one({"id": binding["operator_id"]}, {"password": 0})
+                if operator:
+                    bound_operators.append({
+                        "id": operator["id"],
+                        "full_name": operator["full_name"], 
+                        "phone": operator["phone"],
+                        "bound_at": binding["created_at"]
+                    })
+        
         warehouse_info = {
             "id": warehouse["id"],
             "name": warehouse["name"],
@@ -1010,23 +1040,64 @@ async def get_operator_warehouses_detailed(
             "blocks_count": warehouse["blocks_count"],
             "shelves_per_block": warehouse["shelves_per_block"],
             "cells_per_shelf": warehouse["cells_per_shelf"],
-            "total_cells": total_cells,
-            "occupied_cells": occupied_cells,
-            "free_cells": total_cells - occupied_cells,
-            "occupancy_percentage": round((occupied_cells / total_cells) * 100, 1) if total_cells > 0 else 0,
-            "total_cargo": total_cargo,
-            "cargo_breakdown": {
+            "created_at": warehouse.get("created_at"),
+            
+            # Статистика ячеек
+            "cells_info": {
+                "total_cells": total_cells,
+                "occupied_cells": occupied_cells,
+                "free_cells": total_cells - occupied_cells,
+                "occupancy_percentage": round((occupied_cells / total_cells) * 100, 1) if total_cells > 0 else 0
+            },
+            
+            # Статистика грузов
+            "cargo_info": {
+                "total_cargo": total_cargo,
                 "user_cargo": cargo_count_user,
-                "operator_cargo": cargo_count_operator
-            }
+                "operator_cargo": cargo_count_operator,
+                "by_status": cargo_statuses
+            },
+            
+            # Статистика транспортов
+            "transport_info": {
+                "related_transports": related_transports
+            },
+            
+            # Доступные функции для этого склада
+            "available_functions": {
+                "accept_cargo": True,
+                "place_cargo": True,
+                "move_cargo_between_cells": True,
+                "remove_cargo_from_cells": True,
+                "view_warehouse_layout": True,
+                "search_cargo": True,
+                "create_transports": True,
+                "manage_arrived_transports": True,
+                "generate_qr_codes": True,
+                "print_warehouse_reports": True
+            },
+            
+            # Операторы привязанные к складу (только для админов)
+            "bound_operators": bound_operators if is_admin else [],
+            "operators_count": len(bound_operators) if is_admin else 0,
+            
+            # Персональная информация
+            "is_admin": is_admin,
+            "operator_permissions": "full_access" if is_admin else "warehouse_specific"
         }
+        
         warehouse_list.append(warehouse_info)
     
     return {
         "warehouses": warehouse_list,
         "total_warehouses": len(warehouse_list),
-        "is_admin": is_admin,
-        "message": f"Access to {len(warehouse_list)} warehouse(s)"
+        "user_role": current_user.role,
+        "user_name": current_user.full_name,
+        "summary": {
+            "total_cargo_across_warehouses": sum(w["cargo_info"]["total_cargo"] for w in warehouse_list),
+            "total_occupied_cells": sum(w["cells_info"]["occupied_cells"] for w in warehouse_list),
+            "average_occupancy": round(sum(w["cells_info"]["occupancy_percentage"] for w in warehouse_list) / len(warehouse_list), 1) if warehouse_list else 0
+        }
     }
 
 @app.get("/api/cargo/my")
