@@ -329,22 +329,33 @@ def require_role(role: UserRole):
 
 def generate_cargo_number() -> str:
     # Генерируем 4-значный номер груза
-    # Получаем текущий максимальный номер из базы данных
+    # Получаем текущий максимальный номер из обеих коллекций (cargo и operator_cargo)
     try:
-        # Ищем последний груз с 4-значным номером
-        last_cargo = db.cargo.find({
+        # Ищем последний груз с 4-значным номером в обеих коллекциях
+        last_cargo_user = db.cargo.find({
             "cargo_number": {"$regex": "^[0-9]{4}$"}
         }).sort("cargo_number", -1).limit(1)
         
-        last_cargo_list = list(last_cargo)
+        last_cargo_operator = db.operator_cargo.find({
+            "cargo_number": {"$regex": "^[0-9]{4}$"}
+        }).sort("cargo_number", -1).limit(1)
         
-        if last_cargo_list:
-            # Если есть грузы с 4-значными номерами, берём следующий
-            last_number = int(last_cargo_list[0]["cargo_number"])
-            new_number = last_number + 1
-        else:
-            # Если нет грузов с 4-значными номерами, начинаем с 1001
-            new_number = 1001
+        last_cargo_user_list = list(last_cargo_user)
+        last_cargo_operator_list = list(last_cargo_operator)
+        
+        # Находим максимальный номер из обеих коллекций
+        max_number = 1000  # Начальное значение меньше 1001
+        
+        if last_cargo_user_list:
+            user_number = int(last_cargo_user_list[0]["cargo_number"])
+            max_number = max(max_number, user_number)
+            
+        if last_cargo_operator_list:
+            operator_number = int(last_cargo_operator_list[0]["cargo_number"])
+            max_number = max(max_number, operator_number)
+        
+        # Следующий номер
+        new_number = max_number + 1 if max_number >= 1001 else 1001
         
         # Проверяем, что номер не превышает 9999
         if new_number > 9999:
@@ -354,8 +365,9 @@ def generate_cargo_number() -> str:
         # Форматируем как 4-значный номер
         cargo_number = f"{new_number:04d}"
         
-        # Проверяем уникальность номера
-        while db.cargo.find_one({"cargo_number": cargo_number}):
+        # Проверяем уникальность номера в обеих коллекциях
+        while (db.cargo.find_one({"cargo_number": cargo_number}) or 
+               db.operator_cargo.find_one({"cargo_number": cargo_number})):
             new_number += 1
             if new_number > 9999:
                 new_number = 1001
