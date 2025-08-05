@@ -550,10 +550,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "4-Digit Cargo Numbering System"
-    - "Cargo Number Generation Testing"
-    - "Cargo Operations with 4-Digit Numbers"
-    - "Cargo Number Database Integration"
+    - "Cargo Name Field Integration"
+    - "Automatic Warehouse Selection for Operators"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
