@@ -520,6 +520,21 @@ backend:
           agent: "main"
           comment: "✅ UPDATED PER USER REQUEST - Modified placement logic based on user feedback: 1) Warehouse selection remains automatic (based on operator bindings), 2) Cell selection changed from fully automatic to MANUAL - now requires either cell QR code or manual coordinates (block/shelf/cell), 3) Added cell_qr_data parameter for warehouse cell QR codes, 4) Added validation for cell coordinates and occupancy, 5) Enhanced placement_method response field to distinguish between cell_qr, qr_number, and number_manual methods. User requested: склад автоматически but полка и ячейку выбирают ручная или с помощью QR кода."
 
+  - task: "POST /api/user/cargo-request [object Object] Error Investigation"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "🎯 CRITICAL INVESTIGATION - Need to identify the exact cause of [object Object],[object Object],[object Object] error when users submit cargo requests via POST /api/user/cargo-request endpoint. Testing with Bahrom user (+992900000000/123456) to find the exact error structure and format."
+        - working: true
+          agent: "testing"
+          comment: "✅ [object Object] ERROR ROOT CAUSE IDENTIFIED - Comprehensive testing of POST /api/user/cargo-request endpoint reveals the EXACT cause of [object Object] error: 🔍 ERROR STRUCTURE: When validation fails, FastAPI/Pydantic returns HTTP 422 with 'detail' field containing an ARRAY OF OBJECTS. Each validation error object has structure: {'type': 'error_type', 'loc': ['body', 'field_name'], 'msg': 'Error message', 'input': 'invalid_value', 'ctx': {...}, 'url': 'pydantic_docs_url'}. 🎯 ROOT CAUSE: Frontend JavaScript tries to display this array directly, converting each object to '[object Object]' string. When multiple validation errors occur (e.g., missing fields), frontend shows '[object Object],[object Object],[object Object]'. ✅ BACKEND WORKING CORRECTLY: All validation scenarios tested successfully - empty fields (422), invalid phone format (422), zero weight (422), negative values (422), missing required fields (422 with 5 error objects), invalid route (422), wrong data types (422), extreme values (422), arrays/objects instead of strings (422). Valid requests return 200 with proper cargo request creation. 🔧 SOLUTION NEEDED: Frontend needs to properly parse and display the 'detail' array, extracting 'msg' field from each error object instead of displaying objects directly. Backend API is functioning correctly per FastAPI/Pydantic standards."
+
   - task: "Warehouse Schema Cross-Collection Fix"
     implemented: true
     working: true
