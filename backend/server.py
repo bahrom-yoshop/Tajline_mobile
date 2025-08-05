@@ -2213,8 +2213,12 @@ async def dispatch_transport(
     if not transport:
         raise HTTPException(status_code=404, detail="Transport not found")
     
-    if transport["status"] != TransportStatus.FILLED:
-        raise HTTPException(status_code=400, detail="Transport must be filled before dispatch")
+    # Проверяем, что транспорт не в пути уже
+    if transport["status"] == TransportStatus.IN_TRANSIT:
+        raise HTTPException(status_code=400, detail="Transport is already in transit")
+    
+    # Разрешаем отправку транспорта с любым объемом груза
+    # Убираем проверку на обязательное заполнение до 90%
     
     # Обновить статус транспорта
     db.transports.update_one(
