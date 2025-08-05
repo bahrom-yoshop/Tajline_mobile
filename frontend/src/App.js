@@ -1164,6 +1164,19 @@ function App() {
     setOperatorBindingModal(false);
     setSelectedOperatorForBinding('');
     setSelectedWarehouseForBinding('');
+    // Clear warehouse cell management states
+    setSelectedCellCargo(null);
+    setCargoDetailModal(false);
+    setCargoEditModal(false);
+    setCargoMoveModal(false);
+    setEditingCargo(null);
+    setCargoEditForm({});
+    setCargoMoveForm({
+      warehouse_id: '',
+      block_number: '',
+      shelf_number: '',
+      cell_number: ''
+    });
     showAlert('Вы вышли из системы', 'info');
   };
 
