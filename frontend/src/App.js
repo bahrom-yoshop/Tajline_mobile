@@ -341,7 +341,25 @@ function App() {
           throw new Error('Session expired');
         }
         
-        throw new Error(result.detail || 'Произошла ошибка');
+        // Правильная обработка detail - может быть строкой или массивом объектов
+        let errorMessage = 'Произошла ошибка';
+        
+        if (result.detail) {
+          if (Array.isArray(result.detail)) {
+            // Если detail - массив объектов ошибок валидации, извлекаем msg из каждого
+            errorMessage = result.detail.map(err => err.msg || err.message || JSON.stringify(err)).join(', ');
+          } else if (typeof result.detail === 'string') {
+            // Если detail - строка, используем как есть
+            errorMessage = result.detail;
+          } else {
+            // Если detail - объект, попытаемся получить message или преобразуем в строку
+            errorMessage = result.detail.message || JSON.stringify(result.detail);
+          }
+        } else if (result.message) {
+          errorMessage = result.message;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       return result;
