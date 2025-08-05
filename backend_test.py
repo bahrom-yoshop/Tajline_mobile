@@ -10326,6 +10326,8 @@ ID склада: {self.warehouse_id}"""
             ("🆕 CLIENT CARGO ORDERING SYSTEM", self.test_client_cargo_ordering_system),
             # NEW CARGO REQUEST MANAGEMENT SYSTEM (Review Request)
             ("📋 CARGO REQUEST MANAGEMENT SYSTEM", self.test_cargo_request_management_system),
+            # SPECIAL TEST: Bahrom User Scenario (Review Request)
+            ("👤 БАХРОМ КЛИЕНТ - СПЕЦИАЛЬНЫЙ ТЕСТ", self.test_bahrom_user_scenario),
             ("Notifications", self.test_notifications),
             ("Error Handling", self.test_error_cases)
         ]
