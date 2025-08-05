@@ -1192,6 +1192,59 @@ function App() {
     }
   };
 
+  // Transport Visualization Functions
+  const fetchTransportVisualization = async (transportId) => {
+    try {
+      const data = await apiCall(`/api/transport/${transportId}/visualization`);
+      setTransportVisualizationData(data);
+    } catch (error) {
+      console.error('Error fetching transport visualization:', error);
+    }
+  };
+
+  const openTransportVisualization = (transport) => {
+    setSelectedTransportForVisualization(transport);
+    fetchTransportVisualization(transport.id);
+    setTransportVisualizationModal(true);
+  };
+
+  // QR/Number Cargo Placement Functions
+  const handleQrCargoPlacement = async (e) => {
+    e.preventDefault();
+    try {
+      const placementData = {
+        cargo_number: qrPlacementForm.cargo_number,
+        qr_data: qrPlacementForm.qr_data
+      };
+
+      const response = await apiCall(`/api/transport/${selectedArrivedTransport.id}/place-cargo-by-number`, 'POST', placementData);
+      
+      showAlert(
+        `Груз ${response.cargo_number} автоматически размещен на складе ${response.warehouse_name} в ячейке ${response.location}!`, 
+        'success'
+      );
+      
+      // Обновить данные
+      fetchArrivedTransportCargo(selectedArrivedTransport.id);
+      fetchArrivedTransports();
+      
+      // Закрыть модал и сбросить форму
+      setQrPlacementModal(false);
+      setQrPlacementForm({
+        cargo_number: '',
+        qr_data: ''
+      });
+      
+      if (response.transport_status === 'completed') {
+        showAlert('Все грузы размещены! Транспорт завершен.', 'info');
+        setArrivedTransportModal(false);
+      }
+    } catch (error) {
+      console.error('Error placing cargo by QR/number:', error);
+      showAlert('Ошибка размещения груза по номеру/QR', 'error');
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
