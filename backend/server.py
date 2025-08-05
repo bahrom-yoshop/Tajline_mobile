@@ -4836,7 +4836,11 @@ async def debug_tracking(tracking_code: str):
         },
         "cargo_in_cargo_collection": cargo_in_cargo is not None,
         "cargo_in_operator_collection": cargo_in_operator is not None,
-        "cargo_found": cargo_in_cargo or cargo_in_operator
+        "cargo_found": cargo_in_cargo or cargo_in_operator,
+        "cargo_details": {
+            "cargo_collection": serialize_mongo_document(cargo_in_cargo) if cargo_in_cargo else None,
+            "operator_collection": serialize_mongo_document(cargo_in_operator) if cargo_in_operator else None
+        }
     }
 
 @app.get("/api/cargo/track/{tracking_code}")
