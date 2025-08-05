@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Add advanced warehouse cell management and cargo detail viewing. User requests: 1) Automatically free warehouse cells when cargo is placed on transport, 2) Enhanced warehouse schema management - click on occupied cells to view cargo details with move/delete options, 3) Add dedicated cargo search button with detailed cargo cards and edit functionality for comprehensive cargo management."
+user_problem_statement: "Test client cargo ordering system with new declared value logic. Test POST /api/client/cargo/create with different routes (moscow_khujand: 60 rubles, moscow_dushanbe: 80 rubles, moscow_kulob: 80 rubles, moscow_kurgantyube: 80 rubles). Test full workflow: login +79123456789/123456, GET delivery-options, POST calculate, POST create. Verify cargo creation in database, tracking codes, and error handling."
 
 backend:
   - task: "Automatic Cell Liberation on Transport Placement"
