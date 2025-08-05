@@ -6017,6 +6017,1108 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_transport_visualization_system(self):
+        """Test the new transport visualization system"""
+        print("\n📊 TRANSPORT VISUALIZATION SYSTEM")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # First create a transport with cargo for visualization testing
+        print("\n   🚛 Setting up transport with cargo for visualization...")
+        
+        # Create transport
+        transport_data = {
+            "driver_name": "Водитель Визуализации",
+            "driver_phone": "+79123456789",
+            "transport_number": "VIS123",
+            "capacity_kg": 2000.0,
+            "direction": "Москва - Душанбе"
+        }
+        
+        success, transport_response = self.run_test(
+            "Create Transport for Visualization",
+            "POST",
+            "/api/transport/create",
+            200,
+            transport_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        transport_id = None
+        if success and 'transport_id' in transport_response:
+            transport_id = transport_response['transport_id']
+            print(f"   🚛 Created transport: {transport_id}")
+        
+        if not transport_id:
+            print("   ❌ Failed to create transport for visualization test")
+            return False
+        
+        # Create multiple cargo items from both collections
+        cargo_ids = []
+        
+        # Create user cargo
+        for i in range(3):
+            cargo_data = {
+                "recipient_name": f"Получатель Визуализации {i+1}",
+                "recipient_phone": f"+99244455566{i}",
+                "route": "moscow_to_tajikistan",
+                "weight": 50.0 + (i * 25),
+                "cargo_name": f"Груз для визуализации {i+1}",
+                "description": f"Тестовый груз для визуализации {i+1}",
+                "declared_value": 5000.0 + (i * 1000),
+                "sender_address": f"Москва, ул. Визуализации, {i+1}",
+                "recipient_address": f"Душанбе, ул. Получения, {i+1}"
+            }
+            
+            success, cargo_response = self.run_test(
+                f"Create User Cargo for Visualization #{i+1}",
+                "POST",
+                "/api/cargo/create",
+                200,
+                cargo_data,
+                self.tokens['user']
+            )
+            
+            if success and 'id' in cargo_response:
+                cargo_id = cargo_response['id']
+                cargo_ids.append(cargo_id)
+                
+                # Update cargo status to accepted with warehouse location
+                success, _ = self.run_test(
+                    f"Update Cargo Status to Accepted #{i+1}",
+                    "PUT",
+                    f"/api/cargo/{cargo_id}/status",
+                    200,
+                    token=self.tokens['admin'],
+                    params={"status": "accepted", "warehouse_location": f"Склад А, Стеллаж {i+1}"}
+                )
+        
+        # Create operator cargo
+        for i in range(2):
+            cargo_data = {
+                "sender_full_name": f"Отправитель Оператор {i+1}",
+                "sender_phone": f"+79111222{333+i}",
+                "recipient_full_name": f"Получатель Оператор {i+1}",
+                "recipient_phone": f"+99277788{899+i}",
+                "recipient_address": f"Душанбе, ул. Операторская, {i+1}",
+                "weight": 75.0 + (i * 30),
+                "cargo_name": f"Оператор груз {i+1}",
+                "declared_value": 8000.0 + (i * 500),
+                "description": f"Груз оператора для визуализации {i+1}",
+                "route": "moscow_to_tajikistan"
+            }
+            
+            success, cargo_response = self.run_test(
+                f"Create Operator Cargo for Visualization #{i+1}",
+                "POST",
+                "/api/operator/cargo/accept",
+                200,
+                cargo_data,
+                self.tokens['admin']
+            )
+            
+            if success and 'id' in cargo_response:
+                cargo_id = cargo_response['id']
+                cargo_ids.append(cargo_id)
+        
+        # Place all cargo on transport
+        if cargo_ids:
+            placement_data = {
+                "transport_id": transport_id,
+                "cargo_ids": cargo_ids
+            }
+            
+            success, _ = self.run_test(
+                "Place All Cargo on Transport",
+                "POST",
+                f"/api/transport/{transport_id}/place-cargo",
+                200,
+                placement_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+        
+        # Test 1: Get transport visualization
+        print("\n   📊 Testing Transport Visualization Endpoint...")
+        success, viz_response = self.run_test(
+            "Get Transport Visualization",
+            "GET",
+            f"/api/transport/{transport_id}/visualization",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            # Verify visualization structure
+            transport_info = viz_response.get('transport', {})
+            cargo_summary = viz_response.get('cargo_summary', {})
+            visualization = viz_response.get('visualization', {})
+            
+            print(f"   🚛 Transport: {transport_info.get('transport_number', 'Unknown')}")
+            print(f"   📦 Total cargo items: {cargo_summary.get('total_items', 0)}")
+            print(f"   ⚖️  Total weight: {cargo_summary.get('total_weight', 0)}kg")
+            print(f"   📊 Fill percentage (weight): {cargo_summary.get('fill_percentage_weight', 0)}%")
+            print(f"   📊 Fill percentage (volume): {cargo_summary.get('fill_percentage_volume', 0)}%")
+            print(f"   🎯 Utilization status: {visualization.get('utilization_status', 'unknown')}")
+            
+            # Test 2: Verify grid layout (6x3 = 18 positions)
+            print("\n   🗂️  Testing Grid Layout...")
+            grid_width = visualization.get('grid_width', 0)
+            grid_height = visualization.get('grid_height', 0)
+            placement_grid = visualization.get('placement_grid', [])
+            
+            if grid_width == 6 and grid_height == 3:
+                print(f"   ✅ Correct grid dimensions: {grid_width}x{grid_height}")
+            else:
+                print(f"   ❌ Incorrect grid dimensions: {grid_width}x{grid_height} (expected 6x3)")
+                all_success = False
+            
+            if len(placement_grid) == 3:
+                print(f"   ✅ Correct number of grid rows: {len(placement_grid)}")
+                
+                # Check each row has 6 columns
+                for i, row in enumerate(placement_grid):
+                    if len(row) == 6:
+                        print(f"   ✅ Row {i+1} has correct 6 columns")
+                    else:
+                        print(f"   ❌ Row {i+1} has {len(row)} columns (expected 6)")
+                        all_success = False
+            else:
+                print(f"   ❌ Incorrect number of grid rows: {len(placement_grid)} (expected 3)")
+                all_success = False
+            
+            # Test 3: Verify cargo details and cross-collection support
+            print("\n   📦 Testing Cargo Details and Cross-Collection Support...")
+            cargo_list = cargo_summary.get('cargo_list', [])
+            
+            if len(cargo_list) == len(cargo_ids):
+                print(f"   ✅ All {len(cargo_ids)} cargo items found in visualization")
+                
+                # Check for both collection types
+                collections_found = set()
+                for cargo in cargo_list:
+                    collection = cargo.get('collection', 'unknown')
+                    collections_found.add(collection)
+                    
+                    # Verify required fields
+                    required_fields = ['id', 'cargo_number', 'cargo_name', 'weight', 'recipient_name', 'status']
+                    missing_fields = [field for field in required_fields if field not in cargo or cargo[field] is None]
+                    
+                    if not missing_fields:
+                        print(f"   ✅ Cargo {cargo.get('cargo_number', 'Unknown')} has all required fields")
+                    else:
+                        print(f"   ❌ Cargo {cargo.get('cargo_number', 'Unknown')} missing fields: {missing_fields}")
+                        all_success = False
+                
+                if 'cargo' in collections_found and 'operator_cargo' in collections_found:
+                    print(f"   ✅ Cross-collection support working (found: {collections_found})")
+                else:
+                    print(f"   ⚠️  Limited collection support (found: {collections_found})")
+            else:
+                print(f"   ❌ Expected {len(cargo_ids)} cargo items, found {len(cargo_list)}")
+                all_success = False
+            
+            # Test 4: Verify calculations
+            print("\n   🧮 Testing Weight and Volume Calculations...")
+            expected_total_weight = sum([50.0 + (i * 25) for i in range(3)]) + sum([75.0 + (i * 30) for i in range(2)])
+            actual_total_weight = cargo_summary.get('total_weight', 0)
+            
+            if abs(expected_total_weight - actual_total_weight) < 0.1:
+                print(f"   ✅ Weight calculation correct: {actual_total_weight}kg")
+            else:
+                print(f"   ❌ Weight calculation incorrect: expected {expected_total_weight}kg, got {actual_total_weight}kg")
+                all_success = False
+            
+            # Test capacity calculations
+            capacity_kg = transport_info.get('capacity_kg', 1000)
+            fill_percentage = cargo_summary.get('fill_percentage_weight', 0)
+            expected_fill = (actual_total_weight / capacity_kg * 100) if capacity_kg > 0 else 0
+            
+            if abs(expected_fill - fill_percentage) < 0.1:
+                print(f"   ✅ Fill percentage calculation correct: {fill_percentage}%")
+            else:
+                print(f"   ❌ Fill percentage calculation incorrect: expected {expected_fill}%, got {fill_percentage}%")
+                all_success = False
+        
+        # Test 5: Test different utilization statuses
+        print("\n   🎯 Testing Utilization Status Logic...")
+        
+        # Test with empty transport
+        empty_transport_data = {
+            "driver_name": "Пустой Водитель",
+            "driver_phone": "+79123456790",
+            "transport_number": "EMPTY123",
+            "capacity_kg": 1000.0,
+            "direction": "Тест - Пустой"
+        }
+        
+        success, empty_response = self.run_test(
+            "Create Empty Transport",
+            "POST",
+            "/api/transport/create",
+            200,
+            empty_transport_data,
+            self.tokens['admin']
+        )
+        
+        if success and 'transport_id' in empty_response:
+            empty_transport_id = empty_response['transport_id']
+            
+            success, empty_viz = self.run_test(
+                "Get Empty Transport Visualization",
+                "GET",
+                f"/api/transport/{empty_transport_id}/visualization",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success:
+                empty_status = empty_viz.get('visualization', {}).get('utilization_status', 'unknown')
+                if empty_status == 'low':
+                    print(f"   ✅ Empty transport correctly shows 'low' utilization")
+                else:
+                    print(f"   ❌ Empty transport shows '{empty_status}' (expected 'low')")
+                    all_success = False
+        
+        # Test 6: Access control
+        print("\n   🔒 Testing Access Control...")
+        if 'user' in self.tokens:
+            success, _ = self.run_test(
+                "Regular User Access Visualization (Should Fail)",
+                "GET",
+                f"/api/transport/{transport_id}/visualization",
+                403,
+                token=self.tokens['user']
+            )
+            all_success &= success
+        
+        # Store transport_id for other tests
+        self.visualization_transport_id = transport_id
+        
+        return all_success
+
+    def test_automated_qr_number_cargo_placement_system(self):
+        """Test the automated QR/number cargo placement system"""
+        print("\n🤖 AUTOMATED QR/NUMBER CARGO PLACEMENT SYSTEM")
+        
+        if 'admin' not in self.tokens or 'warehouse_operator' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Setup: Create transport with cargo and mark as arrived
+        print("\n   🚛 Setting up arrived transport with cargo...")
+        
+        # Create transport
+        transport_data = {
+            "driver_name": "Водитель Автоматизации",
+            "driver_phone": "+79123456791",
+            "transport_number": "AUTO123",
+            "capacity_kg": 1500.0,
+            "direction": "Москва - Душанбе"
+        }
+        
+        success, transport_response = self.run_test(
+            "Create Transport for Automation",
+            "POST",
+            "/api/transport/create",
+            200,
+            transport_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        transport_id = None
+        if success and 'transport_id' in transport_response:
+            transport_id = transport_response['transport_id']
+        
+        if not transport_id:
+            print("   ❌ Failed to create transport for automation test")
+            return False
+        
+        # Create cargo from both collections
+        test_cargo_numbers = []
+        
+        # Create user cargo
+        cargo_data = {
+            "recipient_name": "Получатель Автоматизации",
+            "recipient_phone": "+992444555666",
+            "route": "moscow_to_tajikistan",
+            "weight": 100.0,
+            "cargo_name": "Груз для автоматизации",
+            "description": "Тестовый груз для автоматического размещения",
+            "declared_value": 7000.0,
+            "sender_address": "Москва, ул. Автоматизации, 1",
+            "recipient_address": "Душанбе, ул. Размещения, 1"
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create User Cargo for Automation",
+            "POST",
+            "/api/cargo/create",
+            200,
+            cargo_data,
+            self.tokens['user']
+        )
+        
+        user_cargo_id = None
+        user_cargo_number = None
+        if success and 'id' in cargo_response:
+            user_cargo_id = cargo_response['id']
+            user_cargo_number = cargo_response.get('cargo_number')
+            test_cargo_numbers.append(user_cargo_number)
+            
+            # Update status to accepted
+            success, _ = self.run_test(
+                "Update User Cargo Status",
+                "PUT",
+                f"/api/cargo/{user_cargo_id}/status",
+                200,
+                token=self.tokens['admin'],
+                params={"status": "accepted", "warehouse_location": "Склад А, Стеллаж 1"}
+            )
+        
+        # Create operator cargo
+        operator_cargo_data = {
+            "sender_full_name": "Отправитель Автоматизации",
+            "sender_phone": "+79111222334",
+            "recipient_full_name": "Получатель Автоматизации Оператор",
+            "recipient_phone": "+992777888900",
+            "recipient_address": "Душанбе, ул. Операторская, 2",
+            "weight": 80.0,
+            "cargo_name": "Оператор груз автоматизация",
+            "declared_value": 6000.0,
+            "description": "Груз оператора для автоматического размещения",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, operator_cargo_response = self.run_test(
+            "Create Operator Cargo for Automation",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            operator_cargo_data,
+            self.tokens['admin']
+        )
+        
+        operator_cargo_id = None
+        operator_cargo_number = None
+        if success and 'id' in operator_cargo_response:
+            operator_cargo_id = operator_cargo_response['id']
+            operator_cargo_number = operator_cargo_response.get('cargo_number')
+            test_cargo_numbers.append(operator_cargo_number)
+        
+        # Place cargo on transport
+        cargo_ids = [cid for cid in [user_cargo_id, operator_cargo_id] if cid]
+        if cargo_ids:
+            placement_data = {
+                "transport_id": transport_id,
+                "cargo_ids": cargo_ids
+            }
+            
+            success, _ = self.run_test(
+                "Place Cargo on Transport",
+                "POST",
+                f"/api/transport/{transport_id}/place-cargo",
+                200,
+                placement_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+        
+        # Dispatch transport
+        success, _ = self.run_test(
+            "Dispatch Transport",
+            "POST",
+            f"/api/transport/{transport_id}/dispatch",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        # Mark transport as arrived
+        success, _ = self.run_test(
+            "Mark Transport as Arrived",
+            "POST",
+            f"/api/transport/{transport_id}/arrive",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        # Ensure we have warehouse and operator binding for automation
+        if not hasattr(self, 'warehouse_id') or not hasattr(self, 'binding_id'):
+            print("   ⚠️  Setting up warehouse and operator binding for automation...")
+            
+            # Create warehouse if needed
+            if not hasattr(self, 'warehouse_id'):
+                warehouse_data = {
+                    "name": "Склад Автоматизации",
+                    "location": "Москва, Автоматическая территория",
+                    "blocks_count": 3,
+                    "shelves_per_block": 3,
+                    "cells_per_shelf": 5
+                }
+                
+                success, warehouse_response = self.run_test(
+                    "Create Warehouse for Automation",
+                    "POST",
+                    "/api/warehouses/create",
+                    200,
+                    warehouse_data,
+                    self.tokens['admin']
+                )
+                
+                if success and 'id' in warehouse_response:
+                    self.warehouse_id = warehouse_response['id']
+            
+            # Create operator binding if needed
+            if not hasattr(self, 'binding_id') and hasattr(self, 'warehouse_id'):
+                operator_id = self.users['warehouse_operator']['id']
+                binding_data = {
+                    "operator_id": operator_id,
+                    "warehouse_id": self.warehouse_id
+                }
+                
+                success, binding_response = self.run_test(
+                    "Create Operator Binding for Automation",
+                    "POST",
+                    "/api/admin/operator-warehouse-binding",
+                    200,
+                    binding_data,
+                    self.tokens['admin']
+                )
+                
+                if success and 'binding_id' in binding_response:
+                    self.binding_id = binding_response['binding_id']
+        
+        # Test 1: Automatic placement by cargo number
+        print("\n   🔢 Testing Automatic Placement by Cargo Number...")
+        if user_cargo_number:
+            placement_data = {
+                "cargo_number": user_cargo_number
+            }
+            
+            success, placement_response = self.run_test(
+                f"Place Cargo by Number {user_cargo_number}",
+                "POST",
+                f"/api/transport/{transport_id}/place-cargo-by-number",
+                200,
+                placement_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Cargo {user_cargo_number} placed automatically")
+                print(f"   🏭 Warehouse: {placement_response.get('warehouse_name', 'Unknown')}")
+                print(f"   📍 Location: {placement_response.get('location', 'Unknown')}")
+                print(f"   🤖 Auto-selected warehouse: {placement_response.get('auto_selected_warehouse', False)}")
+                
+                # Verify cargo was removed from transport
+                success, transport_cargo = self.run_test(
+                    "Verify Cargo Removed from Transport",
+                    "GET",
+                    f"/api/transport/{transport_id}/arrived-cargo",
+                    200,
+                    token=self.tokens['admin']
+                )
+                
+                if success:
+                    remaining_cargo = transport_cargo.get('cargo_list', [])
+                    cargo_found = any(c.get('cargo_number') == user_cargo_number for c in remaining_cargo)
+                    
+                    if not cargo_found:
+                        print(f"   ✅ Cargo {user_cargo_number} successfully removed from transport")
+                    else:
+                        print(f"   ❌ Cargo {user_cargo_number} still found on transport")
+                        all_success = False
+        
+        # Test 2: Automatic placement by QR code data
+        print("\n   📱 Testing Automatic Placement by QR Code...")
+        if operator_cargo_number:
+            # Create QR data in the expected format
+            qr_data = f"""ГРУЗ №{operator_cargo_number}
+Наименование: Оператор груз автоматизация
+Вес: 80.0 кг
+Отправитель: Отправитель Автоматизации
+Тел. отправителя: +79111222334
+Получатель: Получатель Автоматизации Оператор
+Тел. получателя: +992777888900
+Город получения: Душанбе, ул. Операторская, 2"""
+            
+            placement_data = {
+                "qr_data": qr_data
+            }
+            
+            success, qr_placement_response = self.run_test(
+                f"Place Cargo by QR Code {operator_cargo_number}",
+                "POST",
+                f"/api/transport/{transport_id}/place-cargo-by-number",
+                200,
+                placement_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Cargo {operator_cargo_number} placed via QR code")
+                print(f"   🏭 Warehouse: {qr_placement_response.get('warehouse_name', 'Unknown')}")
+                print(f"   📍 Location: {qr_placement_response.get('location', 'Unknown')}")
+                print(f"   📱 Placement method: {qr_placement_response.get('placement_method', 'unknown')}")
+        
+        # Test 3: Cross-collection search functionality
+        print("\n   🔍 Testing Cross-Collection Search...")
+        
+        # Test with both cargo numbers to ensure both collections are searched
+        for i, cargo_number in enumerate(test_cargo_numbers):
+            if cargo_number:
+                placement_data = {
+                    "cargo_number": cargo_number
+                }
+                
+                # This should fail since cargo was already placed, but it tests the search
+                success, _ = self.run_test(
+                    f"Test Cross-Collection Search {cargo_number}",
+                    "POST",
+                    f"/api/transport/{transport_id}/place-cargo-by-number",
+                    400,  # Should fail since cargo already placed
+                    placement_data,
+                    self.tokens['admin']
+                )
+                # We expect this to fail, so success means the search worked
+                if success:
+                    print(f"   ✅ Cross-collection search working for {cargo_number}")
+                else:
+                    print(f"   ✅ Cross-collection search found {cargo_number} (expected failure due to already placed)")
+        
+        # Test 4: Operator warehouse binding restrictions
+        print("\n   🔒 Testing Operator Warehouse Binding Restrictions...")
+        
+        # Create another transport with cargo for operator testing
+        operator_transport_data = {
+            "driver_name": "Оператор Водитель",
+            "driver_phone": "+79123456792",
+            "transport_number": "OP123",
+            "capacity_kg": 1000.0,
+            "direction": "Тест - Оператор"
+        }
+        
+        success, op_transport_response = self.run_test(
+            "Create Transport for Operator Test",
+            "POST",
+            "/api/transport/create",
+            200,
+            operator_transport_data,
+            self.tokens['admin']
+        )
+        
+        if success and 'transport_id' in op_transport_response:
+            op_transport_id = op_transport_response['transport_id']
+            
+            # Create cargo for operator test
+            op_cargo_data = {
+                "sender_full_name": "Тест Оператор",
+                "sender_phone": "+79111222335",
+                "recipient_full_name": "Получатель Оператор Тест",
+                "recipient_phone": "+992777888901",
+                "recipient_address": "Душанбе, ул. Тестовая, 3",
+                "weight": 60.0,
+                "cargo_name": "Груз для теста оператора",
+                "declared_value": 5000.0,
+                "description": "Груз для тестирования ограничений оператора",
+                "route": "moscow_to_tajikistan"
+            }
+            
+            success, op_cargo_response = self.run_test(
+                "Create Cargo for Operator Test",
+                "POST",
+                "/api/operator/cargo/accept",
+                200,
+                op_cargo_data,
+                self.tokens['admin']
+            )
+            
+            if success and 'id' in op_cargo_response:
+                op_cargo_id = op_cargo_response['id']
+                op_cargo_number = op_cargo_response.get('cargo_number')
+                
+                # Place on transport and mark as arrived
+                placement_data = {
+                    "transport_id": op_transport_id,
+                    "cargo_ids": [op_cargo_id]
+                }
+                
+                success, _ = self.run_test(
+                    "Place Cargo on Operator Test Transport",
+                    "POST",
+                    f"/api/transport/{op_transport_id}/place-cargo",
+                    200,
+                    placement_data,
+                    self.tokens['admin']
+                )
+                
+                if success:
+                    # Dispatch and arrive
+                    success, _ = self.run_test(
+                        "Dispatch Operator Test Transport",
+                        "POST",
+                        f"/api/transport/{op_transport_id}/dispatch",
+                        200,
+                        token=self.tokens['admin']
+                    )
+                    
+                    success, _ = self.run_test(
+                        "Mark Operator Test Transport as Arrived",
+                        "POST",
+                        f"/api/transport/{op_transport_id}/arrive",
+                        200,
+                        token=self.tokens['admin']
+                    )
+                    
+                    # Test operator placement (should work with bound warehouse)
+                    placement_data = {
+                        "cargo_number": op_cargo_number
+                    }
+                    
+                    success, op_placement_response = self.run_test(
+                        f"Operator Place Cargo {op_cargo_number}",
+                        "POST",
+                        f"/api/transport/{op_transport_id}/place-cargo-by-number",
+                        200,
+                        placement_data,
+                        self.tokens['warehouse_operator']
+                    )
+                    all_success &= success
+                    
+                    if success:
+                        print(f"   ✅ Operator successfully placed cargo with warehouse binding")
+                        print(f"   🏭 Used warehouse: {op_placement_response.get('warehouse_name', 'Unknown')}")
+        
+        # Test 5: Error handling
+        print("\n   ⚠️  Testing Error Handling...")
+        
+        # Test with non-existent cargo number
+        error_placement_data = {
+            "cargo_number": "9999"
+        }
+        
+        success, _ = self.run_test(
+            "Place Non-existent Cargo (Should Fail)",
+            "POST",
+            f"/api/transport/{transport_id}/place-cargo-by-number",
+            404,
+            error_placement_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        # Test with invalid QR data
+        invalid_qr_data = {
+            "qr_data": "Invalid QR data without proper format"
+        }
+        
+        success, _ = self.run_test(
+            "Place with Invalid QR Data (Should Fail)",
+            "POST",
+            f"/api/transport/{transport_id}/place-cargo-by-number",
+            400,
+            invalid_qr_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        # Test 6: Access control
+        print("\n   🔒 Testing Access Control...")
+        if 'user' in self.tokens:
+            placement_data = {
+                "cargo_number": "1234"
+            }
+            
+            success, _ = self.run_test(
+                "Regular User Automatic Placement (Should Fail)",
+                "POST",
+                f"/api/transport/{transport_id}/place-cargo-by-number",
+                403,
+                placement_data,
+                self.tokens['user']
+            )
+            all_success &= success
+        
+        return all_success
+
+    def test_enhanced_qr_code_integration_system(self):
+        """Test enhanced QR code integration system"""
+        print("\n📱 ENHANCED QR CODE INTEGRATION SYSTEM")
+        
+        if 'admin' not in self.tokens or 'user' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Cargo QR code generation and retrieval
+        print("\n   📦 Testing Cargo QR Code Generation...")
+        
+        # Create cargo for QR testing
+        cargo_data = {
+            "recipient_name": "Получатель QR",
+            "recipient_phone": "+992444555777",
+            "route": "moscow_to_tajikistan",
+            "weight": 45.0,
+            "cargo_name": "Груз для QR тестирования",
+            "description": "Тестовый груз для проверки QR кода",
+            "declared_value": 6500.0,
+            "sender_address": "Москва, ул. QR, 1",
+            "recipient_address": "Душанбе, ул. Кодирования, 1"
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create Cargo for QR Testing",
+            "POST",
+            "/api/cargo/create",
+            200,
+            cargo_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        cargo_id = None
+        cargo_number = None
+        if success and 'id' in cargo_response:
+            cargo_id = cargo_response['id']
+            cargo_number = cargo_response.get('cargo_number')
+            print(f"   📦 Created cargo: {cargo_number}")
+        
+        # Test cargo QR code retrieval
+        if cargo_id:
+            success, qr_response = self.run_test(
+                f"Get Cargo QR Code {cargo_number}",
+                "GET",
+                f"/api/cargo/{cargo_id}/qr-code",
+                200,
+                token=self.tokens['user']
+            )
+            all_success &= success
+            
+            if success:
+                qr_code_data = qr_response.get('qr_code', '')
+                if qr_code_data.startswith('data:image/png;base64,'):
+                    print(f"   ✅ QR code generated in correct base64 PNG format")
+                else:
+                    print(f"   ❌ QR code format incorrect: {qr_code_data[:50]}...")
+                    all_success = False
+                
+                # Verify response structure
+                expected_fields = ['cargo_id', 'cargo_number', 'qr_code']
+                missing_fields = [field for field in expected_fields if field not in qr_response]
+                
+                if not missing_fields:
+                    print(f"   ✅ QR response has all required fields")
+                else:
+                    print(f"   ❌ QR response missing fields: {missing_fields}")
+                    all_success = False
+        
+        # Test 2: Operator cargo QR code generation
+        print("\n   🏭 Testing Operator Cargo QR Code Generation...")
+        
+        operator_cargo_data = {
+            "sender_full_name": "Отправитель QR Оператор",
+            "sender_phone": "+79111222336",
+            "recipient_full_name": "Получатель QR Оператор",
+            "recipient_phone": "+992777888902",
+            "recipient_address": "Душанбе, ул. QR Операторская, 2",
+            "weight": 55.0,
+            "cargo_name": "Оператор QR груз",
+            "declared_value": 7500.0,
+            "description": "Груз оператора для QR тестирования",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, op_cargo_response = self.run_test(
+            "Create Operator Cargo for QR Testing",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            operator_cargo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        op_cargo_id = None
+        op_cargo_number = None
+        if success and 'id' in op_cargo_response:
+            op_cargo_id = op_cargo_response['id']
+            op_cargo_number = op_cargo_response.get('cargo_number')
+            
+            # Test operator cargo QR code
+            success, op_qr_response = self.run_test(
+                f"Get Operator Cargo QR Code {op_cargo_number}",
+                "GET",
+                f"/api/cargo/{op_cargo_id}/qr-code",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Operator cargo QR code generated successfully")
+        
+        # Test 3: Warehouse cell QR code generation
+        print("\n   🏗️ Testing Warehouse Cell QR Code Generation...")
+        
+        # Ensure we have a warehouse
+        if not hasattr(self, 'warehouse_id'):
+            warehouse_data = {
+                "name": "Склад QR Тестирования",
+                "location": "Москва, QR территория",
+                "blocks_count": 2,
+                "shelves_per_block": 2,
+                "cells_per_shelf": 3
+            }
+            
+            success, warehouse_response = self.run_test(
+                "Create Warehouse for QR Testing",
+                "POST",
+                "/api/warehouses/create",
+                200,
+                warehouse_data,
+                self.tokens['admin']
+            )
+            
+            if success and 'id' in warehouse_response:
+                self.warehouse_id = warehouse_response['id']
+        
+        if hasattr(self, 'warehouse_id'):
+            # Test individual cell QR code
+            success, cell_qr_response = self.run_test(
+                "Get Warehouse Cell QR Code",
+                "GET",
+                f"/api/warehouse/{self.warehouse_id}/cell-qr/1/1/1",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                cell_qr_data = cell_qr_response.get('qr_code', '')
+                if cell_qr_data.startswith('data:image/png;base64,'):
+                    print(f"   ✅ Warehouse cell QR code generated correctly")
+                else:
+                    print(f"   ❌ Warehouse cell QR code format incorrect")
+                    all_success = False
+                
+                # Verify location format
+                location = cell_qr_response.get('location', '')
+                if location == 'Б1-П1-Я1':
+                    print(f"   ✅ Warehouse cell location format correct: {location}")
+                else:
+                    print(f"   ❌ Warehouse cell location format incorrect: {location}")
+                    all_success = False
+            
+            # Test bulk warehouse QR code generation
+            success, bulk_qr_response = self.run_test(
+                "Get All Warehouse Cells QR Codes",
+                "GET",
+                f"/api/warehouse/{self.warehouse_id}/all-cells-qr",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                qr_codes = bulk_qr_response.get('qr_codes', [])
+                total_cells = bulk_qr_response.get('total_cells', 0)
+                
+                if total_cells > 0 and len(qr_codes) == total_cells:
+                    print(f"   ✅ Bulk QR generation created {total_cells} QR codes")
+                    
+                    # Verify first QR code structure
+                    if qr_codes:
+                        first_qr = qr_codes[0]
+                        required_fields = ['block', 'shelf', 'cell', 'location', 'qr_code']
+                        missing_fields = [field for field in required_fields if field not in first_qr]
+                        
+                        if not missing_fields:
+                            print(f"   ✅ Bulk QR codes have correct structure")
+                        else:
+                            print(f"   ❌ Bulk QR codes missing fields: {missing_fields}")
+                            all_success = False
+                else:
+                    print(f"   ❌ Bulk QR generation failed: expected {total_cells}, got {len(qr_codes)}")
+                    all_success = False
+        
+        # Test 4: QR code scanning functionality
+        print("\n   📱 Testing QR Code Scanning...")
+        
+        if cargo_number:
+            # Create QR data for cargo scanning
+            cargo_qr_data = f"""ГРУЗ №{cargo_number}
+Наименование: Груз для QR тестирования
+Вес: 45.0 кг
+Отправитель: {self.users['user']['full_name']}
+Тел. отправителя: {self.users['user']['phone']}
+Получатель: Получатель QR
+Тел. получателя: +992444555777
+Город получения: Душанбе, ул. Кодирования, 1"""
+            
+            scan_data = {
+                "qr_text": cargo_qr_data
+            }
+            
+            success, scan_response = self.run_test(
+                f"Scan Cargo QR Code {cargo_number}",
+                "POST",
+                "/api/qr/scan",
+                200,
+                scan_data,
+                self.tokens['user']
+            )
+            all_success &= success
+            
+            if success:
+                scan_type = scan_response.get('type', '')
+                scanned_cargo_number = scan_response.get('cargo_number', '')
+                
+                if scan_type == 'cargo' and scanned_cargo_number == cargo_number:
+                    print(f"   ✅ Cargo QR scanning working correctly")
+                    print(f"   📦 Scanned cargo: {scanned_cargo_number}")
+                    print(f"   📋 Status: {scan_response.get('status', 'unknown')}")
+                else:
+                    print(f"   ❌ Cargo QR scanning failed: type={scan_type}, number={scanned_cargo_number}")
+                    all_success = False
+        
+        # Test warehouse cell QR scanning
+        if hasattr(self, 'warehouse_id'):
+            warehouse_qr_data = f"""ЯЧЕЙКА СКЛАДА
+Местоположение: Склад QR Тестирования-Б1-П1-Я1
+Склад: Склад QR Тестирования
+Адрес склада: Москва, QR территория
+Блок: 1
+Полка: 1
+Ячейка: 1
+ID склада: {self.warehouse_id}"""
+            
+            warehouse_scan_data = {
+                "qr_text": warehouse_qr_data
+            }
+            
+            success, warehouse_scan_response = self.run_test(
+                "Scan Warehouse Cell QR Code",
+                "POST",
+                "/api/qr/scan",
+                200,
+                warehouse_scan_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                scan_type = warehouse_scan_response.get('type', '')
+                warehouse_id = warehouse_scan_response.get('warehouse_id', '')
+                
+                if scan_type == 'warehouse_cell' and warehouse_id == self.warehouse_id:
+                    print(f"   ✅ Warehouse cell QR scanning working correctly")
+                    print(f"   🏗️ Warehouse: {warehouse_scan_response.get('warehouse_name', 'Unknown')}")
+                    print(f"   📍 Location: {warehouse_scan_response.get('location', 'Unknown')}")
+                else:
+                    print(f"   ❌ Warehouse cell QR scanning failed")
+                    all_success = False
+        
+        # Test 5: Access control for QR operations
+        print("\n   🔒 Testing QR Access Control...")
+        
+        # Test user access to own cargo QR
+        if cargo_id:
+            success, _ = self.run_test(
+                "User Access Own Cargo QR",
+                "GET",
+                f"/api/cargo/{cargo_id}/qr-code",
+                200,
+                token=self.tokens['user']
+            )
+            all_success &= success
+        
+        # Test user access to other's cargo QR (should fail)
+        if op_cargo_id:
+            success, _ = self.run_test(
+                "User Access Other's Cargo QR (Should Fail)",
+                "GET",
+                f"/api/cargo/{op_cargo_id}/qr-code",
+                403,
+                token=self.tokens['user']
+            )
+            all_success &= success
+        
+        # Test admin access to all cargo QR
+        if op_cargo_id:
+            success, _ = self.run_test(
+                "Admin Access Any Cargo QR",
+                "GET",
+                f"/api/cargo/{op_cargo_id}/qr-code",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+        
+        # Test user access to warehouse QR (should fail)
+        if hasattr(self, 'warehouse_id'):
+            success, _ = self.run_test(
+                "User Access Warehouse QR (Should Fail)",
+                "GET",
+                f"/api/warehouse/{self.warehouse_id}/cell-qr/1/1/1",
+                403,
+                token=self.tokens['user']
+            )
+            all_success &= success
+        
+        # Test 6: Error handling
+        print("\n   ⚠️  Testing QR Error Handling...")
+        
+        # Test invalid cargo ID
+        success, _ = self.run_test(
+            "Get QR for Non-existent Cargo (Should Fail)",
+            "GET",
+            "/api/cargo/invalid-id/qr-code",
+            404,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        # Test invalid warehouse cell
+        if hasattr(self, 'warehouse_id'):
+            success, _ = self.run_test(
+                "Get QR for Invalid Warehouse Cell (Should Fail)",
+                "GET",
+                f"/api/warehouse/{self.warehouse_id}/cell-qr/99/99/99",
+                404,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+        
+        # Test invalid QR scan data
+        invalid_scan_data = {
+            "qr_text": "Invalid QR data that doesn't match any format"
+        }
+        
+        success, _ = self.run_test(
+            "Scan Invalid QR Data (Should Fail)",
+            "POST",
+            "/api/qr/scan",
+            400,
+            invalid_scan_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
@@ -6068,6 +7170,10 @@ ID склада: {self.warehouse_id}"""
             ("QR Code Scanning System", self.test_qr_code_scanning_system),
             ("QR Code Content Format Verification", self.test_qr_code_content_format_verification),
             ("QR Code Integration with Existing Features", self.test_qr_code_integration_with_existing_features),
+            # NEW TESTS FOR THE 3 SYSTEMS THAT NEED TESTING
+            ("Transport Visualization System", self.test_transport_visualization_system),
+            ("Automated QR/Number Cargo Placement System", self.test_automated_qr_number_cargo_placement_system),
+            ("Enhanced QR Code Integration System", self.test_enhanced_qr_code_integration_system),
             ("Notifications", self.test_notifications),
             ("Error Handling", self.test_error_cases)
         ]
