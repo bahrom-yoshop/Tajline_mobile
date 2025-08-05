@@ -8308,6 +8308,10 @@ ID склада: {self.warehouse_id}"""
             ("New Warehouse Operator Functions (4 NEW FEATURES)", self.test_new_warehouse_operator_functions),
             # STAGE 1 FEATURES - NEW TESTS
             ("🎯 STAGE 1 FEATURES", self.test_stage1_features),
+            # NEW FEATURES TESTING - 3 NEW FUNCTIONS
+            ("🆕 NEW FEATURE 1: Admin Operator Creation", self.test_admin_operator_creation),
+            ("🆕 NEW FEATURE 2: Updated User Registration", self.test_updated_user_registration),
+            ("🆕 NEW FEATURE 3: Client Dashboard System", self.test_client_dashboard_system),
             ("Notifications", self.test_notifications),
             ("Error Handling", self.test_error_cases)
         ]
