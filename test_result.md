@@ -790,6 +790,18 @@ frontend:
           agent: "main"
           comment: "✅ IMPLEMENTED - Added comprehensive QR code frontend features: 1) QR scanner modal with camera interface and manual input, 2) QR button in admin header for easy access, 3) QR print buttons for cargo (in transport management and cargo details), 4) QR print button for warehouse cells ('QR ячеек' in warehouse list), 5) printCargoQrLabel() function for individual cargo QR labels, 6) printWarehouseCellsQr() function for printing all warehouse cell QR codes, 7) QR scan result modal with cargo/cell information display, 8) Integration with existing cargo detail and warehouse management modals."
 
+  - task: "Arrived Transport Cargo Placement Interface"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ IMPLEMENTED - Created complete frontend interface for placing cargo from arrived transports to warehouses: 1) Added 'Прибыл' button in transport 'В пути' section to mark transport as arrived, 2) Updated 'На место назначения' section to show arrived transports with placement functionality, 3) Arrived transport modal displaying cargo list with placement status, 4) Individual cargo placement modal with warehouse/cell selection, 5) fetchArrivedTransports(), fetchArrivedTransportCargo(), handleMarkTransportArrived(), handlePlaceCargoFromTransport() functions, 6) Full integration with existing warehouse and cargo management systems, 7) Real-time updates and notifications."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
