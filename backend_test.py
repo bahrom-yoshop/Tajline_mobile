@@ -5695,6 +5695,49 @@ ID склада: {self.warehouse_id}"""
         if success and 'id' in operator_cargo_response:
             cargo_ids.append(operator_cargo_response['id'])
             print(f"   📦 Created operator cargo: {operator_cargo_response['cargo_number']}")
+            
+            # Place operator cargo in warehouse first (required for transport placement)
+            # Create a warehouse for operator cargo
+            warehouse_data = {
+                "name": "Склад для операторского груза",
+                "location": "Москва, Операторская территория",
+                "blocks_count": 2,
+                "shelves_per_block": 2,
+                "cells_per_shelf": 5
+            }
+            
+            success, warehouse_response = self.run_test(
+                "Create Warehouse for Operator Cargo",
+                "POST",
+                "/api/warehouses/create",
+                200,
+                warehouse_data,
+                self.tokens['admin']
+            )
+            
+            if success and 'id' in warehouse_response:
+                operator_warehouse_id = warehouse_response['id']
+                
+                # Place operator cargo in warehouse
+                placement_data = {
+                    "cargo_id": operator_cargo_response['id'],
+                    "warehouse_id": operator_warehouse_id,
+                    "block_number": 1,
+                    "shelf_number": 1,
+                    "cell_number": 1
+                }
+                
+                success, _ = self.run_test(
+                    "Place Operator Cargo in Warehouse",
+                    "POST",
+                    "/api/operator/cargo/place",
+                    200,
+                    placement_data,
+                    self.tokens['admin']
+                )
+                
+                if success:
+                    print(f"   ✅ Operator cargo placed in warehouse")
         
         # Place both cargo items on transport
         if len(cargo_ids) >= 2:
