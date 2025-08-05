@@ -63,6 +63,7 @@ function App() {
     recipient_phone: '',
     recipient_address: '',
     weight: '',
+    cargo_name: '',
     declared_value: '',
     description: '',
     route: 'moscow_to_tajikistan'
