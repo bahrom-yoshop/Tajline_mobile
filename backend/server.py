@@ -533,6 +533,26 @@ def create_system_notification(title: str, message: str, notification_type: str,
     }
     db.system_notifications.insert_one(notification)
 
+def create_personal_notification(user_id: str, title: str, message: str, notification_type: str, related_id: str = None):
+    """Создать персональное уведомление для пользователя"""
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "message": f"{title}: {message}",
+        "cargo_id": related_id if notification_type == "cargo" else None,
+        "is_read": False,
+        "created_at": datetime.utcnow()
+    }
+    db.notifications.insert_one(notification)
+
+def check_operator_warehouse_binding(operator_id: str, warehouse_id: str) -> bool:
+    """Проверить, привязан ли оператор к складу"""
+    binding = db.operator_warehouse_bindings.find_one({
+        "operator_id": operator_id,
+        "warehouse_id": warehouse_id
+    })
+    return binding is not None
+
 def generate_request_number() -> str:
     """Генерировать номер заявки"""
     return f"REQ{datetime.now().strftime('%Y%m%d')}{str(uuid.uuid4())[:8].upper()}"
