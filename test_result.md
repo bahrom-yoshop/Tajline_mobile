@@ -105,6 +105,57 @@
 user_problem_statement: "Add logistics management system with transport handling. User requests adding 'Логистика' category in sidebar menu with subcategories for managing transport vehicles, cargo placement, and transportation tracking. System should handle transport registration, cargo loading, status tracking, and notifications."
 
 backend:
+  - task: "4-Digit Cargo Numbering System"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL ISSUE FOUND - Cargo numbering system generating duplicate numbers. The generate_cargo_number() function only checks db.cargo collection but operator cargo is stored in db.operator_cargo collection, causing duplicate 4-digit numbers (e.g., 1004 appeared multiple times)."
+        - working: true
+          agent: "testing"
+          comment: "✅ FIXED & PASSED - Updated generate_cargo_number() function to check both db.cargo and db.operator_cargo collections for uniqueness. All cargo numbering tests now pass: User cargo creation ✅, Operator cargo creation ✅, Cargo request acceptance ✅, Sequential numbering ✅, Uniqueness validation ✅, 4-digit format ✅, Range validation (1001-9999) ✅. Comprehensive testing shows 100% success rate for cargo numbering functionality."
+
+  - task: "Cargo Number Generation Testing"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASSED - Comprehensive testing of cargo number generation across all creation methods: 1) User cargo creation via /api/cargo/create generates sequential 4-digit numbers starting from 1001 ✅, 2) Operator cargo creation via /api/operator/cargo/accept generates sequential 4-digit numbers ✅, 3) Cargo request acceptance via /api/admin/cargo-requests/{id}/accept generates sequential 4-digit numbers ✅. All numbers are unique, properly formatted, and within 1001-9999 range."
+
+  - task: "Cargo Operations with 4-Digit Numbers"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASSED - All cargo operations work correctly with 4-digit numbers: Cargo tracking via /api/cargo/track/{cargo_number} ✅, Cargo search via /api/warehouse/search ✅, Payment processing via /api/cashier/search-cargo/{cargo_number} and /api/cashier/process-payment ✅. Note: Payment system works with operator_cargo collection while tracking works with cargo collection - this is expected behavior based on system design."
+
+  - task: "Cargo Number Database Integration"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASSED - Database integration working correctly: System properly queries existing cargo numbers from both collections ✅, Handles rapid cargo creation without duplicates ✅, Maintains number format consistency ✅, Properly manages sequential numbering across different cargo creation methods ✅. Tested with rapid creation of multiple cargo items - all numbers remain unique and properly formatted."
+
   - task: "Transport Management System - Backend API"
     implemented: true
     working: true
