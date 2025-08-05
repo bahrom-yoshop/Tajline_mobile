@@ -1385,9 +1385,14 @@ async def accept_new_cargo(
         if not warehouse:
             raise HTTPException(status_code=404, detail="Target warehouse not found")
     else:
-        # Админ может принимать грузы на любой склад (пока без указания конкретного)
-        target_warehouse_id = None
-        warehouse = None
+        # Админ может принимать грузы на любой склад - выбираем первый доступный
+        all_warehouses = list(db.warehouses.find({"is_active": True}))
+        if all_warehouses:
+            target_warehouse_id = all_warehouses[0]["id"]
+            warehouse = all_warehouses[0]
+        else:
+            target_warehouse_id = None
+            warehouse = None
     
     cargo_id = str(uuid.uuid4())
     cargo_number = generate_cargo_number()
