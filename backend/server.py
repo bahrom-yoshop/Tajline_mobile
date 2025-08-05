@@ -2701,7 +2701,19 @@ async def get_operator_warehouse_bindings(
         raise HTTPException(status_code=403, detail="Access denied")
     
     bindings = list(db.operator_warehouse_bindings.find({}).sort("created_at", -1))
-    return [OperatorWarehouseBinding(**binding) for binding in bindings]
+    # Serialize and ensure all required fields exist
+    normalized_bindings = []
+    for binding in bindings:
+        normalized = serialize_mongo_document(binding)
+        # Ensure all required fields exist with defaults
+        normalized.update({
+            'operator_phone': binding.get('operator_phone', 'Не указан'),
+            'operator_name': binding.get('operator_name', 'Не указан'),
+            'warehouse_name': binding.get('warehouse_name', 'Не указан')
+        })
+        normalized_bindings.append(normalized)
+    
+    return normalized_bindings
 
 @app.delete("/api/admin/operator-warehouse-binding/{binding_id}")
 async def delete_operator_warehouse_binding(
