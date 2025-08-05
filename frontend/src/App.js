@@ -199,7 +199,7 @@ function App() {
     pickup_address: '',
     cargo_name: '',
     weight: '',
-    declared_value: '',
+    declared_value: '80', // По умолчанию для общего маршрута moscow_to_tajikistan
     description: '',
     route: 'moscow_to_tajikistan'
   });
