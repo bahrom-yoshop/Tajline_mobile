@@ -589,6 +589,11 @@ async def login(user_data: UserLogin):
         )
     }
 
+@app.get("/api/auth/me")
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
+    """Get current user information"""
+    return current_user
+
 # Управление грузами
 @app.post("/api/cargo/create")
 async def create_cargo(cargo_data: CargoCreate, current_user: User = Depends(get_current_user)):
