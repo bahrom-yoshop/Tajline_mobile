@@ -460,7 +460,7 @@ function App() {
     e.preventDefault();
     
     if (!costCalculation) {
-      alert('Сначала рассчитайте стоимость доставки');
+      showAlert('Сначала рассчитайте стоимость доставки', 'error');
       return;
     }
 
@@ -481,7 +481,7 @@ function App() {
         cargo_name: '',
         description: '',
         weight: '',
-        declared_value: '',
+        declared_value: getDefaultDeclaredValue('moscow_dushanbe'), // Используем значение по умолчанию
         recipient_full_name: '',
         recipient_phone: '',
         recipient_address: '',
@@ -504,11 +504,23 @@ function App() {
       fetchClientCargo();
       
       // Показываем успешное сообщение
-      alert(`Груз успешно оформлен! Номер: ${result.cargo_number}, Трекинг: ${result.tracking_code}`);
+      showAlert(`Груз успешно оформлен! Номер: ${result.cargo_number}, Трекинг: ${result.tracking_code}`, 'success');
       
     } catch (error) {
       console.error('Error creating cargo order:', error);
-      alert('Ошибка оформления груза: ' + (error.message || 'Неизвестная ошибка'));
+      
+      // Правильная обработка ошибок
+      let errorMessage = 'Неизвестная ошибка при оформлении груза';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error.detail) {
+        errorMessage = error.detail;
+      }
+      
+      showAlert('Ошибка оформления груза: ' + errorMessage, 'error');
     }
   };
 
