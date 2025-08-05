@@ -796,7 +796,7 @@ backend:
 
   - task: "Unpaid Orders System"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
@@ -808,6 +808,9 @@ backend:
         - working: false
           agent: "testing"
           comment: "❌ CRITICAL API ISSUE FOUND - Unpaid orders system has implementation problems. TESTING RESULTS: 1) ✅ CARGO REQUEST CREATION: Bahrom user successfully created cargo request, 2) ✅ ADMIN ACCEPTANCE: Admin successfully accepted request and created cargo #250850, 3) ✅ UNPAID ORDER CREATION: System automatically created unpaid order (Amount: 7000.0 руб, Client: Бахром Клиент), 4) ✅ GET /api/admin/unpaid-orders: Successfully retrieved 6 unpaid orders including our test order, 5) ❌ MARK AS PAID FAILURE: POST /api/admin/unpaid-orders/{order_id}/mark-paid returns 422 error - 'Field required' for payment_method parameter. API SCHEMA ISSUE: The endpoint expects payment_method as query parameter but the request structure is incorrect. The mark-paid functionality is blocked by this API parameter issue. PARTIAL SUCCESS: 4/5 workflow steps working, payment marking needs API fix."
+        - working: true
+          agent: "testing"
+          comment: "✅ CORRECTED UNPAID ORDERS SYSTEM FULLY WORKING - Comprehensive testing of the FIXED unpaid orders API shows complete success! CORRECTED API RESULTS: 1) ✅ CARGO REQUEST CREATION: Bahrom user (+992900000000/123456) successfully created cargo request (ID: 7c834965-1b58-4564-8137-96231b948902), 2) ✅ ADMIN ACCEPTANCE: Admin (+79999888777/admin123) successfully accepted request and created cargo #250109 with corrected numbering format, 3) ✅ UNPAID ORDER CREATION: System automatically created unpaid order (Amount: 7000.0 руб, Client: Бахром Клиент, ID: 65085855-8a39-48b3-bfae-fad9bfeb5f15), 4) ✅ GET /api/admin/unpaid-orders: Successfully retrieved 8 unpaid orders including our test order, 5) ✅ CORRECTED MARK-PAID API: POST /api/admin/unpaid-orders/{order_id}/mark-paid now works perfectly with JSON body {\"payment_method\": \"cash\"} - returned 200 status with response {'message': 'Order marked as paid successfully', 'cargo_number': '250109', 'amount': 7000.0}, 6) ✅ STATUS UPDATE VERIFICATION: Order successfully removed from unpaid list after payment. FULL WORKFLOW SUCCESS: 5/5 steps working perfectly. The corrected API now accepts JSON body instead of query parameters. SUCCESS RATE: 100% - CORRECTED UNPAID ORDERS SYSTEM WORKING PERFECTLY!"
 
   - task: "Full Workflow Test - Unpaid Orders"
     implemented: true
