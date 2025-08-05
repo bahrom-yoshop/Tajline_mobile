@@ -349,6 +349,97 @@ function App() {
     }
   };
 
+  // Новые функции для оформления груза
+  const fetchDeliveryOptions = async () => {
+    try {
+      const data = await apiCall('/api/client/cargo/delivery-options');
+      setDeliveryOptions(data);
+    } catch (error) {
+      console.error('Error fetching delivery options:', error);
+    }
+  };
+
+  const calculateCargoCost = async () => {
+    if (!cargoOrderForm.weight || !cargoOrderForm.declared_value || !cargoOrderForm.cargo_name) {
+      return;
+    }
+
+    setIsCalculating(true);
+    try {
+      // Подготавливаем данные для расчета
+      const calculationData = {
+        ...cargoOrderForm,
+        weight: parseFloat(cargoOrderForm.weight),
+        declared_value: parseFloat(cargoOrderForm.declared_value),
+        insurance_value: cargoOrderForm.insurance_requested ? parseFloat(cargoOrderForm.insurance_value || cargoOrderForm.declared_value) : null
+      };
+
+      const data = await apiCall('/api/client/cargo/calculate', 'POST', calculationData);
+      setCostCalculation(data);
+    } catch (error) {
+      console.error('Error calculating cost:', error);
+      alert('Ошибка расчета стоимости: ' + (error.message || 'Неизвестная ошибка'));
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
+  const handleCreateCargoOrder = async (e) => {
+    e.preventDefault();
+    
+    if (!costCalculation) {
+      alert('Сначала рассчитайте стоимость доставки');
+      return;
+    }
+
+    try {
+      // Подготавливаем данные для создания груза
+      const orderData = {
+        ...cargoOrderForm,
+        weight: parseFloat(cargoOrderForm.weight),
+        declared_value: parseFloat(cargoOrderForm.declared_value),
+        insurance_value: cargoOrderForm.insurance_requested ? parseFloat(cargoOrderForm.insurance_value || cargoOrderForm.declared_value) : null
+      };
+
+      const result = await apiCall('/api/client/cargo/create', 'POST', orderData);
+      setCargoOrderResult(result);
+      
+      // Сброс формы
+      setCargoOrderForm({
+        cargo_name: '',
+        description: '',
+        weight: '',
+        declared_value: '',
+        recipient_full_name: '',
+        recipient_phone: '',
+        recipient_address: '',
+        recipient_city: '',
+        route: 'moscow_dushanbe',
+        delivery_type: 'standard',
+        insurance_requested: false,
+        insurance_value: '',
+        packaging_service: false,
+        home_pickup: false,
+        home_delivery: false,
+        fragile: false,
+        temperature_sensitive: false,
+        special_instructions: ''
+      });
+      setCostCalculation(null);
+      
+      // Обновляем данные клиента
+      fetchClientDashboard();
+      fetchClientCargo();
+      
+      // Показываем успешное сообщение
+      alert(`Груз успешно оформлен! Номер: ${result.cargo_number}, Трекинг: ${result.tracking_code}`);
+      
+    } catch (error) {
+      console.error('Error creating cargo order:', error);
+      alert('Ошибка оформления груза: ' + (error.message || 'Неизвестная ошибка'));
+    }
+  };
+
   useEffect(() => {
     if (token) {
       // Попытка получить информацию о пользователе при загрузке
