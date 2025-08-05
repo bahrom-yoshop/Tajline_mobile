@@ -2399,9 +2399,23 @@ function App() {
             <div className="space-y-6">
               {/* Client Dashboard Header */}
               <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Добро пожаловать, {user.full_name}!</h1>
-                  <p className="text-gray-600 mt-1">Ваш личный кабинет для управления грузами</p>
+                <div className="flex items-center space-x-4">
+                  <img 
+                    src="/logo.png" 
+                    alt="TAJLINE.TJ" 
+                    className="h-12 w-auto"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'block';
+                    }}
+                  />
+                  <div className="hidden">
+                    <h1 className="text-3xl font-bold text-gray-900">TAJLINE.TJ</h1>
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold text-gray-900">Добро пожаловать, {user.full_name}!</h1>
+                    <p className="text-gray-600 mt-1">Ваш личный кабинет для управления грузами</p>
+                  </div>
                 </div>
                 <div className="flex items-center space-x-4">
                   <Button 
