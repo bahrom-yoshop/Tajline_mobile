@@ -466,6 +466,36 @@ frontend:
           agent: "main"
           comment: "✅ COMPLETED - Updated cargo placement interface to use text input for cargo numbers. Users can now type cargo numbers directly, system validates they exist on warehouse, and places them on transport with automatic inventory updates."
 
+  - task: "Operator-Warehouse Management Interface"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to create admin interface for managing operator-warehouse bindings, allowing admins to assign operators to specific warehouses and view/delete existing bindings."
+        - working: true
+          agent: "main"
+          comment: "✅ COMPLETED - Added operator-warehouse binding management interface for admins. Includes modal for creating bindings, table view of existing bindings, and delete functionality."
+
+  - task: "Operator Information Display in Cargo Cards"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to display operator names (created_by_operator, placed_by_operator) in cargo cards throughout the application and in printed invoices."
+        - working: true
+          agent: "main"
+          comment: "✅ COMPLETED - Added operator information display in cargo cards and invoice printing. Shows which operator accepted and placed each cargo item."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
