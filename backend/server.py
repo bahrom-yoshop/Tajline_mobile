@@ -782,6 +782,117 @@ async def get_all_warehouse_cells_qr_codes(
         "qr_codes": qr_codes
     }
 
+# QR Code Scanning API
+@app.post("/api/qr/scan")
+async def scan_qr_code(
+    qr_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Обработка отсканированного QR кода"""
+    qr_text = qr_data.get("qr_text", "")
+    
+    if not qr_text:
+        raise HTTPException(status_code=400, detail="QR code data is empty")
+    
+    # Определяем тип QR кода
+    if "ГРУЗ №" in qr_text:
+        # QR код груза
+        try:
+            # Извлекаем номер груза
+            cargo_number = qr_text.split("ГРУЗ №")[1].split("\n")[0].strip()
+            
+            # Ищем груз
+            cargo = db.cargo.find_one({"cargo_number": cargo_number})
+            if not cargo:
+                cargo = db.operator_cargo.find_one({"cargo_number": cargo_number})
+            
+            if not cargo:
+                raise HTTPException(status_code=404, detail=f"Cargo {cargo_number} not found")
+            
+            # Проверка доступа
+            if current_user.role == UserRole.USER and cargo.get("sender_id") != current_user.id:
+                raise HTTPException(status_code=403, detail="Access denied")
+            
+            return {
+                "type": "cargo",
+                "cargo_id": cargo["id"],
+                "cargo_number": cargo["cargo_number"],
+                "cargo_name": cargo.get("cargo_name", "Груз"),
+                "status": cargo.get("status"),
+                "weight": cargo.get("weight"),
+                "sender": cargo.get("sender_full_name", "Не указан"),
+                "recipient": cargo.get("recipient_full_name", cargo.get("recipient_name", "Не указан")),
+                "location": cargo.get("warehouse_location", "Не размещен")
+            }
+            
+        except Exception as e:
+            raise HTTPException(status_code=400, detail="Invalid cargo QR code format")
+    
+    elif "ЯЧЕЙКА СКЛАДА" in qr_text:
+        # QR код ячейки склада
+        try:
+            # Извлекаем данные ячейки
+            lines = qr_text.split("\n")
+            location_line = [line for line in lines if "Местоположение:" in line][0]
+            location = location_line.split("Местоположение: ")[1].strip()
+            
+            # Извлекаем warehouse_id
+            warehouse_id_line = [line for line in lines if "ID склада:" in line][0]
+            warehouse_id = warehouse_id_line.split("ID склада: ")[1].strip()
+            
+            # Найти склад
+            warehouse = db.warehouses.find_one({"id": warehouse_id})
+            if not warehouse:
+                raise HTTPException(status_code=404, detail="Warehouse not found")
+            
+            # Проверка доступа
+            if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+                raise HTTPException(status_code=403, detail="Access denied")
+            
+            # Извлекаем блок, полку, ячейку из локации
+            parts = location.split("-")
+            if len(parts) >= 3:
+                block = int(parts[1][1:])  # Убираем "Б"
+                shelf = int(parts[2][1:])  # Убираем "П" 
+                cell = int(parts[3][1:])   # Убираем "Я"
+                
+                # Проверяем, есть ли груз в этой ячейке
+                location_code = f"{block}-{shelf}-{cell}"
+                warehouse_cell = db.warehouse_cells.find_one({
+                    "warehouse_id": warehouse_id,
+                    "location_code": location_code
+                })
+                
+                cell_cargo = None
+                if warehouse_cell and warehouse_cell.get("is_occupied"):
+                    cargo_id = warehouse_cell.get("cargo_id")
+                    cell_cargo = db.cargo.find_one({"id": cargo_id})
+                    if not cell_cargo:
+                        cell_cargo = db.operator_cargo.find_one({"id": cargo_id})
+                
+                return {
+                    "type": "warehouse_cell",
+                    "warehouse_id": warehouse_id,
+                    "warehouse_name": warehouse.get("name"),
+                    "location": location,
+                    "block": block,
+                    "shelf": shelf,
+                    "cell": cell,
+                    "is_occupied": warehouse_cell.get("is_occupied", False) if warehouse_cell else False,
+                    "cargo": {
+                        "cargo_number": cell_cargo.get("cargo_number"),
+                        "cargo_name": cell_cargo.get("cargo_name", "Груз"),
+                        "weight": cell_cargo.get("weight"),
+                        "status": cell_cargo.get("status")
+                    } if cell_cargo else None
+                }
+            
+        except Exception as e:
+            raise HTTPException(status_code=400, detail="Invalid warehouse cell QR code format")
+    
+    else:
+        raise HTTPException(status_code=400, detail="Unknown QR code format")
+
 # Управление грузами
 @app.post("/api/cargo/create")
 async def create_cargo(cargo_data: CargoCreate, current_user: User = Depends(get_current_user)):
