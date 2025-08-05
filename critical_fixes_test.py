@@ -429,18 +429,17 @@ class CriticalFixesTester:
         # First, we need to place cargo on transport and mark it as arrived
         print("   🚛 Setting up transport with cargo...")
         
-        # Place some cargo on transport first
+        # Place some cargo on transport first using the correct API
         if self.cargo_ids['cargo']:
             cargo_info = self.cargo_ids['cargo'][0]
             placement_data = {
-                "transport_id": self.transport_id,
-                "cargo_ids": [cargo_info['id']]
+                "cargo_numbers": [cargo_info['number']]  # Use cargo_numbers instead of cargo_ids
             }
             
             success, _ = self.run_test(
-                "Place Cargo on Transport",
+                "Place Cargo on Transport by Number",
                 "POST",
-                f"/api/transport/{self.transport_id}/place-cargo",
+                f"/api/transport/{self.transport_id}/place-cargo-by-numbers",
                 200,
                 placement_data,
                 self.tokens['admin']
@@ -448,6 +447,18 @@ class CriticalFixesTester:
             
             if success:
                 print("   ✅ Cargo placed on transport")
+        
+        # Dispatch transport first
+        success, _ = self.run_test(
+            "Dispatch Transport",
+            "POST",
+            f"/api/transport/{self.transport_id}/dispatch",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        if success:
+            print("   ✅ Transport dispatched")
         
         # Mark transport as arrived
         success, _ = self.run_test(
