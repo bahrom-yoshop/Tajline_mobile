@@ -969,6 +969,130 @@ function App() {
     }
   };
 
+  // QR Code functions
+  const getCargoQrCode = async (cargoId) => {
+    try {
+      const data = await apiCall(`/api/cargo/${cargoId}/qr-code`);
+      return data.qr_code;
+    } catch (error) {
+      console.error('Error getting cargo QR code:', error);
+      return null;
+    }
+  };
+
+  const getCellQrCode = async (warehouseId, block, shelf, cell) => {
+    try {
+      const data = await apiCall(`/api/warehouse/${warehouseId}/cell-qr/${block}/${shelf}/${cell}`);
+      return data.qr_code;
+    } catch (error) {
+      console.error('Error getting cell QR code:', error);
+      return null;
+    }
+  };
+
+  const handleQrScan = async (qrText) => {
+    try {
+      const data = await apiCall('/api/qr/scan', 'POST', { qr_text: qrText });
+      setQrScanResult(data);
+      setQrScannerModal(false);
+      showAlert('QR код успешно отсканирован!', 'success');
+    } catch (error) {
+      console.error('QR scan error:', error);
+      setQrScanResult(null);
+    }
+  };
+
+  const printCargoQrLabel = async (cargo) => {
+    try {
+      const qrCode = await getCargoQrCode(cargo.id);
+      if (!qrCode) {
+        showAlert('Не удалось получить QR код', 'error');
+        return;
+      }
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>QR Этикетка - ${cargo.cargo_number}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }
+              .qr-label { border: 2px solid #000; padding: 20px; margin: 20px auto; width: 300px; }
+              .qr-code { margin: 20px 0; }
+              .cargo-info { font-size: 14px; font-weight: bold; margin: 10px 0; }
+              .cargo-details { font-size: 12px; margin: 5px 0; }
+            </style>
+          </head>
+          <body>
+            <div class="qr-label">
+              <h3>TAJLINE.TJ</h3>
+              <div class="cargo-info">ГРУЗ №${cargo.cargo_number}</div>
+              <div class="qr-code">
+                <img src="${qrCode}" alt="QR Code" style="width: 150px; height: 150px;" />
+              </div>
+              <div class="cargo-details">
+                <div><strong>Наименование:</strong> ${cargo.cargo_name || 'Груз'}</div>
+                <div><strong>Вес:</strong> ${cargo.weight} кг</div>
+                <div><strong>Получатель:</strong> ${cargo.recipient_full_name || cargo.recipient_name}</div>
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
+      
+      printWindow.document.close();
+      printWindow.print();
+    } catch (error) {
+      console.error('Error printing QR label:', error);
+    }
+  };
+
+  const printWarehouseCellsQr = async (warehouse) => {
+    try {
+      const data = await apiCall(`/api/warehouse/${warehouse.id}/all-cells-qr`);
+      
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>QR Коды ячеек - ${data.warehouse_name}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 10px; }
+              .header { text-align: center; margin-bottom: 20px; }
+              .qr-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+              .qr-cell { border: 1px solid #ccc; padding: 10px; text-align: center; page-break-inside: avoid; }
+              .qr-code { margin: 10px 0; }
+              .cell-info { font-size: 12px; font-weight: bold; }
+              @media print { .qr-grid { grid-template-columns: repeat(3, 1fr); } }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h2>QR Коды ячеек склада "${data.warehouse_name}"</h2>
+              <p>Всего ячеек: ${data.total_cells}</p>
+            </div>
+            <div class="qr-grid">
+              ${data.qr_codes.map(cell => `
+                <div class="qr-cell">
+                  <div class="cell-info">${cell.location}</div>
+                  <div class="qr-code">
+                    <img src="${cell.qr_code}" alt="QR Code" style="width: 80px; height: 80px;" />
+                  </div>
+                  <div class="cell-info">${data.warehouse_name}</div>
+                </div>
+              `).join('')}
+            </div>
+          </body>
+        </html>
+      `);
+      
+      printWindow.document.close();
+      printWindow.print();
+    } catch (error) {
+      console.error('Error printing warehouse QR codes:', error);
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
