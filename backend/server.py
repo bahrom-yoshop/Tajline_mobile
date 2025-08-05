@@ -2600,15 +2600,21 @@ async def get_transport_visualization(
 
 @app.get("/api/transport/list")
 async def get_transports_list(
+    status: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
     """Получить список транспортов с фильтрацией по ролям (1.5)"""
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Access denied")
     
+    # Базовый запрос с фильтрацией по статусу
+    base_query = {}
+    if status and status != "all":
+        base_query["status"] = status
+    
     if current_user.role == UserRole.ADMIN:
         # Админ видит все транспорты
-        transports = list(db.transports.find({}))
+        transports = list(db.transports.find(base_query))
     else:
         # Оператор видит транспорты, связанные с его складами
         operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
@@ -2633,7 +2639,9 @@ async def get_transports_list(
         for warehouse_name in operator_warehouse_names:
             query_conditions.append({"direction": {"$regex": warehouse_name, "$options": "i"}})
         
-        transports = list(db.transports.find({"$or": query_conditions}))
+        # Объединяем фильтр по ролям с фильтром по статусу
+        final_query = {"$and": [base_query, {"$or": query_conditions}]} if base_query else {"$or": query_conditions}
+        transports = list(db.transports.find(final_query))
     
     transport_list = []
     for transport in transports:
