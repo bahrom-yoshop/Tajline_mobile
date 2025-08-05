@@ -2443,8 +2443,7 @@ function App() {
                       
                       {/* Результаты поиска */}
                       {showSearchResults && (
-                        <div className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto"
-                             style={{top: '100%', left: 0}}
+                        <div className="absolute z-50 mt-2 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto"
                         >
                           {searchResults.length === 0 ? (
                             <div className="p-4 text-gray-500 text-center">Ничего не найдено</div>
