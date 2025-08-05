@@ -886,7 +886,12 @@ async def assign_cargo_to_cell(
     # Обновляем груз
     db.cargo.update_one(
         {"id": cargo_id},
-        {"$set": {"warehouse_location": cell_location_code, "updated_at": datetime.utcnow()}}
+        {"$set": {
+            "warehouse_location": cell_location_code, 
+            "updated_at": datetime.utcnow(),
+            "placed_by_operator": current_user.full_name,
+            "placed_by_operator_id": current_user.id
+        }}
     )
     
     # Создаем уведомление для отправителя
