@@ -53,6 +53,32 @@ function App() {
   const [operatorCreationModal, setOperatorCreationModal] = useState(false);
   const [allOperators, setAllOperators] = useState([]);
 
+  // Новые состояния для оформления груза клиентами
+  const [cargoOrderForm, setCargoOrderForm] = useState({
+    cargo_name: '',
+    description: '',
+    weight: '',
+    declared_value: '',
+    recipient_full_name: '',
+    recipient_phone: '',
+    recipient_address: '',
+    recipient_city: '',
+    route: 'moscow_dushanbe',
+    delivery_type: 'standard',
+    insurance_requested: false,
+    insurance_value: '',
+    packaging_service: false,
+    home_pickup: false,
+    home_delivery: false,
+    fragile: false,
+    temperature_sensitive: false,
+    special_instructions: ''
+  });
+  const [deliveryOptions, setDeliveryOptions] = useState(null);
+  const [costCalculation, setCostCalculation] = useState(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [cargoOrderResult, setCargoOrderResult] = useState(null);
+
   // Form states
   const [loginForm, setLoginForm] = useState({ phone: '', password: '' });
   const [registerForm, setRegisterForm] = useState({ full_name: '', phone: '', password: '' }); // Убрана роль (Функция 3)
