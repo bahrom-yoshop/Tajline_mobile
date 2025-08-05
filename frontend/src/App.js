@@ -2228,6 +2228,7 @@ function App() {
         icon: <Bell className="w-5 h-5" />,
         section: 'notifications-management',
         subsections: [
+          { id: 'notifications-client-orders', label: `Новые заказы (${newOrdersCount})` },
           { id: 'notifications-requests', label: 'Новые заявки' },
           { id: 'notifications-system', label: 'Уведомления' }
         ]
