@@ -7760,7 +7760,10 @@ ID склада: {self.warehouse_id}"""
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
-            # CRITICAL: Test the 3 specific operator permission fixes first
+            # CRITICAL: Test the 2 specific fixes from review request first
+            ("🔧 CRITICAL FIX: ObjectId Serialization - GET /api/warehouses", self.test_critical_objectid_serialization_fix),
+            ("🔧 CRITICAL FIX: Phone Regex - GET /api/cargo/search", self.test_critical_phone_regex_fix),
+            # CRITICAL: Test the 3 specific operator permission fixes
             ("🔧 CRITICAL Operator Permission Fixes", self.test_critical_operator_permission_fixes),
             ("CRITICAL FIX: Transport Cargo List Display", self.test_transport_cargo_list_critical_fix),
             ("Warehouse Cell Management System", self.test_warehouse_cell_management_system),
