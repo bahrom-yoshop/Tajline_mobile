@@ -285,6 +285,44 @@ function App() {
     }
   };
 
+  // Новые функции для создания операторов (Функция 2)
+  const fetchAllOperators = async () => {
+    try {
+      const data = await apiCall('/api/admin/operators');
+      setAllOperators(data.operators || []);
+    } catch (error) {
+      console.error('Error fetching operators:', error);
+    }
+  };
+
+  const handleCreateOperator = async (e) => {
+    e.preventDefault();
+    try {
+      await apiCall('/api/admin/create-operator', 'POST', operatorCreateForm);
+      
+      // Сброс формы
+      setOperatorCreateForm({
+        full_name: '',
+        phone: '',
+        address: '',
+        password: '',
+        warehouse_id: ''
+      });
+      
+      // Обновление данных
+      fetchAllOperators();
+      fetchOperatorWarehouseBindings();
+      fetchUsersByRole();
+      
+      // Показать уведомление об успехе
+      alert('Оператор успешно создан!');
+      
+    } catch (error) {
+      console.error('Error creating operator:', error);
+      alert(error.message || 'Ошибка создания оператора');
+    }
+  };
+
   useEffect(() => {
     if (token) {
       // Попытка получить информацию о пользователе при загрузке
