@@ -4101,14 +4101,25 @@ function App() {
                             transports.filter(transport => transport.status === 'in_transit').map((transport) => (
                               <Card key={transport.id} className="p-4">
                                 <div className="flex justify-between items-start">
-                                  <div className="space-y-2">
+                                  <div className="space-y-2 flex-1">
                                     <h3 className="font-semibold text-lg">{transport.transport_number}</h3>
                                     <p className="text-sm text-gray-600"><strong>Водитель:</strong> {transport.driver_name}</p>
                                     <p className="text-sm text-gray-600"><strong>Направление:</strong> {transport.direction}</p>
                                     <p className="text-sm text-gray-600"><strong>Груз:</strong> {transport.current_load_kg} кг ({transport.cargo_list.length} мест)</p>
                                     <p className="text-sm text-gray-600"><strong>Отправлен:</strong> {new Date(transport.dispatched_at).toLocaleDateString('ru-RU')} {new Date(transport.dispatched_at).toLocaleTimeString('ru-RU')}</p>
                                   </div>
-                                  <Badge className="bg-yellow-100 text-yellow-800">В пути</Badge>
+                                  <div className="flex flex-col items-end space-y-2">
+                                    <Badge className="bg-yellow-100 text-yellow-800">В пути</Badge>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleMarkTransportArrived(transport.id)}
+                                      className="text-green-600 hover:text-green-700"
+                                    >
+                                      <MapPin className="mr-1 h-3 w-3" />
+                                      Прибыл
+                                    </Button>
+                                  </div>
                                 </div>
                               </Card>
                             ))
