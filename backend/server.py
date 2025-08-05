@@ -10,6 +10,10 @@ import bcrypt
 from pymongo import MongoClient
 import uuid
 from enum import Enum
+import qrcode
+from io import BytesIO
+import base64
+from PIL import Image
 
 app = FastAPI()
 
