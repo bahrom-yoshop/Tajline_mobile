@@ -2415,7 +2415,7 @@ function App() {
                     {/* Поиск */}
                     <div className="flex-1 max-w-md relative">
                       <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <Input
                           placeholder="Поиск по номеру, ФИО, телефону..."
                           value={searchQuery}
@@ -2427,13 +2427,13 @@ function App() {
                               clearSearch();
                             }
                           }}
-                          className="pl-10 relative z-10"
+                          className="pl-10 pr-8"
                         />
                         {searchQuery && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 z-20"
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
                             onClick={clearSearch}
                           >
                             <X className="h-4 w-4" />
