@@ -592,6 +592,114 @@ function App() {
     }
   };
 
+  // Warehouse cell and cargo detail functions
+  const handleCellClick = async (warehouseId, locationCode) => {
+    try {
+      const cargoData = await apiCall(`/api/warehouse/${warehouseId}/cell/${locationCode}/cargo`);
+      setSelectedCellCargo(cargoData);
+      setCargoDetailModal(true);
+    } catch (error) {
+      if (error.response?.status === 404) {
+        showAlert('В этой ячейке нет груза', 'info');
+      } else {
+        console.error('Error fetching cell cargo:', error);
+        showAlert('Ошибка получения информации о грузе', 'error');
+      }
+    }
+  };
+
+  const fetchCargoDetails = async (cargoId) => {
+    try {
+      const cargoData = await apiCall(`/api/cargo/${cargoId}/details`);
+      return cargoData;
+    } catch (error) {
+      console.error('Error fetching cargo details:', error);
+      throw error;
+    }
+  };
+
+  const handleEditCargo = (cargo) => {
+    setEditingCargo(cargo);
+    setCargoEditForm({
+      cargo_name: cargo.cargo_name || '',
+      description: cargo.description || '',
+      weight: cargo.weight || '',
+      declared_value: cargo.declared_value || '',
+      sender_full_name: cargo.sender_full_name || '',
+      sender_phone: cargo.sender_phone || '',
+      recipient_full_name: cargo.recipient_full_name || cargo.recipient_name || '',
+      recipient_phone: cargo.recipient_phone || '',
+      recipient_address: cargo.recipient_address || ''
+    });
+    setCargoEditModal(true);
+  };
+
+  const handleUpdateCargo = async () => {
+    if (!editingCargo) return;
+
+    try {
+      await apiCall(`/api/cargo/${editingCargo.id}/update`, 'PUT', cargoEditForm);
+      showAlert('Информация о грузе обновлена!', 'success');
+      setCargoEditModal(false);
+      setEditingCargo(null);
+      
+      // Обновить данные
+      if (selectedCellCargo && selectedCellCargo.id === editingCargo.id) {
+        const updatedCargo = await fetchCargoDetails(editingCargo.id);
+        setSelectedCellCargo(updatedCargo);
+      }
+      
+      // Обновить списки грузов
+      fetchOperatorCargo();
+      fetchAllCargo();
+    } catch (error) {
+      console.error('Update cargo error:', error);
+    }
+  };
+
+  const handleMoveCargo = (cargo) => {
+    setEditingCargo(cargo);
+    setCargoMoveForm({
+      warehouse_id: cargo.warehouse_id || '',
+      block_number: cargo.block_number || '',
+      shelf_number: cargo.shelf_number || '',
+      cell_number: cargo.cell_number || ''
+    });
+    setCargoMoveModal(true);
+  };
+
+  const handleMoveCargoSubmit = async () => {
+    if (!editingCargo) return;
+
+    try {
+      await apiCall(`/api/warehouse/cargo/${editingCargo.id}/move`, 'POST', cargoMoveForm);
+      showAlert('Груз успешно перемещен!', 'success');
+      setCargoMoveModal(false);
+      setEditingCargo(null);
+      
+      // Обновить данные
+      fetchOperatorCargo();
+      setCargoDetailModal(false);
+    } catch (error) {
+      console.error('Move cargo error:', error);
+      const errorMessage = error.response?.data?.detail || 'Ошибка перемещения груза';
+      showAlert(errorMessage, 'error');
+    }
+  };
+
+  const handleRemoveCargoFromCell = async (cargo) => {
+    if (window.confirm(`Вы уверены, что хотите удалить груз ${cargo.cargo_number} из ячейки?`)) {
+      try {
+        await apiCall(`/api/warehouse/cargo/${cargo.id}/remove`, 'DELETE');
+        showAlert('Груз удален из ячейки!', 'success');
+        setCargoDetailModal(false);
+        fetchOperatorCargo();
+      } catch (error) {
+        console.error('Remove cargo error:', error);
+      }
+    }
+  };
+
   const handleDeleteOperatorBinding = async (bindingId) => {
     if (window.confirm('Вы уверены, что хотите удалить эту привязку?')) {
       try {
