@@ -702,11 +702,11 @@ frontend:
 
   - task: "Fix printInvoice Function Missing"
     implemented: true
-    working: true
+    working: "NA"
     file: "/app/frontend/src/App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: false
           agent: "user"
@@ -714,6 +714,9 @@ frontend:
         - working: true
           agent: "main"
           comment: "✅ IMPLEMENTED - Added comprehensive printInvoice function that generates professional invoice/waybill for individual cargo with full cargo, sender, recipient, warehouse location, and operator information. Function creates printable HTML document with proper styling."
+        - working: "NA"
+          agent: "testing"
+          comment: "⚠️ CANNOT TEST - Unable to access admin/operator interface where cargo detail modals with print invoice functionality should be located. Testing limited to user interface which does not have warehouse cell management or cargo detail modals. The printInvoice function implementation cannot be verified without access to the admin/operator interface where it should be used."
 
   - task: "Enhanced Transport Management Modal"
     implemented: true
