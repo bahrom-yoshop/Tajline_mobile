@@ -5351,6 +5351,156 @@ function App() {
               {/* Уведомления */}
               {activeSection === 'notifications-management' && (
                 <div className="space-y-6">
+                  {/* НОВЫЕ ЗАКАЗЫ ОТ КЛИЕНТОВ */}
+                  {(activeTab === 'notifications-client-orders' || !activeTab || activeTab === 'notifications-management') && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <ShoppingCart className="mr-2 h-5 w-5 text-orange-600" />
+                            Новые заказы от клиентов ({newOrdersCount})
+                          </div>
+                          <div className="space-x-2">
+                            <Button onClick={fetchNewOrdersCount} variant="outline" size="sm">
+                              <RefreshCw className="w-4 h-4 mr-1" />
+                              Обновить
+                            </Button>
+                          </div>
+                        </CardTitle>
+                        <CardDescription>
+                          Заказы от клиентов через форму онлайн-заказа с возможностью редактирования
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {pendingOrders.length === 0 ? (
+                            <div className="text-center py-8">
+                              <ShoppingCart className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                              <p className="text-gray-500">Новых заказов от клиентов нет</p>
+                            </div>
+                          ) : (
+                            pendingOrders.map((order) => (
+                              <div key={order.id} className="border rounded-lg p-6 bg-orange-50 hover:bg-orange-100 transition-colors">
+                                <div className="flex justify-between items-start mb-4">
+                                  <div>
+                                    <h3 className="text-lg font-semibold text-orange-800">
+                                      Заказ №{order.request_number}
+                                    </h3>
+                                    <p className="text-sm text-gray-600">
+                                      Создан: {new Date(order.created_at).toLocaleDateString('ru-RU')} {new Date(order.created_at).toLocaleTimeString('ru-RU')}
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-col items-end space-y-2">
+                                    <Badge variant="destructive" className="bg-orange-100 text-orange-800 border-orange-200">
+                                      Новый заказ
+                                    </Badge>
+                                    {order.admin_notes && (
+                                      <Badge variant="outline" className="text-blue-600 border-blue-200">
+                                        Есть заметки
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                                  <div className="space-y-3">
+                                    <h4 className="font-medium text-gray-900 flex items-center">
+                                      <User className="w-4 h-4 mr-1" />
+                                      Отправитель
+                                    </h4>
+                                    <div className="text-sm text-gray-600 space-y-1 pl-5">
+                                      <p><strong>ФИО:</strong> {order.sender_full_name}</p>
+                                      <p><strong>Телефон:</strong> {order.sender_phone}</p>
+                                      <p><strong>Адрес забора:</strong> {order.pickup_address}</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="space-y-3">
+                                    <h4 className="font-medium text-gray-900 flex items-center">
+                                      <MapPin className="w-4 h-4 mr-1" />
+                                      Получатель
+                                    </h4>
+                                    <div className="text-sm text-gray-600 space-y-1 pl-5">
+                                      <p><strong>ФИО:</strong> {order.recipient_full_name}</p>
+                                      <p><strong>Телефон:</strong> {order.recipient_phone}</p>
+                                      <p><strong>Адрес доставки:</strong> {order.recipient_address}</p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="mb-4 p-4 bg-white/50 rounded-lg">
+                                  <h4 className="font-medium text-gray-900 mb-2 flex items-center">
+                                    <Package className="w-4 h-4 mr-1" />
+                                    Информация о грузе
+                                  </h4>
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+                                    <div>
+                                      <p><strong>Название:</strong> {order.cargo_name}</p>
+                                      <p><strong>Описание:</strong> {order.description}</p>
+                                    </div>
+                                    <div>
+                                      <p><strong>Вес:</strong> {order.weight} кг</p>
+                                      <p><strong>Стоимость:</strong> {order.declared_value} ₽</p>
+                                    </div>
+                                    <div>
+                                      <p><strong>Маршрут:</strong> {order.route === 'moscow_to_tajikistan' ? 'Москва → Таджикистан' : 'Таджикистан → Москва'}</p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {order.admin_notes && (
+                                  <div className="mb-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded">
+                                    <p className="text-sm text-blue-800">
+                                      <strong>Заметки администратора:</strong> {order.admin_notes}
+                                    </p>
+                                  </div>
+                                )}
+
+                                <div className="flex flex-wrap gap-2 pt-4 border-t border-orange-200">
+                                  <Button 
+                                    onClick={() => handleOrderDetailsView(order)}
+                                    variant="outline" 
+                                    size="sm"
+                                    className="flex items-center"
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    Просмотреть
+                                  </Button>
+                                  <Button 
+                                    onClick={() => handleOrderEdit(order)}
+                                    variant="outline" 
+                                    size="sm"
+                                    className="flex items-center text-blue-600 border-blue-200 hover:bg-blue-50"
+                                  >
+                                    <Edit className="w-4 h-4 mr-1" />
+                                    Редактировать
+                                  </Button>
+                                  <Button 
+                                    onClick={() => handleAcceptOrder(order.id)}
+                                    size="sm"
+                                    className="flex items-center bg-green-600 hover:bg-green-700"
+                                  >
+                                    <CheckCircle className="w-4 h-4 mr-1" />
+                                    Принять заказ
+                                  </Button>
+                                  <Button 
+                                    onClick={() => handleRejectOrder(order.id, 'Заказ отклонен администратором')}
+                                    variant="destructive" 
+                                    size="sm"
+                                    className="flex items-center"
+                                  >
+                                    <XCircle className="w-4 h-4 mr-1" />
+                                    Отклонить
+                                  </Button>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   {/* Новые заявки */}
                   {(activeTab === 'notifications-requests' || !activeTab || activeTab === 'notifications-management') && (
                     <Card>
