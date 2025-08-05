@@ -96,6 +96,7 @@ class Cargo(BaseModel):
     recipient_phone: str
     route: RouteType
     weight: float
+    cargo_name: str  # Наименование груза
     description: str
     declared_value: float
     sender_address: str
