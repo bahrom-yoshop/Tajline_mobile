@@ -5080,6 +5080,194 @@ function App() {
           </Alert>
         ))}
       </div>
+
+      {/* QR Scanner Modal */}
+      <Dialog open={qrScannerModal} onOpenChange={setQrScannerModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              <Camera className="mr-2 h-5 w-5 inline" />
+              Сканировать QR код
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="text-center">
+              <div className="w-64 h-64 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <div className="text-center">
+                  <Camera className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">QR сканер</p>
+                  <p className="text-xs text-gray-400 mt-1">Наведите камеру на QR код</p>
+                </div>
+              </div>
+              
+              <p className="text-sm text-gray-600 mb-4">
+                Отсканируйте QR код груза или ячейки склада для быстрого доступа к информации
+              </p>
+              
+              {/* Manual input for testing */}
+              <div className="text-left">
+                <Label htmlFor="manual-qr">Или введите данные QR кода вручную:</Label>
+                <textarea
+                  id="manual-qr"
+                  className="w-full mt-2 p-3 border rounded-md"
+                  rows="4"
+                  placeholder="Вставьте содержимое QR кода здесь..."
+                  onChange={(e) => {
+                    if (e.target.value.trim()) {
+                      handleQrScan(e.target.value.trim());
+                      e.target.value = '';
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Scan Result Modal */}
+      {qrScanResult && (
+        <Dialog open={!!qrScanResult} onOpenChange={() => setQrScanResult(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                <QrCode className="mr-2 h-5 w-5 inline" />
+                Результат сканирования
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {qrScanResult.type === 'cargo' && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <div>
+                      <h3 className="font-semibold text-blue-800">Груз найден!</h3>
+                      <p className="text-sm text-blue-600">№{qrScanResult.cargo_number}</p>
+                    </div>
+                    <Package className="h-8 w-8 text-blue-600" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Наименование:</span>
+                      <span className="text-sm">{qrScanResult.cargo_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Вес:</span>
+                      <span className="text-sm">{qrScanResult.weight} кг</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Статус:</span>
+                      <Badge variant="outline">{qrScanResult.status}</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Отправитель:</span>
+                      <span className="text-sm">{qrScanResult.sender}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Получатель:</span>
+                      <span className="text-sm">{qrScanResult.recipient}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Местоположение:</span>
+                      <span className="text-sm">{qrScanResult.location}</span>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    className="w-full" 
+                    onClick={async () => {
+                      try {
+                        const cargoDetails = await fetchCargoDetails(qrScanResult.cargo_id);
+                        setSelectedCellCargo(cargoDetails);
+                        setCargoDetailModal(true);
+                        setQrScanResult(null);
+                      } catch (error) {
+                        console.error('Error fetching cargo details:', error);
+                      }
+                    }}
+                  >
+                    Подробная информация
+                  </Button>
+                </div>
+              )}
+              
+              {qrScanResult.type === 'warehouse_cell' && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div>
+                      <h3 className="font-semibold text-green-800">Ячейка склада</h3>
+                      <p className="text-sm text-green-600">{qrScanResult.location}</p>
+                    </div>
+                    <Building className="h-8 w-8 text-green-600" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Склад:</span>
+                      <span className="text-sm">{qrScanResult.warehouse_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Блок:</span>
+                      <span className="text-sm">{qrScanResult.block}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Полка:</span>
+                      <span className="text-sm">{qrScanResult.shelf}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Ячейка:</span>
+                      <span className="text-sm">{qrScanResult.cell}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Статус:</span>
+                      <Badge variant={qrScanResult.is_occupied ? "destructive" : "default"}>
+                        {qrScanResult.is_occupied ? "Занята" : "Свободна"}
+                      </Badge>
+                    </div>
+                    
+                    {qrScanResult.cargo && (
+                      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                        <h4 className="font-medium text-sm mb-2">Груз в ячейке:</h4>
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-xs">Номер:</span>
+                            <span className="text-xs font-medium">{qrScanResult.cargo.cargo_number}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-xs">Название:</span>
+                            <span className="text-xs">{qrScanResult.cargo.cargo_name}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-xs">Вес:</span>
+                            <span className="text-xs">{qrScanResult.cargo.weight} кг</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => {
+                      // Navigate to warehouse management
+                      const warehouse = warehouses.find(w => w.id === qrScanResult.warehouse_id);
+                      if (warehouse) {
+                        handleOpenWarehouseLayout(warehouse);
+                        setQrScanResult(null);
+                      }
+                    }}
+                  >
+                    Перейти к управлению складом
+                  </Button>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
