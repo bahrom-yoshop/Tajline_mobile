@@ -37,6 +37,11 @@ function App() {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingResult, setTrackingResult] = useState(null);
 
+  // Новые состояния для клиентского дашборда (Функция 1)
+  const [clientDashboard, setClientDashboard] = useState(null);
+  const [clientCargo, setClientCargo] = useState([]);
+  const [clientCargoDetails, setClientCargoDetails] = useState(null);
+
   // Form states
   const [loginForm, setLoginForm] = useState({ phone: '', password: '' });
   const [registerForm, setRegisterForm] = useState({ full_name: '', phone: '', password: '' }); // Убрана роль (Функция 3)
