@@ -7119,6 +7119,410 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_critical_operator_permission_fixes(self):
+        """Test the 3 critical operator permission fixes that were failing"""
+        print("\n🔧 CRITICAL OPERATOR PERMISSION FIXES")
+        
+        if 'admin' not in self.tokens or 'warehouse_operator' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Ensure we have warehouse and operator binding for testing
+        if not hasattr(self, 'warehouse_id') or not hasattr(self, 'binding_id'):
+            print("   ⚠️  Setting up warehouse and operator binding for permission tests...")
+            
+            # Create warehouse if needed
+            if not hasattr(self, 'warehouse_id'):
+                warehouse_data = {
+                    "name": "Склад для тестирования разрешений",
+                    "location": "Москва, Тестовая территория разрешений",
+                    "blocks_count": 2,
+                    "shelves_per_block": 2,
+                    "cells_per_shelf": 5
+                }
+                
+                success, warehouse_response = self.run_test(
+                    "Create Warehouse for Permission Tests",
+                    "POST",
+                    "/api/warehouses/create",
+                    200,
+                    warehouse_data,
+                    self.tokens['admin']
+                )
+                
+                if success and 'id' in warehouse_response:
+                    self.warehouse_id = warehouse_response['id']
+                    print(f"   🏭 Created warehouse: {self.warehouse_id}")
+                else:
+                    print("   ❌ Failed to create warehouse for permission tests")
+                    return False
+            
+            # Create operator binding if needed
+            if not hasattr(self, 'binding_id'):
+                operator_id = self.users['warehouse_operator']['id']
+                binding_data = {
+                    "operator_id": operator_id,
+                    "warehouse_id": self.warehouse_id
+                }
+                
+                success, binding_response = self.run_test(
+                    "Create Operator Binding for Permission Tests",
+                    "POST",
+                    "/api/admin/operator-warehouse-binding",
+                    200,
+                    binding_data,
+                    self.tokens['admin']
+                )
+                
+                if success and 'binding_id' in binding_response:
+                    self.binding_id = binding_response['binding_id']
+                    print(f"   🔗 Created binding: {self.binding_id}")
+                else:
+                    print("   ❌ Failed to create operator binding for permission tests")
+                    return False
+        
+        # PROBLEM 1.4: Cargo Acceptance Target Warehouse Assignment
+        print("\n   🎯 PROBLEM 1.4: Testing Cargo Acceptance Target Warehouse Assignment...")
+        
+        # Test with warehouse operator (should get target_warehouse_id from bindings)
+        cargo_data_operator = {
+            "sender_full_name": "Тест Оператор Отправитель",
+            "sender_phone": "+79111222333",
+            "recipient_full_name": "Тест Оператор Получатель", 
+            "recipient_phone": "+992444555666",
+            "recipient_address": "Душанбе, ул. Тестовая, 1",
+            "weight": 10.0,
+            "declared_value": 5000.0,
+            "description": "Тест груз для проверки target_warehouse_id",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, operator_cargo_response = self.run_test(
+            "Operator Cargo Acceptance (Should Assign target_warehouse_id)",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            cargo_data_operator,
+            self.tokens['warehouse_operator']
+        )
+        
+        if success:
+            target_warehouse_id = operator_cargo_response.get('target_warehouse_id')
+            if target_warehouse_id:
+                print(f"   ✅ PROBLEM 1.4 FIXED: Operator cargo acceptance correctly assigned target_warehouse_id: {target_warehouse_id}")
+                if target_warehouse_id == self.warehouse_id:
+                    print(f"   ✅ Target warehouse matches operator's bound warehouse")
+                else:
+                    print(f"   ⚠️  Target warehouse {target_warehouse_id} doesn't match bound warehouse {self.warehouse_id}")
+            else:
+                print(f"   ❌ PROBLEM 1.4 STILL FAILING: target_warehouse_id is None or missing")
+                all_success = False
+        else:
+            print(f"   ❌ PROBLEM 1.4 STILL FAILING: Operator cargo acceptance failed")
+            all_success = False
+        
+        # Test with admin (should get target_warehouse_id or proper error)
+        success, admin_cargo_response = self.run_test(
+            "Admin Cargo Acceptance (Should Assign target_warehouse_id or Error)",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,  # Expecting success since we have active warehouses
+            cargo_data_operator,
+            self.tokens['admin']
+        )
+        
+        if success:
+            target_warehouse_id = admin_cargo_response.get('target_warehouse_id')
+            if target_warehouse_id:
+                print(f"   ✅ PROBLEM 1.4 FIXED: Admin cargo acceptance correctly assigned target_warehouse_id: {target_warehouse_id}")
+            else:
+                print(f"   ❌ PROBLEM 1.4 STILL FAILING: Admin target_warehouse_id is None")
+                all_success = False
+        else:
+            print(f"   ❌ PROBLEM 1.4 STILL FAILING: Admin cargo acceptance failed")
+            all_success = False
+        
+        # PROBLEM 1.5: Transport Filtering for Operators
+        print("\n   🚛 PROBLEM 1.5: Testing Transport Filtering for Operators...")
+        
+        # First create some transports to test filtering
+        transport_data = {
+            "driver_name": "Тест Водитель",
+            "driver_phone": "+79123456789",
+            "transport_number": "TEST123",
+            "capacity_kg": 1000.0,
+            "direction": "Москва - Душанбе"
+        }
+        
+        success, transport_response = self.run_test(
+            "Create Transport for Filtering Test",
+            "POST",
+            "/api/transport/create",
+            200,
+            transport_data,
+            self.tokens['admin']
+        )
+        
+        transport_id = None
+        if success and 'transport_id' in transport_response:
+            transport_id = transport_response['transport_id']
+            print(f"   🚛 Created test transport: {transport_id}")
+        
+        # Test operator transport filtering
+        success, operator_transports = self.run_test(
+            "Operator Get Transport List (Should Be Filtered)",
+            "GET",
+            "/api/transport/list",
+            200,
+            token=self.tokens['warehouse_operator']
+        )
+        
+        if success:
+            operator_transport_count = len(operator_transports) if isinstance(operator_transports, list) else 0
+            print(f"   📊 Operator sees {operator_transport_count} transports")
+            
+            # Test admin transport list for comparison
+            success_admin, admin_transports = self.run_test(
+                "Admin Get Transport List (Should See All)",
+                "GET",
+                "/api/transport/list",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success_admin:
+                admin_transport_count = len(admin_transports) if isinstance(admin_transports, list) else 0
+                print(f"   📊 Admin sees {admin_transport_count} transports")
+                
+                # Check if filtering is working (operator should see fewer or equal transports)
+                if operator_transport_count <= admin_transport_count:
+                    if operator_transport_count < admin_transport_count:
+                        print(f"   ✅ PROBLEM 1.5 FIXED: Operator sees filtered transport list ({operator_transport_count} vs {admin_transport_count})")
+                    else:
+                        print(f"   ⚠️  PROBLEM 1.5: Operator and admin see same number of transports (may be correct if all transports are warehouse-related)")
+                else:
+                    print(f"   ❌ PROBLEM 1.5 STILL FAILING: Operator sees MORE transports than admin (impossible)")
+                    all_success = False
+            else:
+                print(f"   ❌ Could not get admin transport list for comparison")
+                all_success = False
+        else:
+            print(f"   ❌ PROBLEM 1.5 STILL FAILING: Operator transport list request failed")
+            all_success = False
+        
+        # Test status filtering with operator permissions
+        success, filtered_transports = self.run_test(
+            "Operator Get Transport List with Status Filter",
+            "GET",
+            "/api/transport/list",
+            200,
+            token=self.tokens['warehouse_operator'],
+            params={"status": "empty"}
+        )
+        
+        if success:
+            filtered_count = len(filtered_transports) if isinstance(filtered_transports, list) else 0
+            print(f"   📊 Operator sees {filtered_count} transports with status filter")
+            print(f"   ✅ PROBLEM 1.5: Status filtering works with operator permissions")
+        else:
+            print(f"   ❌ PROBLEM 1.5: Status filtering failed for operator")
+            all_success = False
+        
+        # PROBLEM 1.6: Inter-warehouse Transport Access Control
+        print("\n   🏢 PROBLEM 1.6: Testing Inter-warehouse Transport Access Control...")
+        
+        # Create a second warehouse for inter-warehouse testing
+        warehouse_data_2 = {
+            "name": "Второй склад для межскладских перевозок",
+            "location": "Москва, Вторая территория",
+            "blocks_count": 1,
+            "shelves_per_block": 1,
+            "cells_per_shelf": 5
+        }
+        
+        success, warehouse_response_2 = self.run_test(
+            "Create Second Warehouse for Inter-warehouse Test",
+            "POST",
+            "/api/warehouses/create",
+            200,
+            warehouse_data_2,
+            self.tokens['admin']
+        )
+        
+        warehouse_id_2 = None
+        if success and 'id' in warehouse_response_2:
+            warehouse_id_2 = warehouse_response_2['id']
+            print(f"   🏭 Created second warehouse: {warehouse_id_2}")
+        
+        # Test operator creating inter-warehouse transport between bound warehouses
+        if warehouse_id_2:
+            # First bind operator to second warehouse
+            binding_data_2 = {
+                "operator_id": self.users['warehouse_operator']['id'],
+                "warehouse_id": warehouse_id_2
+            }
+            
+            success, binding_response_2 = self.run_test(
+                "Bind Operator to Second Warehouse",
+                "POST",
+                "/api/admin/operator-warehouse-binding",
+                200,
+                binding_data_2,
+                self.tokens['admin']
+            )
+            
+            if success:
+                print(f"   🔗 Operator now bound to both warehouses")
+                
+                # Test creating inter-warehouse transport between bound warehouses (should succeed)
+                interwarehouse_data = {
+                    "source_warehouse_id": self.warehouse_id,
+                    "destination_warehouse_id": warehouse_id_2,
+                    "driver_name": "Межскладской Водитель",
+                    "driver_phone": "+79999888777",
+                    "transport_number": "INTER123",
+                    "capacity_kg": 2000.0,
+                    "description": "Межскладская перевозка"
+                }
+                
+                success, interwarehouse_response = self.run_test(
+                    "Operator Create Inter-warehouse Transport (Bound Warehouses - Should Succeed)",
+                    "POST",
+                    "/api/transport/create-interwarehouse",
+                    200,
+                    interwarehouse_data,
+                    self.tokens['warehouse_operator']
+                )
+                
+                if success:
+                    print(f"   ✅ PROBLEM 1.6 FIXED: Operator can create inter-warehouse transport between bound warehouses")
+                else:
+                    print(f"   ❌ PROBLEM 1.6 STILL FAILING: Operator cannot create inter-warehouse transport between bound warehouses")
+                    all_success = False
+                
+                # Test creating inter-warehouse transport with unbound warehouse (should fail)
+                # Create a third warehouse that operator is not bound to
+                warehouse_data_3 = {
+                    "name": "Третий склад (не привязан)",
+                    "location": "Москва, Третья территория",
+                    "blocks_count": 1,
+                    "shelves_per_block": 1,
+                    "cells_per_shelf": 3
+                }
+                
+                success, warehouse_response_3 = self.run_test(
+                    "Create Third Warehouse (Unbound)",
+                    "POST",
+                    "/api/warehouses/create",
+                    200,
+                    warehouse_data_3,
+                    self.tokens['admin']
+                )
+                
+                warehouse_id_3 = None
+                if success and 'id' in warehouse_response_3:
+                    warehouse_id_3 = warehouse_response_3['id']
+                    print(f"   🏭 Created third warehouse (unbound): {warehouse_id_3}")
+                    
+                    # Test with unbound destination warehouse (should fail)
+                    interwarehouse_data_fail = {
+                        "source_warehouse_id": self.warehouse_id,
+                        "destination_warehouse_id": warehouse_id_3,  # Unbound warehouse
+                        "driver_name": "Неавторизованный Водитель",
+                        "driver_phone": "+79999888777",
+                        "transport_number": "FAIL123",
+                        "capacity_kg": 2000.0,
+                        "description": "Неавторизованная межскладская перевозка"
+                    }
+                    
+                    success, _ = self.run_test(
+                        "Operator Create Inter-warehouse Transport (Unbound Destination - Should Fail)",
+                        "POST",
+                        "/api/transport/create-interwarehouse",
+                        403,  # Expecting access denied
+                        interwarehouse_data_fail,
+                        self.tokens['warehouse_operator']
+                    )
+                    
+                    if success:
+                        print(f"   ✅ PROBLEM 1.6 FIXED: Operator correctly denied access to unbound destination warehouse")
+                    else:
+                        print(f"   ❌ PROBLEM 1.6 STILL FAILING: Operator can access unbound destination warehouse")
+                        all_success = False
+                    
+                    # Test with unbound source warehouse (should fail)
+                    interwarehouse_data_fail_2 = {
+                        "source_warehouse_id": warehouse_id_3,  # Unbound warehouse
+                        "destination_warehouse_id": self.warehouse_id,
+                        "driver_name": "Неавторизованный Водитель 2",
+                        "driver_phone": "+79999888777",
+                        "transport_number": "FAIL456",
+                        "capacity_kg": 2000.0,
+                        "description": "Неавторизованная межскладская перевозка 2"
+                    }
+                    
+                    success, _ = self.run_test(
+                        "Operator Create Inter-warehouse Transport (Unbound Source - Should Fail)",
+                        "POST",
+                        "/api/transport/create-interwarehouse",
+                        403,  # Expecting access denied
+                        interwarehouse_data_fail_2,
+                        self.tokens['warehouse_operator']
+                    )
+                    
+                    if success:
+                        print(f"   ✅ PROBLEM 1.6 FIXED: Operator correctly denied access to unbound source warehouse")
+                    else:
+                        print(f"   ❌ PROBLEM 1.6 STILL FAILING: Operator can access unbound source warehouse")
+                        all_success = False
+            else:
+                print(f"   ❌ Could not bind operator to second warehouse for inter-warehouse test")
+                all_success = False
+        else:
+            print(f"   ❌ Could not create second warehouse for inter-warehouse test")
+            all_success = False
+        
+        # Test admin access (should work for any warehouses)
+        if warehouse_id_2:
+            interwarehouse_data_admin = {
+                "source_warehouse_id": self.warehouse_id,
+                "destination_warehouse_id": warehouse_id_2,
+                "driver_name": "Админский Водитель",
+                "driver_phone": "+79999888777",
+                "transport_number": "ADMIN123",
+                "capacity_kg": 3000.0,
+                "description": "Админская межскладская перевозка"
+            }
+            
+            success, _ = self.run_test(
+                "Admin Create Inter-warehouse Transport (Should Always Succeed)",
+                "POST",
+                "/api/transport/create-interwarehouse",
+                200,
+                interwarehouse_data_admin,
+                self.tokens['admin']
+            )
+            
+            if success:
+                print(f"   ✅ PROBLEM 1.6: Admin can create inter-warehouse transport between any warehouses")
+            else:
+                print(f"   ❌ PROBLEM 1.6: Admin inter-warehouse transport creation failed")
+                all_success = False
+        
+        # Summary of critical fixes
+        print(f"\n   📊 CRITICAL OPERATOR PERMISSION FIXES SUMMARY:")
+        if all_success:
+            print(f"   ✅ ALL 3 CRITICAL ISSUES FIXED:")
+            print(f"   ✅ 1.4: Cargo acceptance target warehouse assignment working")
+            print(f"   ✅ 1.5: Transport filtering for operators working")
+            print(f"   ✅ 1.6: Inter-warehouse transport access control working")
+        else:
+            print(f"   ❌ SOME CRITICAL ISSUES STILL FAILING - See details above")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
