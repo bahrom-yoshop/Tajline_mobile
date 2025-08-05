@@ -1693,7 +1693,7 @@ async def get_my_warehouses(
     # Получить детали складов
     warehouses = []
     for warehouse_id in warehouse_ids:
-        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        warehouse = db.warehouses.find_one({"id": warehouse_id}, {"_id": 0})  # Exclude MongoDB _id
         if warehouse:
             warehouses.append(warehouse)
     
