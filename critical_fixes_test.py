@@ -425,6 +425,44 @@ class CriticalFixesTester:
             print("   ❌ No cargo available for testing")
             return False
         
+        # First, we need to place cargo on transport and mark it as arrived
+        print("   🚛 Setting up transport with cargo...")
+        
+        # Place some cargo on transport first
+        if self.cargo_ids['cargo']:
+            cargo_info = self.cargo_ids['cargo'][0]
+            placement_data = {
+                "transport_id": self.transport_id,
+                "cargo_ids": [cargo_info['id']]
+            }
+            
+            success, _ = self.run_test(
+                "Place Cargo on Transport",
+                "POST",
+                f"/api/transport/{self.transport_id}/place-cargo",
+                200,
+                placement_data,
+                self.tokens['admin']
+            )
+            
+            if success:
+                print("   ✅ Cargo placed on transport")
+        
+        # Mark transport as arrived
+        success, _ = self.run_test(
+            "Mark Transport as Arrived",
+            "POST",
+            f"/api/transport/{self.transport_id}/arrive",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        if not success:
+            print("   ❌ Failed to mark transport as arrived")
+            return False
+        
+        print("   ✅ Transport marked as arrived")
+        
         # Test with cargo from both collections
         test_results = []
         
