@@ -10254,6 +10254,414 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_new_cargo_number_system(self):
+        """Test the new YYMMXXXXXX cargo numbering system for January 2025"""
+        print("\n🔢 NEW CARGO NUMBER SYSTEM (YYMMXXXXXX FORMAT)")
+        
+        if 'user' not in self.tokens or 'admin' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        cargo_numbers = []
+        
+        # Test 1: Create multiple cargo orders and check new number format
+        print("\n   📦 Testing New Number Format (2501XX - 250XXXXXXX)...")
+        
+        # Create Bahrom user first
+        bahrom_user_data = {
+            "full_name": "Бахром Клиент",
+            "phone": "+992900000000",
+            "password": "123456",
+            "role": "user"
+        }
+        
+        success, bahrom_response = self.run_test(
+            "Register Bahrom User",
+            "POST",
+            "/api/auth/register",
+            200,
+            bahrom_user_data
+        )
+        
+        bahrom_token = None
+        if success and 'access_token' in bahrom_response:
+            bahrom_token = bahrom_response['access_token']
+            print(f"   👤 Bahrom user registered successfully")
+        else:
+            # Try to login if user already exists
+            success, login_response = self.run_test(
+                "Login Bahrom User",
+                "POST",
+                "/api/auth/login",
+                200,
+                {"phone": "+992900000000", "password": "123456"}
+            )
+            if success and 'access_token' in login_response:
+                bahrom_token = login_response['access_token']
+                print(f"   👤 Bahrom user logged in successfully")
+        
+        if not bahrom_token:
+            print("   ❌ Could not get Bahrom user token")
+            return False
+        
+        # Create several cargo orders to test numbering
+        for i in range(5):
+            cargo_data = {
+                "recipient_name": f"Получатель {i+1}",
+                "recipient_phone": f"+99244455566{i}",
+                "route": "moscow_dushanbe",
+                "weight": 10.0 + i,
+                "cargo_name": f"Тестовый груз {i+1}",
+                "description": f"Тестовый груз для проверки новой системы номеров {i+1}",
+                "declared_value": 5000.0 + (i * 1000),
+                "sender_address": f"Москва, ул. Тестовая, {i+1}",
+                "recipient_address": f"Душанбе, ул. Получателя, {i+1}"
+            }
+            
+            success, response = self.run_test(
+                f"Create Cargo #{i+1} (New Number System)",
+                "POST",
+                "/api/cargo/create",
+                200,
+                cargo_data,
+                bahrom_token
+            )
+            all_success &= success
+            
+            if success and 'cargo_number' in response:
+                cargo_number = response['cargo_number']
+                cargo_numbers.append(cargo_number)
+                print(f"   🏷️  Generated cargo number: {cargo_number}")
+                
+                # Verify new format (YYMMXXXXXX - starts with 2501 for January 2025)
+                if cargo_number.startswith('2501') and len(cargo_number) >= 6 and len(cargo_number) <= 10:
+                    print(f"   ✅ Valid new format: {cargo_number} (starts with 2501, length {len(cargo_number)})")
+                else:
+                    print(f"   ❌ Invalid format: {cargo_number} (expected 2501XXXX to 2501XXXXXX)")
+                    all_success = False
+        
+        # Test 2: Test uniqueness
+        print("\n   🔍 Testing Number Uniqueness...")
+        if len(cargo_numbers) >= 2:
+            unique_numbers = set(cargo_numbers)
+            if len(unique_numbers) == len(cargo_numbers):
+                print(f"   ✅ All {len(cargo_numbers)} cargo numbers are unique")
+            else:
+                print(f"   ❌ Found duplicate numbers! Generated: {len(cargo_numbers)}, Unique: {len(unique_numbers)}")
+                all_success = False
+        
+        # Test 3: Test January 2025 format specifically
+        print("\n   📅 Testing January 2025 Format (2501XX)...")
+        january_2025_numbers = [n for n in cargo_numbers if n.startswith('2501')]
+        if len(january_2025_numbers) == len(cargo_numbers):
+            print(f"   ✅ All {len(cargo_numbers)} numbers start with 2501 (January 2025)")
+        else:
+            print(f"   ❌ Only {len(january_2025_numbers)}/{len(cargo_numbers)} numbers start with 2501")
+            all_success = False
+        
+        # Store for later tests
+        self.new_cargo_numbers = cargo_numbers
+        self.bahrom_token = bahrom_token
+        
+        return all_success
+
+    def test_unpaid_orders_system(self):
+        """Test the unpaid orders system"""
+        print("\n💰 UNPAID ORDERS SYSTEM")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        if not hasattr(self, 'bahrom_token'):
+            print("   ❌ Bahrom token not available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Create cargo request from Bahrom user
+        print("\n   📋 Creating Cargo Request from Bahrom User...")
+        request_data = {
+            "recipient_full_name": "Получатель Заявки",
+            "recipient_phone": "+992555666777",
+            "recipient_address": "Душанбе, ул. Заявочная, 1",
+            "pickup_address": "Москва, ул. Забора, 1",
+            "cargo_name": "Заявочный груз для тестирования оплаты",
+            "weight": 15.0,
+            "declared_value": 7000.0,
+            "description": "Груз из заявки пользователя для тестирования системы неоплаченных заказов",
+            "route": "moscow_dushanbe"
+        }
+        
+        success, request_response = self.run_test(
+            "Create Cargo Request (Bahrom)",
+            "POST",
+            "/api/user/cargo-request",
+            200,
+            request_data,
+            self.bahrom_token
+        )
+        all_success &= success
+        
+        request_id = None
+        if success and 'id' in request_response:
+            request_id = request_response['id']
+            print(f"   📋 Created cargo request: {request_id}")
+        
+        # Test 2: Accept request by admin (should create unpaid order)
+        print("\n   ✅ Accepting Request by Admin...")
+        if request_id:
+            success, accept_response = self.run_test(
+                "Accept Cargo Request (Creates Unpaid Order)",
+                "POST",
+                f"/api/admin/cargo-requests/{request_id}/accept",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            cargo_number = None
+            if success and 'cargo_number' in accept_response:
+                cargo_number = accept_response['cargo_number']
+                print(f"   🏷️  Created cargo with number: {cargo_number}")
+                print(f"   💰 Unpaid order should be automatically created")
+        
+        # Test 3: Check unpaid orders list
+        print("\n   📋 Testing GET /api/admin/unpaid-orders...")
+        success, unpaid_orders = self.run_test(
+            "Get Unpaid Orders List",
+            "GET",
+            "/api/admin/unpaid-orders",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        unpaid_order_id = None
+        if success:
+            order_count = len(unpaid_orders) if isinstance(unpaid_orders, list) else 0
+            print(f"   📊 Found {order_count} unpaid orders")
+            
+            if order_count > 0:
+                # Find our order
+                for order in unpaid_orders:
+                    if order.get('cargo_number') == cargo_number:
+                        unpaid_order_id = order.get('id')
+                        print(f"   ✅ Found unpaid order for cargo {cargo_number}")
+                        print(f"   💰 Amount: {order.get('amount')} руб")
+                        print(f"   👤 Client: {order.get('client_name')} ({order.get('client_phone')})")
+                        break
+                
+                if not unpaid_order_id:
+                    print(f"   ❌ Could not find unpaid order for cargo {cargo_number}")
+                    all_success = False
+        
+        # Test 4: Mark order as paid
+        print("\n   💳 Testing Mark Order as Paid...")
+        if unpaid_order_id:
+            success, payment_response = self.run_test(
+                "Mark Order as Paid",
+                "POST",
+                f"/api/admin/unpaid-orders/{unpaid_order_id}/mark-paid",
+                200,
+                {"payment_method": "cash"},
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Order marked as paid successfully")
+                
+                # Verify order status changed
+                success, updated_orders = self.run_test(
+                    "Verify Order Status Updated",
+                    "GET",
+                    "/api/admin/unpaid-orders/all",
+                    200,
+                    token=self.tokens['admin']
+                )
+                
+                if success:
+                    paid_order = None
+                    for order in updated_orders:
+                        if order.get('id') == unpaid_order_id:
+                            paid_order = order
+                            break
+                    
+                    if paid_order and paid_order.get('status') == 'paid':
+                        print(f"   ✅ Order status updated to 'paid'")
+                        print(f"   📅 Paid at: {paid_order.get('paid_at')}")
+                        print(f"   💳 Payment method: {paid_order.get('payment_method')}")
+                    else:
+                        print(f"   ❌ Order status not updated correctly")
+                        all_success = False
+        
+        # Store for workflow test
+        self.test_unpaid_order_id = unpaid_order_id
+        self.test_cargo_number = cargo_number
+        
+        return all_success
+
+    def test_full_workflow_unpaid_orders(self):
+        """Test the complete workflow: User request → Admin accept → Unpaid order → Mark paid"""
+        print("\n🔄 FULL WORKFLOW TEST: USER REQUEST → ADMIN ACCEPT → UNPAID ORDER → MARK PAID")
+        
+        if 'admin' not in self.tokens or not hasattr(self, 'bahrom_token'):
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Step 1: User creates cargo request
+        print("\n   1️⃣ Step 1: User Creates Cargo Request...")
+        request_data = {
+            "recipient_full_name": "Тестовый Получатель Workflow",
+            "recipient_phone": "+992777888999",
+            "recipient_address": "Душанбе, ул. Workflow, 1",
+            "pickup_address": "Москва, ул. Workflow, 1",
+            "cargo_name": "Workflow Test Cargo",
+            "weight": 20.0,
+            "declared_value": 10000.0,
+            "description": "Полный тест workflow системы неоплаченных заказов",
+            "route": "moscow_dushanbe"
+        }
+        
+        success, request_response = self.run_test(
+            "Step 1: Create Cargo Request",
+            "POST",
+            "/api/user/cargo-request",
+            200,
+            request_data,
+            self.bahrom_token
+        )
+        all_success &= success
+        
+        workflow_request_id = None
+        if success and 'id' in request_response:
+            workflow_request_id = request_response['id']
+            print(f"   ✅ Step 1 Complete: Request created with ID {workflow_request_id}")
+        
+        # Step 2: Admin accepts request (creates cargo and unpaid order)
+        print("\n   2️⃣ Step 2: Admin Accepts Request...")
+        workflow_cargo_number = None
+        if workflow_request_id:
+            success, accept_response = self.run_test(
+                "Step 2: Admin Accept Request",
+                "POST",
+                f"/api/admin/cargo-requests/{workflow_request_id}/accept",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success and 'cargo_number' in accept_response:
+                workflow_cargo_number = accept_response['cargo_number']
+                print(f"   ✅ Step 2 Complete: Cargo created with number {workflow_cargo_number}")
+                print(f"   💰 Unpaid order automatically created")
+        
+        # Step 3: Verify unpaid order was created
+        print("\n   3️⃣ Step 3: Verify Unpaid Order Created...")
+        workflow_unpaid_order = None
+        if workflow_cargo_number:
+            success, unpaid_orders = self.run_test(
+                "Step 3: Check Unpaid Orders",
+                "GET",
+                "/api/admin/unpaid-orders",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                for order in unpaid_orders:
+                    if order.get('cargo_number') == workflow_cargo_number:
+                        workflow_unpaid_order = order
+                        break
+                
+                if workflow_unpaid_order:
+                    print(f"   ✅ Step 3 Complete: Unpaid order found")
+                    print(f"   📋 Order ID: {workflow_unpaid_order.get('id')}")
+                    print(f"   💰 Amount: {workflow_unpaid_order.get('amount')} руб")
+                    print(f"   👤 Client: {workflow_unpaid_order.get('client_name')}")
+                    print(f"   📱 Phone: {workflow_unpaid_order.get('client_phone')}")
+                else:
+                    print(f"   ❌ Step 3 Failed: Unpaid order not found for cargo {workflow_cargo_number}")
+                    all_success = False
+        
+        # Step 4: Mark order as paid
+        print("\n   4️⃣ Step 4: Mark Order as Paid...")
+        if workflow_unpaid_order:
+            success, payment_response = self.run_test(
+                "Step 4: Mark Order as Paid",
+                "POST",
+                f"/api/admin/unpaid-orders/{workflow_unpaid_order['id']}/mark-paid",
+                200,
+                {"payment_method": "bank_transfer"},
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Step 4 Complete: Order marked as paid")
+        
+        # Step 5: Verify final state
+        print("\n   5️⃣ Step 5: Verify Final State...")
+        if workflow_unpaid_order:
+            # Check cargo payment status
+            success, cargo_details = self.run_test(
+                "Step 5a: Check Cargo Payment Status",
+                "GET",
+                f"/api/cargo/track/{workflow_cargo_number}",
+                200
+            )
+            
+            if success:
+                payment_status = cargo_details.get('payment_status', 'unknown')
+                print(f"   📦 Cargo payment status: {payment_status}")
+                if payment_status == 'paid':
+                    print(f"   ✅ Cargo payment status updated correctly")
+                else:
+                    print(f"   ⚠️  Cargo payment status: {payment_status} (may be expected)")
+            
+            # Check order in all orders list
+            success, all_orders = self.run_test(
+                "Step 5b: Check Order in All Orders List",
+                "GET",
+                "/api/admin/unpaid-orders/all",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success:
+                final_order = None
+                for order in all_orders:
+                    if order.get('id') == workflow_unpaid_order['id']:
+                        final_order = order
+                        break
+                
+                if final_order:
+                    print(f"   📋 Final order status: {final_order.get('status')}")
+                    print(f"   📅 Paid at: {final_order.get('paid_at')}")
+                    print(f"   💳 Payment method: {final_order.get('payment_method')}")
+                    print(f"   👤 Processed by: {final_order.get('processed_by')}")
+                    
+                    if final_order.get('status') == 'paid':
+                        print(f"   ✅ Step 5 Complete: All records updated correctly")
+                    else:
+                        print(f"   ❌ Step 5 Failed: Order status not updated")
+                        all_success = False
+        
+        # Summary
+        print("\n   📊 WORKFLOW SUMMARY:")
+        print(f"   1️⃣ User Request: {'✅ Success' if workflow_request_id else '❌ Failed'}")
+        print(f"   2️⃣ Admin Accept: {'✅ Success' if workflow_cargo_number else '❌ Failed'}")
+        print(f"   3️⃣ Unpaid Order: {'✅ Success' if workflow_unpaid_order else '❌ Failed'}")
+        print(f"   4️⃣ Mark Paid: {'✅ Success' if all_success else '❌ Failed'}")
+        print(f"   5️⃣ Final State: {'✅ Success' if all_success else '❌ Failed'}")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
