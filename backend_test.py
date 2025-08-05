@@ -2465,7 +2465,7 @@ class CargoTransportAPITester:
         
         test_results = []
         
-        # Run test suites in order - prioritizing new operator-warehouse binding tests
+        # Run test suites in order - prioritizing enhanced cargo placement tests
         test_suites = [
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
@@ -2473,6 +2473,9 @@ class CargoTransportAPITester:
             ("Operator-Warehouse Binding System", self.test_operator_warehouse_binding_system),
             ("Enhanced Cargo Operations with Operator Tracking", self.test_enhanced_cargo_operations_with_operator_tracking),
             ("Available Cargo for Transport", self.test_available_cargo_for_transport),
+            ("Enhanced Cargo Placement by Numbers", self.test_enhanced_cargo_placement_by_numbers),
+            ("Cross-Warehouse Cargo Placement", self.test_cross_warehouse_cargo_placement),
+            ("Operator-Warehouse Binding Integration", self.test_operator_warehouse_binding_integration),
             ("Operator-Warehouse Binding Deletion", self.test_operator_warehouse_binding_deletion),
             ("Cargo Numbering System", self.test_cargo_numbering_system),
             ("Cargo Operations with New Numbers", self.test_cargo_operations_with_new_numbers),
