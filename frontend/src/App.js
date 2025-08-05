@@ -302,7 +302,7 @@ function App() {
     }, 5000);
   };
 
-  const apiCall = async (endpoint, method = 'GET', data = null, params = null) => {
+  const apiCall = async (endpoint, method = 'GET', data = null, params = null, retryCount = 0) => {
     try {
       // Build URL with query parameters if provided
       let url = `${BACKEND_URL}${endpoint}`;
@@ -337,7 +337,11 @@ function App() {
           localStorage.removeItem('token');
           setToken(null);
           setUser(null);
-          // Не показываем alert для 401, так как это нормальное поведение при истечении сессии
+          // Перенаправляем на страницу входа
+          setActiveTab('login');
+          setActiveSection('login');
+          // Показываем предупреждение о истекшей сессии
+          showAlert('Ваша сессия истекла. Пожалуйста, войдите в систему снова.', 'warning');
           throw new Error('Session expired');
         }
         
