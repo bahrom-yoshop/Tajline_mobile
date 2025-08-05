@@ -1161,7 +1161,10 @@ function App() {
           </head>
           <body>
             <div class="qr-label">
-              <h3>TAJLINE.TJ</h3>
+              <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                <img src="/logo.png" alt="TAJLINE.TJ" style="height: 30px; width: auto;" onerror="this.style.display='none'; this.nextSibling.style.display='inline';" />
+                <span style="display: none; font-weight: bold; color: #2563eb;">TAJLINE.TJ</span>
+              </div>
               <div class="cargo-info">ГРУЗ №${cargo.cargo_number}</div>
               <div class="qr-code">
                 <img src="${qrCode}" alt="QR Code" style="width: 150px; height: 150px;" />
