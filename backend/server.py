@@ -1862,7 +1862,7 @@ async def get_transport_cargo(
 @app.post("/api/transport/{transport_id}/place-cargo")
 async def place_cargo_on_transport(
     transport_id: str,
-    placement: TransportCargoPlacement,
+    placement: TransportCargoPlacementByNumbers,
     current_user: User = Depends(get_current_user)
 ):
     # Проверка доступа
@@ -1876,32 +1876,52 @@ async def place_cargo_on_transport(
     if transport["status"] not in [TransportStatus.EMPTY, TransportStatus.FILLED]:
         raise HTTPException(status_code=400, detail="Cannot place cargo on transport in current status")
     
-    # Проверить грузы и их доступность
+    # Найти грузы по номерам из всех коллекций и складов
     total_weight = 0
     cargo_details = []
+    found_cargo_ids = []
     
-    for cargo_id in placement.cargo_ids:
-        cargo = db.cargo.find_one({"id": cargo_id})
+    for cargo_number in placement.cargo_numbers:
+        cargo_number = cargo_number.strip()
+        if not cargo_number:
+            continue
+            
+        # Искать в коллекции пользовательских грузов
+        cargo = db.cargo.find_one({"cargo_number": cargo_number})
         if not cargo:
-            raise HTTPException(status_code=404, detail=f"Cargo {cargo_id} not found")
+            # Искать в коллекции операторских грузов
+            cargo = db.operator_cargo.find_one({"cargo_number": cargo_number})
+        
+        if not cargo:
+            raise HTTPException(status_code=404, detail=f"Cargo {cargo_number} not found")
+        
+        # Проверить права доступа оператора к складу (если это не админ)
+        if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+            if cargo.get("warehouse_id"):
+                if not is_operator_allowed_for_warehouse(current_user.id, cargo["warehouse_id"]):
+                    raise HTTPException(status_code=403, detail=f"Access denied to cargo {cargo_number} - not your warehouse")
         
         # Проверить, что груз на складе и доступен для загрузки
-        if cargo["status"] not in ["accepted", "arrived_destination"]:
-            raise HTTPException(status_code=400, detail=f"Cargo {cargo['cargo_number']} is not available for loading")
+        if cargo["status"] not in ["accepted", "arrived_destination", "in_transit"]:
+            raise HTTPException(status_code=400, detail=f"Cargo {cargo_number} is not available for loading (status: {cargo['status']})")
         
         if not cargo.get("warehouse_location"):
-            raise HTTPException(status_code=400, detail=f"Cargo {cargo['cargo_number']} is not in warehouse")
+            raise HTTPException(status_code=400, detail=f"Cargo {cargo_number} is not in warehouse")
         
         total_weight += cargo["weight"]
         cargo_details.append(cargo)
+        found_cargo_ids.append(cargo["id"])
+    
+    if not cargo_details:
+        raise HTTPException(status_code=400, detail="No valid cargo numbers provided")
     
     # Проверить, что груз помещается в транспорт
     current_load = transport.get("current_load_kg", 0)
     if current_load + total_weight > transport["capacity_kg"]:
-        raise HTTPException(status_code=400, detail="Transport capacity exceeded")
+        raise HTTPException(status_code=400, detail=f"Transport capacity exceeded: current {current_load}kg + new {total_weight}kg > capacity {transport['capacity_kg']}kg")
     
     # Обновить транспорт
-    new_cargo_list = list(set(transport.get("cargo_list", []) + placement.cargo_ids))
+    new_cargo_list = list(set(transport.get("cargo_list", []) + found_cargo_ids))
     new_load = current_load + total_weight
     new_status = TransportStatus.FILLED if new_load >= transport["capacity_kg"] * 0.9 else transport["status"]
     
@@ -1917,8 +1937,11 @@ async def place_cargo_on_transport(
     
     # Обновить статус грузов и освободить ячейки склада
     for cargo in cargo_details:
+        # Определить, в какой коллекции находится груз
+        collection = db.cargo if db.cargo.find_one({"id": cargo["id"]}) else db.operator_cargo
+        
         # Обновить статус груза
-        db.cargo.update_one(
+        collection.update_one(
             {"id": cargo["id"]},
             {"$set": {
                 "status": "in_transit",
@@ -1929,24 +1952,25 @@ async def place_cargo_on_transport(
         
         # Освободить ячейку склада
         if cargo.get("warehouse_location"):
-            # Парсить местоположение (например: "Склад 1 - Блок 1, Полка 2, Ячейка 5")
-            location_parts = cargo["warehouse_location"].split(" - ")
-            if len(location_parts) >= 2:
-                warehouse_name = location_parts[0]
-                warehouse = db.warehouses.find_one({"name": warehouse_name})
-                if warehouse:
-                    # Освободить ячейку (установить cargo_id в null)
-                    location_detail = location_parts[1]  # "Блок 1, Полка 2, Ячейка 5"
-                    # Логика освобождения ячейки может быть добавлена здесь
+            # Освободить ячейку в соответствующем складе
+            # Логика освобождения ячейки может быть добавлена здесь
+            pass
         
-        # Создать уведомление пользователю
-        create_notification(
-            cargo["sender_id"],
-            f"Ваш груз {cargo['cargo_number']} загружен в транспорт {transport['transport_number']} и готов к отправке",
-            cargo["id"]
-        )
+        # Создать уведомление пользователю (если есть sender_id)
+        sender_id = cargo.get("sender_id") or cargo.get("created_by")
+        if sender_id:
+            create_notification(
+                sender_id,
+                f"Ваш груз {cargo['cargo_number']} загружен в транспорт {transport['transport_number']} и готов к отправке",
+                cargo["id"]
+            )
     
-    return {"message": f"Successfully placed {len(placement.cargo_ids)} cargo items on transport"}
+    return {
+        "message": f"Successfully placed {len(found_cargo_ids)} cargo items on transport",
+        "cargo_count": len(found_cargo_ids),
+        "total_weight": total_weight,
+        "cargo_numbers": [cargo["cargo_number"] for cargo in cargo_details]
+    }
 
 @app.post("/api/transport/{transport_id}/dispatch")
 async def dispatch_transport(
