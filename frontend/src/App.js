@@ -496,6 +496,7 @@ function App() {
         fetchTransportsList(); // Обновлено для операторов
         fetchArrivedTransports();
         fetchOperatorWarehouses(); // Добавлено для операторов
+        fetchNewOrdersCount(); // Загрузка количества новых заказов для операторов
       } else {
         fetchMyCargo();
         fetchMyRequests();
