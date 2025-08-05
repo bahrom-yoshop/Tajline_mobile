@@ -789,6 +789,163 @@ function App() {
     printWindow.print();
   };
 
+  // Print invoice for individual cargo
+  const printInvoice = (cargo) => {
+    const printWindow = window.open('', '_blank');
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Накладная - ${cargo.cargo_number}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; font-size: 14px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .logo { font-size: 28px; font-weight: bold; color: #1f2937; margin-bottom: 10px; }
+            .company { font-size: 20px; margin-bottom: 5px; }
+            .title { font-size: 18px; font-weight: bold; margin: 20px 0; border-bottom: 2px solid #333; padding-bottom: 10px; }
+            .info-section { margin-bottom: 20px; padding: 15px; border: 2px solid #333; }
+            .info-title { font-weight: bold; font-size: 16px; margin-bottom: 10px; background-color: #f0f0f0; padding: 5px; }
+            .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; padding: 5px 0; border-bottom: 1px dotted #ccc; }
+            .info-label { font-weight: bold; width: 40%; }
+            .info-value { width: 60%; }
+            .summary-box { padding: 15px; background-color: #f9f9f9; border: 2px solid #333; margin-top: 20px; }
+            .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #666; border-top: 1px solid #ccc; padding-top: 10px; }
+            .signatures { margin-top: 30px; display: flex; justify-content: space-between; }
+            .signature-block { width: 45%; text-align: center; padding: 20px 0; border-top: 1px solid #333; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo">📦 TAJLINE.TJ</div>
+            <div class="company">ООО "Таджлайн"</div>
+            <div class="title">ТОВАРНАЯ НАКЛАДНАЯ № ${cargo.cargo_number}</div>
+          </div>
+
+          <div class="info-section">
+            <div class="info-title">Информация о грузе</div>
+            <div class="info-row">
+              <span class="info-label">Номер груза:</span>
+              <span class="info-value"><strong>${cargo.cargo_number}</strong></span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Наименование:</span>
+              <span class="info-value">${cargo.cargo_name || cargo.description || 'Не указано'}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Вес:</span>
+              <span class="info-value">${cargo.weight} кг</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Объявленная стоимость:</span>
+              <span class="info-value">${cargo.declared_value} руб.</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Статус:</span>
+              <span class="info-value">${cargo.status === 'accepted' ? 'Принят' : cargo.status === 'in_warehouse' ? 'На складе' : cargo.status === 'in_transit' ? 'В пути' : cargo.status === 'delivered' ? 'Доставлен' : cargo.status}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Маршрут:</span>
+              <span class="info-value">${cargo.route === 'moscow_to_tajikistan' ? 'Москва → Таджикистан' : cargo.route}</span>
+            </div>
+          </div>
+
+          <div class="info-section">
+            <div class="info-title">Отправитель</div>
+            <div class="info-row">
+              <span class="info-label">ФИО:</span>
+              <span class="info-value">${cargo.sender_full_name || 'Не указано'}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Телефон:</span>
+              <span class="info-value">${cargo.sender_phone || 'Не указан'}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Адрес:</span>
+              <span class="info-value">${cargo.sender_address || 'Не указан'}</span>
+            </div>
+          </div>
+
+          <div class="info-section">
+            <div class="info-title">Получатель</div>
+            <div class="info-row">
+              <span class="info-label">ФИО:</span>
+              <span class="info-value">${cargo.recipient_full_name || cargo.recipient_name || 'Не указано'}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Телефон:</span>
+              <span class="info-value">${cargo.recipient_phone || 'Не указан'}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Адрес доставки:</span>
+              <span class="info-value">${cargo.recipient_address || 'Не указан'}</span>
+            </div>
+          </div>
+
+          ${cargo.warehouse_location ? `
+          <div class="info-section">
+            <div class="info-title">Информация о размещении</div>
+            <div class="info-row">
+              <span class="info-label">Склад:</span>
+              <span class="info-value">${cargo.warehouse_location}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Ячейка:</span>
+              <span class="info-value">Блок ${cargo.block_number}, Полка ${cargo.shelf_number}, Ячейка ${cargo.cell_number}</span>
+            </div>
+          </div>
+          ` : ''}
+
+          ${cargo.created_by_operator ? `
+          <div class="info-section">
+            <div class="info-title">Информация об операторах</div>
+            <div class="info-row">
+              <span class="info-label">Принял груз:</span>
+              <span class="info-value">${cargo.created_by_operator}</span>
+            </div>
+            ${cargo.placed_by_operator ? `
+            <div class="info-row">
+              <span class="info-label">Разместил на складе:</span>
+              <span class="info-value">${cargo.placed_by_operator}</span>
+            </div>
+            ` : ''}
+          </div>
+          ` : ''}
+
+          <div class="summary-box">
+            <div class="info-row">
+              <span class="info-label">Дата создания накладной:</span>
+              <span class="info-value">${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU')}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">К доплате при получении:</span>
+              <span class="info-value"><strong>${cargo.declared_value} руб.</strong></span>
+            </div>
+          </div>
+
+          <div class="signatures">
+            <div class="signature-block">
+              <div>Подпись отправителя</div>
+              <div style="margin-top: 10px;">_________________</div>
+            </div>
+            <div class="signature-block">
+              <div>Подпись получателя</div>
+              <div style="margin-top: 10px;">_________________</div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>Этот документ сформирован автоматически системой TAJLINE.TJ</p>
+            <p>Адрес: г. Москва, ул. Транспортная, д. 1 | Телефон: +7 (495) 123-45-67</p>
+            <p>Дата и время: ${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU')}</p>
+          </div>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   const handleDeleteOperatorBinding = async (bindingId) => {
     if (window.confirm('Вы уверены, что хотите удалить эту привязку?')) {
       try {
