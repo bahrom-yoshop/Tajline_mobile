@@ -596,6 +596,7 @@ async def create_cargo(cargo_data: CargoCreate, current_user: User = Depends(get
         "recipient_phone": cargo_data.recipient_phone,
         "route": cargo_data.route,
         "weight": cargo_data.weight,
+        "cargo_name": cargo_data.cargo_name,
         "description": cargo_data.description,
         "declared_value": cargo_data.declared_value,
         "sender_address": cargo_data.sender_address,
