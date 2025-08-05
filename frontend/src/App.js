@@ -1218,13 +1218,17 @@ function App() {
     try {
       const placementData = {
         cargo_number: qrPlacementForm.cargo_number,
-        qr_data: qrPlacementForm.qr_data
+        qr_data: qrPlacementForm.qr_data,
+        cell_qr_data: qrPlacementForm.cell_qr_data,
+        block_number: parseInt(qrPlacementForm.block_number),
+        shelf_number: parseInt(qrPlacementForm.shelf_number),
+        cell_number: parseInt(qrPlacementForm.cell_number)
       };
 
       const response = await apiCall(`/api/transport/${selectedArrivedTransport.id}/place-cargo-by-number`, 'POST', placementData);
       
       showAlert(
-        `Груз ${response.cargo_number} автоматически размещен на складе ${response.warehouse_name} в ячейке ${response.location}!`, 
+        `Груз ${response.cargo_number} размещен на складе ${response.warehouse_name} в ячейке ${response.location}! ${response.warehouse_auto_selected ? 'Склад выбран автоматически.' : ''}`, 
         'success'
       );
       
@@ -1236,7 +1240,11 @@ function App() {
       setQrPlacementModal(false);
       setQrPlacementForm({
         cargo_number: '',
-        qr_data: ''
+        qr_data: '',
+        cell_qr_data: '',
+        block_number: 1,
+        shelf_number: 1,
+        cell_number: 1
       });
       
       if (response.transport_status === 'completed') {
