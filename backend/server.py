@@ -346,6 +346,21 @@ class CargoRequestCreate(BaseModel):
     description: str = Field(..., min_length=1, max_length=500)
     route: RouteType = RouteType.MOSCOW_TO_TAJIKISTAN
 
+class CargoRequestUpdate(BaseModel):
+    """Модель для обновления информации заказа администратором или оператором"""
+    sender_full_name: Optional[str] = Field(None, min_length=2, max_length=100)
+    sender_phone: Optional[str] = Field(None, min_length=10, max_length=20)
+    recipient_full_name: Optional[str] = Field(None, min_length=2, max_length=100)
+    recipient_phone: Optional[str] = Field(None, min_length=10, max_length=20)
+    recipient_address: Optional[str] = Field(None, min_length=5, max_length=200)
+    pickup_address: Optional[str] = Field(None, min_length=5, max_length=200)
+    cargo_name: Optional[str] = Field(None, min_length=2, max_length=100)
+    weight: Optional[float] = Field(None, gt=0, le=1000)
+    declared_value: Optional[float] = Field(None, gt=0)
+    description: Optional[str] = Field(None, min_length=1, max_length=500)
+    route: Optional[RouteType] = None
+    admin_notes: Optional[str] = Field(None, max_length=500)  # Заметки администратора
+
 class SystemNotification(BaseModel):
     id: str
     title: str
