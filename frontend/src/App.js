@@ -1107,6 +1107,78 @@ function App() {
     }
   };
 
+  // Arrived Transport Functions
+  const fetchArrivedTransports = async () => {
+    try {
+      const data = await apiCall('/api/transport/arrived');
+      setArrivedTransports(data);
+    } catch (error) {
+      console.error('Error fetching arrived transports:', error);
+    }
+  };
+
+  const fetchArrivedTransportCargo = async (transportId) => {
+    try {
+      const data = await apiCall(`/api/transport/${transportId}/arrived-cargo`);
+      setArrivedCargoList(data);
+    } catch (error) {
+      console.error('Error fetching arrived cargo:', error);
+    }
+  };
+
+  const handleMarkTransportArrived = async (transportId) => {
+    if (window.confirm('Отметить транспорт как прибывший?')) {
+      try {
+        await apiCall(`/api/transport/${transportId}/arrive`, 'POST');
+        showAlert('Транспорт отмечен как прибывший!', 'success');
+        fetchTransports();
+        fetchArrivedTransports();
+      } catch (error) {
+        console.error('Error marking transport as arrived:', error);
+        showAlert('Ошибка при отметке транспорта как прибывшего', 'error');
+      }
+    }
+  };
+
+  const handlePlaceCargoFromTransport = async (e) => {
+    e.preventDefault();
+    try {
+      const placementData = {
+        cargo_id: selectedCargoForWarehouse.id,
+        warehouse_id: placementForm.warehouse_id,
+        block_number: parseInt(placementForm.block_number),
+        shelf_number: parseInt(placementForm.shelf_number),
+        cell_number: parseInt(placementForm.cell_number)
+      };
+
+      const response = await apiCall(`/api/transport/${selectedArrivedTransport.id}/place-cargo-to-warehouse`, 'POST', placementData);
+      
+      showAlert(`Груз ${response.cargo_number} успешно размещен на складе ${response.warehouse_name} в ячейке ${response.location}!`, 'success');
+      
+      // Обновить данные
+      fetchArrivedTransportCargo(selectedArrivedTransport.id);
+      fetchArrivedTransports();
+      
+      // Закрыть модал и сбросить форму
+      setCargoPlacementModal(false);
+      setSelectedCargoForWarehouse(null);
+      setPlacementForm({
+        warehouse_id: '',
+        block_number: 1,
+        shelf_number: 1,
+        cell_number: 1
+      });
+      
+      if (response.transport_status === 'completed') {
+        showAlert('Все грузы размещены! Транспорт завершен.', 'info');
+        setArrivedTransportModal(false);
+      }
+    } catch (error) {
+      console.error('Error placing cargo:', error);
+      showAlert('Ошибка размещения груза на складе', 'error');
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
