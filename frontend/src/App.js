@@ -193,6 +193,7 @@ function App() {
         fetchCargoRequests();
         fetchSystemNotifications();
         fetchTransports();
+        fetchOperatorWarehouseBindings();
       } else if (user.role === 'warehouse_operator') {
         fetchWarehouseCargo();
         fetchWarehouses();
