@@ -1068,11 +1068,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Client Cargo Delivery Options API"
-    - "Client Cargo Cost Calculation API" 
-    - "Client Cargo Order Creation API"
+    - "Client Cargo Ordering System with Declared Value Logic"
   stuck_tasks: 
-    - "Client Cargo Ordering System - Frontend Implementation"
+    - "Default Declared Value Logic Implementation"
   test_all: false
   test_priority: "high_first"
 
