@@ -4421,10 +4421,14 @@ function App() {
                               onClick={async () => {
                                 if (window.confirm(`Вернуть груз ${cargo.cargo_number} в исходное место на складе?`)) {
                                   try {
-                                    // Здесь можно добавить функцию возврата груза
-                                    showAlert('Функция возврата груза в разработке', 'info');
+                                    // Return cargo to its original warehouse location
+                                    await apiCall(`/api/transport/${selectedTransport.id}/remove-cargo/${cargo.id}`, 'DELETE');
+                                    showAlert(`Груз ${cargo.cargo_number} возвращен на склад!`, 'success');
+                                    fetchTransportCargoList(selectedTransport.id);
+                                    fetchTransports();
                                   } catch (error) {
                                     console.error('Error returning cargo:', error);
+                                    showAlert('Ошибка при возврате груза на склад', 'error');
                                   }
                                 }
                               }}
