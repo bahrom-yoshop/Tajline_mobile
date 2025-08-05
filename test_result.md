@@ -739,7 +739,7 @@ frontend:
     file: "/app/frontend/src/App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: false
           agent: "user"
@@ -747,6 +747,9 @@ frontend:
         - working: true
           agent: "main"
           comment: "✅ ENHANCED - Transport management modal already had most requested features. Added actual return cargo functionality that calls new backend API to remove cargo from transport and return to warehouse. Modal now shows full cargo list, print functionality, and full cargo details with proper return-to-warehouse logic."
+        - working: true
+          agent: "testing"
+          comment: "✅ CRITICAL FIX VERIFIED - Comprehensive testing confirms the transport cargo list display issue has been successfully resolved. The GET /api/transport/{transport_id}/cargo-list endpoint now correctly searches both 'cargo' and 'operator_cargo' collections. Test results: 1) Both cargo types visible in transport cargo list ✅, 2) Enhanced information fields working (cargo_name, sender_full_name, sender_phone, recipient_phone, status) ✅, 3) Mixed scenarios supported ✅, 4) Proper weight calculations ✅. The critical fix allows cargo accepted by operators to appear alongside user cargo in transport cargo lists, resolving the reported issue where operator cargo was not displaying."
 
   - task: "QR Code User Interface and Integration"
     implemented: true
