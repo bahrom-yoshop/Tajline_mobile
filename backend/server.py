@@ -4816,28 +4816,26 @@ async def create_cargo_tracking(
 @app.get("/api/debug/tracking/{tracking_code}")
 async def debug_tracking(tracking_code: str):
     """Debug tracking lookup"""
-    # Найти трекинг
-    tracking = db.cargo_tracking.find_one({"tracking_code": tracking_code, "is_active": True})
-    if not tracking:
-        return {"error": "Tracking code not found", "tracking_code": tracking_code}
-    
-    # Попробовать найти груз в обеих коллекциях
-    cargo_in_cargo = db.cargo.find_one({"id": tracking["cargo_id"]})
-    cargo_in_operator = db.operator_cargo.find_one({"id": tracking["cargo_id"]})
-    
-    return {
-        "tracking_code": tracking_code,
-        "tracking_record": serialize_mongo_document({
-            "id": tracking["id"],
-            "cargo_id": tracking["cargo_id"],
-            "cargo_number": tracking["cargo_number"],
-            "client_phone": tracking["client_phone"],
-            "is_active": tracking["is_active"]
-        }),
-        "cargo_in_cargo_collection": cargo_in_cargo is not None,
-        "cargo_in_operator_collection": cargo_in_operator is not None,
-        "cargo_found": cargo_in_cargo or cargo_in_operator
-    }
+    try:
+        # Найти трекинг
+        tracking = db.cargo_tracking.find_one({"tracking_code": tracking_code, "is_active": True})
+        if not tracking:
+            return {"error": "Tracking code not found", "tracking_code": tracking_code}
+        
+        # Попробовать найти груз в обеих коллекциях
+        cargo_in_cargo = db.cargo.find_one({"id": tracking["cargo_id"]})
+        cargo_in_operator = db.operator_cargo.find_one({"id": tracking["cargo_id"]})
+        
+        return {
+            "tracking_code": tracking_code,
+            "cargo_id": str(tracking["cargo_id"]),
+            "cargo_number": str(tracking["cargo_number"]),
+            "cargo_in_cargo_collection": cargo_in_cargo is not None,
+            "cargo_in_operator_collection": cargo_in_operator is not None,
+            "cargo_found": (cargo_in_cargo is not None) or (cargo_in_operator is not None)
+        }
+    except Exception as e:
+        return {"error": f"Exception: {str(e)}", "tracking_code": tracking_code}
 
 @app.get("/api/cargo/track/{tracking_code}")
 async def track_cargo_by_code(tracking_code: str):
