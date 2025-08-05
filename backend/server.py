@@ -328,7 +328,45 @@ def require_role(role: UserRole):
     return role_checker
 
 def generate_cargo_number() -> str:
-    return f"CG{datetime.now().strftime('%Y%m%d')}{str(uuid.uuid4())[:8].upper()}"
+    # Генерируем 4-значный номер груза
+    # Получаем текущий максимальный номер из базы данных
+    try:
+        # Ищем последний груз с 4-значным номером
+        last_cargo = db.cargo.find({
+            "cargo_number": {"$regex": "^[0-9]{4}$"}
+        }).sort("cargo_number", -1).limit(1)
+        
+        last_cargo_list = list(last_cargo)
+        
+        if last_cargo_list:
+            # Если есть грузы с 4-значными номерами, берём следующий
+            last_number = int(last_cargo_list[0]["cargo_number"])
+            new_number = last_number + 1
+        else:
+            # Если нет грузов с 4-значными номерами, начинаем с 1001
+            new_number = 1001
+        
+        # Проверяем, что номер не превышает 9999
+        if new_number > 9999:
+            # Если превысили лимит, начинаем с 1001 снова (переиспользуем номера)
+            new_number = 1001
+        
+        # Форматируем как 4-значный номер
+        cargo_number = f"{new_number:04d}"
+        
+        # Проверяем уникальность номера
+        while db.cargo.find_one({"cargo_number": cargo_number}):
+            new_number += 1
+            if new_number > 9999:
+                new_number = 1001
+            cargo_number = f"{new_number:04d}"
+        
+        return cargo_number
+        
+    except Exception as e:
+        # В случае ошибки, генерируем случайный 4-значный номер
+        import random
+        return f"{random.randint(1000, 9999):04d}"
 
 def create_notification(user_id: str, message: str, cargo_id: str = None):
     notification = {
