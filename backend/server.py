@@ -2608,6 +2608,134 @@ async def get_transport_visualization(
         }
     }
 
+@app.get("/api/transport/list")
+async def get_transports_list(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить список транспортов с фильтрацией по ролям (1.5)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    if current_user.role == UserRole.ADMIN:
+        # Админ видит все транспорты
+        transports = list(db.transports.find({}))
+    else:
+        # Оператор видит транспорты, связанные с его складами
+        operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+        
+        if not operator_warehouse_ids:
+            return []
+        
+        # Находим транспорты, направляющиеся к складам оператора или созданные им
+        transports = list(db.transports.find({
+            "$or": [
+                {"destination_warehouse_id": {"$in": operator_warehouse_ids}},  # К его складам
+                {"source_warehouse_id": {"$in": operator_warehouse_ids}},      # От его складов  
+                {"created_by": current_user.id}                               # Созданные им
+            ]
+        }))
+    
+    transport_list = []
+    for transport in transports:
+        transport_data = {
+            "id": transport["id"],
+            "transport_number": transport["transport_number"],
+            "driver_name": transport["driver_name"],
+            "driver_phone": transport["driver_phone"],
+            "direction": transport["direction"],
+            "capacity_kg": transport["capacity_kg"],
+            "current_load_kg": transport["current_load_kg"],
+            "status": transport["status"],
+            "created_at": transport["created_at"],
+            "cargo_list": transport.get("cargo_list", []),
+            "source_warehouse_id": transport.get("source_warehouse_id"),
+            "destination_warehouse_id": transport.get("destination_warehouse_id"),
+            "is_interwarehouse": transport.get("is_interwarehouse", False),
+            "dispatched_at": transport.get("dispatched_at"),
+            "arrived_at": transport.get("arrived_at")
+        }
+        transport_list.append(transport_data)
+    
+    return transport_list
+
+@app.post("/api/transport/create-interwarehouse")
+async def create_interwarehouse_transport(
+    transport_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Создать межскладской транспорт (1.6)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    source_warehouse_id = transport_data.get("source_warehouse_id")
+    destination_warehouse_id = transport_data.get("destination_warehouse_id")
+    
+    if not source_warehouse_id or not destination_warehouse_id:
+        raise HTTPException(status_code=400, detail="Source and destination warehouses required")
+    
+    if source_warehouse_id == destination_warehouse_id:
+        raise HTTPException(status_code=400, detail="Source and destination warehouses must be different")
+    
+    # Для операторов проверяем доступ к складам
+    if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+        operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+        
+        # Оператор должен иметь доступ хотя бы к одному из складов (исходному или целевому)
+        if source_warehouse_id not in operator_warehouse_ids and destination_warehouse_id not in operator_warehouse_ids:
+            raise HTTPException(status_code=403, detail="No access to specified warehouses")
+    
+    # Проверяем существование складов
+    source_warehouse = db.warehouses.find_one({"id": source_warehouse_id})
+    destination_warehouse = db.warehouses.find_one({"id": destination_warehouse_id})
+    
+    if not source_warehouse or not destination_warehouse:
+        raise HTTPException(status_code=404, detail="Source or destination warehouse not found")
+    
+    # Создаем транспорт
+    transport_id = str(uuid.uuid4())
+    transport_number = f"IW-{transport_id[-8:].upper()}"  # Межскладской префикс
+    
+    direction = f"{source_warehouse['name']} → {destination_warehouse['name']}"
+    
+    transport = {
+        "id": transport_id,
+        "transport_number": transport_number,
+        "driver_name": transport_data.get("driver_name", ""),
+        "driver_phone": transport_data.get("driver_phone", ""),
+        "direction": direction,
+        "capacity_kg": transport_data.get("capacity_kg", 1000),
+        "current_load_kg": 0,
+        "status": TransportStatus.EMPTY,
+        "cargo_list": [],
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "created_by": current_user.id,
+        "created_by_operator": current_user.full_name,
+        "source_warehouse_id": source_warehouse_id,
+        "destination_warehouse_id": destination_warehouse_id,
+        "is_interwarehouse": True,
+        "route_type": "interwarehouse"
+    }
+    
+    db.transports.insert_one(transport)
+    
+    # Создать уведомление
+    create_system_notification(
+        "Межскладской транспорт создан",
+        f"Создан межскладской транспорт {transport_number}: {direction}",
+        "transport",
+        transport_id,
+        None,
+        current_user.id
+    )
+    
+    return {
+        "message": "Interwarehouse transport created successfully",
+        "transport_id": transport_id,
+        "transport_number": transport_number,
+        "direction": direction
+    }
+
 @app.get("/api/transport/{transport_id}")
 async def get_transport(
     transport_id: str,
