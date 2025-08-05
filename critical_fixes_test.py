@@ -116,7 +116,7 @@ class CriticalFixesTester:
         user_data = {
             "full_name": "Пользователь Тестер",
             "phone": "+79123456789",
-            "password": "user123",
+            "password": "123456",  # Use correct password
             "role": "user"
         }
         
