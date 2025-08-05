@@ -2276,23 +2276,23 @@ function App() {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <div className="flex items-center mr-6">
-                  <div className="mr-3">
-                    <img 
-                      src="/logo.png" 
-                      alt="TAJLINE.TJ" 
-                      className="h-12 w-auto"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'block';
-                      }}
-                    />
-                    <div className="hidden bg-blue-600 text-white p-2 rounded-lg">
+                  <img 
+                    src="/logo.png" 
+                    alt="TAJLINE.TJ" 
+                    className="h-10 w-auto"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'block';
+                    }}
+                  />
+                  <div className="hidden flex items-center">
+                    <div className="bg-blue-600 text-white p-2 rounded-lg mr-3">
                       <Truck className="h-8 w-8" />
                     </div>
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-bold text-blue-600">TAJLINE.TJ</h1>
-                    <p className="text-sm text-gray-600">Грузоперевозки Москва-Таджикистан</p>
+                    <div>
+                      <h1 className="text-2xl font-bold text-blue-600">TAJLINE.TJ</h1>
+                      <p className="text-sm text-gray-600">Грузоперевозки Москва-Таджикистан</p>
+                    </div>
                   </div>
                 </div>
               </div>
