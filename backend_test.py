@@ -7125,11 +7125,13 @@ ID склада: {self.warehouse_id}"""
         
         test_results = []
         
-        # Run test suites in order - prioritizing warehouse cell management tests
+        # Run test suites in order - prioritizing critical operator permission fixes
         test_suites = [
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            # CRITICAL: Test the 3 specific operator permission fixes first
+            ("🔧 CRITICAL Operator Permission Fixes", self.test_critical_operator_permission_fixes),
             ("CRITICAL FIX: Transport Cargo List Display", self.test_transport_cargo_list_critical_fix),
             ("Warehouse Cell Management System", self.test_warehouse_cell_management_system),
             ("Automatic Cell Liberation on Transport", self.test_automatic_cell_liberation_on_transport),
