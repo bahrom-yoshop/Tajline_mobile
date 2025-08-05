@@ -176,6 +176,7 @@ class CargoTransportAPITester:
             "recipient_phone": "+79888999000", 
             "route": "moscow_to_tajikistan",
             "weight": 25.5,
+            "cargo_name": "Документы и личные вещи",
             "description": "Документы и посылки",
             "declared_value": 15000.0,
             "sender_address": "Москва, ул. Тверская, 1",
