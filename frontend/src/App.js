@@ -245,6 +245,35 @@ function App() {
     }
   };
 
+  // Новые функции для клиентского дашборда (Функция 1)
+  const fetchClientDashboard = async () => {
+    try {
+      const data = await apiCall('/api/client/dashboard');
+      setClientDashboard(data);
+    } catch (error) {
+      console.error('Error fetching client dashboard:', error);
+    }
+  };
+
+  const fetchClientCargo = async (status = null) => {
+    try {
+      const params = status ? `?status=${status}` : '';
+      const data = await apiCall(`/api/client/cargo${params}`);
+      setClientCargo(data.cargo || []);
+    } catch (error) {
+      console.error('Error fetching client cargo:', error);
+    }
+  };
+
+  const fetchClientCargoDetails = async (cargoId) => {
+    try {
+      const data = await apiCall(`/api/client/cargo/${cargoId}/details`);
+      setClientCargoDetails(data);
+    } catch (error) {
+      console.error('Error fetching client cargo details:', error);
+    }
+  };
+
   useEffect(() => {
     if (token) {
       // Попытка получить информацию о пользователе при загрузке
