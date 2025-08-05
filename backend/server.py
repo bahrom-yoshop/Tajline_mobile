@@ -49,6 +49,7 @@ class CargoStatus(str, Enum):
     ACCEPTED = "accepted"
     IN_TRANSIT = "in_transit"
     ARRIVED_DESTINATION = "arrived_destination"
+    IN_WAREHOUSE = "in_warehouse"
     COMPLETED = "completed"
 
 class RouteType(str, Enum):
