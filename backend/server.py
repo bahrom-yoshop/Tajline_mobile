@@ -1243,6 +1243,10 @@ async def get_cargo_history(
         ]
     
     cargo_list = list(db.operator_cargo.find(query).sort("updated_at", -1))
+    # Ensure cargo_name field exists for backward compatibility
+    for cargo in cargo_list:
+        if 'cargo_name' not in cargo:
+            cargo['cargo_name'] = cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз'
     return [CargoWithLocation(**cargo) for cargo in cargo_list]
 
 @app.get("/api/warehouses/{warehouse_id}/available-cells")
