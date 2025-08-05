@@ -5228,6 +5228,181 @@ async def mark_internal_message_read(
     
     return {"message": "Message marked as read"}
 
+# === API ДЛЯ КЛИЕНТСКОГО ЛИЧНОГО КАБИНЕТА (Функция 1) ===
+
+@app.get("/api/client/dashboard")
+async def get_client_dashboard(
+    current_user: User = Depends(get_current_user)
+):
+    """Главная страница личного кабинета клиента"""
+    # Только пользователи (клиенты) могут получать свой дашборд
+    if current_user.role != UserRole.USER:
+        raise HTTPException(status_code=403, detail="Access denied - Only for clients")
+    
+    # Получить грузы клиента
+    user_cargo = list(db.cargo.find({"created_by": current_user.id}, {"_id": 0}).sort("created_at", -1))
+    
+    # Статистика по статусам
+    status_stats = {}
+    for status in ['accepted', 'placed_in_warehouse', 'on_transport', 'in_transit', 'arrived_destination', 'delivered']:
+        count = len([cargo for cargo in user_cargo if cargo.get("status") == status])
+        status_stats[status] = count
+    
+    # Последние 5 грузов
+    recent_cargo = user_cargo[:5]
+    
+    # Unpaid cargo (ожидающие оплаты)
+    unpaid_cargo = [cargo for cargo in user_cargo if cargo.get("payment_status") == "pending"]
+    
+    # Активные трекинг коды
+    active_tracking = list(db.cargo_tracking.find({
+        "client_phone": current_user.phone,
+        "is_active": True
+    }, {"_id": 0}))
+    
+    return {
+        "client_info": {
+            "id": current_user.id,
+            "full_name": current_user.full_name,
+            "phone": current_user.phone,
+            "member_since": current_user.created_at
+        },
+        "cargo_summary": {
+            "total_cargo": len(user_cargo),
+            "status_breakdown": status_stats,
+            "unpaid_cargo_count": len(unpaid_cargo),
+            "active_tracking_codes": len(active_tracking)
+        },
+        "recent_cargo": serialize_mongo_document(recent_cargo),
+        "unpaid_cargo": serialize_mongo_document(unpaid_cargo),
+        "active_tracking": active_tracking
+    }
+
+@app.get("/api/client/cargo")
+async def get_client_cargo(
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить все грузы клиента с фильтрацией"""
+    # Только пользователи (клиенты) могут получать свои грузы
+    if current_user.role != UserRole.USER:
+        raise HTTPException(status_code=403, detail="Access denied - Only for clients")
+    
+    query = {"created_by": current_user.id}
+    if status and status != "all":
+        query["status"] = status
+    
+    cargo_list = list(db.cargo.find(query, {"_id": 0}).sort("created_at", -1))
+    
+    # Обогащаем каждый груз дополнительной информацией
+    enriched_cargo = []
+    for cargo in cargo_list:
+        # Информация о складе
+        warehouse_info = None
+        if cargo.get("warehouse_id"):
+            warehouse = db.warehouses.find_one({"id": cargo["warehouse_id"]})
+            if warehouse:
+                warehouse_info = {
+                    "name": warehouse["name"],
+                    "location": warehouse["location"]
+                }
+        
+        # Информация о транспорте
+        transport_info = None
+        if cargo.get("transport_id"):
+            transport = db.transports.find_one({"id": cargo["transport_id"]})
+            if transport:
+                transport_info = {
+                    "transport_number": transport["transport_number"],
+                    "direction": transport["direction"],
+                    "status": transport["status"]
+                }
+        
+        # Трекинг код
+        tracking = db.cargo_tracking.find_one({"cargo_id": cargo["id"]})
+        tracking_code = tracking["tracking_code"] if tracking else None
+        
+        # Количество фото
+        photo_count = db.cargo_photos.count_documents({"cargo_id": cargo["id"]})
+        
+        # Количество комментариев (только публичные)
+        comment_count = db.cargo_comments.count_documents({
+            "cargo_id": cargo["id"],
+            "is_internal": False
+        })
+        
+        enriched_cargo.append({
+            **cargo,
+            "warehouse_info": warehouse_info,
+            "transport_info": transport_info,
+            "tracking_code": tracking_code,
+            "photo_count": photo_count,
+            "comment_count": comment_count,
+            "location_description": _get_location_description(cargo)
+        })
+    
+    return {
+        "cargo": serialize_mongo_document(enriched_cargo),
+        "total_count": len(enriched_cargo),
+        "filters": {
+            "available_statuses": list(set([c.get("status", "unknown") for c in cargo_list])),
+            "current_filter": status or "all"
+        }
+    }
+
+@app.get("/api/client/cargo/{cargo_id}/details")
+async def get_client_cargo_details(
+    cargo_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить детальную информацию о грузе клиента"""
+    # Только пользователи (клиенты) могут получать свои грузы
+    if current_user.role != UserRole.USER:
+        raise HTTPException(status_code=403, detail="Access denied - Only for clients")
+    
+    # Найти груз и убедиться что он принадлежит клиенту
+    cargo = db.cargo.find_one({"id": cargo_id, "created_by": current_user.id})
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Получить фото груза
+    photos = list(db.cargo_photos.find(
+        {"cargo_id": cargo_id},
+        {"_id": 0, "photo_data": 0}  # Исключаем base64 данные для производительности
+    ).sort("upload_date", -1))
+    
+    # Получить комментарии (только публичные)
+    comments = list(db.cargo_comments.find(
+        {"cargo_id": cargo_id, "is_internal": False},
+        {"_id": 0}
+    ).sort("created_at", -1))
+    
+    # Получить историю (только публичные события)
+    public_history = list(db.cargo_history.find(
+        {
+            "cargo_id": cargo_id,
+            "action_type": {"$in": ["created", "status_changed", "placed_on_transport", "dispatched", "arrived", "delivered"]}
+        },
+        {"_id": 0}
+    ).sort("change_date", -1))
+    
+    # Трекинг информация
+    tracking = db.cargo_tracking.find_one({"cargo_id": cargo_id})
+    
+    return {
+        "cargo": serialize_mongo_document(cargo),
+        "photos": serialize_mongo_document(photos),
+        "comments": serialize_mongo_document(comments),
+        "history": serialize_mongo_document(public_history),
+        "tracking": serialize_mongo_document(tracking) if tracking else None,
+        "available_actions": {
+            "view_photos": len(photos) > 0,
+            "track_cargo": tracking is not None,
+            "contact_support": True,
+            "request_info": True
+        }
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
