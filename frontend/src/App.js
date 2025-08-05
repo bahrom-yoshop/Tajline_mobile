@@ -158,6 +158,20 @@ function App() {
   const [selectedWarehouseForQr, setSelectedWarehouseForQr] = useState(null);
   const [qrScanResult, setQrScanResult] = useState(null);
 
+  // Arrived transport and cargo placement states
+  const [arrivedTransports, setArrivedTransports] = useState([]);
+  const [selectedArrivedTransport, setSelectedArrivedTransport] = useState(null);
+  const [arrivedTransportModal, setArrivedTransportModal] = useState(false);
+  const [arrivedCargoList, setArrivedCargoList] = useState([]);
+  const [cargoPlacementModal, setCargoPlacementModal] = useState(false);
+  const [selectedCargoForPlacement, setSelectedCargoForPlacement] = useState(null);
+  const [placementForm, setPlacementForm] = useState({
+    warehouse_id: '',
+    block_number: 1,
+    shelf_number: 1,
+    cell_number: 1
+  });
+
   const [alerts, setAlerts] = useState([]);
 
   const showAlert = (message, type = 'info') => {
