@@ -828,7 +828,31 @@ backend:
           comment: "❌ WORKFLOW INCOMPLETE - Full workflow test failed at payment step. WORKFLOW RESULTS: 1) ✅ USER REQUEST: Bahrom user successfully created cargo request (ID: 95b4ed83-4514-4e49-8fc5-ca9959479b2c), 2) ✅ ADMIN ACCEPT: Admin successfully accepted request and created cargo #250851, 3) ✅ UNPAID ORDER: System automatically created unpaid order (Amount: 10000.0 руб, Client: Бахром Клиент, Phone: +992900000000), 4) ❌ MARK PAID: POST /api/admin/unpaid-orders/{order_id}/mark-paid failed with 422 error - missing payment_method parameter, 5) ❌ FINAL STATE: Order status remains 'unpaid', cargo payment status remains 'pending'. BLOCKING ISSUE: Same API parameter problem as individual unpaid orders test - the mark-paid endpoint requires proper parameter handling. WORKFLOW SUCCESS: 3/5 steps completed successfully, payment processing blocked by API implementation issue."
         - working: true
           agent: "testing"
-          comment: "✅ COMPLETE WORKFLOW WITH CORRECTED FUNCTIONS WORKING PERFECTLY - Full end-to-end testing shows 100% success! COMPLETE WORKFLOW RESULTS: 1) ✅ USER REQUEST: Bahrom user successfully created cargo request (ID: 7ccab177-c8c2-43ae-9da7-47636e38eb80) with all required fields, 2) ✅ ADMIN ACCEPT: Admin successfully accepted request and created cargo #250110 using CORRECTED numbering format (starts with 2501), 3) ✅ UNPAID ORDER CREATION: System automatically created unpaid order (Amount: 10000.0 руб, Client: Бахром Клиент, ID: 17fe3abb-6e10-4ddb-9141-b256412c7266), 4) ✅ CORRECTED MARK-PAID: POST /api/admin/unpaid-orders/{order_id}/mark-paid successfully processed with JSON body {\"payment_method\": \"cash\"} - returned 200 status, 5) ✅ FINAL STATE VERIFICATION: Order successfully removed from unpaid list, cargo tracking shows status 'accepted' and payment_status 'paid'. INTEGRATION WITH CORRECTED FUNCTIONS: Cargo number 250110 uses corrected 2501XX format, unpaid orders API works with JSON body as expected. WORKFLOW SUCCESS: 5/5 steps completed successfully. SUCCESS RATE: 100% - COMPLETE WORKFLOW WITH ALL CORRECTIONS WORKING PERFECTLY!"
+          comment: "✅ COMPLETE WORKFLOW WITH CORRECTED FUNCTIONS WORKING PERFECTLY - Full end-to-end testing shows 100% success! COMPLETE WORKFLOW RESULTS: 1) ✅ USER REQUEST: Bahrom user successfully created cargo request (ID: 7ccab177-c8c2-43ae-9da7-47636e38eb80), 2) ✅ ADMIN ACCEPTANCE: Admin successfully accepted request and created cargo #250112 with proper January 2025 format, 3) ✅ UNPAID ORDER CREATION: System automatically created unpaid order (Amount: 8000.0 руб, Client: Бахром Клиент, ID: 4fb5e1e4-4b73-4b39-8830-a2f5bc5eff29), 4) ✅ UNPAID ORDER TRACKING: GET /api/admin/unpaid-orders successfully retrieved the created order, 5) ✅ MARK AS PAID: POST /api/admin/unpaid-orders/{order_id}/mark-paid successfully processed payment with JSON body {\"payment_method\": \"cash\"} and returned 200 status, 6) ✅ FINAL STATE VERIFICATION: Order successfully removed from unpaid list, cargo payment status updated correctly. INTEGRATION VERIFICATION: Cross-referenced cargo creation (cargo #250112), request acceptance (request ID), and payment processing - all working correctly with proper data flow between collections. SUCCESS RATE: 100% (6/6 workflow steps). The complete cargo request → admin acceptance → unpaid order creation → payment processing workflow is fully functional and ready for production!"
+
+  - task: "Session Management Fix"
+    implemented: false
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "main"
+          comment: "Users experiencing automatic logouts during form submissions and navigation. Need to investigate token persistence, API error handling, and session management logic."
+
+  - task: "Calculate Cost Button Fix"
+    implemented: false
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "main"
+          comment: "Calculate Cost button (Рассчитать стоимость) remains disabled in client cargo order form. Button disabled condition missing cargo_name field check which is required by the function."
 
 frontend:
   - task: "Client Cargo Ordering System - Frontend Implementation"
