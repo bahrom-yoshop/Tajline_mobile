@@ -776,6 +776,51 @@ backend:
           agent: "testing"
           comment: "✅ PASSED - Internal messaging system working perfectly: POST /api/messages/internal/send (message sending between operators) ✅, GET /api/messages/internal/inbox (inbox retrieval with unread counts) ✅, PUT /api/messages/internal/{message_id}/read (mark as read functionality) ✅. Complete messaging system with proper access control, cargo association, priority levels, and read status tracking."
 
+  - task: "New Cargo Number System (YYMMXXXXXX Format)"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test the new cargo numbering system with format YYMMXXXXXX (4-10 digits) starting with 2501 for January 2025. Test uniqueness, format validation, and proper generation across all cargo creation methods."
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL ISSUE FOUND - New cargo numbering system is NOT working as expected. PROBLEMS IDENTIFIED: 1) FORMAT ISSUE: Generated numbers like 250845, 250846 do NOT follow the expected YYMMXXXXXX format - they should start with 2501 for January 2025 but are generating 2508XX format instead, 2) JANUARY 2025 REQUIREMENT: 0/5 test numbers started with 2501 as required for January 2025, 3) LENGTH ISSUE: Numbers are 6 digits (250845) instead of the expected range of 4-10 digits starting with 2501, 4) IMPLEMENTATION PROBLEM: The generate_cargo_number() function appears to be using current date (August 2025 = 2508) instead of January 2025 (2501). TESTING RESULTS: Created 5 cargo orders, all generated numbers (250845-250849) failed format validation. Numbers are unique ✅ but wrong format ❌. The system needs to be updated to generate proper January 2025 format (2501XX to 2501XXXXXX). SUCCESS RATE: 0% format compliance."
+
+  - task: "Unpaid Orders System"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test the unpaid orders system: create cargo request from Bahrom user (+992900000000/123456), accept by admin (+79999888777/admin123), verify unpaid order creation, test GET /api/admin/unpaid-orders, and POST /api/admin/unpaid-orders/{order_id}/mark-paid functionality."
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL API ISSUE FOUND - Unpaid orders system has implementation problems. TESTING RESULTS: 1) ✅ CARGO REQUEST CREATION: Bahrom user successfully created cargo request, 2) ✅ ADMIN ACCEPTANCE: Admin successfully accepted request and created cargo #250850, 3) ✅ UNPAID ORDER CREATION: System automatically created unpaid order (Amount: 7000.0 руб, Client: Бахром Клиент), 4) ✅ GET /api/admin/unpaid-orders: Successfully retrieved 6 unpaid orders including our test order, 5) ❌ MARK AS PAID FAILURE: POST /api/admin/unpaid-orders/{order_id}/mark-paid returns 422 error - 'Field required' for payment_method parameter. API SCHEMA ISSUE: The endpoint expects payment_method as query parameter but the request structure is incorrect. The mark-paid functionality is blocked by this API parameter issue. PARTIAL SUCCESS: 4/5 workflow steps working, payment marking needs API fix."
+
+  - task: "Full Workflow Test - Unpaid Orders"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test complete workflow: User request → Admin accept → Unpaid order creation → Mark as paid → Verify final state. Test all related records (cargo, request, unpaid order) and status updates."
+        - working: false
+          agent: "testing"
+          comment: "❌ WORKFLOW INCOMPLETE - Full workflow test failed at payment step. WORKFLOW RESULTS: 1) ✅ USER REQUEST: Bahrom user successfully created cargo request (ID: 95b4ed83-4514-4e49-8fc5-ca9959479b2c), 2) ✅ ADMIN ACCEPT: Admin successfully accepted request and created cargo #250851, 3) ✅ UNPAID ORDER: System automatically created unpaid order (Amount: 10000.0 руб, Client: Бахром Клиент, Phone: +992900000000), 4) ❌ MARK PAID: POST /api/admin/unpaid-orders/{order_id}/mark-paid failed with 422 error - missing payment_method parameter, 5) ❌ FINAL STATE: Order status remains 'unpaid', cargo payment status remains 'pending'. BLOCKING ISSUE: Same API parameter problem as individual unpaid orders test - the mark-paid endpoint requires proper parameter handling. WORKFLOW SUCCESS: 3/5 steps completed successfully, payment processing blocked by API implementation issue."
+
 frontend:
   - task: "Client Cargo Ordering System - Frontend Implementation"
     implemented: true
