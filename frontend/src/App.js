@@ -4407,8 +4407,15 @@ function App() {
                             {availableCargoForPlacement.length === 0 ? (
                               <div className="text-center py-8">
                                 <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                                <p className="text-gray-500">Нет грузов для размещения</p>
-                                <p className="text-sm text-gray-400 mt-2">Оплаченные грузы появятся здесь автоматически</p>
+                                <p className="text-gray-500">Нет грузов, ожидающих размещения</p>
+                                <p className="text-sm text-gray-400 mt-2">Оплаченные грузы из "Списка грузов" автоматически появятся здесь</p>
+                                <Button 
+                                  variant="outline" 
+                                  className="mt-4"
+                                  onClick={() => setActiveTab('cargo-list')}
+                                >
+                                  Перейти к списку грузов
+                                </Button>
                               </div>
                             ) : (
                               <div className="grid gap-6">
