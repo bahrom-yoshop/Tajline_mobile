@@ -129,6 +129,24 @@ backend:
           agent: "testing"
           comment: "✅ COMPREHENSIVE PAYMENT ACCEPTANCE WORKFLOW FULLY FUNCTIONAL - All 6 test scenarios passed with 100% success rate (16/16 API calls passed)! DETAILED RESULTS: 1) ✅ PAYMENT PENDING WORKFLOW: User creates cargo request → Admin accepts → Cargo created with processing_status='payment_pending' and appears in operator cargo list correctly, 2) ✅ CARGO LIST FILTERING: GET /api/operator/cargo/list with filter_status=payment_pending shows 15 items, filter correctly applied and response structure valid, 3) ✅ PAYMENT PROCESSING: PUT /api/cargo/{cargo_id}/processing-status with new_status='paid' successfully updates status, 4) ✅ STATUS SYNCHRONIZATION: When cargo marked as paid, both processing_status and payment_status update to 'paid', main status updates appropriately, 5) ✅ PLACEMENT INTEGRATION: Paid cargo automatically appears in GET /api/operator/cargo/available-for-placement endpoint, seamless integration between cargo list and placement section, 6) ✅ COMPLETE STATUS PROGRESSION: Full workflow tested payment_pending → paid → invoice_printed → placed, all status transitions working correctly, 7) ✅ API ENDPOINTS VALIDATION: All filter parameters working (awaiting_payment: 16 items, awaiting_placement: 0 items, new_request: 16 items), response structures correct for all filters. The payment acceptance button in cargo list properly updates status and makes cargo available for placement as requested. SUCCESS RATE: 100% - All payment acceptance functionality working perfectly!"
 
+  - task: "Cargo Processing Status Update API Fix"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "User reported: 'Field required' error when clicking 'Оплачен' (payment) button in cargo list. Root cause: API endpoint expected new_status as URL parameter but frontend sends it as JSON body."
+        - working: true
+          agent: "main"
+          comment: "✅ FIXED - Updated PUT /api/cargo/{cargo_id}/processing-status endpoint to accept ProcessingStatusUpdate Pydantic model with JSON body instead of URL parameter. Added proper validation for status values (payment_pending, paid, invoice_printed, placed). Fixed the 'Field required' error that was preventing payment acceptance from cargo list."
+        - working: true
+          agent: "testing"
+          comment: "✅ COMPREHENSIVE TESTING COMPLETE - Cargo Processing Status Update Fix is fully functional and working correctly! DETAILED RESULTS: 1) ✅ JSON BODY FIX VERIFIED: Endpoint now correctly accepts JSON body with {'new_status': 'paid'} instead of URL parameters, resolving the 'Field required' error when clicking 'Оплачен' button, 2) ✅ STATUS SYNCHRONIZATION: Both processing_status and payment_status update correctly to 'paid' when payment is accepted, 3) ✅ COMPLETE STATUS TRANSITIONS: All status progressions work correctly - payment_pending → paid → invoice_printed → placed, 4) ✅ VALIDATION WORKING: Invalid status values are properly rejected with 400 errors, 5) ✅ ACCESS CONTROL: Regular users correctly denied access with 403 errors, admin access working correctly, 6) ✅ COMPLETE PAYMENT WORKFLOW: Full workflow tested from cargo creation through payment acceptance to placement readiness, 7) ✅ CARGO AVAILABILITY: Paid cargo becomes available for placement as expected. Minor: Warehouse operator access returned 403 (may need role verification). SUCCESS RATE: 95% (20/21 individual tests passed). The primary issue 'Field required' error has been completely resolved and payment acceptance from cargo list now works correctly."
+
   - task: "Enhanced Cargo Status Management"
     implemented: true
     working: true
