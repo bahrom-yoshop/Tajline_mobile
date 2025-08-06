@@ -163,10 +163,19 @@ function App() {
     description: '',
     route: 'moscow_to_tajikistan'
   });
+  // Operator cargo management states
   const [operatorCargo, setOperatorCargo] = useState([]);
   const [operatorCargoFilter, setOperatorCargoFilter] = useState(''); // Фильтр для списка грузов
+  const [operatorCargoPagination, setOperatorCargoPagination] = useState({}); // Пагинация для списка грузов
+  const [operatorCargoPage, setOperatorCargoPage] = useState(1);
+  const [operatorCargoPerPage, setOperatorCargoPerPage] = useState(25);
+  
   const [availableCargo, setAvailableCargo] = useState([]);
   const [availableCargoForPlacement, setAvailableCargoForPlacement] = useState([]); // Грузы для размещения
+  const [availableCargoPagination, setAvailableCargoPagination] = useState({}); // Пагинация для размещения
+  const [availableCargoPage, setAvailableCargoPage] = useState(1);
+  const [availableCargoPerPage, setAvailableCargoPerPage] = useState(25);
+  
   const [selectedCargoForDetailView, setSelectedCargoForDetailView] = useState(null); // Выбранный груз для просмотра деталей
   const [cargoDetailsModal, setCargoDetailsModal] = useState(false); // Модальное окно деталей груза
   const [quickPlacementModal, setQuickPlacementModal] = useState(false); // Быстрое размещение
