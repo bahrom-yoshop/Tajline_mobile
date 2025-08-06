@@ -2305,6 +2305,239 @@ async def place_cargo_in_warehouse_auto(
     
     return {"message": "Cargo placed successfully in assigned warehouse", "warehouse_name": warehouse["name"]}
 
+@app.get("/api/operator/cargo/available-for-placement")
+async def get_available_cargo_for_placement(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить грузы, доступные для размещения на складе"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Определяем доступные склады для оператора
+    if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+        operator_warehouses = get_operator_warehouses(current_user.id)
+        if not operator_warehouses:
+            return {"cargo_list": [], "message": "No warehouses assigned to operator"}
+    else:
+        # Админ видит все склады
+        warehouses = list(db.warehouses.find({"is_active": True}))
+        operator_warehouses = [w["id"] for w in warehouses]
+    
+    # Ищем грузы, готовые к размещению (оплаченные, но не размещенные)
+    placement_query = {
+        "$or": [
+            {"processing_status": {"$in": ["paid", "invoice_printed"]}},
+            {"payment_status": "paid"}
+        ],
+        "$or": [
+            {"warehouse_location": {"$exists": False}},
+            {"warehouse_location": None},
+            {"warehouse_location": ""}
+        ]
+    }
+    
+    # Ищем в обеих коллекциях
+    operator_cargo_list = list(db.operator_cargo.find(placement_query))
+    user_cargo_list = list(db.cargo.find(placement_query))
+    
+    # Нормализуем данные и добавляем информацию об операторах
+    normalized_cargo = []
+    
+    # Обрабатываем operator cargo
+    for cargo in operator_cargo_list:
+        normalized = serialize_mongo_document(cargo)
+        
+        # Получаем информацию об операторе, который принял груз
+        accepting_operator = "Неизвестно"
+        if cargo.get('created_by'):
+            operator_user = db.users.find_one({"id": cargo['created_by']})
+            if operator_user:
+                accepting_operator = operator_user['full_name']
+        
+        # Получаем информацию о складах оператора
+        operator_warehouse_names = []
+        if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+            for warehouse_id in operator_warehouses:
+                warehouse = db.warehouses.find_one({"id": warehouse_id})
+                if warehouse:
+                    operator_warehouse_names.append(warehouse['name'])
+        
+        normalized.update({
+            'cargo_name': cargo.get('cargo_name') or cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз',
+            'sender_id': cargo.get('created_by', 'operator'),
+            'recipient_name': cargo.get('recipient_full_name', 'Не указан'),
+            'sender_address': cargo.get('sender_address', 'Не указан'),
+            'recipient_address': cargo.get('recipient_address', 'Не указан'),
+            'recipient_phone': cargo.get('recipient_phone', 'Не указан'),
+            'processing_status': cargo.get('processing_status', 'payment_pending'),
+            'sender_full_name': cargo.get('sender_full_name', 'Не указан'),
+            'sender_phone': cargo.get('sender_phone', 'Не указан'),
+            'accepting_operator': accepting_operator,
+            'accepting_operator_id': cargo.get('created_by'),
+            'available_warehouses': operator_warehouse_names,
+            'collection_source': 'operator_cargo'
+        })
+        normalized_cargo.append(normalized)
+    
+    # Обрабатываем user cargo (для админов)
+    for cargo in user_cargo_list:
+        normalized = serialize_mongo_document(cargo)
+        
+        # Получаем информацию об операторе
+        accepting_operator = "Создано пользователем"
+        if cargo.get('accepted_by_operator_id'):
+            operator_user = db.users.find_one({"id": cargo['accepted_by_operator_id']})
+            if operator_user:
+                accepting_operator = operator_user['full_name']
+        
+        normalized.update({
+            'cargo_name': cargo.get('cargo_name') or cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз',
+            'sender_id': cargo.get('sender_id', 'unknown'),
+            'recipient_name': cargo.get('recipient_name', 'Не указан'),
+            'sender_address': cargo.get('sender_address', 'Не указан'),
+            'recipient_address': cargo.get('recipient_address', 'Не указан'),
+            'recipient_phone': cargo.get('recipient_phone', 'Не указан'),
+            'processing_status': cargo.get('processing_status', 'payment_pending'),
+            'sender_full_name': cargo.get('sender_full_name', 'Не указан'),
+            'sender_phone': cargo.get('sender_phone', 'Не указан'),
+            'accepting_operator': accepting_operator,
+            'accepting_operator_id': cargo.get('accepted_by_operator_id'),
+            'available_warehouses': [w['name'] for w in warehouses] if current_user.role == UserRole.ADMIN else operator_warehouse_names,
+            'collection_source': 'cargo'
+        })
+        normalized_cargo.append(normalized)
+    
+    return {
+        "cargo_list": normalized_cargo,
+        "total_count": len(normalized_cargo),
+        "operator_warehouses": operator_warehouses,
+        "current_user_role": current_user.role.value
+    }
+
+@app.post("/api/cargo/{cargo_id}/quick-placement")
+async def quick_cargo_placement(
+    cargo_id: str,
+    placement_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Быстрое размещение груза по номеру с автоматическим выбором склада"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Получаем данные размещения
+    block_number = placement_data.get('block_number')
+    shelf_number = placement_data.get('shelf_number') 
+    cell_number = placement_data.get('cell_number')
+    
+    if not all([block_number, shelf_number, cell_number]):
+        raise HTTPException(status_code=400, detail="Block, shelf, and cell numbers are required")
+    
+    # Ищем груз в обеих коллекциях
+    cargo = db.operator_cargo.find_one({"id": cargo_id})
+    collection = "operator_cargo"
+    
+    if not cargo:
+        cargo = db.cargo.find_one({"id": cargo_id})
+        collection = "cargo"
+    
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Автоматически определяем склад на основе привязки оператора
+    warehouse_id = None
+    if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+        operator_warehouses = get_operator_warehouses(current_user.id)
+        if operator_warehouses:
+            warehouse_id = operator_warehouses[0]  # Используем первый привязанный склад
+        else:
+            raise HTTPException(status_code=400, detail="No warehouse assigned to operator")
+    else:
+        # Для админа используем склад из данных запроса или первый доступный
+        warehouse_id = placement_data.get('warehouse_id')
+        if not warehouse_id:
+            warehouses = list(db.warehouses.find({"is_active": True}))
+            if warehouses:
+                warehouse_id = warehouses[0]["id"]
+            else:
+                raise HTTPException(status_code=400, detail="No active warehouses available")
+    
+    # Проверяем существование склада
+    warehouse = db.warehouses.find_one({"id": warehouse_id})
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="Warehouse not found")
+    
+    # Проверяем доступность ячейки
+    location_code = f"{block_number}-{shelf_number}-{cell_number}"
+    existing_cell = db.warehouse_cells.find_one({
+        "warehouse_id": warehouse_id,
+        "location_code": location_code,
+        "is_occupied": True
+    })
+    
+    if existing_cell:
+        raise HTTPException(status_code=400, detail=f"Cell {location_code} is already occupied")
+    
+    # Обновляем или создаем запись ячейки
+    warehouse_location = f"Б{block_number}-П{shelf_number}-Я{cell_number}"
+    
+    # Обновляем груз
+    update_data = {
+        "warehouse_id": warehouse_id,
+        "warehouse_location": warehouse_location,
+        "block_number": block_number,
+        "shelf_number": shelf_number,
+        "cell_number": cell_number,
+        "placed_by_operator": current_user.full_name,
+        "placed_by_operator_id": current_user.id,
+        "processing_status": "placed",
+        "status": CargoStatus.IN_WAREHOUSE,
+        "updated_at": datetime.utcnow()
+    }
+    
+    # Обновляем в соответствующей коллекции
+    if collection == "operator_cargo":
+        db.operator_cargo.update_one({"id": cargo_id}, {"$set": update_data})
+    else:
+        db.cargo.update_one({"id": cargo_id}, {"$set": update_data})
+    
+    # Обновляем информацию о ячейке
+    db.warehouse_cells.update_one(
+        {"warehouse_id": warehouse_id, "location_code": location_code},
+        {
+            "$set": {
+                "is_occupied": True,
+                "cargo_id": cargo_id
+            }
+        },
+        upsert=True
+    )
+    
+    # Создаем уведомление
+    message = f"Груз {cargo['cargo_number']} размещен в ячейке {warehouse_location} склада {warehouse['name']}"
+    
+    # Уведомляем клиента
+    sender_id = cargo.get("sender_id") or cargo.get("created_by")
+    if sender_id and sender_id != current_user.id:
+        create_notification(sender_id, message, cargo_id)
+    
+    # Системное уведомление
+    create_system_notification(
+        "Груз размещен",
+        f"{message} оператором {current_user.full_name}",
+        "placement",
+        cargo_id,
+        None,
+        current_user.id
+    )
+    
+    return {
+        "message": "Cargo placed successfully",
+        "cargo_number": cargo['cargo_number'],
+        "warehouse_name": warehouse['name'],
+        "location": warehouse_location,
+        "placed_by": current_user.full_name
+    }
+
 @app.get("/api/operator/cargo/available")
 async def get_available_cargo_for_placement(
     current_user: User = Depends(get_current_user)
