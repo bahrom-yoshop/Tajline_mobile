@@ -10662,6 +10662,359 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_session_management_improvements(self):
+        """Test session management improvements - 24 hour token expiry and resilience"""
+        print("\n🔐 SESSION MANAGEMENT IMPROVEMENTS TESTING")
+        
+        all_success = True
+        
+        # Test 1: Verify JWT token expiry is set to 24 hours (1440 minutes)
+        print("\n   ⏰ Testing JWT Token Expiry (24 hours)...")
+        
+        # Login with Bahrom user
+        bahrom_login_data = {
+            "phone": "+992900000000",
+            "password": "123456"
+        }
+        
+        success, login_response = self.run_test(
+            "Login Bahrom User for Session Test",
+            "POST",
+            "/api/auth/login",
+            200,
+            bahrom_login_data
+        )
+        all_success &= success
+        
+        if success and 'access_token' in login_response:
+            token = login_response['access_token']
+            print(f"   🔑 Token obtained for session testing")
+            
+            # Decode token to check expiry (without verification for testing)
+            import jwt
+            try:
+                # Decode without verification to check payload
+                decoded = jwt.decode(token, options={"verify_signature": False})
+                exp_timestamp = decoded.get('exp')
+                iat_timestamp = decoded.get('iat')
+                
+                if exp_timestamp and iat_timestamp:
+                    token_duration_seconds = exp_timestamp - iat_timestamp
+                    token_duration_minutes = token_duration_seconds / 60
+                    
+                    print(f"   📊 Token duration: {token_duration_minutes} minutes")
+                    
+                    # Check if it's 24 hours (1440 minutes)
+                    if abs(token_duration_minutes - 1440) < 5:  # Allow 5 minute tolerance
+                        print(f"   ✅ Token expiry correctly set to ~24 hours (1440 minutes)")
+                    else:
+                        print(f"   ❌ Token expiry is {token_duration_minutes} minutes, expected 1440")
+                        all_success = False
+                else:
+                    print(f"   ⚠️  Could not extract token timestamps")
+                    
+            except Exception as e:
+                print(f"   ⚠️  Could not decode token for expiry check: {e}")
+        
+        # Test 2: Token validation and /api/auth/me endpoint
+        print("\n   👤 Testing Token Validation and Session Persistence...")
+        
+        if success and 'access_token' in login_response:
+            token = login_response['access_token']
+            
+            # Test /api/auth/me endpoint
+            success, me_response = self.run_test(
+                "Get Current User Info (/api/auth/me)",
+                "GET",
+                "/api/auth/me",
+                200,
+                token=token
+            )
+            all_success &= success
+            
+            if success:
+                user_info = me_response
+                print(f"   ✅ Session persistence verified - User: {user_info.get('full_name', 'Unknown')}")
+                print(f"   📱 Phone: {user_info.get('phone', 'Unknown')}")
+                print(f"   👤 Role: {user_info.get('role', 'Unknown')}")
+            
+            # Test multiple API calls with same token to verify session persistence
+            print("\n   🔄 Testing Multiple API Calls with Same Token...")
+            
+            api_calls = [
+                ("Get My Cargo", "GET", "/api/cargo/my"),
+                ("Get Notifications", "GET", "/api/notifications"),
+                ("Get Current User Info Again", "GET", "/api/auth/me")
+            ]
+            
+            for call_name, method, endpoint in api_calls:
+                success, _ = self.run_test(
+                    call_name,
+                    method,
+                    endpoint,
+                    200,
+                    token=token
+                )
+                all_success &= success
+                
+                if success:
+                    print(f"   ✅ {call_name} - Session maintained")
+                else:
+                    print(f"   ❌ {call_name} - Session failed")
+        
+        # Test 3: Test with Admin user for comparison
+        print("\n   👑 Testing Admin User Session Management...")
+        
+        admin_login_data = {
+            "phone": "+79999888777",
+            "password": "admin123"
+        }
+        
+        success, admin_login_response = self.run_test(
+            "Login Admin User for Session Test",
+            "POST",
+            "/api/auth/login",
+            200,
+            admin_login_data
+        )
+        all_success &= success
+        
+        if success and 'access_token' in admin_login_response:
+            admin_token = admin_login_response['access_token']
+            
+            # Test admin session persistence
+            success, admin_me_response = self.run_test(
+                "Admin Get Current User Info",
+                "GET",
+                "/api/auth/me",
+                200,
+                token=admin_token
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Admin session verified - User: {admin_me_response.get('full_name', 'Unknown')}")
+        
+        # Test 4: Test invalid token handling (401 error handling)
+        print("\n   🚫 Testing Invalid Token Handling...")
+        
+        invalid_token = "invalid.token.here"
+        success, _ = self.run_test(
+            "API Call with Invalid Token (Should Return 401)",
+            "GET",
+            "/api/auth/me",
+            401,  # Expecting 401 Unauthorized
+            token=invalid_token
+        )
+        all_success &= success
+        
+        if success:
+            print(f"   ✅ Invalid token correctly rejected with 401")
+        
+        return all_success
+
+    def test_calculate_cost_button_fix(self):
+        """Test the Calculate Cost button fix - all required fields including cargo_name"""
+        print("\n💰 CALCULATE COST BUTTON FIX TESTING")
+        
+        # Login as Bahrom user
+        bahrom_login_data = {
+            "phone": "+992900000000",
+            "password": "123456"
+        }
+        
+        success, login_response = self.run_test(
+            "Login Bahrom User for Calculate Cost Test",
+            "POST",
+            "/api/auth/login",
+            200,
+            bahrom_login_data
+        )
+        
+        if not success or 'access_token' not in login_response:
+            print("   ❌ Could not login Bahrom user")
+            return False
+            
+        token = login_response['access_token']
+        all_success = True
+        
+        # Test 1: Get delivery options first
+        print("\n   📋 Testing Delivery Options Availability...")
+        
+        success, delivery_options = self.run_test(
+            "Get Client Cargo Delivery Options",
+            "GET",
+            "/api/client/cargo/delivery-options",
+            200,
+            token=token
+        )
+        all_success &= success
+        
+        if success:
+            routes = delivery_options.get('routes', [])
+            print(f"   🛣️  Available routes: {len(routes)}")
+            for route in routes:
+                print(f"      - {route.get('value', 'Unknown')}: {route.get('label', 'No label')}")
+        
+        # Test 2: Test Calculate Cost with ALL required fields (including cargo_name)
+        print("\n   💰 Testing Calculate Cost with ALL Required Fields...")
+        
+        # Complete cargo data with ALL required fields including cargo_name
+        complete_cargo_data = {
+            "cargo_name": "Документы и личные вещи",  # This was the missing field!
+            "description": "Важные документы и личные вещи для семьи",
+            "weight": 15.5,
+            "declared_value": 8000.0,
+            "recipient_full_name": "Рахимов Алишер Камолович",
+            "recipient_phone": "+992444555666",
+            "recipient_address": "Душанбе, ул. Рудаки, 25, кв. 10",
+            "recipient_city": "Душанбе",
+            "route": "moscow_dushanbe",
+            "delivery_type": "standard",
+            "insurance_requested": False,
+            "packaging_service": False,
+            "home_pickup": False,
+            "home_delivery": False,
+            "fragile": False,
+            "temperature_sensitive": False
+        }
+        
+        success, calculation_response = self.run_test(
+            "Calculate Cost with Complete Data (Including cargo_name)",
+            "POST",
+            "/api/client/cargo/calculate",
+            200,
+            complete_cargo_data,
+            token
+        )
+        all_success &= success
+        
+        if success:
+            calculation = calculation_response.get('calculation', {})
+            total_cost = calculation.get('total_cost', 0)
+            delivery_days = calculation.get('delivery_time_days', 0)
+            
+            print(f"   ✅ Cost calculation successful!")
+            print(f"   💰 Total cost: {total_cost} руб")
+            print(f"   📅 Delivery time: {delivery_days} days")
+            print(f"   📊 Calculation details: {calculation}")
+        
+        # Test 3: Test Calculate Cost without cargo_name (should fail or use fallback)
+        print("\n   ⚠️  Testing Calculate Cost WITHOUT cargo_name...")
+        
+        incomplete_cargo_data = complete_cargo_data.copy()
+        del incomplete_cargo_data['cargo_name']  # Remove cargo_name
+        
+        success, incomplete_response = self.run_test(
+            "Calculate Cost WITHOUT cargo_name (Should Handle Gracefully)",
+            "POST",
+            "/api/client/cargo/calculate",
+            200,  # Might still work with fallback
+            incomplete_cargo_data,
+            token
+        )
+        
+        if success:
+            print(f"   ✅ Cost calculation worked without cargo_name (using fallback)")
+        else:
+            print(f"   ⚠️  Cost calculation failed without cargo_name (expected behavior)")
+        
+        # Test 4: Test different routes with complete data
+        print("\n   🛣️  Testing Calculate Cost for Different Routes...")
+        
+        test_routes = [
+            ("moscow_khujand", "Москва → Худжанд"),
+            ("moscow_dushanbe", "Москва → Душанбе"), 
+            ("moscow_kulob", "Москва → Кулоб"),
+            ("moscow_kurgantyube", "Москва → Курган-Тюбе")
+        ]
+        
+        for route_value, route_name in test_routes:
+            route_cargo_data = complete_cargo_data.copy()
+            route_cargo_data['route'] = route_value
+            
+            success, route_calculation = self.run_test(
+                f"Calculate Cost for {route_name}",
+                "POST",
+                "/api/client/cargo/calculate",
+                200,
+                route_cargo_data,
+                token
+            )
+            all_success &= success
+            
+            if success:
+                calc = route_calculation.get('calculation', {})
+                cost = calc.get('total_cost', 0)
+                days = calc.get('delivery_time_days', 0)
+                print(f"   💰 {route_name}: {cost} руб, {days} дней")
+        
+        # Test 5: Test End-to-End Cargo Order Creation
+        print("\n   📦 Testing End-to-End Cargo Order Creation...")
+        
+        cargo_order_data = {
+            "cargo_name": "Тестовый груз для заказа",  # Include cargo_name
+            "description": "Полный тест создания заказа груза",
+            "weight": 12.0,
+            "declared_value": 6500.0,
+            "recipient_full_name": "Тестовый Получатель",
+            "recipient_phone": "+992555666777",
+            "recipient_address": "Душанбе, ул. Тестовая, 1",
+            "recipient_city": "Душанбе",
+            "route": "moscow_dushanbe",
+            "delivery_type": "standard",
+            "insurance_requested": False,
+            "packaging_service": False,
+            "home_pickup": False,
+            "home_delivery": False,
+            "fragile": False,
+            "temperature_sensitive": False
+        }
+        
+        success, order_response = self.run_test(
+            "Create Complete Cargo Order",
+            "POST",
+            "/api/client/cargo/create",
+            200,
+            cargo_order_data,
+            token
+        )
+        all_success &= success
+        
+        if success:
+            cargo_id = order_response.get('cargo_id', 'Unknown')
+            cargo_number = order_response.get('cargo_number', 'Unknown')
+            total_cost = order_response.get('total_cost', 0)
+            
+            print(f"   ✅ Cargo order created successfully!")
+            print(f"   🆔 Cargo ID: {cargo_id}")
+            print(f"   🏷️  Cargo Number: {cargo_number}")
+            print(f"   💰 Total Cost: {total_cost} руб")
+            
+            # Store for tracking test
+            self.test_cargo_number = cargo_number
+        
+        # Test 6: Test cargo tracking of created order
+        if hasattr(self, 'test_cargo_number'):
+            print(f"\n   🔍 Testing Cargo Tracking of Created Order...")
+            
+            success, track_response = self.run_test(
+                f"Track Created Cargo {self.test_cargo_number}",
+                "GET",
+                f"/api/cargo/track/{self.test_cargo_number}",
+                200
+            )
+            all_success &= success
+            
+            if success:
+                status = track_response.get('status', 'Unknown')
+                cargo_name = track_response.get('cargo_name', 'Unknown')
+                print(f"   ✅ Cargo tracking successful!")
+                print(f"   📦 Cargo Name: {cargo_name}")
+                print(f"   📊 Status: {status}")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
