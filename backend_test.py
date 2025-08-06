@@ -14546,6 +14546,260 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_warehouse_operator_role_verification(self):
+        """Test warehouse operator role verification - PRIMARY FOCUS"""
+        print("\n🔍 WAREHOUSE OPERATOR ROLE VERIFICATION - PRIMARY TEST")
+        
+        all_success = True
+        
+        # Test 1: Login with warehouse operator credentials
+        print("\n   🔐 Testing Warehouse Operator Login...")
+        
+        login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login",
+            "POST",
+            "/api/auth/login",
+            200,
+            login_data
+        )
+        all_success &= success
+        
+        warehouse_operator_token = None
+        if success and 'access_token' in login_response:
+            warehouse_operator_token = login_response['access_token']
+            user_info = login_response.get('user', {})
+            
+            print(f"   ✅ Login successful")
+            print(f"   👤 User: {user_info.get('full_name', 'Unknown')}")
+            print(f"   📱 Phone: {user_info.get('phone', 'Unknown')}")
+            print(f"   🏷️  Role: {user_info.get('role', 'Unknown')}")
+            
+            # Verify role is warehouse_operator
+            actual_role = user_info.get('role')
+            if actual_role == 'warehouse_operator':
+                print("   ✅ Role correctly set as 'warehouse_operator'")
+            else:
+                print(f"   ❌ CRITICAL ISSUE: Role is '{actual_role}', expected 'warehouse_operator'")
+                all_success = False
+        else:
+            print("   ❌ Login failed - cannot proceed with role verification")
+            return False
+        
+        # Test 2: Verify role via /api/auth/me endpoint
+        print("\n   🔍 Testing Role Verification via /api/auth/me...")
+        
+        success, me_response = self.run_test(
+            "Get Current User Info",
+            "GET",
+            "/api/auth/me",
+            200,
+            token=warehouse_operator_token
+        )
+        all_success &= success
+        
+        if success:
+            role_from_me = me_response.get('role')
+            full_name = me_response.get('full_name', 'Unknown')
+            phone = me_response.get('phone', 'Unknown')
+            
+            print(f"   👤 User from /api/auth/me: {full_name}")
+            print(f"   📱 Phone: {phone}")
+            print(f"   🏷️  Role: {role_from_me}")
+            
+            if role_from_me == 'warehouse_operator':
+                print("   ✅ Role verification successful via /api/auth/me")
+            else:
+                print(f"   ❌ CRITICAL ISSUE: /api/auth/me returns role '{role_from_me}', expected 'warehouse_operator'")
+                all_success = False
+        
+        # Test 3: Check if user exists in database with correct role
+        print("\n   🗄️  Testing Database User Verification...")
+        
+        # Use admin token to check user details
+        if 'admin' not in self.tokens:
+            # Try to login as admin first
+            admin_login = {
+                "phone": "+79999888777",
+                "password": "admin123"
+            }
+            
+            success, admin_response = self.run_test(
+                "Admin Login for User Verification",
+                "POST",
+                "/api/auth/login",
+                200,
+                admin_login
+            )
+            
+            if success and 'access_token' in admin_response:
+                self.tokens['admin'] = admin_response['access_token']
+        
+        if 'admin' in self.tokens:
+            success, all_users = self.run_test(
+                "Get All Users to Verify Warehouse Operator",
+                "GET",
+                "/api/admin/users",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success and isinstance(all_users, list):
+                warehouse_operator_user = None
+                for user in all_users:
+                    if user.get('phone') == '+79777888999':
+                        warehouse_operator_user = user
+                        break
+                
+                if warehouse_operator_user:
+                    db_role = warehouse_operator_user.get('role')
+                    db_name = warehouse_operator_user.get('full_name')
+                    
+                    print(f"   👤 Found user in database: {db_name}")
+                    print(f"   🏷️  Database role: {db_role}")
+                    
+                    if db_role == 'warehouse_operator':
+                        print("   ✅ Database role correctly set as 'warehouse_operator'")
+                    else:
+                        print(f"   ❌ CRITICAL ISSUE: Database role is '{db_role}', expected 'warehouse_operator'")
+                        all_success = False
+                else:
+                    print("   ❌ CRITICAL ISSUE: User +79777888999 not found in database")
+                    all_success = False
+        
+        # Test 4: Test access to warehouse operator functions
+        print("\n   🏭 Testing Warehouse Operator Function Access...")
+        
+        # Test access to operator cargo list
+        success, cargo_list = self.run_test(
+            "Access Operator Cargo List",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            token=warehouse_operator_token
+        )
+        
+        if success:
+            print("   ✅ Can access operator cargo list")
+            cargo_count = 0
+            if isinstance(cargo_list, dict) and 'items' in cargo_list:
+                cargo_count = len(cargo_list['items'])
+            elif isinstance(cargo_list, list):
+                cargo_count = len(cargo_list)
+            print(f"   📦 Found {cargo_count} cargo items")
+        else:
+            print("   ❌ Cannot access operator cargo list")
+            all_success = False
+        
+        # Test access to warehouse functions
+        success, warehouses = self.run_test(
+            "Access My Warehouses",
+            "GET",
+            "/api/operator/my-warehouses",
+            200,
+            token=warehouse_operator_token
+        )
+        
+        if success:
+            print("   ✅ Can access warehouse functions")
+            warehouse_count = 0
+            if isinstance(warehouses, dict) and 'warehouses' in warehouses:
+                warehouse_count = len(warehouses['warehouses'])
+            elif isinstance(warehouses, list):
+                warehouse_count = len(warehouses)
+            print(f"   🏭 Has access to {warehouse_count} warehouses")
+        else:
+            print("   ❌ Cannot access warehouse functions")
+            all_success = False
+        
+        # Test 5: Test multi-cargo form access (the specific functionality mentioned)
+        print("\n   🧮 Testing Multi-Cargo Form Access...")
+        
+        # Test if can accept cargo (multi-cargo form functionality)
+        test_cargo_data = {
+            "sender_full_name": "Тест Отправитель Роли",
+            "sender_phone": "+79999999991",
+            "recipient_full_name": "Тест Получатель Роли",
+            "recipient_phone": "+992999999991",
+            "recipient_address": "Душанбе, тест адрес",
+            "cargo_items": [
+                {"cargo_name": "Тест груз 1", "weight": 2.0},
+                {"cargo_name": "Тест груз 2", "weight": 3.0}
+            ],
+            "price_per_kg": 100.0,
+            "description": "Тест многогрузовой формы",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, cargo_response = self.run_test(
+            "Test Multi-Cargo Form Access",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            test_cargo_data,
+            warehouse_operator_token
+        )
+        
+        if success:
+            print("   ✅ Can access multi-cargo form functionality")
+            cargo_number = cargo_response.get('cargo_number', 'Unknown')
+            total_weight = cargo_response.get('weight', 0)
+            print(f"   📦 Created cargo: {cargo_number} (Weight: {total_weight} kg)")
+        else:
+            print("   ❌ Cannot access multi-cargo form functionality")
+            all_success = False
+        
+        # Test 6: Verify user is NOT a regular user
+        print("\n   🚫 Testing Regular User Function Restrictions...")
+        
+        # Try to access user-only functions (should work since warehouse_operator has broader access)
+        success, my_cargo = self.run_test(
+            "Try to Access My Cargo (User Function)",
+            "GET",
+            "/api/cargo/my",
+            200,  # This might work for warehouse operators
+            token=warehouse_operator_token
+        )
+        
+        if success:
+            print("   ℹ️  Can access user cargo functions (expected for warehouse operator)")
+        else:
+            print("   ℹ️  Cannot access user cargo functions (may be restricted)")
+        
+        # Test 7: Summary and diagnosis
+        print("\n   📋 ROLE VERIFICATION SUMMARY...")
+        
+        if all_success:
+            print("   ✅ ALL ROLE VERIFICATION TESTS PASSED")
+            print("   ✅ User +79777888999 has correct 'warehouse_operator' role")
+            print("   ✅ Can access warehouse operator functions")
+            print("   ✅ Multi-cargo form should be accessible in frontend")
+        else:
+            print("   ❌ ROLE VERIFICATION ISSUES FOUND")
+            print("   🔍 DIAGNOSIS:")
+            
+            if warehouse_operator_token:
+                print("   - Login works correctly")
+            else:
+                print("   - Login may be failing")
+            
+            # Check what the actual issue might be
+            if success and me_response:
+                actual_role = me_response.get('role')
+                if actual_role != 'warehouse_operator':
+                    print(f"   - User role is '{actual_role}' instead of 'warehouse_operator'")
+                    print("   - This explains why frontend shows regular user dashboard")
+                    print("   - SOLUTION: Update user role in database to 'warehouse_operator'")
+                else:
+                    print("   - Role is correct in backend")
+                    print("   - Issue may be in frontend role detection logic")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
