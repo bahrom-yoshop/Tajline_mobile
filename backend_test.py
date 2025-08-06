@@ -595,6 +595,454 @@ class CargoTransportAPITester:
             
         return success
 
+    def test_test_data_cleanup_functionality(self):
+        """Test the new test data cleanup functionality"""
+        print("\n🧹 TEST DATA CLEANUP FUNCTIONALITY")
+        
+        if 'admin' not in self.tokens or 'user' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Create some test data first
+        print("\n   📦 Creating Test Data for Cleanup Testing...")
+        
+        # Create test users with patterns that should be cleaned up
+        test_users_data = [
+            {
+                "full_name": "Тест Пользователь",
+                "phone": "+992900000001",
+                "password": "test123",
+                "role": "user"
+            },
+            {
+                "full_name": "Test Client",
+                "phone": "+992900000002", 
+                "password": "test123",
+                "role": "user"
+            },
+            {
+                "full_name": "Клиент Тестовый",
+                "phone": "+992900000003",
+                "password": "test123",
+                "role": "user"
+            }
+        ]
+        
+        created_test_users = []
+        for user_data in test_users_data:
+            success, response = self.run_test(
+                f"Create Test User: {user_data['full_name']}",
+                "POST",
+                "/api/auth/register",
+                200,
+                user_data
+            )
+            if success and 'access_token' in response:
+                created_test_users.append({
+                    'token': response['access_token'],
+                    'user': response['user'],
+                    'phone': user_data['phone']
+                })
+                print(f"   ✅ Created test user: {user_data['full_name']}")
+            else:
+                print(f"   ⚠️  Test user may already exist: {user_data['full_name']}")
+        
+        # Create test cargo requests
+        test_cargo_requests = []
+        for i, test_user in enumerate(created_test_users[:2]):  # Use first 2 test users
+            request_data = {
+                "recipient_full_name": f"Тест Получатель {i+1}",
+                "recipient_phone": f"+99277788899{i}",
+                "recipient_address": f"Душанбе, ул. Тестовая, {i+1}",
+                "pickup_address": f"Москва, ул. Тестовая, {i+1}",
+                "cargo_name": f"Тест груз {i+1}",
+                "weight": 10.0 + i,
+                "declared_value": 5000.0,
+                "description": f"Тестовое описание груза {i+1}",
+                "route": "moscow_to_tajikistan"
+            }
+            
+            success, response = self.run_test(
+                f"Create Test Cargo Request #{i+1}",
+                "POST",
+                "/api/user/cargo-request",
+                200,
+                request_data,
+                test_user['token']
+            )
+            
+            if success and 'id' in response:
+                test_cargo_requests.append(response['id'])
+                print(f"   📋 Created test cargo request: {response['id']}")
+        
+        # Create test operator cargo
+        test_operator_cargo = []
+        for i in range(2):
+            cargo_data = {
+                "sender_full_name": f"Тест Отправитель {i+1}",
+                "sender_phone": f"+79111222{333+i}",
+                "recipient_full_name": f"Тест Получатель Оператор {i+1}",
+                "recipient_phone": f"+99277788{800+i}",
+                "recipient_address": f"Душанбе, ул. Тестовая Оператор, {i+1}",
+                "weight": 15.0 + i,
+                "cargo_name": f"Тест груз оператора {i+1}",
+                "declared_value": 7000.0,
+                "description": f"Тестовый груз оператора {i+1}",
+                "route": "moscow_to_tajikistan"
+            }
+            
+            success, response = self.run_test(
+                f"Create Test Operator Cargo #{i+1}",
+                "POST",
+                "/api/operator/cargo/accept",
+                200,
+                cargo_data,
+                self.tokens['admin']
+            )
+            
+            if success and 'id' in response:
+                test_operator_cargo.append(response['id'])
+                print(f"   📦 Created test operator cargo: {response['id']}")
+        
+        # Test 2: Access Control - Non-admin should be denied
+        print("\n   🔒 Testing Access Control...")
+        
+        success, _ = self.run_test(
+            "Non-admin Access to Cleanup (Should Fail)",
+            "POST",
+            "/api/admin/cleanup-test-data",
+            403,
+            token=self.tokens['user']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Non-admin users correctly denied access")
+        
+        # Test unauthorized access
+        success, _ = self.run_test(
+            "Unauthorized Access to Cleanup (Should Fail)",
+            "POST",
+            "/api/admin/cleanup-test-data",
+            403
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Unauthorized access correctly denied")
+        
+        # Test 3: Get baseline data counts before cleanup
+        print("\n   📊 Getting Baseline Data Counts...")
+        
+        # Count users before cleanup
+        success, users_before = self.run_test(
+            "Get All Users Before Cleanup",
+            "GET",
+            "/api/admin/users",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        users_count_before = len(users_before) if success and isinstance(users_before, list) else 0
+        print(f"   👥 Users before cleanup: {users_count_before}")
+        
+        # Count cargo requests before cleanup
+        success, requests_before = self.run_test(
+            "Get All Cargo Requests Before Cleanup",
+            "GET",
+            "/api/admin/cargo-requests/all",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        requests_count_before = len(requests_before) if success and isinstance(requests_before, list) else 0
+        print(f"   📋 Cargo requests before cleanup: {requests_count_before}")
+        
+        # Count operator cargo before cleanup
+        success, operator_cargo_before = self.run_test(
+            "Get Operator Cargo Before Cleanup",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        operator_cargo_count_before = 0
+        if success and isinstance(operator_cargo_before, dict):
+            operator_cargo_count_before = operator_cargo_before.get('total_count', 0)
+        print(f"   📦 Operator cargo before cleanup: {operator_cargo_count_before}")
+        
+        # Test 4: Execute Cleanup
+        print("\n   🧹 Executing Test Data Cleanup...")
+        
+        success, cleanup_response = self.run_test(
+            "Execute Test Data Cleanup",
+            "POST",
+            "/api/admin/cleanup-test-data",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Cleanup executed successfully")
+            
+            # Verify cleanup report structure
+            cleanup_report = cleanup_response.get('cleanup_report', {})
+            required_fields = [
+                'users_deleted', 'cargo_requests_deleted', 'operator_cargo_deleted',
+                'user_cargo_deleted', 'unpaid_orders_deleted', 'notifications_deleted',
+                'warehouse_cells_deleted', 'details'
+            ]
+            
+            missing_fields = [field for field in required_fields if field not in cleanup_report]
+            if not missing_fields:
+                print("   ✅ Cleanup report has all required fields")
+                
+                # Display cleanup statistics
+                print(f"   📊 Users deleted: {cleanup_report.get('users_deleted', 0)}")
+                print(f"   📊 Cargo requests deleted: {cleanup_report.get('cargo_requests_deleted', 0)}")
+                print(f"   📊 Operator cargo deleted: {cleanup_report.get('operator_cargo_deleted', 0)}")
+                print(f"   📊 User cargo deleted: {cleanup_report.get('user_cargo_deleted', 0)}")
+                print(f"   📊 Unpaid orders deleted: {cleanup_report.get('unpaid_orders_deleted', 0)}")
+                print(f"   📊 Notifications deleted: {cleanup_report.get('notifications_deleted', 0)}")
+                print(f"   📊 Warehouse cells deleted: {cleanup_report.get('warehouse_cells_deleted', 0)}")
+                
+                # Verify cleanup metadata
+                if 'cleaned_by' in cleanup_response and 'cleanup_time' in cleanup_response:
+                    print(f"   ✅ Cleanup metadata present: {cleanup_response.get('cleaned_by')}")
+                    print(f"   🕐 Cleanup time: {cleanup_response.get('cleanup_time')}")
+                else:
+                    print("   ❌ Missing cleanup metadata")
+                    all_success = False
+                    
+            else:
+                print(f"   ❌ Missing required fields in cleanup report: {missing_fields}")
+                all_success = False
+        
+        # Test 5: Verify Current Admin is NOT deleted
+        print("\n   🛡️  Verifying Current Admin Protection...")
+        
+        success, current_user = self.run_test(
+            "Verify Current Admin Still Exists",
+            "GET",
+            "/api/auth/me",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            admin_phone = current_user.get('phone')
+            admin_name = current_user.get('full_name')
+            print(f"   ✅ Current admin still exists: {admin_name} ({admin_phone})")
+        else:
+            print("   ❌ Current admin may have been deleted!")
+            all_success = False
+        
+        # Test 6: Verify Test Data Removal
+        print("\n   🔍 Verifying Test Data Removal...")
+        
+        # Check if test users were removed
+        success, users_after = self.run_test(
+            "Get All Users After Cleanup",
+            "GET",
+            "/api/admin/users",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        if success and isinstance(users_after, list):
+            users_count_after = len(users_after)
+            print(f"   👥 Users after cleanup: {users_count_after}")
+            
+            # Check if test users are gone
+            test_phones = ["+992900000001", "+992900000002", "+992900000003"]
+            remaining_test_users = [u for u in users_after if u.get('phone') in test_phones]
+            
+            if not remaining_test_users:
+                print("   ✅ Test users successfully removed")
+            else:
+                print(f"   ⚠️  Some test users may still exist: {len(remaining_test_users)}")
+        
+        # Check cargo requests
+        success, requests_after = self.run_test(
+            "Get All Cargo Requests After Cleanup",
+            "GET",
+            "/api/admin/cargo-requests/all",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        if success and isinstance(requests_after, list):
+            requests_count_after = len(requests_after)
+            print(f"   📋 Cargo requests after cleanup: {requests_count_after}")
+            
+            # Look for test patterns in remaining requests
+            test_requests = [r for r in requests_after if 
+                           'тест' in r.get('cargo_name', '').lower() or 
+                           'test' in r.get('cargo_name', '').lower()]
+            
+            if not test_requests:
+                print("   ✅ Test cargo requests successfully removed")
+            else:
+                print(f"   ⚠️  Some test cargo requests may still exist: {len(test_requests)}")
+        
+        # Check operator cargo
+        success, operator_cargo_after = self.run_test(
+            "Get Operator Cargo After Cleanup",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        if success and isinstance(operator_cargo_after, dict):
+            operator_cargo_count_after = operator_cargo_after.get('total_count', 0)
+            print(f"   📦 Operator cargo after cleanup: {operator_cargo_count_after}")
+            
+            # Look for test patterns in remaining cargo
+            cargo_list = operator_cargo_after.get('cargo_list', [])
+            test_cargo = [c for c in cargo_list if 
+                         'тест' in c.get('cargo_name', '').lower() or 
+                         'test' in c.get('cargo_name', '').lower()]
+            
+            if not test_cargo:
+                print("   ✅ Test operator cargo successfully removed")
+            else:
+                print(f"   ⚠️  Some test operator cargo may still exist: {len(test_cargo)}")
+        
+        # Test 7: Verify System Notification Created
+        print("\n   📢 Verifying System Notification...")
+        
+        # Check if system notification was created for cleanup
+        success, notifications = self.run_test(
+            "Get Admin Notifications",
+            "GET",
+            "/api/notifications",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        if success and isinstance(notifications, list):
+            cleanup_notifications = [n for n in notifications if 
+                                   'очистка' in n.get('message', '').lower() or 
+                                   'cleanup' in n.get('message', '').lower()]
+            
+            if cleanup_notifications:
+                print(f"   ✅ System notification created for cleanup")
+                latest_cleanup = cleanup_notifications[0]
+                print(f"   📢 Notification: {latest_cleanup.get('message', '')[:100]}...")
+            else:
+                print("   ⚠️  No cleanup notification found")
+        
+        # Test 8: Verify Production Data Remains
+        print("\n   🛡️  Verifying Production Data Integrity...")
+        
+        # Verify main admin user still exists and can perform operations
+        success, admin_users = self.run_test(
+            "Get Admin Users",
+            "GET",
+            "/api/admin/users/by-role/admin",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        if success and isinstance(admin_users, list):
+            admin_count = len(admin_users)
+            print(f"   👑 Admin users remaining: {admin_count}")
+            
+            # Verify our test admin is still there
+            test_admin_phone = "+79999888777"  # From test setup
+            test_admin_exists = any(u.get('phone') == test_admin_phone for u in admin_users)
+            
+            if test_admin_exists:
+                print("   ✅ Test admin user preserved")
+            else:
+                print("   ❌ Test admin user may have been removed!")
+                all_success = False
+        
+        # Test 9: Test Multiple Cleanup Executions (Idempotency)
+        print("\n   🔄 Testing Multiple Cleanup Executions...")
+        
+        success, second_cleanup = self.run_test(
+            "Execute Second Cleanup",
+            "POST",
+            "/api/admin/cleanup-test-data",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            second_report = second_cleanup.get('cleanup_report', {})
+            print("   ✅ Second cleanup executed successfully")
+            print(f"   📊 Second cleanup deleted: {second_report.get('users_deleted', 0)} users, "
+                  f"{second_report.get('cargo_requests_deleted', 0)} requests, "
+                  f"{second_report.get('operator_cargo_deleted', 0)} operator cargo")
+            
+            # Second cleanup should delete fewer items (idempotent)
+            if (second_report.get('users_deleted', 0) <= cleanup_report.get('users_deleted', 0) and
+                second_report.get('cargo_requests_deleted', 0) <= cleanup_report.get('cargo_requests_deleted', 0)):
+                print("   ✅ Cleanup appears to be idempotent")
+            else:
+                print("   ⚠️  Second cleanup deleted more items than first (unexpected)")
+        
+        # Test 10: Pattern Matching Verification
+        print("\n   🎯 Testing Pattern Matching...")
+        
+        # Create a user that should NOT be deleted (production-like)
+        production_user_data = {
+            "full_name": "Реальный Пользователь",
+            "phone": "+992123456789",
+            "password": "realuser123",
+            "role": "user"
+        }
+        
+        success, prod_user_response = self.run_test(
+            "Create Production-like User",
+            "POST",
+            "/api/auth/register",
+            200,
+            production_user_data
+        )
+        
+        if success and 'access_token' in prod_user_response:
+            prod_user_token = prod_user_response['access_token']
+            prod_user_phone = production_user_data['phone']
+            
+            # Execute cleanup again
+            success, pattern_cleanup = self.run_test(
+                "Execute Pattern Test Cleanup",
+                "POST",
+                "/api/admin/cleanup-test-data",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success:
+                # Verify production user still exists
+                success, final_users = self.run_test(
+                    "Get Users After Pattern Test",
+                    "GET",
+                    "/api/admin/users",
+                    200,
+                    token=self.tokens['admin']
+                )
+                
+                if success and isinstance(final_users, list):
+                    prod_user_exists = any(u.get('phone') == prod_user_phone for u in final_users)
+                    
+                    if prod_user_exists:
+                        print("   ✅ Production-like user preserved (correct pattern matching)")
+                    else:
+                        print("   ❌ Production-like user was deleted (incorrect pattern matching)")
+                        all_success = False
+        
+        return all_success
+
     def test_error_cases(self):
         """Test error handling"""
         print("\n⚠️  ERROR HANDLING")
