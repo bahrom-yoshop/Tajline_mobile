@@ -6430,21 +6430,21 @@ function App() {
               {/* Схема склада с информацией о грузах */}
               <div className="max-h-96 overflow-auto border rounded-lg p-4">
                 <div className="space-y-6">
-                  {warehouseLayout.layout && Object.values(warehouseLayout.layout).map((block) => (
-                    <div key={block.block_number} className="border rounded-lg p-4">
+                  {warehouseLayout.layout && Object.entries(warehouseLayout.layout).map(([blockKey, block]) => (
+                    <div key={blockKey} className="border rounded-lg p-4">
                       <h3 className="font-bold mb-3 text-center bg-gray-100 p-2 rounded">
                         Блок {block.block_number}
                       </h3>
                       <div className="space-y-4">
-                        {block.shelves && Object.values(block.shelves).map((shelf) => (
-                          <div key={shelf.shelf_number}>
+                        {block.shelves && Object.entries(block.shelves).map(([shelfKey, shelf]) => (
+                          <div key={shelfKey}>
                             <h4 className="font-semibold mb-2 text-sm bg-gray-50 p-1 rounded">
                               Полка {shelf.shelf_number}
                             </h4>
                             <div className="grid grid-cols-5 gap-2">
-                              {shelf.cells && Object.values(shelf.cells).map((cell) => (
+                              {shelf.cells && Object.entries(shelf.cells).slice(0, 10).map(([cellKey, cell]) => (
                                 <div
-                                  key={cell.location_code}
+                                  key={cellKey}
                                   className={`p-2 text-xs text-center rounded border-2 transition-all cursor-pointer hover:scale-105 ${
                                     cell.is_occupied 
                                       ? 'bg-red-100 border-red-300 text-red-800 hover:bg-red-200' 
