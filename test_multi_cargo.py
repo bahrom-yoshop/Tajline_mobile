@@ -90,8 +90,8 @@ class MultiCargoTester:
         """Test enhanced multi-cargo form functionality with calculator features"""
         print("\n🧮 ENHANCED MULTI-CARGO FORM WITH CALCULATOR")
         
-        if 'warehouse_operator' not in self.tokens:
-            print("   ❌ No warehouse operator token available")
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
             return False
             
         all_success = True
