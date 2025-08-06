@@ -2253,8 +2253,15 @@ function App() {
 
   const handleOpenWarehouseLayout = async (warehouse) => {
     setSelectedWarehouseForLayout(warehouse);
-    await fetchWarehouseLayout(warehouse.id);
-    setLayoutModal(true);
+    
+    // Используем новый API для получения схемы с информацией о грузах
+    try {
+      await fetchWarehouseLayoutWithCargo(warehouse.id);
+      setLayoutModal(true);
+    } catch (error) {
+      console.error('Error opening warehouse layout:', error);
+      showAlert('Ошибка при открытии схемы склада: ' + error.message, 'error');
+    }
   };
 
   const printCargoInvoice = (cargo) => {
