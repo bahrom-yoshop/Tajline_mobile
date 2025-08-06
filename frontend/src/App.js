@@ -4263,15 +4263,31 @@ function App() {
                                       {new Date(item.created_at).toLocaleDateString('ru-RU')} {new Date(item.created_at).toLocaleTimeString('ru-RU')}
                                     </TableCell>
                                     <TableCell>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => printCargoInvoice(item)}
-                                        className="flex items-center"
-                                      >
-                                        <Printer className="mr-1 h-4 w-4" />
-                                        Печать накладной
-                                      </Button>
+                                      <div className="flex flex-col space-y-1">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => printCargoInvoice(item)}
+                                          className="flex items-center"
+                                          disabled={!item.processing_status || item.processing_status === 'payment_pending'}
+                                        >
+                                          <Printer className="mr-1 h-4 w-4" />
+                                          Накладная
+                                        </Button>
+                                        {/* QR код доступен всегда */}
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => {
+                                            // Показать QR код груза
+                                            showAlert('QR код для груза ' + item.cargo_number, 'info');
+                                          }}
+                                          className="flex items-center text-xs px-2 py-1"
+                                        >
+                                          <QrCode className="mr-1 h-3 w-3" />
+                                          QR
+                                        </Button>
+                                      </div>
                                     </TableCell>
                                   </TableRow>
                                 ))}
