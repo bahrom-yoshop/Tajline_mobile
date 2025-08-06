@@ -2609,8 +2609,8 @@ async def get_available_cargo_for_placement(
     user_cargo_cursor = db.cargo.find(placement_query).sort("created_at", -1) if current_user.role == UserRole.ADMIN else []
     
     # Подсчитываем общее количество
-    operator_cargo_count = operator_cargo_cursor.count()
-    user_cargo_count = user_cargo_cursor.count() if current_user.role == UserRole.ADMIN else 0
+    operator_cargo_count = db.operator_cargo.count_documents(placement_query)
+    user_cargo_count = db.cargo.count_documents(placement_query) if current_user.role == UserRole.ADMIN else 0
     total_count = operator_cargo_count + user_cargo_count
     
     # Применяем пагинацию
