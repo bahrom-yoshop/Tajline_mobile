@@ -102,9 +102,57 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Протестировать новые функции системы номеров грузов и неоплаченных заказов: 1) Тест новой системы номеров грузов (формат YYMMXXXXXX от 4 до 10 цифр, начинающиеся с 2501 для января 2025), 2) Тест системы неоплаченных заказов (создание заявки пользователем Бахромом, принятие админом, проверка GET /api/admin/unpaid-orders, POST /api/admin/unpaid-orders/{order_id}/mark-paid), 3) Полный workflow тест от заявки до оплаты."
+user_problem_statement: "Test the newly implemented cargo management features: 1) Enhanced Cargo Status Management - new processing_status field with values: payment_pending, paid, invoice_printed, placed and status progression workflow, 2) Cargo List Filtering System - GET /api/operator/cargo/list with filter parameters (new_request, awaiting_payment, awaiting_placement), 3) Enhanced Order Acceptance Workflow - admin accepts client order creates cargo with processing_status='payment_pending', 4) Complete Integration Workflow from client order to placement, 5) Test Users: Regular user: +992900000000 / 123456 (Бахром Клиент), Admin: +79999888777 / admin123"
 
 backend:
+  - task: "Enhanced Cargo Status Management"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASSED - New processing_status field working correctly. Tested status progression: payment_pending → paid → invoice_printed → placed. Admin cargo request acceptance correctly sets initial processing_status='payment_pending'. Status updates via PUT /api/cargo/{cargo_id}/processing-status endpoint working. Invalid status validation working."
+
+  - task: "Cargo List Filtering System"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASSED - GET /api/operator/cargo/list with filter parameters working correctly. Filters tested: filter_status=new_request (6 items), filter_status=awaiting_payment (6 items), filter_status=awaiting_placement (0 items). Response structure includes cargo_list, total_count, filter_applied, and available_filters. Invalid filter handling working."
+
+  - task: "Complete Integration Workflow"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASSED - Full workflow tested: User creates order → Admin accepts → processing_status='payment_pending' → Mark paid → processing_status='paid' → Invoice printed → processing_status='invoice_printed' → Placed → processing_status='placed'. Status synchronization between processing_status and payment_status working correctly."
+
+  - task: "Unpaid Orders Integration"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASSED - Unpaid orders system integration working. When admin accepts cargo request, unpaid order automatically created. GET /api/admin/unpaid-orders shows unpaid orders correctly. POST /api/admin/unpaid-orders/{order_id}/mark-paid updates both payment_status and processing_status to 'paid'. Status synchronization working correctly."
+
   - task: "Session Management Improvements Testing"
     implemented: true
     working: true
