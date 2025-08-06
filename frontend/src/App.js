@@ -711,13 +711,28 @@ function App() {
     }
   };
 
-  const fetchAvailableCargoForPlacement = async () => {
+  const fetchAvailableCargoForPlacement = async (page = availableCargoPage, perPage = availableCargoPerPage) => {
     try {
-      const response = await apiCall('/api/operator/cargo/available-for-placement');
-      setAvailableCargoForPlacement(response.cargo_list || []);
+      const params = {
+        page: page,
+        per_page: perPage
+      };
+      
+      const response = await apiCall('/api/operator/cargo/available-for-placement', 'GET', null, params);
+      
+      // Проверяем новый формат ответа с пагинацией
+      if (response.items) {
+        setAvailableCargoForPlacement(response.items);
+        setAvailableCargoPagination(response.pagination);
+      } else {
+        // Обратная совместимость со старым форматом
+        setAvailableCargoForPlacement(response.cargo_list || response);
+        setAvailableCargoPagination({});
+      }
     } catch (error) {
       console.error('Error fetching available cargo for placement:', error);
       setAvailableCargoForPlacement([]);
+      setAvailableCargoPagination({});
     }
   };
 
