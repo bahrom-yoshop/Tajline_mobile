@@ -12372,6 +12372,7 @@ ID склада: {self.warehouse_id}"""
             ("🔢 NEW CARGO NUMBER SYSTEM (YYMMXXXXXX)", self.test_new_cargo_number_system),
             ("💰 UNPAID ORDERS SYSTEM", self.test_unpaid_orders_system),
             ("🔄 FULL WORKFLOW: UNPAID ORDERS", self.test_full_workflow_unpaid_orders),
+            ("🧹 TEST DATA CLEANUP FUNCTIONALITY", self.test_test_data_cleanup_functionality),
             ("Notifications", self.test_notifications),
             ("Error Handling", self.test_error_cases)
         ]
