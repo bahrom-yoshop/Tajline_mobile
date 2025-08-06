@@ -77,9 +77,13 @@ class UserRole(str, Enum):
 class CargoStatus(str, Enum):
     CREATED = "created"
     ACCEPTED = "accepted"
+    AWAITING_PAYMENT = "awaiting_payment"  # Ожидает оплаты
+    PAID = "paid"  # Оплачен
+    INVOICE_PRINTED = "invoice_printed"  # Накладная напечатана
+    AWAITING_PLACEMENT = "awaiting_placement"  # Ожидает размещения
+    IN_WAREHOUSE = "in_warehouse"
     IN_TRANSIT = "in_transit"
     ARRIVED_DESTINATION = "arrived_destination"
-    IN_WAREHOUSE = "in_warehouse"
     COMPLETED = "completed"
 
 class RouteType(str, Enum):
