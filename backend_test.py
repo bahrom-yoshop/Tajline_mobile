@@ -11132,8 +11132,8 @@ ID склада: {self.warehouse_id}"""
                 "PUT",
                 f"/api/cargo/{cargo_id}/processing-status",
                 400,  # Should fail with invalid status
-                {"new_status": "invalid_status"},
-                self.tokens['admin']
+                token=self.tokens['admin'],
+                params={"new_status": "invalid_status"}
             )
             all_success &= success
             
