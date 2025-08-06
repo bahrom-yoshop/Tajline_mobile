@@ -1321,7 +1321,7 @@ async def get_operator_cargo_list(
         user_cargo_list = list(user_cargo_cursor)
     
     # Получаем общий count для правильной пагинации
-    operator_cargo_count = operator_cargo_cursor.count()
+    operator_cargo_count = db.operator_cargo.count_documents(base_query)
     user_cargo_count = len(user_cargo_list)
     total_count = operator_cargo_count + user_cargo_count
     
