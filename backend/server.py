@@ -1215,6 +1215,92 @@ async def scan_qr_code(
     else:
         raise HTTPException(status_code=400, detail="Unknown QR code format")
 
+@app.get("/api/operator/cargo/list")
+async def get_operator_cargo_list(
+    filter_status: Optional[str] = None,  # payment_pending, awaiting_placement, new_request
+    current_user: User = Depends(get_current_user)
+):
+    """Получить список грузов оператора с возможностью фильтрации"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Базовый запрос для поиска грузов
+    base_query = {}
+    
+    # Если это оператор, показываем только грузы с его складов
+    if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+        operator_warehouses = get_operator_warehouses(current_user.id)
+        if operator_warehouses:
+            base_query["warehouse_id"] = {"$in": operator_warehouses}
+    
+    # Применяем фильтры
+    if filter_status:
+        if filter_status == "payment_pending":
+            base_query["processing_status"] = "payment_pending"
+            base_query["payment_status"] = "pending"
+        elif filter_status == "awaiting_payment":
+            base_query["processing_status"] = "payment_pending"
+        elif filter_status == "awaiting_placement":
+            base_query["processing_status"] = {"$in": ["paid", "invoice_printed"]}
+            base_query["warehouse_location"] = {"$exists": False}
+        elif filter_status == "new_request":
+            base_query["processing_status"] = "payment_pending"
+            base_query["status"] = CargoStatus.ACCEPTED
+    
+    # Ищем в коллекции operator_cargo (принятые заявки)
+    operator_cargo_list = list(db.operator_cargo.find(base_query))
+    
+    # Также ищем в коллекции cargo (если админ)
+    user_cargo_list = []
+    if current_user.role == UserRole.ADMIN:
+        user_cargo_list = list(db.cargo.find(base_query))
+    
+    # Нормализуем данные
+    normalized_cargo = []
+    
+    # Обрабатываем operator cargo
+    for cargo in operator_cargo_list:
+        normalized = serialize_mongo_document(cargo)
+        normalized.update({
+            'cargo_name': cargo.get('cargo_name') or cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз',
+            'sender_id': cargo.get('created_by', 'operator'),
+            'recipient_name': cargo.get('recipient_full_name', 'Не указан'),
+            'sender_address': cargo.get('sender_address', 'Не указан'),
+            'recipient_address': cargo.get('recipient_address', 'Не указан'),
+            'recipient_phone': cargo.get('recipient_phone', 'Не указан'),
+            'processing_status': cargo.get('processing_status', 'payment_pending'),
+            'sender_full_name': cargo.get('sender_full_name', 'Не указан'),
+            'sender_phone': cargo.get('sender_phone', 'Не указан')
+        })
+        normalized_cargo.append(normalized)
+    
+    # Обрабатываем user cargo (если есть)
+    for cargo in user_cargo_list:
+        normalized = serialize_mongo_document(cargo)
+        normalized.update({
+            'cargo_name': cargo.get('cargo_name') or cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз',
+            'sender_id': cargo.get('sender_id', 'unknown'),
+            'recipient_name': cargo.get('recipient_name', 'Не указан'),
+            'sender_address': cargo.get('sender_address', 'Не указан'),
+            'recipient_address': cargo.get('recipient_address', 'Не указан'),
+            'recipient_phone': cargo.get('recipient_phone', 'Не указан'),
+            'processing_status': cargo.get('processing_status', 'payment_pending'),
+            'sender_full_name': cargo.get('sender_full_name', 'Не указан'),
+            'sender_phone': cargo.get('sender_phone', 'Не указан')
+        })
+        normalized_cargo.append(normalized)
+    
+    return {
+        "cargo_list": normalized_cargo,
+        "total_count": len(normalized_cargo),
+        "filter_applied": filter_status,
+        "available_filters": {
+            "new_request": "Новая заявка",
+            "awaiting_payment": "Ожидается оплата", 
+            "awaiting_placement": "Ожидает размещение"
+        }
+    }
+
 # Управление грузами
 @app.post("/api/cargo/create")
 async def create_cargo(cargo_data: CargoCreate, current_user: User = Depends(get_current_user)):
