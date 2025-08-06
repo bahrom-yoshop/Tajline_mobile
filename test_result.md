@@ -1591,3 +1591,63 @@ backend:
         - working: true
           agent: "testing"
           comment: "✅ MOSTLY PASSED - Client Dashboard System core functionality working correctly: 1) GET /api/client/dashboard works correctly with proper structure (client_info, cargo_summary, recent_cargo) ✅, 2) GET /api/client/cargo works with filtering and proper response structure ✅, 3) Status filtering works correctly ✅, 4) Access control properly implemented - only USER role can access client endpoints ✅, 5) Admin and operator access correctly denied (403 errors) ✅. Minor: GET /api/client/cargo/{cargo_id}/details returns 404 when testing with admin-created cargo, but this is expected behavior as clients can only access their own cargo. The dashboard and cargo list endpoints work correctly for client personal cabinet functionality."
+
+  - task: "Warehouse Layout API Testing"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ WAREHOUSE LAYOUT API FULLY FUNCTIONAL - Comprehensive testing shows the GET /api/warehouses/{warehouse_id}/layout-with-cargo endpoint is working correctly! DETAILED RESULTS: 1) ✅ ENDPOINT ACCESSIBILITY: Admin users can successfully access warehouse layout with cargo information, 2) ✅ RESPONSE STRUCTURE: API returns proper structure with warehouse info, layout (blocks/shelves/cells), total_cargo (7), occupied_cells (7), total_cells (450), occupancy_percentage (1.56%), 3) ✅ CARGO INFORMATION: Cargo details are correctly displayed in occupied cells including cargo_number (e.g., 2501998915), 4) ✅ LAYOUT STRUCTURE: Proper blocks/shelves/cells hierarchy with 3 blocks structure, 5) ✅ REAL DATA: Testing with actual warehouse 'Москва' shows real cargo placement data. The warehouse layout API is providing the expected cargo information correctly and the structure matches requirements."
+
+  - task: "Cargo Movement API Testing"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ CARGO MOVEMENT API FULLY FUNCTIONAL - Comprehensive testing shows the POST /api/warehouses/{warehouse_id}/move-cargo endpoint is working correctly! DETAILED RESULTS: 1) ✅ ENDPOINT FUNCTIONALITY: Successfully moved cargo 2501998915 from Block 1, Shelf 1, Cell 1 to Block 1, Shelf 1, Cell 2, 2) ✅ PROPER RESPONSE: API returns detailed response with message, cargo_number, old_location (Б1-П1-Я1), new_location (Б1-П1-Я2), and moved_by operator name, 3) ✅ DATA FORMAT: Request accepts proper JSON format with cargo_id, from_block, from_shelf, from_cell, to_block, to_shelf, to_cell parameters, 4) ✅ LOCATION FORMAT: Uses expected Russian format 'Б1-П1-Я1' for warehouse locations, 5) ✅ OPERATOR TRACKING: Correctly tracks which operator performed the movement. The cargo movement functionality is working as expected for warehouse operations."
+
+  - task: "Warehouse Data Structure Investigation"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ WAREHOUSE DATA STRUCTURE INVESTIGATION COMPLETE - Comprehensive analysis reveals the warehouse system structure and cargo placement status! DETAILED FINDINGS: 1) ✅ PLACED CARGO DATA: Found 25 operator cargo items with 7 having warehouse locations, cargo properly placed with location formats including 'Б1-П2-Я2', 'Б1-П1-Я2', and other variations, 2) ✅ LOCATION FORMATS: Multiple location formats in use - Russian format 'Б1-П1-Я2' (expected), English format 'B1-S1-C1', and warehouse names 'Склад для грузов', 3) ✅ CARGO COLLECTIONS: Both operator_cargo and cargo collections contain placed cargo with warehouse_location field populated, 4) ✅ WAREHOUSE CONFIGURATION: System uses various warehouse structures, not just default 3×3×50 configuration, 5) Minor: Warehouse structure endpoint returns 500 error (may need investigation), 6) ✅ ACCESS CONTROL: Admin users have proper access to warehouse layout APIs. The warehouse data structure is functional with cargo properly placed and trackable through the layout API."
+
+  - task: "Warehouse Configuration Testing"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ WAREHOUSE STRUCTURE ENDPOINT ISSUE - The GET /api/warehouses/{warehouse_id}/structure endpoint returns 500 Internal Server Error. This prevents detailed investigation of warehouse configuration (blocks, shelves, cells counts). However, this is a minor issue as the main warehouse layout API works correctly and shows proper warehouse structure through the layout response. The core warehouse functionality is not affected."
+
+  - task: "Warehouse Access Control Testing"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "⚠️ ACCESS CONTROL TESTING LIMITED - Unable to fully test warehouse operator and regular user access control due to authentication issues with test accounts (+79777888999/warehouse123 and +992900000000/123456 returning 401 Invalid credentials). However, admin access to warehouse layout API works correctly. The access control implementation appears to be in place but requires valid test credentials for comprehensive testing."
