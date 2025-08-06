@@ -86,10 +86,10 @@ class CargoTransportAPITester:
         # Test data as specified in requirements
         test_users = [
             {
-                "name": "Regular User",
+                "name": "Bahrom Client User",
                 "data": {
-                    "full_name": "Иван Петров",
-                    "phone": "+79123456789",
+                    "full_name": "Бахром Клиент",
+                    "phone": "+992900000000",
                     "password": "123456",
                     "role": "user"
                 }
