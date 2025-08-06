@@ -4576,30 +4576,38 @@ function App() {
                                 </Button>
                               </div>
 
-                              {/* Калькулятор стоимости */}
+                              {/* Калькулятор стоимости с детальной разбивкой */}
                               <div className="bg-green-50 p-4 rounded-lg">
                                 <h3 className="font-semibold text-lg mb-3 flex items-center">
                                   <Calculator className="mr-2 h-5 w-5" />
                                   Калькулятор стоимости
                                 </h3>
                                 
-                                <div className="mb-4">
-                                  <Label htmlFor="price_per_kg">Цена за 1 кг (руб.)</Label>
-                                  <Input
-                                    id="price_per_kg"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={operatorCargoForm.price_per_kg}
-                                    onChange={(e) => {
-                                      setOperatorCargoForm({...operatorCargoForm, price_per_kg: e.target.value});
-                                      calculateTotals(operatorCargoForm.cargo_items, e.target.value);
-                                    }}
-                                    placeholder="100"
-                                    required
-                                  />
-                                </div>
+                                {/* Детальная разбивка по каждому грузу */}
+                                {cargoBreakdown.length > 0 && (
+                                  <div className="mb-4">
+                                    <h4 className="font-medium text-sm text-gray-700 mb-2">Детальная разбивка:</h4>
+                                    <div className="space-y-2">
+                                      {cargoBreakdown.map((item, index) => (
+                                        <div key={index} className="bg-white p-3 rounded border-l-4 border-blue-400">
+                                          <div className="flex justify-between items-center">
+                                            <span className="text-sm font-medium text-gray-700">
+                                              Груз #{item.index}: {item.name}
+                                            </span>
+                                            <span className="text-sm font-bold text-green-600">
+                                              {item.cost.toFixed(2)} руб
+                                            </span>
+                                          </div>
+                                          <div className="text-xs text-gray-500 mt-1">
+                                            {item.weight.toFixed(1)} кг × {item.pricePerKg.toFixed(2)} руб/кг
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
 
+                                {/* Общие итоги */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <div className="bg-white p-3 rounded border">
                                     <div className="text-sm text-gray-600">Общий вес</div>
@@ -4610,16 +4618,24 @@ function App() {
                                   <div className="bg-white p-3 rounded border">
                                     <div className="text-sm text-gray-600">Общая стоимость</div>
                                     <div className="text-2xl font-bold text-green-600">
-                                      {totalCost.toFixed(2)} руб.
+                                      {totalCost.toFixed(2)} руб
                                     </div>
                                   </div>
                                 </div>
 
-                                {totalWeight > 0 && operatorCargoForm.price_per_kg && (
-                                  <div className="mt-3 p-2 bg-white rounded text-sm text-gray-600">
-                                    <div className="flex justify-between">
-                                      <span>Расчет: {totalWeight.toFixed(1)} кг × {parseFloat(operatorCargoForm.price_per_kg || 0).toFixed(2)} руб/кг</span>
-                                      <span className="font-semibold">{totalCost.toFixed(2)} руб.</span>
+                                {/* Сводка расчетов */}
+                                {cargoBreakdown.length > 1 && (
+                                  <div className="mt-3 p-2 bg-white rounded text-sm border-t-2 border-green-400">
+                                    <div className="font-medium text-gray-700 mb-1">ИТОГО:</div>
+                                    {cargoBreakdown.map((item, index) => (
+                                      <div key={index} className="flex justify-between text-xs text-gray-600">
+                                        <span>{item.name}: {item.weight.toFixed(1)}кг × {item.pricePerKg.toFixed(2)}руб</span>
+                                        <span>{item.cost.toFixed(2)}руб</span>
+                                      </div>
+                                    ))}
+                                    <div className="flex justify-between font-bold text-sm text-green-700 mt-1 pt-1 border-t">
+                                      <span>Всего: {totalWeight.toFixed(1)} кг</span>
+                                      <span>{totalCost.toFixed(2)} руб</span>
                                     </div>
                                   </div>
                                 )}
