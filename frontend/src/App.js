@@ -843,20 +843,32 @@ function App() {
     return variants[status] || 'outline';
   };
 
-  const fetchOperatorCargo = async (filterStatus = '') => {
+  const fetchOperatorCargo = async (filterStatus = '', page = operatorCargoPage, perPage = operatorCargoPerPage) => {
     try {
-      const params = filterStatus ? { filter_status: filterStatus } : {};
+      const params = { 
+        page: page,
+        per_page: perPage
+      };
+      
+      if (filterStatus) {
+        params.filter_status = filterStatus;
+      }
+      
       const response = await apiCall('/api/operator/cargo/list', 'GET', null, params);
       
-      // Проверяем, возвращается ли объект с cargo_list или массив напрямую
-      if (response.cargo_list) {
-        setOperatorCargo(response.cargo_list);
+      // Проверяем новый формат ответа с пагинацией
+      if (response.items) {
+        setOperatorCargo(response.items);
+        setOperatorCargoPagination(response.pagination);
       } else {
-        setOperatorCargo(response);
+        // Обратная совместимость со старым форматом
+        setOperatorCargo(response.cargo_list || response);
+        setOperatorCargoPagination({});
       }
     } catch (error) {
       console.error('Error fetching operator cargo:', error);
       setOperatorCargo([]);
+      setOperatorCargoPagination({});
     }
   };
 
