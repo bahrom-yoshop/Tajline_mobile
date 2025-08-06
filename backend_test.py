@@ -1244,6 +1244,466 @@ class CargoTransportAPITester:
         
         return success
 
+    def test_warehouse_layout_with_cargo_api(self):
+        """Test warehouse layout API with cargo information - PRIMARY TEST FOCUS"""
+        print("\n🏗️ WAREHOUSE LAYOUT WITH CARGO API TESTING")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Get list of warehouses first
+        print("\n   🏭 Getting Available Warehouses...")
+        
+        success, warehouses = self.run_test(
+            "Get Warehouses List",
+            "GET",
+            "/api/warehouses",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        warehouse_id = None
+        if success and warehouses:
+            warehouse_count = len(warehouses) if isinstance(warehouses, list) else 0
+            print(f"   📊 Found {warehouse_count} warehouses")
+            
+            if warehouse_count > 0:
+                warehouse_id = warehouses[0].get('id')
+                warehouse_name = warehouses[0].get('name', 'Unknown')
+                print(f"   🏭 Using warehouse: {warehouse_name} (ID: {warehouse_id})")
+        
+        if not warehouse_id:
+            print("   ❌ No warehouse available for layout testing")
+            return False
+        
+        # Test 2: Test the main endpoint - GET /api/warehouses/{warehouse_id}/layout-with-cargo
+        print("\n   📋 Testing Warehouse Layout with Cargo Endpoint...")
+        
+        success, layout_response = self.run_test(
+            "Get Warehouse Layout with Cargo",
+            "GET",
+            f"/api/warehouses/{warehouse_id}/layout-with-cargo",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            # Verify response structure
+            warehouse_info = layout_response.get('warehouse', {})
+            layout = layout_response.get('layout', {})
+            total_cargo = layout_response.get('total_cargo', 0)
+            occupied_cells = layout_response.get('occupied_cells', 0)
+            total_cells = layout_response.get('total_cells', 0)
+            occupancy_percentage = layout_response.get('occupancy_percentage', 0)
+            
+            print(f"   🏭 Warehouse: {warehouse_info.get('name', 'Unknown')}")
+            print(f"   📦 Total cargo: {total_cargo}")
+            print(f"   📊 Occupied cells: {occupied_cells}")
+            print(f"   📊 Total cells: {total_cells}")
+            print(f"   📊 Occupancy: {occupancy_percentage}%")
+            
+            # Check layout structure
+            if isinstance(layout, dict):
+                blocks_count = len(layout)
+                print(f"   🗂️  Layout blocks: {blocks_count}")
+                
+                # Check if any cargo is placed
+                cargo_found = False
+                for block_key, block_data in layout.items():
+                    if isinstance(block_data, dict) and 'shelves' in block_data:
+                        for shelf_key, shelf_data in block_data['shelves'].items():
+                            if isinstance(shelf_data, dict) and 'cells' in shelf_data:
+                                for cell_key, cell_data in shelf_data['cells'].items():
+                                    if isinstance(cell_data, dict) and cell_data.get('is_occupied'):
+                                        cargo_info = cell_data.get('cargo', {})
+                                        if cargo_info:
+                                            cargo_found = True
+                                            print(f"   📦 Found cargo in {block_key}-{shelf_key}-{cell_key}: {cargo_info.get('cargo_number', 'Unknown')}")
+                                            break
+                            if cargo_found:
+                                break
+                    if cargo_found:
+                        break
+                
+                if not cargo_found:
+                    print("   ℹ️  No cargo currently placed in warehouse cells")
+            else:
+                print("   ❌ Layout structure is not as expected")
+                all_success = False
+        
+        # Test 3: Test with different user roles
+        print("\n   🔒 Testing Access Control for Layout Endpoint...")
+        
+        # Test warehouse operator access
+        if 'warehouse_operator' in self.tokens:
+            success, _ = self.run_test(
+                "Warehouse Operator Access to Layout",
+                "GET",
+                f"/api/warehouses/{warehouse_id}/layout-with-cargo",
+                200,  # Should work for warehouse operators
+                token=self.tokens['warehouse_operator']
+            )
+            all_success &= success
+        
+        # Test regular user access (should be denied)
+        if 'user' in self.tokens:
+            success, _ = self.run_test(
+                "Regular User Access to Layout (Should Fail)",
+                "GET",
+                f"/api/warehouses/{warehouse_id}/layout-with-cargo",
+                403,  # Should be forbidden
+                token=self.tokens['user']
+            )
+            all_success &= success
+        
+        # Test 4: Test with invalid warehouse ID
+        print("\n   ❌ Testing Error Scenarios...")
+        
+        success, _ = self.run_test(
+            "Invalid Warehouse ID",
+            "GET",
+            "/api/warehouses/invalid-id/layout-with-cargo",
+            404,  # Should return not found
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        # Store warehouse_id for cargo movement tests
+        self.test_warehouse_id = warehouse_id
+        
+        return all_success
+
+    def test_cargo_movement_api(self):
+        """Test cargo movement API - POST /api/warehouses/{warehouse_id}/move-cargo"""
+        print("\n🔄 CARGO MOVEMENT API TESTING")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        if not hasattr(self, 'test_warehouse_id'):
+            print("   ❌ No warehouse ID available from layout test")
+            return False
+            
+        all_success = True
+        warehouse_id = self.test_warehouse_id
+        
+        # Test 1: Create and place cargo for movement testing
+        print("\n   📦 Creating Test Cargo for Movement...")
+        
+        cargo_data = {
+            "sender_full_name": "Тест Отправитель Движение",
+            "sender_phone": "+79111333444",
+            "recipient_full_name": "Тест Получатель Движение",
+            "recipient_phone": "+992555666777",
+            "recipient_address": "Душанбе, ул. Движения, 1",
+            "weight": 20.0,
+            "cargo_name": "Тестовый груз для движения",
+            "declared_value": 8000.0,
+            "description": "Груз для тестирования движения между ячейками",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create Cargo for Movement Testing",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            cargo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        movement_cargo_id = None
+        if success and 'id' in cargo_response:
+            movement_cargo_id = cargo_response['id']
+            cargo_number = cargo_response.get('cargo_number')
+            print(f"   📦 Created movement test cargo: {cargo_number} (ID: {movement_cargo_id})")
+        
+        # Test 2: Place cargo in initial position
+        if movement_cargo_id:
+            print("\n   📍 Placing Cargo in Initial Position...")
+            
+            placement_data = {
+                "cargo_id": movement_cargo_id,
+                "block_number": 1,
+                "shelf_number": 1,
+                "cell_number": 1
+            }
+            
+            success, placement_response = self.run_test(
+                "Place Cargo for Movement Test",
+                "POST",
+                "/api/cargo/{}/quick-placement".format(movement_cargo_id),
+                200,
+                placement_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                location = placement_response.get('location', 'Unknown')
+                print(f"   📍 Cargo placed at: {location}")
+        
+        # Test 3: Test cargo movement API
+        if movement_cargo_id:
+            print("\n   🔄 Testing Cargo Movement API...")
+            
+            movement_data = {
+                "cargo_id": movement_cargo_id,
+                "from_block": 1,
+                "from_shelf": 1,
+                "from_cell": 1,
+                "to_block": 1,
+                "to_shelf": 2,
+                "to_cell": 2
+            }
+            
+            success, movement_response = self.run_test(
+                "Move Cargo Between Cells",
+                "POST",
+                f"/api/warehouses/{warehouse_id}/move-cargo",
+                200,
+                movement_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Cargo movement successful")
+                print(f"   📄 Response: {movement_response}")
+            
+            # Test 4: Verify movement in layout
+            print("\n   🔍 Verifying Movement in Layout...")
+            
+            success, layout_after_move = self.run_test(
+                "Get Layout After Movement",
+                "GET",
+                f"/api/warehouses/{warehouse_id}/layout-with-cargo",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                # Check if cargo is now in the new location
+                layout = layout_after_move.get('layout', {})
+                cargo_found_in_new_location = False
+                
+                # Look for cargo in block 1, shelf 2, cell 2
+                if 'block_1' in layout:
+                    block_data = layout['block_1']
+                    if 'shelves' in block_data and 'shelf_2' in block_data['shelves']:
+                        shelf_data = block_data['shelves']['shelf_2']
+                        if 'cells' in shelf_data and 'cell_2' in shelf_data['cells']:
+                            cell_data = shelf_data['cells']['cell_2']
+                            if cell_data.get('is_occupied') and cell_data.get('cargo'):
+                                cargo_info = cell_data['cargo']
+                                if cargo_info.get('id') == movement_cargo_id:
+                                    cargo_found_in_new_location = True
+                                    print(f"   ✅ Cargo found in new location: {cargo_info.get('cargo_number')}")
+                
+                if not cargo_found_in_new_location:
+                    print("   ❌ Cargo not found in expected new location")
+                    all_success = False
+        
+        # Test 5: Test error scenarios for movement
+        print("\n   ❌ Testing Movement Error Scenarios...")
+        
+        # Test with invalid cargo ID
+        invalid_movement_data = {
+            "cargo_id": "invalid-cargo-id",
+            "from_block": 1,
+            "from_shelf": 1,
+            "from_cell": 1,
+            "to_block": 2,
+            "to_shelf": 1,
+            "to_cell": 1
+        }
+        
+        success, _ = self.run_test(
+            "Move Invalid Cargo ID",
+            "POST",
+            f"/api/warehouses/{warehouse_id}/move-cargo",
+            404,  # Should return not found
+            invalid_movement_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        # Test with occupied target cell (if we have another cargo)
+        if movement_cargo_id:
+            occupied_movement_data = {
+                "cargo_id": movement_cargo_id,
+                "from_block": 1,
+                "from_shelf": 2,
+                "from_cell": 2,
+                "to_block": 1,
+                "to_shelf": 2,
+                "to_cell": 2  # Same cell (should fail)
+            }
+            
+            success, _ = self.run_test(
+                "Move to Same Cell (Should Fail)",
+                "POST",
+                f"/api/warehouses/{warehouse_id}/move-cargo",
+                400,  # Should return bad request
+                occupied_movement_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+        
+        # Test 6: Test access control for movement
+        print("\n   🔒 Testing Movement Access Control...")
+        
+        if movement_cargo_id:
+            movement_data = {
+                "cargo_id": movement_cargo_id,
+                "from_block": 1,
+                "from_shelf": 2,
+                "from_cell": 2,
+                "to_block": 2,
+                "to_shelf": 1,
+                "to_cell": 1
+            }
+            
+            # Test regular user access (should be denied)
+            if 'user' in self.tokens:
+                success, _ = self.run_test(
+                    "Regular User Move Cargo (Should Fail)",
+                    "POST",
+                    f"/api/warehouses/{warehouse_id}/move-cargo",
+                    403,  # Should be forbidden
+                    movement_data,
+                    self.tokens['user']
+                )
+                all_success &= success
+        
+        return all_success
+
+    def test_warehouse_data_structure_investigation(self):
+        """Investigate warehouse data structure and cargo placement"""
+        print("\n🔍 WAREHOUSE DATA STRUCTURE INVESTIGATION")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Check operator_cargo collection for placed cargo
+        print("\n   📦 Investigating Placed Cargo in System...")
+        
+        success, operator_cargo_list = self.run_test(
+            "Get Operator Cargo List",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        placed_cargo_count = 0
+        if success and 'items' in operator_cargo_list:
+            cargo_items = operator_cargo_list['items']
+            print(f"   📊 Total operator cargo items: {len(cargo_items)}")
+            
+            for cargo in cargo_items:
+                warehouse_location = cargo.get('warehouse_location')
+                warehouse_id = cargo.get('warehouse_id')
+                if warehouse_location or warehouse_id:
+                    placed_cargo_count += 1
+                    cargo_number = cargo.get('cargo_number', 'Unknown')
+                    print(f"   📍 Placed cargo: {cargo_number} at {warehouse_location}")
+            
+            print(f"   📊 Cargo with warehouse location: {placed_cargo_count}")
+        
+        # Test 2: Check cargo collection for placed cargo
+        success, user_cargo_list = self.run_test(
+            "Get User Cargo List",
+            "GET",
+            "/api/cargo/my",
+            200,
+            token=self.tokens['user']
+        )
+        all_success &= success
+        
+        user_placed_cargo_count = 0
+        if success and isinstance(user_cargo_list, list):
+            print(f"   📊 Total user cargo items: {len(user_cargo_list)}")
+            
+            for cargo in user_cargo_list:
+                warehouse_location = cargo.get('warehouse_location')
+                if warehouse_location:
+                    user_placed_cargo_count += 1
+                    cargo_number = cargo.get('cargo_number', 'Unknown')
+                    print(f"   📍 User placed cargo: {cargo_number} at {warehouse_location}")
+            
+            print(f"   📊 User cargo with warehouse location: {user_placed_cargo_count}")
+        
+        # Test 3: Check warehouse cells collection
+        print("\n   🏗️ Investigating Warehouse Cells Structure...")
+        
+        if hasattr(self, 'test_warehouse_id'):
+            warehouse_id = self.test_warehouse_id
+            
+            # Get warehouse structure
+            success, warehouse_structure = self.run_test(
+                "Get Warehouse Structure",
+                "GET",
+                f"/api/warehouses/{warehouse_id}/structure",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                total_cells = warehouse_structure.get('total_cells', 0)
+                available_cells = warehouse_structure.get('available_cells', 0)
+                occupied_cells = total_cells - available_cells
+                
+                print(f"   🏗️ Warehouse structure:")
+                print(f"   📊 Total cells: {total_cells}")
+                print(f"   📊 Available cells: {available_cells}")
+                print(f"   📊 Occupied cells: {occupied_cells}")
+                
+                # Check warehouse configuration
+                warehouse_info = warehouse_structure.get('warehouse', {})
+                blocks_count = warehouse_info.get('blocks_count', 0)
+                shelves_per_block = warehouse_info.get('shelves_per_block', 0)
+                cells_per_shelf = warehouse_info.get('cells_per_shelf', 0)
+                
+                print(f"   🏗️ Configuration: {blocks_count} blocks × {shelves_per_block} shelves × {cells_per_shelf} cells")
+                
+                # Verify default vs custom structure
+                if blocks_count == 3 and shelves_per_block == 3 and cells_per_shelf == 50:
+                    print("   ✅ Using default warehouse structure (3×3×50)")
+                else:
+                    print(f"   ℹ️  Using custom warehouse structure ({blocks_count}×{shelves_per_block}×{cells_per_shelf})")
+        
+        # Test 4: Test warehouse location format
+        print("\n   📍 Testing Warehouse Location Format...")
+        
+        # Check if any cargo has the expected format "Б1-П2-Я15"
+        location_format_found = False
+        if success and 'items' in operator_cargo_list:
+            for cargo in operator_cargo_list['items']:
+                warehouse_location = cargo.get('warehouse_location', '')
+                if warehouse_location and 'Б' in warehouse_location and 'П' in warehouse_location and 'Я' in warehouse_location:
+                    location_format_found = True
+                    print(f"   ✅ Found expected location format: {warehouse_location}")
+                    break
+        
+        if not location_format_found:
+            print("   ℹ️  No cargo found with expected location format 'Б1-П2-Я15'")
+        
+        return all_success
+
     def test_transport_management(self):
         """Test transport management system (new feature)"""
         print("\n🚛 TRANSPORT MANAGEMENT")
