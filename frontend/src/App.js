@@ -4511,7 +4511,7 @@ function App() {
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <Button onClick={fetchAvailableCargoForPlacement} className="mb-4">
+                          <Button onClick={() => fetchAvailableCargoForPlacement(availableCargoPage, availableCargoPerPage)} className="mb-4">
                             <RefreshCw className="mr-2 h-4 w-4" />
                             Обновить список грузов
                           </Button>
