@@ -105,6 +105,18 @@
 user_problem_statement: "Test the newly implemented cargo management features: 1) Enhanced Cargo Status Management - new processing_status field with values: payment_pending, paid, invoice_printed, placed and status progression workflow, 2) Cargo List Filtering System - GET /api/operator/cargo/list with filter parameters (new_request, awaiting_payment, awaiting_placement), 3) Enhanced Order Acceptance Workflow - admin accepts client order creates cargo with processing_status='payment_pending', 4) Complete Integration Workflow from client order to placement, 5) Test Users: Regular user: +992900000000 / 123456 (Бахром Клиент), Admin: +79999888777 / admin123"
 
 backend:
+  - task: "Payment Acceptance Workflow in Cargo List"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ COMPREHENSIVE PAYMENT ACCEPTANCE WORKFLOW FULLY FUNCTIONAL - All 6 test scenarios passed with 100% success rate (16/16 API calls passed)! DETAILED RESULTS: 1) ✅ PAYMENT PENDING WORKFLOW: User creates cargo request → Admin accepts → Cargo created with processing_status='payment_pending' and appears in operator cargo list correctly, 2) ✅ CARGO LIST FILTERING: GET /api/operator/cargo/list with filter_status=payment_pending shows 15 items, filter correctly applied and response structure valid, 3) ✅ PAYMENT PROCESSING: PUT /api/cargo/{cargo_id}/processing-status with new_status='paid' successfully updates status, 4) ✅ STATUS SYNCHRONIZATION: When cargo marked as paid, both processing_status and payment_status update to 'paid', main status updates appropriately, 5) ✅ PLACEMENT INTEGRATION: Paid cargo automatically appears in GET /api/operator/cargo/available-for-placement endpoint, seamless integration between cargo list and placement section, 6) ✅ COMPLETE STATUS PROGRESSION: Full workflow tested payment_pending → paid → invoice_printed → placed, all status transitions working correctly, 7) ✅ API ENDPOINTS VALIDATION: All filter parameters working (awaiting_payment: 16 items, awaiting_placement: 0 items, new_request: 16 items), response structures correct for all filters. The payment acceptance button in cargo list properly updates status and makes cargo available for placement as requested. SUCCESS RATE: 100% - All payment acceptance functionality working perfectly!"
+
   - task: "Enhanced Cargo Status Management"
     implemented: true
     working: true
