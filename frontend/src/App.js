@@ -31,6 +31,9 @@ function App() {
   const [notifications, setNotifications] = useState([]);
   const [cargo, setCargo] = useState([]);
   const [users, setUsers] = useState([]);
+  const [usersPagination, setUsersPagination] = useState({}); // Пагинация для пользователей
+  const [usersPage, setUsersPage] = useState(1);
+  const [usersPerPage, setUsersPerPage] = useState(25);
   const [warehouses, setWarehouses] = useState([]);
   const [warehouseCargo, setWarehouseCargo] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
