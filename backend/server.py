@@ -304,10 +304,16 @@ class WarehouseCell(BaseModel):
     cargo_id: Optional[str] = None
     location_code: str  # Format: "B1-S2-C3" (Block 1, Shelf 2, Cell 3)
 
-# Модель для отдельного груза в заявке
+# Модель для отдельного груза в заявке с индивидуальной ценой
 class CargoItem(BaseModel):
     cargo_name: str = Field(..., min_length=1, max_length=100)
     weight: float = Field(..., gt=0, le=1000)
+    price_per_kg: float = Field(..., gt=0, le=10000)  # Индивидуальная цена за кг для каждого груза
+    
+    @property
+    def total_cost(self) -> float:
+        """Общая стоимость этого груза"""
+        return self.weight * self.price_per_kg
 
 # Обновленная модель для создания груза оператором с поддержкой множественных грузов
 class OperatorCargoCreate(BaseModel):
