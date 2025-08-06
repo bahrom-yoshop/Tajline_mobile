@@ -1301,6 +1301,136 @@ async def get_operator_cargo_list(
         }
     }
 
+@app.post("/api/admin/cleanup-test-data")
+async def cleanup_test_data(
+    current_user: User = Depends(get_current_user)
+):
+    """Очистить все тестовые данные из системы"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can cleanup test data")
+    
+    try:
+        cleanup_report = {
+            "users_deleted": 0,
+            "cargo_requests_deleted": 0,
+            "operator_cargo_deleted": 0,
+            "user_cargo_deleted": 0,
+            "unpaid_orders_deleted": 0,
+            "notifications_deleted": 0,
+            "warehouse_cells_deleted": 0,
+            "details": []
+        }
+        
+        # 1. Удаляем тестовых пользователей (кроме системных админов)
+        # Определяем тестовых пользователей по паттернам телефонов или имен
+        test_user_patterns = [
+            {"phone": {"$regex": "^\\+992900000000"}},  # Бахром Клиент
+            {"phone": {"$regex": "^\\+79777888999"}},  # Warehouse Operator
+            {"full_name": {"$regex": "Тест"}},
+            {"full_name": {"$regex": "Test"}},
+            {"full_name": {"$regex": "Клиент"}},
+            {"email": {"$regex": "test"}},
+            {"email": {"$regex": "@test\\."}}
+        ]
+        
+        # Ищем тестовых пользователей
+        test_users_query = {"$or": test_user_patterns}
+        test_users = list(db.users.find(test_users_query, {"id": 1, "phone": 1, "full_name": 1}))
+        
+        if test_users:
+            test_user_ids = [user["id"] for user in test_users]
+            
+            # Удаляем связанные данные для тестовых пользователей
+            # Заявки на грузы
+            requests_result = db.cargo_requests.delete_many({"sender_id": {"$in": test_user_ids}})
+            cleanup_report["cargo_requests_deleted"] = requests_result.deleted_count
+            
+            # Грузы операторов (созданные тестовыми пользователями или для них)
+            operator_cargo_result = db.operator_cargo.delete_many({
+                "$or": [
+                    {"created_by": {"$in": test_user_ids}},
+                    {"sender_id": {"$in": test_user_ids}}
+                ]
+            })
+            cleanup_report["operator_cargo_deleted"] = operator_cargo_result.deleted_count
+            
+            # Грузы пользователей
+            user_cargo_result = db.cargo.delete_many({"sender_id": {"$in": test_user_ids}})
+            cleanup_report["user_cargo_deleted"] = user_cargo_result.deleted_count
+            
+            # Неоплаченные заказы
+            unpaid_orders_result = db.unpaid_orders.delete_many({"client_id": {"$in": test_user_ids}})
+            cleanup_report["unpaid_orders_deleted"] = unpaid_orders_result.deleted_count
+            
+            # Уведомления
+            notifications_result = db.notifications.delete_many({"user_id": {"$in": test_user_ids}})
+            cleanup_report["notifications_deleted"] = notifications_result.deleted_count
+            
+            # Удаляем самих тестовых пользователей (кроме текущего админа)
+            users_to_delete = [uid for uid in test_user_ids if uid != current_user.id]
+            if users_to_delete:
+                users_result = db.users.delete_many({"id": {"$in": users_to_delete}})
+                cleanup_report["users_deleted"] = users_result.deleted_count
+            
+            cleanup_report["details"].extend([f"User: {user['full_name']} ({user['phone']})" for user in test_users])
+        
+        # 2. Удаляем тестовые грузы по паттернам наименований
+        test_cargo_patterns = [
+            {"cargo_name": {"$regex": "[Tt]ест"}},
+            {"cargo_name": {"$regex": "test", "$options": "i"}},
+            {"description": {"$regex": "[Tt]ест"}},
+            {"description": {"$regex": "test", "$options": "i"}},
+            {"sender_full_name": {"$regex": "[Tt]ест"}},
+            {"recipient_full_name": {"$regex": "[Tt]ест"}},
+            {"sender_phone": {"$regex": "^\\+992900000000"}},
+        ]
+        
+        # Удаляем тестовые грузы из operator_cargo
+        test_operator_cargo_result = db.operator_cargo.delete_many({"$or": test_cargo_patterns})
+        cleanup_report["operator_cargo_deleted"] += test_operator_cargo_result.deleted_count
+        
+        # Удаляем тестовые грузы из cargo
+        test_user_cargo_result = db.cargo.delete_many({"$or": test_cargo_patterns})
+        cleanup_report["user_cargo_deleted"] += test_user_cargo_result.deleted_count
+        
+        # 3. Удаляем тестовые заявки на грузы
+        test_requests_result = db.cargo_requests.delete_many({"$or": test_cargo_patterns})
+        cleanup_report["cargo_requests_deleted"] += test_requests_result.deleted_count
+        
+        # 4. Очищаем занятые ячейки тестовых грузов
+        warehouse_cells_result = db.warehouse_cells.delete_many({"is_occupied": True})
+        cleanup_report["warehouse_cells_deleted"] = warehouse_cells_result.deleted_count
+        
+        # 5. Удаляем системные уведомления связанные с тестовыми данными
+        system_notifications_result = db.notifications.delete_many({
+            "$or": [
+                {"message": {"$regex": "[Tt]ест"}},
+                {"message": {"$regex": "test", "$options": "i"}},
+                {"entity_type": "test"}
+            ]
+        })
+        cleanup_report["notifications_deleted"] += system_notifications_result.deleted_count
+        
+        # Создаем системное уведомление об очистке
+        create_system_notification(
+            "Очистка тестовых данных",
+            f"Администратор {current_user.full_name} выполнил очистку тестовых данных",
+            "system_cleanup",
+            None,
+            None,
+            current_user.id
+        )
+        
+        return {
+            "message": "Test data cleanup completed successfully",
+            "cleanup_report": cleanup_report,
+            "cleaned_by": current_user.full_name,
+            "cleanup_time": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error during cleanup: {str(e)}")
+
 # Управление грузами
 @app.post("/api/cargo/create")
 async def create_cargo(cargo_data: CargoCreate, current_user: User = Depends(get_current_user)):
