@@ -303,10 +303,11 @@ class EnhancedCargoPlacementTester:
         
         # Step 5: Use quick placement
         print("   ⚡ Step 5: Use quick placement...")
+        import random
         placement_data = {
-            "block_number": 2,
-            "shelf_number": 1,
-            "cell_number": 5
+            "block_number": random.randint(1, 5),
+            "shelf_number": random.randint(1, 3),
+            "cell_number": random.randint(50, 100)  # Use different range to avoid conflicts
         }
         
         response = requests.post(
