@@ -6423,7 +6423,7 @@ function App() {
                 </div>
               </div>
 
-              {/* Схема склада */}
+              {/* Схема склада с информацией о грузах */}
               <div className="max-h-96 overflow-auto border rounded-lg p-4">
                 <div className="space-y-6">
                   {Object.values(warehouseLayout.layout).map((block) => (
@@ -6438,29 +6438,29 @@ function App() {
                               Полка {shelf.shelf_number}
                             </h4>
                             <div className="grid grid-cols-5 gap-2">
-                              {shelf.cells.map((cell) => (
+                              {Object.values(shelf.cells).map((cell) => (
                                 <div
-                                  key={cell.id}
+                                  key={cell.location_code}
                                   className={`p-2 text-xs text-center rounded border-2 transition-all cursor-pointer hover:scale-105 ${
                                     cell.is_occupied 
                                       ? 'bg-red-100 border-red-300 text-red-800 hover:bg-red-200' 
                                       : 'bg-green-100 border-green-300 text-green-800 hover:bg-green-200'
                                   }`}
-                                  title={cell.cargo_info ? `${cell.cargo_info.cargo_number} - ${cell.cargo_info.sender_name}` : 'Свободная ячейка'}
+                                  title={cell.cargo ? `${cell.cargo.cargo_number} - ${cell.cargo.sender_full_name}` : 'Свободная ячейка'}
                                   onClick={() => {
-                                    if (cell.is_occupied && cell.cargo_info) {
-                                      const locationCode = `B${block.block_number}-S${shelf.shelf_number}-C${cell.cell_number}`;
-                                      handleCellClick(selectedWarehouseForLayout.id, locationCode);
+                                    if (cell.is_occupied && cell.cargo) {
+                                      setSelectedCargoForWarehouse(cell.cargo);
+                                      setCargoDetailsModal(true);
                                     } else {
                                       showAlert('Ячейка свободна', 'info');
                                     }
                                   }}
                                 >
                                   <div className="font-bold">Я{cell.cell_number}</div>
-                                  {cell.cargo_info && (
+                                  {cell.cargo && (
                                     <div className="mt-1">
-                                      <div className="font-semibold">{cell.cargo_info.cargo_number}</div>
-                                      <div>{cell.cargo_info.weight}кг</div>
+                                      <div className="font-semibold text-[9px]">{cell.cargo.cargo_number}</div>
+                                      <div className="text-[8px]">{cell.cargo.weight}кг</div>
                                     </div>
                                   )}
                                 </div>
