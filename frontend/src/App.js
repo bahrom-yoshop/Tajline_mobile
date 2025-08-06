@@ -35,6 +35,15 @@ function App() {
   const [usersPage, setUsersPage] = useState(1);
   const [usersPerPage, setUsersPerPage] = useState(25);
   const [warehouses, setWarehouses] = useState([]);
+  const [warehouseLayout, setWarehouseLayout] = useState(null); // Схема склада с грузами
+  const [selectedWarehouseForLayout, setSelectedWarehouseForLayout] = useState(null);
+  const [cargoMoveModal, setCargoMoveModal] = useState(false);
+  const [selectedCargoForMove, setSelectedCargoForMove] = useState(null);
+  const [cargoMoveForm, setCargoMoveForm] = useState({
+    to_block: 1,
+    to_shelf: 1,
+    to_cell: 1
+  });
   const [warehouseCargo, setWarehouseCargo] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
