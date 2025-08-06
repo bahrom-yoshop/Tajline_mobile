@@ -437,6 +437,315 @@ class CargoTransportAPITester:
             
         return all_success
 
+    def test_enhanced_multi_cargo_form_functionality(self):
+        """Test enhanced multi-cargo form functionality with calculator features"""
+        print("\n🧮 ENHANCED MULTI-CARGO FORM WITH CALCULATOR")
+        
+        if 'warehouse_operator' not in self.tokens:
+            print("   ❌ No warehouse operator token available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Single cargo mode (backward compatibility)
+        print("\n   📦 Testing Single Cargo Mode (Backward Compatibility)...")
+        
+        single_cargo_data = {
+            "sender_full_name": "Иван Тестов",
+            "sender_phone": "+79999999999",
+            "recipient_full_name": "Петр Получатель",
+            "recipient_phone": "+992999999999",
+            "recipient_address": "Душанбе",
+            "cargo_name": "Документы",
+            "weight": 5.0,
+            "declared_value": 500,
+            "description": "Документы и личные вещи",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, single_response = self.run_test(
+            "Single Cargo Mode Test",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            single_cargo_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        single_cargo_id = None
+        if success and 'id' in single_response:
+            single_cargo_id = single_response['id']
+            cargo_number = single_response.get('cargo_number', 'N/A')
+            weight = single_response.get('weight', 0)
+            declared_value = single_response.get('declared_value', 0)
+            cargo_name = single_response.get('cargo_name', 'N/A')
+            
+            print(f"   ✅ Single cargo created: {cargo_number}")
+            print(f"   📊 Weight: {weight} kg, Value: {declared_value} руб")
+            print(f"   🏷️  Cargo name: {cargo_name}")
+            
+            # Verify backward compatibility fields
+            if weight == 5.0 and declared_value == 500 and cargo_name == "Документы":
+                print("   ✅ Backward compatibility verified")
+            else:
+                print("   ❌ Backward compatibility failed")
+                all_success = False
+        
+        # Test 2: Multi-cargo mode with calculator
+        print("\n   🧮 Testing Multi-Cargo Mode with Calculator...")
+        
+        multi_cargo_data = {
+            "sender_full_name": "Иван Тестов",
+            "sender_phone": "+79999999999",
+            "recipient_full_name": "Петр Получатель",
+            "recipient_phone": "+992999999999",
+            "recipient_address": "Душанбе",
+            "cargo_items": [
+                {"cargo_name": "Документы", "weight": 2.5},
+                {"cargo_name": "Одежда", "weight": 3.0}
+            ],
+            "price_per_kg": 100.0,
+            "description": "Разные виды груза",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, multi_response = self.run_test(
+            "Multi-Cargo Mode Test",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            multi_cargo_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        multi_cargo_id = None
+        if success and 'id' in multi_response:
+            multi_cargo_id = multi_response['id']
+            cargo_number = multi_response.get('cargo_number', 'N/A')
+            total_weight = multi_response.get('weight', 0)
+            total_cost = multi_response.get('declared_value', 0)
+            cargo_name = multi_response.get('cargo_name', 'N/A')
+            description = multi_response.get('description', '')
+            
+            print(f"   ✅ Multi-cargo created: {cargo_number}")
+            print(f"   📊 Total weight: {total_weight} kg")
+            print(f"   💰 Total cost: {total_cost} руб")
+            print(f"   🏷️  Combined cargo name: {cargo_name}")
+            
+            # Verify calculations
+            expected_weight = 2.5 + 3.0  # 5.5 kg
+            expected_cost = 5.5 * 100.0  # 550 rubles
+            expected_name = "Документы, Одежда"
+            
+            if (abs(total_weight - expected_weight) < 0.01 and 
+                abs(total_cost - expected_cost) < 0.01 and 
+                cargo_name == expected_name):
+                print("   ✅ Multi-cargo calculations verified")
+            else:
+                print(f"   ❌ Calculation error: expected {expected_weight}kg/{expected_cost}руб, got {total_weight}kg/{total_cost}руб")
+                all_success = False
+            
+            # Verify detailed description includes composition breakdown
+            if ("Состав груза:" in description and 
+                "1. Документы - 2.5 кг" in description and
+                "2. Одежда - 3.0 кг" in description and
+                "Общий вес: 5.5 кг" in description and
+                "Цена за кг: 100.0 руб." in description and
+                "Общая стоимость: 550.0 руб." in description):
+                print("   ✅ Detailed cargo description verified")
+            else:
+                print("   ❌ Detailed description missing required information")
+                all_success = False
+        
+        # Test 3: Data structure validation
+        print("\n   🔍 Testing Data Structure Validation...")
+        
+        # Test invalid cargo item (missing cargo_name)
+        invalid_cargo_data = {
+            "sender_full_name": "Тест Отправитель",
+            "sender_phone": "+79999999999",
+            "recipient_full_name": "Тест Получатель",
+            "recipient_phone": "+992999999999",
+            "recipient_address": "Душанбе",
+            "cargo_items": [
+                {"weight": 2.5}  # Missing cargo_name
+            ],
+            "price_per_kg": 100.0,
+            "description": "Тест валидации",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, _ = self.run_test(
+            "Invalid Cargo Item Validation",
+            "POST",
+            "/api/operator/cargo/accept",
+            422,  # Validation error expected
+            invalid_cargo_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Cargo item validation working correctly")
+        
+        # Test invalid weight (negative)
+        invalid_weight_data = {
+            "sender_full_name": "Тест Отправитель",
+            "sender_phone": "+79999999999",
+            "recipient_full_name": "Тест Получатель",
+            "recipient_phone": "+992999999999",
+            "recipient_address": "Душанбе",
+            "cargo_items": [
+                {"cargo_name": "Тест", "weight": -1.0}  # Invalid negative weight
+            ],
+            "price_per_kg": 100.0,
+            "description": "Тест валидации",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, _ = self.run_test(
+            "Invalid Weight Validation",
+            "POST",
+            "/api/operator/cargo/accept",
+            422,  # Validation error expected
+            invalid_weight_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Weight validation working correctly")
+        
+        # Test 4: API Response Testing
+        print("\n   📋 Testing API Response Structure...")
+        
+        # Verify both cargo types appear in cargo list
+        success, cargo_list = self.run_test(
+            "Get Operator Cargo List",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            token=self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success and 'items' in cargo_list:
+            cargo_items = cargo_list['items']
+            
+            # Find our test cargo
+            single_found = False
+            multi_found = False
+            
+            for cargo in cargo_items:
+                if cargo.get('id') == single_cargo_id:
+                    single_found = True
+                    print(f"   ✅ Single cargo found in list: {cargo.get('cargo_name')}")
+                elif cargo.get('id') == multi_cargo_id:
+                    multi_found = True
+                    print(f"   ✅ Multi-cargo found in list: {cargo.get('cargo_name')}")
+            
+            if single_found and multi_found:
+                print("   ✅ Both cargo types appear in cargo list")
+            else:
+                print("   ❌ Some cargo missing from list")
+                all_success = False
+        
+        # Test 5: Complex multi-cargo scenario
+        print("\n   🎯 Testing Complex Multi-Cargo Scenario...")
+        
+        complex_cargo_data = {
+            "sender_full_name": "Сложный Тест",
+            "sender_phone": "+79999999998",
+            "recipient_full_name": "Получатель Сложный",
+            "recipient_phone": "+992999999998",
+            "recipient_address": "Душанбе, сложный адрес",
+            "cargo_items": [
+                {"cargo_name": "Электроника", "weight": 1.2},
+                {"cargo_name": "Книги", "weight": 3.8},
+                {"cargo_name": "Сувениры", "weight": 0.5},
+                {"cargo_name": "Медикаменты", "weight": 2.1}
+            ],
+            "price_per_kg": 150.0,
+            "description": "Сложная посылка с разными товарами",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, complex_response = self.run_test(
+            "Complex Multi-Cargo Test",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            complex_cargo_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success and 'id' in complex_response:
+            cargo_number = complex_response.get('cargo_number', 'N/A')
+            total_weight = complex_response.get('weight', 0)
+            total_cost = complex_response.get('declared_value', 0)
+            cargo_name = complex_response.get('cargo_name', 'N/A')
+            
+            # Expected calculations
+            expected_weight = 1.2 + 3.8 + 0.5 + 2.1  # 7.6 kg
+            expected_cost = 7.6 * 150.0  # 1140 rubles
+            expected_name = "Электроника, Книги, Сувениры, Медикаменты"
+            
+            print(f"   ✅ Complex cargo created: {cargo_number}")
+            print(f"   📊 Weight: {total_weight} kg (expected: {expected_weight})")
+            print(f"   💰 Cost: {total_cost} руб (expected: {expected_cost})")
+            print(f"   🏷️  Name: {cargo_name}")
+            
+            if (abs(total_weight - expected_weight) < 0.01 and 
+                abs(total_cost - expected_cost) < 0.01 and 
+                cargo_name == expected_name):
+                print("   ✅ Complex multi-cargo calculations verified")
+            else:
+                print("   ❌ Complex calculation error")
+                all_success = False
+        
+        # Test 6: Edge cases
+        print("\n   ⚠️  Testing Edge Cases...")
+        
+        # Test with single item in cargo_items array
+        single_item_array_data = {
+            "sender_full_name": "Единичный Тест",
+            "sender_phone": "+79999999997",
+            "recipient_full_name": "Получатель Единичный",
+            "recipient_phone": "+992999999997",
+            "recipient_address": "Душанбе",
+            "cargo_items": [
+                {"cargo_name": "Единственный груз", "weight": 4.0}
+            ],
+            "price_per_kg": 75.0,
+            "description": "Тест с одним элементом в массиве",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, single_item_response = self.run_test(
+            "Single Item in Array Test",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            single_item_array_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success:
+            total_weight = single_item_response.get('weight', 0)
+            total_cost = single_item_response.get('declared_value', 0)
+            
+            if total_weight == 4.0 and total_cost == 300.0:  # 4.0 * 75.0
+                print("   ✅ Single item in array handled correctly")
+            else:
+                print("   ❌ Single item in array calculation error")
+                all_success = False
+        
+        return all_success
+
     def test_operator_cargo_management(self):
         """Test new operator cargo management functionality"""
         print("\n📋 OPERATOR CARGO MANAGEMENT")
