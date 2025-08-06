@@ -15,6 +15,7 @@ from io import BytesIO
 import base64
 from PIL import Image
 import re
+import math  # Добавляем для пагинации
 from bson import ObjectId
 
 app = FastAPI()
