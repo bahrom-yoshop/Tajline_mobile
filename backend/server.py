@@ -2859,15 +2859,36 @@ async def get_warehouse_layout_with_cargo(
     cargo_by_location = {}
     for cargo in cargo_in_warehouse:
         location = cargo.get('warehouse_location')
-        if location:
-            # Извлекаем номера блока, полки и ячейки из местоположения (например: "Б1-П2-Я15")
+        if location and location != "Склад для грузов":  # Игнорируем общие локации
+            # Парсинг различных форматов местоположения
+            block_num = shelf_num = cell_num = None
+            
             try:
-                parts = location.split('-')
-                if len(parts) >= 3:
-                    block_num = int(parts[0][1:])  # Убираем "Б" и берем число
-                    shelf_num = int(parts[1][1:])  # Убираем "П" и берем число
-                    cell_num = int(parts[2][1:])   # Убираем "Я" и берем число
-                    
+                # Формат "Б1-П2-Я15" (кириллица)
+                if location.startswith('Б'):
+                    parts = location.split('-')
+                    if len(parts) >= 3:
+                        block_num = int(parts[0][1:])  # Убираем "Б" и берем число
+                        shelf_num = int(parts[1][1:])  # Убираем "П" и берем число
+                        cell_num = int(parts[2][1:])   # Убираем "Я" и берем число
+                
+                # Формат "B1-S1-C1" (латиница)
+                elif location.startswith('B'):
+                    parts = location.split('-')
+                    if len(parts) >= 3:
+                        block_num = int(parts[0][1:])  # Убираем "B" и берем число
+                        shelf_num = int(parts[1][1:])  # Убираем "S" и берем число
+                        cell_num = int(parts[2][1:])   # Убираем "C" и берем число
+                
+                # Числовой формат "1-2-15"
+                elif '-' in location:
+                    parts = location.split('-')
+                    if len(parts) >= 3:
+                        block_num = int(parts[0])
+                        shelf_num = int(parts[1])
+                        cell_num = int(parts[2])
+                
+                if block_num and shelf_num and cell_num:
                     location_key = f"{block_num}-{shelf_num}-{cell_num}"
                     cargo_by_location[location_key] = {
                         "id": cargo["id"],
@@ -2889,6 +2910,7 @@ async def get_warehouse_layout_with_cargo(
                         "cell_number": cell_num
                     }
             except (ValueError, IndexError):
+                print(f"Warning: Could not parse warehouse location: {location}")
                 continue
     
     # Создаем структуру склада с блоками, полками и ячейками
