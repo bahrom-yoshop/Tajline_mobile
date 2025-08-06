@@ -2895,18 +2895,18 @@ async def get_warehouse_layout_with_cargo(
     blocks = {}
     
     # Получаем количество блоков, полок и ячеек из настроек склада или по умолчанию
-    max_blocks = warehouse.get('blocks', 3)
-    max_shelves = warehouse.get('shelves', 3)
-    max_cells = warehouse.get('cells', 50)
+    max_blocks = warehouse.get('blocks_count', 3)
+    max_shelves = warehouse.get('shelves_per_block', 3)  
+    max_cells = warehouse.get('cells_per_shelf', 50)
     
     for block in range(1, max_blocks + 1):
-        blocks[block] = {
+        blocks[f"block_{block}"] = {
             "block_number": block,
             "shelves": {}
         }
         
         for shelf in range(1, max_shelves + 1):
-            blocks[block]["shelves"][shelf] = {
+            blocks[f"block_{block}"]["shelves"][f"shelf_{shelf}"] = {
                 "shelf_number": shelf,
                 "cells": {}
             }
@@ -2919,7 +2919,7 @@ async def get_warehouse_layout_with_cargo(
                     "is_occupied": location_key in cargo_by_location,
                     "cargo": cargo_by_location.get(location_key, None)
                 }
-                blocks[block]["shelves"][shelf]["cells"][cell] = cell_data
+                blocks[f"block_{block}"]["shelves"][f"shelf_{shelf}"]["cells"][f"cell_{cell}"] = cell_data
     
     return {
         "warehouse": serialize_mongo_document(warehouse),
