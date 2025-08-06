@@ -14605,6 +14605,7 @@ ID склада: {self.warehouse_id}"""
             ("🏗️ WAREHOUSE LAYOUT WITH CARGO API", self.test_warehouse_layout_with_cargo_api),
             ("🔄 CARGO MOVEMENT API", self.test_cargo_movement_api),
             ("🔍 WAREHOUSE DATA STRUCTURE INVESTIGATION", self.test_warehouse_data_structure_investigation),
+            ("🧮 ENHANCED MULTI-CARGO FORM WITH CALCULATOR", self.test_enhanced_multi_cargo_form_functionality),
             ("Operator Cargo Management", self.test_operator_cargo_management),
             ("Cashier Functionality", self.test_cashier_functionality),
             ("Transport Management", self.test_transport_management),
