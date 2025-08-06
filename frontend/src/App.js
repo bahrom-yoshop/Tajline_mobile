@@ -691,12 +691,20 @@ function App() {
     }
   };
 
-  const fetchOperatorCargo = async () => {
+  const fetchOperatorCargo = async (filterStatus = '') => {
     try {
-      const data = await apiCall('/api/operator/cargo/list');
-      setOperatorCargo(data);
+      const params = filterStatus ? { filter_status: filterStatus } : {};
+      const response = await apiCall('/api/operator/cargo/list', 'GET', null, params);
+      
+      // Проверяем, возвращается ли объект с cargo_list или массив напрямую
+      if (response.cargo_list) {
+        setOperatorCargo(response.cargo_list);
+      } else {
+        setOperatorCargo(response);
+      }
     } catch (error) {
       console.error('Error fetching operator cargo:', error);
+      setOperatorCargo([]);
     }
   };
 
