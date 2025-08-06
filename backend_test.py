@@ -11437,8 +11437,8 @@ ID склада: {self.warehouse_id}"""
                 "PUT",
                 f"/api/cargo/{cargo_id}/processing-status",
                 200,
-                {"new_status": "placed"},
-                self.tokens['admin']
+                token=self.tokens['admin'],
+                params={"new_status": "placed"}
             )
             all_success &= success
             
