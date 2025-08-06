@@ -173,9 +173,10 @@ function App() {
   // Operator cargo management states
   const [operatorCargo, setOperatorCargo] = useState([]);
   
-  // Calculator states for multi-cargo functionality
+  // Calculator states for multi-cargo functionality with individual prices
   const [totalWeight, setTotalWeight] = useState(0);
   const [totalCost, setTotalCost] = useState(0);
+  const [cargoBreakdown, setCargoBreakdown] = useState([]);  // Детальная разбивка по каждому грузу
   const [operatorCargoFilter, setOperatorCargoFilter] = useState(''); // Фильтр для списка грузов
   const [operatorCargoPagination, setOperatorCargoPagination] = useState({}); // Пагинация для списка грузов
   const [operatorCargoPage, setOperatorCargoPage] = useState(1);
