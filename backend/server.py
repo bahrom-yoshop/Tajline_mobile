@@ -2879,10 +2879,15 @@ async def mark_order_as_paid(
         }}
     )
     
-    # Обновить статус груза на "paid"
+    # Обновить статус груза на "paid" и обновить processing_status
     db.operator_cargo.update_one(
         {"id": order["cargo_id"]},
-        {"$set": {"payment_status": "paid"}}
+        {"$set": {
+            "payment_status": "paid",
+            "processing_status": "paid",
+            "status": CargoStatus.PAID,
+            "updated_at": datetime.utcnow()
+        }}
     )
     
     # Создать уведомление клиенту
