@@ -806,14 +806,14 @@ function App() {
   };
 
   const handleCargoMove = async () => {
-    if (!selectedCargoForMove) return;
+    if (!selectedCargoForWarehouse) return;
     
     try {
       const moveData = {
-        cargo_id: selectedCargoForMove.id,
-        from_block: selectedCargoForMove.block_number,
-        from_shelf: selectedCargoForMove.shelf_number,
-        from_cell: selectedCargoForMove.cell_number,
+        cargo_id: selectedCargoForWarehouse.id,
+        from_block: selectedCargoForWarehouse.block_number,
+        from_shelf: selectedCargoForWarehouse.shelf_number,
+        from_cell: selectedCargoForWarehouse.cell_number,
         to_block: cargoMoveForm.to_block,
         to_shelf: cargoMoveForm.to_shelf,
         to_cell: cargoMoveForm.to_cell
@@ -828,7 +828,7 @@ function App() {
       
       // Закрываем модальное окно
       setCargoMoveModal(false);
-      setSelectedCargoForMove(null);
+      setSelectedCargoForWarehouse(null);
       setCargoMoveForm({
         to_block: 1,
         to_shelf: 1,
