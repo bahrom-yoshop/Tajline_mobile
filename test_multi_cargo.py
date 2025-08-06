@@ -72,6 +72,24 @@ class MultiCargoTester:
         """Login as warehouse operator"""
         print("\n🔐 LOGGING IN AS WAREHOUSE OPERATOR")
         
+        # First try to register the warehouse operator
+        print("   📝 Registering warehouse operator...")
+        register_success, _ = self.run_test(
+            "Register Warehouse Operator",
+            "POST",
+            "/api/auth/register",
+            200,
+            {
+                "full_name": "Оператор Складской",
+                "phone": "+79777888999",
+                "password": "warehouse123",
+                "role": "warehouse_operator"
+            }
+        )
+        
+        if not register_success:
+            print("   ⚠️  Registration failed (user may already exist)")
+        
         success, response = self.run_test(
             "Login Warehouse Operator",
             "POST",
