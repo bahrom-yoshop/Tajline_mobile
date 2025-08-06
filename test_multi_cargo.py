@@ -68,39 +68,21 @@ class MultiCargoTester:
             print(f"   ❌ FAILED - Exception: {str(e)}")
             return False, {}
 
-    def login_warehouse_operator(self):
-        """Login as warehouse operator"""
-        print("\n🔐 LOGGING IN AS WAREHOUSE OPERATOR")
-        
-        # First try to register the warehouse operator
-        print("   📝 Registering warehouse operator...")
-        register_success, _ = self.run_test(
-            "Register Warehouse Operator",
-            "POST",
-            "/api/auth/register",
-            200,
-            {
-                "full_name": "Оператор Складской",
-                "phone": "+79777888999",
-                "password": "warehouse123",
-                "role": "warehouse_operator"
-            }
-        )
-        
-        if not register_success:
-            print("   ⚠️  Registration failed (user may already exist)")
+    def login_admin(self):
+        """Login as admin"""
+        print("\n🔐 LOGGING IN AS ADMIN")
         
         success, response = self.run_test(
-            "Login Warehouse Operator",
+            "Login Admin",
             "POST",
             "/api/auth/login",
             200,
-            {"phone": "+79777888999", "password": "warehouse123"}
+            {"phone": "+79999888777", "password": "admin123"}
         )
         
         if success and 'access_token' in response:
-            self.tokens['warehouse_operator'] = response['access_token']
-            print(f"   🔑 Token obtained for warehouse operator")
+            self.tokens['admin'] = response['access_token']
+            print(f"   🔑 Token obtained for admin")
             return True
         return False
 
