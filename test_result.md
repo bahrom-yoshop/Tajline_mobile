@@ -105,6 +105,18 @@
 user_problem_statement: "Test the newly implemented pagination functionality for all API endpoints: 1) Cargo List Pagination Testing - GET /api/operator/cargo/list with pagination parameters (page=1&per_page=25 default, page=2&per_page=10 custom, page=1&per_page=5 small, page=1&per_page=100 maximum), 2) Available Cargo for Placement Pagination - GET /api/operator/cargo/available-for-placement with pagination, 3) User Management Pagination - GET /api/admin/users with new pagination features (role filtering, search functionality), 4) Pagination Edge Cases - invalid parameters, empty results, single result, 5) Performance and Consistency Testing - large datasets, consistency across requests, total count accuracy, 6) Test Users: Admin: +79999888777 / admin123, Regular user: +992900000000 / 123456, Warehouse Operator: +79777888999 / warehouse123"
 
 backend:
+  - task: "Comprehensive Warehouse Layout Functionality Testing"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ COMPREHENSIVE WAREHOUSE LAYOUT FUNCTIONALITY TEST FAILED - Critical issues found in warehouse layout system: 1) ❌ CARGO NOT FOUND IN LAYOUT: Cargo placed successfully at Б1-П1-Я5 but not appearing in warehouse layout API response, indicating layout-with-cargo endpoint has cross-collection search issues, 2) ❌ WAREHOUSE STRUCTURE ENDPOINT ERROR: GET /api/warehouses/{warehouse_id}/structure returns 500 Internal Server Error, preventing proper warehouse configuration verification, 3) ❌ CARGO MOVEMENT VERIFICATION FAILED: While cargo movement API works (cargo moved from Б1-П1-Я5 to Б2-П2-Я10), the moved cargo is not found in expected new location in layout, 4) ✅ WORKING COMPONENTS: User cargo request creation ✅, Admin cargo acceptance ✅, Cargo payment processing ✅, Quick cargo placement ✅, Cargo movement API ✅, 5) 🔍 ROOT CAUSE: The warehouse layout-with-cargo API appears to have issues with cross-collection cargo search (cargo vs operator_cargo collections) and proper cell location mapping. SUCCESS RATE: 57% (4/7 integration steps passed). The core placement and movement APIs work, but the layout visualization system has critical display issues that prevent frontend from showing actual cargo information in warehouse cells."
+
   - task: "Comprehensive Pagination System Testing"
     implemented: true
     working: true
