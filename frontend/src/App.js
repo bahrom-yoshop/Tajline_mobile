@@ -796,7 +796,9 @@ function App() {
 
   const fetchWarehouseLayoutWithCargo = async (warehouseId) => {
     try {
+      console.log('Fetching warehouse layout for ID:', warehouseId);
       const response = await apiCall(`/api/warehouses/${warehouseId}/layout-with-cargo`);
+      console.log('Warehouse layout response:', response);
       setWarehouseLayout(response);
       setSelectedWarehouseForLayout(warehouseId);
     } catch (error) {
