@@ -746,6 +746,266 @@ class CargoTransportAPITester:
         
         return all_success
 
+    def test_individual_pricing_multi_cargo_form(self):
+        """Test enhanced multi-cargo form with individual pricing for each cargo item - PRIMARY TEST"""
+        print("\n🎯 INDIVIDUAL PRICING MULTI-CARGO FORM TESTING")
+        
+        if 'warehouse_operator' not in self.tokens:
+            print("   ❌ No warehouse operator token available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Multi-cargo with individual prices (PRIMARY TEST SCENARIO from review request)
+        print("\n   🧮 Testing Multi-Cargo with Individual Prices (Primary Scenario)...")
+        
+        multi_cargo_individual_data = {
+            "sender_full_name": "Тест Отправитель",
+            "sender_phone": "+79999999999",
+            "recipient_full_name": "Тест Получатель",
+            "recipient_phone": "+992999999999",
+            "recipient_address": "Душанбе",
+            "cargo_items": [
+                {"cargo_name": "Документы", "weight": 10.0, "price_per_kg": 60.0},
+                {"cargo_name": "Одежда", "weight": 25.0, "price_per_kg": 60.0},
+                {"cargo_name": "Электроника", "weight": 100.0, "price_per_kg": 65.0}
+            ],
+            "description": "Разные виды груза с индивидуальными ценами",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, multi_response = self.run_test(
+            "Multi-Cargo with Individual Prices",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            multi_cargo_individual_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        multi_cargo_id = None
+        if success and 'id' in multi_response:
+            multi_cargo_id = multi_response['id']
+            cargo_number = multi_response.get('cargo_number', 'N/A')
+            total_weight = multi_response.get('weight', 0)
+            total_cost = multi_response.get('declared_value', 0)
+            cargo_name = multi_response.get('cargo_name', 'N/A')
+            description = multi_response.get('description', '')
+            
+            print(f"   ✅ Multi-cargo with individual prices created: {cargo_number}")
+            print(f"   📊 Total weight: {total_weight} kg")
+            print(f"   💰 Total cost: {total_cost} руб")
+            print(f"   🏷️  Combined cargo name: {cargo_name}")
+            
+            # Expected calculations from review request:
+            # Груз 1: 10 кг × 60 руб/кг = 600 руб
+            # Груз 2: 25 кг × 60 руб/кг = 1500 руб  
+            # Груз 3: 100 кг × 65 руб/кг = 6500 руб
+            # Общий вес: 135 кг
+            # Общая стоимость: 8600 руб
+            expected_weight = 10.0 + 25.0 + 100.0  # 135 kg
+            expected_cost = (10.0 * 60.0) + (25.0 * 60.0) + (100.0 * 65.0)  # 600 + 1500 + 6500 = 8600 rubles
+            expected_name = "Документы, Одежда, Электроника"
+            
+            print(f"   🧮 Expected: {expected_weight}kg, {expected_cost}руб")
+            print(f"   🧮 Actual: {total_weight}kg, {total_cost}руб")
+            
+            if (abs(total_weight - expected_weight) < 0.01 and 
+                abs(total_cost - expected_cost) < 0.01 and 
+                cargo_name == expected_name):
+                print("   ✅ Individual pricing calculations verified correctly")
+            else:
+                print(f"   ❌ Individual pricing calculation error")
+                all_success = False
+            
+            # Verify detailed description includes individual cost breakdown
+            expected_breakdown_items = [
+                "1. Документы - 10.0 кг × 60.0 руб/кг = 600.0 руб",
+                "2. Одежда - 25.0 кг × 60.0 руб/кг = 1500.0 руб", 
+                "3. Электроника - 100.0 кг × 65.0 руб/кг = 6500.0 руб",
+                "Общий вес: 135.0 кг",
+                "Общая стоимость: 8600.0 руб"
+            ]
+            
+            breakdown_verified = all(item in description for item in expected_breakdown_items)
+            if breakdown_verified:
+                print("   ✅ Individual cost breakdown verified in description")
+            else:
+                print("   ❌ Individual cost breakdown missing or incorrect")
+                print(f"   📄 Description: {description[:300]}...")
+                all_success = False
+        
+        # Test 2: Single cargo mode (backward compatibility from review request)
+        print("\n   📦 Testing Single Cargo Mode (Backward Compatibility)...")
+        
+        single_cargo_data = {
+            "sender_full_name": "Тест Отправитель",
+            "sender_phone": "+79999999999",
+            "recipient_full_name": "Тест Получатель",
+            "recipient_phone": "+992999999999",
+            "recipient_address": "Душанбе",
+            "cargo_name": "Документы",
+            "weight": 5.0,
+            "declared_value": 300.0,
+            "description": "Одиночный груз",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, single_response = self.run_test(
+            "Single Cargo Mode (Backward Compatibility)",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            single_cargo_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        single_cargo_id = None
+        if success and 'id' in single_response:
+            single_cargo_id = single_response['id']
+            cargo_number = single_response.get('cargo_number', 'N/A')
+            weight = single_response.get('weight', 0)
+            declared_value = single_response.get('declared_value', 0)
+            cargo_name = single_response.get('cargo_name', 'N/A')
+            
+            print(f"   ✅ Single cargo created: {cargo_number}")
+            print(f"   📊 Weight: {weight} kg, Value: {declared_value} руб")
+            print(f"   🏷️  Cargo name: {cargo_name}")
+            
+            # Verify backward compatibility fields
+            if weight == 5.0 and declared_value == 300.0 and cargo_name == "Документы":
+                print("   ✅ Backward compatibility verified")
+            else:
+                print("   ❌ Backward compatibility failed")
+                all_success = False
+        
+        # Test 3: CargoItem model validation with individual pricing
+        print("\n   🔍 Testing CargoItem Model Validation...")
+        
+        # Test missing price_per_kg field
+        invalid_cargo_data = {
+            "sender_full_name": "Тест Отправитель",
+            "sender_phone": "+79999999999",
+            "recipient_full_name": "Тест Получатель",
+            "recipient_phone": "+992999999999",
+            "recipient_address": "Душанбе",
+            "cargo_items": [
+                {"cargo_name": "Документы", "weight": 2.5}  # Missing price_per_kg
+            ],
+            "description": "Тест валидации",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, _ = self.run_test(
+            "Missing price_per_kg Validation",
+            "POST",
+            "/api/operator/cargo/accept",
+            422,  # Validation error expected
+            invalid_cargo_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ CargoItem price_per_kg validation working correctly")
+        
+        # Test 4: Response verification with individual pricing
+        print("\n   📋 Testing API Response Structure with Individual Pricing...")
+        
+        # Verify cargo appears in cargo list with correct individual pricing data
+        success, cargo_list = self.run_test(
+            "Get Operator Cargo List",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            token=self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success and 'items' in cargo_list:
+            cargo_items = cargo_list['items']
+            
+            # Find our test cargo with individual pricing
+            individual_pricing_found = False
+            single_cargo_found = False
+            
+            for cargo in cargo_items:
+                if cargo.get('id') == multi_cargo_id:
+                    individual_pricing_found = True
+                    print(f"   ✅ Individual pricing cargo found in list: {cargo.get('cargo_name')}")
+                    print(f"   💰 Cost: {cargo.get('declared_value')} руб")
+                elif cargo.get('id') == single_cargo_id:
+                    single_cargo_found = True
+                    print(f"   ✅ Single cargo found in list: {cargo.get('cargo_name')}")
+            
+            if individual_pricing_found and single_cargo_found:
+                print("   ✅ Both individual pricing and single cargo appear in cargo list")
+            else:
+                print("   ❌ Some cargo missing from list")
+                all_success = False
+        
+        # Test 5: Complex individual pricing scenario
+        print("\n   🎯 Testing Complex Individual Pricing Scenario...")
+        
+        complex_individual_data = {
+            "sender_full_name": "Сложный Тест",
+            "sender_phone": "+79999999998",
+            "recipient_full_name": "Получатель Сложный",
+            "recipient_phone": "+992999999998",
+            "recipient_address": "Душанбе, сложный адрес",
+            "cargo_items": [
+                {"cargo_name": "Электроника", "weight": 1.2, "price_per_kg": 150.0},
+                {"cargo_name": "Книги", "weight": 3.8, "price_per_kg": 80.0},
+                {"cargo_name": "Сувениры", "weight": 0.5, "price_per_kg": 200.0},
+                {"cargo_name": "Медикаменты", "weight": 2.1, "price_per_kg": 120.0}
+            ],
+            "description": "Сложная посылка с разными товарами и индивидуальными ценами",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, complex_response = self.run_test(
+            "Complex Individual Pricing Test",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            complex_individual_data,
+            self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success and 'id' in complex_response:
+            cargo_number = complex_response.get('cargo_number', 'N/A')
+            total_weight = complex_response.get('weight', 0)
+            total_cost = complex_response.get('declared_value', 0)
+            cargo_name = complex_response.get('cargo_name', 'N/A')
+            
+            # Expected calculations with individual pricing:
+            # Электроника: 1.2 кг × 150 руб/кг = 180 руб
+            # Книги: 3.8 кг × 80 руб/кг = 304 руб
+            # Сувениры: 0.5 кг × 200 руб/кг = 100 руб
+            # Медикаменты: 2.1 кг × 120 руб/кг = 252 руб
+            # Total: 7.6 кг, 836 руб
+            expected_weight = 1.2 + 3.8 + 0.5 + 2.1  # 7.6 kg
+            expected_cost = (1.2 * 150.0) + (3.8 * 80.0) + (0.5 * 200.0) + (2.1 * 120.0)  # 180 + 304 + 100 + 252 = 836 rubles
+            expected_name = "Электроника, Книги, Сувениры, Медикаменты"
+            
+            print(f"   ✅ Complex individual pricing cargo created: {cargo_number}")
+            print(f"   📊 Weight: {total_weight} kg (expected: {expected_weight})")
+            print(f"   💰 Cost: {total_cost} руб (expected: {expected_cost})")
+            print(f"   🏷️  Name: {cargo_name}")
+            
+            if (abs(total_weight - expected_weight) < 0.01 and 
+                abs(total_cost - expected_cost) < 0.01 and 
+                cargo_name == expected_name):
+                print("   ✅ Complex individual pricing calculations verified")
+            else:
+                print("   ❌ Complex individual pricing calculation error")
+                all_success = False
+        
+        return all_success
+
     def test_operator_cargo_management(self):
         """Test new operator cargo management functionality"""
         print("\n📋 OPERATOR CARGO MANAGEMENT")
