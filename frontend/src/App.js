@@ -4390,54 +4390,197 @@ function App() {
                             />
                           </div>
 
-                          <div>
-                            <Label htmlFor="cargo_name">Название груза</Label>
-                            <Input
-                              id="cargo_name"
-                              value={operatorCargoForm.cargo_name}
-                              onChange={(e) => setOperatorCargoForm({...operatorCargoForm, cargo_name: e.target.value})}
-                              placeholder="Документы, личные вещи, электроника"
-                              required
-                            />
+                          {/* Переключатель между режимами */}
+                          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                            <Label className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={operatorCargoForm.use_multi_cargo}
+                                onChange={(e) => {
+                                  setOperatorCargoForm({
+                                    ...operatorCargoForm,
+                                    use_multi_cargo: e.target.checked
+                                  });
+                                  if (!e.target.checked) {
+                                    setTotalWeight(0);
+                                    setTotalCost(0);
+                                  }
+                                }}
+                                className="rounded"
+                              />
+                              <span className="text-sm font-medium">
+                                Несколько видов груза (с калькулятором)
+                              </span>
+                            </Label>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                              <Label htmlFor="weight">Вес груза (кг)</Label>
-                              <Input
-                                id="weight"
-                                type="number"
-                                step="0.1"
-                                value={operatorCargoForm.weight}
-                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, weight: e.target.value})}
-                                placeholder="10.5"
-                                required
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="declared_value">Стоимость груза (руб.)</Label>
-                              <Input
-                                id="declared_value"
-                                type="number"
-                                step="0.01"
-                                value={operatorCargoForm.declared_value}
-                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, declared_value: e.target.value})}
-                                placeholder="5000"
-                                required
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="route">Маршрут</Label>
-                              <Select value={operatorCargoForm.route} onValueChange={(value) => setOperatorCargoForm({...operatorCargoForm, route: value})}>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="moscow_to_tajikistan">Москва → Таджикистан</SelectItem>
-                                  <SelectItem value="tajikistan_to_moscow">Таджикистан → Москва</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
+                          {!operatorCargoForm.use_multi_cargo ? (
+                            // Старая форма для одного груза
+                            <>
+                              <div>
+                                <Label htmlFor="cargo_name">Название груза</Label>
+                                <Input
+                                  id="cargo_name"
+                                  value={operatorCargoForm.cargo_name}
+                                  onChange={(e) => setOperatorCargoForm({...operatorCargoForm, cargo_name: e.target.value})}
+                                  placeholder="Документы, личные вещи, электроника"
+                                  required
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <Label htmlFor="weight">Вес груза (кг)</Label>
+                                  <Input
+                                    id="weight"
+                                    type="number"
+                                    step="0.1"
+                                    value={operatorCargoForm.weight}
+                                    onChange={(e) => setOperatorCargoForm({...operatorCargoForm, weight: e.target.value})}
+                                    placeholder="10.5"
+                                    required
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="declared_value">Стоимость груза (руб.)</Label>
+                                  <Input
+                                    id="declared_value"
+                                    type="number"
+                                    step="0.01"
+                                    value={operatorCargoForm.declared_value}
+                                    onChange={(e) => setOperatorCargoForm({...operatorCargoForm, declared_value: e.target.value})}
+                                    placeholder="5000"
+                                    required
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            // Новая форма с множественными грузами и калькулятором
+                            <>
+                              <div className="bg-blue-50 p-4 rounded-lg">
+                                <h3 className="font-semibold text-lg mb-3 flex items-center">
+                                  <Package className="mr-2 h-5 w-5" />
+                                  Список грузов
+                                </h3>
+                                
+                                {operatorCargoForm.cargo_items.map((item, index) => (
+                                  <div key={index} className="mb-4 p-4 bg-white rounded border">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="font-medium text-sm text-gray-600">
+                                        Груз #{index + 1}
+                                      </span>
+                                      {operatorCargoForm.cargo_items.length > 1 && (
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => removeCargoItem(index)}
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                      <div>
+                                        <Label>Название груза</Label>
+                                        <Input
+                                          value={item.cargo_name}
+                                          onChange={(e) => updateCargoItem(index, 'cargo_name', e.target.value)}
+                                          placeholder="Документы, одежда, электроника"
+                                          required
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label>Вес (кг)</Label>
+                                        <Input
+                                          type="number"
+                                          step="0.1"
+                                          min="0"
+                                          value={item.weight}
+                                          onChange={(e) => updateCargoItem(index, 'weight', e.target.value)}
+                                          placeholder="10.5"
+                                          required
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                                
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={addCargoItem}
+                                  className="w-full"
+                                >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Добавить еще груз
+                                </Button>
+                              </div>
+
+                              {/* Калькулятор стоимости */}
+                              <div className="bg-green-50 p-4 rounded-lg">
+                                <h3 className="font-semibold text-lg mb-3 flex items-center">
+                                  <Calculator className="mr-2 h-5 w-5" />
+                                  Калькулятор стоимости
+                                </h3>
+                                
+                                <div className="mb-4">
+                                  <Label htmlFor="price_per_kg">Цена за 1 кг (руб.)</Label>
+                                  <Input
+                                    id="price_per_kg"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={operatorCargoForm.price_per_kg}
+                                    onChange={(e) => {
+                                      setOperatorCargoForm({...operatorCargoForm, price_per_kg: e.target.value});
+                                      calculateTotals(operatorCargoForm.cargo_items, e.target.value);
+                                    }}
+                                    placeholder="100"
+                                    required
+                                  />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="bg-white p-3 rounded border">
+                                    <div className="text-sm text-gray-600">Общий вес</div>
+                                    <div className="text-2xl font-bold text-blue-600">
+                                      {totalWeight.toFixed(1)} кг
+                                    </div>
+                                  </div>
+                                  <div className="bg-white p-3 rounded border">
+                                    <div className="text-sm text-gray-600">Общая стоимость</div>
+                                    <div className="text-2xl font-bold text-green-600">
+                                      {totalCost.toFixed(2)} руб.
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {totalWeight > 0 && operatorCargoForm.price_per_kg && (
+                                  <div className="mt-3 p-2 bg-white rounded text-sm text-gray-600">
+                                    <div className="flex justify-between">
+                                      <span>Расчет: {totalWeight.toFixed(1)} кг × {parseFloat(operatorCargoForm.price_per_kg || 0).toFixed(2)} руб/кг</span>
+                                      <span className="font-semibold">{totalCost.toFixed(2)} руб.</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          )}
+
+                          <div>
+                            <Label htmlFor="route">Маршрут</Label>
+                            <Select value={operatorCargoForm.route} onValueChange={(value) => setOperatorCargoForm({...operatorCargoForm, route: value})}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="moscow_to_tajikistan">Москва → Таджикистан</SelectItem>
+                                <SelectItem value="tajikistan_to_moscow">Таджикистан → Москва</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
 
                           <div>
