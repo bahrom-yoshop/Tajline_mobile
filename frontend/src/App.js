@@ -4484,6 +4484,15 @@ function App() {
                             </Table>
                           )}
                         </div>
+                        
+                        {/* Пагинация для списка грузов */}
+                        {operatorCargo.length > 0 && operatorCargoPagination && (
+                          <DataPagination
+                            pagination={operatorCargoPagination}
+                            onPageChange={handleOperatorCargoPageChange}
+                            onPerPageChange={handleOperatorCargoPerPageChange}
+                          />
+                        )}
                       </CardContent>
                     </Card>
                   )}
