@@ -8364,12 +8364,12 @@ function App() {
                   <Button
                     onClick={() => {
                       setCargoDetailsModal(false);
-                      setQuickPlacementModal(true);
+                      setCargoMoveModal(true);
                     }}
-                    className="bg-green-600 hover:bg-green-700 text-white"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <Grid3X3 className="mr-2 h-4 w-4" />
-                    Разместить груз
+                    Переместить груз
                   </Button>
                 )}
               </div>
@@ -8378,96 +8378,96 @@ function App() {
         </DialogContent>
       </Dialog>
 
-      {/* Модальное окно быстрого размещения */}
-      <Dialog open={quickPlacementModal} onOpenChange={setQuickPlacementModal}>
+      {/* Модальное окно перемещения груза */}
+      <Dialog open={cargoMoveModal} onOpenChange={setCargoMoveModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center">
-              <Grid3X3 className="w-5 h-5 mr-2 text-green-600" />
-              Размещение груза
+              <Grid3X3 className="w-5 h-5 mr-2 text-blue-600" />
+              Переместить груз
             </DialogTitle>
             <DialogDescription>
-              Груз №{selectedCargoForDetailView?.cargo_number}
+              Груз №{selectedCargoForWarehouse?.cargo_number}
               <br />
-              Склад выбирается автоматически по вашей привязке
+              Текущее местоположение: {selectedCargoForWarehouse?.warehouse_location}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
             {/* Информация о грузе */}
-            {selectedCargoForDetailView && (
+            {selectedCargoForWarehouse && (
               <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="font-medium text-lg">{selectedCargoForDetailView.cargo_number}</p>
-                <p className="text-sm text-gray-600">{selectedCargoForDetailView.cargo_name}</p>
-                <p className="text-sm text-gray-600">Вес: {selectedCargoForDetailView.weight} кг</p>
+                <p className="font-medium text-lg">{selectedCargoForWarehouse.cargo_number}</p>
+                <p className="text-sm text-gray-600">{selectedCargoForWarehouse.cargo_name}</p>
+                <p className="text-sm text-gray-600">Вес: {selectedCargoForWarehouse.weight} кг</p>
               </div>
             )}
 
-            {/* Форма размещения */}
+            {/* Форма перемещения */}
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label>Блок</Label>
+                <Label>Новый блок</Label>
                 <Input
                   type="number"
                   min="1"
                   max="9"
-                  value={quickPlacementForm.block_number}
-                  onChange={(e) => setQuickPlacementForm({
-                    ...quickPlacementForm,
-                    block_number: parseInt(e.target.value) || 1
+                  value={cargoMoveForm.to_block}
+                  onChange={(e) => setCargoMoveForm({
+                    ...cargoMoveForm,
+                    to_block: parseInt(e.target.value) || 1
                   })}
                 />
               </div>
               <div>
-                <Label>Полка</Label>
+                <Label>Новая полка</Label>
                 <Input
                   type="number"
                   min="1"
                   max="3"
-                  value={quickPlacementForm.shelf_number}
-                  onChange={(e) => setQuickPlacementForm({
-                    ...quickPlacementForm,
-                    shelf_number: parseInt(e.target.value) || 1
+                  value={cargoMoveForm.to_shelf}
+                  onChange={(e) => setCargoMoveForm({
+                    ...cargoMoveForm,
+                    to_shelf: parseInt(e.target.value) || 1
                   })}
                 />
               </div>
               <div>
-                <Label>Ячейка</Label>
+                <Label>Новая ячейка</Label>
                 <Input
                   type="number"
                   min="1"
                   max="50"
-                  value={quickPlacementForm.cell_number}
-                  onChange={(e) => setQuickPlacementForm({
-                    ...quickPlacementForm,
-                    cell_number: parseInt(e.target.value) || 1
+                  value={cargoMoveForm.to_cell}
+                  onChange={(e) => setCargoMoveForm({
+                    ...cargoMoveForm,
+                    to_cell: parseInt(e.target.value) || 1
                   })}
                 />
               </div>
             </div>
 
             <div className="p-2 bg-blue-50 rounded text-sm text-blue-700">
-              <strong>Местоположение:</strong> Б{quickPlacementForm.block_number}-П{quickPlacementForm.shelf_number}-Я{quickPlacementForm.cell_number}
+              <strong>Новое местоположение:</strong> Б{cargoMoveForm.to_block}-П{cargoMoveForm.to_shelf}-Я{cargoMoveForm.to_cell}
             </div>
 
             {/* Кнопки */}
             <div className="flex justify-end space-x-4 pt-4">
               <Button variant="outline" onClick={() => {
-                setQuickPlacementModal(false);
-                setQuickPlacementForm({
-                  block_number: 1,
-                  shelf_number: 1,
-                  cell_number: 1
+                setCargoMoveModal(false);
+                setCargoMoveForm({
+                  to_block: 1,
+                  to_shelf: 1,
+                  to_cell: 1
                 });
               }}>
                 Отмена
               </Button>
               <Button
-                onClick={() => selectedCargoForDetailView && handleQuickPlacement(selectedCargoForDetailView.id)}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                onClick={handleCargoMove}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Grid3X3 className="mr-2 h-4 w-4" />
-                Разместить
+                Переместить
               </Button>
             </div>
           </div>
