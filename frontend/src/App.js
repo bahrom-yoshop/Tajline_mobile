@@ -160,11 +160,15 @@ function App() {
     recipient_full_name: '',
     recipient_phone: '',
     recipient_address: '',
-    weight: '',
-    cargo_name: '',
-    declared_value: '',
+    weight: '',  // Сохраняем для совместимости со старой формой
+    cargo_name: '',  // Сохраняем для совместимости со старой формой
+    declared_value: '',  // Теперь будет использоваться как price_per_kg
     description: '',
-    route: 'moscow_to_tajikistan'
+    route: 'moscow_to_tajikistan',
+    // Новые поля для множественных грузов
+    cargo_items: [{ cargo_name: '', weight: '' }],  // Начинаем с одного груза
+    price_per_kg: '',
+    use_multi_cargo: false  // Флаг для переключения между режимами
   });
   // Operator cargo management states
   const [operatorCargo, setOperatorCargo] = useState([]);
