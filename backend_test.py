@@ -11015,6 +11015,617 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_enhanced_cargo_status_management(self):
+        """Test the new processing_status field and status progression workflow"""
+        print("\n🔄 ENHANCED CARGO STATUS MANAGEMENT")
+        
+        if 'admin' not in self.tokens or 'user' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Step 1: Create a cargo request as regular user (Bahrom)
+        print("\n   👤 Step 1: Create cargo request as Bahrom user...")
+        request_data = {
+            "recipient_full_name": "Получатель Тестовый",
+            "recipient_phone": "+992777888999",
+            "recipient_address": "Душанбе, ул. Тестовая, 123",
+            "pickup_address": "Москва, ул. Отправителя, 456",
+            "cargo_name": "Тестовый груз для статусов",
+            "weight": 12.5,
+            "declared_value": 8500.0,
+            "description": "Груз для тестирования новых статусов обработки",
+            "route": "moscow_dushanbe"
+        }
+        
+        success, request_response = self.run_test(
+            "Create Cargo Request (Bahrom)",
+            "POST",
+            "/api/user/cargo-request",
+            200,
+            request_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        request_id = None
+        if success and 'id' in request_response:
+            request_id = request_response['id']
+            print(f"   📋 Created cargo request: {request_id}")
+        
+        # Step 2: Admin accepts the order (should create cargo with processing_status="payment_pending")
+        print("\n   👑 Step 2: Admin accepts order...")
+        if request_id:
+            success, accept_response = self.run_test(
+                "Admin Accept Order",
+                "POST",
+                f"/api/admin/cargo-requests/{request_id}/accept",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            cargo_id = None
+            cargo_number = None
+            if success:
+                cargo_id = accept_response.get('cargo_id')
+                cargo_number = accept_response.get('cargo_number')
+                processing_status = accept_response.get('processing_status')
+                print(f"   📦 Created cargo: {cargo_number} (ID: {cargo_id})")
+                print(f"   🔄 Initial processing_status: {processing_status}")
+                
+                # Verify initial processing_status is "payment_pending"
+                if processing_status == "payment_pending":
+                    print("   ✅ Correct initial processing_status: payment_pending")
+                else:
+                    print(f"   ❌ Wrong initial processing_status: {processing_status} (expected: payment_pending)")
+                    all_success = False
+        
+        # Step 3: Test status progression workflow
+        if cargo_id and cargo_number:
+            print(f"\n   🔄 Step 3: Testing status progression for cargo {cargo_number}...")
+            
+            # Test progression: payment_pending → paid → invoice_printed → placed
+            status_progression = [
+                ("paid", "Груз оплачен"),
+                ("invoice_printed", "Накладная напечатана"), 
+                ("placed", "Готов к размещению")
+            ]
+            
+            for new_status, description in status_progression:
+                success, status_response = self.run_test(
+                    f"Update Processing Status to {new_status}",
+                    "PUT",
+                    f"/api/cargo/{cargo_id}/processing-status",
+                    200,
+                    {"new_status": new_status},
+                    self.tokens['admin']
+                )
+                all_success &= success
+                
+                if success:
+                    print(f"   ✅ Status updated to: {new_status} - {description}")
+                    
+                    # Verify the status was actually updated by tracking the cargo
+                    success, track_response = self.run_test(
+                        f"Verify Status Update for {cargo_number}",
+                        "GET",
+                        f"/api/cargo/track/{cargo_number}",
+                        200
+                    )
+                    
+                    if success:
+                        current_processing_status = track_response.get('processing_status')
+                        if current_processing_status == new_status:
+                            print(f"   ✅ Verified processing_status: {current_processing_status}")
+                        else:
+                            print(f"   ❌ Status verification failed: {current_processing_status} != {new_status}")
+                            all_success = False
+        
+        # Step 4: Test the new processing status endpoint
+        print("\n   🔍 Step 4: Testing processing status endpoint...")
+        if cargo_id:
+            # Test invalid status
+            success, _ = self.run_test(
+                "Test Invalid Processing Status",
+                "PUT",
+                f"/api/cargo/{cargo_id}/processing-status",
+                400,  # Should fail with invalid status
+                {"new_status": "invalid_status"},
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Invalid status correctly rejected")
+        
+        return all_success
+
+    def test_cargo_list_filtering_system(self):
+        """Test the new filtered cargo list API with different filter parameters"""
+        print("\n📋 CARGO LIST FILTERING SYSTEM")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Get cargo list without filter (should return all cargo)
+        print("\n   📊 Test 1: Get all cargo (no filter)...")
+        success, all_cargo_response = self.run_test(
+            "Get All Operator Cargo (No Filter)",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            cargo_list = all_cargo_response.get('cargo_list', [])
+            total_count = all_cargo_response.get('total_count', 0)
+            filter_applied = all_cargo_response.get('filter_applied')
+            available_filters = all_cargo_response.get('available_filters', {})
+            
+            print(f"   📦 Total cargo items: {total_count}")
+            print(f"   🔍 Filter applied: {filter_applied}")
+            print(f"   🎛️  Available filters: {list(available_filters.keys())}")
+            
+            # Verify response structure
+            expected_filters = ['new_request', 'awaiting_payment', 'awaiting_placement']
+            for expected_filter in expected_filters:
+                if expected_filter in available_filters:
+                    print(f"   ✅ Filter '{expected_filter}' available: {available_filters[expected_filter]}")
+                else:
+                    print(f"   ❌ Filter '{expected_filter}' missing")
+                    all_success = False
+        
+        # Test 2: Filter by new_request (new accepted orders)
+        print("\n   🆕 Test 2: Filter by new_request...")
+        success, new_request_response = self.run_test(
+            "Get New Request Cargo",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            token=self.tokens['admin'],
+            params={"filter_status": "new_request"}
+        )
+        all_success &= success
+        
+        if success:
+            cargo_list = new_request_response.get('cargo_list', [])
+            total_count = new_request_response.get('total_count', 0)
+            filter_applied = new_request_response.get('filter_applied')
+            
+            print(f"   📦 New request cargo: {total_count}")
+            print(f"   🔍 Filter applied: {filter_applied}")
+            
+            # Verify all returned cargo have correct status
+            for cargo in cargo_list:
+                processing_status = cargo.get('processing_status')
+                status = cargo.get('status')
+                if processing_status == "payment_pending" and status == "accepted":
+                    print(f"   ✅ Cargo {cargo.get('cargo_number')} has correct new_request status")
+                else:
+                    print(f"   ⚠️  Cargo {cargo.get('cargo_number')} status: {processing_status}/{status}")
+        
+        # Test 3: Filter by awaiting_payment
+        print("\n   💰 Test 3: Filter by awaiting_payment...")
+        success, awaiting_payment_response = self.run_test(
+            "Get Awaiting Payment Cargo",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            token=self.tokens['admin'],
+            params={"filter_status": "awaiting_payment"}
+        )
+        all_success &= success
+        
+        if success:
+            cargo_list = awaiting_payment_response.get('cargo_list', [])
+            total_count = awaiting_payment_response.get('total_count', 0)
+            filter_applied = awaiting_payment_response.get('filter_applied')
+            
+            print(f"   💳 Awaiting payment cargo: {total_count}")
+            print(f"   🔍 Filter applied: {filter_applied}")
+            
+            # Verify all returned cargo have correct status
+            for cargo in cargo_list:
+                processing_status = cargo.get('processing_status')
+                if processing_status == "payment_pending":
+                    print(f"   ✅ Cargo {cargo.get('cargo_number')} awaiting payment")
+                else:
+                    print(f"   ⚠️  Cargo {cargo.get('cargo_number')} processing_status: {processing_status}")
+        
+        # Test 4: Filter by awaiting_placement (paid orders awaiting warehouse placement)
+        print("\n   🏭 Test 4: Filter by awaiting_placement...")
+        success, awaiting_placement_response = self.run_test(
+            "Get Awaiting Placement Cargo",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            token=self.tokens['admin'],
+            params={"filter_status": "awaiting_placement"}
+        )
+        all_success &= success
+        
+        if success:
+            cargo_list = awaiting_placement_response.get('cargo_list', [])
+            total_count = awaiting_placement_response.get('total_count', 0)
+            filter_applied = awaiting_placement_response.get('filter_applied')
+            
+            print(f"   🏗️  Awaiting placement cargo: {total_count}")
+            print(f"   🔍 Filter applied: {filter_applied}")
+            
+            # Verify all returned cargo have correct status
+            for cargo in cargo_list:
+                processing_status = cargo.get('processing_status')
+                warehouse_location = cargo.get('warehouse_location')
+                if processing_status in ["paid", "invoice_printed"] and not warehouse_location:
+                    print(f"   ✅ Cargo {cargo.get('cargo_number')} awaiting placement")
+                else:
+                    print(f"   ⚠️  Cargo {cargo.get('cargo_number')} status: {processing_status}, location: {warehouse_location}")
+        
+        # Test 5: Test invalid filter
+        print("\n   ❌ Test 5: Test invalid filter...")
+        success, invalid_filter_response = self.run_test(
+            "Test Invalid Filter",
+            "GET",
+            "/api/operator/cargo/list",
+            200,  # Should still return 200 but with no filter applied
+            token=self.tokens['admin'],
+            params={"filter_status": "invalid_filter"}
+        )
+        all_success &= success
+        
+        if success:
+            filter_applied = invalid_filter_response.get('filter_applied')
+            print(f"   🔍 Invalid filter result: {filter_applied}")
+        
+        return all_success
+
+    def test_complete_integration_workflow(self):
+        """Test the complete workflow from client order to placement"""
+        print("\n🔄 COMPLETE INTEGRATION WORKFLOW")
+        
+        if 'user' not in self.tokens or 'admin' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        print("\n   🎯 Testing complete workflow: User Order → Admin Accept → Payment → Invoice → Placement")
+        
+        # Step 1: User creates order
+        print("\n   👤 Step 1: User creates cargo order...")
+        request_data = {
+            "recipient_full_name": "Интеграционный Получатель",
+            "recipient_phone": "+992111222333",
+            "recipient_address": "Душанбе, ул. Интеграционная, 789",
+            "pickup_address": "Москва, ул. Заказчика, 101",
+            "cargo_name": "Интеграционный тест груз",
+            "weight": 18.7,
+            "declared_value": 12000.0,
+            "description": "Груз для полного интеграционного тестирования",
+            "route": "moscow_dushanbe"
+        }
+        
+        success, request_response = self.run_test(
+            "User Creates Order",
+            "POST",
+            "/api/user/cargo-request",
+            200,
+            request_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        request_id = None
+        if success and 'id' in request_response:
+            request_id = request_response['id']
+            print(f"   📋 User created order: {request_id}")
+        
+        # Step 2: Admin accepts → Cargo created with processing_status="payment_pending"
+        print("\n   👑 Step 2: Admin accepts order...")
+        cargo_id = None
+        cargo_number = None
+        
+        if request_id:
+            success, accept_response = self.run_test(
+                "Admin Accepts Order",
+                "POST",
+                f"/api/admin/cargo-requests/{request_id}/accept",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                cargo_id = accept_response.get('cargo_id')
+                cargo_number = accept_response.get('cargo_number')
+                processing_status = accept_response.get('processing_status')
+                
+                print(f"   📦 Cargo created: {cargo_number}")
+                print(f"   🔄 Initial processing_status: {processing_status}")
+                
+                if processing_status == "payment_pending":
+                    print("   ✅ Correct initial status: payment_pending")
+                else:
+                    print(f"   ❌ Wrong initial status: {processing_status}")
+                    all_success = False
+        
+        # Step 3: Mark order as paid → processing_status updates to "paid"
+        print("\n   💰 Step 3: Mark order as paid...")
+        if cargo_id:
+            success, paid_response = self.run_test(
+                "Mark Order as Paid",
+                "PUT",
+                f"/api/cargo/{cargo_id}/processing-status",
+                200,
+                {"new_status": "paid"},
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Order marked as paid")
+                
+                # Verify status update
+                success, track_response = self.run_test(
+                    "Verify Paid Status",
+                    "GET",
+                    f"/api/cargo/track/{cargo_number}",
+                    200
+                )
+                
+                if success:
+                    processing_status = track_response.get('processing_status')
+                    payment_status = track_response.get('payment_status')
+                    main_status = track_response.get('status')
+                    
+                    print(f"   📊 processing_status: {processing_status}")
+                    print(f"   💳 payment_status: {payment_status}")
+                    print(f"   📋 main status: {main_status}")
+                    
+                    if processing_status == "paid" and payment_status == "paid":
+                        print("   ✅ Payment status correctly updated")
+                    else:
+                        print("   ❌ Payment status update failed")
+                        all_success = False
+        
+        # Step 4: Update to invoice_printed → processing_status="invoice_printed"
+        print("\n   🧾 Step 4: Update to invoice printed...")
+        if cargo_id:
+            success, invoice_response = self.run_test(
+                "Update to Invoice Printed",
+                "PUT",
+                f"/api/cargo/{cargo_id}/processing-status",
+                200,
+                {"new_status": "invoice_printed"},
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Invoice status updated")
+                
+                # Verify status update
+                success, track_response = self.run_test(
+                    "Verify Invoice Printed Status",
+                    "GET",
+                    f"/api/cargo/track/{cargo_number}",
+                    200
+                )
+                
+                if success:
+                    processing_status = track_response.get('processing_status')
+                    main_status = track_response.get('status')
+                    
+                    if processing_status == "invoice_printed":
+                        print(f"   ✅ Invoice printed status confirmed: {processing_status}")
+                    else:
+                        print(f"   ❌ Invoice status not updated: {processing_status}")
+                        all_success = False
+        
+        # Step 5: Update to placed → processing_status="placed"
+        print("\n   📍 Step 5: Update to placed...")
+        if cargo_id:
+            success, placed_response = self.run_test(
+                "Update to Placed",
+                "PUT",
+                f"/api/cargo/{cargo_id}/processing-status",
+                200,
+                {"new_status": "placed"},
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Placed status updated")
+                
+                # Final verification
+                success, final_track_response = self.run_test(
+                    "Final Status Verification",
+                    "GET",
+                    f"/api/cargo/track/{cargo_number}",
+                    200
+                )
+                
+                if success:
+                    processing_status = final_track_response.get('processing_status')
+                    main_status = final_track_response.get('status')
+                    
+                    print(f"   📊 Final processing_status: {processing_status}")
+                    print(f"   📋 Final main status: {main_status}")
+                    
+                    if processing_status == "placed":
+                        print("   ✅ Complete workflow successful!")
+                    else:
+                        print(f"   ❌ Final status incorrect: {processing_status}")
+                        all_success = False
+        
+        # Step 6: Verify cargo appears in correct filtered lists
+        print("\n   🔍 Step 6: Verify cargo in filtered lists...")
+        if cargo_number:
+            # Should appear in awaiting_placement filter (since it's placed but not physically placed in warehouse)
+            success, placement_list = self.run_test(
+                "Check Awaiting Placement List",
+                "GET",
+                "/api/operator/cargo/list",
+                200,
+                token=self.tokens['admin'],
+                params={"filter_status": "awaiting_placement"}
+            )
+            
+            if success:
+                cargo_list = placement_list.get('cargo_list', [])
+                found_cargo = None
+                for cargo in cargo_list:
+                    if cargo.get('cargo_number') == cargo_number:
+                        found_cargo = cargo
+                        break
+                
+                if found_cargo:
+                    print(f"   ✅ Cargo {cargo_number} found in awaiting_placement list")
+                else:
+                    print(f"   ⚠️  Cargo {cargo_number} not found in awaiting_placement list")
+        
+        return all_success
+
+    def test_unpaid_orders_integration(self):
+        """Test the unpaid orders system integration"""
+        print("\n💳 UNPAID ORDERS INTEGRATION")
+        
+        if 'user' not in self.tokens or 'admin' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Step 1: Create cargo request as Bahrom user
+        print("\n   👤 Step 1: Bahrom creates cargo request...")
+        request_data = {
+            "recipient_full_name": "Получатель Неоплаченного",
+            "recipient_phone": "+992333444555",
+            "recipient_address": "Душанбе, ул. Неоплаченная, 456",
+            "pickup_address": "Москва, ул. Отправки, 789",
+            "cargo_name": "Груз для тестирования неоплаченных заказов",
+            "weight": 8.3,
+            "declared_value": 6500.0,
+            "description": "Тестовый груз для системы неоплаченных заказов",
+            "route": "moscow_dushanbe"
+        }
+        
+        success, request_response = self.run_test(
+            "Bahrom Creates Cargo Request",
+            "POST",
+            "/api/user/cargo-request",
+            200,
+            request_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        request_id = None
+        if success and 'id' in request_response:
+            request_id = request_response['id']
+            print(f"   📋 Bahrom created request: {request_id}")
+        
+        # Step 2: Admin accepts request
+        print("\n   👑 Step 2: Admin accepts request...")
+        cargo_id = None
+        cargo_number = None
+        
+        if request_id:
+            success, accept_response = self.run_test(
+                "Admin Accepts Request",
+                "POST",
+                f"/api/admin/cargo-requests/{request_id}/accept",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                cargo_id = accept_response.get('cargo_id')
+                cargo_number = accept_response.get('cargo_number')
+                print(f"   📦 Cargo created: {cargo_number}")
+        
+        # Step 3: Check GET /api/admin/unpaid-orders
+        print("\n   💰 Step 3: Check unpaid orders list...")
+        success, unpaid_orders = self.run_test(
+            "Get Unpaid Orders",
+            "GET",
+            "/api/admin/unpaid-orders",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        unpaid_order_id = None
+        if success:
+            orders = unpaid_orders if isinstance(unpaid_orders, list) else []
+            print(f"   📊 Found {len(orders)} unpaid orders")
+            
+            # Look for our cargo in unpaid orders
+            for order in orders:
+                if order.get('cargo_number') == cargo_number:
+                    unpaid_order_id = order.get('id')
+                    client_name = order.get('client_name')
+                    amount = order.get('amount')
+                    print(f"   ✅ Found our cargo in unpaid orders: {client_name}, {amount} руб")
+                    break
+            
+            if not unpaid_order_id:
+                print(f"   ⚠️  Cargo {cargo_number} not found in unpaid orders")
+        
+        # Step 4: Test POST /api/admin/unpaid-orders/{order_id}/mark-paid
+        print("\n   💳 Step 4: Mark order as paid...")
+        if unpaid_order_id:
+            payment_data = {
+                "payment_method": "cash",
+                "notes": "Тестовая оплата наличными"
+            }
+            
+            success, payment_response = self.run_test(
+                "Mark Unpaid Order as Paid",
+                "POST",
+                f"/api/admin/unpaid-orders/{unpaid_order_id}/mark-paid",
+                200,
+                payment_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Order marked as paid successfully")
+                
+                # Verify the cargo status was updated
+                if cargo_number:
+                    success, track_response = self.run_test(
+                        "Verify Payment Status Update",
+                        "GET",
+                        f"/api/cargo/track/{cargo_number}",
+                        200
+                    )
+                    
+                    if success:
+                        processing_status = track_response.get('processing_status')
+                        payment_status = track_response.get('payment_status')
+                        
+                        print(f"   📊 Updated processing_status: {processing_status}")
+                        print(f"   💳 Updated payment_status: {payment_status}")
+                        
+                        if processing_status == "paid" and payment_status == "paid":
+                            print("   ✅ Payment status correctly synchronized")
+                        else:
+                            print("   ❌ Payment status synchronization failed")
+                            all_success = False
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
