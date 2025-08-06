@@ -794,6 +794,53 @@ function App() {
     fetchAvailableCargoForPlacement(1, perPage);
   };
 
+  const fetchWarehouseLayoutWithCargo = async (warehouseId) => {
+    try {
+      const response = await apiCall(`/api/warehouses/${warehouseId}/layout-with-cargo`);
+      setWarehouseLayout(response);
+      setSelectedWarehouseForLayout(warehouseId);
+    } catch (error) {
+      console.error('Error fetching warehouse layout with cargo:', error);
+      showAlert('Ошибка при загрузке схемы склада: ' + error.message, 'error');
+    }
+  };
+
+  const handleCargoMove = async () => {
+    if (!selectedCargoForMove) return;
+    
+    try {
+      const moveData = {
+        cargo_id: selectedCargoForMove.id,
+        from_block: selectedCargoForMove.block_number,
+        from_shelf: selectedCargoForMove.shelf_number,
+        from_cell: selectedCargoForMove.cell_number,
+        to_block: cargoMoveForm.to_block,
+        to_shelf: cargoMoveForm.to_shelf,
+        to_cell: cargoMoveForm.to_cell
+      };
+
+      const response = await apiCall(`/api/warehouses/${selectedWarehouseForLayout}/move-cargo`, 'POST', moveData);
+      
+      showAlert(`Груз ${response.cargo_number} успешно перемещен с ${response.old_location} на ${response.new_location}`, 'success');
+      
+      // Обновляем схему склада
+      fetchWarehouseLayoutWithCargo(selectedWarehouseForLayout);
+      
+      // Закрываем модальное окно
+      setCargoMoveModal(false);
+      setSelectedCargoForMove(null);
+      setCargoMoveForm({
+        to_block: 1,
+        to_shelf: 1,
+        to_cell: 1
+      });
+      
+    } catch (error) {
+      console.error('Error moving cargo:', error);
+      showAlert('Ошибка при перемещении груза: ' + error.message, 'error');
+    }
+  };
+
   const handleCleanupTestData = async () => {
     if (!confirm('⚠️ ВНИМАНИЕ!\n\nЭто действие удалит ВСЕ тестовые данные из системы:\n- Тестовых пользователей\n- Тестовые грузы и заявки\n- Связанные уведомления\n- Данные о ячейках\n\nДействие НЕОБРАТИМО!\n\nВы уверены, что хотите продолжить?')) {
       return;
