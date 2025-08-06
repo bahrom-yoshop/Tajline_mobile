@@ -6403,22 +6403,22 @@ function App() {
           
           {warehouseLayout && (
             <div className="space-y-4">
-              {/* Статистика */}
+              {/* Статистика склада */}
               <div className="grid grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-blue-50 rounded">
-                  <div className="text-2xl font-bold text-blue-600">{warehouseLayout.statistics.total_cells}</div>
+                  <div className="text-2xl font-bold text-blue-600">{warehouseLayout.total_cells}</div>
                   <div className="text-sm">Всего ячеек</div>
                 </div>
                 <div className="text-center p-4 bg-red-50 rounded">
-                  <div className="text-2xl font-bold text-red-600">{warehouseLayout.statistics.occupied_cells}</div>
+                  <div className="text-2xl font-bold text-red-600">{warehouseLayout.occupied_cells}</div>
                   <div className="text-sm">Занято</div>
                 </div>
                 <div className="text-center p-4 bg-green-50 rounded">
-                  <div className="text-2xl font-bold text-green-600">{warehouseLayout.statistics.available_cells}</div>
+                  <div className="text-2xl font-bold text-green-600">{warehouseLayout.total_cells - warehouseLayout.occupied_cells}</div>
                   <div className="text-sm">Свободно</div>
                 </div>
                 <div className="text-center p-4 bg-gray-50 rounded">
-                  <div className="text-2xl font-bold text-gray-600">{warehouseLayout.statistics.occupancy_rate}%</div>
+                  <div className="text-2xl font-bold text-gray-600">{warehouseLayout.occupancy_percentage}%</div>
                   <div className="text-sm">Заполненность</div>
                 </div>
               </div>
