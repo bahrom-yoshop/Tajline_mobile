@@ -740,8 +740,15 @@ function App() {
     try {
       await apiCall(`/api/cargo/${cargoId}/processing-status`, 'PUT', { new_status: newStatus });
       showAlert(`Статус груза успешно обновлен: ${getProcessingStatusLabel(newStatus)}`, 'success');
-      // Обновляем список грузов
+      
+      // Обновляем все списки для синхронизации
       fetchOperatorCargo(operatorCargoFilter);
+      fetchAvailableCargoForPlacement(); // Обновляем список для размещения
+      
+      // Если груз стал оплаченным, показываем сообщение о перемещении
+      if (newStatus === 'paid') {
+        showAlert('Груз переведен в раздел "Ожидает размещение"', 'info');
+      }
     } catch (error) {
       console.error('Error updating cargo processing status:', error);
       showAlert('Ошибка при обновлении статуса груза: ' + error.message, 'error');
