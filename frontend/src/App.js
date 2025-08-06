@@ -4210,9 +4210,44 @@ function App() {
                                     <TableCell>{item.weight} кг</TableCell>
                                     <TableCell>{item.declared_value} ₽</TableCell>
                                     <TableCell>
-                                      <Badge variant={item.payment_status === 'paid' ? 'default' : 'secondary'}>
-                                        {item.payment_status === 'paid' ? 'Оплачен' : 'Ожидает оплаты'}
-                                      </Badge>
+                                      <div className="flex flex-col space-y-1">
+                                        <Badge variant={getProcessingStatusBadgeVariant(item.processing_status || 'payment_pending')}>
+                                          {getProcessingStatusLabel(item.processing_status || 'payment_pending')}
+                                        </Badge>
+                                        {/* Кнопки для изменения статуса */}
+                                        <div className="flex space-x-1">
+                                          {item.processing_status === 'payment_pending' && (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => updateCargoProcessingStatus(item.id, 'paid')}
+                                              className="text-xs px-2 py-1"
+                                            >
+                                              Оплачен
+                                            </Button>
+                                          )}
+                                          {item.processing_status === 'paid' && (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => updateCargoProcessingStatus(item.id, 'invoice_printed')}
+                                              className="text-xs px-2 py-1"
+                                            >
+                                              Накладная
+                                            </Button>
+                                          )}
+                                          {item.processing_status === 'invoice_printed' && (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => updateCargoProcessingStatus(item.id, 'placed')}
+                                              className="text-xs px-2 py-1"
+                                            >
+                                              Разместить
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </div>
                                     </TableCell>
                                     <TableCell>
                                       {item.warehouse_location ? (
