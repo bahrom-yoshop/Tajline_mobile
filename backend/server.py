@@ -304,17 +304,47 @@ class WarehouseCell(BaseModel):
     cargo_id: Optional[str] = None
     location_code: str  # Format: "B1-S2-C3" (Block 1, Shelf 2, Cell 3)
 
+# Модель для отдельного груза в заявке
+class CargoItem(BaseModel):
+    cargo_name: str = Field(..., min_length=1, max_length=100)
+    weight: float = Field(..., gt=0, le=1000)
+
+# Обновленная модель для создания груза оператором с поддержкой множественных грузов
 class OperatorCargoCreate(BaseModel):
     sender_full_name: str = Field(..., min_length=2, max_length=100)
     sender_phone: str = Field(..., min_length=10, max_length=20)
     recipient_full_name: str = Field(..., min_length=2, max_length=100)
     recipient_phone: str = Field(..., min_length=10, max_length=20)
     recipient_address: str = Field(..., min_length=5, max_length=200)
-    weight: float = Field(..., gt=0, le=1000)
-    cargo_name: Optional[str] = Field(None, max_length=100)  # Наименование груза (опционально)
-    declared_value: float = Field(..., gt=0)
+    
+    # Для совместимости с существующим кодом - если используется одиночная форма
+    weight: Optional[float] = Field(None, gt=0, le=1000)
+    cargo_name: Optional[str] = Field(None, max_length=100)
+    
+    # Новые поля для множественных грузов
+    cargo_items: Optional[List[CargoItem]] = Field(None, min_items=1)  # Список грузов
+    price_per_kg: float = Field(..., gt=0)  # Цена за кг (ранее declared_value)
+    
     description: str = Field(..., min_length=1, max_length=500)
     route: RouteType = RouteType.MOSCOW_TO_TAJIKISTAN
+    
+    # Computed fields
+    @property
+    def total_weight(self) -> float:
+        """Общий вес всех грузов"""
+        if self.cargo_items:
+            return sum(item.weight for item in self.cargo_items)
+        return self.weight or 0.0
+    
+    @property
+    def total_cost(self) -> float:
+        """Общая стоимость (общий вес * цена за кг)"""
+        return self.total_weight * self.price_per_kg
+    
+    @property
+    def declared_value(self) -> float:
+        """Для совместимости - возвращает общую стоимость"""
+        return self.total_cost
 
 class CargoPlacement(BaseModel):
     cargo_id: str
