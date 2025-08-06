@@ -107,15 +107,18 @@ user_problem_statement: "Enhance the 'Accept New Cargo' form with multi-cargo fu
 backend:
   - task: "Enhanced Multi-Cargo Form with Calculator"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "critical"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: false
           agent: "main"
           comment: "✅ BACKEND MODEL IMPLEMENTED - Added new Pydantic models: CargoItem for individual cargo items, enhanced OperatorCargoCreate to support both single and multiple cargo modes. Added cargo_items field for multiple items, price_per_kg field for cost calculation, computed properties for total_weight, total_cost, and declared_value for compatibility. Updated /api/operator/cargo/accept endpoint to process multiple cargo items, calculate totals, create combined cargo names, and save detailed descriptions with cargo composition. Includes backward compatibility with single cargo mode."
+        - working: true
+          agent: "testing"
+          comment: "✅ ENHANCED MULTI-CARGO FORM BACKEND TESTING COMPLETED SUCCESSFULLY - Comprehensive testing of POST /api/operator/cargo/accept endpoint confirms all multi-cargo functionality is working perfectly: 1) ✅ SINGLE CARGO MODE (BACKWARD COMPATIBILITY): Successfully tested with existing fields (weight, cargo_name, declared_value, price_per_kg) - cargo created with correct weight (5.0 kg), value (500 руб), and cargo name ('Документы'), 2) ✅ MULTI-CARGO MODE WITH CALCULATOR: Successfully tested with cargo_items array containing multiple items [{'cargo_name': 'Документы', 'weight': 2.5}, {'cargo_name': 'Одежда', 'weight': 3.0}] and price_per_kg (100.0) - calculations verified: total_weight = 5.5kg, total_cost = 550 руб, combined cargo_name = 'Документы, Одежда', 3) ✅ DETAILED CARGO DESCRIPTIONS: Verified composition breakdown includes '1. Документы - 2.5 кг', '2. Одежда - 3.0 кг', 'Общий вес: 5.5 кг', 'Цена за кг: 100.0 руб.', 'Общая стоимость: 550.0 руб.', 4) ✅ DATA STRUCTURE VALIDATION: CargoItem model validation working correctly - missing cargo_name field properly rejected with 422 error, 5) ✅ COMPLEX MULTI-CARGO SCENARIO: Successfully tested with 4 cargo items (Электроника 1.2kg, Книги 3.8kg, Сувениры 0.5kg, Медикаменты 2.1kg) at 150 руб/кг - calculations verified: total_weight = 7.6kg, total_cost = 1140 руб, combined name = 'Электроника, Книги, Сувениры, Медикаменты'. All API responses include required fields, calculations are accurate, and backward compatibility is maintained. SUCCESS RATE: 100% (5/5 tests passed)."
 
 frontend:
   - task: "Enhanced Multi-Cargo Form with Calculator"
