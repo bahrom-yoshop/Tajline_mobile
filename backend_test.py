@@ -14555,6 +14555,8 @@ ID склада: {self.warehouse_id}"""
         # Run test suites in order - prioritizing critical operator permission fixes
         test_suites = [
             ("Health Check", self.test_health_check),
+            # 🎯 PRIMARY FOCUS: WAREHOUSE OPERATOR ROLE VERIFICATION (Review Request)
+            ("🎯 WAREHOUSE OPERATOR ROLE VERIFICATION", self.test_warehouse_operator_role_verification),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
             # 🎯 PRIMARY TEST: COMPREHENSIVE WAREHOUSE LAYOUT FUNCTIONALITY (Review Request)
