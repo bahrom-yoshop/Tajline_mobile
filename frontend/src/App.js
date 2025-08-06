@@ -721,7 +721,7 @@ function App() {
       
       // Закрываем модальные окна
       setQuickPlacementModal(false);
-      setSelectedCargoForWarehouse(null);
+      setSelectedCargoForDetailView(null);
       
       // Сбрасываем форму
       setQuickPlacementForm({
