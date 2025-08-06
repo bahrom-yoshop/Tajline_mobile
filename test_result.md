@@ -105,6 +105,18 @@
 user_problem_statement: "Enhance the 'Accept New Cargo' form with multi-cargo functionality and calculator: 1) Allow adding multiple cargo items (name, weight) in a single shipment, 2) Implement a real-time calculator that multiplies total weight by price per kg (user-entered declared value), 3) Display total weight and total cost calculations, 4) Support unlimited cargo items per shipment, 5) Save general data (not individual cargo details) to database. The declared value field serves as the price per kg for cost calculations."
 
 backend:
+  - task: "Warehouse Operator Role Verification"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL ROLE ISSUE IDENTIFIED - Comprehensive testing reveals the warehouse operator user (+79777888999) has incorrect role assignment: 1) ✅ LOGIN SUCCESSFUL: User 'Оператор Складской' can login with credentials +79777888999/warehouse123, 2) ❌ INCORRECT ROLE: User role is 'user' instead of 'warehouse_operator' in both login response and /api/auth/me endpoint, 3) ❌ ACCESS DENIED: Cannot access warehouse operator functions - GET /api/operator/cargo/list returns 403 'Insufficient permissions', GET /api/operator/my-warehouses returns 403 'Access denied', POST /api/operator/cargo/accept returns 403 'Insufficient permissions', 4) ✅ DATABASE CONFIRMED: Admin can retrieve user details showing role is 'user' in database, 5) 🔍 ROOT CAUSE: The user exists with correct name and phone but has wrong role assignment in database, explaining why frontend shows regular user dashboard instead of warehouse operator interface with sidebar navigation. SOLUTION REQUIRED: Update user role from 'user' to 'warehouse_operator' in database for phone +79777888999."
+
   - task: "Enhanced Multi-Cargo Form with Calculator"
     implemented: true
     working: true
