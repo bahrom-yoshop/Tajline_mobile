@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Enhance the 'Accept New Cargo' form with multi-cargo functionality and calculator: 1) Allow adding multiple cargo items (name, weight) in a single shipment, 2) Implement a real-time calculator that multiplies total weight by price per kg (user-entered declared value), 3) Display total weight and total cost calculations, 4) Support unlimited cargo items per shipment, 5) Save general data (not individual cargo details) to database. The declared value field serves as the price per kg for cost calculations."
+user_problem_statement: "Enhanced Multi-Cargo Form with Individual Price Calculator: Upgrade the existing multi-cargo form to support individual pricing for each cargo item. Each cargo in the form should have its own price per kg field. The calculator should multiply each cargo's weight by its individual price and show both intermediate calculations and total sum. Example: Cargo 1 (Documents, 10kg × 60 rub/kg = 600 rub), Cargo 2 (Clothes, 25kg × 60 rub/kg = 1500 rub), Cargo 3 (Electronics, 100kg × 65 rub/kg = 6500 rub). Total: 135kg, 8600 rub. Display breakdown for each cargo and final totals."
 
 backend:
   - task: "Warehouse Operator Role Verification"
