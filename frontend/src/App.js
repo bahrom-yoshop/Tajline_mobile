@@ -4312,7 +4312,8 @@ function App() {
                               value={operatorCargoFilter}
                               onChange={(e) => {
                                 setOperatorCargoFilter(e.target.value);
-                                fetchOperatorCargo(e.target.value);
+                                setOperatorCargoPage(1); // Сбрасываем на первую страницу при изменении фильтра
+                                fetchOperatorCargo(e.target.value, 1, operatorCargoPerPage);
                               }}
                               className="border border-gray-300 rounded-md px-3 py-1 text-sm"
                             >
