@@ -286,6 +286,7 @@ class CargoWithLocation(BaseModel):
     route: RouteType
     status: CargoStatus
     payment_status: str = "pending"  # pending, paid, failed
+    processing_status: str = "received"  # received, payment_pending, paid, invoice_printed, placed
     created_at: datetime
     updated_at: datetime
     created_by: str  # ID оператора, который принял груз
