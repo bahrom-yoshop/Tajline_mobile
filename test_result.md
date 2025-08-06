@@ -105,6 +105,30 @@
 user_problem_statement: "Enhance the 'Accept New Cargo' form with multi-cargo functionality and calculator: 1) Allow adding multiple cargo items (name, weight) in a single shipment, 2) Implement a real-time calculator that multiplies total weight by price per kg (user-entered declared value), 3) Display total weight and total cost calculations, 4) Support unlimited cargo items per shipment, 5) Save general data (not individual cargo details) to database. The declared value field serves as the price per kg for cost calculations."
 
 backend:
+  - task: "Enhanced Multi-Cargo Form with Calculator"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "main"
+          comment: "✅ BACKEND MODEL IMPLEMENTED - Added new Pydantic models: CargoItem for individual cargo items, enhanced OperatorCargoCreate to support both single and multiple cargo modes. Added cargo_items field for multiple items, price_per_kg field for cost calculation, computed properties for total_weight, total_cost, and declared_value for compatibility. Updated /api/operator/cargo/accept endpoint to process multiple cargo items, calculate totals, create combined cargo names, and save detailed descriptions with cargo composition. Includes backward compatibility with single cargo mode."
+
+frontend:
+  - task: "Enhanced Multi-Cargo Form with Calculator"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "main"
+          comment: "✅ FRONTEND FORM IMPLEMENTED - Enhanced operatorCargoForm state with cargo_items array, price_per_kg field, and use_multi_cargo toggle. Added real-time calculator states (totalWeight, totalCost). Implemented functions: addCargoItem(), removeCargoItem(), updateCargoItem(), calculateTotals(). Updated handleAcceptCargo() to support both single and multi-cargo modes. Created dynamic UI with cargo items list, add/remove buttons, real-time calculator showing total weight and cost, and seamless toggle between old and new forms for backward compatibility."
   - task: "Comprehensive Warehouse Layout Functionality Testing"
     implemented: true
     working: false
