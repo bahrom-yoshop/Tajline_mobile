@@ -617,8 +617,8 @@ function App() {
       } else if (user.role === 'warehouse_operator') {
         fetchWarehouseCargo();
         fetchWarehouses();
-        fetchOperatorCargo();
-        fetchAvailableCargoForPlacement(); // Добавляем загрузку грузов для размещения
+        fetchOperatorCargo('', 1, 25);
+        fetchAvailableCargoForPlacement(1, 25); // Добавляем загрузку грузов для размещения
         fetchUnpaidCargo();
         fetchPaymentHistory();
         fetchCargoRequests();
