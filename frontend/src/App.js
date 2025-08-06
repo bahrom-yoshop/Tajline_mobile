@@ -4515,7 +4515,7 @@ function App() {
                                       )}
                                     </div>
                                     
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                       <div>
                                         <Label>Название груза</Label>
                                         <Input
@@ -4537,7 +4537,31 @@ function App() {
                                           required
                                         />
                                       </div>
+                                      <div>
+                                        <Label>Цена за кг (руб.)</Label>
+                                        <Input
+                                          type="number"
+                                          step="0.01"
+                                          min="0"
+                                          value={item.price_per_kg}
+                                          onChange={(e) => updateCargoItem(index, 'price_per_kg', e.target.value)}
+                                          placeholder="100"
+                                          required
+                                        />
+                                      </div>
                                     </div>
+                                    
+                                    {/* Показываем промежуточный расчет для каждого груза */}
+                                    {item.weight && item.price_per_kg && (
+                                      <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
+                                        <span className="text-gray-600">
+                                          Стоимость: {parseFloat(item.weight)} кг × {parseFloat(item.price_per_kg)} руб/кг = 
+                                          <span className="font-semibold text-green-600 ml-1">
+                                            {(parseFloat(item.weight) * parseFloat(item.price_per_kg)).toFixed(2)} руб
+                                          </span>
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
                                 
