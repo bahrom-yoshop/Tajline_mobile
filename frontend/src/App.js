@@ -736,6 +736,24 @@ function App() {
     }
   };
 
+  const handlePaymentAcceptance = async (cargoId, cargoNumber) => {
+    try {
+      // Обновляем статус на оплачено
+      await apiCall(`/api/cargo/${cargoId}/processing-status`, 'PUT', { new_status: 'paid' });
+      
+      showAlert(`✅ Оплата принята для груза ${cargoNumber}`, 'success');
+      showAlert('📦 Груз автоматически перемещен в раздел "Ожидает размещение"', 'info');
+      
+      // Обновляем все списки
+      fetchOperatorCargo(operatorCargoFilter);
+      fetchAvailableCargoForPlacement();
+      
+    } catch (error) {
+      console.error('Error accepting payment:', error);
+      showAlert('Ошибка при принятии оплаты: ' + error.message, 'error');
+    }
+  };
+
   const updateCargoProcessingStatus = async (cargoId, newStatus) => {
     try {
       await apiCall(`/api/cargo/${cargoId}/processing-status`, 'PUT', { new_status: newStatus });
