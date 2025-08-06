@@ -396,9 +396,36 @@ class EnhancedCargoPlacementTester:
         """Test 5: Data Validation and Error Handling"""
         print("\n⚠️  TEST 5: Data Validation and Error Handling")
         
+        # Create a test cargo for validation tests if we don't have one
         if not self.test_cargo_ids:
-            print("   ❌ No test cargo available for validation tests")
-            return False
+            print("   📦 Creating test cargo for validation tests...")
+            cargo_data = {
+                "sender_full_name": "Validation Test Sender",
+                "sender_phone": "+79111222333",
+                "recipient_full_name": "Validation Test Recipient",
+                "recipient_phone": "+992444555666",
+                "recipient_address": "Test Address",
+                "weight": 5.0,
+                "cargo_name": "Validation Test Cargo",
+                "declared_value": 3000.0,
+                "description": "Cargo for validation testing",
+                "route": "moscow_to_tajikistan"
+            }
+            
+            response = requests.post(
+                f"{self.base_url}/api/operator/cargo/accept",
+                json=cargo_data,
+                headers={'Authorization': f'Bearer {self.tokens["admin"]}', 'Content-Type': 'application/json'}
+            )
+            
+            if response.status_code == 200:
+                cargo_response = response.json()
+                test_cargo_id = cargo_response['id']
+                self.test_cargo_ids.append(test_cargo_id)
+                print(f"   ✅ Created test cargo for validation: {test_cargo_id}")
+            else:
+                print(f"   ❌ Failed to create test cargo: {response.status_code}")
+                return False
         
         test_cargo_id = self.test_cargo_ids[0]
         
