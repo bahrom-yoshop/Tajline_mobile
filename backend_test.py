@@ -13856,6 +13856,387 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_warehouse_layout_debug_comprehensive(self):
+        """COMPREHENSIVE DEBUG TEST for Warehouse Layout API - Focus on cargo display issues"""
+        print("\n🔍 COMPREHENSIVE WAREHOUSE LAYOUT DEBUG TEST")
+        print("=" * 60)
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Step 1: Get warehouses and select one for testing
+        print("\n📋 STEP 1: Getting Available Warehouses...")
+        
+        success, warehouses = self.run_test(
+            "Get Warehouses List",
+            "GET",
+            "/api/warehouses",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        if not success or not warehouses:
+            print("   ❌ No warehouses available for testing")
+            return False
+            
+        warehouse_id = warehouses[0].get('id')
+        warehouse_name = warehouses[0].get('name', 'Unknown')
+        print(f"   🏭 Using warehouse: {warehouse_name} (ID: {warehouse_id})")
+        
+        # Step 2: Check database for existing cargo with warehouse_location
+        print("\n📦 STEP 2: Investigating Existing Cargo with Warehouse Locations...")
+        
+        success, operator_cargo_list = self.run_test(
+            "Get Operator Cargo List",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        placed_cargo_found = []
+        if success and 'items' in operator_cargo_list:
+            cargo_items = operator_cargo_list['items']
+            print(f"   📊 Total operator cargo items: {len(cargo_items)}")
+            
+            for cargo in cargo_items:
+                warehouse_location = cargo.get('warehouse_location')
+                if warehouse_location:
+                    placed_cargo_found.append({
+                        'cargo_number': cargo.get('cargo_number'),
+                        'warehouse_location': warehouse_location,
+                        'warehouse_id': cargo.get('warehouse_id'),
+                        'id': cargo.get('id')
+                    })
+                    print(f"   📍 Found placed cargo: {cargo.get('cargo_number')} at {warehouse_location}")
+        
+        print(f"   📊 Total cargo with warehouse_location: {len(placed_cargo_found)}")
+        
+        # Step 3: Create and place test cargo if none exists
+        if len(placed_cargo_found) == 0:
+            print("\n📦 STEP 3: Creating Test Cargo for Placement...")
+            
+            cargo_data = {
+                "sender_full_name": "Тест Отправитель Дебаг",
+                "sender_phone": "+79111222333",
+                "recipient_full_name": "Тест Получатель Дебаг",
+                "recipient_phone": "+992444555666",
+                "recipient_address": "Душанбе, ул. Дебаг, 1",
+                "weight": 15.5,
+                "cargo_name": "Тестовый груз для дебага",
+                "declared_value": 8000.0,
+                "description": "Груз для отладки системы склада",
+                "route": "moscow_to_tajikistan"
+            }
+            
+            success, cargo_response = self.run_test(
+                "Create Test Cargo for Debug",
+                "POST",
+                "/api/operator/cargo/accept",
+                200,
+                cargo_data,
+                self.tokens['admin']
+            )
+            
+            if success and 'id' in cargo_response:
+                test_cargo_id = cargo_response['id']
+                test_cargo_number = cargo_response.get('cargo_number')
+                print(f"   📦 Created test cargo: {test_cargo_number} (ID: {test_cargo_id})")
+                
+                # Place the cargo in warehouse
+                placement_data = {
+                    "cargo_id": test_cargo_id,
+                    "block_number": 1,
+                    "shelf_number": 1,
+                    "cell_number": 5
+                }
+                
+                success, placement_response = self.run_test(
+                    "Place Test Cargo in Warehouse",
+                    "POST",
+                    f"/api/cargo/{test_cargo_id}/quick-placement",
+                    200,
+                    placement_data,
+                    self.tokens['admin']
+                )
+                
+                if success:
+                    location = placement_response.get('location', 'Unknown')
+                    print(f"   📍 Test cargo placed at: {location}")
+                    placed_cargo_found.append({
+                        'cargo_number': test_cargo_number,
+                        'warehouse_location': location,
+                        'warehouse_id': warehouse_id,
+                        'id': test_cargo_id
+                    })
+                else:
+                    print("   ❌ Failed to place test cargo")
+                    all_success = False
+            else:
+                print("   ❌ Failed to create test cargo")
+                all_success = False
+        else:
+            print(f"\n📦 STEP 3: Using existing placed cargo ({len(placed_cargo_found)} items)")
+        
+        # Step 4: Test the main warehouse layout API
+        print("\n🏗️ STEP 4: Testing Warehouse Layout API Response...")
+        
+        success, layout_response = self.run_test(
+            "Get Warehouse Layout with Cargo",
+            "GET",
+            f"/api/warehouses/{warehouse_id}/layout-with-cargo",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        if not success:
+            print("   ❌ Warehouse layout API failed")
+            all_success = False
+        else:
+            print("   ✅ Warehouse layout API responded successfully")
+            
+            # Step 5: Analyze the response structure in detail
+            print("\n🔍 STEP 5: Analyzing API Response Structure...")
+            
+            warehouse_info = layout_response.get('warehouse', {})
+            layout = layout_response.get('layout', {})
+            total_cargo = layout_response.get('total_cargo', 0)
+            occupied_cells = layout_response.get('occupied_cells', 0)
+            total_cells = layout_response.get('total_cells', 0)
+            occupancy_percentage = layout_response.get('occupancy_percentage', 0)
+            
+            print(f"   🏭 Warehouse: {warehouse_info.get('name', 'Unknown')}")
+            print(f"   📦 API Reports Total cargo: {total_cargo}")
+            print(f"   📊 API Reports Occupied cells: {occupied_cells}")
+            print(f"   📊 API Reports Total cells: {total_cells}")
+            print(f"   📊 API Reports Occupancy: {occupancy_percentage}%")
+            
+            # Check layout structure
+            if isinstance(layout, dict):
+                blocks_count = len(layout)
+                print(f"   🗂️  Layout has {blocks_count} blocks")
+                
+                # Detailed analysis of layout structure
+                cargo_found_in_layout = 0
+                for block_key, block_data in layout.items():
+                    if isinstance(block_data, dict) and 'shelves' in block_data:
+                        shelves_count = len(block_data['shelves'])
+                        print(f"   📚 {block_key}: {shelves_count} shelves")
+                        
+                        for shelf_key, shelf_data in block_data['shelves'].items():
+                            if isinstance(shelf_data, dict) and 'cells' in shelf_data:
+                                cells_count = len(shelf_data['cells'])
+                                occupied_in_shelf = 0
+                                
+                                for cell_key, cell_data in shelf_data['cells'].items():
+                                    if isinstance(cell_data, dict) and cell_data.get('is_occupied'):
+                                        occupied_in_shelf += 1
+                                        cargo_info = cell_data.get('cargo', {})
+                                        if cargo_info:
+                                            cargo_found_in_layout += 1
+                                            cargo_number = cargo_info.get('cargo_number', 'Unknown')
+                                            location = cargo_info.get('warehouse_location', 'Unknown')
+                                            print(f"   📦 Found cargo in layout: {cargo_number} at {location} ({block_key}-{shelf_key}-{cell_key})")
+                                
+                                if occupied_in_shelf > 0:
+                                    print(f"     📊 {shelf_key}: {occupied_in_shelf}/{cells_count} cells occupied")
+                
+                print(f"   📊 Total cargo found in layout structure: {cargo_found_in_layout}")
+                
+                # Compare with database findings
+                print(f"\n🔍 COMPARISON:")
+                print(f"   📊 Database shows {len(placed_cargo_found)} cargo with warehouse_location")
+                print(f"   📊 API reports {total_cargo} total cargo")
+                print(f"   📊 Layout structure shows {cargo_found_in_layout} cargo")
+                
+                if len(placed_cargo_found) != cargo_found_in_layout:
+                    print("   ❌ MISMATCH: Database cargo count != Layout cargo count")
+                    all_success = False
+                    
+                    # Debug the mismatch
+                    print("\n🔍 DEBUGGING MISMATCH:")
+                    for placed_cargo in placed_cargo_found:
+                        cargo_number = placed_cargo['cargo_number']
+                        warehouse_location = placed_cargo['warehouse_location']
+                        print(f"   🔍 Checking cargo {cargo_number} at {warehouse_location}")
+                        
+                        # Parse location format
+                        try:
+                            parts = warehouse_location.split('-')
+                            if len(parts) >= 3:
+                                block_num = int(parts[0][1:])  # Remove "Б"
+                                shelf_num = int(parts[1][1:])  # Remove "П"
+                                cell_num = int(parts[2][1:])   # Remove "Я"
+                                
+                                expected_block_key = f"block_{block_num}"
+                                expected_shelf_key = f"shelf_{shelf_num}"
+                                expected_cell_key = f"cell_{cell_num}"
+                                
+                                print(f"     📍 Expected location: {expected_block_key}-{expected_shelf_key}-{expected_cell_key}")
+                                
+                                # Check if it exists in layout
+                                if expected_block_key in layout:
+                                    block_data = layout[expected_block_key]
+                                    if 'shelves' in block_data and expected_shelf_key in block_data['shelves']:
+                                        shelf_data = block_data['shelves'][expected_shelf_key]
+                                        if 'cells' in shelf_data and expected_cell_key in shelf_data['cells']:
+                                            cell_data = shelf_data['cells'][expected_cell_key]
+                                            if cell_data.get('is_occupied') and cell_data.get('cargo'):
+                                                print(f"     ✅ Found in layout")
+                                            else:
+                                                print(f"     ❌ Cell exists but not occupied or no cargo data")
+                                                print(f"     📄 Cell data: {cell_data}")
+                                        else:
+                                            print(f"     ❌ Cell {expected_cell_key} not found in shelf")
+                                    else:
+                                        print(f"     ❌ Shelf {expected_shelf_key} not found in block")
+                                else:
+                                    print(f"     ❌ Block {expected_block_key} not found in layout")
+                        except (ValueError, IndexError) as e:
+                            print(f"     ❌ Error parsing location format: {e}")
+                else:
+                    print("   ✅ Database and layout cargo counts match")
+            else:
+                print("   ❌ Layout structure is not a dictionary")
+                all_success = False
+        
+        # Step 6: Test warehouse structure endpoint
+        print("\n🏗️ STEP 6: Testing Warehouse Structure Endpoint...")
+        
+        success, structure_response = self.run_test(
+            "Get Warehouse Structure",
+            "GET",
+            f"/api/warehouses/{warehouse_id}/structure",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        if success:
+            print("   ✅ Warehouse structure endpoint working")
+            structure_total_cells = structure_response.get('total_cells', 0)
+            structure_available_cells = structure_response.get('available_cells', 0)
+            structure_occupied_cells = structure_total_cells - structure_available_cells
+            
+            print(f"   📊 Structure endpoint reports:")
+            print(f"     Total cells: {structure_total_cells}")
+            print(f"     Available cells: {structure_available_cells}")
+            print(f"     Occupied cells: {structure_occupied_cells}")
+        else:
+            print("   ❌ Warehouse structure endpoint failed")
+            all_success = False
+        
+        # Step 7: Test cargo movement to verify system integration
+        if placed_cargo_found:
+            print("\n🔄 STEP 7: Testing Cargo Movement Integration...")
+            
+            test_cargo = placed_cargo_found[0]
+            cargo_id = test_cargo['id']
+            current_location = test_cargo['warehouse_location']
+            
+            print(f"   🔄 Testing movement of cargo {test_cargo['cargo_number']} from {current_location}")
+            
+            # Parse current location
+            try:
+                parts = current_location.split('-')
+                if len(parts) >= 3:
+                    from_block = int(parts[0][1:])
+                    from_shelf = int(parts[1][1:])
+                    from_cell = int(parts[2][1:])
+                    
+                    # Move to a different cell
+                    to_block = from_block
+                    to_shelf = from_shelf
+                    to_cell = from_cell + 1 if from_cell < 50 else from_cell - 1
+                    
+                    movement_data = {
+                        "cargo_id": cargo_id,
+                        "from_block": from_block,
+                        "from_shelf": from_shelf,
+                        "from_cell": from_cell,
+                        "to_block": to_block,
+                        "to_shelf": to_shelf,
+                        "to_cell": to_cell
+                    }
+                    
+                    success, movement_response = self.run_test(
+                        "Move Cargo Between Cells",
+                        "POST",
+                        f"/api/warehouses/{warehouse_id}/move-cargo",
+                        200,
+                        movement_data,
+                        self.tokens['admin']
+                    )
+                    
+                    if success:
+                        print(f"   ✅ Cargo movement successful")
+                        new_location = f"Б{to_block}-П{to_shelf}-Я{to_cell}"
+                        print(f"   📍 Cargo moved to: {new_location}")
+                        
+                        # Verify movement in layout
+                        success, layout_after_move = self.run_test(
+                            "Get Layout After Movement",
+                            "GET",
+                            f"/api/warehouses/{warehouse_id}/layout-with-cargo",
+                            200,
+                            token=self.tokens['admin']
+                        )
+                        
+                        if success:
+                            layout = layout_after_move.get('layout', {})
+                            expected_block_key = f"block_{to_block}"
+                            expected_shelf_key = f"shelf_{to_shelf}"
+                            expected_cell_key = f"cell_{to_cell}"
+                            
+                            if (expected_block_key in layout and
+                                'shelves' in layout[expected_block_key] and
+                                expected_shelf_key in layout[expected_block_key]['shelves'] and
+                                'cells' in layout[expected_block_key]['shelves'][expected_shelf_key] and
+                                expected_cell_key in layout[expected_block_key]['shelves'][expected_shelf_key]['cells']):
+                                
+                                cell_data = layout[expected_block_key]['shelves'][expected_shelf_key]['cells'][expected_cell_key]
+                                if cell_data.get('is_occupied') and cell_data.get('cargo'):
+                                    cargo_info = cell_data['cargo']
+                                    if cargo_info.get('id') == cargo_id:
+                                        print("   ✅ Cargo found in new location in layout")
+                                    else:
+                                        print("   ❌ Different cargo found in expected new location")
+                                        all_success = False
+                                else:
+                                    print("   ❌ New location not occupied in layout")
+                                    all_success = False
+                            else:
+                                print("   ❌ New location structure not found in layout")
+                                all_success = False
+                        else:
+                            print("   ❌ Failed to get layout after movement")
+                            all_success = False
+                    else:
+                        print("   ❌ Cargo movement failed")
+                        all_success = False
+            except (ValueError, IndexError) as e:
+                print(f"   ❌ Error parsing location for movement: {e}")
+                all_success = False
+        
+        # Step 8: Final summary and diagnosis
+        print("\n📋 STEP 8: FINAL DIAGNOSIS")
+        print("=" * 40)
+        
+        if all_success:
+            print("   ✅ ALL TESTS PASSED - Warehouse layout system is working correctly")
+        else:
+            print("   ❌ ISSUES FOUND - Warehouse layout system has problems")
+        
+        print(f"\n📊 SUMMARY:")
+        print(f"   🏭 Warehouse tested: {warehouse_name}")
+        print(f"   📦 Cargo with warehouse_location in DB: {len(placed_cargo_found)}")
+        print(f"   📊 API reported total cargo: {total_cargo if 'total_cargo' in locals() else 'N/A'}")
+        print(f"   📊 Cargo found in layout structure: {cargo_found_in_layout if 'cargo_found_in_layout' in locals() else 'N/A'}")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
