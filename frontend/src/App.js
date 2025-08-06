@@ -7983,6 +7983,247 @@ function App() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* МОДАЛЬНЫЕ ОКНА ДЛЯ УПРАВЛЕНИЯ РАЗМЕЩЕНИЕМ ГРУЗОВ */}
+
+      {/* Модальное окно детального просмотра груза */}
+      <Dialog open={cargoDetailsModal} onOpenChange={setCargoDetailsModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Package className="w-5 h-5 mr-2 text-blue-600" />
+              Подробная информация о грузе №{selectedCargoForDetailView?.cargo_number}
+            </DialogTitle>
+            <DialogDescription>
+              Полная информация о грузе, отправителе, получателе и операторе
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedCargoForDetailView && (
+            <div className="space-y-6">
+              {/* Информация о грузе */}
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <h3 className="font-bold text-lg text-blue-700 mb-3">📦 Информация о грузе</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>Номер груза:</strong></p>
+                    <p className="font-medium text-lg">{selectedCargoForDetailView.cargo_number}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>Наименование:</strong></p>
+                    <p className="font-medium">{selectedCargoForDetailView.cargo_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>Вес:</strong></p>
+                    <p className="font-medium">{selectedCargoForDetailView.weight} кг</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>Объявленная стоимость:</strong></p>
+                    <p className="font-medium">{selectedCargoForDetailView.declared_value} ₽</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-sm text-gray-600"><strong>Описание:</strong></p>
+                    <p className="font-medium">{selectedCargoForDetailView.description}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>Маршрут:</strong></p>
+                    <p className="font-medium">{selectedCargoForDetailView.route}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>Статус обработки:</strong></p>
+                    <Badge variant={getProcessingStatusBadgeVariant(selectedCargoForDetailView.processing_status)}>
+                      {getProcessingStatusLabel(selectedCargoForDetailView.processing_status)}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Информация об отправителе */}
+              <div className="p-4 bg-green-50 rounded-lg">
+                <h3 className="font-bold text-lg text-green-700 mb-3">👤 Отправитель</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>Полное имя:</strong></p>
+                    <p className="font-medium">{selectedCargoForDetailView.sender_full_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>Телефон:</strong></p>
+                    <p className="font-medium">{selectedCargoForDetailView.sender_phone}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-sm text-gray-600"><strong>Адрес отправления:</strong></p>
+                    <p className="font-medium">{selectedCargoForDetailView.sender_address}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Информация о получателе */}
+              <div className="p-4 bg-yellow-50 rounded-lg">
+                <h3 className="font-bold text-lg text-yellow-700 mb-3">📍 Получатель</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>Полное имя:</strong></p>
+                    <p className="font-medium">{selectedCargoForDetailView.recipient_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>Телефон:</strong></p>
+                    <p className="font-medium">{selectedCargoForDetailView.recipient_phone}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-sm text-gray-600"><strong>Адрес доставки:</strong></p>
+                    <p className="font-medium">{selectedCargoForDetailView.recipient_address}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Информация об операторе */}
+              <div className="p-4 bg-purple-50 rounded-lg">
+                <h3 className="font-bold text-lg text-purple-700 mb-3">👨‍💼 Оператор</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>Оператор, принявший груз:</strong></p>
+                    <p className="font-medium">{selectedCargoForDetailView.accepting_operator}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600"><strong>Дата приема:</strong></p>
+                    <p className="font-medium">
+                      {new Date(selectedCargoForDetailView.created_at).toLocaleDateString('ru-RU')} {' '}
+                      {new Date(selectedCargoForDetailView.created_at).toLocaleTimeString('ru-RU')}
+                    </p>
+                  </div>
+                  {selectedCargoForDetailView.warehouse_location && (
+                    <>
+                      <div>
+                        <p className="text-sm text-gray-600"><strong>Размещение:</strong></p>
+                        <p className="font-medium text-blue-600">{selectedCargoForDetailView.warehouse_location}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600"><strong>Размещен оператором:</strong></p>
+                        <p className="font-medium">{selectedCargoForDetailView.placed_by_operator || 'Не размещен'}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Кнопки действий */}
+              <div className="flex justify-end space-x-4">
+                <Button variant="outline" onClick={() => setCargoDetailsModal(false)}>
+                  Закрыть
+                </Button>
+                {(selectedCargoForDetailView.processing_status === 'paid' || selectedCargoForDetailView.processing_status === 'invoice_printed') && !selectedCargoForDetailView.warehouse_location && (
+                  <Button
+                    onClick={() => {
+                      setCargoDetailsModal(false);
+                      setQuickPlacementModal(true);
+                    }}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <Grid3X3 className="mr-2 h-4 w-4" />
+                    Разместить груз
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Модальное окно быстрого размещения */}
+      <Dialog open={quickPlacementModal} onOpenChange={setQuickPlacementModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Grid3X3 className="w-5 h-5 mr-2 text-green-600" />
+              Размещение груза
+            </DialogTitle>
+            <DialogDescription>
+              Груз №{selectedCargoForDetailView?.cargo_number}
+              <br />
+              Склад выбирается автоматически по вашей привязке
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Информация о грузе */}
+            {selectedCargoForDetailView && (
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="font-medium text-lg">{selectedCargoForDetailView.cargo_number}</p>
+                <p className="text-sm text-gray-600">{selectedCargoForDetailView.cargo_name}</p>
+                <p className="text-sm text-gray-600">Вес: {selectedCargoForDetailView.weight} кг</p>
+              </div>
+            )}
+
+            {/* Форма размещения */}
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label>Блок</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="9"
+                  value={quickPlacementForm.block_number}
+                  onChange={(e) => setQuickPlacementForm({
+                    ...quickPlacementForm,
+                    block_number: parseInt(e.target.value) || 1
+                  })}
+                />
+              </div>
+              <div>
+                <Label>Полка</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="3"
+                  value={quickPlacementForm.shelf_number}
+                  onChange={(e) => setQuickPlacementForm({
+                    ...quickPlacementForm,
+                    shelf_number: parseInt(e.target.value) || 1
+                  })}
+                />
+              </div>
+              <div>
+                <Label>Ячейка</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={quickPlacementForm.cell_number}
+                  onChange={(e) => setQuickPlacementForm({
+                    ...quickPlacementForm,
+                    cell_number: parseInt(e.target.value) || 1
+                  })}
+                />
+              </div>
+            </div>
+
+            <div className="p-2 bg-blue-50 rounded text-sm text-blue-700">
+              <strong>Местоположение:</strong> Б{quickPlacementForm.block_number}-П{quickPlacementForm.shelf_number}-Я{quickPlacementForm.cell_number}
+            </div>
+
+            {/* Кнопки */}
+            <div className="flex justify-end space-x-4 pt-4">
+              <Button variant="outline" onClick={() => {
+                setQuickPlacementModal(false);
+                setQuickPlacementForm({
+                  block_number: 1,
+                  shelf_number: 1,
+                  cell_number: 1
+                });
+              }}>
+                Отмена
+              </Button>
+              <Button
+                onClick={() => selectedCargoForDetailView && handleQuickPlacement(selectedCargoForDetailView.id)}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Grid3X3 className="mr-2 h-4 w-4" />
+                Разместить
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
