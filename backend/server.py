@@ -315,7 +315,7 @@ class CargoItem(BaseModel):
         """Общая стоимость этого груза"""
         return self.weight * self.price_per_kg
 
-# Обновленная модель для создания груза оператором с поддержкой множественных грузов
+# Обновленная модель для создания груза оператором с поддержкой индивидуальных цен
 class OperatorCargoCreate(BaseModel):
     sender_full_name: str = Field(..., min_length=2, max_length=100)
     sender_phone: str = Field(..., min_length=10, max_length=20)
@@ -326,10 +326,11 @@ class OperatorCargoCreate(BaseModel):
     # Для совместимости с существующим кодом - если используется одиночная форма
     weight: Optional[float] = Field(None, gt=0, le=1000)
     cargo_name: Optional[str] = Field(None, max_length=100)
+    declared_value: Optional[float] = Field(None, gt=0)  # Старое поле для совместимости
     
-    # Новые поля для множественных грузов
-    cargo_items: Optional[List[CargoItem]] = Field(None, min_items=1)  # Список грузов
-    price_per_kg: float = Field(..., gt=0)  # Цена за кг (ранее declared_value)
+    # Новые поля для множественных грузов с индивидуальными ценами
+    cargo_items: Optional[List[CargoItem]] = Field(None, min_items=1)  # Список грузов с индивидуальными ценами
+    price_per_kg: Optional[float] = Field(None, gt=0)  # Общая цена за кг (для совместимости)
     
     description: str = Field(..., min_length=1, max_length=500)
     route: RouteType = RouteType.MOSCOW_TO_TAJIKISTAN
@@ -344,11 +345,19 @@ class OperatorCargoCreate(BaseModel):
     
     @property
     def total_cost(self) -> float:
-        """Общая стоимость (общий вес * цена за кг)"""
-        return self.total_weight * self.price_per_kg
+        """Общая стоимость всех грузов"""
+        if self.cargo_items:
+            # Используем индивидуальные цены для каждого груза
+            return sum(item.total_cost for item in self.cargo_items)
+        # Для совместимости со старой схемой
+        if self.declared_value:
+            return self.declared_value
+        if self.weight and self.price_per_kg:
+            return self.weight * self.price_per_kg
+        return 0.0
     
     @property
-    def declared_value(self) -> float:
+    def declared_value_computed(self) -> float:
         """Для совместимости - возвращает общую стоимость"""
         return self.total_cost
 
