@@ -6405,7 +6405,7 @@ function App() {
             </DialogDescription>
           </DialogHeader>
           
-          {warehouseLayout && (
+          {warehouseLayout ? (
             <div className="space-y-4">
               {/* Статистика склада */}
               <div className="grid grid-cols-4 gap-4">
@@ -6430,19 +6430,19 @@ function App() {
               {/* Схема склада с информацией о грузах */}
               <div className="max-h-96 overflow-auto border rounded-lg p-4">
                 <div className="space-y-6">
-                  {Object.values(warehouseLayout.layout).map((block) => (
+                  {warehouseLayout.layout && Object.values(warehouseLayout.layout).map((block) => (
                     <div key={block.block_number} className="border rounded-lg p-4">
                       <h3 className="font-bold mb-3 text-center bg-gray-100 p-2 rounded">
                         Блок {block.block_number}
                       </h3>
                       <div className="space-y-4">
-                        {Object.values(block.shelves).map((shelf) => (
+                        {block.shelves && Object.values(block.shelves).map((shelf) => (
                           <div key={shelf.shelf_number}>
                             <h4 className="font-semibold mb-2 text-sm bg-gray-50 p-1 rounded">
                               Полка {shelf.shelf_number}
                             </h4>
                             <div className="grid grid-cols-5 gap-2">
-                              {Object.values(shelf.cells).map((cell) => (
+                              {shelf.cells && Object.values(shelf.cells).map((cell) => (
                                 <div
                                   key={cell.location_code}
                                   className={`p-2 text-xs text-center rounded border-2 transition-all cursor-pointer hover:scale-105 ${
@@ -6488,6 +6488,14 @@ function App() {
                   <span>Занятая ячейка</span>
                 </div>
               </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <p className="text-gray-500 mb-4">Загрузка схемы склада...</p>
+              <p className="text-sm text-gray-400">
+                Если схема не загружается, проверьте подключение или обратитесь к администратору.
+              </p>
             </div>
           )}
         </DialogContent>
