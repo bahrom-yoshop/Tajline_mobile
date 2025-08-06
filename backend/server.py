@@ -2146,8 +2146,16 @@ async def get_warehouses(current_user: User = Depends(get_current_user)):
         # Админ видит все склады
         warehouses = list(db.warehouses.find({"is_active": True}))
     else:
-        # Оператор видит только свои склады
-        warehouses = list(db.warehouses.find({"created_by": current_user.id, "is_active": True}))
+        # Оператор видит только склады, к которым он привязан
+        operator_warehouse_ids = get_operator_warehouses(current_user.id)
+        if not operator_warehouse_ids:
+            # Если оператор не привязан ни к одному складу, возвращаем пустой список
+            return []
+        
+        warehouses = list(db.warehouses.find({
+            "id": {"$in": operator_warehouse_ids}, 
+            "is_active": True
+        }))
     
     # Добавляем информацию о привязанных операторах к каждому складу
     warehouses_with_operators = []
