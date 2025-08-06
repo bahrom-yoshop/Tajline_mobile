@@ -1963,9 +1963,73 @@ async def search_cargo(
 
 # Администрирование
 @app.get("/api/admin/users")
-async def get_all_users(current_user: User = Depends(require_role(UserRole.ADMIN))):
-    users = list(db.users.find({}, {"password": 0}))
-    return [User(**user) for user in users]
+async def get_all_users(
+    page: int = 1,
+    per_page: int = 25,
+    role: Optional[str] = None,
+    search: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить список всех пользователей с пагинацией и фильтрацией"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Валидация параметров пагинации
+    pagination = PaginationParams(page=page, per_page=per_page)
+    
+    # Базовый запрос
+    query = {}
+    
+    # Фильтр по роли
+    if role:
+        query["role"] = role
+    
+    # Поиск по имени, телефону или email
+    if search:
+        escaped_search = escape_regex_special_chars(search)
+        search_pattern = {"$regex": escaped_search, "$options": "i"}
+        query["$or"] = [
+            {"full_name": search_pattern},
+            {"phone": search_pattern},
+            {"email": search_pattern}
+        ]
+    
+    # Получаем пользователей с пагинацией
+    users_cursor = db.users.find(query).sort("created_at", -1)
+    total_count = users_cursor.count()
+    
+    # Применяем пагинацию
+    skip = (pagination.page - 1) * pagination.per_page
+    users_list = list(users_cursor.skip(skip).limit(pagination.per_page))
+    
+    # Нормализуем данные (убираем пароли)
+    normalized_users = []
+    for user in users_list:
+        normalized = serialize_mongo_document(user)
+        # Удаляем чувствительные данные
+        normalized.pop('password', None)
+        normalized.pop('hashed_password', None)
+        
+        # Добавляем дополнительную информацию
+        if user.get('role') == UserRole.WAREHOUSE_OPERATOR.value:
+            # Получаем привязанные склады для операторов
+            warehouses_binding = list(db.operator_warehouse_bindings.find({"operator_id": user["id"]}))
+            warehouse_ids = [binding["warehouse_id"] for binding in warehouses_binding]
+            warehouses = list(db.warehouses.find({"id": {"$in": warehouse_ids}}))
+            normalized["warehouses"] = [serialize_mongo_document(warehouse) for warehouse in warehouses]
+            normalized["warehouses_count"] = len(warehouses)
+        else:
+            normalized["warehouses"] = []
+            normalized["warehouses_count"] = 0
+        
+        normalized_users.append(normalized)
+    
+    return create_pagination_response(
+        normalized_users,
+        total_count,
+        pagination.page,
+        pagination.per_page
+    )
 
 @app.put("/api/admin/users/{user_id}/status")
 async def toggle_user_status(
