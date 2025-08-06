@@ -4917,12 +4917,22 @@ function App() {
                         <div className="mt-8">
                           <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold">Созданные операторы</h3>
-                            <Button 
-                              variant="outline" 
-                              onClick={fetchAllOperators}
-                            >
-                              Обновить список
-                            </Button>
+                            <div className="flex space-x-2">
+                              <Button 
+                                variant="destructive"
+                                size="sm"
+                                onClick={handleCleanupTestData}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                🧹 Очистить тестовые данные
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                onClick={fetchAllOperators}
+                              >
+                                Обновить список
+                              </Button>
+                            </div>
                           </div>
                           {allOperators.length === 0 ? (
                             <div className="text-center py-8">
