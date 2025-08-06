@@ -2255,7 +2255,7 @@ function App() {
       let requestData;
       
       if (operatorCargoForm.use_multi_cargo) {
-        // Новый режим с множественными грузами
+        // Новый режим с множественными грузами и индивидуальными ценами
         requestData = {
           sender_full_name: operatorCargoForm.sender_full_name,
           sender_phone: operatorCargoForm.sender_phone,
@@ -2266,16 +2266,17 @@ function App() {
           route: operatorCargoForm.route,
           cargo_items: operatorCargoForm.cargo_items.map(item => ({
             cargo_name: item.cargo_name,
-            weight: parseFloat(item.weight)
-          })),
-          price_per_kg: parseFloat(operatorCargoForm.price_per_kg)
+            weight: parseFloat(item.weight),
+            price_per_kg: parseFloat(item.price_per_kg)
+          }))
         };
       } else {
         // Старый режим для совместимости
         requestData = {
           ...operatorCargoForm,
           weight: parseFloat(operatorCargoForm.weight),
-          declared_value: parseFloat(operatorCargoForm.declared_value || operatorCargoForm.price_per_kg)
+          declared_value: parseFloat(operatorCargoForm.declared_value || operatorCargoForm.price_per_kg),
+          price_per_kg: parseFloat(operatorCargoForm.declared_value || operatorCargoForm.price_per_kg)
         };
       }
       
@@ -2294,7 +2295,7 @@ function App() {
         declared_value: '',
         description: '',
         route: 'moscow_to_tajikistan',
-        cargo_items: [{ cargo_name: '', weight: '' }],
+        cargo_items: [{ cargo_name: '', weight: '', price_per_kg: '' }],
         price_per_kg: '',
         use_multi_cargo: false
       });
@@ -2302,6 +2303,7 @@ function App() {
       // Сброс калькулятора
       setTotalWeight(0);
       setTotalCost(0);
+      setCargoBreakdown([]);
       fetchOperatorCargo();
       fetchAvailableCargo();
     } catch (error) {
