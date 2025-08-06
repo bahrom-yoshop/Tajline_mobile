@@ -13011,6 +13011,8 @@ ID склада: {self.warehouse_id}"""
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            # PRIMARY TEST SCENARIO FROM REVIEW REQUEST - CARGO PROCESSING STATUS UPDATE FIX
+            ("🎯 CARGO PROCESSING STATUS UPDATE FIX", self.test_cargo_processing_status_update_fix),
             # PRIORITY TEST FROM REVIEW REQUEST - PAYMENT ACCEPTANCE WORKFLOW
             ("💰 PAYMENT ACCEPTANCE WORKFLOW", self.test_payment_acceptance_workflow),
             # PRIORITY TESTS FROM REVIEW REQUEST - NEW CARGO MANAGEMENT FEATURES
