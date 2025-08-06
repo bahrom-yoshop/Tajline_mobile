@@ -2818,6 +2818,231 @@ async def quick_cargo_placement(
         "placed_by": current_user.full_name
     }
 
+@app.get("/api/warehouses/{warehouse_id}/layout-with-cargo")
+async def get_warehouse_layout_with_cargo(
+    warehouse_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить схему склада с информацией о размещенных грузах"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Проверяем доступ к складу
+    if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+        operator_warehouses = get_operator_warehouses(current_user.id)
+        if warehouse_id not in operator_warehouses:
+            raise HTTPException(status_code=403, detail="Access denied to this warehouse")
+    
+    # Получаем информацию о складе
+    warehouse = db.warehouses.find_one({"id": warehouse_id})
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="Warehouse not found")
+    
+    # Получаем все ячейки склада с грузами
+    warehouse_cells = list(db.warehouse_cells.find({"warehouse_id": warehouse_id}))
+    
+    # Получаем все грузы, размещенные на этом складе
+    cargo_in_warehouse = list(db.operator_cargo.find({
+        "warehouse_id": warehouse_id,
+        "warehouse_location": {"$ne": None}
+    }))
+    
+    # Также ищем в коллекции cargo
+    user_cargo_in_warehouse = list(db.cargo.find({
+        "warehouse_id": warehouse_id,
+        "warehouse_location": {"$ne": None}
+    }))
+    
+    cargo_in_warehouse.extend(user_cargo_in_warehouse)
+    
+    # Создаем карту грузов по ячейкам
+    cargo_by_location = {}
+    for cargo in cargo_in_warehouse:
+        location = cargo.get('warehouse_location')
+        if location:
+            # Извлекаем номера блока, полки и ячейки из местоположения (например: "Б1-П2-Я15")
+            try:
+                parts = location.split('-')
+                if len(parts) >= 3:
+                    block_num = int(parts[0][1:])  # Убираем "Б" и берем число
+                    shelf_num = int(parts[1][1:])  # Убираем "П" и берем число
+                    cell_num = int(parts[2][1:])   # Убираем "Я" и берем число
+                    
+                    location_key = f"{block_num}-{shelf_num}-{cell_num}"
+                    cargo_by_location[location_key] = {
+                        "id": cargo["id"],
+                        "cargo_number": cargo["cargo_number"],
+                        "cargo_name": cargo.get("cargo_name", "Груз"),
+                        "weight": cargo["weight"],
+                        "declared_value": cargo["declared_value"],
+                        "sender_full_name": cargo["sender_full_name"],
+                        "sender_phone": cargo["sender_phone"],
+                        "recipient_full_name": cargo["recipient_full_name"],
+                        "recipient_phone": cargo["recipient_phone"],
+                        "recipient_address": cargo["recipient_address"],
+                        "description": cargo.get("description", ""),
+                        "warehouse_location": location,
+                        "created_at": cargo["created_at"],
+                        "processing_status": cargo.get("processing_status", "placed"),
+                        "block_number": block_num,
+                        "shelf_number": shelf_num,
+                        "cell_number": cell_num
+                    }
+            except (ValueError, IndexError):
+                continue
+    
+    # Создаем структуру склада с блоками, полками и ячейками
+    blocks = {}
+    
+    # Получаем количество блоков, полок и ячеек из настроек склада или по умолчанию
+    max_blocks = warehouse.get('blocks', 3)
+    max_shelves = warehouse.get('shelves', 3)
+    max_cells = warehouse.get('cells', 50)
+    
+    for block in range(1, max_blocks + 1):
+        blocks[block] = {
+            "block_number": block,
+            "shelves": {}
+        }
+        
+        for shelf in range(1, max_shelves + 1):
+            blocks[block]["shelves"][shelf] = {
+                "shelf_number": shelf,
+                "cells": {}
+            }
+            
+            for cell in range(1, max_cells + 1):
+                location_key = f"{block}-{shelf}-{cell}"
+                cell_data = {
+                    "cell_number": cell,
+                    "location_code": location_key,
+                    "is_occupied": location_key in cargo_by_location,
+                    "cargo": cargo_by_location.get(location_key, None)
+                }
+                blocks[block]["shelves"][shelf]["cells"][cell] = cell_data
+    
+    return {
+        "warehouse": serialize_mongo_document(warehouse),
+        "layout": blocks,
+        "total_cargo": len(cargo_by_location),
+        "occupied_cells": len(cargo_by_location),
+        "total_cells": max_blocks * max_shelves * max_cells,
+        "occupancy_percentage": round((len(cargo_by_location) / (max_blocks * max_shelves * max_cells)) * 100, 2)
+    }
+
+@app.post("/api/warehouses/{warehouse_id}/move-cargo")
+async def move_cargo_between_cells(
+    warehouse_id: str,
+    move_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Переместить груз из одной ячейки в другую"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Проверяем доступ к складу
+    if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+        operator_warehouses = get_operator_warehouses(current_user.id)
+        if warehouse_id not in operator_warehouses:
+            raise HTTPException(status_code=403, detail="Access denied to this warehouse")
+    
+    cargo_id = move_data.get("cargo_id")
+    from_block = move_data.get("from_block")
+    from_shelf = move_data.get("from_shelf") 
+    from_cell = move_data.get("from_cell")
+    to_block = move_data.get("to_block")
+    to_shelf = move_data.get("to_shelf")
+    to_cell = move_data.get("to_cell")
+    
+    if not all([cargo_id, from_block, from_shelf, from_cell, to_block, to_shelf, to_cell]):
+        raise HTTPException(status_code=400, detail="Missing required fields for cargo move")
+    
+    # Проверяем, что целевая ячейка свободна
+    to_location_code = f"{to_block}-{to_shelf}-{to_cell}"
+    existing_cell = db.warehouse_cells.find_one({
+        "warehouse_id": warehouse_id,
+        "location_code": to_location_code,
+        "is_occupied": True
+    })
+    
+    if existing_cell:
+        raise HTTPException(status_code=400, detail=f"Target cell {to_location_code} is already occupied")
+    
+    # Ищем груз в обеих коллекциях
+    cargo = db.operator_cargo.find_one({"id": cargo_id, "warehouse_id": warehouse_id})
+    collection = "operator_cargo"
+    
+    if not cargo:
+        cargo = db.cargo.find_one({"id": cargo_id, "warehouse_id": warehouse_id})
+        collection = "cargo"
+    
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found in this warehouse")
+    
+    # Новое местоположение
+    new_location = f"Б{to_block}-П{to_shelf}-Я{to_cell}"
+    old_location = f"Б{from_block}-П{from_shelf}-Я{from_cell}"
+    
+    # Обновляем груз
+    update_data = {
+        "warehouse_location": new_location,
+        "block_number": to_block,
+        "shelf_number": to_shelf, 
+        "cell_number": to_cell,
+        "updated_at": datetime.utcnow()
+    }
+    
+    # Обновляем в соответствующей коллекции
+    if collection == "operator_cargo":
+        db.operator_cargo.update_one({"id": cargo_id}, {"$set": update_data})
+    else:
+        db.cargo.update_one({"id": cargo_id}, {"$set": update_data})
+    
+    # Освобождаем старую ячейку
+    old_location_code = f"{from_block}-{from_shelf}-{from_cell}"
+    db.warehouse_cells.update_one(
+        {"warehouse_id": warehouse_id, "location_code": old_location_code},
+        {"$set": {"is_occupied": False, "cargo_id": None}}
+    )
+    
+    # Занимаем новую ячейку
+    db.warehouse_cells.update_one(
+        {"warehouse_id": warehouse_id, "location_code": to_location_code},
+        {
+            "$set": {
+                "is_occupied": True,
+                "cargo_id": cargo_id
+            }
+        },
+        upsert=True
+    )
+    
+    # Создаем уведомление
+    message = f"Груз {cargo['cargo_number']} перемещен с {old_location} на {new_location} оператором {current_user.full_name}"
+    
+    # Уведомляем клиента
+    sender_id = cargo.get("sender_id") or cargo.get("created_by")
+    if sender_id and sender_id != current_user.id:
+        create_notification(sender_id, message, cargo_id)
+    
+    # Системное уведомление
+    create_system_notification(
+        "Груз перемещен",
+        message,
+        "cargo_moved",
+        cargo_id,
+        None,
+        current_user.id
+    )
+    
+    return {
+        "message": "Cargo moved successfully",
+        "cargo_number": cargo['cargo_number'],
+        "old_location": old_location,
+        "new_location": new_location,
+        "moved_by": current_user.full_name
+    }
+
 @app.get("/api/operator/cargo/available")
 async def get_available_cargo_for_placement(
     current_user: User = Depends(get_current_user)
