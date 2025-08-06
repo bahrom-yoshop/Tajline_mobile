@@ -2254,11 +2254,13 @@ function App() {
   };
 
   const handleOpenWarehouseLayout = async (warehouse) => {
+    console.log('Opening warehouse layout for:', warehouse);
     setSelectedWarehouseForLayout(warehouse);
     
     // Используем новый API для получения схемы с информацией о грузах
     try {
       await fetchWarehouseLayoutWithCargo(warehouse.id);
+      console.log('Layout fetched, opening modal...');
       setLayoutModal(true);
     } catch (error) {
       console.error('Error opening warehouse layout:', error);
