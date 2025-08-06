@@ -4481,52 +4481,6 @@ function App() {
                       </Card>
                     </div>
                   )}
-                                          <SelectValue placeholder="Выберите склад" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {warehouses.map((warehouse) => (
-                                            <SelectItem key={warehouse.id} value={warehouse.id}>
-                                              {warehouse.name}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                    
-                                    {selectedWarehouse && availableCells.length > 0 && (
-                                      <>
-                                        <div>
-                                          <Label>Свободные места</Label>
-                                          <Select onValueChange={(locationCode) => {
-                                            const [block, shelf, cell] = locationCode.split('-').map(part => parseInt(part.substring(1)));
-                                            handlePlaceCargo(item.id, selectedWarehouse, block, shelf, cell);
-                                          }}>
-                                            <SelectTrigger>
-                                              <SelectValue placeholder="Выберите место" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              {availableCells.slice(0, 20).map((cell) => (
-                                                <SelectItem key={cell.id} value={cell.location_code}>
-                                                  {cell.location_code}
-                                                </SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                        <div className="text-sm text-green-600">
-                                          Доступно: {availableCells.length} ячеек
-                                        </div>
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  )}
 
                   {/* История грузов */}
                   {activeTab === 'cargo-history' && (
