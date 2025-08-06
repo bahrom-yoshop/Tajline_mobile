@@ -2506,17 +2506,22 @@ async def place_cargo_in_warehouse_auto(
 
 @app.get("/api/operator/cargo/available-for-placement")
 async def get_available_cargo_for_placement(
+    page: int = 1,
+    per_page: int = 25,
     current_user: User = Depends(get_current_user)
 ):
-    """Получить грузы, доступные для размещения на складе"""
+    """Получить грузы, доступные для размещения на складе с пагинацией"""
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Валидация параметров пагинации
+    pagination = PaginationParams(page=page, per_page=per_page)
     
     # Определяем доступные склады для оператора
     if current_user.role == UserRole.WAREHOUSE_OPERATOR:
         operator_warehouses = get_operator_warehouses(current_user.id)
         if not operator_warehouses:
-            return {"cargo_list": [], "message": "No warehouses assigned to operator"}
+            return create_pagination_response([], 0, pagination.page, pagination.per_page)
     else:
         # Админ видит все склады
         warehouses = list(db.warehouses.find({"is_active": True}))
@@ -2535,15 +2540,35 @@ async def get_available_cargo_for_placement(
         ]
     }
     
-    # Ищем в обеих коллекциях
-    operator_cargo_list = list(db.operator_cargo.find(placement_query))
-    user_cargo_list = list(db.cargo.find(placement_query))
+    # Ищем в обеих коллекциях с пагинацией
+    operator_cargo_cursor = db.operator_cargo.find(placement_query).sort("created_at", -1)
+    user_cargo_cursor = db.cargo.find(placement_query).sort("created_at", -1) if current_user.role == UserRole.ADMIN else []
+    
+    # Подсчитываем общее количество
+    operator_cargo_count = operator_cargo_cursor.count()
+    user_cargo_count = user_cargo_cursor.count() if current_user.role == UserRole.ADMIN else 0
+    total_count = operator_cargo_count + user_cargo_count
+    
+    # Применяем пагинацию
+    skip = (pagination.page - 1) * pagination.per_page
+    all_cargo = []
+    
+    # Получаем operator cargo с пагинацией
+    operator_cargo_list = list(operator_cargo_cursor.skip(skip).limit(pagination.per_page))
+    
+    # Если нужно больше элементов, добавляем из user cargo
+    remaining = pagination.per_page - len(operator_cargo_list)
+    if remaining > 0 and current_user.role == UserRole.ADMIN:
+        user_skip = max(0, skip - operator_cargo_count)
+        user_cargo_list = list(user_cargo_cursor.skip(user_skip).limit(remaining))
+        all_cargo.extend(user_cargo_list)
+    
+    all_cargo.extend(operator_cargo_list)
     
     # Нормализуем данные и добавляем информацию об операторах
     normalized_cargo = []
     
-    # Обрабатываем operator cargo
-    for cargo in operator_cargo_list:
+    for cargo in all_cargo:
         normalized = serialize_mongo_document(cargo)
         
         # Получаем информацию об операторе, который принял груз
@@ -2563,7 +2588,7 @@ async def get_available_cargo_for_placement(
         
         normalized.update({
             'cargo_name': cargo.get('cargo_name') or cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз',
-            'sender_id': cargo.get('created_by', 'operator'),
+            'sender_id': cargo.get('created_by') or cargo.get('sender_id', 'unknown'),
             'recipient_name': cargo.get('recipient_full_name', 'Не указан'),
             'sender_address': cargo.get('sender_address', 'Не указан'),
             'recipient_address': cargo.get('recipient_address', 'Не указан'),
@@ -2574,44 +2599,23 @@ async def get_available_cargo_for_placement(
             'accepting_operator': accepting_operator,
             'accepting_operator_id': cargo.get('created_by'),
             'available_warehouses': operator_warehouse_names,
-            'collection_source': 'operator_cargo'
+            'collection_source': 'operator_cargo' if cargo.get('created_by') else 'cargo'
         })
         normalized_cargo.append(normalized)
     
-    # Обрабатываем user cargo (для админов)
-    for cargo in user_cargo_list:
-        normalized = serialize_mongo_document(cargo)
-        
-        # Получаем информацию об операторе
-        accepting_operator = "Создано пользователем"
-        if cargo.get('accepted_by_operator_id'):
-            operator_user = db.users.find_one({"id": cargo['accepted_by_operator_id']})
-            if operator_user:
-                accepting_operator = operator_user['full_name']
-        
-        normalized.update({
-            'cargo_name': cargo.get('cargo_name') or cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз',
-            'sender_id': cargo.get('sender_id', 'unknown'),
-            'recipient_name': cargo.get('recipient_name', 'Не указан'),
-            'sender_address': cargo.get('sender_address', 'Не указан'),
-            'recipient_address': cargo.get('recipient_address', 'Не указан'),
-            'recipient_phone': cargo.get('recipient_phone', 'Не указан'),
-            'processing_status': cargo.get('processing_status', 'payment_pending'),
-            'sender_full_name': cargo.get('sender_full_name', 'Не указан'),
-            'sender_phone': cargo.get('sender_phone', 'Не указан'),
-            'accepting_operator': accepting_operator,
-            'accepting_operator_id': cargo.get('accepted_by_operator_id'),
-            'available_warehouses': [w['name'] for w in warehouses] if current_user.role == UserRole.ADMIN else operator_warehouse_names,
-            'collection_source': 'cargo'
-        })
-        normalized_cargo.append(normalized)
+    # Создаем ответ с пагинацией и дополнительной информацией
+    response = create_pagination_response(
+        normalized_cargo, 
+        total_count, 
+        pagination.page, 
+        pagination.per_page
+    )
     
-    return {
-        "cargo_list": normalized_cargo,
-        "total_count": len(normalized_cargo),
-        "operator_warehouses": operator_warehouses,
-        "current_user_role": current_user.role.value
-    }
+    # Добавляем дополнительную информацию
+    response["operator_warehouses"] = operator_warehouses
+    response["current_user_role"] = current_user.role.value
+    
+    return response
 
 @app.post("/api/cargo/{cargo_id}/quick-placement")
 async def quick_cargo_placement(
