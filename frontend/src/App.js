@@ -691,6 +691,38 @@ function App() {
     }
   };
 
+  const updateCargoProcessingStatus = async (cargoId, newStatus) => {
+    try {
+      await apiCall(`/api/cargo/${cargoId}/processing-status`, 'PUT', { new_status: newStatus });
+      showAlert(`Статус груза успешно обновлен: ${getProcessingStatusLabel(newStatus)}`, 'success');
+      // Обновляем список грузов
+      fetchOperatorCargo(operatorCargoFilter);
+    } catch (error) {
+      console.error('Error updating cargo processing status:', error);
+      showAlert('Ошибка при обновлении статуса груза: ' + error.message, 'error');
+    }
+  };
+
+  const getProcessingStatusLabel = (status) => {
+    const labels = {
+      'payment_pending': 'Ожидает оплаты',
+      'paid': 'Оплачен',
+      'invoice_printed': 'Накладная напечатана',
+      'placed': 'Размещен на складе'
+    };
+    return labels[status] || status;
+  };
+
+  const getProcessingStatusBadgeVariant = (status) => {
+    const variants = {
+      'payment_pending': 'destructive',
+      'paid': 'default',
+      'invoice_printed': 'secondary',
+      'placed': 'outline'
+    };
+    return variants[status] || 'outline';
+  };
+
   const fetchOperatorCargo = async (filterStatus = '') => {
     try {
       const params = filterStatus ? { filter_status: filterStatus } : {};
