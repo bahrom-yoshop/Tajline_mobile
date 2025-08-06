@@ -162,10 +162,12 @@ class EnhancedCargoPlacementTester:
         
         # Test quick placement with automatic warehouse selection
         print("   ⚡ Testing quick placement...")
+        import random
+        # Use random cell coordinates to avoid conflicts
         placement_data = {
-            "block_number": 1,
-            "shelf_number": 2,
-            "cell_number": 3
+            "block_number": random.randint(1, 5),
+            "shelf_number": random.randint(1, 3),
+            "cell_number": random.randint(10, 50)  # Use higher numbers to avoid conflicts
         }
         
         response = requests.post(
