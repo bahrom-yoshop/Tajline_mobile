@@ -1996,7 +1996,7 @@ async def get_all_users(
     
     # Получаем пользователей с пагинацией
     users_cursor = db.users.find(query).sort("created_at", -1)
-    total_count = users_cursor.count()
+    total_count = db.users.count_documents(query)
     
     # Применяем пагинацию
     skip = (pagination.page - 1) * pagination.per_page
