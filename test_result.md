@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the newly implemented pagination functionality for all API endpoints: 1) Cargo List Pagination Testing - GET /api/operator/cargo/list with pagination parameters (page=1&per_page=25 default, page=2&per_page=10 custom, page=1&per_page=5 small, page=1&per_page=100 maximum), 2) Available Cargo for Placement Pagination - GET /api/operator/cargo/available-for-placement with pagination, 3) User Management Pagination - GET /api/admin/users with new pagination features (role filtering, search functionality), 4) Pagination Edge Cases - invalid parameters, empty results, single result, 5) Performance and Consistency Testing - large datasets, consistency across requests, total count accuracy, 6) Test Users: Admin: +79999888777 / admin123, Regular user: +992900000000 / 123456, Warehouse Operator: +79777888999 / warehouse123"
+user_problem_statement: "Enhance the 'Accept New Cargo' form with multi-cargo functionality and calculator: 1) Allow adding multiple cargo items (name, weight) in a single shipment, 2) Implement a real-time calculator that multiplies total weight by price per kg (user-entered declared value), 3) Display total weight and total cost calculations, 4) Support unlimited cargo items per shipment, 5) Save general data (not individual cargo details) to database. The declared value field serves as the price per kg for cost calculations."
 
 backend:
   - task: "Comprehensive Warehouse Layout Functionality Testing"
