@@ -4130,13 +4130,46 @@ function App() {
                             Принять груз
                           </Button>
                         </CardTitle>
+                        
+                        {/* Фильтры */}
+                        <div className="flex items-center space-x-4 mt-4">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm font-medium">Фильтр:</span>
+                            <select 
+                              value={operatorCargoFilter}
+                              onChange={(e) => {
+                                setOperatorCargoFilter(e.target.value);
+                                fetchOperatorCargo(e.target.value);
+                              }}
+                              className="border border-gray-300 rounded-md px-3 py-1 text-sm"
+                            >
+                              <option value="">Все грузы</option>
+                              <option value="new_request">Новые заявки</option>
+                              <option value="awaiting_payment">Ожидается оплата</option>
+                              <option value="awaiting_placement">Ожидает размещение</option>
+                            </select>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => fetchOperatorCargo(operatorCargoFilter)}
+                          >
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Обновить
+                          </Button>
+                        </div>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
                           {operatorCargo.length === 0 ? (
                             <div className="text-center py-8">
                               <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                              <p className="text-gray-500 mb-4">Нет принятых грузов</p>
+                              <p className="text-gray-500 mb-4">
+                                {operatorCargoFilter 
+                                  ? `Нет грузов с фильтром "${operatorCargoFilter === 'new_request' ? 'Новые заявки' : operatorCargoFilter === 'awaiting_payment' ? 'Ожидается оплата' : 'Ожидает размещение'}"` 
+                                  : 'Нет принятых грузов'
+                                }
+                              </p>
                               <Button onClick={() => setActiveTab('cargo-accept')}>
                                 <Plus className="mr-2 h-4 w-4" />
                                 Принять первый груз
@@ -4151,10 +4184,10 @@ function App() {
                                   <TableHead>Получатель</TableHead>
                                   <TableHead>Вес</TableHead>
                                   <TableHead>Стоимость</TableHead>
-                                  <TableHead>Статус оплаты</TableHead>
+                                  <TableHead>Статус обработки</TableHead>
                                   <TableHead>Расположение</TableHead>
                                   <TableHead>Дата приема</TableHead>
-                              <TableHead>Действия</TableHead>
+                                  <TableHead>Действия</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
