@@ -2600,6 +2600,7 @@ async def accept_cargo_request(
         "route": request["route"],
         "status": CargoStatus.ACCEPTED,
         "payment_status": "pending",
+        "processing_status": "payment_pending",  # Начальный статус - ожидает оплаты
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
         "created_by": current_user.id,
