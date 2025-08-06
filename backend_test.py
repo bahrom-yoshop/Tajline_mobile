@@ -1162,6 +1162,378 @@ class CargoTransportAPITester:
         
         return success
 
+    def test_enhanced_cargo_placement_features(self):
+        """Test the newly implemented enhanced cargo placement features"""
+        print("\n🎯 ENHANCED CARGO PLACEMENT FEATURES")
+        
+        if 'admin' not in self.tokens or 'warehouse_operator' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Enhanced Cargo Placement Interface API
+        print("\n   📋 Testing Enhanced Cargo Placement Interface API...")
+        success, placement_response = self.run_test(
+            "Get Available Cargo for Placement (Admin)",
+            "GET",
+            "/api/operator/cargo/available-for-placement",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            cargo_list = placement_response.get('cargo_list', [])
+            total_count = placement_response.get('total_count', 0)
+            operator_warehouses = placement_response.get('operator_warehouses', [])
+            current_user_role = placement_response.get('current_user_role', '')
+            
+            print(f"   📦 Found {total_count} cargo items available for placement")
+            print(f"   🏭 Operator warehouses: {len(operator_warehouses)}")
+            print(f"   👤 Current user role: {current_user_role}")
+            
+            # Verify response structure
+            if isinstance(cargo_list, list) and 'total_count' in placement_response:
+                print("   ✅ Response structure is correct")
+            else:
+                print("   ❌ Invalid response structure")
+                all_success = False
+        
+        # Test warehouse operator access (filtered by assigned warehouses)
+        success, operator_placement_response = self.run_test(
+            "Get Available Cargo for Placement (Warehouse Operator)",
+            "GET",
+            "/api/operator/cargo/available-for-placement",
+            200,
+            token=self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success:
+            operator_cargo_list = operator_placement_response.get('cargo_list', [])
+            print(f"   🏭 Warehouse operator sees {len(operator_cargo_list)} cargo items")
+        
+        # Test 2: Create test cargo for placement testing
+        print("\n   📦 Creating Test Cargo for Placement...")
+        
+        # Create cargo via operator acceptance (this will be ready for placement after payment)
+        test_cargo_data = {
+            "sender_full_name": "Тестовый Отправитель Размещения",
+            "sender_phone": "+79111222333",
+            "recipient_full_name": "Тестовый Получатель Размещения",
+            "recipient_phone": "+992444555666",
+            "recipient_address": "Душанбе, ул. Размещения, 1",
+            "weight": 12.5,
+            "cargo_name": "Тестовый груз для размещения",
+            "declared_value": 6000.0,
+            "description": "Груз для тестирования системы размещения",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create Test Cargo for Placement",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            test_cargo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        test_cargo_id = None
+        test_cargo_number = None
+        if success and 'id' in cargo_response:
+            test_cargo_id = cargo_response['id']
+            test_cargo_number = cargo_response.get('cargo_number')
+            print(f"   📦 Created test cargo: {test_cargo_id} (#{test_cargo_number})")
+            
+            # Mark cargo as paid to make it available for placement
+            success, _ = self.run_test(
+                "Mark Test Cargo as Paid",
+                "PUT",
+                f"/api/cargo/{test_cargo_id}/processing-status",
+                200,
+                token=self.tokens['admin'],
+                params={"new_status": "paid"}
+            )
+            all_success &= success
+            
+            if success:
+                print("   💰 Test cargo marked as paid")
+        
+        # Test 3: Quick Cargo Placement Feature
+        print("\n   ⚡ Testing Quick Cargo Placement Feature...")
+        
+        if test_cargo_id and hasattr(self, 'warehouse_id'):
+            # Test quick placement with automatic warehouse selection
+            placement_data = {
+                "block_number": 1,
+                "shelf_number": 2,
+                "cell_number": 3
+            }
+            
+            success, quick_placement_response = self.run_test(
+                "Quick Cargo Placement",
+                "POST",
+                f"/api/cargo/{test_cargo_id}/quick-placement",
+                200,
+                placement_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                cargo_number = quick_placement_response.get('cargo_number')
+                warehouse_name = quick_placement_response.get('warehouse_name')
+                location = quick_placement_response.get('location')
+                placed_by = quick_placement_response.get('placed_by')
+                
+                print(f"   ✅ Cargo {cargo_number} placed successfully")
+                print(f"   🏭 Warehouse: {warehouse_name}")
+                print(f"   📍 Location: {location}")
+                print(f"   👤 Placed by: {placed_by}")
+                
+                # Verify cargo status updated
+                success, track_response = self.run_test(
+                    "Verify Cargo Status After Placement",
+                    "GET",
+                    f"/api/cargo/track/{cargo_number}",
+                    200
+                )
+                
+                if success:
+                    status = track_response.get('status')
+                    processing_status = track_response.get('processing_status')
+                    warehouse_location = track_response.get('warehouse_location')
+                    
+                    print(f"   📊 Status: {status}")
+                    print(f"   📊 Processing status: {processing_status}")
+                    print(f"   📍 Warehouse location: {warehouse_location}")
+                    
+                    if processing_status == "placed" and warehouse_location:
+                        print("   ✅ Cargo status correctly updated after placement")
+                    else:
+                        print("   ❌ Cargo status not properly updated")
+                        all_success = False
+        
+        # Test 4: Integration with Existing Workflow
+        print("\n   🔄 Testing Complete Integration Workflow...")
+        
+        # Create user cargo request
+        user_request_data = {
+            "recipient_full_name": "Получатель Интеграции",
+            "recipient_phone": "+992777888999",
+            "recipient_address": "Душанбе, ул. Интеграции, 5",
+            "pickup_address": "Москва, ул. Отправки, 10",
+            "cargo_name": "Интеграционный груз",
+            "weight": 8.0,
+            "declared_value": 4500.0,
+            "description": "Груз для тестирования полного цикла",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, request_response = self.run_test(
+            "Create User Cargo Request",
+            "POST",
+            "/api/user/cargo-request",
+            200,
+            user_request_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        integration_cargo_id = None
+        if success and 'id' in request_response:
+            request_id = request_response['id']
+            print(f"   📋 Created cargo request: {request_id}")
+            
+            # Admin accepts the request
+            success, accept_response = self.run_test(
+                "Admin Accept Cargo Request",
+                "POST",
+                f"/api/admin/cargo-requests/{request_id}/accept",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success and 'id' in accept_response:
+                integration_cargo_id = accept_response['id']
+                integration_cargo_number = accept_response.get('cargo_number')
+                processing_status = accept_response.get('processing_status')
+                
+                print(f"   ✅ Request accepted, cargo created: {integration_cargo_id}")
+                print(f"   🏷️  Cargo number: {integration_cargo_number}")
+                print(f"   📊 Initial processing status: {processing_status}")
+                
+                if processing_status == "payment_pending":
+                    print("   ✅ Correct initial status: payment_pending")
+                else:
+                    print(f"   ❌ Unexpected initial status: {processing_status}")
+                    all_success = False
+                
+                # Mark as paid
+                success, _ = self.run_test(
+                    "Mark Integration Cargo as Paid",
+                    "PUT",
+                    f"/api/cargo/{integration_cargo_id}/processing-status",
+                    200,
+                    token=self.tokens['admin'],
+                    params={"new_status": "paid"}
+                )
+                all_success &= success
+                
+                if success:
+                    print("   💰 Cargo marked as paid")
+                    
+                    # Verify cargo appears in available-for-placement list
+                    success, available_response = self.run_test(
+                        "Verify Cargo in Available for Placement",
+                        "GET",
+                        "/api/operator/cargo/available-for-placement",
+                        200,
+                        token=self.tokens['admin']
+                    )
+                    all_success &= success
+                    
+                    if success:
+                        available_cargo = available_response.get('cargo_list', [])
+                        found_cargo = any(c.get('id') == integration_cargo_id for c in available_cargo)
+                        
+                        if found_cargo:
+                            print("   ✅ Cargo appears in available-for-placement list")
+                        else:
+                            print("   ❌ Cargo not found in available-for-placement list")
+                            all_success = False
+                    
+                    # Use quick placement
+                    if hasattr(self, 'warehouse_id'):
+                        placement_data = {
+                            "block_number": 2,
+                            "shelf_number": 1,
+                            "cell_number": 5
+                        }
+                        
+                        success, final_placement = self.run_test(
+                            "Quick Place Integration Cargo",
+                            "POST",
+                            f"/api/cargo/{integration_cargo_id}/quick-placement",
+                            200,
+                            placement_data,
+                            self.tokens['admin']
+                        )
+                        all_success &= success
+                        
+                        if success:
+                            print("   ✅ Integration cargo successfully placed")
+                            
+                            # Verify cargo removed from available-for-placement list
+                            success, final_available = self.run_test(
+                                "Verify Cargo Removed from Available List",
+                                "GET",
+                                "/api/operator/cargo/available-for-placement",
+                                200,
+                                token=self.tokens['admin']
+                            )
+                            
+                            if success:
+                                final_available_cargo = final_available.get('cargo_list', [])
+                                still_found = any(c.get('id') == integration_cargo_id for c in final_available_cargo)
+                                
+                                if not still_found:
+                                    print("   ✅ Cargo correctly removed from available-for-placement list")
+                                else:
+                                    print("   ❌ Cargo still in available-for-placement list after placement")
+                                    all_success = False
+        
+        # Test 5: Role-Based Access and Warehouse Binding
+        print("\n   🔒 Testing Role-Based Access and Warehouse Binding...")
+        
+        # Test regular user access (should be denied)
+        success, _ = self.run_test(
+            "Regular User Access to Placement API (Should Fail)",
+            "GET",
+            "/api/operator/cargo/available-for-placement",
+            403,
+            token=self.tokens['user']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Regular users correctly denied access")
+        
+        # Test unauthorized access
+        success, _ = self.run_test(
+            "Unauthorized Access to Placement API (Should Fail)",
+            "GET",
+            "/api/operator/cargo/available-for-placement",
+            403
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Unauthorized access correctly denied")
+        
+        # Test 6: Data Validation and Error Handling
+        print("\n   ⚠️  Testing Data Validation and Error Handling...")
+        
+        if test_cargo_id:
+            # Test invalid placement data
+            invalid_placement_data = {
+                "block_number": "invalid",
+                "shelf_number": 1,
+                "cell_number": 1
+            }
+            
+            success, _ = self.run_test(
+                "Quick Placement with Invalid Data (Should Fail)",
+                "POST",
+                f"/api/cargo/{test_cargo_id}/quick-placement",
+                400,
+                invalid_placement_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Invalid placement data correctly rejected")
+            
+            # Test missing required fields
+            incomplete_placement_data = {
+                "block_number": 1
+                # Missing shelf_number and cell_number
+            }
+            
+            success, _ = self.run_test(
+                "Quick Placement with Missing Fields (Should Fail)",
+                "POST",
+                f"/api/cargo/{test_cargo_id}/quick-placement",
+                400,
+                incomplete_placement_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Missing required fields correctly rejected")
+        
+        # Test non-existent cargo
+        success, _ = self.run_test(
+            "Quick Placement of Non-existent Cargo (Should Fail)",
+            "POST",
+            "/api/cargo/nonexistent123/quick-placement",
+            404,
+            {"block_number": 1, "shelf_number": 1, "cell_number": 1},
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Non-existent cargo correctly handled")
+        
+        return all_success
+
     def test_cargo_numbering_system(self):
         """Test the new 4-digit cargo numbering system"""
         print("\n🔢 CARGO NUMBERING SYSTEM (4-DIGIT)")
