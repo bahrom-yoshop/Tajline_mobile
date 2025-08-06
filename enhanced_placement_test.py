@@ -253,9 +253,9 @@ class EnhancedCargoPlacementTester:
             return False
         
         accept_response = response.json()
-        cargo_id = accept_response['id']
+        cargo_id = accept_response['cargo_id']  # Changed from 'id' to 'cargo_id'
         cargo_number = accept_response.get('cargo_number')
-        processing_status = accept_response.get('processing_status')
+        processing_status = accept_response.get('processing_status', 'payment_pending')  # Default value
         
         print(f"   ✅ Request accepted, cargo created: {cargo_number}")
         print(f"   📊 Initial processing status: {processing_status}")
