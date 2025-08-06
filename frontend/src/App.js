@@ -851,8 +851,8 @@ function App() {
       showAlert(`Статус груза успешно обновлен: ${getProcessingStatusLabel(newStatus)}`, 'success');
       
       // Обновляем все списки для синхронизации
-      fetchOperatorCargo(operatorCargoFilter);
-      fetchAvailableCargoForPlacement(); // Обновляем список для размещения
+      fetchOperatorCargo(operatorCargoFilter, operatorCargoPage, operatorCargoPerPage);
+      fetchAvailableCargoForPlacement(availableCargoPage, availableCargoPerPage); // Обновляем список для размещения
       
       // Если груз стал оплаченным, показываем сообщение о перемещении
       if (newStatus === 'paid') {
