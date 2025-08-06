@@ -686,10 +686,18 @@ function App() {
 
   const fetchUsers = async () => {
     try {
-      const data = await apiCall('/api/admin/users');
-      setUsers(data);
+      const response = await apiCall('/api/admin/users');
+      
+      // Проверяем новый формат ответа с пагинацией
+      if (response.items) {
+        setUsers(response.items); // Используем items из пагинированного ответа
+      } else {
+        // Обратная совместимость со старым форматом
+        setUsers(response);
+      }
     } catch (error) {
       console.error('Error fetching users:', error);
+      setUsers([]); // Устанавливаем пустой массив в случае ошибки
     }
   };
 
