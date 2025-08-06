@@ -166,7 +166,7 @@ function App() {
   const [operatorCargoFilter, setOperatorCargoFilter] = useState(''); // Фильтр для списка грузов
   const [availableCargo, setAvailableCargo] = useState([]);
   const [availableCargoForPlacement, setAvailableCargoForPlacement] = useState([]); // Грузы для размещения
-  const [selectedCargoForWarehouse, setSelectedCargoForWarehouse] = useState(null); // Выбранный груз для размещения на складе
+  const [selectedCargoForDetailView, setSelectedCargoForDetailView] = useState(null); // Выбранный груз для просмотра деталей
   const [cargoDetailsModal, setCargoDetailsModal] = useState(false); // Модальное окно деталей груза
   const [quickPlacementModal, setQuickPlacementModal] = useState(false); // Быстрое размещение
   const [quickPlacementForm, setQuickPlacementForm] = useState({
