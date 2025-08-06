@@ -15122,6 +15122,8 @@ ID склада: {self.warehouse_id}"""
             ("🔄 CARGO MOVEMENT API", self.test_cargo_movement_api),
             ("🔍 WAREHOUSE DATA STRUCTURE INVESTIGATION", self.test_warehouse_data_structure_investigation),
             ("🧮 ENHANCED MULTI-CARGO FORM WITH CALCULATOR", self.test_enhanced_multi_cargo_form_functionality),
+            # 🎯 PRIMARY TEST FROM REVIEW REQUEST: Individual Pricing Multi-Cargo Form
+            ("🎯 INDIVIDUAL PRICING MULTI-CARGO FORM", self.test_individual_pricing_multi_cargo_form),
             ("Operator Cargo Management", self.test_operator_cargo_management),
             ("Cashier Functionality", self.test_cashier_functionality),
             ("Transport Management", self.test_transport_management),
