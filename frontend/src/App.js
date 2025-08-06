@@ -2178,11 +2178,11 @@ function App() {
     }
   };
 
-  // Функции для управления множественными грузами
+  // Функции для управления множественными грузами с индивидуальными ценами
   const addCargoItem = () => {
     setOperatorCargoForm({
       ...operatorCargoForm,
-      cargo_items: [...operatorCargoForm.cargo_items, { cargo_name: '', weight: '' }]
+      cargo_items: [...operatorCargoForm.cargo_items, { cargo_name: '', weight: '', price_per_kg: '' }]
     });
   };
 
@@ -2193,7 +2193,7 @@ function App() {
         ...operatorCargoForm,
         cargo_items: newItems
       });
-      calculateTotals(newItems, operatorCargoForm.price_per_kg);
+      calculateTotalsWithIndividualPrices(newItems);
     }
   };
 
@@ -2204,9 +2204,39 @@ function App() {
       ...operatorCargoForm,
       cargo_items: newItems
     });
-    calculateTotals(newItems, operatorCargoForm.price_per_kg);
+    calculateTotalsWithIndividualPrices(newItems);
   };
 
+  const calculateTotalsWithIndividualPrices = (cargoItems = operatorCargoForm.cargo_items) => {
+    let totalWeightSum = 0;
+    let totalCostSum = 0;
+    const breakdown = [];
+    
+    cargoItems.forEach((item, index) => {
+      const weight = parseFloat(item.weight) || 0;
+      const pricePerKg = parseFloat(item.price_per_kg) || 0;
+      const itemCost = weight * pricePerKg;
+      
+      totalWeightSum += weight;
+      totalCostSum += itemCost;
+      
+      if (weight > 0 && pricePerKg > 0) {
+        breakdown.push({
+          index: index + 1,
+          name: item.cargo_name || `Груз ${index + 1}`,
+          weight,
+          pricePerKg,
+          cost: itemCost
+        });
+      }
+    });
+    
+    setTotalWeight(totalWeightSum);
+    setTotalCost(totalCostSum);
+    setCargoBreakdown(breakdown);
+  };
+
+  // Старая функция calculateTotals для совместимости с режимом общей цены
   const calculateTotals = (cargoItems = operatorCargoForm.cargo_items, pricePerKg = operatorCargoForm.price_per_kg) => {
     const weight = cargoItems.reduce((sum, item) => {
       const itemWeight = parseFloat(item.weight) || 0;
