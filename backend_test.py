@@ -12295,6 +12295,8 @@ ID склада: {self.warehouse_id}"""
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            # PRIORITY TEST FROM REVIEW REQUEST - PAYMENT ACCEPTANCE WORKFLOW
+            ("💰 PAYMENT ACCEPTANCE WORKFLOW", self.test_payment_acceptance_workflow),
             # PRIORITY TESTS FROM REVIEW REQUEST - NEW CARGO MANAGEMENT FEATURES
             ("🔄 ENHANCED CARGO STATUS MANAGEMENT", self.test_enhanced_cargo_status_management),
             ("📋 CARGO LIST FILTERING SYSTEM", self.test_cargo_list_filtering_system),
