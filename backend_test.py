@@ -11637,7 +11637,12 @@ ID склада: {self.warehouse_id}"""
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
-            # PRIORITY TESTS FROM REVIEW REQUEST
+            # PRIORITY TESTS FROM REVIEW REQUEST - NEW CARGO MANAGEMENT FEATURES
+            ("🔄 ENHANCED CARGO STATUS MANAGEMENT", self.test_enhanced_cargo_status_management),
+            ("📋 CARGO LIST FILTERING SYSTEM", self.test_cargo_list_filtering_system),
+            ("🔄 COMPLETE INTEGRATION WORKFLOW", self.test_complete_integration_workflow),
+            ("💳 UNPAID ORDERS INTEGRATION", self.test_unpaid_orders_integration),
+            # EXISTING TESTS
             ("🔐 SESSION MANAGEMENT IMPROVEMENTS", self.test_session_management_improvements),
             ("💰 CALCULATE COST BUTTON FIX", self.test_calculate_cost_button_fix),
             # CRITICAL: Test the 2 specific fixes from review request first
