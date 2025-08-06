@@ -105,6 +105,36 @@
 user_problem_statement: "Протестировать новые функции системы номеров грузов и неоплаченных заказов: 1) Тест новой системы номеров грузов (формат YYMMXXXXXX от 4 до 10 цифр, начинающиеся с 2501 для января 2025), 2) Тест системы неоплаченных заказов (создание заявки пользователем Бахромом, принятие админом, проверка GET /api/admin/unpaid-orders, POST /api/admin/unpaid-orders/{order_id}/mark-paid), 3) Полный workflow тест от заявки до оплаты."
 
 backend:
+  - task: "Session Management Improvements Testing"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test session management improvements: JWT token expiry (24 hours), token validation, API call resilience, and session persistence during form submissions."
+        - working: true
+          agent: "testing"
+          comment: "✅ SESSION MANAGEMENT IMPROVEMENTS FULLY WORKING - Comprehensive testing shows all improvements are functioning correctly! DETAILED RESULTS: 1) ✅ JWT TOKEN EXPIRY: Tokens are correctly configured for 24 hours (1440 minutes) as specified in ACCESS_TOKEN_EXPIRE_MINUTES = 1440, 2) ✅ TOKEN VALIDATION: /api/auth/me endpoint works perfectly for session validation and persistence, 3) ✅ SESSION PERSISTENCE: Multiple API calls with same token maintain session correctly - tested with Get My Cargo, Get Notifications, and repeated auth checks, 4) ✅ ADMIN SESSION MANAGEMENT: Admin user sessions also work correctly with proper token validation, 5) ✅ INVALID TOKEN HANDLING: Invalid tokens are properly rejected with 401 Unauthorized errors, 6) ✅ CROSS-USER TESTING: Both Bahrom user (+992900000000) and Admin user (+79999888777) sessions work correctly. SUCCESS RATE: 100% (15/15 individual API calls passed). The session management improvements are fully functional and provide the enhanced 24-hour session duration as requested."
+
+  - task: "Calculate Cost Button Fix Testing"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test the Calculate Cost button fix - verify that all required fields including cargo_name are properly validated and the cost calculation works correctly."
+        - working: true
+          agent: "testing"
+          comment: "✅ CALCULATE COST BUTTON FIX FULLY WORKING - Comprehensive testing confirms the fix is successful! DETAILED RESULTS: 1) ✅ DELIVERY OPTIONS: All 4 expected routes available (moscow_dushanbe, moscow_khujand, moscow_kulob, moscow_kurgantyube), 2) ✅ COMPLETE FIELD VALIDATION: Calculate cost works perfectly when ALL required fields including cargo_name are provided - returned cost 4325.0 руб for 7-day delivery, 3) ✅ MISSING CARGO_NAME VALIDATION: System correctly rejects requests without cargo_name field with 422 validation error - this confirms the field is now required as intended, 4) ✅ MULTI-ROUTE TESTING: Cost calculation works for all routes with correct base costs (moscow_khujand: 3970.0 руб, moscow_dushanbe: 4325.0 руб, moscow_kulob: 4680.0 руб, moscow_kurgantyube: 4502.5 руб), 5) ✅ END-TO-END WORKFLOW: Complete cargo order creation works successfully - created cargo #250118 with 3800.0 руб cost, 6) ✅ CARGO TRACKING: Created cargo is trackable and shows correct cargo_name field. SUCCESS RATE: 100% (24/25 individual API calls passed, 1 expected failure for missing field validation). The Calculate Cost button fix is fully functional - cargo_name field is now properly required and validated."
+
   - task: "Bahrom Client User Testing - Cargo Ordering and Request Forms"
     implemented: true
     working: true
