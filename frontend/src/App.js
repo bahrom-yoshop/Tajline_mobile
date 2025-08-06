@@ -789,9 +789,9 @@ function App() {
       
       showAlert(summaryMessage, 'success');
       
-      // Обновляем все данные
-      fetchOperatorCargo(operatorCargoFilter);
-      fetchAvailableCargoForPlacement();
+      // Обновляем списки
+      fetchOperatorCargo(operatorCargoFilter, operatorCargoPage, operatorCargoPerPage);
+      fetchAvailableCargoForPlacement(availableCargoPage, availableCargoPerPage);
       fetchUsersByRole();
       fetchNotifications();
       fetchUnpaidCargo();
