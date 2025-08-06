@@ -736,6 +736,32 @@ function App() {
     }
   };
 
+  // Обработчики пагинации для списка грузов
+  const handleOperatorCargoPageChange = (newPage) => {
+    setOperatorCargoPage(newPage);
+    fetchOperatorCargo(operatorCargoFilter, newPage, operatorCargoPerPage);
+  };
+
+  const handleOperatorCargoPerPageChange = (newPerPage) => {
+    const perPage = parseInt(newPerPage);
+    setOperatorCargoPerPage(perPage);
+    setOperatorCargoPage(1); // Сбрасываем на первую страницу
+    fetchOperatorCargo(operatorCargoFilter, 1, perPage);
+  };
+
+  // Обработчики пагинации для размещения грузов
+  const handleAvailableCargoPageChange = (newPage) => {
+    setAvailableCargoPage(newPage);
+    fetchAvailableCargoForPlacement(newPage, availableCargoPerPage);
+  };
+
+  const handleAvailableCargoPerPageChange = (newPerPage) => {
+    const perPage = parseInt(newPerPage);
+    setAvailableCargoPerPage(perPage);
+    setAvailableCargoPage(1); // Сбрасываем на первую страницу
+    fetchAvailableCargoForPlacement(1, perPage);
+  };
+
   const handleCleanupTestData = async () => {
     if (!confirm('⚠️ ВНИМАНИЕ!\n\nЭто действие удалит ВСЕ тестовые данные из системы:\n- Тестовых пользователей\n- Тестовые грузы и заявки\n- Связанные уведомления\n- Данные о ячейках\n\nДействие НЕОБРАТИМО!\n\nВы уверены, что хотите продолжить?')) {
       return;
