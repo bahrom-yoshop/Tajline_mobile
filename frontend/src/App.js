@@ -687,20 +687,28 @@ function App() {
     }
   };
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (page = usersPage, perPage = usersPerPage) => {
     try {
-      const response = await apiCall('/api/admin/users');
+      const params = {
+        page: page,
+        per_page: perPage
+      };
+      
+      const response = await apiCall('/api/admin/users', 'GET', null, params);
       
       // Проверяем новый формат ответа с пагинацией
       if (response.items) {
         setUsers(response.items); // Используем items из пагинированного ответа
+        setUsersPagination(response.pagination);
       } else {
         // Обратная совместимость со старым форматом
         setUsers(response);
+        setUsersPagination({});
       }
     } catch (error) {
       console.error('Error fetching users:', error);
       setUsers([]); // Устанавливаем пустой массив в случае ошибки
+      setUsersPagination({});
     }
   };
 
