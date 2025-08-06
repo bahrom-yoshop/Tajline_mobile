@@ -4391,10 +4391,10 @@ function App() {
                         <CardHeader>
                           <CardTitle className="flex items-center">
                             <Grid3X3 className="mr-2 h-5 w-5" />
-                            Размещение груза на складе
+                            Ожидает размещение
                           </CardTitle>
                           <CardDescription>
-                            Просмотрите доступные грузы и разместите их в ячейках склада
+                            Оплаченные грузы, готовые к размещению на складе. Автоматически обновляется при принятии оплат.
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
