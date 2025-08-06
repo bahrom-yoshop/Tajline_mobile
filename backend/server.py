@@ -1764,15 +1764,20 @@ async def get_all_cargo(current_user: User = Depends(require_role(UserRole.ADMIN
     
     return normalized_cargo
 
+class ProcessingStatusUpdate(BaseModel):
+    new_status: str
+
 @app.put("/api/cargo/{cargo_id}/processing-status")
 async def update_cargo_processing_status(
     cargo_id: str,
-    new_status: str,  # payment_pending, paid, invoice_printed, placed
+    status_data: ProcessingStatusUpdate,
     current_user: User = Depends(get_current_user)
 ):
     """Обновить статус обработки груза (оплата, печать накладной, размещение)"""
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    new_status = status_data.new_status
     
     # Проверяем валидность нового статуса
     valid_statuses = ["payment_pending", "paid", "invoice_printed", "placed"]
