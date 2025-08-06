@@ -234,7 +234,7 @@ class MultiCargoTester:
             "/api/operator/cargo/accept",
             422,  # Validation error expected
             invalid_cargo_data,
-            self.tokens['warehouse_operator']
+            self.tokens['admin']
         )
         all_success &= success
         
