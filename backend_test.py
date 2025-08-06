@@ -11026,6 +11026,9 @@ ID склада: {self.warehouse_id}"""
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            # PRIORITY TESTS FROM REVIEW REQUEST
+            ("🔐 SESSION MANAGEMENT IMPROVEMENTS", self.test_session_management_improvements),
+            ("💰 CALCULATE COST BUTTON FIX", self.test_calculate_cost_button_fix),
             # CRITICAL: Test the 2 specific fixes from review request first
             ("🔧 CRITICAL FIX: ObjectId Serialization - GET /api/warehouses", self.test_critical_objectid_serialization_fix),
             ("🔧 CRITICAL FIX: Phone Regex - GET /api/cargo/search", self.test_critical_phone_regex_fix),
