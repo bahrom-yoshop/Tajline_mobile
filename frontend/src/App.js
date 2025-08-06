@@ -711,6 +711,46 @@ function App() {
     }
   };
 
+  const handleCleanupTestData = async () => {
+    if (!confirm('⚠️ ВНИМАНИЕ!\n\nЭто действие удалит ВСЕ тестовые данные из системы:\n- Тестовых пользователей\n- Тестовые грузы и заявки\n- Связанные уведомления\n- Данные о ячейках\n\nДействие НЕОБРАТИМО!\n\nВы уверены, что хотите продолжить?')) {
+      return;
+    }
+    
+    try {
+      const response = await apiCall('/api/admin/cleanup-test-data', 'POST');
+      
+      // Показываем детальный отчет об очистке
+      const report = response.cleanup_report;
+      const summaryMessage = `
+🧹 Очистка тестовых данных завершена!
+
+📊 Отчет об удалении:
+• Пользователи: ${report.users_deleted}
+• Заявки на грузы: ${report.cargo_requests_deleted}  
+• Грузы операторов: ${report.operator_cargo_deleted}
+• Грузы пользователей: ${report.user_cargo_deleted}
+• Неоплаченные заказы: ${report.unpaid_orders_deleted}
+• Уведомления: ${report.notifications_deleted}
+• Ячейки склада: ${report.warehouse_cells_deleted}
+
+Время очистки: ${new Date(response.cleanup_time).toLocaleString('ru-RU')}
+      `.trim();
+      
+      showAlert(summaryMessage, 'success');
+      
+      // Обновляем все данные
+      fetchOperatorCargo(operatorCargoFilter);
+      fetchAvailableCargoForPlacement();
+      fetchUsersByRole();
+      fetchNotifications();
+      fetchUnpaidCargo();
+      
+    } catch (error) {
+      console.error('Error cleaning test data:', error);
+      showAlert('Ошибка при очистке тестовых данных: ' + error.message, 'error');
+    }
+  };
+
   const handleQuickPlacement = async (cargoId) => {
     try {
       const response = await apiCall(`/api/cargo/${cargoId}/quick-placement`, 'POST', quickPlacementForm);
