@@ -700,6 +700,41 @@ function App() {
     }
   };
 
+  const fetchAvailableCargoForPlacement = async () => {
+    try {
+      const response = await apiCall('/api/operator/cargo/available-for-placement');
+      setAvailableCargoForPlacement(response.cargo_list || []);
+    } catch (error) {
+      console.error('Error fetching available cargo for placement:', error);
+      setAvailableCargoForPlacement([]);
+    }
+  };
+
+  const handleQuickPlacement = async (cargoId) => {
+    try {
+      const response = await apiCall(`/api/cargo/${cargoId}/quick-placement`, 'POST', quickPlacementForm);
+      showAlert(`Груз успешно размещен: ${response.location}`, 'success');
+      
+      // Обновляем списки
+      fetchOperatorCargo(operatorCargoFilter);
+      fetchAvailableCargoForPlacement();
+      
+      // Закрываем модальные окна
+      setQuickPlacementModal(false);
+      setSelectedCargoForWarehouse(null);
+      
+      // Сбрасываем форму
+      setQuickPlacementForm({
+        block_number: 1,
+        shelf_number: 1,
+        cell_number: 1
+      });
+    } catch (error) {
+      console.error('Error placing cargo:', error);
+      showAlert('Ошибка при размещении груза: ' + error.message, 'error');
+    }
+  };
+
   const updateCargoProcessingStatus = async (cargoId, newStatus) => {
     try {
       await apiCall(`/api/cargo/${cargoId}/processing-status`, 'PUT', { new_status: newStatus });
