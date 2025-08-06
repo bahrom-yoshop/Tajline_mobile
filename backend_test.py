@@ -139,8 +139,8 @@ class CargoTransportAPITester:
         print("\n🔐 USER LOGIN")
         
         login_data = [
-            {"role": "user", "phone": "+79123456789", "password": "123456"},
-            {"role": "admin", "phone": "+79999888777", "password": "admin123"},
+            {"role": "user", "phone": "+992900000000", "password": "123456"},  # Bahrom user as specified
+            {"role": "admin", "phone": "+79999888777", "password": "admin123"},  # Admin as specified
             {"role": "warehouse_operator", "phone": "+79777888999", "password": "warehouse123"}
         ]
         
