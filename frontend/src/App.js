@@ -2177,15 +2177,81 @@ function App() {
     }
   };
 
+  // Функции для управления множественными грузами
+  const addCargoItem = () => {
+    setOperatorCargoForm({
+      ...operatorCargoForm,
+      cargo_items: [...operatorCargoForm.cargo_items, { cargo_name: '', weight: '' }]
+    });
+  };
+
+  const removeCargoItem = (index) => {
+    if (operatorCargoForm.cargo_items.length > 1) {
+      const newItems = operatorCargoForm.cargo_items.filter((_, i) => i !== index);
+      setOperatorCargoForm({
+        ...operatorCargoForm,
+        cargo_items: newItems
+      });
+      calculateTotals(newItems, operatorCargoForm.price_per_kg);
+    }
+  };
+
+  const updateCargoItem = (index, field, value) => {
+    const newItems = [...operatorCargoForm.cargo_items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setOperatorCargoForm({
+      ...operatorCargoForm,
+      cargo_items: newItems
+    });
+    calculateTotals(newItems, operatorCargoForm.price_per_kg);
+  };
+
+  const calculateTotals = (cargoItems = operatorCargoForm.cargo_items, pricePerKg = operatorCargoForm.price_per_kg) => {
+    const weight = cargoItems.reduce((sum, item) => {
+      const itemWeight = parseFloat(item.weight) || 0;
+      return sum + itemWeight;
+    }, 0);
+    
+    const cost = weight * (parseFloat(pricePerKg) || 0);
+    
+    setTotalWeight(weight);
+    setTotalCost(cost);
+  };
+
   const handleAcceptCargo = async (e) => {
     e.preventDefault();
     try {
-      await apiCall('/api/operator/cargo/accept', 'POST', {
-        ...operatorCargoForm,
-        weight: parseFloat(operatorCargoForm.weight),
-        declared_value: parseFloat(operatorCargoForm.declared_value)
-      });
+      let requestData;
+      
+      if (operatorCargoForm.use_multi_cargo) {
+        // Новый режим с множественными грузами
+        requestData = {
+          sender_full_name: operatorCargoForm.sender_full_name,
+          sender_phone: operatorCargoForm.sender_phone,
+          recipient_full_name: operatorCargoForm.recipient_full_name,
+          recipient_phone: operatorCargoForm.recipient_phone,
+          recipient_address: operatorCargoForm.recipient_address,
+          description: operatorCargoForm.description,
+          route: operatorCargoForm.route,
+          cargo_items: operatorCargoForm.cargo_items.map(item => ({
+            cargo_name: item.cargo_name,
+            weight: parseFloat(item.weight)
+          })),
+          price_per_kg: parseFloat(operatorCargoForm.price_per_kg)
+        };
+      } else {
+        // Старый режим для совместимости
+        requestData = {
+          ...operatorCargoForm,
+          weight: parseFloat(operatorCargoForm.weight),
+          declared_value: parseFloat(operatorCargoForm.declared_value || operatorCargoForm.price_per_kg)
+        };
+      }
+      
+      await apiCall('/api/operator/cargo/accept', 'POST', requestData);
       showAlert('Груз успешно принят!', 'success');
+      
+      // Сброс формы
       setOperatorCargoForm({
         sender_full_name: '',
         sender_phone: '',
@@ -2196,8 +2262,15 @@ function App() {
         cargo_name: '',
         declared_value: '',
         description: '',
-        route: 'moscow_to_tajikistan'
+        route: 'moscow_to_tajikistan',
+        cargo_items: [{ cargo_name: '', weight: '' }],
+        price_per_kg: '',
+        use_multi_cargo: false
       });
+      
+      // Сброс калькулятора
+      setTotalWeight(0);
+      setTotalCost(0);
       fetchOperatorCargo();
       fetchAvailableCargo();
     } catch (error) {
