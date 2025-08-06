@@ -267,7 +267,7 @@ class MultiCargoTester:
             "/api/operator/cargo/accept",
             200,
             complex_cargo_data,
-            self.tokens['warehouse_operator']
+            self.tokens['admin']
         )
         all_success &= success
         
