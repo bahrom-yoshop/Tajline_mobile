@@ -69,6 +69,64 @@ def escape_regex_special_chars(text):
         escaped_text = escaped_text.replace(char, '\\' + char)
     return escaped_text
 
+# Класс для пагинации
+class PaginationParams(BaseModel):
+    page: int = 1
+    per_page: int = 25  # По умолчанию 25 элементов на странице
+    
+    @validator('page')
+    def validate_page(cls, v):
+        return max(1, v)  # Минимум 1 страница
+    
+    @validator('per_page')
+    def validate_per_page(cls, v):
+        return min(max(5, v), 100)  # От 5 до 100 элементов на страницу
+
+class PaginationResponse(BaseModel):
+    items: List[Any]
+    total_count: int
+    page: int
+    per_page: int
+    total_pages: int
+    has_next: bool
+    has_prev: bool
+    next_page: Optional[int] = None
+    prev_page: Optional[int] = None
+
+def create_pagination_response(items: List[Any], total_count: int, page: int, per_page: int) -> Dict:
+    """Создать ответ с пагинацией"""
+    total_pages = math.ceil(total_count / per_page) if total_count > 0 else 1
+    has_next = page < total_pages
+    has_prev = page > 1
+    
+    return {
+        "items": items,
+        "pagination": {
+            "total_count": total_count,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": total_pages,
+            "has_next": has_next,
+            "has_prev": has_prev,
+            "next_page": page + 1 if has_next else None,
+            "prev_page": page - 1 if has_prev else None
+        }
+    }
+
+def apply_pagination(query_result, page: int = 1, per_page: int = 25):
+    """Применить пагинацию к результату запроса MongoDB"""
+    skip = (page - 1) * per_page
+    total_count = query_result.count() if hasattr(query_result, 'count') else len(query_result)
+    
+    if hasattr(query_result, 'skip'):
+        # Для MongoDB cursor
+        items = list(query_result.skip(skip).limit(per_page))
+    else:
+        # Для обычного списка
+        items = query_result[skip:skip + per_page]
+    
+    return create_pagination_response(items, total_count, page, per_page)
+
 # Enums
 class UserRole(str, Enum):
     USER = "user"
