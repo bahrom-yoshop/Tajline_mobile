@@ -4332,6 +4332,22 @@ function App() {
                                           <QrCode className="mr-1 h-3 w-3" />
                                           QR
                                         </Button>
+                                        
+                                        {/* Кнопка быстрого размещения для оплаченных грузов */}
+                                        {(item.processing_status === 'paid' || item.processing_status === 'invoice_printed') && !item.warehouse_location && (
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                              setSelectedCargoForDetailView(item);
+                                              setQuickPlacementModal(true);
+                                            }}
+                                            className="flex items-center text-xs px-2 py-1 bg-green-50 hover:bg-green-100"
+                                          >
+                                            <Grid3X3 className="mr-1 h-3 w-3" />
+                                            Разместить
+                                          </Button>
+                                        )}
                                       </div>
                                     </TableCell>
                                   </TableRow>
