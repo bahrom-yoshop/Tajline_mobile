@@ -163,6 +163,7 @@ function App() {
     route: 'moscow_to_tajikistan'
   });
   const [operatorCargo, setOperatorCargo] = useState([]);
+  const [operatorCargoFilter, setOperatorCargoFilter] = useState(''); // Фильтр для списка грузов
   const [availableCargo, setAvailableCargo] = useState([]);
   const [cargoHistory, setCargoHistory] = useState([]);
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
