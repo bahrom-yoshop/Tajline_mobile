@@ -1276,12 +1276,17 @@ async def scan_qr_code(
 
 @app.get("/api/operator/cargo/list")
 async def get_operator_cargo_list(
+    page: int = 1,
+    per_page: int = 25,
     filter_status: Optional[str] = None,  # payment_pending, awaiting_placement, new_request
     current_user: User = Depends(get_current_user)
 ):
-    """Получить список грузов оператора с возможностью фильтрации"""
+    """Получить список грузов оператора с пагинацией и возможностью фильтрации"""
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Валидация параметров пагинации
+    pagination = PaginationParams(page=page, per_page=per_page)
     
     # Базовый запрос для поиска грузов
     base_query = {}
@@ -1307,22 +1312,46 @@ async def get_operator_cargo_list(
             base_query["status"] = CargoStatus.ACCEPTED
     
     # Ищем в коллекции operator_cargo (принятые заявки)
-    operator_cargo_list = list(db.operator_cargo.find(base_query))
+    operator_cargo_cursor = db.operator_cargo.find(base_query).sort("created_at", -1)
     
     # Также ищем в коллекции cargo (если админ)
     user_cargo_list = []
     if current_user.role == UserRole.ADMIN:
-        user_cargo_list = list(db.cargo.find(base_query))
+        user_cargo_cursor = db.cargo.find(base_query).sort("created_at", -1)
+        user_cargo_list = list(user_cargo_cursor)
+    
+    # Получаем общий count для правильной пагинации
+    operator_cargo_count = operator_cargo_cursor.count()
+    user_cargo_count = len(user_cargo_list)
+    total_count = operator_cargo_count + user_cargo_count
+    
+    # Применяем пагинацию
+    skip = (pagination.page - 1) * pagination.per_page
+    
+    # Получаем элементы с учетом пагинации
+    all_cargo = []
+    
+    # Получаем operator cargo
+    operator_cargo_list = list(operator_cargo_cursor.skip(skip).limit(pagination.per_page))
+    
+    # Если нужно больше элементов, добавляем из user cargo
+    remaining = pagination.per_page - len(operator_cargo_list)
+    if remaining > 0 and user_cargo_list:
+        user_skip = max(0, skip - operator_cargo_count)
+        user_cargo_subset = user_cargo_list[user_skip:user_skip + remaining]
+        all_cargo.extend(user_cargo_subset)
+    
+    all_cargo.extend(operator_cargo_list)
     
     # Нормализуем данные
     normalized_cargo = []
     
-    # Обрабатываем operator cargo
-    for cargo in operator_cargo_list:
+    # Обрабатываем все грузы
+    for cargo in all_cargo:
         normalized = serialize_mongo_document(cargo)
         normalized.update({
             'cargo_name': cargo.get('cargo_name') or cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз',
-            'sender_id': cargo.get('created_by', 'operator'),
+            'sender_id': cargo.get('created_by') or cargo.get('sender_id', 'unknown'),
             'recipient_name': cargo.get('recipient_full_name', 'Не указан'),
             'sender_address': cargo.get('sender_address', 'Не указан'),
             'recipient_address': cargo.get('recipient_address', 'Не указан'),
@@ -1333,32 +1362,13 @@ async def get_operator_cargo_list(
         })
         normalized_cargo.append(normalized)
     
-    # Обрабатываем user cargo (если есть)
-    for cargo in user_cargo_list:
-        normalized = serialize_mongo_document(cargo)
-        normalized.update({
-            'cargo_name': cargo.get('cargo_name') or cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз',
-            'sender_id': cargo.get('sender_id', 'unknown'),
-            'recipient_name': cargo.get('recipient_name', 'Не указан'),
-            'sender_address': cargo.get('sender_address', 'Не указан'),
-            'recipient_address': cargo.get('recipient_address', 'Не указан'),
-            'recipient_phone': cargo.get('recipient_phone', 'Не указан'),
-            'processing_status': cargo.get('processing_status', 'payment_pending'),
-            'sender_full_name': cargo.get('sender_full_name', 'Не указан'),
-            'sender_phone': cargo.get('sender_phone', 'Не указан')
-        })
-        normalized_cargo.append(normalized)
-    
-    return {
-        "cargo_list": normalized_cargo,
-        "total_count": len(normalized_cargo),
-        "filter_applied": filter_status,
-        "available_filters": {
-            "new_request": "Новая заявка",
-            "awaiting_payment": "Ожидается оплата", 
-            "awaiting_placement": "Ожидает размещение"
-        }
-    }
+    # Создаем ответ с пагинацией
+    return create_pagination_response(
+        normalized_cargo, 
+        total_count, 
+        pagination.page, 
+        pagination.per_page
+    )
 
 @app.post("/api/admin/cleanup-test-data")
 async def cleanup_test_data(
