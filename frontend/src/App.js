@@ -162,12 +162,12 @@ function App() {
     recipient_address: '',
     weight: '',  // Сохраняем для совместимости со старой формой
     cargo_name: '',  // Сохраняем для совместимости со старой формой
-    declared_value: '',  // Теперь будет использоваться как price_per_kg
+    declared_value: '',  // Теперь будет использоваться как price_per_kg для старой формы
     description: '',
     route: 'moscow_to_tajikistan',
-    // Новые поля для множественных грузов
-    cargo_items: [{ cargo_name: '', weight: '' }],  // Начинаем с одного груза
-    price_per_kg: '',
+    // Новые поля для множественных грузов с индивидуальными ценами
+    cargo_items: [{ cargo_name: '', weight: '', price_per_kg: '' }],  // Каждый груз имеет свою цену
+    price_per_kg: '',  // Общая цена за кг (для совместимости)
     use_multi_cargo: false  // Флаг для переключения между режимами
   });
   // Operator cargo management states
