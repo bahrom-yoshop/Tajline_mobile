@@ -125,13 +125,16 @@ frontend:
     implemented: true
     working: false
     file: "/app/frontend/src/App.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "critical"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: false
           agent: "main"
           comment: "✅ FRONTEND FORM IMPLEMENTED - Enhanced operatorCargoForm state with cargo_items array, price_per_kg field, and use_multi_cargo toggle. Added real-time calculator states (totalWeight, totalCost). Implemented functions: addCargoItem(), removeCargoItem(), updateCargoItem(), calculateTotals(). Updated handleAcceptCargo() to support both single and multi-cargo modes. Created dynamic UI with cargo items list, add/remove buttons, real-time calculator showing total weight and cost, and seamless toggle between old and new forms for backward compatibility."
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL NAVIGATION ISSUE - Multi-cargo form with calculator functionality cannot be accessed through the current UI navigation structure. DETAILED FINDINGS: 1) ✅ LOGIN FUNCTIONALITY: Successfully logged in as warehouse operator (+79777888999/warehouse123), authentication working correctly, 2) ❌ NAVIGATION PROBLEM: The operator cargo acceptance form with multi-cargo functionality is not accessible through the current navigation structure - only found client cargo ordering form under 'Оформить груз' section, 3) ❌ FORM ACCESS ISSUE: The enhanced multi-cargo form (lines 4390-4570 in App.js) with checkbox toggle 'Несколько видов груза (с калькулятором)', cargo items list, and calculator functionality is implemented in code but not reachable through the UI navigation, 4) ❌ SESSION PERSISTENCE: Frequent session timeouts during testing indicate potential authentication issues, 5) 🔍 CODE VERIFICATION: Confirmed implementation exists - operatorCargoForm.use_multi_cargo toggle, addCargoItem(), removeCargoItem(), updateCargoItem(), calculateTotals() functions, and complete UI with 'Список грузов', 'Калькулятор стоимости', 'Добавить еще груз' button. ROOT CAUSE: The operator cargo acceptance form is not properly integrated into the navigation flow or is hidden behind a different access path not discoverable through standard warehouse operator navigation. RECOMMENDATION: Main agent needs to verify the navigation path to the operator cargo acceptance form and ensure it's accessible from the warehouse operator dashboard."
   - task: "Comprehensive Warehouse Layout Functionality Testing"
     implemented: true
     working: false
