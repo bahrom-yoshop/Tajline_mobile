@@ -1,8 +1,8 @@
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict
+from pydantic import BaseModel, Field, validator
+from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 import os
 import jwt
