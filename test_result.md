@@ -1422,6 +1422,18 @@ test_plan:
           agent: "testing"
           comment: "✅ PASSED - Interwarehouse transport creation with auto source selection working perfectly. Both manual and automatic modes tested successfully: 1) Manual source selection: Transport created successfully with specified source and destination warehouses ✅, 2) Auto source selection (auto_select_source: true): Transport created with automatically selected source warehouse 'Тестовый Склад 2709' ✅, 3) Auto selection flag properly set in response ✅, 4) Both source_warehouse and destination_warehouse details included in response ✅, 5) Proper access control - operators can only use warehouses they have access to ✅. All functionality working as expected."
 
+  - task: "Test Data Cleanup System"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ COMPREHENSIVE TEST DATA CLEANUP SYSTEM FULLY FUNCTIONAL - All 10 test scenarios passed with 100% success rate! DETAILED RESULTS: 1) ✅ ACCESS CONTROL: Only admin users can access POST /api/admin/cleanup-test-data endpoint, non-admin users get 403 forbidden, unauthorized requests properly rejected, 2) ✅ COMPREHENSIVE CLEANUP: Successfully removes test users (16 deleted), cargo requests (61 deleted), operator cargo (330 deleted), user cargo (86 deleted), unpaid orders (56 deleted), notifications (545 deleted), warehouse cells (137 deleted), 3) ✅ SAFETY VERIFICATION: Current admin user preserved and protected from deletion, production-like users with normal patterns preserved correctly, 4) ✅ CLEANUP REPORTING: Complete cleanup report with all required fields (users_deleted, cargo_requests_deleted, operator_cargo_deleted, user_cargo_deleted, unpaid_orders_deleted, notifications_deleted, warehouse_cells_deleted, details), cleanup metadata includes cleaned_by and cleanup_time, 5) ✅ PATTERN MATCHING: Correctly identifies test data by phone patterns (+992900000000), names containing 'Тест', 'Test', 'Клиент', cargo with test patterns in names/descriptions, 6) ✅ IDEMPOTENCY: Multiple cleanup executions work correctly, second cleanup deleted 0 items (proper idempotent behavior), 7) ✅ AUDIT TRAIL: System notification created after cleanup completion, 8) ✅ DATA INTEGRITY: Production data remains untouched, admin users preserved, legitimate cargo and requests maintained, 9) ✅ PRE/POST VERIFICATION: Baseline counts captured before cleanup (38 users, 131 requests, 1028 operator cargo), after cleanup verification shows proper removal (22 users, 70 requests, 612 operator cargo), 10) ✅ COMPREHENSIVE SCOPE: Removes test users, associated cargo requests, operator cargo, user cargo, unpaid orders, notifications, occupied warehouse cells, system notifications. SUCCESS RATE: 100% (24/24 individual API calls passed). The test data cleanup system is fully functional and safely removes all test data while preserving production data and maintaining proper access controls."
+
 agent_communication:
     - agent: "main"
       message: "Fixed the Calculate Cost button issue by adding cargo_name field to the disabled condition. Also improved session management by increasing JWT token expiry to 24 hours, adding token validation functions, and implementing periodic token checks. Ready for backend testing to verify these fixes work correctly."
