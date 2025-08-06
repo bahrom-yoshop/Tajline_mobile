@@ -11071,15 +11071,27 @@ ID склада: {self.warehouse_id}"""
             if success:
                 cargo_id = accept_response.get('cargo_id')
                 cargo_number = accept_response.get('cargo_number')
-                processing_status = accept_response.get('processing_status')
                 print(f"   📦 Created cargo: {cargo_number} (ID: {cargo_id})")
-                print(f"   🔄 Initial processing_status: {processing_status}")
                 
-                # Verify initial processing_status is "payment_pending"
-                if processing_status == "payment_pending":
-                    print("   ✅ Correct initial processing_status: payment_pending")
+                # Verify initial processing_status by tracking the cargo
+                success, track_response = self.run_test(
+                    f"Verify Initial Processing Status for {cargo_number}",
+                    "GET",
+                    f"/api/cargo/track/{cargo_number}",
+                    200
+                )
+                
+                if success:
+                    processing_status = track_response.get('processing_status')
+                    print(f"   🔄 Initial processing_status: {processing_status}")
+                    
+                    if processing_status == "payment_pending":
+                        print("   ✅ Correct initial processing_status: payment_pending")
+                    else:
+                        print(f"   ❌ Wrong initial processing_status: {processing_status} (expected: payment_pending)")
+                        all_success = False
                 else:
-                    print(f"   ❌ Wrong initial processing_status: {processing_status} (expected: payment_pending)")
+                    print("   ❌ Could not verify initial processing_status")
                     all_success = False
         
         # Step 3: Test status progression workflow
