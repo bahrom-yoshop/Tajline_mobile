@@ -11403,8 +11403,8 @@ ID склада: {self.warehouse_id}"""
                 "PUT",
                 f"/api/cargo/{cargo_id}/processing-status",
                 200,
-                {"new_status": "invoice_printed"},
-                self.tokens['admin']
+                token=self.tokens['admin'],
+                params={"new_status": "invoice_printed"}
             )
             all_success &= success
             
