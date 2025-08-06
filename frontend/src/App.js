@@ -4289,11 +4289,10 @@ function App() {
                                           {item.processing_status === 'payment_pending' && (
                                             <Button
                                               size="sm"
-                                              variant="outline"
-                                              onClick={() => updateCargoProcessingStatus(item.id, 'paid')}
-                                              className="text-xs px-2 py-1"
+                                              onClick={() => handlePaymentAcceptance(item.id, item.cargo_number)}
+                                              className="text-xs px-3 py-1 bg-green-600 hover:bg-green-700 text-white font-medium"
                                             >
-                                              Оплачен
+                                              💰 Оплачен
                                             </Button>
                                           )}
                                           {item.processing_status === 'paid' && (
@@ -4303,7 +4302,7 @@ function App() {
                                               onClick={() => updateCargoProcessingStatus(item.id, 'invoice_printed')}
                                               className="text-xs px-2 py-1"
                                             >
-                                              Накладная
+                                              📄 Накладная
                                             </Button>
                                           )}
                                           {item.processing_status === 'invoice_printed' && (
@@ -4313,7 +4312,7 @@ function App() {
                                               onClick={() => updateCargoProcessingStatus(item.id, 'placed')}
                                               className="text-xs px-2 py-1"
                                             >
-                                              Разместить
+                                              📦 Разместить
                                             </Button>
                                           )}
                                         </div>
