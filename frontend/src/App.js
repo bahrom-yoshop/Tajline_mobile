@@ -4360,7 +4360,7 @@ function App() {
                     </Card>
                   )}
 
-                  {/* Размещение груза */}
+                  {/* Размещение груза - Улучшенный интерфейс */}
                   {activeTab === 'cargo-placement' && (
                     <div className="space-y-6">
                       <Card>
@@ -4370,54 +4370,117 @@ function App() {
                             Размещение груза на складе
                           </CardTitle>
                           <CardDescription>
-                            Выберите груз и разместите его в свободной ячейке склада
+                            Просмотрите доступные грузы и разместите их в ячейках склада
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <Button onClick={fetchAvailableCargo} className="mb-4">
+                          <Button onClick={fetchAvailableCargoForPlacement} className="mb-4">
+                            <RefreshCw className="mr-2 h-4 w-4" />
                             Обновить список грузов
                           </Button>
                           
                           <div className="space-y-4">
-                            {availableCargo.length === 0 ? (
+                            {availableCargoForPlacement.length === 0 ? (
                               <div className="text-center py-8">
                                 <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                                 <p className="text-gray-500">Нет грузов для размещения</p>
+                                <p className="text-sm text-gray-400 mt-2">Оплаченные грузы появятся здесь автоматически</p>
                               </div>
                             ) : (
-                              availableCargo.map((item) => (
-                                <div key={item.id} className="border rounded-lg p-4">
-                                  <div className="flex justify-between items-start mb-4">
-                                    <div>
-                                      <h3 className="font-semibold text-lg">{item.cargo_number}</h3>
-                                      <div className="text-sm text-gray-600 space-y-1">
-                                        <p><strong>Название:</strong> {item.cargo_name}</p>
-                                        <p><strong>От:</strong> {item.sender_full_name} ({item.sender_phone})</p>
-                                        <p><strong>Для:</strong> {item.recipient_full_name} ({item.recipient_phone})</p>
-                                        <p><strong>Вес:</strong> {item.weight} кг</p>
-                                        <p><strong>Описание:</strong> {item.description}</p>
-                                        {item.created_by_operator && (
-                                          <p><strong>Принял:</strong> {item.created_by_operator}</p>
-                                        )}
-                                        {item.placed_by_operator && (
-                                          <p><strong>Разместил:</strong> {item.placed_by_operator}</p>
-                                        )}
+                              <div className="grid gap-6">
+                                {availableCargoForPlacement.map((item) => (
+                                  <Card key={item.id} className="border-l-4 border-l-blue-500">
+                                    <CardContent className="p-6">
+                                      <div className="flex justify-between items-start">
+                                        {/* Основная информация о грузе */}
+                                        <div className="flex-1">
+                                          <div className="flex items-center space-x-4 mb-4">
+                                            <h3 className="font-bold text-xl text-blue-600">{item.cargo_number}</h3>
+                                            <Badge variant={getProcessingStatusBadgeVariant(item.processing_status)}>
+                                              {getProcessingStatusLabel(item.processing_status)}
+                                            </Badge>
+                                          </div>
+                                          
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {/* Информация о грузе */}
+                                            <div className="space-y-2">
+                                              <h4 className="font-semibold text-lg text-gray-700 mb-3">📦 Информация о грузе</h4>
+                                              <div className="space-y-1 text-sm">
+                                                <p><strong>Наименование:</strong> {item.cargo_name}</p>
+                                                <p><strong>Вес:</strong> {item.weight} кг</p>
+                                                <p><strong>Стоимость:</strong> {item.declared_value} ₽</p>
+                                                <p><strong>Статус:</strong> {getProcessingStatusLabel(item.processing_status)}</p>
+                                              </div>
+                                            </div>
+                                            
+                                            {/* Информация об отправителе */}
+                                            <div className="space-y-2">
+                                              <h4 className="font-semibold text-lg text-gray-700 mb-3">👤 Отправитель</h4>
+                                              <div className="space-y-1 text-sm">
+                                                <p><strong>Имя:</strong> {item.sender_full_name}</p>
+                                                <p><strong>Телефон:</strong> {item.sender_phone}</p>
+                                                <p><strong>Принял:</strong> {item.accepting_operator}</p>
+                                              </div>
+                                            </div>
+                                            
+                                            {/* Информация о получателе */}
+                                            <div className="space-y-2">
+                                              <h4 className="font-semibold text-lg text-gray-700 mb-3">📍 Получатель</h4>
+                                              <div className="space-y-1 text-sm">
+                                                <p><strong>Имя:</strong> {item.recipient_name}</p>
+                                                <p><strong>Телефон:</strong> {item.recipient_phone}</p>
+                                                <p><strong>Адрес:</strong> {item.recipient_address}</p>
+                                              </div>
+                                            </div>
+                                            
+                                            {/* Дополнительная информация */}
+                                            <div className="space-y-2">
+                                              <h4 className="font-semibold text-lg text-gray-700 mb-3">ℹ️ Дополнительно</h4>
+                                              <div className="space-y-1 text-sm">
+                                                <p><strong>Описание:</strong> {item.description}</p>
+                                                <p><strong>Маршрут:</strong> {item.route}</p>
+                                                <p><strong>Создан:</strong> {new Date(item.created_at).toLocaleDateString('ru-RU')}</p>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Кнопки действий */}
+                                        <div className="ml-6 flex flex-col space-y-2">
+                                          <Button
+                                            onClick={() => {
+                                              setSelectedCargoForDetailView(item);
+                                              setCargoDetailsModal(true);
+                                            }}
+                                            variant="outline"
+                                            className="flex items-center"
+                                          >
+                                            <Eye className="mr-2 h-4 w-4" />
+                                            Подробнее
+                                          </Button>
+                                          
+                                          <Button
+                                            onClick={() => {
+                                              setSelectedCargoForDetailView(item);
+                                              setQuickPlacementModal(true);
+                                            }}
+                                            className="bg-green-600 hover:bg-green-700 text-white flex items-center"
+                                          >
+                                            <Grid3X3 className="mr-2 h-4 w-4" />
+                                            Разместить
+                                          </Button>
+                                        </div>
                                       </div>
-                                    </div>
-                                    {getStatusBadge(item.status)}
-                                  </div>
-                                  
-                                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                                    <div>
-                                      <Label>Склад</Label>
-                                      <Select 
-                                        value={selectedWarehouse} 
-                                        onValueChange={(warehouseId) => {
-                                          setSelectedWarehouse(warehouseId);
-                                          fetchAvailableCells(warehouseId);
-                                        }}
-                                      >
-                                        <SelectTrigger>
+                                    </CardContent>
+                                  </Card>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
                                           <SelectValue placeholder="Выберите склад" />
                                         </SelectTrigger>
                                         <SelectContent>
