@@ -302,8 +302,8 @@ class MultiCargoTester:
         print("🚀 Starting multi-cargo form testing...")
         
         # Login first
-        if not self.login_warehouse_operator():
-            print("❌ Failed to login as warehouse operator")
+        if not self.login_admin():
+            print("❌ Failed to login as admin")
             return False
         
         # Run the multi-cargo tests
