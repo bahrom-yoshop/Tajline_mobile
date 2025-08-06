@@ -2383,30 +2383,38 @@ async def accept_new_cargo(
     cargo_id = str(uuid.uuid4())
     cargo_number = generate_cargo_number()
     
-    # Обрабатываем множественные грузы или одиночный груз для совместимости
+    # Обрабатываем множественные грузы с индивидуальными ценами или одиночный груз для совместимости
     if cargo_data.cargo_items and len(cargo_data.cargo_items) > 0:
-        # Новый режим с множественными грузами
+        # Новый режим с множественными грузами и индивидуальными ценами
         total_weight = sum(item.weight for item in cargo_data.cargo_items)
-        total_cost = total_weight * cargo_data.price_per_kg
+        total_cost = sum(item.total_cost for item in cargo_data.cargo_items)  # Сумма индивидуальных стоимостей
         
         # Создаем объединенное название груза
         cargo_names = [item.cargo_name for item in cargo_data.cargo_items]
         combined_cargo_name = ", ".join(cargo_names)
         
-        # Сохраняем информацию о составе груза в описании
+        # Сохраняем подробную информацию о каждом грузе с индивидуальными ценами
         cargo_details = []
         for i, item in enumerate(cargo_data.cargo_items, 1):
-            cargo_details.append(f"{i}. {item.cargo_name} - {item.weight} кг")
+            item_cost = item.weight * item.price_per_kg
+            cargo_details.append(f"{i}. {item.cargo_name} - {item.weight} кг × {item.price_per_kg} руб/кг = {item_cost} руб")
         
-        detailed_description = f"{cargo_data.description}\n\nСостав груза:\n" + "\n".join(cargo_details)
-        detailed_description += f"\n\nОбщий вес: {total_weight} кг"
-        detailed_description += f"\nЦена за кг: {cargo_data.price_per_kg} руб."
-        detailed_description += f"\nОбщая стоимость: {total_cost} руб."
+        detailed_description = f"{cargo_data.description}\n\nДетальный расчет по грузам:\n" + "\n".join(cargo_details)
+        detailed_description += f"\n\nИТОГО:"
+        detailed_description += f"\nОбщий вес: {total_weight} кг"
+        detailed_description += f"\nОбщая стоимость: {total_cost} руб"
+        
+    elif cargo_data.weight and cargo_data.price_per_kg:
+        # Старый режим с одиночным грузом и общей ценой за кг (для совместимости)
+        total_weight = cargo_data.weight
+        total_cost = cargo_data.weight * cargo_data.price_per_kg
+        combined_cargo_name = cargo_data.cargo_name or cargo_data.description[:50]
+        detailed_description = f"{cargo_data.description}\n\nРасчет: {total_weight} кг × {cargo_data.price_per_kg} руб/кг = {total_cost} руб"
         
     else:
-        # Старый режим с одиночным грузом для совместимости
+        # Самый старый режим с объявленной стоимостью (для полной совместимости)
         total_weight = cargo_data.weight or 0.0
-        total_cost = cargo_data.declared_value
+        total_cost = cargo_data.declared_value or 0.0
         combined_cargo_name = cargo_data.cargo_name or cargo_data.description[:50]
         detailed_description = cargo_data.description
     
