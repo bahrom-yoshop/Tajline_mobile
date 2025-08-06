@@ -1179,12 +1179,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "New Cargo Number System (YYMMXXXXXX Format)"
-    - "Unpaid Orders System"
-    - "Full Workflow Test - Unpaid Orders"
-  stuck_tasks: 
-    - "New Cargo Number System (YYMMXXXXXX Format)"
-    - "Unpaid Orders System"
+    - "Session Management Fix"
+    - "Calculate Cost Button Fix"
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
