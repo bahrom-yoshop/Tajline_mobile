@@ -768,6 +768,19 @@ function App() {
     fetchOperatorCargo(operatorCargoFilter, 1, perPage);
   };
 
+  // Обработчики пагинации для пользователей
+  const handleUsersPageChange = (newPage) => {
+    setUsersPage(newPage);
+    fetchUsers(newPage, usersPerPage);
+  };
+
+  const handleUsersPerPageChange = (newPerPage) => {
+    const perPage = parseInt(newPerPage);
+    setUsersPerPage(perPage);
+    setUsersPage(1); // Сбрасываем на первую страницу
+    fetchUsers(1, perPage);
+  };
+
   // Обработчики пагинации для размещения грузов
   const handleAvailableCargoPageChange = (newPage) => {
     setAvailableCargoPage(newPage);
