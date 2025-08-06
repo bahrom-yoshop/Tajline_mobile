@@ -1610,6 +1610,274 @@ class CargoTransportAPITester:
         
         return success
 
+    def test_cargo_processing_status_update_fix(self):
+        """Test the fixed cargo processing status update API - Primary Test Scenario"""
+        print("\n🎯 CARGO PROCESSING STATUS UPDATE FIX TESTING")
+        
+        if 'admin' not in self.tokens or 'warehouse_operator' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Create cargo with payment_pending status
+        print("\n   📦 Creating Test Cargo for Processing Status Update...")
+        
+        cargo_data = {
+            "sender_full_name": "Тестовый Отправитель Статус",
+            "sender_phone": "+79111222444",
+            "recipient_full_name": "Тестовый Получатель Статус",
+            "recipient_phone": "+992444555777",
+            "recipient_address": "Душанбе, ул. Статусная, 1",
+            "weight": 15.0,
+            "cargo_name": "Тестовый груз для обновления статуса",
+            "declared_value": 7000.0,
+            "description": "Груз для тестирования обновления статуса обработки",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create Cargo for Status Update Testing",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            cargo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        test_cargo_id = None
+        test_cargo_number = None
+        if success and 'id' in cargo_response:
+            test_cargo_id = cargo_response['id']
+            test_cargo_number = cargo_response.get('cargo_number')
+            processing_status = cargo_response.get('processing_status', 'unknown')
+            print(f"   📦 Created test cargo: {test_cargo_id} (#{test_cargo_number})")
+            print(f"   📊 Initial processing status: {processing_status}")
+        
+        # Test 2: Test the FIXED endpoint with JSON body (not URL parameter)
+        print("\n   🔧 Testing Fixed Processing Status Update Endpoint...")
+        
+        if test_cargo_id:
+            # Test payment_pending → paid transition (the main fix)
+            success, update_response = self.run_test(
+                "Update Processing Status: payment_pending → paid (JSON Body)",
+                "PUT",
+                f"/api/cargo/{test_cargo_id}/processing-status",
+                200,
+                {"new_status": "paid"},  # JSON body as per the fix
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Status update with JSON body successful")
+                print(f"   📄 Response: {update_response}")
+                
+                # Verify the status was actually updated
+                success, cargo_list = self.run_test(
+                    "Verify Status Update in Cargo List",
+                    "GET",
+                    "/api/operator/cargo/list",
+                    200,
+                    token=self.tokens['admin']
+                )
+                
+                if success and 'items' in cargo_list:
+                    updated_cargo = None
+                    for cargo in cargo_list['items']:
+                        if cargo.get('id') == test_cargo_id:
+                            updated_cargo = cargo
+                            break
+                    
+                    if updated_cargo:
+                        new_processing_status = updated_cargo.get('processing_status')
+                        new_payment_status = updated_cargo.get('payment_status')
+                        print(f"   📊 Updated processing_status: {new_processing_status}")
+                        print(f"   💰 Updated payment_status: {new_payment_status}")
+                        
+                        if new_processing_status == "paid" and new_payment_status == "paid":
+                            print("   ✅ Status synchronization working correctly")
+                        else:
+                            print("   ❌ Status synchronization failed")
+                            all_success = False
+                    else:
+                        print("   ❌ Could not find updated cargo in list")
+                        all_success = False
+        
+        # Test 3: Test different status transitions
+        print("\n   🔄 Testing Different Status Transitions...")
+        
+        if test_cargo_id:
+            # Test paid → invoice_printed
+            success, _ = self.run_test(
+                "Update Status: paid → invoice_printed",
+                "PUT",
+                f"/api/cargo/{test_cargo_id}/processing-status",
+                200,
+                {"new_status": "invoice_printed"},
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ paid → invoice_printed transition successful")
+            
+            # Test invoice_printed → placed
+            success, _ = self.run_test(
+                "Update Status: invoice_printed → placed",
+                "PUT",
+                f"/api/cargo/{test_cargo_id}/processing-status",
+                200,
+                {"new_status": "placed"},
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ invoice_printed → placed transition successful")
+        
+        # Test 4: Test invalid status validation
+        print("\n   ❌ Testing Invalid Status Validation...")
+        
+        if test_cargo_id:
+            success, _ = self.run_test(
+                "Invalid Status Update (Should Fail)",
+                "PUT",
+                f"/api/cargo/{test_cargo_id}/processing-status",
+                400,  # Expecting validation error
+                {"new_status": "invalid_status"},
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Invalid status correctly rejected")
+        
+        # Test 5: Test access control
+        print("\n   🔒 Testing Access Control...")
+        
+        if test_cargo_id and 'user' in self.tokens:
+            # Regular user should get 403 error
+            success, _ = self.run_test(
+                "Regular User Access (Should Fail)",
+                "PUT",
+                f"/api/cargo/{test_cargo_id}/processing-status",
+                403,
+                {"new_status": "paid"},
+                self.tokens['user']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Regular user correctly denied access")
+        
+        # Test warehouse operator access (should work)
+        if test_cargo_id:
+            success, _ = self.run_test(
+                "Warehouse Operator Access",
+                "PUT",
+                f"/api/cargo/{test_cargo_id}/processing-status",
+                200,
+                {"new_status": "payment_pending"},  # Reset to test operator access
+                self.tokens['warehouse_operator']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Warehouse operator access working")
+        
+        # Test 6: Test cargo availability for placement after payment
+        print("\n   📋 Testing Cargo Availability for Placement...")
+        
+        if test_cargo_id:
+            # Mark as paid again
+            success, _ = self.run_test(
+                "Mark Cargo as Paid for Placement Test",
+                "PUT",
+                f"/api/cargo/{test_cargo_id}/processing-status",
+                200,
+                {"new_status": "paid"},
+                self.tokens['admin']
+            )
+            
+            if success:
+                # Check if cargo appears in available-for-placement
+                success, placement_response = self.run_test(
+                    "Check Cargo Available for Placement",
+                    "GET",
+                    "/api/operator/cargo/available-for-placement",
+                    200,
+                    token=self.tokens['admin']
+                )
+                
+                if success:
+                    cargo_list = placement_response.get('cargo_list', [])
+                    cargo_found = any(cargo.get('id') == test_cargo_id for cargo in cargo_list)
+                    
+                    if cargo_found:
+                        print("   ✅ Paid cargo correctly appears in placement list")
+                    else:
+                        print("   ⚠️  Paid cargo not found in placement list (may be expected)")
+        
+        # Test 7: Test complete payment workflow
+        print("\n   🔄 Testing Complete Payment Workflow...")
+        
+        # Create another cargo for complete workflow test
+        workflow_cargo_data = {
+            "sender_full_name": "Workflow Test Sender",
+            "sender_phone": "+79111222555",
+            "recipient_full_name": "Workflow Test Recipient",
+            "recipient_phone": "+992444555888",
+            "recipient_address": "Душанбе, ул. Workflow, 1",
+            "weight": 20.0,
+            "cargo_name": "Workflow Test Cargo",
+            "declared_value": 8000.0,
+            "description": "Cargo for complete workflow testing",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, workflow_cargo_response = self.run_test(
+            "Create Cargo for Complete Workflow",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            workflow_cargo_data,
+            self.tokens['admin']
+        )
+        
+        workflow_cargo_id = None
+        if success and 'id' in workflow_cargo_response:
+            workflow_cargo_id = workflow_cargo_response['id']
+            workflow_cargo_number = workflow_cargo_response.get('cargo_number')
+            print(f"   📦 Created workflow cargo: {workflow_cargo_id} (#{workflow_cargo_number})")
+            
+            # Complete workflow: payment_pending → paid → invoice_printed → placed
+            workflow_steps = [
+                ("paid", "Payment accepted"),
+                ("invoice_printed", "Invoice printed"),
+                ("placed", "Ready for placement")
+            ]
+            
+            for status, description in workflow_steps:
+                success, _ = self.run_test(
+                    f"Workflow Step: {description}",
+                    "PUT",
+                    f"/api/cargo/{workflow_cargo_id}/processing-status",
+                    200,
+                    {"new_status": status},
+                    self.tokens['admin']
+                )
+                all_success &= success
+                
+                if success:
+                    print(f"   ✅ {description} - Status: {status}")
+                else:
+                    print(f"   ❌ {description} failed")
+                    break
+        
+        return all_success
+
     def test_enhanced_cargo_placement_features(self):
         """Test the newly implemented enhanced cargo placement features"""
         print("\n🎯 ENHANCED CARGO PLACEMENT FEATURES")
