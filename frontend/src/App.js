@@ -4622,6 +4622,15 @@ function App() {
                             )}
                           </div>
                         </CardContent>
+                        
+                        {/* Пагинация для размещения грузов */}
+                        {availableCargoForPlacement.length > 0 && availableCargoPagination && (
+                          <DataPagination
+                            pagination={availableCargoPagination}
+                            onPageChange={handleAvailableCargoPageChange}
+                            onPerPageChange={handleAvailableCargoPerPageChange}
+                          />
+                        )}
                       </Card>
                     </div>
                   )}
