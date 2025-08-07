@@ -1206,6 +1206,7 @@ async def register(user_data: UserCreate):
     
     user_id = str(uuid.uuid4())
     user_number = generate_user_number()  # Генерируем индивидуальный номер
+    token_version = 1  # Начальная версия токена
     user = {
         "id": user_id,
         "user_number": user_number,  # Добавляем индивидуальный номер
@@ -1214,15 +1215,19 @@ async def register(user_data: UserCreate):
         "password": hash_password(user_data.password),
         "role": user_role.value,  # Роль всегда USER
         "is_active": True,
+        "token_version": token_version,  # Добавляем версию токена
         "created_at": datetime.utcnow()
     }
     
     db.users.insert_one(user)
     
-    # Создание токена
+    # Создание токена с user_id и token_version
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user_data.phone}, expires_delta=access_token_expires
+    access_token = create_user_token(
+        user_id=user_id,
+        phone=user_data.phone,
+        token_version=token_version,
+        expires_delta=access_token_expires
     )
     
     return {
@@ -1235,6 +1240,7 @@ async def register(user_data: UserCreate):
             phone=user_data.phone,
             role=user_role,
             is_active=True,
+            token_version=token_version,
             created_at=user["created_at"]
         )
     }
