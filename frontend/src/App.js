@@ -376,6 +376,9 @@ function App() {
 
   const [alerts, setAlerts] = useState([]);
   
+  // Состояние для предотвращения множественных logout'ов
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  
   // Состояние для отслеживания процесса логина
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
