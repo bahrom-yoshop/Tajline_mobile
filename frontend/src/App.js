@@ -12379,6 +12379,231 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Модальное окно улучшенного размещения груза с аналитикой */}
+      <Dialog open={enhancedPlacementModal} onOpenChange={setEnhancedPlacementModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Grid3X3 className="mr-2 h-5 w-5" />
+              Размещение груза с аналитикой складов
+            </DialogTitle>
+            <DialogDescription>
+              {selectedCargoForEnhancedPlacement && (
+                <span>Размещение груза: <strong>{selectedCargoForEnhancedPlacement.cargo_number}</strong> - {selectedCargoForEnhancedPlacement.cargo_name}</span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Информация о грузе */}
+            {selectedCargoForEnhancedPlacement && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-800 mb-3 flex items-center">
+                  <Package className="mr-2 h-4 w-4" />
+                  Информация о размещаемом грузе
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p><strong>Номер груза:</strong> {selectedCargoForEnhancedPlacement.cargo_number}</p>
+                    <p><strong>Наименование:</strong> {selectedCargoForEnhancedPlacement.cargo_name}</p>
+                    <p><strong>Общий вес:</strong> {selectedCargoForEnhancedPlacement.total_weight} кг</p>
+                  </div>
+                  <div>
+                    <p><strong>Стоимость:</strong> {selectedCargoForEnhancedPlacement.total_cost} руб</p>
+                    <p><strong>Отправитель:</strong> {selectedCargoForEnhancedPlacement.sender_name}</p>
+                    <p><strong>Получатель:</strong> {selectedCargoForEnhancedPlacement.receiver_name}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Аналитика складов */}
+            {warehouseAnalytics && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h3 className="font-semibold text-green-800 mb-3 flex items-center">
+                  <Warehouse className="mr-2 h-4 w-4" />
+                  Аналитика складов
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-3 bg-white rounded border">
+                    <div className="text-2xl font-bold text-blue-600">{warehouseAnalytics.total_warehouses || 0}</div>
+                    <div className="text-sm text-gray-600">Всего складов</div>
+                  </div>
+                  <div className="text-center p-3 bg-white rounded border">
+                    <div className="text-2xl font-bold text-green-600">{warehouseAnalytics.available_cells || 0}</div>
+                    <div className="text-sm text-gray-600">Свободных ячеек</div>
+                  </div>
+                  <div className="text-center p-3 bg-white rounded border">
+                    <div className="text-2xl font-bold text-orange-600">{warehouseAnalytics.occupied_cells || 0}</div>
+                    <div className="text-sm text-gray-600">Занятых ячеек</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Выбор склада */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-lg flex items-center">
+                <Building className="mr-2 h-5 w-5" />
+                Выбор склада
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {warehouses.map((warehouse) => (
+                  <div
+                    key={warehouse.id}
+                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                      selectedWarehouseForPlacement === warehouse.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => handleWarehouseSelectionForPlacement(warehouse.id)}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium">{warehouse.name}</h4>
+                      {selectedWarehouseForPlacement === warehouse.id && (
+                        <CheckCircle className="h-5 w-5 text-blue-500" />
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">{warehouse.address}</p>
+                    <div className="flex justify-between text-xs">
+                      <span>Блоки: {warehouse.blocks_count || 10}</span>
+                      <span>Полки: {warehouse.shelves_per_block || 10}</span>
+                      <span>Ячейки: {warehouse.cells_per_shelf || 10}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Выбор блока, полки и ячейки */}
+            {selectedWarehouseForPlacement && (
+              <div className="space-y-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h3 className="font-semibold text-lg flex items-center">
+                  <MapPin className="mr-2 h-5 w-5" />
+                  Выбор местоположения
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Выбор блока */}
+                  <div>
+                    <Label>Блок</Label>
+                    <Select 
+                      value={selectedBlockForPlacement.toString()} 
+                      onValueChange={(value) => {
+                        const blockNumber = parseInt(value);
+                        handleBlockShelfSelection(blockNumber, selectedShelfForPlacement);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({length: 10}, (_, i) => i + 1).map(blockNum => (
+                          <SelectItem key={blockNum} value={blockNum.toString()}>
+                            Блок {blockNum}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Выбор полки */}
+                  <div>
+                    <Label>Полка</Label>
+                    <Select 
+                      value={selectedShelfForPlacement.toString()} 
+                      onValueChange={(value) => {
+                        const shelfNumber = parseInt(value);
+                        handleBlockShelfSelection(selectedBlockForPlacement, shelfNumber);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({length: 10}, (_, i) => i + 1).map(shelfNum => (
+                          <SelectItem key={shelfNum} value={shelfNum.toString()}>
+                            Полка {shelfNum}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Выбор ячейки */}
+                  <div>
+                    <Label>Ячейка</Label>
+                    <Select 
+                      value={selectedCellForPlacement.toString()} 
+                      onValueChange={(value) => setSelectedCellForPlacement(parseInt(value))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableCellsForPlacement.length > 0 ? (
+                          availableCellsForPlacement.map(cellNum => (
+                            <SelectItem key={cellNum} value={cellNum.toString()}>
+                              Ячейка {cellNum} (свободна)
+                            </SelectItem>
+                          ))
+                        ) : (
+                          Array.from({length: 10}, (_, i) => i + 1).map(cellNum => (
+                            <SelectItem key={cellNum} value={cellNum.toString()}>
+                              Ячейка {cellNum}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Предпросмотр адреса */}
+                <div className="mt-4 p-3 bg-white border rounded-lg">
+                  <p className="text-sm text-gray-600 mb-1">Адрес размещения:</p>
+                  <p className="font-mono text-lg font-bold">
+                    {warehouses.find(w => w.id === selectedWarehouseForPlacement)?.name || 'Склад'} - 
+                    Блок {selectedBlockForPlacement} - 
+                    Полка {selectedShelfForPlacement} - 
+                    Ячейка {selectedCellForPlacement}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Кнопки действий */}
+            <div className="flex justify-end space-x-2 pt-4 border-t">
+              <Button 
+                variant="outline" 
+                onClick={() => setEnhancedPlacementModal(false)}
+                disabled={placementLoading}
+              >
+                Отмена
+              </Button>
+              <Button
+                onClick={handleEnhancedCargoPlacement}
+                disabled={!selectedCargoForEnhancedPlacement || !selectedWarehouseForPlacement || placementLoading}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                {placementLoading ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Размещение...
+                  </>
+                ) : (
+                  <>
+                    <Grid3X3 className="mr-2 h-4 w-4" />
+                    Сохранить размещение
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
