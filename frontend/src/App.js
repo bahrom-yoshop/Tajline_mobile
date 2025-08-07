@@ -1968,55 +1968,357 @@ function App() {
     printWindow.print();
   };
 
-  // Print invoice for individual cargo
+  // Print invoice for individual cargo - TAJLINE format
   const printInvoice = (cargo) => {
     const printWindow = window.open('', '_blank');
+    
+    // Получаем текущую дату в формате dd.mm.yy
+    const currentDate = new Date().toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit'
+    });
+    
+    // Определяем пункт назначения по маршруту
+    const getDestination = (route) => {
+      switch(route) {
+        case 'moscow_dushanbe': return 'Душанбе';
+        case 'moscow_khujand': return 'Худжанд';
+        case 'moscow_kulob': return 'Кулоб';
+        case 'moscow_kurgantyube': return 'Курган-Тюбе';
+        default: return 'Таджикистан';
+      }
+    };
+    
+    // Подготавливаем данные груза для таблицы
+    let cargoItems = [];
+    if (cargo.cargo_items && Array.isArray(cargo.cargo_items)) {
+      // Мульти-груз
+      cargoItems = cargo.cargo_items.map(item => ({
+        name: item.cargo_name || 'Товар',
+        quantity: item.weight || 0,
+        unit: 'кг',
+        price: item.price_per_kg || 0,
+        total: (item.weight || 0) * (item.price_per_kg || 0)
+      }));
+    } else {
+      // Одиночный груз
+      cargoItems = [{
+        name: cargo.cargo_name || cargo.description || 'Товар',
+        quantity: cargo.weight || 0,
+        unit: 'кг', 
+        price: cargo.price_per_kg || (cargo.total_cost || 0) / (cargo.weight || 1),
+        total: cargo.total_cost || cargo.declared_value || 0
+      }];
+    }
+    
+    const totalWeight = cargoItems.reduce((sum, item) => sum + item.quantity, 0);
+    const totalAmount = cargoItems.reduce((sum, item) => sum + item.total, 0);
     
     printWindow.document.write(`
       <html>
         <head>
-          <title>Накладная - ${cargo.cargo_number}</title>
+          <title>Накладная TAJLINE № ${cargo.cargo_number}</title>
+          <meta charset="utf-8">
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; font-size: 14px; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .logo { font-size: 28px; font-weight: bold; color: #1f2937; margin-bottom: 10px; }
-            .company { font-size: 20px; margin-bottom: 5px; }
-            .title { font-size: 18px; font-weight: bold; margin: 20px 0; border-bottom: 2px solid #333; padding-bottom: 10px; }
-            .info-section { margin-bottom: 20px; padding: 15px; border: 2px solid #333; }
-            .info-title { font-weight: bold; font-size: 16px; margin-bottom: 10px; background-color: #f0f0f0; padding: 5px; }
-            .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; padding: 5px 0; border-bottom: 1px dotted #ccc; }
-            .info-label { font-weight: bold; width: 40%; }
-            .info-value { width: 60%; }
-            .summary-box { padding: 15px; background-color: #f9f9f9; border: 2px solid #333; margin-top: 20px; }
-            .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #666; border-top: 1px solid #ccc; padding-top: 10px; }
-            .signatures { margin-top: 30px; display: flex; justify-content: space-between; }
-            .signature-block { width: 45%; text-align: center; padding: 20px 0; border-top: 1px solid #333; }
+            @page {
+              size: A4;
+              margin: 15mm;
+            }
+            
+            body {
+              font-family: Arial, sans-serif;
+              margin: 0;
+              padding: 0;
+              font-size: 11px;
+              line-height: 1.2;
+              color: #000;
+            }
+            
+            .invoice-container {
+              max-width: 100%;
+              margin: 0 auto;
+            }
+            
+            .header {
+              text-align: center;
+              margin-bottom: 20px;
+              border-bottom: 2px solid #000;
+              padding-bottom: 15px;
+            }
+            
+            .logo {
+              font-size: 24px;
+              font-weight: bold;
+              letter-spacing: 2px;
+              margin-bottom: 10px;
+              color: #000;
+            }
+            
+            .contacts {
+              font-size: 9px;
+              line-height: 1.3;
+              color: #666;
+              margin-bottom: 15px;
+            }
+            
+            .invoice-number {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 15px;
+            }
+            
+            .invoice-number .label {
+              font-weight: bold;
+              font-size: 12px;
+            }
+            
+            .invoice-number .number-box,
+            .invoice-number .date-box {
+              border: 2px solid #000;
+              padding: 8px 15px;
+              font-weight: bold;
+              font-size: 14px;
+              min-width: 120px;
+              text-align: center;
+            }
+            
+            .info-row {
+              display: flex;
+              margin-bottom: 5px;
+              border: 1px solid #000;
+            }
+            
+            .info-cell {
+              padding: 6px 8px;
+              border-right: 1px solid #000;
+              font-size: 10px;
+            }
+            
+            .info-cell:last-child {
+              border-right: none;
+            }
+            
+            .info-cell.label {
+              background-color: #f5f5f5;
+              font-weight: bold;
+              width: 15%;
+              text-align: center;
+            }
+            
+            .info-cell.wide {
+              width: 35%;
+            }
+            
+            .cargo-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+              border: 2px solid #000;
+            }
+            
+            .cargo-table th,
+            .cargo-table td {
+              border: 1px solid #000;
+              padding: 6px;
+              text-align: center;
+              font-size: 10px;
+            }
+            
+            .cargo-table th {
+              background-color: #f5f5f5;
+              font-weight: bold;
+            }
+            
+            .cargo-table .item-name {
+              text-align: left;
+            }
+            
+            .total-row {
+              font-weight: bold;
+              background-color: #f9f9f9;
+            }
+            
+            .cargo-value {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin: 15px 0;
+              font-weight: bold;
+              font-size: 12px;
+            }
+            
+            .signatures {
+              margin-top: 30px;
+              display: flex;
+              justify-content: space-between;
+            }
+            
+            .signature-block {
+              width: 30%;
+              text-align: center;
+              border-bottom: 1px solid #000;
+              padding-bottom: 2px;
+              margin-bottom: 5px;
+            }
+            
+            .signature-label {
+              font-size: 9px;
+              margin-top: 5px;
+            }
+            
+            .terms {
+              font-size: 8px;
+              line-height: 1.3;
+              margin-top: 20px;
+              border-top: 1px solid #ccc;
+              padding-top: 10px;
+            }
+            
+            .terms p {
+              margin: 5px 0;
+              text-align: justify;
+            }
+            
+            @media print {
+              body { -webkit-print-color-adjust: exact; }
+              .no-print { display: none !important; }
+            }
           </style>
         </head>
         <body>
-          <div class="header">
-            <div class="logo" style="text-align: center; margin-bottom: 10px;">
-              <img src="/logo.png" alt="TAJLINE.TJ" style="height: 60px; width: auto; margin: 0 auto;" onerror="this.style.display='none'; this.nextSibling.style.display='block';" />
-              <div style="display: none; font-size: 24px; font-weight: bold; color: #2563eb;">📦 TAJLINE.TJ</div>
+          <div class="invoice-container">
+            <!-- Header -->
+            <div class="header">
+              <div class="logo">TAJLINE</div>
+              <div class="contacts">
+                <strong>Наши контакты</strong><br>
+                МСК: (968) 658-8858<br>
+                МСК: (977) 904-8888<br>
+                Склад в Худжанде: +992 92 650 5001<br>
+                Склад в Худжанде: +992 92 913 2442<br>
+                Склад в Душанбе: +992 91 868 3313
+              </div>
             </div>
-            <div class="company">ООО "Таджлайн"</div>
-            <div class="title">ТОВАРНАЯ НАКЛАДНАЯ № ${cargo.cargo_number}</div>
+            
+            <!-- Invoice Number and Date -->
+            <div class="invoice-number">
+              <span class="label">Накладная №</span>
+              <div class="number-box">${cargo.cargo_number || 'N/A'}</div>
+              <span class="label">от</span>
+              <div class="date-box">${currentDate}</div>
+            </div>
+            
+            <!-- Destination -->
+            <div class="info-row">
+              <div class="info-cell label">Пункт назначения</div>
+              <div class="info-cell" style="flex: 1; text-align: center; font-weight: bold;">
+                ${getDestination(cargo.route)}
+              </div>
+            </div>
+            
+            <!-- Sender and Recipient -->
+            <div class="info-row">
+              <div class="info-cell label">Отправитель</div>
+              <div class="info-cell wide">${cargo.sender_full_name || 'Не указан'}</div>
+              <div class="info-cell label">Получатель</div>
+              <div class="info-cell wide">${cargo.recipient_full_name || cargo.recipient_name || 'Не указан'}</div>
+            </div>
+            
+            <div class="info-row">
+              <div class="info-cell label">Телефон</div>
+              <div class="info-cell wide">${cargo.sender_phone || 'Не указан'}</div>
+              <div class="info-cell label">Телефон</div>
+              <div class="info-cell wide">${cargo.recipient_phone || 'Не указан'}</div>
+            </div>
+            
+            <!-- Cargo Table -->
+            <table class="cargo-table">
+              <thead>
+                <tr>
+                  <th style="width: 5%;">№</th>
+                  <th style="width: 35%;">Наименование товара</th>
+                  <th style="width: 15%;">Кол-во</th>
+                  <th style="width: 10%;">Ед.</th>
+                  <th style="width: 15%;">Цена за кг</th>
+                  <th style="width: 20%;">Сумма</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${cargoItems.map((item, index) => `
+                  <tr>
+                    <td>${index + 1}</td>
+                    <td class="item-name">${item.name}</td>
+                    <td>${item.quantity}</td>
+                    <td>${item.unit}</td>
+                    <td>${item.price.toFixed(2)}</td>
+                    <td>${item.total.toFixed(2)}</td>
+                  </tr>
+                `).join('')}
+                <tr class="total-row">
+                  <td colspan="2"><strong>Итого:</strong></td>
+                  <td><strong>${totalWeight}</strong></td>
+                  <td><strong>кг</strong></td>
+                  <td></td>
+                  <td><strong>${totalAmount.toFixed(2)} ₽</strong></td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <!-- Volume -->
+            <div style="text-align: right; margin: 10px 0;">
+              <span style="border: 1px solid #000; padding: 5px 10px;">
+                куб.м
+              </span>
+            </div>
+            
+            <!-- Signatures -->
+            <div class="signatures">
+              <div>
+                <div class="signature-block"></div>
+                <div class="signature-label">м.п.</div>
+              </div>
+              <div>
+                <div class="signature-block"></div>
+                <div class="signature-label"></div>
+              </div>
+              <div>
+                <div class="signature-block">подпись</div>
+                <div class="signature-label"></div>
+              </div>
+            </div>
+            
+            <!-- Cargo Value -->
+            <div class="cargo-value">
+              <span>Ценность груза:</span>
+              <span>${cargo.declared_value || totalAmount.toFixed(0)} руб.</span>
+            </div>
+            
+            <!-- Terms -->
+            <div class="terms">
+              <p><strong>Условия перевозки</strong></p>
+              <p>1. Срок хранения товара Исполнителем в Пункте назначения составляет 5 рабочих дней с момента отправки уведомления об успешной доставке в Пункт назначения. При несвоевременном получении товара Заказчиком возникает обязанность Заказчика уплатить дополнительные пени в размере 0,1% за каждый день превышения Срока хранения товара в Пункте назначения</p>
+              <p>2. При возникновении обстоятельств непреодолимой силы (таких как: пожары, наводнения, землетрясения, военные действия и пр.) и невозможности сохранения товаров Заказчика, Исполнитель обязуется вернуть Заказчику денежные средства в размере, трёхкратно превышающем сумму, оплаченную Заказчиком за доставку товара по Накладной № ${cargo.cargo_number || 'N/A'}.</p>
+            </div>
           </div>
-
-          <div class="info-section">
-            <div class="info-title">Информация о грузе</div>
-            <div class="info-row">
-              <span class="info-label">Номер груза:</span>
-              <span class="info-value"><strong>${cargo.cargo_number}</strong></span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Наименование:</span>
-              <span class="info-value">${cargo.cargo_name || cargo.description || 'Не указано'}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Вес:</span>
-              <span class="info-value">${cargo.weight} кг</span>
-            </div>
+          
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+                window.onafterprint = function() {
+                  window.close();
+                };
+              }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+  };
             <div class="info-row">
               <span class="info-label">Объявленная стоимость:</span>
               <span class="info-value">${cargo.declared_value} руб.</span>
