@@ -1447,28 +1447,63 @@ function App() {
     }
   };
 
-  // Получение доступных ячеек для размещения
-  const fetchAvailableCellsForEnhancedPlacement = async (warehouseId, blockNumber, shelfNumber) => {
+  // Получение детальной структуры склада
+  const fetchWarehouseDetailedStructure = async (warehouseId) => {
+    setStructureLoading(true);
     try {
-      const data = await apiCall(`/api/warehouses/${warehouseId}/available-cells/${blockNumber}/${shelfNumber}`);
-      setAvailableCellsForPlacement(data.available_cells || []);
-      return data.available_cells || [];
+      const data = await apiCall(`/api/warehouses/${warehouseId}/detailed-structure`);
+      setWarehouseDetailedStructure(data);
+      return data;
     } catch (error) {
-      console.error('Error fetching available cells:', error);
-      setAvailableCellsForPlacement([]);
-      return [];
+      console.error('Error fetching warehouse detailed structure:', error);
+      showAlert('Ошибка загрузки структуры склада', 'error');
+      return null;
+    } finally {
+      setStructureLoading(false);
     }
   };
 
-  // Обработка выбора склада для размещения
+  // Обработка выбора склада для размещения с загрузкой структуры
   const handleWarehouseSelectionForPlacement = async (warehouseId) => {
     setSelectedWarehouseForPlacement(warehouseId);
     setSelectedBlockForPlacement(1);
     setSelectedShelfForPlacement(1);
     setSelectedCellForPlacement(1);
+    setSelectedCellForVisualization(null);
     
-    // Загружаем доступные ячейки для выбранного склада
+    // Загружаем детальную структуру склада
+    await fetchWarehouseDetailedStructure(warehouseId);
+    
+    // Также загружаем доступные ячейки для совместимости
     await fetchAvailableCellsForEnhancedPlacement(warehouseId, 1, 1);
+  };
+
+  // Проверка доступности ячейки
+  const isCellAvailable = (blockNumber, shelfNumber, cellNumber) => {
+    if (!warehouseDetailedStructure) return true;
+    
+    const block = warehouseDetailedStructure.blocks?.find(b => b.block_number === blockNumber);
+    if (!block) return true;
+    
+    const shelf = block.shelves?.find(s => s.shelf_number === shelfNumber);
+    if (!shelf) return true;
+    
+    const cell = shelf.cells?.find(c => c.cell_number === cellNumber);
+    return cell?.status === 'available';
+  };
+
+  // Получение информации о занятости ячейки
+  const getCellInfo = (blockNumber, shelfNumber, cellNumber) => {
+    if (!warehouseDetailedStructure) return null;
+    
+    const block = warehouseDetailedStructure.blocks?.find(b => b.block_number === blockNumber);
+    if (!block) return null;
+    
+    const shelf = block.shelves?.find(s => s.shelf_number === shelfNumber);
+    if (!shelf) return null;
+    
+    const cell = shelf.cells?.find(c => c.cell_number === cellNumber);
+    return cell;
   };
 
   // Обработка выбора блока и полки
