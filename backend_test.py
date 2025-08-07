@@ -17369,14 +17369,20 @@ ID склада: {self.warehouse_id}"""
         # Run test suites in order - prioritizing critical operator permission fixes
         test_suites = [
             ("Health Check", self.test_health_check),
+            ("User Registration", self.test_user_registration), 
+            ("User Login", self.test_user_login),
+            # 🎯 PRIMARY FOCUS: NEW ADMIN USER MANAGEMENT API (Review Request)
+            ("🎯 ADMIN USER MANAGEMENT API", self.test_admin_user_management_api),
+            # 🎯 PRIMARY FOCUS: ENHANCED USER PROFILE FUNCTIONALITY (Review Request)
+            ("🎯 ENHANCED USER PROFILE FUNCTIONALITY", self.test_enhanced_user_profile_functionality),
+            # 🎯 PRIMARY FOCUS: CARGO CREATION FOR REPEAT ORDERS (Review Request)
+            ("🎯 CARGO CREATION FOR REPEAT ORDERS", self.test_cargo_creation_for_repeat_orders),
+            # 🎯 PRIMARY FOCUS: SESSION MANAGEMENT IMPROVEMENTS (Review Request)
+            ("🎯 SESSION MANAGEMENT IMPROVEMENTS", self.test_session_management_improvements_new),
             # 🎯 PRIMARY FOCUS: ENHANCED ADMIN PANEL WITH ADVANCED USER MANAGEMENT (Review Request)
             ("🎯 ENHANCED ADMIN PANEL WITH ADVANCED USER MANAGEMENT", self.test_enhanced_admin_panel_with_advanced_user_management),
             # 🎯 PRIMARY FOCUS: WAREHOUSE OPERATOR ROLE VERIFICATION (Review Request)
             ("🎯 WAREHOUSE OPERATOR ROLE VERIFICATION", self.test_warehouse_operator_role_verification),
-            ("User Registration", self.test_user_registration), 
-            ("User Login", self.test_user_login),
-            # 🎯 PRIMARY FOCUS: ENHANCED USER PROFILE FUNCTIONALITY (Review Request)
-            ("🎯 ENHANCED USER PROFILE FUNCTIONALITY", self.test_enhanced_user_profile_functionality),
             # 🎯 PRIMARY FOCUS: ADMIN PANEL ENHANCEMENTS (Review Request)
             ("🎯 ADMIN PANEL ENHANCEMENTS", self.test_admin_panel_enhancements),
             # 🎯 PRIMARY TEST: COMPREHENSIVE WAREHOUSE LAYOUT FUNCTIONALITY (Review Request)
