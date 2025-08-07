@@ -4338,7 +4338,8 @@ function App() {
         subsections: [
           { id: 'warehouses-list', label: 'Список складов' },
           { id: 'warehouses-create', label: 'Создать склад' },
-          { id: 'warehouses-manage', label: 'Управление товарами' }
+          { id: 'warehouses-manage', label: 'Управление товарами' },
+          { id: 'warehouses-placed-cargo', label: 'Размещенные грузы' }
         ]
       },
       {
