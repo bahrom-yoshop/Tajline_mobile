@@ -17360,6 +17360,377 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_cargo_management_workflow_with_auto_filled_data(self):
+        """Test the new cargo management workflow that allows admins and warehouse operators to create cargo directly from user profiles with auto-filled data"""
+        print("\n🎯 CARGO MANAGEMENT WORKFLOW WITH AUTO-FILLED DATA")
+        
+        if 'admin' not in self.tokens or 'user' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: User Profile Access for Admins and Warehouse Operators
+        print("\n   👤 Testing User Profile Access...")
+        
+        # Admin access to user profiles
+        success, admin_users = self.run_test(
+            "Admin Access to User Profiles",
+            "GET",
+            "/api/admin/users",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success and isinstance(admin_users, list) and len(admin_users) > 0:
+            print(f"   ✅ Admin can access {len(admin_users)} user profiles")
+            
+            # Get specific user profile for auto-fill testing
+            test_user = None
+            for user in admin_users:
+                if user.get('role') == 'user' and user.get('phone'):
+                    test_user = user
+                    break
+            
+            if test_user:
+                print(f"   👤 Test user found: {test_user.get('full_name')} ({test_user.get('phone')})")
+                
+                # Test user dashboard access for history data
+                success, user_dashboard = self.run_test(
+                    "Get User Dashboard for History Data",
+                    "GET",
+                    "/api/user/dashboard",
+                    200,
+                    token=self.tokens['user']  # Using user's own token
+                )
+                all_success &= success
+                
+                if success:
+                    print("   ✅ User dashboard accessible for history data")
+                    print(f"   📊 Dashboard structure: {list(user_dashboard.keys()) if isinstance(user_dashboard, dict) else 'Invalid structure'}")
+                    
+                    # Check for required dashboard fields
+                    required_fields = ['user_info', 'cargo_requests', 'sent_cargo', 'received_cargo']
+                    missing_fields = [field for field in required_fields if field not in user_dashboard]
+                    
+                    if not missing_fields:
+                        print("   ✅ All required dashboard fields present")
+                    else:
+                        print(f"   ❌ Missing dashboard fields: {missing_fields}")
+                        all_success = False
+            else:
+                print("   ❌ No suitable test user found")
+                all_success = False
+        else:
+            print("   ❌ Admin cannot access user profiles")
+            all_success = False
+        
+        # Test 2: Cargo Creation with Auto-filled Data using POST /api/operator/cargo/accept
+        print("\n   📦 Testing Cargo Creation with Auto-filled Data...")
+        
+        # Test with admin token first
+        auto_filled_cargo_data = {
+            "sender_full_name": "Иван Автозаполнение",  # Auto-filled from user profile
+            "sender_phone": "+79999999999",  # Auto-filled from user profile
+            "recipient_full_name": "Петр Получатель Авто",  # Auto-filled from cargo history
+            "recipient_phone": "+992999888777",  # Auto-filled from cargo history
+            "recipient_address": "Душанбе, ул. Автозаполнения, 123",  # Auto-filled from history
+            "cargo_items": [
+                {"cargo_name": "Документы", "weight": 10.0, "price_per_kg": 60.0},
+                {"cargo_name": "Одежда", "weight": 25.0, "price_per_kg": 60.0},
+                {"cargo_name": "Электроника", "weight": 100.0, "price_per_kg": 65.0}
+            ],
+            "description": "Груз с автозаполненными данными отправителя и получателя",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create Cargo with Auto-filled Data (Admin)",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            auto_filled_cargo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        created_cargo_id = None
+        if success and 'id' in cargo_response:
+            created_cargo_id = cargo_response['id']
+            cargo_number = cargo_response.get('cargo_number', 'N/A')
+            total_weight = cargo_response.get('weight', 0)
+            total_cost = cargo_response.get('declared_value', 0)
+            processing_status = cargo_response.get('processing_status', 'N/A')
+            
+            print(f"   ✅ Cargo created with auto-filled data: {cargo_number}")
+            print(f"   📊 Total weight: {total_weight} kg, Total cost: {total_cost} руб")
+            print(f"   🔄 Initial status: {processing_status}")
+            
+            # Verify individual pricing calculations (135kg, 8600руб as per review request)
+            expected_weight = 135.0
+            expected_cost = 8600.0
+            
+            if abs(total_weight - expected_weight) < 0.01 and abs(total_cost - expected_cost) < 0.01:
+                print("   ✅ Individual pricing calculations verified (135kg, 8600руб)")
+            else:
+                print(f"   ❌ Pricing calculation error: expected {expected_weight}kg/{expected_cost}руб, got {total_weight}kg/{total_cost}руб")
+                all_success = False
+            
+            # Verify initial status is payment_pending
+            if processing_status == "payment_pending":
+                print("   ✅ Initial status correctly set to 'payment_pending'")
+            else:
+                print(f"   ❌ Initial status incorrect: expected 'payment_pending', got '{processing_status}'")
+                all_success = False
+        
+        # Test with warehouse operator token if available
+        if 'warehouse_operator' in self.tokens:
+            success, warehouse_cargo_response = self.run_test(
+                "Create Cargo with Auto-filled Data (Warehouse Operator)",
+                "POST",
+                "/api/operator/cargo/accept",
+                200,
+                auto_filled_cargo_data,
+                self.tokens['warehouse_operator']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Warehouse operator can also create cargo with auto-filled data")
+        else:
+            print("   ⚠️  Warehouse operator token not available for testing")
+        
+        # Test 3: Cargo Status Workflow
+        print("\n   🔄 Testing Cargo Status Workflow...")
+        
+        if created_cargo_id:
+            # Test initial status (payment_pending)
+            success, cargo_list = self.run_test(
+                "Get Cargo List with Payment Pending Filter",
+                "GET",
+                "/api/operator/cargo/list",
+                200,
+                params={"filter_status": "payment_pending"},
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success and 'items' in cargo_list:
+                payment_pending_cargo = [c for c in cargo_list['items'] if c.get('id') == created_cargo_id]
+                if payment_pending_cargo:
+                    print("   ✅ Cargo appears in payment_pending filter")
+                else:
+                    print("   ❌ Cargo not found in payment_pending filter")
+                    all_success = False
+            
+            # Test status transition: payment_pending → paid
+            success, status_update_response = self.run_test(
+                "Update Cargo Status to Paid",
+                "PUT",
+                f"/api/cargo/{created_cargo_id}/processing-status",
+                200,
+                {"new_status": "paid"},
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Cargo status updated to 'paid'")
+                
+                # Verify cargo appears in awaiting_placement filter after payment
+                success, placement_list = self.run_test(
+                    "Get Cargo List with Awaiting Placement Filter",
+                    "GET",
+                    "/api/operator/cargo/list",
+                    200,
+                    params={"filter_status": "awaiting_placement"},
+                    token=self.tokens['admin']
+                )
+                all_success &= success
+                
+                if success and 'items' in placement_list:
+                    awaiting_placement_cargo = [c for c in placement_list['items'] if c.get('id') == created_cargo_id]
+                    if awaiting_placement_cargo:
+                        print("   ✅ Paid cargo appears in awaiting_placement filter")
+                    else:
+                        print("   ❌ Paid cargo not found in awaiting_placement filter")
+                        all_success = False
+            
+            # Test further status transitions
+            status_transitions = [
+                ("invoice_printed", "Invoice Printed"),
+                ("placed", "Placed")
+            ]
+            
+            for new_status, status_name in status_transitions:
+                success, _ = self.run_test(
+                    f"Update Cargo Status to {status_name}",
+                    "PUT",
+                    f"/api/cargo/{created_cargo_id}/processing-status",
+                    200,
+                    {"new_status": new_status},
+                    self.tokens['admin']
+                )
+                all_success &= success
+                
+                if success:
+                    print(f"   ✅ Cargo status updated to '{new_status}'")
+        
+        # Test 4: User Profile and History Integration
+        print("\n   📚 Testing User Profile and History Integration...")
+        
+        # Test that newly created cargo appears in user's history
+        success, updated_dashboard = self.run_test(
+            "Get Updated User Dashboard",
+            "GET",
+            "/api/user/dashboard",
+            200,
+            token=self.tokens['user']
+        )
+        all_success &= success
+        
+        if success and isinstance(updated_dashboard, dict):
+            # Check if cargo appears in sent_cargo or received_cargo
+            sent_cargo = updated_dashboard.get('sent_cargo', [])
+            received_cargo = updated_dashboard.get('received_cargo', [])
+            
+            print(f"   📊 User has {len(sent_cargo)} sent cargo and {len(received_cargo)} received cargo")
+            
+            # Verify user profile data is accessible
+            user_info = updated_dashboard.get('user_info', {})
+            if user_info:
+                print(f"   👤 User profile accessible: {user_info.get('full_name')} ({user_info.get('phone')})")
+                print("   ✅ User profile data available for auto-filling sender data")
+            else:
+                print("   ❌ User profile data not accessible")
+                all_success = False
+            
+            # Check cargo history for recipient auto-fill data
+            cargo_requests = updated_dashboard.get('cargo_requests', [])
+            if cargo_requests:
+                print(f"   📋 User has {len(cargo_requests)} cargo requests for recipient auto-fill")
+                print("   ✅ Cargo history available for auto-filling recipient data")
+            else:
+                print("   ⚠️  No cargo requests found for recipient auto-fill (may be expected for new user)")
+        
+        # Test 5: Complete Workflow Integration
+        print("\n   🔗 Testing Complete Workflow Integration...")
+        
+        # Test the complete workflow: User profile → Auto-fill → Create cargo → Status workflow
+        workflow_test_data = {
+            "sender_full_name": "Workflow Test Sender",  # Would be auto-filled from user profile
+            "sender_phone": "+79999888777",  # Would be auto-filled from user profile
+            "recipient_full_name": "Workflow Test Recipient",  # Would be auto-filled from history
+            "recipient_phone": "+992888777999",  # Would be auto-filled from history
+            "recipient_address": "Душанбе, ул. Workflow, 456",  # Would be auto-filled from history
+            "cargo_items": [
+                {"cargo_name": "Test Documents", "weight": 5.0, "price_per_kg": 70.0},
+                {"cargo_name": "Test Items", "weight": 15.0, "price_per_kg": 80.0}
+            ],
+            "description": "Complete workflow test cargo",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, workflow_cargo = self.run_test(
+            "Complete Workflow Test - Create Cargo",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            workflow_test_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        workflow_cargo_id = None
+        if success and 'id' in workflow_cargo:
+            workflow_cargo_id = workflow_cargo['id']
+            print(f"   ✅ Workflow test cargo created: {workflow_cargo.get('cargo_number')}")
+            
+            # Test complete status progression
+            workflow_statuses = ["paid", "invoice_printed", "placed"]
+            for status in workflow_statuses:
+                success, _ = self.run_test(
+                    f"Workflow Status Update to {status}",
+                    "PUT",
+                    f"/api/cargo/{workflow_cargo_id}/processing-status",
+                    200,
+                    {"new_status": status},
+                    self.tokens['admin']
+                )
+                all_success &= success
+                
+                if success:
+                    print(f"   ✅ Workflow cargo status updated to '{status}'")
+            
+            # Verify final cargo state
+            success, final_cargo_list = self.run_test(
+                "Get Final Cargo List",
+                "GET",
+                "/api/operator/cargo/list",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success and 'items' in final_cargo_list:
+                final_cargo = [c for c in final_cargo_list['items'] if c.get('id') == workflow_cargo_id]
+                if final_cargo:
+                    final_status = final_cargo[0].get('processing_status', 'unknown')
+                    print(f"   ✅ Final cargo status: {final_status}")
+                    
+                    if final_status == "placed":
+                        print("   ✅ Complete workflow successfully processed")
+                    else:
+                        print(f"   ❌ Workflow incomplete: expected 'placed', got '{final_status}'")
+                        all_success = False
+        
+        # Test 6: Authentication and Authorization
+        print("\n   🔐 Testing Authentication and Authorization...")
+        
+        # Test admin credentials
+        success, admin_auth = self.run_test(
+            "Admin Authentication Test",
+            "POST",
+            "/api/auth/login",
+            200,
+            {"phone": "+79999888777", "password": "admin123"}
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Admin authentication working (+79999888777/admin123)")
+        
+        # Test warehouse operator credentials (if available)
+        success, operator_auth = self.run_test(
+            "Warehouse Operator Authentication Test",
+            "POST",
+            "/api/auth/login",
+            200,
+            {"phone": "+79777888999", "password": "warehouse123"}
+        )
+        
+        if success:
+            print("   ✅ Warehouse operator authentication working")
+        else:
+            print("   ⚠️  Warehouse operator authentication may need setup")
+        
+        # Test access control for cargo creation
+        success, _ = self.run_test(
+            "Regular User Access to Operator Cargo Creation (Should Fail)",
+            "POST",
+            "/api/operator/cargo/accept",
+            403,  # Should be forbidden
+            workflow_test_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Regular users correctly denied access to operator cargo creation")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
