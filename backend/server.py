@@ -3438,16 +3438,24 @@ async def get_available_cargo_for_placement(
         warehouses = list(db.warehouses.find({"is_active": True}))
         operator_warehouses = [w["id"] for w in warehouses]
     
-    # Ищем грузы, готовые к размещению (оплаченные, но не размещенные)
+    # Ищем грузы, готовые к размещению (только оплаченные, но не размещенные)
     placement_query = {
-        "$or": [
-            {"processing_status": {"$in": ["paid", "invoice_printed"]}},
-            {"payment_status": "paid"}
-        ],
-        "$or": [
-            {"warehouse_location": {"$exists": False}},
-            {"warehouse_location": None},
-            {"warehouse_location": ""}
+        "processing_status": "paid",  # Только оплаченные грузы
+        "status": {"$ne": "placed_in_warehouse"},  # Еще не размещенные
+        "$and": [
+            {"$or": [
+                {"warehouse_location": {"$exists": False}},
+                {"warehouse_location": None},
+                {"warehouse_location": ""}
+            ]},
+            {"$or": [
+                {"block_number": {"$exists": False}},
+                {"block_number": None},
+                {"shelf_number": {"$exists": False}}, 
+                {"shelf_number": None},
+                {"cell_number": {"$exists": False}},
+                {"cell_number": None}
+            ]}
         ]
     }
     
