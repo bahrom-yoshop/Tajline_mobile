@@ -18535,7 +18535,7 @@ ID склада: {self.warehouse_id}"""
             
             if success:
                 print("   ✅ Cargo placement via barcode scanner successful")
-                print(f"   📍 Placed at: Б1-П1-Я5")
+                print(f"   📍 Placed at: Б1-П1-Я8")
                 
                 # Verify cargo status changed after placement
                 success, updated_cargo_list = self.run_test(
