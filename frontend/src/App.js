@@ -374,6 +374,9 @@ function App() {
   });
 
   const [alerts, setAlerts] = useState([]);
+  
+  // Состояние для предотвращения множественных logout'ов
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const showAlert = (message, type = 'info') => {
     const id = Date.now();
