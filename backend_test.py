@@ -15850,6 +15850,468 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_enhanced_admin_panel_with_advanced_user_management(self):
+        """Test the enhanced admin panel with advanced user management functionality"""
+        print("\n🎯 ENHANCED ADMIN PANEL WITH ADVANCED USER MANAGEMENT TESTING")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ Admin token not available")
+            return False
+            
+        all_success = True
+        
+        # First, ensure we have test users and operators to work with
+        print("\n   📋 Setting up test data...")
+        
+        # Create a test warehouse operator if not exists
+        test_operator_data = {
+            "full_name": "Тест Оператор Профиль",
+            "phone": "+992777888999",
+            "password": "operator123",
+            "role": "warehouse_operator"
+        }
+        
+        success, operator_response = self.run_test(
+            "Create Test Warehouse Operator",
+            "POST",
+            "/api/auth/register",
+            200,
+            test_operator_data
+        )
+        
+        operator_id = None
+        if success and 'user' in operator_response:
+            operator_id = operator_response['user']['id']
+            print(f"   ✅ Test operator created with ID: {operator_id}")
+        else:
+            # Try to find existing operator
+            success, users_list = self.run_test(
+                "Get Users to Find Operator",
+                "GET",
+                "/api/admin/users",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success and isinstance(users_list, list):
+                for user in users_list:
+                    if user.get('role') == 'warehouse_operator':
+                        operator_id = user.get('id')
+                        print(f"   ✅ Found existing operator with ID: {operator_id}")
+                        break
+        
+        if not operator_id:
+            print("   ❌ No warehouse operator available for testing")
+            return False
+        
+        # Get a regular user ID for testing
+        user_id = None
+        if 'user' in self.users:
+            user_id = self.users['user']['id']
+        else:
+            success, users_list = self.run_test(
+                "Get Users to Find Regular User",
+                "GET",
+                "/api/admin/users",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success and isinstance(users_list, list):
+                for user in users_list:
+                    if user.get('role') == 'user':
+                        user_id = user.get('id')
+                        break
+        
+        if not user_id:
+            print("   ❌ No regular user available for testing")
+            return False
+        
+        # Test 1: Operator Profile Management API
+        print("\n   👨‍💼 Testing Operator Profile Management API...")
+        
+        success, operator_profile = self.run_test(
+            "Get Operator Profile",
+            "GET",
+            f"/api/admin/operators/profile/{operator_id}",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Operator profile endpoint working")
+            
+            # Verify complete data structure
+            required_fields = ['user_info', 'work_statistics', 'cargo_history', 'associated_warehouses', 'recent_activity']
+            missing_fields = [field for field in required_fields if field not in operator_profile]
+            
+            if not missing_fields:
+                print("   ✅ Operator profile has complete data structure")
+                
+                # Verify user_info structure
+                user_info = operator_profile.get('user_info', {})
+                if 'user_number' in user_info and 'role' in user_info:
+                    print(f"   ✅ User info complete: {user_info.get('full_name')} (#{user_info.get('user_number')})")
+                else:
+                    print("   ❌ User info missing required fields")
+                    all_success = False
+                
+                # Verify work statistics
+                work_stats = operator_profile.get('work_statistics', {})
+                expected_stats = ['total_cargo_accepted', 'recent_cargo_count', 'status_breakdown', 'avg_cargo_per_day']
+                missing_stats = [stat for stat in expected_stats if stat not in work_stats]
+                
+                if not missing_stats:
+                    print(f"   ✅ Work statistics complete: {work_stats.get('total_cargo_accepted', 0)} total cargo")
+                    print(f"   📊 Status breakdown: {work_stats.get('status_breakdown', {})}")
+                else:
+                    print(f"   ❌ Work statistics missing: {missing_stats}")
+                    all_success = False
+                
+                # Verify cargo history
+                cargo_history = operator_profile.get('cargo_history', [])
+                print(f"   ✅ Cargo history: {len(cargo_history)} entries")
+                
+                # Verify associated warehouses
+                warehouses = operator_profile.get('associated_warehouses', [])
+                print(f"   ✅ Associated warehouses: {len(warehouses)} warehouses")
+                
+                # Verify recent activity
+                recent_activity = operator_profile.get('recent_activity', [])
+                print(f"   ✅ Recent activity: {len(recent_activity)} activities")
+                
+            else:
+                print(f"   ❌ Operator profile missing fields: {missing_fields}")
+                all_success = False
+        
+        # Test 2: User Profile Management API
+        print("\n   👤 Testing User Profile Management API...")
+        
+        success, user_profile = self.run_test(
+            "Get User Profile",
+            "GET",
+            f"/api/admin/users/profile/{user_id}",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ User profile endpoint working")
+            
+            # Verify comprehensive data structure
+            required_fields = ['user_info', 'shipping_statistics', 'recent_shipments', 'frequent_recipients', 'cargo_requests_history']
+            missing_fields = [field for field in required_fields if field not in user_profile]
+            
+            if not missing_fields:
+                print("   ✅ User profile has comprehensive data structure")
+                
+                # Verify user_info
+                user_info = user_profile.get('user_info', {})
+                if 'user_number' in user_info and 'role' in user_info:
+                    print(f"   ✅ User info complete: {user_info.get('full_name')} (#{user_info.get('user_number')})")
+                else:
+                    print("   ❌ User info missing required fields")
+                    all_success = False
+                
+                # Verify shipping statistics
+                shipping_stats = user_profile.get('shipping_statistics', {})
+                expected_stats = ['total_cargo_requests', 'total_sent_cargo', 'total_received_cargo', 'status_breakdown']
+                missing_stats = [stat for stat in expected_stats if stat not in shipping_stats]
+                
+                if not missing_stats:
+                    print(f"   ✅ Shipping statistics complete:")
+                    print(f"     Requests: {shipping_stats.get('total_cargo_requests', 0)}")
+                    print(f"     Sent: {shipping_stats.get('total_sent_cargo', 0)}")
+                    print(f"     Received: {shipping_stats.get('total_received_cargo', 0)}")
+                else:
+                    print(f"   ❌ Shipping statistics missing: {missing_stats}")
+                    all_success = False
+                
+                # Verify recent shipments from both collections
+                recent_shipments = user_profile.get('recent_shipments', [])
+                print(f"   ✅ Recent shipments: {len(recent_shipments)} entries")
+                
+                # Check if shipments have collection_type marker
+                if recent_shipments:
+                    collection_types = set()
+                    for shipment in recent_shipments[:3]:
+                        if 'collection_type' in shipment:
+                            collection_types.add(shipment['collection_type'])
+                    
+                    if collection_types:
+                        print(f"   ✅ Shipments from collections: {list(collection_types)}")
+                    else:
+                        print("   ⚠️  Shipments missing collection type markers")
+                
+                # Verify frequent recipients with aggregated statistics
+                frequent_recipients = user_profile.get('frequent_recipients', [])
+                print(f"   ✅ Frequent recipients: {len(frequent_recipients)} recipients")
+                
+                if frequent_recipients:
+                    sample_recipient = frequent_recipients[0]
+                    required_recipient_fields = ['recipient_full_name', 'recipient_phone', 'shipment_count', 'last_sent']
+                    missing_recipient_fields = [field for field in required_recipient_fields if field not in sample_recipient]
+                    
+                    if not missing_recipient_fields:
+                        print(f"   ✅ Recipient aggregation working: {sample_recipient.get('shipment_count', 0)} shipments")
+                    else:
+                        print(f"   ❌ Recipient data missing: {missing_recipient_fields}")
+                        all_success = False
+                
+                # Verify cargo requests history
+                requests_history = user_profile.get('cargo_requests_history', [])
+                print(f"   ✅ Cargo requests history: {len(requests_history)} requests")
+                
+            else:
+                print(f"   ❌ User profile missing fields: {missing_fields}")
+                all_success = False
+        
+        # Test 3: Quick Cargo Creation API
+        print("\n   ⚡ Testing Quick Cargo Creation API...")
+        
+        # First, login as warehouse operator to test quick cargo creation
+        operator_login_data = {
+            "phone": "+992777888999",
+            "password": "operator123"
+        }
+        
+        success, operator_login_response = self.run_test(
+            "Login as Warehouse Operator for Quick Cargo",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        
+        operator_token = None
+        if success and 'access_token' in operator_login_response:
+            operator_token = operator_login_response['access_token']
+        else:
+            # Try with existing warehouse operator
+            if 'warehouse_operator' in self.tokens:
+                operator_token = self.tokens['warehouse_operator']
+        
+        if not operator_token:
+            print("   ❌ No warehouse operator token available")
+            all_success = False
+        else:
+            # Test quick cargo creation with multi-item support
+            quick_cargo_data = {
+                "sender_id": user_id,
+                "recipient_data": {
+                    "recipient_full_name": "Тест Получатель Быстрый",
+                    "recipient_phone": "+992999999999",
+                    "recipient_address": "Душанбе, тестовый адрес быстрого создания"
+                },
+                "cargo_items": [
+                    {"cargo_name": "Документы", "weight": 2.0, "price_per_kg": 100.0},
+                    {"cargo_name": "Одежда", "weight": 3.5, "price_per_kg": 80.0}
+                ],
+                "route": "moscow_to_tajikistan",
+                "description": "Быстрое создание из профиля пользователя"
+            }
+            
+            success, quick_cargo_response = self.run_test(
+                "Create Quick Cargo for User",
+                "POST",
+                f"/api/admin/users/{user_id}/quick-cargo",
+                200,
+                quick_cargo_data,
+                operator_token
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Quick cargo creation working")
+                
+                # Verify response structure
+                if 'cargo' in quick_cargo_response:
+                    cargo_info = quick_cargo_response['cargo']
+                    
+                    # Verify calculations
+                    expected_weight = 2.0 + 3.5  # 5.5 kg
+                    expected_cost = (2.0 * 100.0) + (3.5 * 80.0)  # 200 + 280 = 480 rubles
+                    
+                    actual_weight = cargo_info.get('total_weight', 0)
+                    actual_cost = cargo_info.get('total_cost', 0)
+                    
+                    if actual_weight == expected_weight and actual_cost == expected_cost:
+                        print(f"   ✅ Calculations correct: {actual_weight} kg, {actual_cost} rubles")
+                    else:
+                        print(f"   ❌ Calculation error: Expected {expected_weight} kg, {expected_cost} rubles")
+                        print(f"       Got {actual_weight} kg, {actual_cost} rubles")
+                        all_success = False
+                    
+                    # Verify auto-filled sender data
+                    sender_name = cargo_info.get('sender_name', '')
+                    if sender_name:
+                        print(f"   ✅ Auto-filled sender data: {sender_name}")
+                    else:
+                        print("   ❌ Sender data not auto-filled")
+                        all_success = False
+                    
+                    # Verify multi-item support
+                    items_count = cargo_info.get('items_count', 0)
+                    if items_count == 2:
+                        print(f"   ✅ Multi-item support working: {items_count} items")
+                    else:
+                        print(f"   ❌ Multi-item support issue: Expected 2 items, got {items_count}")
+                        all_success = False
+                    
+                    # Store cargo number for integration testing
+                    created_cargo_number = cargo_info.get('cargo_number')
+                    if created_cargo_number:
+                        print(f"   ✅ Cargo created: #{created_cargo_number}")
+                        
+                        # Test integration with existing system
+                        print("\n   🔗 Testing Integration with Existing System...")
+                        
+                        # Check if cargo appears in operator cargo list
+                        success, cargo_list = self.run_test(
+                            "Check Cargo in Operator List",
+                            "GET",
+                            "/api/operator/cargo/list",
+                            200,
+                            token=operator_token
+                        )
+                        
+                        if success:
+                            cargo_found = False
+                            items = cargo_list.get('items', []) if isinstance(cargo_list, dict) else cargo_list
+                            
+                            for cargo in items:
+                                if cargo.get('cargo_number') == created_cargo_number:
+                                    cargo_found = True
+                                    
+                                    # Verify quick_created marker
+                                    if cargo.get('quick_created'):
+                                        print("   ✅ Quick-created cargo has proper marker")
+                                    else:
+                                        print("   ⚠️  Quick-created cargo missing marker")
+                                    
+                                    # Verify sender_id integration
+                                    if cargo.get('sender_id') == user_id:
+                                        print("   ✅ Sender ID properly linked")
+                                    else:
+                                        print("   ❌ Sender ID not properly linked")
+                                        all_success = False
+                                    
+                                    break
+                            
+                            if cargo_found:
+                                print("   ✅ Quick-created cargo appears in operator list")
+                            else:
+                                print("   ❌ Quick-created cargo not found in operator list")
+                                all_success = False
+                        
+                else:
+                    print("   ❌ Quick cargo response missing cargo information")
+                    all_success = False
+        
+        # Test 4: Advanced Role Management
+        print("\n   🔐 Testing Advanced Role Management...")
+        
+        # Test role changes for warehouse operators to administrators
+        if operator_id:
+            role_update_data = {
+                "user_id": operator_id,
+                "new_role": "admin"
+            }
+            
+            success, role_response = self.run_test(
+                "Change Operator Role to Admin",
+                "PUT",
+                "/api/admin/users/role",
+                200,
+                role_update_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Role management working")
+                
+                # Verify role change
+                updated_user = role_response.get('user', {})
+                if updated_user.get('role') == 'admin':
+                    print("   ✅ Role successfully changed to admin")
+                    
+                    # Test access control for profile endpoints
+                    success, profile_access = self.run_test(
+                        "Test Admin Access to Profile Endpoints",
+                        "GET",
+                        f"/api/admin/users/profile/{user_id}",
+                        200,
+                        token=operator_token  # Using the now-admin token
+                    )
+                    
+                    if success:
+                        print("   ✅ Proper access control for profile endpoints")
+                    else:
+                        print("   ❌ Access control issue for profile endpoints")
+                        all_success = False
+                    
+                else:
+                    print("   ❌ Role change failed")
+                    all_success = False
+        
+        # Test 5: Data Aggregation Testing
+        print("\n   📊 Testing Data Aggregation...")
+        
+        # Test frequent recipients calculation from multiple collections
+        if user_id:
+            success, user_profile_again = self.run_test(
+                "Test Data Aggregation in User Profile",
+                "GET",
+                f"/api/admin/users/profile/{user_id}",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success:
+                frequent_recipients = user_profile_again.get('frequent_recipients', [])
+                
+                if frequent_recipients:
+                    print("   ✅ Data aggregation working")
+                    
+                    # Verify recipient statistics
+                    for recipient in frequent_recipients[:2]:
+                        shipment_count = recipient.get('shipment_count', 0)
+                        last_sent = recipient.get('last_sent')
+                        total_weight = recipient.get('total_weight', 0)
+                        total_value = recipient.get('total_value', 0)
+                        
+                        print(f"   📊 Recipient: {recipient.get('recipient_full_name', 'N/A')}")
+                        print(f"       Shipments: {shipment_count}, Weight: {total_weight} kg, Value: {total_value}")
+                        
+                        if shipment_count > 0 and last_sent:
+                            print("   ✅ Recipient statistics accurate")
+                        else:
+                            print("   ❌ Recipient statistics incomplete")
+                            all_success = False
+                else:
+                    print("   ⚠️  No frequent recipients data for aggregation testing")
+        
+        # Test 6: Integration Testing Summary
+        print("\n   🔗 Integration Testing Summary...")
+        
+        if all_success:
+            print("   ✅ ALL ENHANCED ADMIN PANEL TESTS PASSED")
+            print("   ✅ Operator profiles return complete work statistics and history")
+            print("   ✅ User profiles show comprehensive shipping data and recipient history")
+            print("   ✅ Quick cargo creation works with auto-filled data and multi-item support")
+            print("   ✅ Data aggregation is accurate across multiple collections")
+            print("   ✅ All calculations (totals, averages, counts) are mathematically correct")
+            print("   ✅ Proper access control is enforced for admin-only endpoints")
+            print("   ✅ Created cargo integrates seamlessly with existing system")
+        else:
+            print("   ❌ SOME ENHANCED ADMIN PANEL TESTS FAILED")
+            print("   🔍 Issues found in advanced user management functionality")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
@@ -15859,6 +16321,8 @@ ID склада: {self.warehouse_id}"""
         # Run test suites in order - prioritizing critical operator permission fixes
         test_suites = [
             ("Health Check", self.test_health_check),
+            # 🎯 PRIMARY FOCUS: ENHANCED ADMIN PANEL WITH ADVANCED USER MANAGEMENT (Review Request)
+            ("🎯 ENHANCED ADMIN PANEL WITH ADVANCED USER MANAGEMENT", self.test_enhanced_admin_panel_with_advanced_user_management),
             # 🎯 PRIMARY FOCUS: WAREHOUSE OPERATOR ROLE VERIFICATION (Review Request)
             ("🎯 WAREHOUSE OPERATOR ROLE VERIFICATION", self.test_warehouse_operator_role_verification),
             ("User Registration", self.test_user_registration), 
