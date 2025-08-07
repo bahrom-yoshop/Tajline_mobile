@@ -19327,6 +19327,8 @@ ID склада: {target_warehouse_id}"""
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            # 🎯 PRIMARY FOCUS: TAJLINE ENHANCED CARGO PLACEMENT SYSTEM (Review Request)
+            ("🎯 TAJLINE ENHANCED CARGO PLACEMENT SYSTEM", self.test_tajline_enhanced_cargo_placement_system),
             # 🎯 PRIMARY FOCUS: BARCODE SCANNING CARGO PLACEMENT WORKFLOW (Review Request)
             ("🎯 BARCODE SCANNING CARGO PLACEMENT WORKFLOW", self.test_barcode_scanning_cargo_placement_workflow),
             # 🎯 PRIMARY FOCUS: AUTO-FILL FUNCTIONALITY DATA STRUCTURES (Review Request)
