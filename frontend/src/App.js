@@ -652,7 +652,7 @@ function App() {
   };
 
   useEffect(() => {
-    if (token) {
+    if (token && !isLoggingOut) {
       // Проверяем валидность токена перед использованием
       if (isTokenValid(token)) {
         // Попытка получить информацию о пользователе при загрузке
@@ -660,9 +660,7 @@ function App() {
       } else {
         // Токен истек, очищаем его
         console.log('Token expired on startup, clearing session');
-        localStorage.removeItem('token');
-        setToken(null);
-        setUser(null);
+        handleLogout();
         showAlert('Ваша сессия истекла. Пожалуйста, войдите в систему снова.', 'warning');
       }
     }
