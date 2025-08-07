@@ -10223,14 +10223,14 @@ function App() {
               <div className="bg-blue-50 p-4 rounded-lg">
                 <div className="flex justify-between items-start mb-3">
                   <h3 className="font-semibold text-lg">Информация о пользователе</h3>
-                  {user.role === 'warehouse_operator' && (
+                  {(user.role === 'warehouse_operator' || user.role === 'admin') && (
                     <Button
                       size="sm"
-                      onClick={() => openQuickCargoModal(selectedUserProfile.user_info)}
+                      onClick={() => openQuickCargoFromProfile(selectedUserProfile.user_info)}
                       className="bg-green-600 hover:bg-green-700"
                     >
                       <Plus className="mr-2 h-4 w-4" />
-                      Быстро создать груз
+                      Оформить грузы
                     </Button>
                   )}
                 </div>
