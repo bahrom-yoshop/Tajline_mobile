@@ -8,7 +8,7 @@ import json
 
 class IndividualPricingTester:
     def __init__(self):
-        self.base_url = "https://e13771e7-7857-412a-8036-426bb149864d.preview.emergentagent.com"
+        self.base_url = "https://4eda4900-48c0-4e87-838d-cadf96fdd4bb.preview.emergentagent.com"
         self.admin_token = None
         
     def login_admin(self):

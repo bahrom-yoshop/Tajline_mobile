@@ -7,7 +7,7 @@ import requests
 import json
 
 def debug_operator_warehouse_binding():
-    base_url = "https://e13771e7-7857-412a-8036-426bb149864d.preview.emergentagent.com"
+    base_url = "https://4eda4900-48c0-4e87-838d-cadf96fdd4bb.preview.emergentagent.com"
     
     # Login as admin
     admin_login = {
