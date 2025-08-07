@@ -10341,6 +10341,284 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Модальное окно редактирования профиля */}
+      <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Редактирование профиля</DialogTitle>
+            <DialogDescription>
+              Обновите свои личные данные
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit_full_name">Полное имя</Label>
+              <Input
+                id="edit_full_name"
+                value={editProfileForm.full_name}
+                onChange={(e) => setEditProfileForm({...editProfileForm, full_name: e.target.value})}
+                placeholder="Введите полное имя"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit_phone">Телефон</Label>
+              <Input
+                id="edit_phone"
+                value={editProfileForm.phone}
+                onChange={(e) => setEditProfileForm({...editProfileForm, phone: e.target.value})}
+                placeholder="+7XXXXXXXXXX"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit_email">Email (необязательно)</Label>
+              <Input
+                id="edit_email"
+                type="email"
+                value={editProfileForm.email}
+                onChange={(e) => setEditProfileForm({...editProfileForm, email: e.target.value})}
+                placeholder="example@email.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit_address">Адрес (необязательно)</Label>
+              <Textarea
+                id="edit_address"
+                value={editProfileForm.address}
+                onChange={(e) => setEditProfileForm({...editProfileForm, address: e.target.value})}
+                placeholder="Введите ваш адрес"
+                rows={3}
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowEditProfile(false)}>
+                Отмена
+              </Button>
+              <Button onClick={saveProfile}>
+                <Save className="mr-2 h-4 w-4" />
+                Сохранить
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Модальное окно повторного заказа */}
+      <Dialog open={showRepeatOrderModal} onOpenChange={setShowRepeatOrderModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Повторить заказ</DialogTitle>
+            <DialogDescription>
+              Создайте новый заказ на основе данных груза #{repeatOrderData?.cargo_number}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Информация о получателе */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="repeat_recipient_name">Получатель</Label>
+                <Input
+                  id="repeat_recipient_name"
+                  value={repeatOrderForm.recipient_full_name}
+                  onChange={(e) => setRepeatOrderForm({...repeatOrderForm, recipient_full_name: e.target.value})}
+                  placeholder="ФИО получателя"
+                />
+              </div>
+              <div>
+                <Label htmlFor="repeat_recipient_phone">Телефон получателя</Label>
+                <Input
+                  id="repeat_recipient_phone"
+                  value={repeatOrderForm.recipient_phone}
+                  onChange={(e) => setRepeatOrderForm({...repeatOrderForm, recipient_phone: e.target.value})}
+                  placeholder="+992XXXXXXXXX"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="repeat_recipient_address">Адрес получателя</Label>
+              <Textarea
+                id="repeat_recipient_address"
+                value={repeatOrderForm.recipient_address}
+                onChange={(e) => setRepeatOrderForm({...repeatOrderForm, recipient_address: e.target.value})}
+                placeholder="Полный адрес доставки"
+                rows={2}
+              />
+            </div>
+
+            {/* Маршрут */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="repeat_route">Маршрут</Label>
+                <Select value={repeatOrderForm.route} onValueChange={(value) => setRepeatOrderForm({...repeatOrderForm, route: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="moscow_dushanbe">Москва → Душанбе</SelectItem>
+                    <SelectItem value="moscow_khujand">Москва → Худжанд</SelectItem>
+                    <SelectItem value="moscow_kulob">Москва → Кулоб</SelectItem>
+                    <SelectItem value="moscow_kurgantyube">Москва → Курган-Тюбе</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="repeat_delivery_type">Тип доставки</Label>
+                <Select value={repeatOrderForm.delivery_type} onValueChange={(value) => setRepeatOrderForm({...repeatOrderForm, delivery_type: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">Стандартная</SelectItem>
+                    <SelectItem value="express">Экспресс</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Мульти-груз форма с калькулятором */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium">Грузы для отправки</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addRepeatOrderItem}
+                >
+                  <Plus className="mr-1 h-4 w-4" />
+                  Добавить груз
+                </Button>
+              </div>
+
+              {/* Список грузов */}
+              <div className="space-y-4">
+                {repeatOrderForm.cargo_items.map((item, index) => (
+                  <div key={index} className="grid grid-cols-12 gap-4 items-end border rounded p-3 bg-gray-50">
+                    <div className="col-span-4">
+                      <Label>Название груза</Label>
+                      <Input
+                        value={item.cargo_name}
+                        onChange={(e) => handleRepeatOrderItemChange(index, 'cargo_name', e.target.value)}
+                        placeholder="Название груза"
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <Label>Вес (кг)</Label>
+                      <Input
+                        type="number"
+                        value={item.weight}
+                        onChange={(e) => handleRepeatOrderItemChange(index, 'weight', e.target.value)}
+                        placeholder="0.0"
+                        step="0.1"
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <Label>Цена за кг (₽)</Label>
+                      <Input
+                        type="number"
+                        value={item.price_per_kg}
+                        onChange={(e) => handleRepeatOrderItemChange(index, 'price_per_kg', e.target.value)}
+                        placeholder="50"
+                        step="0.01"
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <Label className="text-xs text-gray-600">Стоимость</Label>
+                      <div className="text-sm font-medium">
+                        {((parseFloat(item.weight) || 0) * (parseFloat(item.price_per_kg) || 0)).toFixed(2)} ₽
+                      </div>
+                    </div>
+                    <div className="col-span-1">
+                      {repeatOrderForm.cargo_items.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeRepeatOrderItem(index)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Калькулятор итогов */}
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <h4 className="font-medium mb-3">Расчет стоимости</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {repeatOrderTotalWeight.toFixed(2)} кг
+                    </div>
+                    <div className="text-sm text-gray-600">Общий вес</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {repeatOrderTotalCost.toFixed(2)} ₽
+                    </div>
+                    <div className="text-sm text-gray-600">Общая стоимость</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {repeatOrderForm.cargo_items.length}
+                    </div>
+                    <div className="text-sm text-gray-600">Количество грузов</div>
+                  </div>
+                </div>
+
+                {/* Детальная разбивка */}
+                {repeatOrderBreakdown.length > 0 && (
+                  <div className="mt-4">
+                    <h5 className="text-sm font-medium mb-2">Детализация по грузам:</h5>
+                    <div className="space-y-1">
+                      {repeatOrderBreakdown.map((item, index) => (
+                        <div key={index} className="flex justify-between text-sm">
+                          <span>{item.cargo_name}: {item.weight}кг × {item.price_per_kg}₽</span>
+                          <span className="font-medium">{item.cost.toFixed(2)} ₽</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Дополнительные опции */}
+            <div>
+              <Label htmlFor="repeat_special_instructions">Особые указания</Label>
+              <Textarea
+                id="repeat_special_instructions"
+                value={repeatOrderForm.special_instructions}
+                onChange={(e) => setRepeatOrderForm({...repeatOrderForm, special_instructions: e.target.value})}
+                placeholder="Дополнительная информация для доставки"
+                rows={2}
+              />
+            </div>
+
+            {/* Кнопки действий */}
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowRepeatOrderModal(false)}>
+                Отмена
+              </Button>
+              <Button 
+                onClick={submitRepeatOrder}
+                disabled={
+                  !repeatOrderForm.recipient_full_name ||
+                  !repeatOrderForm.recipient_phone ||
+                  repeatOrderForm.cargo_items.some(item => !item.cargo_name || !item.weight || !item.price_per_kg)
+                }
+              >
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Создать заказ ({repeatOrderTotalCost.toFixed(2)} ₽)
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
