@@ -5577,6 +5577,19 @@ function App() {
                         <CardDescription>
                           Заполните форму для приема нового груза от клиента
                         </CardDescription>
+                        {isFilledFromProfile && profileSourceUser && (
+                          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="flex items-center text-blue-800">
+                              <User className="mr-2 h-4 w-4" />
+                              <span className="text-sm font-medium">
+                                Данные автозаполнены из профиля: {profileSourceUser.full_name} ({profileSourceUser.user_number})
+                              </span>
+                            </div>
+                            <p className="text-xs text-blue-600 mt-1">
+                              Данные отправителя и получателя заполнены автоматически. Заполните только грузы.
+                            </p>
+                          </div>
+                        )}
                       </CardHeader>
                       <CardContent>
                         <form onSubmit={handleAcceptCargo} className="space-y-4 max-w-2xl">
