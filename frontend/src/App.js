@@ -701,13 +701,21 @@ function App() {
     }
   };
 
-  const resetScannerState = () => {
+  const resetScannerState = async () => {
     setScannerMode('none');
     setScannerActive(false);
     setScannedCargoData(null);
     setScannedCellData(null);
     setScannerError(null);
+    await stopCameraScanner();
   };
+
+  // Очистка камеры при размонтировании компонента
+  useEffect(() => {
+    return () => {
+      stopCameraScanner();
+    };
+  }, [html5QrCode]);
 
   const simulateBarcodeScan = (testData) => {
     // Функция для тестирования без реальной камеры
