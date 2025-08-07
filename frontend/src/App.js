@@ -3459,7 +3459,7 @@ function App() {
       });
       
       // Рассчитываем калькулятор
-      calculateCargoTotals([{ cargo_name: '', weight: '', price_per_kg: '50' }]);
+      calculateTotalsWithIndividualPrices([{ cargo_name: '', weight: '', price_per_kg: '50' }]);
       
       // Переходим на страницу приема груза
       setActiveSection('cargo-management');
