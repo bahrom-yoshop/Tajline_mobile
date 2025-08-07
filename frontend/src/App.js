@@ -2969,56 +2969,9 @@ function App() {
   };
 
   const printCargoInvoice = (cargo) => {
-    const printWindow = window.open('', '_blank');
-    const invoiceHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Накладная - ${cargo.cargo_number}</title>
-        <style>
-          @page { size: A5; margin: 10mm; }
-          body { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.4; margin: 0; }
-          .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
-          .logo { font-size: 24px; font-weight: bold; color: #0066cc; margin-bottom: 5px; }
-          .company { font-size: 14px; color: #666; }
-          .title { text-align: center; font-size: 16px; font-weight: bold; margin: 15px 0; }
-          .section { margin-bottom: 15px; }
-          .section-title { font-weight: bold; background: #f0f0f0; padding: 5px; margin-bottom: 8px; }
-          .info-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
-          .info-label { font-weight: bold; }
-          .footer { margin-top: 20px; text-align: center; font-size: 10px; color: #666; }
-          .signature { margin-top: 30px; display: flex; justify-content: space-between; }
-          .signature div { width: 45%; text-align: center; border-top: 1px solid #333; padding-top: 5px; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="logo" style="text-align: center; margin-bottom: 15px;">
-            <img src="/logo.png" alt="TAJLINE.TJ" style="height: 60px; width: auto; margin: 0 auto;" onerror="this.style.display='none'; this.nextSibling.style.display='block';" />
-            <div style="display: none; font-size: 28px; font-weight: bold; color: #2563eb;">TAJLINE.TJ</div>
-          </div>
-          <div class="company">Грузоперевозки Москва-Таджикистан</div>
-        </div>
-        
-        <div class="title">НАКЛАДНАЯ № ${cargo.cargo_number}</div>
-        
-        <div class="section">
-          <div class="section-title">Информация о грузе</div>
-          <div class="info-row">
-            <span class="info-label">Дата приема:</span>
-            <span>${new Date(cargo.created_at).toLocaleDateString('ru-RU')} ${new Date(cargo.created_at).toLocaleTimeString('ru-RU')}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Маршрут:</span>
-            <span>${cargo.route === 'moscow_to_tajikistan' ? 'Москва → Таджикистан' : 'Таджикистан → Москва'}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Описание:</span>
-            <span>${cargo.description}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Вес:</span>
+    // Используем тот же формат, что и printInvoice
+    printInvoice(cargo);
+  };
             <span>${cargo.weight} кг</span>
           </div>
           <div class="info-row">
