@@ -207,6 +207,25 @@ function App() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchTime, setSearchTime] = useState(0);
+
+  // Profile management states
+  const [showOperatorProfile, setShowOperatorProfile] = useState(false);
+  const [showUserProfile, setShowUserProfile] = useState(false);
+  const [selectedOperatorProfile, setSelectedOperatorProfile] = useState(null);
+  const [selectedUserProfile, setSelectedUserProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  
+  // Quick cargo creation states
+  const [showQuickCargoModal, setShowQuickCargoModal] = useState(false);
+  const [quickCargoForm, setQuickCargoForm] = useState({
+    sender_id: '',
+    recipient_data: {},
+    cargo_items: [{ cargo_name: '', weight: '', price_per_kg: '' }],
+    route: 'moscow_to_tajikistan',
+    description: ''
+  });
+  const [frequentRecipients, setFrequentRecipients] = useState([]);
+  const [selectedRecipient, setSelectedRecipient] = useState(null);
   const [operatorCargoFilter, setOperatorCargoFilter] = useState(''); // Фильтр для списка грузов
   const [operatorCargoPagination, setOperatorCargoPagination] = useState({}); // Пагинация для списка грузов
   const [operatorCargoPage, setOperatorCargoPage] = useState(1);
