@@ -192,6 +192,50 @@ class PersonalDashboard(BaseModel):
     received_cargo: List[dict] = []  # Полученные грузы (как получатель)
     sent_cargo: List[dict] = []     # Отправленные грузы
 
+# Модели для расширенного поиска
+class AdvancedSearchRequest(BaseModel):
+    query: Optional[str] = None  # Основной поисковый запрос
+    search_type: str = "all"  # all, cargo, users, warehouses
+    
+    # Фильтры для грузов
+    cargo_status: Optional[str] = None  # accepted, in_transit, delivered, etc.
+    payment_status: Optional[str] = None  # pending, paid
+    processing_status: Optional[str] = None  # payment_pending, paid, ready_for_placement
+    route: Optional[str] = None  # moscow_to_tajikistan, tajikistan_to_moscow
+    sender_phone: Optional[str] = None
+    recipient_phone: Optional[str] = None
+    
+    # Фильтры по дате
+    date_from: Optional[str] = None  # ISO format date
+    date_to: Optional[str] = None
+    
+    # Фильтры для пользователей
+    user_role: Optional[str] = None  # user, admin, warehouse_operator
+    user_status: Optional[bool] = None  # active/inactive
+    
+    # Параметры сортировки и пагинации
+    sort_by: Optional[str] = "created_at"  # created_at, weight, declared_value
+    sort_order: Optional[str] = "desc"  # asc, desc
+    page: Optional[int] = 1
+    per_page: Optional[int] = 20
+    
+class SearchResult(BaseModel):
+    type: str  # cargo, user, warehouse
+    id: str
+    title: str  # Основное название/заголовок
+    subtitle: str  # Дополнительная информация
+    details: dict  # Детальная информация
+    relevance_score: Optional[float] = None  # Оценка релевантности
+    
+class AdvancedSearchResponse(BaseModel):
+    results: List[SearchResult]
+    total_count: int
+    page: int
+    per_page: int
+    total_pages: int
+    search_time_ms: int
+    suggestions: List[str] = []  # Предложения для автодополнения
+
 class CargoCreate(BaseModel):
     recipient_name: str
     recipient_phone: str
