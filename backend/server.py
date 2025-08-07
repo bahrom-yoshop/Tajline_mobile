@@ -734,9 +734,18 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         if user is None:
             raise HTTPException(status_code=401, detail="User not found")
         
+        user_number = user.get("user_number")
+        if not user_number:
+            # Генерируем и сохраняем user_number для пользователя без номера
+            user_number = generate_user_number()
+            db.users.update_one(
+                {"id": user["id"]},
+                {"$set": {"user_number": user_number}}
+            )
+        
         return User(
             id=user["id"],
-            user_number=user.get("user_number") or generate_user_number(),  # Генерируем если нет
+            user_number=user_number,
             full_name=user["full_name"],
             phone=user["phone"],
             role=user["role"],
