@@ -832,6 +832,40 @@ def generate_cargo_number() -> str:
         random_suffix = random.randint(1000, 9999)
         return f"{year_month}{random_suffix:04d}"
 
+def generate_user_number() -> str:
+    """Генерируем индивидуальный номер пользователя формата USR001234"""
+    try:
+        # Ищем последний пользователь с номером для определения следующего номера
+        last_user = db.users.find_one(
+            {"user_number": {"$regex": "^USR[0-9]{6}$"}},
+            sort=[("user_number", -1)]
+        )
+        
+        if last_user and "user_number" in last_user:
+            # Извлекаем числовую часть и увеличиваем на 1
+            last_number = int(last_user["user_number"][3:])  # Убираем префикс USR
+            next_number = last_number + 1
+        else:
+            # Начинаем с номера 1
+            next_number = 1
+        
+        # Формируем номер пользователя с префиксом USR и 6 цифрами
+        user_number = f"USR{next_number:06d}"
+        
+        # Проверяем уникальность номера
+        attempts = 0
+        while db.users.find_one({"user_number": user_number}) and attempts < 100:
+            next_number += 1
+            user_number = f"USR{next_number:06d}"
+            attempts += 1
+        
+        return user_number
+        
+    except Exception as e:
+        # В случае ошибки, генерируем случайный номер
+        import random
+        return f"USR{random.randint(1, 999999):06d}"
+
 def generate_cargo_qr_code(cargo_data: dict) -> str:
     """Генерировать QR код для груза с базовой информацией"""
     try:
