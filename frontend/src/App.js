@@ -744,7 +744,7 @@ function App() {
 
   // Периодическая проверка валидности токена
   useEffect(() => {
-    if (token && user && !isLoggingOut) {
+    if (token && user && !isLoggingOut && !isLoggingIn) {
       const interval = setInterval(() => {
         if (!isTokenValid(token)) {
           console.log('Token expired during session, logging out');
@@ -754,7 +754,7 @@ function App() {
 
       return () => clearInterval(interval);
     }
-  }, [token, user, isLoggingOut]);
+  }, [token, user, isLoggingOut, isLoggingIn]);
 
   useEffect(() => {
     if (user) {
