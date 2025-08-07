@@ -3082,6 +3082,144 @@ function App() {
     return labels[role] || role;
   };
 
+  // Функция для редактирования профиля пользователя
+  const openEditProfile = () => {
+    setEditProfileForm({
+      full_name: user.full_name || '',
+      phone: user.phone || '',
+      email: user.email || '',
+      address: user.address || ''
+    });
+    setShowEditProfile(true);
+  };
+
+  const saveProfile = async () => {
+    try {
+      const updatedUser = await apiCall('/api/user/profile', 'PUT', editProfileForm);
+      setUser(updatedUser);
+      setShowEditProfile(false);
+      showAlert('Профиль обновлен успешно!', 'success');
+    } catch (error) {
+      showAlert('Ошибка обновления профиля: ' + error.message, 'error');
+    }
+  };
+
+  // Функция для открытия модального окна повторного заказа
+  const openRepeatOrder = (cargo) => {
+    setRepeatOrderData(cargo);
+    setRepeatOrderForm({
+      cargo_items: [{ 
+        cargo_name: cargo.cargo_name || cargo.description || 'Груз', 
+        weight: cargo.weight || '', 
+        price_per_kg: cargo.price_per_kg || '50' 
+      }],
+      recipient_full_name: cargo.recipient_full_name || '',
+      recipient_phone: cargo.recipient_phone || '',
+      recipient_address: cargo.recipient_address || '',
+      route: cargo.route || 'moscow_dushanbe',
+      delivery_type: 'standard',
+      insurance_requested: false,
+      special_instructions: '',
+      use_multi_cargo: true
+    });
+    setShowRepeatOrderModal(true);
+    calculateRepeatOrderTotals([{ 
+      cargo_name: cargo.cargo_name || cargo.description || 'Груз', 
+      weight: cargo.weight || '', 
+      price_per_kg: cargo.price_per_kg || '50' 
+    }]);
+  };
+
+  // Функция для расчета итогов повторного заказа
+  const calculateRepeatOrderTotals = (cargoItems) => {
+    let totalWeight = 0;
+    let totalCost = 0;
+    const breakdown = [];
+
+    cargoItems.forEach((item, index) => {
+      const weight = parseFloat(item.weight) || 0;
+      const pricePerKg = parseFloat(item.price_per_kg) || 0;
+      const itemCost = weight * pricePerKg;
+
+      totalWeight += weight;
+      totalCost += itemCost;
+
+      breakdown.push({
+        index: index,
+        cargo_name: item.cargo_name || `Груз ${index + 1}`,
+        weight: weight,
+        price_per_kg: pricePerKg,
+        cost: itemCost
+      });
+    });
+
+    setRepeatOrderTotalWeight(totalWeight);
+    setRepeatOrderTotalCost(totalCost);
+    setRepeatOrderBreakdown(breakdown);
+  };
+
+  // Обработчик изменения элементов груза в повторном заказе
+  const handleRepeatOrderItemChange = (index, field, value) => {
+    const updatedItems = [...repeatOrderForm.cargo_items];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+    setRepeatOrderForm({ ...repeatOrderForm, cargo_items: updatedItems });
+    calculateRepeatOrderTotals(updatedItems);
+  };
+
+  // Добавление нового элемента груза в повторный заказ
+  const addRepeatOrderItem = () => {
+    const newItems = [...repeatOrderForm.cargo_items, { cargo_name: '', weight: '', price_per_kg: '50' }];
+    setRepeatOrderForm({ ...repeatOrderForm, cargo_items: newItems });
+    calculateRepeatOrderTotals(newItems);
+  };
+
+  // Удаление элемента груза из повторного заказа
+  const removeRepeatOrderItem = (index) => {
+    if (repeatOrderForm.cargo_items.length > 1) {
+      const newItems = repeatOrderForm.cargo_items.filter((_, i) => i !== index);
+      setRepeatOrderForm({ ...repeatOrderForm, cargo_items: newItems });
+      calculateRepeatOrderTotals(newItems);
+    }
+  };
+
+  // Отправка повторного заказа
+  const submitRepeatOrder = async () => {
+    try {
+      if (repeatOrderForm.cargo_items.some(item => !item.cargo_name || !item.weight || !item.price_per_kg)) {
+        showAlert('Пожалуйста, заполните все поля для всех грузов', 'error');
+        return;
+      }
+
+      if (!repeatOrderForm.recipient_full_name || !repeatOrderForm.recipient_phone) {
+        showAlert('Пожалуйста, заполните данные получателя', 'error');
+        return;
+      }
+
+      const orderData = {
+        ...repeatOrderForm,
+        sender_full_name: user.full_name,
+        sender_phone: user.phone,
+        total_weight: repeatOrderTotalWeight,
+        total_cost: repeatOrderTotalCost
+      };
+
+      const result = await apiCall('/api/operator/cargo/accept', 'POST', orderData);
+      
+      setShowRepeatOrderModal(false);
+      setRepeatOrderData(null);
+      
+      // Обновляем данные клиента
+      fetchClientDashboard();
+      fetchClientCargo();
+      
+      showAlert(`Повторный заказ успешно создан! Номер: ${result.cargo_number}`, 'success');
+      
+    } catch (error) {
+      console.error('Error creating repeat order:', error);
+      showAlert('Ошибка создания заказа: ' + error.message, 'error');
+    }
+  };
+
   // Боковое меню для админа и оператора склада
   const SidebarMenu = () => {
     if (user?.role === 'user') return null;
