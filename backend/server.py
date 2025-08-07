@@ -418,6 +418,28 @@ class OperatorCargoCreate(BaseModel):
         """Для совместимости - возвращает общую стоимость"""
         return self.total_cost
 
+# Модели для расширенного управления пользователями
+class OperatorProfile(BaseModel):
+    user_info: User
+    work_statistics: dict
+    cargo_history: List[dict] = []
+    associated_warehouses: List[dict] = []
+    recent_activity: List[dict] = []
+
+class UserProfile(BaseModel):
+    user_info: User
+    shipping_statistics: dict
+    recent_shipments: List[dict] = []
+    frequent_recipients: List[dict] = []
+    cargo_requests_history: List[dict] = []
+
+class QuickCargoRequest(BaseModel):
+    sender_id: str  # ID пользователя-отправителя
+    recipient_data: dict  # Данные получателя из истории или новые
+    cargo_items: List[CargoItem]  # Используем существующую модель
+    route: RouteType = RouteType.MOSCOW_TO_TAJIKISTAN
+    description: str
+
 class CargoPlacement(BaseModel):
     cargo_id: str
     warehouse_id: str
