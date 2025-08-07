@@ -1648,6 +1648,336 @@ class CargoTransportAPITester:
         
         return all_success
 
+    def test_admin_panel_enhancements(self):
+        """Test admin panel enhancements: user number generation, role management, and personal dashboard"""
+        print("\n👑 ADMIN PANEL ENHANCEMENTS TESTING")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: User Number Generation during Registration
+        print("\n   🔢 Testing User Number Generation...")
+        
+        test_user_data = {
+            "full_name": "Тест Пользователь Номер",
+            "phone": "+79888555444",
+            "password": "password123",
+            "role": "user"
+        }
+        
+        success, response = self.run_test(
+            "User Registration with Number Generation",
+            "POST",
+            "/api/auth/register",
+            200,
+            test_user_data
+        )
+        all_success &= success
+        
+        test_user_id = None
+        test_user_number = None
+        test_user_token = None
+        
+        if success and 'user' in response:
+            user_data = response['user']
+            test_user_id = user_data.get('id')
+            test_user_number = user_data.get('user_number')
+            test_user_token = response.get('access_token')
+            
+            print(f"   ✅ User created with ID: {test_user_id}")
+            print(f"   🏷️  User number: {test_user_number}")
+            
+            # Verify user_number format (USR######)
+            if test_user_number and test_user_number.startswith('USR') and len(test_user_number) == 9:
+                print("   ✅ User number format verified (USR######)")
+            else:
+                print(f"   ❌ Invalid user number format: {test_user_number}")
+                all_success = False
+        
+        # Test 2: User Number in Login Response
+        print("\n   🔐 Testing User Number in Login Response...")
+        
+        success, login_response = self.run_test(
+            "Login with User Number Check",
+            "POST",
+            "/api/auth/login",
+            200,
+            {"phone": test_user_data['phone'], "password": test_user_data['password']}
+        )
+        all_success &= success
+        
+        if success and 'user' in login_response:
+            login_user_number = login_response['user'].get('user_number')
+            if login_user_number == test_user_number:
+                print(f"   ✅ User number consistent in login: {login_user_number}")
+            else:
+                print(f"   ❌ User number mismatch in login: {login_user_number} vs {test_user_number}")
+                all_success = False
+        
+        # Test 3: User Number in /api/auth/me Response
+        print("\n   👤 Testing User Number in User Info Response...")
+        
+        success, me_response = self.run_test(
+            "Get Current User Info",
+            "GET",
+            "/api/auth/me",
+            200,
+            token=test_user_token
+        )
+        all_success &= success
+        
+        if success:
+            me_user_number = me_response.get('user_number')
+            if me_user_number == test_user_number:
+                print(f"   ✅ User number consistent in /api/auth/me: {me_user_number}")
+            else:
+                print(f"   ❌ User number mismatch in /api/auth/me: {me_user_number} vs {test_user_number}")
+                all_success = False
+        
+        # Test 4: Role Management API - Change User to Warehouse Operator
+        print("\n   🔄 Testing Role Management API...")
+        
+        if test_user_id:
+            role_update_data = {
+                "user_id": test_user_id,
+                "new_role": "warehouse_operator"
+            }
+            
+            success, role_response = self.run_test(
+                "Update User Role to Warehouse Operator",
+                "PUT",
+                f"/api/admin/users/{test_user_id}/role",
+                200,
+                role_update_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                updated_user = role_response.get('user', {})
+                new_role = updated_user.get('role')
+                previous_role = updated_user.get('previous_role')
+                
+                print(f"   ✅ Role updated from '{previous_role}' to '{new_role}'")
+                
+                if new_role == 'warehouse_operator' and previous_role == 'user':
+                    print("   ✅ Role change verified correctly")
+                else:
+                    print(f"   ❌ Role change incorrect: {previous_role} -> {new_role}")
+                    all_success = False
+                
+                # Verify user_number is included in role update response
+                response_user_number = updated_user.get('user_number')
+                if response_user_number == test_user_number:
+                    print(f"   ✅ User number included in role update response: {response_user_number}")
+                else:
+                    print(f"   ❌ User number missing or incorrect in role update: {response_user_number}")
+                    all_success = False
+        
+        # Test 5: Role Management - Change Operator to Administrator
+        print("\n   👑 Testing Operator to Administrator Role Change...")
+        
+        if test_user_id:
+            admin_role_data = {
+                "user_id": test_user_id,
+                "new_role": "admin"
+            }
+            
+            success, admin_role_response = self.run_test(
+                "Update Warehouse Operator to Administrator",
+                "PUT",
+                f"/api/admin/users/{test_user_id}/role",
+                200,
+                admin_role_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                updated_user = admin_role_response.get('user', {})
+                new_role = updated_user.get('role')
+                previous_role = updated_user.get('previous_role')
+                
+                print(f"   ✅ Role updated from '{previous_role}' to '{new_role}'")
+                
+                if new_role == 'admin' and previous_role == 'warehouse_operator':
+                    print("   ✅ Operator to Administrator change verified")
+                else:
+                    print(f"   ❌ Role change incorrect: {previous_role} -> {new_role}")
+                    all_success = False
+        
+        # Test 6: Role Management Validation - Self Role Change Prevention
+        print("\n   🛡️  Testing Self Role Change Prevention...")
+        
+        # Try to change admin's own role (should fail)
+        admin_user = self.users.get('admin', {})
+        admin_user_id = admin_user.get('id')
+        
+        if admin_user_id:
+            self_role_data = {
+                "user_id": admin_user_id,
+                "new_role": "user"
+            }
+            
+            success, _ = self.run_test(
+                "Prevent Self Role Change (Should Fail)",
+                "PUT",
+                f"/api/admin/users/{admin_user_id}/role",
+                400,  # Should return 400 Bad Request
+                self_role_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Self role change correctly prevented")
+        
+        # Test 7: Role Management Access Control
+        print("\n   🔒 Testing Role Management Access Control...")
+        
+        # Non-admin user should not be able to change roles
+        if test_user_token and test_user_id:
+            unauthorized_role_data = {
+                "user_id": test_user_id,
+                "new_role": "user"
+            }
+            
+            success, _ = self.run_test(
+                "Non-admin Role Change (Should Fail)",
+                "PUT",
+                f"/api/admin/users/{test_user_id}/role",
+                403,  # Should return 403 Forbidden
+                unauthorized_role_data,
+                test_user_token
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Non-admin access correctly denied")
+        
+        # Test 8: Personal Dashboard API
+        print("\n   📊 Testing Personal Dashboard API...")
+        
+        # Test dashboard for regular user
+        if test_user_token:
+            success, dashboard_response = self.run_test(
+                "Get Personal Dashboard",
+                "GET",
+                "/api/user/dashboard",
+                200,
+                token=test_user_token
+            )
+            all_success &= success
+            
+            if success:
+                # Verify dashboard structure
+                required_fields = ['user_info', 'cargo_requests', 'sent_cargo', 'received_cargo']
+                missing_fields = [field for field in required_fields if field not in dashboard_response]
+                
+                if not missing_fields:
+                    print("   ✅ Dashboard has all required fields")
+                    
+                    # Verify user_info includes user_number
+                    user_info = dashboard_response.get('user_info', {})
+                    dashboard_user_number = user_info.get('user_number')
+                    
+                    if dashboard_user_number == test_user_number:
+                        print(f"   ✅ User number in dashboard: {dashboard_user_number}")
+                    else:
+                        print(f"   ❌ User number missing or incorrect in dashboard: {dashboard_user_number}")
+                        all_success = False
+                    
+                    # Verify arrays are present (even if empty)
+                    cargo_requests = dashboard_response.get('cargo_requests', [])
+                    sent_cargo = dashboard_response.get('sent_cargo', [])
+                    received_cargo = dashboard_response.get('received_cargo', [])
+                    
+                    print(f"   📋 Cargo requests: {len(cargo_requests)} items")
+                    print(f"   📤 Sent cargo: {len(sent_cargo)} items")
+                    print(f"   📥 Received cargo: {len(received_cargo)} items")
+                    
+                    if isinstance(cargo_requests, list) and isinstance(sent_cargo, list) and isinstance(received_cargo, list):
+                        print("   ✅ All cargo arrays are properly formatted")
+                    else:
+                        print("   ❌ Cargo arrays are not properly formatted")
+                        all_success = False
+                        
+                else:
+                    print(f"   ❌ Dashboard missing required fields: {missing_fields}")
+                    all_success = False
+        
+        # Test 9: Dashboard Security - Users can only access their own dashboard
+        print("\n   🔐 Testing Dashboard Security...")
+        
+        # Admin should be able to access their own dashboard
+        success, admin_dashboard = self.run_test(
+            "Admin Personal Dashboard",
+            "GET",
+            "/api/user/dashboard",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            admin_user_info = admin_dashboard.get('user_info', {})
+            admin_dashboard_number = admin_user_info.get('user_number')
+            print(f"   ✅ Admin dashboard accessible with user_number: {admin_dashboard_number}")
+        
+        # Test 10: Dashboard with Cargo Data
+        print("\n   📦 Testing Dashboard with Cargo Data...")
+        
+        # Create a cargo request for the test user to verify it appears in dashboard
+        if test_user_token:
+            cargo_request_data = {
+                "recipient_full_name": "Тест Получатель Дашборд",
+                "recipient_phone": "+992777888999",
+                "recipient_address": "Душанбе, ул. Дашборд, 1",
+                "pickup_address": "Москва, ул. Дашборд, 1",
+                "cargo_name": "Тест груз для дашборда",
+                "weight": 5.0,
+                "declared_value": 2500.0,
+                "description": "Тестовый груз для проверки дашборда",
+                "route": "moscow_to_tajikistan"
+            }
+            
+            success, cargo_request_response = self.run_test(
+                "Create Cargo Request for Dashboard Test",
+                "POST",
+                "/api/user/cargo-request",
+                200,
+                cargo_request_data,
+                test_user_token
+            )
+            
+            if success:
+                request_id = cargo_request_response.get('id')
+                print(f"   📋 Created cargo request: {request_id}")
+                
+                # Check if it appears in dashboard
+                success, updated_dashboard = self.run_test(
+                    "Get Updated Dashboard with Cargo Request",
+                    "GET",
+                    "/api/user/dashboard",
+                    200,
+                    token=test_user_token
+                )
+                
+                if success:
+                    cargo_requests = updated_dashboard.get('cargo_requests', [])
+                    request_found = any(req.get('id') == request_id for req in cargo_requests)
+                    
+                    if request_found:
+                        print("   ✅ Cargo request appears in dashboard")
+                    else:
+                        print("   ❌ Cargo request not found in dashboard")
+                        all_success = False
+        
+        return all_success
+
     def test_users_by_role(self):
         """Test getting users by role (new functionality)"""
         print("\n👥 USERS BY ROLE")
