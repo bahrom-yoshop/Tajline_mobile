@@ -4824,10 +4824,14 @@ async def search_cargo_advanced(search_request: AdvancedSearchRequest, current_u
         search_criteria["route"] = search_request.route
     
     if search_request.sender_phone:
-        search_criteria["sender_phone"] = {"$regex": search_request.sender_phone, "$options": "i"}
+        import re
+        escaped_phone = re.escape(search_request.sender_phone)
+        search_criteria["sender_phone"] = {"$regex": escaped_phone, "$options": "i"}
     
     if search_request.recipient_phone:
-        search_criteria["recipient_phone"] = {"$regex": search_request.recipient_phone, "$options": "i"}
+        import re
+        escaped_phone = re.escape(search_request.recipient_phone)
+        search_criteria["recipient_phone"] = {"$regex": escaped_phone, "$options": "i"}
     
     # Фильтр по дате
     if search_request.date_from or search_request.date_to:
