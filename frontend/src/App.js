@@ -6001,6 +6001,20 @@ function App() {
                                             Разместить
                                           </Button>
                                         )}
+                                        
+                                        {/* Кнопка повторного заказа для админов и операторов */}
+                                        {(user.role === 'admin' || user.role === 'warehouse_operator') && (
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => openAdminRepeatOrder(item)}
+                                            className="flex items-center text-xs px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700"
+                                            title="Повторить заказ с теми же данными отправителя и получателя"
+                                          >
+                                            <Copy className="mr-1 h-3 w-3" />
+                                            Повторить
+                                          </Button>
+                                        )}
                                       </div>
                                     </TableCell>
                                   </TableRow>
