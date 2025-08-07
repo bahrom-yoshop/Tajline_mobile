@@ -3483,7 +3483,23 @@ async def get_users_by_role(
         raise HTTPException(status_code=400, detail="Invalid role")
     
     users = list(db.users.find({"role": role}, {"password": 0}))
-    return [User(**user) for user in users]
+    
+    # Создаем пользователей с автоматической генерацией user_number если нет
+    result_users = []
+    for user in users:
+        user_number = user.get("user_number")
+        if not user_number:
+            user_number = generate_user_number()
+            # Обновляем в базе данных
+            db.users.update_one(
+                {"id": user["id"]},
+                {"$set": {"user_number": user_number}}
+            )
+            user["user_number"] = user_number
+        
+        result_users.append(User(**user))
+    
+    return result_users
 
 # Получение полной схемы склада
 @app.get("/api/warehouses/{warehouse_id}/full-layout")
