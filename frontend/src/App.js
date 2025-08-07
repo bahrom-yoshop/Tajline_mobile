@@ -2474,14 +2474,25 @@ function App() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    setIsLoggingIn(true);
     try {
       const data = await apiCall('/api/auth/register', 'POST', registerForm);
+      
+      // Устанавливаем токен и пользователя одновременно
       setToken(data.access_token);
       setUser(data.user);
       localStorage.setItem('token', data.access_token);
+      
       showAlert('Регистрация прошла успешно!', 'success');
+      
+      // Сбрасываем флаг логина после небольшой задержки
+      setTimeout(() => {
+        setIsLoggingIn(false);
+      }, 1000);
+      
     } catch (error) {
-      console.error('Register error:', error);
+      console.error('Registration error:', error);
+      setIsLoggingIn(false);
     }
   };
 
