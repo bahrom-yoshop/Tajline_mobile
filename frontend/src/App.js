@@ -12846,13 +12846,27 @@ function App() {
               </Button>
               <Button
                 onClick={handleEnhancedCargoPlacement}
-                disabled={!selectedCargoForEnhancedPlacement || !selectedWarehouseForPlacement || placementLoading}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                disabled={
+                  !selectedCargoForEnhancedPlacement || 
+                  !selectedWarehouseForPlacement || 
+                  placementLoading ||
+                  !isCellAvailable(selectedBlockForPlacement, selectedShelfForPlacement, selectedCellForPlacement)
+                }
+                className={`${
+                  isCellAvailable(selectedBlockForPlacement, selectedShelfForPlacement, selectedCellForPlacement)
+                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                    : 'bg-red-500 hover:bg-red-600 text-white'
+                }`}
               >
                 {placementLoading ? (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                     Размещение...
+                  </>
+                ) : !isCellAvailable(selectedBlockForPlacement, selectedShelfForPlacement, selectedCellForPlacement) ? (
+                  <>
+                    <Ban className="mr-2 h-4 w-4" />
+                    Ячейка занята
                   </>
                 ) : (
                   <>
