@@ -2164,6 +2164,55 @@ async def delete_user(
     
     return {"message": "User deleted successfully"}
 
+@app.put("/api/admin/users/{user_id}/role")
+async def update_user_role(
+    user_id: str,
+    role_data: UserRoleUpdate,
+    current_user: User = Depends(require_role(UserRole.ADMIN))
+):
+    """Обновить роль пользователя (только для админов)"""
+    # Проверяем, что пользователь не пытается изменить свою роль
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot change your own role")
+    
+    # Проверяем существование пользователя
+    user = db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Проверяем, что новая роль отличается от текущей
+    if user["role"] == role_data.new_role.value:
+        raise HTTPException(status_code=400, detail="User already has this role")
+    
+    # Обновляем роль
+    result = db.users.update_one(
+        {"id": user_id},
+        {
+            "$set": {
+                "role": role_data.new_role.value,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Failed to update user role")
+    
+    # Получаем обновленного пользователя для возврата
+    updated_user = db.users.find_one({"id": user_id})
+    
+    return {
+        "message": "User role updated successfully",
+        "user": {
+            "id": updated_user["id"],
+            "user_number": updated_user.get("user_number", "N/A"),
+            "full_name": updated_user["full_name"],
+            "phone": updated_user["phone"],
+            "role": updated_user["role"],
+            "previous_role": user["role"]
+        }
+    }
+
 # Уведомления
 @app.get("/api/notifications")
 async def get_notifications(current_user: User = Depends(get_current_user)):
