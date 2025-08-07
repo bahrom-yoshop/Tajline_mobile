@@ -105,6 +105,18 @@
 user_problem_statement: "Admin Panel Enhancements and Personal Dashboard: 1) Add role management functionality for admin to change operator role to administrator, 2) Create personal dashboard for each user showing profile information and complete history of cargo requests and shipments with full data, 3) Generate individual user numbers for each user. Implementation includes: role update API endpoints, personal dashboard interface with user info and cargo history, automatic user number generation system, and comprehensive cargo tracking for users."
 
 backend:
+  - task: "Admin Panel Enhancements and Personal Dashboard"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ ADMIN PANEL ENHANCEMENTS TESTING COMPLETED - Mixed results with critical issues identified: 1) ✅ USER NUMBER GENERATION: Successfully implemented and working - user registration generates USR###### format numbers, consistent across login and /api/auth/me endpoints, 2) ✅ ROLE MANAGEMENT API: PUT /api/admin/users/{user_id}/role endpoint working correctly - successfully tested user→warehouse_operator→admin role changes, includes user_number in responses, prevents self-role changes, proper access control, 3) ✅ PERSONAL DASHBOARD API: GET /api/user/dashboard endpoint functional - returns all required fields (user_info, cargo_requests, sent_cargo, received_cargo), includes user_number in user_info, proper array formatting, 4) ❌ CRITICAL ISSUE: Role management access control failed - non-admin user received 400 'Cannot change your own role' instead of expected 403 Forbidden, indicating incorrect user identification, 5) ❌ CRITICAL ISSUE: Cargo request creation failed with 403 'Only regular users can create cargo requests' when testing with admin-promoted user, suggesting role validation issues, 6) ✅ DASHBOARD SECURITY: Admin can access own dashboard, user_number properly displayed, 7) ❌ DASHBOARD CARGO DATA: Failed to create test cargo request for dashboard verification due to role permission issues. CORE FUNCTIONALITY: User number generation (✅), Role management API (✅), Personal dashboard structure (✅). CRITICAL ISSUES: Role-based access control inconsistencies preventing full workflow testing. SUCCESS RATE: 70% (14/20 individual tests passed)."
+
   - task: "Warehouse Operator Role Verification"
     implemented: true
     working: false
