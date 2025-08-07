@@ -15390,6 +15390,466 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_comprehensive_search_system_upgrade(self):
+        """Test comprehensive search system upgrade with advanced functionality"""
+        print("\n🔍 COMPREHENSIVE SEARCH SYSTEM UPGRADE TESTING")
+        
+        if 'admin' not in self.tokens or 'user' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Basic Advanced Search API Testing
+        print("\n   🎯 Testing Basic Advanced Search API...")
+        
+        # Scenario 1 - Basic Advanced Search
+        basic_search_data = {
+            "query": "груз",
+            "search_type": "cargo",
+            "sort_by": "relevance_score",
+            "sort_order": "desc",
+            "page": 1,
+            "per_page": 10
+        }
+        
+        success, response = self.run_test(
+            "Basic Advanced Search",
+            "POST",
+            "/api/search/advanced",
+            200,
+            basic_search_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            # Verify response structure
+            required_fields = ['results', 'total_count', 'page', 'per_page', 'total_pages', 'search_time_ms', 'suggestions']
+            missing_fields = [field for field in required_fields if field not in response]
+            
+            if not missing_fields:
+                print("   ✅ Advanced search response structure verified")
+                print(f"   📊 Found {response.get('total_count', 0)} results in {response.get('search_time_ms', 0)}ms")
+                print(f"   💡 Suggestions: {len(response.get('suggestions', []))}")
+            else:
+                print(f"   ❌ Missing response fields: {missing_fields}")
+                all_success = False
+        
+        # Test 2: Filtered Cargo Search
+        print("\n   🔧 Testing Filtered Cargo Search...")
+        
+        # Scenario 2 - Filtered Cargo Search
+        filtered_search_data = {
+            "query": "",
+            "search_type": "cargo",
+            "cargo_status": "accepted",
+            "payment_status": "pending",
+            "route": "moscow_to_tajikistan",
+            "sort_by": "created_at",
+            "sort_order": "desc"
+        }
+        
+        success, response = self.run_test(
+            "Filtered Cargo Search",
+            "POST",
+            "/api/search/advanced",
+            200,
+            filtered_search_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            results = response.get('results', [])
+            cargo_results = [r for r in results if r.get('type') == 'cargo']
+            print(f"   ✅ Filtered search returned {len(cargo_results)} cargo results")
+            
+            # Verify filtering worked
+            if cargo_results:
+                sample_cargo = cargo_results[0]
+                details = sample_cargo.get('details', {})
+                print(f"   📋 Sample result: {sample_cargo.get('title', 'N/A')}")
+                print(f"   📊 Status: {details.get('status', 'N/A')}, Route: {details.get('route', 'N/A')}")
+        
+        # Test 3: Phone Number Search
+        print("\n   📞 Testing Phone Number Search...")
+        
+        # Scenario 3 - Phone Number Search
+        phone_search_data = {
+            "query": "",
+            "search_type": "cargo",
+            "sender_phone": "+7999",
+            "recipient_phone": "+992"
+        }
+        
+        success, response = self.run_test(
+            "Phone Number Search",
+            "POST",
+            "/api/search/advanced",
+            200,
+            phone_search_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            results = response.get('results', [])
+            print(f"   ✅ Phone search returned {len(results)} results")
+            
+            # Verify phone filtering
+            if results:
+                for result in results[:2]:  # Check first 2 results
+                    details = result.get('details', {})
+                    sender_phone = details.get('sender_phone', '')
+                    recipient_phone = details.get('recipient_phone', '')
+                    print(f"   📱 Found: {sender_phone} → {recipient_phone}")
+        
+        # Test 4: Date Range Search
+        print("\n   📅 Testing Date Range Search...")
+        
+        # Scenario 4 - Date Range Search
+        date_search_data = {
+            "query": "",
+            "search_type": "cargo",
+            "date_from": "2025-01-01",
+            "date_to": "2025-01-31"
+        }
+        
+        success, response = self.run_test(
+            "Date Range Search",
+            "POST",
+            "/api/search/advanced",
+            200,
+            date_search_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            results = response.get('results', [])
+            print(f"   ✅ Date range search returned {len(results)} results")
+            
+            # Verify date filtering
+            if results:
+                sample_result = results[0]
+                details = sample_result.get('details', {})
+                created_at = details.get('created_at', 'N/A')
+                print(f"   📅 Sample creation date: {created_at}")
+        
+        # Test 5: Multi-Type Search (All)
+        print("\n   🌐 Testing Multi-Type Search...")
+        
+        # Scenario 5 - Multi-Type Search
+        multi_search_data = {
+            "query": "админ",
+            "search_type": "all",
+            "sort_by": "relevance_score"
+        }
+        
+        success, response = self.run_test(
+            "Multi-Type Search (All)",
+            "POST",
+            "/api/search/advanced",
+            200,
+            multi_search_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            results = response.get('results', [])
+            result_types = {}
+            
+            for result in results:
+                result_type = result.get('type', 'unknown')
+                result_types[result_type] = result_types.get(result_type, 0) + 1
+            
+            print(f"   ✅ Multi-type search returned {len(results)} total results")
+            for result_type, count in result_types.items():
+                print(f"   📊 {result_type}: {count} results")
+        
+        # Test 6: User Search (Admin Only)
+        print("\n   👥 Testing User Search (Admin Only)...")
+        
+        # Scenario 6 - User Search
+        user_search_data = {
+            "query": "USR000001",
+            "search_type": "users",
+            "user_role": "admin"
+        }
+        
+        success, response = self.run_test(
+            "User Search (Admin Only)",
+            "POST",
+            "/api/search/advanced",
+            200,
+            user_search_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            results = response.get('results', [])
+            user_results = [r for r in results if r.get('type') == 'user']
+            print(f"   ✅ User search returned {len(user_results)} user results")
+            
+            if user_results:
+                sample_user = user_results[0]
+                details = sample_user.get('details', {})
+                print(f"   👤 Sample user: {details.get('full_name', 'N/A')} ({details.get('user_number', 'N/A')})")
+        
+        # Test 7: Warehouse Search
+        print("\n   🏭 Testing Warehouse Search...")
+        
+        warehouse_search_data = {
+            "query": "склад",
+            "search_type": "warehouses"
+        }
+        
+        success, response = self.run_test(
+            "Warehouse Search",
+            "POST",
+            "/api/search/advanced",
+            200,
+            warehouse_search_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            results = response.get('results', [])
+            warehouse_results = [r for r in results if r.get('type') == 'warehouse']
+            print(f"   ✅ Warehouse search returned {len(warehouse_results)} warehouse results")
+            
+            if warehouse_results:
+                sample_warehouse = warehouse_results[0]
+                details = sample_warehouse.get('details', {})
+                print(f"   🏭 Sample warehouse: {details.get('name', 'N/A')} - {details.get('cargo_count', 0)} грузов")
+        
+        # Test 8: Performance and Pagination
+        print("\n   ⚡ Testing Performance and Pagination...")
+        
+        # Test large result set with pagination
+        pagination_search_data = {
+            "query": "",
+            "search_type": "cargo",
+            "page": 1,
+            "per_page": 5
+        }
+        
+        success, response = self.run_test(
+            "Pagination Test (Page 1)",
+            "POST",
+            "/api/search/advanced",
+            200,
+            pagination_search_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            total_count = response.get('total_count', 0)
+            page = response.get('page', 0)
+            per_page = response.get('per_page', 0)
+            total_pages = response.get('total_pages', 0)
+            search_time = response.get('search_time_ms', 0)
+            
+            print(f"   ✅ Pagination working: Page {page}/{total_pages}")
+            print(f"   📊 Total: {total_count} results, {per_page} per page")
+            print(f"   ⚡ Search time: {search_time}ms")
+            
+            # Test page 2 if available
+            if total_pages > 1:
+                pagination_search_data['page'] = 2
+                success, response2 = self.run_test(
+                    "Pagination Test (Page 2)",
+                    "POST",
+                    "/api/search/advanced",
+                    200,
+                    pagination_search_data,
+                    self.tokens['admin']
+                )
+                all_success &= success
+                
+                if success:
+                    print(f"   ✅ Page 2 returned {len(response2.get('results', []))} results")
+        
+        # Test 9: Relevance Scoring and Sorting
+        print("\n   🎯 Testing Relevance Scoring and Sorting...")
+        
+        # Test relevance scoring with specific query
+        relevance_search_data = {
+            "query": "2501",  # Should match cargo numbers
+            "search_type": "cargo",
+            "sort_by": "relevance_score",
+            "sort_order": "desc",
+            "per_page": 5
+        }
+        
+        success, response = self.run_test(
+            "Relevance Scoring Test",
+            "POST",
+            "/api/search/advanced",
+            200,
+            relevance_search_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            results = response.get('results', [])
+            if results:
+                print("   ✅ Relevance scoring results:")
+                for i, result in enumerate(results[:3]):
+                    score = result.get('relevance_score', 0)
+                    title = result.get('title', 'N/A')
+                    print(f"   {i+1}. {title} (Score: {score})")
+                
+                # Verify sorting by relevance (descending)
+                scores = [r.get('relevance_score', 0) for r in results]
+                if scores == sorted(scores, reverse=True):
+                    print("   ✅ Results properly sorted by relevance score")
+                else:
+                    print("   ❌ Results not properly sorted by relevance")
+                    all_success = False
+        
+        # Test 10: Autocomplete Suggestions
+        print("\n   💡 Testing Autocomplete Suggestions...")
+        
+        suggestions_search_data = {
+            "query": "250",  # Partial cargo number
+            "search_type": "cargo",
+            "per_page": 3
+        }
+        
+        success, response = self.run_test(
+            "Autocomplete Suggestions Test",
+            "POST",
+            "/api/search/advanced",
+            200,
+            suggestions_search_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            suggestions = response.get('suggestions', [])
+            print(f"   ✅ Generated {len(suggestions)} suggestions")
+            for i, suggestion in enumerate(suggestions):
+                print(f"   💡 {i+1}. {suggestion}")
+        
+        # Test 11: Access Control Testing
+        print("\n   🔒 Testing Access Control...")
+        
+        # Test user search with regular user (should be denied)
+        user_search_restricted = {
+            "query": "admin",
+            "search_type": "users"
+        }
+        
+        success, response = self.run_test(
+            "User Search Access Control (Regular User)",
+            "POST",
+            "/api/search/advanced",
+            200,  # Should succeed but return no user results
+            user_search_restricted,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        if success:
+            results = response.get('results', [])
+            user_results = [r for r in results if r.get('type') == 'user']
+            
+            if not user_results:
+                print("   ✅ Regular user correctly denied access to user search")
+            else:
+                print("   ❌ Regular user should not see user search results")
+                all_success = False
+        
+        # Test 12: Error Handling
+        print("\n   ⚠️  Testing Error Handling...")
+        
+        # Test invalid search type
+        invalid_search_data = {
+            "query": "test",
+            "search_type": "invalid_type"
+        }
+        
+        success, response = self.run_test(
+            "Invalid Search Type",
+            "POST",
+            "/api/search/advanced",
+            200,  # Should succeed but return empty results
+            invalid_search_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            results = response.get('results', [])
+            print(f"   ✅ Invalid search type handled gracefully ({len(results)} results)")
+        
+        # Test invalid date format
+        invalid_date_search = {
+            "query": "",
+            "search_type": "cargo",
+            "date_from": "invalid-date"
+        }
+        
+        success, response = self.run_test(
+            "Invalid Date Format",
+            "POST",
+            "/api/search/advanced",
+            500,  # Should return error for invalid date
+            invalid_date_search,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Invalid date format properly rejected")
+        
+        # Test 13: Complex Search Scenario
+        print("\n   🎯 Testing Complex Search Scenario...")
+        
+        complex_search_data = {
+            "query": "груз",
+            "search_type": "all",
+            "cargo_status": "accepted",
+            "route": "moscow_to_tajikistan",
+            "date_from": "2025-01-01",
+            "sort_by": "created_at",
+            "sort_order": "desc",
+            "page": 1,
+            "per_page": 10
+        }
+        
+        success, response = self.run_test(
+            "Complex Multi-Filter Search",
+            "POST",
+            "/api/search/advanced",
+            200,
+            complex_search_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            results = response.get('results', [])
+            search_time = response.get('search_time_ms', 0)
+            print(f"   ✅ Complex search returned {len(results)} results in {search_time}ms")
+            
+            # Verify multiple filters applied
+            cargo_results = [r for r in results if r.get('type') == 'cargo']
+            if cargo_results:
+                sample_cargo = cargo_results[0]
+                details = sample_cargo.get('details', {})
+                print(f"   📋 Sample result meets criteria: {details.get('status', 'N/A')} status, {details.get('route', 'N/A')} route")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
