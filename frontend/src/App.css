@@ -45,6 +45,74 @@ body {
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
+/* Стили для QR-сканера */
+#qr-reader {
+  background: #000;
+  border-radius: 8px;
+  position: relative;
+}
+
+#qr-reader video {
+  border-radius: 8px;
+  width: 100% !important;
+  height: auto !important;
+  max-width: 500px;
+}
+
+#qr-reader canvas {
+  display: none !important;
+}
+
+/* Скрытие логотипа html5-qrcode */
+#qr-reader__dashboard_section {
+  display: none !important;
+}
+
+#qr-reader__header_message {
+  display: none !important;
+}
+
+/* Кастомные стили для сканера */
+.qr-scanner-overlay {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #000;
+}
+
+.qr-scanner-overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(90deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%),
+    linear-gradient(0deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
+  pointer-events: none;
+  z-index: 1;
+  animation: scanner-lines 2s infinite;
+}
+
+@keyframes scanner-lines {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Responsive стили для мобильных устройств */
+@media (max-width: 768px) {
+  #qr-reader {
+    max-width: 100% !important;
+  }
+  
+  .qr-scanner-overlay {
+    max-width: 100%;
+    margin: 0 auto;
+  }
+}
+
 /* Стили для статусных индикаторов */
 .status-indicator {
   display: inline-flex;
