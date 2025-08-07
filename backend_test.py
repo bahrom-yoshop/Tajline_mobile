@@ -15890,6 +15890,7 @@ ID склада: {self.warehouse_id}"""
             ("Full Warehouse Cell Integration Flow", self.test_full_warehouse_cell_integration_flow),
             ("Cargo Name Integration", self.test_cargo_name_integration),
             ("Advanced Cargo Search System", self.test_advanced_cargo_search_system),
+            ("🔍 COMPREHENSIVE SEARCH SYSTEM UPGRADE", self.test_comprehensive_search_system_upgrade),
             ("Automatic Warehouse Selection for Operators", self.test_automatic_warehouse_selection_for_operators),
             ("Operator-Warehouse Binding System", self.test_operator_warehouse_binding_system),
             ("Enhanced Cargo Operations with Operator Tracking", self.test_enhanced_cargo_operations_with_operator_tracking),
