@@ -457,6 +457,13 @@ function App() {
   const [scannedCellData, setScannedCellData] = useState(null);
   const [placementInProgress, setPlacementInProgress] = useState(false);
   const [scannerError, setScannerError] = useState(null);
+  
+  // Состояния для камеры
+  const [html5QrCode, setHtml5QrCode] = useState(null);
+  const scannerRef = useRef(null);
+  const [cameraPermission, setCameraPermission] = useState(null);
+  const [camerasAvailable, setCamerasAvailable] = useState([]);
+  const [selectedCamera, setSelectedCamera] = useState(null);
 
   const showAlert = (message, type = 'info') => {
     const id = Date.now();
