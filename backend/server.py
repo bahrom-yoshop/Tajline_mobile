@@ -2066,8 +2066,6 @@ async def get_all_cargo(current_user: User = Depends(require_role(UserRole.ADMIN
     
     return normalized_cargo
 
-class ProcessingStatusUpdate(BaseModel):
-    new_status: str
 
 @app.put("/api/cargo/{cargo_id}/processing-status")
 async def update_cargo_processing_status(
