@@ -1024,6 +1024,27 @@ function App() {
     }
   }, [token]);
 
+  // Основной useEffect для инициализации приложения при наличии токена
+  useEffect(() => {
+    const initializeApp = async () => {
+      console.log('Initializing app, token:', !!token);
+      
+      if (token && !isLoggingIn && !isLoggingOut && !user) {
+        console.log('Token found, fetching user data...');
+        try {
+          await fetchUserData();
+        } catch (error) {
+          console.error('Failed to initialize app with token:', error);
+          // Токен недействителен, очищаем его
+          localStorage.removeItem('token');
+          setToken(null);
+        }
+      }
+    };
+
+    initializeApp();
+  }, [token, isLoggingIn, isLoggingOut, user]);
+
   // Периодическая проверка валидности токена
   useEffect(() => {
     if (token && user && !isLoggingOut && !isLoggingIn) {
