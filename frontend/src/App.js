@@ -1519,15 +1519,49 @@ function App() {
     return cell;
   };
 
-  // Обработка выбора блока и полки
+  // Обработка выбора блока и полки с проверкой доступности ячеек
   const handleBlockShelfSelection = async (blockNumber, shelfNumber) => {
     setSelectedBlockForPlacement(blockNumber);
     setSelectedShelfForPlacement(shelfNumber);
-    setSelectedCellForPlacement(1);
     
     if (selectedWarehouseForPlacement) {
+      // Загружаем доступные ячейки для совместимости
       await fetchAvailableCellsForEnhancedPlacement(selectedWarehouseForPlacement, blockNumber, shelfNumber);
+      
+      // Находим первую доступную ячейку в выбранном блоке/полке
+      if (warehouseDetailedStructure) {
+        const block = warehouseDetailedStructure.blocks?.find(b => b.block_number === blockNumber);
+        const shelf = block?.shelves?.find(s => s.shelf_number === shelfNumber);
+        const firstAvailableCell = shelf?.cells?.find(c => c.status === 'available');
+        
+        if (firstAvailableCell) {
+          setSelectedCellForPlacement(firstAvailableCell.cell_number);
+        } else {
+          // Если нет доступных ячеек, выбираем первую
+          setSelectedCellForPlacement(1);
+        }
+      } else {
+        setSelectedCellForPlacement(1);
+      }
     }
+  };
+
+  // Обработка выбора ячейки с проверкой доступности
+  const handleCellSelection = (cellNumber) => {
+    const cellInfo = getCellInfo(selectedBlockForPlacement, selectedShelfForPlacement, cellNumber);
+    
+    if (cellInfo && cellInfo.status === 'occupied') {
+      showAlert('Эта ячейка занята! Выберите свободную ячейку.', 'error');
+      return;
+    }
+    
+    setSelectedCellForPlacement(cellNumber);
+    setSelectedCellForVisualization({
+      block: selectedBlockForPlacement,
+      shelf: selectedShelfForPlacement,
+      cell: cellNumber,
+      info: cellInfo
+    });
   };
 
   // Обработчик улучшенного размещения груза
