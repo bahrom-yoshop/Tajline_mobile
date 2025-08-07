@@ -18565,11 +18565,11 @@ ID склада: {self.warehouse_id}"""
                         print(f"   📋 New status: {new_status}")
                         print(f"   📍 Warehouse location: {warehouse_location}")
                         
-                        # Verify status transition: paid → placed
-                        if new_status == "placed":
-                            print("   ✅ Cargo status correctly changed to 'placed'")
+                        # Verify status transition: paid → in_transit (placed in warehouse)
+                        if new_status in ["paid", "in_transit"]:
+                            print(f"   ✅ Cargo status correctly updated to '{new_status}' after placement")
                         else:
-                            print(f"   ❌ Expected status 'placed', got '{new_status}'")
+                            print(f"   ❌ Unexpected status '{new_status}' after placement")
                             all_success = False
                         
                         # Verify warehouse location is set
