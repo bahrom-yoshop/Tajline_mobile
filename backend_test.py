@@ -18569,7 +18569,7 @@ ID склада: {self.warehouse_id}"""
                             all_success = False
                         
                         # Verify warehouse location is set
-                        if warehouse_location and "Б1-П1-Я5" in warehouse_location:
+                        if warehouse_location and "B1-S1-C8" in warehouse_location:
                             print("   ✅ Warehouse location correctly set")
                         else:
                             print(f"   ❌ Warehouse location not set correctly: {warehouse_location}")
