@@ -5927,22 +5927,29 @@ function App() {
                           <Warehouse className="mr-2 h-5 w-5" />
                           Операторы складов ({usersByRole.warehouse_operator.length})
                         </CardTitle>
-                        <CardDescription>Операторы складов и кассиры</CardDescription>
+                        <CardDescription>Операторы складов с детальной информацией и управлением ролями</CardDescription>
                       </CardHeader>
                       <CardContent>
                         <Table>
                           <TableHeader>
                             <TableRow>
+                              <TableHead>Номер</TableHead>
                               <TableHead>ФИО</TableHead>
                               <TableHead>Телефон</TableHead>
                               <TableHead>Дата регистрации</TableHead>
                               <TableHead>Статус</TableHead>
+                              <TableHead>Роль</TableHead>
                               <TableHead>Действия</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {usersByRole.warehouse_operator.map((u) => (
                               <TableRow key={u.id}>
+                                <TableCell>
+                                  <Badge variant="secondary" className="text-xs">
+                                    {u.user_number || 'N/A'}
+                                  </Badge>
+                                </TableCell>
                                 <TableCell className="font-medium">{u.full_name}</TableCell>
                                 <TableCell>{u.phone}</TableCell>
                                 <TableCell>{new Date(u.created_at).toLocaleDateString('ru-RU')}</TableCell>
@@ -5952,21 +5959,42 @@ function App() {
                                   </Badge>
                                 </TableCell>
                                 <TableCell>
+                                  <Badge variant="outline" className="bg-orange-50 text-orange-700">
+                                    Оператор склада
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
                                   <div className="flex space-x-2">
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => toggleUserStatus(u.id, u.is_active)}
+                                      onClick={() => fetchOperatorProfile(u.id)}
+                                      className="text-blue-600 hover:text-blue-700"
+                                      title="Просмотр профиля и статистики"
                                     >
-                                      {u.is_active ? 'Заблокировать' : 'Разблокировать'}
+                                      <Eye className="h-4 w-4" />
                                     </Button>
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => deleteUser(u.id)}
-                                      className="text-red-600 hover:text-red-700"
+                                      onClick={() => {
+                                        setSelectedUserForRole(u);
+                                        setNewRole('admin');
+                                        setShowRoleModal(true);
+                                      }}
+                                      className="text-purple-600 hover:text-purple-700"
+                                      title="Повысить до администратора"
                                     >
-                                      <Trash2 className="h-4 w-4" />
+                                      <ArrowUp className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => toggleUserStatus(u.id, u.is_active)}
+                                      className={u.is_active ? "text-red-600 hover:text-red-700" : "text-green-600 hover:text-green-700"}
+                                      title={u.is_active ? "Заблокировать" : "Разблокировать"}
+                                    >
+                                      {u.is_active ? <Ban className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
                                     </Button>
                                   </div>
                                 </TableCell>
@@ -5974,6 +6002,16 @@ function App() {
                             ))}
                           </TableBody>
                         </Table>
+
+                        {usersByRole.warehouse_operator.length === 0 && (
+                          <div className="text-center py-8">
+                            <Warehouse className="mx-auto h-12 w-12 text-gray-400" />
+                            <h3 className="mt-4 text-sm font-medium text-gray-900">Операторы не найдены</h3>
+                            <p className="mt-1 text-sm text-gray-500">
+                              Назначьте роль "Оператор склада" пользователям
+                            </p>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   )}
