@@ -801,39 +801,59 @@ def create_user_token(user_id: str, phone: str, token_version: int = 1, expires_
     return create_access_token(token_data, expires_delta)
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
         token = credentials.credentials
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         phone: str = payload.get("sub")
-        if phone is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-        
-        user = db.users.find_one({"phone": phone})
-        if user is None:
-            raise HTTPException(status_code=401, detail="User not found")
-        
-        user_number = user.get("user_number")
-        if not user_number:
-            # Генерируем и сохраняем user_number для пользователя без номера
-            user_number = generate_user_number()
-            db.users.update_one(
-                {"id": user["id"]},
-                {"$set": {"user_number": user_number}}
-            )
-        
-        return User(
-            id=user["id"],
-            user_number=user_number,
-            full_name=user["full_name"],
-            phone=user["phone"],
-            role=user["role"],
-            email=user.get("email"),
-            address=user.get("address"),
-            is_active=user["is_active"],
-            created_at=user["created_at"]
-        )
+        user_id: str = payload.get("user_id")
+        token_version: int = payload.get("token_version", 1)
+        if phone is None or user_id is None:
+            raise credentials_exception
     except jwt.PyJWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise credentials_exception
+    
+    user = db.users.find_one({"phone": phone, "id": user_id})
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    # Проверяем версию токена
+    current_token_version = user.get("token_version", 1)
+    if token_version != current_token_version:
+        raise HTTPException(
+            status_code=401, 
+            detail="Token expired due to profile changes. Please log in again."
+        )
+    
+    if not user["is_active"]:
+        raise HTTPException(status_code=401, detail="User is inactive")
+    
+    # Генерируем user_number если его нет
+    user_number = user.get("user_number")
+    if not user_number:
+        user_number = generate_user_number()
+        db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {"user_number": user_number}}
+        )
+        user["user_number"] = user_number
+        
+    return User(
+        id=user["id"],
+        user_number=user_number,
+        full_name=user["full_name"],
+        phone=user["phone"],
+        role=user["role"],
+        email=user.get("email"),
+        address=user.get("address"),
+        is_active=user["is_active"],
+        token_version=user.get("token_version", 1),
+        created_at=user["created_at"]
+    )
 
 def require_role(role: UserRole):
     def role_checker(current_user: User = Depends(get_current_user)):
