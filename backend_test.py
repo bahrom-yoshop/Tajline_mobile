@@ -18520,7 +18520,7 @@ ID склада: {self.warehouse_id}"""
                 "warehouse_id": target_warehouse_id,
                 "block_number": 1,
                 "shelf_number": 1,
-                "cell_number": 5  # Test cell coordinates
+                "cell_number": 8  # Use a different cell to avoid conflicts
             }
             
             success, placement_response = self.run_test(
