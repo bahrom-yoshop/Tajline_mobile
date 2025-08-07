@@ -3459,6 +3459,11 @@ function App() {
       
       // Получаем историю отправлений пользователя для автозаполнения
       const historyData = selectedUserProfile?.sent_cargo || [];
+      
+      console.log('DEBUG: selectedUserProfile:', selectedUserProfile);
+      console.log('DEBUG: historyData:', historyData);
+      console.log('DEBUG: userInfo:', userInfo);
+      
       let senderData = {
         full_name: userInfo.full_name || '',
         phone: userInfo.phone || '',
@@ -3474,15 +3479,17 @@ function App() {
       // Если есть история отправлений, берем данные последнего отправления
       if (historyData.length > 0) {
         const lastCargo = historyData[0]; // Первый элемент - самый последний
+        console.log('DEBUG: lastCargo data:', lastCargo);
         recipientData = {
           full_name: lastCargo.recipient_full_name || '',
           phone: lastCargo.recipient_phone || '',
           address: lastCargo.recipient_address || ''
         };
+        console.log('DEBUG: recipientData:', recipientData);
       }
       
       // Заполняем форму оператора с автозаполненными данными
-      setOperatorCargoForm({
+      const formData = {
         sender_full_name: senderData.full_name,
         sender_phone: senderData.phone,
         sender_address: senderData.address,
@@ -3495,7 +3502,10 @@ function App() {
         insurance_requested: false,
         special_instructions: `Груз для ${userInfo.full_name} (${userInfo.user_number})`,
         use_multi_cargo: true
-      });
+      };
+      
+      console.log('DEBUG: Final form data:', formData);
+      setOperatorCargoForm(formData);
       
       // Устанавливаем флаг автозаполнения
       setIsFilledFromProfile(true);
