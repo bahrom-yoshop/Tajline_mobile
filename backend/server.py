@@ -1221,12 +1221,12 @@ async def register(user_data: UserCreate):
     
     db.users.insert_one(user)
     
-    # Создание токена с user_id и token_version
+    # Создание токена
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_user_token(
         user_id=user_id,
         phone=user_data.phone,
-        token_version=token_version,
+        token_version=1,  # Новые пользователи начинают с версии 1
         expires_delta=access_token_expires
     )
     
