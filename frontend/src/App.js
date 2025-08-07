@@ -2201,9 +2201,13 @@ function App() {
     if (!searchQuery.trim()) return;
     try {
       const data = await apiCall(`/api/warehouse/search?query=${encodeURIComponent(searchQuery)}`);
-      setSearchResults(data);
+      // Убеждаемся, что результат всегда является массивом
+      setSearchResults(Array.isArray(data) ? data : []);
+      setShowSearchResults(true);
     } catch (error) {
       console.error('Search error:', error);
+      setSearchResults([]);
+      setShowSearchResults(false);
     }
   };
 
