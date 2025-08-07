@@ -1271,7 +1271,7 @@ async def login(user_data: UserLogin):
     access_token = create_user_token(
         user_id=user["id"],
         phone=user_data.phone,
-        token_version=token_version,
+        token_version=user.get("token_version", 1),
         expires_delta=access_token_expires
     )
     
