@@ -127,45 +127,50 @@ class EnhancedAdminPanelTester:
             token=self.admin_token
         )
         
-        if success and isinstance(users_list, list):
-            # First check for existing test user by phone
-            for user in users_list:
-                if user.get('phone') == '+992777888999':
-                    self.test_operator_id = user.get('id')
-                    if user.get('role') != 'warehouse_operator':
-                        print(f"   ⚠️  Found test user with wrong role, will update (ID: {self.test_operator_id})")
-                        
-                        # Change role to warehouse_operator
-                        role_update_data = {
-                            "user_id": self.test_operator_id,
-                            "new_role": "warehouse_operator"
-                        }
-                        
-                        success, role_response = self.run_test(
-                            "Change User Role to Warehouse Operator",
-                            "PUT",
-                            f"/api/admin/users/{self.test_operator_id}/role",
-                            200,
-                            role_update_data,
-                            self.admin_token
-                        )
-                        
-                        if success:
-                            print("   ✅ Role changed to warehouse_operator")
-                        else:
-                            print("   ❌ Failed to change role to warehouse_operator")
-                            return False
-                    else:
-                        print(f"   ✅ Found existing warehouse operator (ID: {self.test_operator_id})")
-                    break
+        if success:
+            # Handle paginated response
+            if isinstance(users_list, dict) and 'items' in users_list:
+                users_list = users_list['items']
             
-            # If not found by phone, look for any warehouse operator
-            if not self.test_operator_id:
+            if isinstance(users_list, list):
+                # First check for existing test user by phone
                 for user in users_list:
-                    if user.get('role') == 'warehouse_operator':
+                    if user.get('phone') == '+992777888999':
                         self.test_operator_id = user.get('id')
-                        print(f"   ✅ Found warehouse operator (ID: {self.test_operator_id})")
+                        if user.get('role') != 'warehouse_operator':
+                            print(f"   ⚠️  Found test user with wrong role, will update (ID: {self.test_operator_id})")
+                            
+                            # Change role to warehouse_operator
+                            role_update_data = {
+                                "user_id": self.test_operator_id,
+                                "new_role": "warehouse_operator"
+                            }
+                            
+                            success, role_response = self.run_test(
+                                "Change User Role to Warehouse Operator",
+                                "PUT",
+                                f"/api/admin/users/{self.test_operator_id}/role",
+                                200,
+                                role_update_data,
+                                self.admin_token
+                            )
+                            
+                            if success:
+                                print("   ✅ Role changed to warehouse_operator")
+                            else:
+                                print("   ❌ Failed to change role to warehouse_operator")
+                                return False
+                        else:
+                            print(f"   ✅ Found existing warehouse operator (ID: {self.test_operator_id})")
                         break
+                
+                # If not found by phone, look for any warehouse operator
+                if not self.test_operator_id:
+                    for user in users_list:
+                        if user.get('role') == 'warehouse_operator':
+                            self.test_operator_id = user.get('id')
+                            print(f"   ✅ Found warehouse operator (ID: {self.test_operator_id})")
+                            break
         
         if not self.test_operator_id:
             print("   ⚠️  No warehouse operator found, will create one")
