@@ -2471,6 +2471,12 @@ async def admin_update_user(
     if not update_data:
         raise HTTPException(status_code=400, detail="Нет данных для обновления")
     
+    # Увеличиваем версию токена при изменении критических данных админом
+    # Критические изменения: phone, role, is_active
+    if any(field in update_data for field in ['phone', 'role', 'is_active']):
+        current_token_version = existing_user.get("token_version", 1)
+        update_data["token_version"] = current_token_version + 1
+    
     # Обновляем пользователя в базе данных
     update_data["updated_at"] = datetime.utcnow()
     result = db.users.update_one(
