@@ -2450,14 +2450,25 @@ function App() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setIsLoggingIn(true);
     try {
       const data = await apiCall('/api/auth/login', 'POST', loginForm);
+      
+      // Устанавливаем токен и пользователя одновременно
       setToken(data.access_token);
       setUser(data.user);
       localStorage.setItem('token', data.access_token);
+      
       showAlert('Успешный вход в систему!', 'success');
+      
+      // Сбрасываем флаг логина после небольшой задержки
+      setTimeout(() => {
+        setIsLoggingIn(false);
+      }, 1000);
+      
     } catch (error) {
       console.error('Login error:', error);
+      setIsLoggingIn(false);
     }
   };
 
