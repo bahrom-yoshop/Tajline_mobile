@@ -180,6 +180,18 @@ class User(BaseModel):
     is_active: bool = True
     created_at: datetime
 
+# Модель для обновления роли пользователя
+class UserRoleUpdate(BaseModel):
+    user_id: str = Field(..., min_length=1)
+    new_role: UserRole
+
+# Модель для ответа личного кабинета
+class PersonalDashboard(BaseModel):
+    user_info: User
+    cargo_requests: List[dict] = []  # Заявки на грузы (как отправитель)
+    received_cargo: List[dict] = []  # Полученные грузы (как получатель)
+    sent_cargo: List[dict] = []     # Отправленные грузы
+
 class CargoCreate(BaseModel):
     recipient_name: str
     recipient_phone: str
