@@ -9634,6 +9634,489 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Модальное окно профиля оператора */}
+      <Dialog open={showOperatorProfile} onOpenChange={setShowOperatorProfile}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Профиль оператора склада</DialogTitle>
+            <DialogDescription>
+              Детальная информация о работе оператора и статистика
+            </DialogDescription>
+          </DialogHeader>
+          
+          {profileLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-500">Загрузка профиля...</p>
+            </div>
+          ) : selectedOperatorProfile && (
+            <div className="space-y-6">
+              {/* Информация об операторе */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-lg mb-3">Информация об операторе</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Номер</label>
+                    <p className="text-lg">{selectedOperatorProfile.user_info.user_number}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">ФИО</label>
+                    <p className="text-lg">{selectedOperatorProfile.user_info.full_name}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Телефон</label>
+                    <p className="text-lg">{selectedOperatorProfile.user_info.phone}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Статус</label>
+                    <Badge variant={selectedOperatorProfile.user_info.is_active ? 'default' : 'secondary'}>
+                      {selectedOperatorProfile.user_info.is_active ? 'Активен' : 'Заблокирован'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Статистика работы */}
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-lg mb-3">Статистика работы</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-white p-3 rounded border text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {selectedOperatorProfile.work_statistics.total_cargo_accepted}
+                    </div>
+                    <div className="text-sm text-gray-600">Всего грузов</div>
+                  </div>
+                  <div className="bg-white p-3 rounded border text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {selectedOperatorProfile.work_statistics.recent_cargo_count}
+                    </div>
+                    <div className="text-sm text-gray-600">За 30 дней</div>
+                  </div>
+                  <div className="bg-white p-3 rounded border text-center">
+                    <div className="text-2xl font-bold text-orange-600">
+                      {selectedOperatorProfile.work_statistics.avg_cargo_per_day}
+                    </div>
+                    <div className="text-sm text-gray-600">В день (средн.)</div>
+                  </div>
+                  <div className="bg-white p-3 rounded border text-center">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {selectedOperatorProfile.associated_warehouses.length}
+                    </div>
+                    <div className="text-sm text-gray-600">Складов</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Связанные склады */}
+              {selectedOperatorProfile.associated_warehouses.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Связанные склады</h3>
+                  <div className="space-y-2">
+                    {selectedOperatorProfile.associated_warehouses.map((warehouse, index) => (
+                      <div key={index} className="bg-white border rounded-lg p-3">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-medium">{warehouse.name}</h4>
+                            <p className="text-sm text-gray-600">{warehouse.location}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-medium">{warehouse.cargo_count} грузов</div>
+                            <div className="text-xs text-gray-500">
+                              {warehouse.binding_date && new Date(warehouse.binding_date).toLocaleDateString('ru-RU')}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Последняя активность */}
+              {selectedOperatorProfile.recent_activity.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Последняя активность</h3>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {selectedOperatorProfile.recent_activity.map((activity, index) => (
+                      <div key={index} className="bg-white border rounded-lg p-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium">{activity.cargo_number}</h4>
+                            <p className="text-sm text-gray-600">{activity.cargo_name}</p>
+                            <p className="text-sm text-gray-500">От: {activity.sender_full_name}</p>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant="outline">{activity.processing_status}</Badge>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {new Date(activity.created_at).toLocaleDateString('ru-RU')}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Модальное окно профиля пользователя */}
+      <Dialog open={showUserProfile} onOpenChange={setShowUserProfile}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Профиль пользователя</DialogTitle>
+            <DialogDescription>
+              Детальная информация о пользователе и история отправлений
+            </DialogDescription>
+          </DialogHeader>
+          
+          {profileLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-500">Загрузка профиля...</p>
+            </div>
+          ) : selectedUserProfile && (
+            <div className="space-y-6">
+              {/* Информация о пользователе */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="font-semibold text-lg">Информация о пользователе</h3>
+                  {user.role === 'warehouse_operator' && (
+                    <Button
+                      size="sm"
+                      onClick={() => openQuickCargoModal(selectedUserProfile.user_info)}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Быстро создать груз
+                    </Button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Номер</label>
+                    <p className="text-lg">{selectedUserProfile.user_info.user_number}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">ФИО</label>
+                    <p className="text-lg">{selectedUserProfile.user_info.full_name}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Телефон</label>
+                    <p className="text-lg">{selectedUserProfile.user_info.phone}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Роль</label>
+                    <Badge variant="outline">{getRoleLabel(selectedUserProfile.user_info.role)}</Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Статистика отправлений */}
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-lg mb-3">Статистика отправлений</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-white p-3 rounded border text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {selectedUserProfile.shipping_statistics.total_sent_cargo}
+                    </div>
+                    <div className="text-sm text-gray-600">Отправлено</div>
+                  </div>
+                  <div className="bg-white p-3 rounded border text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {selectedUserProfile.shipping_statistics.total_received_cargo}
+                    </div>
+                    <div className="text-sm text-gray-600">Получено</div>
+                  </div>
+                  <div className="bg-white p-3 rounded border text-center">
+                    <div className="text-2xl font-bold text-orange-600">
+                      {selectedUserProfile.shipping_statistics.total_cargo_requests}
+                    </div>
+                    <div className="text-sm text-gray-600">Заявок</div>
+                  </div>
+                  <div className="bg-white p-3 rounded border text-center">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {selectedUserProfile.frequent_recipients.length}
+                    </div>
+                    <div className="text-sm text-gray-600">Получателей</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Часто используемые получатели */}
+              {selectedUserProfile.frequent_recipients.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Часто используемые получатели</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto">
+                    {selectedUserProfile.frequent_recipients.slice(0, 6).map((recipient, index) => (
+                      <div key={index} className="bg-white border rounded-lg p-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium">{recipient.recipient_full_name}</h4>
+                            <p className="text-sm text-gray-600">{recipient.recipient_phone}</p>
+                            <p className="text-xs text-gray-500">{recipient.recipient_address}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-medium">{recipient.shipment_count} раз</div>
+                            <div className="text-xs text-gray-500">
+                              {recipient.last_sent && new Date(recipient.last_sent).toLocaleDateString('ru-RU')}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Последние отправления */}
+              {selectedUserProfile.recent_shipments.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Последние отправления</h3>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {selectedUserProfile.recent_shipments.slice(0, 8).map((shipment, index) => (
+                      <div key={index} className="bg-white border rounded-lg p-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium">{shipment.cargo_number} - {shipment.cargo_name}</h4>
+                            <p className="text-sm text-gray-600">
+                              {shipment.weight} кг • {shipment.declared_value} руб
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              Получатель: {shipment.recipient_full_name}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant="outline">{shipment.status}</Badge>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {new Date(shipment.created_at).toLocaleDateString('ru-RU')}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Модальное окно быстрого создания груза */}
+      <Dialog open={showQuickCargoModal} onOpenChange={setShowQuickCargoModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Быстрое создание груза</DialogTitle>
+            <DialogDescription>
+              Создание груза с автозаполнением из истории пользователя
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Выбор получателя из истории */}
+            {frequentRecipients.length > 0 && (
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-lg mb-3">Выберите получателя из истории</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                  {frequentRecipients.slice(0, 6).map((recipient, index) => (
+                    <button
+                      key={index}
+                      className={`p-2 text-left rounded border ${
+                        selectedRecipient?.recipient_phone === recipient.recipient_phone
+                          ? 'bg-blue-100 border-blue-300'
+                          : 'bg-white hover:bg-gray-50'
+                      }`}
+                      onClick={() => selectRecipientFromHistory(recipient)}
+                    >
+                      <div className="font-medium text-sm">{recipient.recipient_full_name}</div>
+                      <div className="text-xs text-gray-600">{recipient.recipient_phone}</div>
+                      <div className="text-xs text-gray-500">{recipient.shipment_count} отправлений</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Данные получателя */}
+            <div>
+              <h3 className="font-semibold text-lg mb-3">Данные получателя</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <Label>ФИО получателя</Label>
+                  <Input
+                    value={quickCargoForm.recipient_data.recipient_full_name || ''}
+                    onChange={(e) => setQuickCargoForm({
+                      ...quickCargoForm,
+                      recipient_data: {
+                        ...quickCargoForm.recipient_data,
+                        recipient_full_name: e.target.value
+                      }
+                    })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Телефон получателя</Label>
+                  <Input
+                    value={quickCargoForm.recipient_data.recipient_phone || ''}
+                    onChange={(e) => setQuickCargoForm({
+                      ...quickCargoForm,
+                      recipient_data: {
+                        ...quickCargoForm.recipient_data,
+                        recipient_phone: e.target.value
+                      }
+                    })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Адрес получателя</Label>
+                  <Input
+                    value={quickCargoForm.recipient_data.recipient_address || ''}
+                    onChange={(e) => setQuickCargoForm({
+                      ...quickCargoForm,
+                      recipient_data: {
+                        ...quickCargoForm.recipient_data,
+                        recipient_address: e.target.value
+                      }
+                    })}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Грузы */}
+            <div className="bg-green-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-lg mb-3">Грузы</h3>
+              {quickCargoForm.cargo_items.map((item, index) => (
+                <div key={index} className="mb-4 p-3 bg-white rounded border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">Груз #{index + 1}</span>
+                    {quickCargoForm.cargo_items.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeQuickCargoItem(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <Label>Название</Label>
+                      <Input
+                        value={item.cargo_name}
+                        onChange={(e) => updateQuickCargoItem(index, 'cargo_name', e.target.value)}
+                        placeholder="Документы, одежда..."
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>Вес (кг)</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={item.weight}
+                        onChange={(e) => updateQuickCargoItem(index, 'weight', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>Цена за кг (руб.)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={item.price_per_kg}
+                        onChange={(e) => updateQuickCargoItem(index, 'price_per_kg', e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  {item.weight && item.price_per_kg && (
+                    <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
+                      Стоимость: {parseFloat(item.weight)} кг × {parseFloat(item.price_per_kg)} руб/кг = 
+                      <span className="font-semibold text-green-600 ml-1">
+                        {(parseFloat(item.weight) * parseFloat(item.price_per_kg)).toFixed(2)} руб
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
+              
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addQuickCargoItem}
+                className="w-full"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Добавить еще груз
+              </Button>
+            </div>
+
+            {/* Итоги */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-lg mb-2">Итого</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-sm text-gray-600">Общий вес:</span>
+                  <div className="text-xl font-bold text-blue-600">
+                    {calculateQuickCargoTotals().totalWeight.toFixed(1)} кг
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">Общая стоимость:</span>
+                  <div className="text-xl font-bold text-green-600">
+                    {calculateQuickCargoTotals().totalCost.toFixed(2)} руб
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Описание */}
+            <div>
+              <Label>Описание груза</Label>
+              <textarea
+                className="w-full p-2 border rounded-md"
+                rows="3"
+                value={quickCargoForm.description}
+                onChange={(e) => setQuickCargoForm({...quickCargoForm, description: e.target.value})}
+                placeholder="Дополнительная информация о грузе..."
+                required
+              />
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowQuickCargoModal(false)}
+              >
+                Отмена
+              </Button>
+              <Button 
+                onClick={submitQuickCargo}
+                disabled={
+                  !quickCargoForm.recipient_data.recipient_full_name ||
+                  !quickCargoForm.recipient_data.recipient_phone ||
+                  !quickCargoForm.description ||
+                  quickCargoForm.cargo_items.some(item => !item.cargo_name || !item.weight || !item.price_per_kg)
+                }
+              >
+                Создать груз
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
