@@ -1120,6 +1120,7 @@ async def register(user_data: UserCreate):
         "token_type": "bearer",
         "user": User(
             id=user_id,
+            user_number=user_number,  # Добавляем номер пользователя
             full_name=user_data.full_name,
             phone=user_data.phone,
             role=user_role,
