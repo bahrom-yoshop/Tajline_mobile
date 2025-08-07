@@ -18444,7 +18444,7 @@ ID склада: {self.warehouse_id}"""
                 "PUT",
                 f"/api/cargo/{placement_cargo_id}/processing-status",
                 200,
-                {"processing_status": "paid"},
+                {"new_status": "paid"},
                 self.tokens['admin']
             )
             all_success &= success
