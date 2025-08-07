@@ -1148,6 +1148,7 @@ async def login(user_data: UserLogin):
         "token_type": "bearer",
         "user": User(
             id=user["id"],
+            user_number=user.get("user_number", "N/A"),  # Обратная совместимость для существующих пользователей
             full_name=user["full_name"],
             phone=user["phone"],
             role=user["role"],
