@@ -4349,39 +4349,234 @@ function App() {
                 <CardContent className="p-4">
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     
-                    {/* Поиск */}
+                    {/* Поиск с расширенными функциями */}
                     <div className="flex-1 max-w-md relative">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <Input
                           placeholder="Поиск по номеру, ФИО, телефону..."
                           value={searchQuery}
-                          onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                            if (e.target.value.length >= 2) {
-                              handleSearch(e.target.value);
-                            } else {
-                              clearSearch();
+                          onChange={(e) => handleSearchInput(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              handleAdvancedSearch(searchQuery);
                             }
                           }}
-                          className="pl-10 pr-8"
+                          className="pl-10 pr-20"
                         />
+                        
+                        {/* Кнопка расширенного поиска */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="absolute right-1 top-1/2 transform -translate-y-1/2"
+                          onClick={() => setAdvancedSearchOpen(!advancedSearchOpen)}
+                        >
+                          <Filter className="h-4 w-4" />
+                        </Button>
+                        
                         {searchQuery && (
                           <Button
-                            variant="ghost"
                             size="sm"
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                            variant="ghost"
+                            className="absolute right-12 top-1/2 transform -translate-y-1/2"
                             onClick={clearSearch}
                           >
                             <X className="h-4 w-4" />
                           </Button>
                         )}
                       </div>
+
+                      {/* Автодополнение */}
+                      {showSuggestions && searchSuggestions.length > 0 && (
+                        <div className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg">
+                          {searchSuggestions.map((suggestion, index) => (
+                            <div
+                              key={index}
+                              className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
+                              onClick={() => selectSearchSuggestion(suggestion)}
+                            >
+                              <Search className="inline mr-2 h-3 w-3 text-gray-400" />
+                              {suggestion}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Расширенные фильтры */}
+                      {advancedSearchOpen && (
+                        <div className="absolute z-50 mt-2 w-96 bg-white border rounded-lg shadow-lg p-4">
+                          <div className="space-y-4">
+                            <h3 className="font-semibold text-sm">Расширенные фильтры</h3>
+                            
+                            {/* Фильтры для грузов */}
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <Label className="text-xs">Статус груза</Label>
+                                <Select 
+                                  value={searchFilters.cargo_status} 
+                                  onValueChange={(value) => setSearchFilters({...searchFilters, cargo_status: value})}
+                                >
+                                  <SelectTrigger className="h-8">
+                                    <SelectValue placeholder="Любой" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="">Любой</SelectItem>
+                                    <SelectItem value="accepted">Принят</SelectItem>
+                                    <SelectItem value="in_transit">В пути</SelectItem>
+                                    <SelectItem value="delivered">Доставлен</SelectItem>
+                                    <SelectItem value="returned">Возвращен</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              <div>
+                                <Label className="text-xs">Оплата</Label>
+                                <Select 
+                                  value={searchFilters.payment_status} 
+                                  onValueChange={(value) => setSearchFilters({...searchFilters, payment_status: value})}
+                                >
+                                  <SelectTrigger className="h-8">
+                                    <SelectValue placeholder="Любая" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="">Любая</SelectItem>
+                                    <SelectItem value="pending">Ожидается</SelectItem>
+                                    <SelectItem value="paid">Оплачен</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <Label className="text-xs">Маршрут</Label>
+                                <Select 
+                                  value={searchFilters.route} 
+                                  onValueChange={(value) => setSearchFilters({...searchFilters, route: value})}
+                                >
+                                  <SelectTrigger className="h-8">
+                                    <SelectValue placeholder="Любой" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="">Любой</SelectItem>
+                                    <SelectItem value="moscow_to_tajikistan">Москва → Таджикистан</SelectItem>
+                                    <SelectItem value="tajikistan_to_moscow">Таджикистан → Москва</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              <div>
+                                <Label className="text-xs">Сортировка</Label>
+                                <Select 
+                                  value={searchFilters.sort_by} 
+                                  onValueChange={(value) => setSearchFilters({...searchFilters, sort_by: value})}
+                                >
+                                  <SelectTrigger className="h-8">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="created_at">По дате</SelectItem>
+                                    <SelectItem value="relevance_score">По релевантности</SelectItem>
+                                    <SelectItem value="weight">По весу</SelectItem>
+                                    <SelectItem value="declared_value">По стоимости</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+
+                            {/* Поля для телефонов */}
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <Label className="text-xs">Телефон отправителя</Label>
+                                <Input
+                                  className="h-8"
+                                  placeholder="+7..."
+                                  value={searchFilters.sender_phone}
+                                  onChange={(e) => setSearchFilters({...searchFilters, sender_phone: e.target.value})}
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Телефон получателя</Label>
+                                <Input
+                                  className="h-8"
+                                  placeholder="+992..."
+                                  value={searchFilters.recipient_phone}
+                                  onChange={(e) => setSearchFilters({...searchFilters, recipient_phone: e.target.value})}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Диапазон дат */}
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <Label className="text-xs">От даты</Label>
+                                <Input
+                                  type="date"
+                                  className="h-8"
+                                  value={searchFilters.date_from}
+                                  onChange={(e) => setSearchFilters({...searchFilters, date_from: e.target.value})}
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">До даты</Label>
+                                <Input
+                                  type="date"
+                                  className="h-8"
+                                  value={searchFilters.date_to}
+                                  onChange={(e) => setSearchFilters({...searchFilters, date_to: e.target.value})}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex justify-between">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSearchFilters({
+                                    cargo_status: '',
+                                    payment_status: '',
+                                    processing_status: '',
+                                    route: '',
+                                    sender_phone: '',
+                                    recipient_phone: '',
+                                    date_from: '',
+                                    date_to: '',
+                                    user_role: '',
+                                    user_status: null,
+                                    sort_by: 'created_at',
+                                    sort_order: 'desc'
+                                  });
+                                }}
+                              >
+                                Сбросить
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  handleAdvancedSearch(searchQuery, searchFilters);
+                                  setAdvancedSearchOpen(false);
+                                }}
+                                disabled={searchLoading}
+                              >
+                                {searchLoading ? 'Поиск...' : 'Применить'}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       
                       {/* Результаты поиска */}
                       {showSearchResults && (
-                        <div className="absolute z-50 mt-2 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto"
-                        >
+                        <div className="absolute z-40 mt-2 w-full bg-white border rounded-lg shadow-lg max-h-80 overflow-y-auto">
+                          {/* Информация о поиске */}
+                          {searchTime > 0 && (
+                            <div className="px-3 py-2 bg-gray-50 border-b text-xs text-gray-600">
+                              Найдено {searchResults.length} результатов за {searchTime}мс
+                            </div>
+                          )}
+                          
                           {!Array.isArray(searchResults) || searchResults.length === 0 ? (
                             <div className="p-4 text-gray-500 text-center">Ничего не найдено</div>
                           ) : (
@@ -4389,21 +4584,54 @@ function App() {
                               <div
                                 key={result.id}
                                 className="p-3 border-b hover:bg-gray-50 cursor-pointer"
-                                onClick={async () => {
-                                  try {
-                                    const cargoDetails = await fetchCargoDetails(result.id);
-                                    setSelectedCellCargo(cargoDetails);
-                                    setCargoDetailModal(true);
-                                    clearSearch();
-                                  } catch (error) {
-                                    console.error('Error fetching cargo details:', error);
+                                onClick={() => {
+                                  if (result.type === 'cargo') {
+                                    fetchCargoDetails(result.id).then(cargoDetails => {
+                                      setSelectedCellCargo(cargoDetails);
+                                      setCargoDetailModal(true);
+                                      clearSearch();
+                                    });
+                                  } else if (result.type === 'user') {
+                                    // Открыть профиль пользователя
+                                    console.log('Open user profile:', result.id);
+                                  } else if (result.type === 'warehouse') {
+                                    // Открыть склад
+                                    console.log('Open warehouse:', result.id);
                                   }
                                 }}
                               >
-                                <div className="font-medium">{result.cargo_number}</div>
-                                <div className="text-sm text-gray-600">{result.cargo_name}</div>
-                                <div className="text-xs text-gray-500">
-                                  {result.sender_full_name} → {result.recipient_full_name || result.recipient_name}
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="font-medium text-sm">{result.title}</div>
+                                    <div className="text-xs text-gray-600">{result.subtitle}</div>
+                                    
+                                    {/* Дополнительная информация в зависимости от типа */}
+                                    {result.type === 'cargo' && (
+                                      <div className="mt-1 text-xs text-gray-500">
+                                        {result.details.weight && `${result.details.weight} кг`}
+                                        {result.details.declared_value && ` • ${result.details.declared_value} руб`}
+                                        {result.details.status && ` • ${result.details.status}`}
+                                      </div>
+                                    )}
+                                    
+                                    {result.type === 'warehouse' && (
+                                      <div className="mt-1 text-xs text-gray-500">
+                                        {result.details.cargo_count} грузов на складе
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="ml-2 text-right">
+                                    <Badge variant="outline" className="text-xs">
+                                      {result.type === 'cargo' ? 'Груз' : 
+                                       result.type === 'user' ? 'Пользователь' : 'Склад'}
+                                    </Badge>
+                                    {result.relevance_score && (
+                                      <div className="text-xs text-gray-400 mt-1">
+                                        {result.relevance_score.toFixed(0)}%
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             ))
