@@ -3458,9 +3458,13 @@ function App() {
         route: historyData.length > 0 ? historyData[0].route || 'moscow_dushanbe' : 'moscow_dushanbe',
         delivery_type: 'standard',
         insurance_requested: false,
-        special_instructions: '',
+        special_instructions: `Груз для ${userInfo.full_name} (${userInfo.user_number})`,
         use_multi_cargo: true
       });
+      
+      // Устанавливаем флаг автозаполнения
+      setIsFilledFromProfile(true);
+      setProfileSourceUser(userInfo);
       
       // Рассчитываем калькулятор
       calculateTotalsWithIndividualPrices([{ cargo_name: '', weight: '', price_per_kg: '50' }]);
@@ -3469,7 +3473,11 @@ function App() {
       setActiveSection('cargo-management');
       setActiveTab('cargo-accept');
       
-      showAlert(`Форма заполнена данными пользователя: ${userInfo.full_name}`, 'info');
+      if (historyData.length > 0) {
+        showAlert(`Форма заполнена данными пользователя: ${userInfo.full_name}. Данные получателя взяты из последней отправки.`, 'info');
+      } else {
+        showAlert(`Форма заполнена данными пользователя: ${userInfo.full_name}. Данные получателя нужно заполнить вручную.`, 'warning');
+      }
       
     } catch (error) {
       console.error('Error opening cargo form from profile:', error);
