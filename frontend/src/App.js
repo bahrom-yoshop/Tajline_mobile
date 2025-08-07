@@ -1447,6 +1447,19 @@ function App() {
     }
   };
 
+  // Получение доступных ячеек для размещения (старый метод для совместимости)
+  const fetchAvailableCellsForEnhancedPlacement = async (warehouseId, blockNumber, shelfNumber) => {
+    try {
+      const data = await apiCall(`/api/warehouses/${warehouseId}/available-cells/${blockNumber}/${shelfNumber}`);
+      setAvailableCellsForPlacement(data.available_cells || []);
+      return data.available_cells || [];
+    } catch (error) {
+      console.error('Error fetching available cells:', error);
+      setAvailableCellsForPlacement([]);
+      return [];
+    }
+  };
+
   // Получение детальной структуры склада
   const fetchWarehouseDetailedStructure = async (warehouseId) => {
     setStructureLoading(true);
