@@ -661,6 +661,47 @@ function App() {
     }
   }, [user]);
 
+  // Функция загрузки данных личного кабинета
+  const fetchPersonalDashboard = async () => {
+    setDashboardLoading(true);
+    try {
+      const response = await apiCall('/api/user/dashboard', 'GET');
+      setPersonalDashboardData(response);
+    } catch (error) {
+      console.error('Error fetching personal dashboard:', error);
+      showAlert('Ошибка загрузки личного кабинета', 'error');
+    } finally {
+      setDashboardLoading(false);
+    }
+  };
+
+  // Функция управления ролями
+  const handleRoleChange = async () => {
+    if (!selectedUserForRole || !newRole) return;
+    
+    try {
+      await apiCall(`/api/admin/users/${selectedUserForRole.id}/role`, 'PUT', {
+        user_id: selectedUserForRole.id,
+        new_role: newRole
+      });
+      
+      showAlert(`Роль пользователя изменена на ${getRoleLabel(newRole)}`, 'success');
+      setShowRoleModal(false);
+      setSelectedUserForRole(null);
+      setNewRole('');
+      fetchUsers(); // Обновляем список пользователей
+    } catch (error) {
+      showAlert(error.message || 'Ошибка изменения роли', 'error');
+    }
+  };
+
+  // Открытие модального окна изменения роли
+  const openRoleModal = (user) => {
+    setSelectedUserForRole(user);
+    setNewRole(user.role);
+    setShowRoleModal(true);
+  };
+
   const fetchUserData = async () => {
     try {
       // Get user data from backend using the token
