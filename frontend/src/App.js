@@ -465,6 +465,165 @@ function App() {
     }, 5000);
   };
 
+  // Функции для сканирования штрих-кодов и QR-кодов
+  const startCargoScanner = () => {
+    setScannerMode('cargo-barcode');
+    setScannerActive(true);
+    setScannerError(null);
+    setScannedCargoData(null);
+    showAlert('Наведите камеру на штрих-код груза для сканирования', 'info');
+  };
+
+  const startCellScanner = () => {
+    setScannerMode('cell-qr');
+    setScannerActive(true);
+    setScannerError(null);
+    setScannedCellData(null);
+    showAlert('Наведите камеру на QR-код свободной ячейки для сканирования', 'info');
+  };
+
+  const stopScanner = () => {
+    setScannerMode('none');
+    setScannerActive(false);
+    setScannerError(null);
+  };
+
+  const handleBarcodeScan = async (scannedData) => {
+    try {
+      if (scannerMode === 'cargo-barcode') {
+        // Ищем груз по отсканированному номеру
+        const cargoNumber = extractCargoNumber(scannedData);
+        const cargo = availableCargoForPlacement.find(item => 
+          item.cargo_number === cargoNumber || 
+          item.id === cargoNumber ||
+          scannedData.includes(cargoNumber)
+        );
+
+        if (cargo) {
+          setScannedCargoData(cargo);
+          setScannerActive(false);
+          showAlert(`Груз ${cargo.cargo_number} найден! Теперь отсканируйте QR-код ячейки для размещения.`, 'success');
+          
+          // Автоматически переходим к сканированию ячейки
+          setTimeout(() => {
+            startCellScanner();
+          }, 1500);
+        } else {
+          setScannerError('Груз не найден в списке ожидающих размещение');
+          showAlert('Груз не найден в списке ожидающих размещение. Проверьте номер груза.', 'error');
+        }
+      } else if (scannerMode === 'cell-qr') {
+        // Парсим QR-код ячейки
+        const cellData = parseCellQRCode(scannedData);
+        if (cellData) {
+          setScannedCellData(cellData);
+          setScannerActive(false);
+          showAlert(`Ячейка найдена: Склад ${cellData.warehouse_id}, Блок ${cellData.block_number}, Полка ${cellData.shelf_number}, Ячейка ${cellData.cell_number}`, 'success');
+          
+          // Автоматически размещаем груз
+          if (scannedCargoData) {
+            await performAutoPlacement();
+          }
+        } else {
+          setScannerError('Неверный формат QR-кода ячейки');
+          showAlert('Неверный формат QR-кода ячейки. Попробуйте еще раз.', 'error');
+        }
+      }
+    } catch (error) {
+      console.error('Barcode scan error:', error);
+      setScannerError('Ошибка обработки отсканированных данных');
+      showAlert('Ошибка обработки отсканированных данных', 'error');
+    }
+  };
+
+  const extractCargoNumber = (scannedData) => {
+    // Извлекаем номер груза из отсканированных данных
+    // Поддерживаем различные форматы: TEMP-123456, 2501999271, и т.д.
+    const match = scannedData.match(/(?:TEMP-)?(\d+)/);
+    return match ? match[0] : scannedData;
+  };
+
+  const parseCellQRCode = (qrData) => {
+    try {
+      // Ожидаем формат: warehouse_id:block_number:shelf_number:cell_number
+      // Или JSON формат: {"warehouse_id": "WH001", "block_number": 1, "shelf_number": 2, "cell_number": 5}
+      
+      if (qrData.includes('{')) {
+        // JSON формат
+        const parsed = JSON.parse(qrData);
+        return {
+          warehouse_id: parsed.warehouse_id,
+          block_number: parseInt(parsed.block_number),
+          shelf_number: parseInt(parsed.shelf_number),
+          cell_number: parseInt(parsed.cell_number)
+        };
+      } else {
+        // Простой формат с разделителями
+        const parts = qrData.split(':');
+        if (parts.length === 4) {
+          return {
+            warehouse_id: parts[0],
+            block_number: parseInt(parts[1]),
+            shelf_number: parseInt(parts[2]),
+            cell_number: parseInt(parts[3])
+          };
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('QR parsing error:', error);
+      return null;
+    }
+  };
+
+  const performAutoPlacement = async () => {
+    if (!scannedCargoData || !scannedCellData) {
+      showAlert('Недостаточно данных для размещения груза', 'error');
+      return;
+    }
+
+    setPlacementInProgress(true);
+    try {
+      await handlePlaceCargo(
+        scannedCargoData.id,
+        scannedCellData.warehouse_id,
+        scannedCellData.block_number,
+        scannedCellData.shelf_number,
+        scannedCellData.cell_number
+      );
+      
+      showAlert(
+        `Груз ${scannedCargoData.cargo_number} успешно размещен в ячейке ${scannedCellData.block_number}-${scannedCellData.shelf_number}-${scannedCellData.cell_number}!`,
+        'success'
+      );
+      
+      // Сбрасываем состояние сканирования
+      resetScannerState();
+      
+      // Обновляем списки
+      fetchAvailableCargoForPlacement();
+      
+    } catch (error) {
+      console.error('Auto placement error:', error);
+      showAlert('Ошибка автоматического размещения груза', 'error');
+    } finally {
+      setPlacementInProgress(false);
+    }
+  };
+
+  const resetScannerState = () => {
+    setScannerMode('none');
+    setScannerActive(false);
+    setScannedCargoData(null);
+    setScannedCellData(null);
+    setScannerError(null);
+  };
+
+  const simulateBarcodeScan = (testData) => {
+    // Функция для тестирования без реальной камеры
+    handleBarcodeScan(testData);
+  };
+
   const apiCall = async (endpoint, method = 'GET', data = null, params = null, retryCount = 0) => {
     try {
       // Build URL with query parameters if provided
