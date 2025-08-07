@@ -406,6 +406,42 @@ function App() {
   const [repeatOrderTotalCost, setRepeatOrderTotalCost] = useState(0);
   const [repeatOrderBreakdown, setRepeatOrderBreakdown] = useState([]);
 
+  // Новые состояния для админ функций
+  const [showAdminEditUser, setShowAdminEditUser] = useState(false);
+  const [adminEditUserForm, setAdminEditUserForm] = useState({
+    id: '',
+    full_name: '',
+    phone: '',
+    email: '',
+    address: '',
+    role: 'user',
+    is_active: true
+  });
+  const [selectedUserForEdit, setSelectedUserForEdit] = useState(null);
+  
+  // Состояния для повторного заказа админом/оператором
+  const [showAdminRepeatOrderModal, setShowAdminRepeatOrderModal] = useState(false);
+  const [adminRepeatOrderData, setAdminRepeatOrderData] = useState(null);
+  const [adminRepeatOrderForm, setAdminRepeatOrderForm] = useState({
+    sender_id: '',
+    sender_full_name: '',
+    sender_phone: '',
+    cargo_items: [{ cargo_name: '', weight: '', price_per_kg: '' }],
+    recipient_full_name: '',
+    recipient_phone: '',
+    recipient_address: '',
+    route: 'moscow_dushanbe',
+    delivery_type: 'standard',
+    insurance_requested: false,
+    special_instructions: '',
+    use_multi_cargo: true
+  });
+  
+  // Состояния для мульти-груз калькулятора админа/оператора
+  const [adminRepeatOrderTotalWeight, setAdminRepeatOrderTotalWeight] = useState(0);
+  const [adminRepeatOrderTotalCost, setAdminRepeatOrderTotalCost] = useState(0);
+  const [adminRepeatOrderBreakdown, setAdminRepeatOrderBreakdown] = useState([]);
+
   const showAlert = (message, type = 'info') => {
     const id = Date.now();
     setAlerts(prev => [...prev, { id, message, type }]);
