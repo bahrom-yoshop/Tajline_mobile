@@ -17742,6 +17742,8 @@ ID склада: {self.warehouse_id}"""
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            # 🎯 PRIMARY FOCUS: AUTO-FILL FUNCTIONALITY DATA STRUCTURES (Review Request)
+            ("🎯 AUTO-FILL FUNCTIONALITY DATA STRUCTURES", self.test_auto_fill_functionality_data_structures),
             # 🎯 PRIMARY FOCUS: NEW ADMIN USER MANAGEMENT API (Review Request)
             ("🎯 ADMIN USER MANAGEMENT API", self.test_admin_user_management_api),
             # 🎯 PRIMARY FOCUS: ENHANCED USER PROFILE FUNCTIONALITY (Review Request)
