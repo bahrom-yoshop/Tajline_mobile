@@ -17808,6 +17808,8 @@ ID склада: {self.warehouse_id}"""
             ("🧮 ENHANCED MULTI-CARGO FORM WITH CALCULATOR", self.test_enhanced_multi_cargo_form_functionality),
             # 🎯 PRIMARY TEST FROM REVIEW REQUEST: Individual Pricing Multi-Cargo Form
             ("🎯 INDIVIDUAL PRICING MULTI-CARGO FORM", self.test_individual_pricing_multi_cargo_form),
+            # 🎯 PRIMARY TEST FROM REVIEW REQUEST: Cargo Management Workflow with Auto-filled Data
+            ("🎯 CARGO MANAGEMENT WORKFLOW WITH AUTO-FILLED DATA", self.test_cargo_management_workflow_with_auto_filled_data),
             ("Operator Cargo Management", self.test_operator_cargo_management),
             ("Cashier Functionality", self.test_cashier_functionality),
             ("Transport Management", self.test_transport_management),
