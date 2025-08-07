@@ -18373,6 +18373,468 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_barcode_scanning_cargo_placement_workflow(self):
+        """Test barcode scanning functionality for cargo placement - comprehensive workflow testing"""
+        print("\n📱 BARCODE SCANNING CARGO PLACEMENT WORKFLOW TESTING")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Create Test Cargo for Placement Workflow
+        print("\n   📦 Creating Test Cargo for Placement Workflow...")
+        
+        # Create cargo that will go through full workflow: created → payment_pending → paid → placed
+        placement_cargo_data = {
+            "sender_full_name": "Тест Размещение",
+            "sender_phone": "+79999111222",
+            "recipient_full_name": "Получатель Размещение",
+            "recipient_phone": "+992900111222",
+            "recipient_address": "Душанбе, ул. Размещения, 1",
+            
+            # Multi-cargo with individual pricing as specified in review
+            "cargo_items": [
+                {"cargo_name": "Документы", "weight": 10.0, "price_per_kg": 60.0},
+                {"cargo_name": "Одежда", "weight": 25.0, "price_per_kg": 60.0},
+                {"cargo_name": "Электроника", "weight": 100.0, "price_per_kg": 65.0}
+            ],
+            "description": "Тестовый груз для размещения через сканер штрих-кода",
+            "route": "moscow_dushanbe"
+        }
+        
+        success, placement_cargo_response = self.run_test(
+            "Create Test Cargo for Placement (135kg, 8600руб)",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            placement_cargo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        placement_cargo_id = None
+        placement_cargo_number = None
+        if success and 'id' in placement_cargo_response:
+            placement_cargo_id = placement_cargo_response['id']
+            placement_cargo_number = placement_cargo_response.get('cargo_number')
+            total_weight = placement_cargo_response.get('weight', 0)
+            total_cost = placement_cargo_response.get('declared_value', 0)
+            initial_status = placement_cargo_response.get('processing_status', 'unknown')
+            
+            print(f"   ✅ Placement test cargo created: {placement_cargo_number}")
+            print(f"   📊 Weight: {total_weight} kg, Cost: {total_cost} руб")
+            print(f"   📋 Initial status: {initial_status}")
+            
+            # Verify calculations match review specifications
+            if abs(total_weight - 135.0) < 0.01 and abs(total_cost - 8600.0) < 0.01:
+                print("   ✅ Cargo calculations match review specifications")
+            else:
+                print("   ❌ Cargo calculations don't match expected values")
+                all_success = False
+        
+        # Test 2: Mark Cargo as Paid (Move to Placement Queue)
+        print("\n   💰 Testing Cargo Payment Processing...")
+        
+        if placement_cargo_id:
+            # Mark cargo as paid to move it to placement queue
+            success, payment_response = self.run_test(
+                "Mark Cargo as Paid",
+                "PUT",
+                f"/api/cargo/{placement_cargo_id}/processing-status",
+                200,
+                {"processing_status": "paid"},
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Cargo marked as paid successfully")
+                
+                # Verify cargo appears in placement-ready status
+                success, cargo_list = self.run_test(
+                    "Get Cargo List (Check Placement Ready)",
+                    "GET",
+                    "/api/operator/cargo/list?filter_status=awaiting_placement",
+                    200,
+                    token=self.tokens['admin']
+                )
+                all_success &= success
+                
+                if success and 'items' in cargo_list:
+                    placement_ready_cargo = None
+                    for cargo in cargo_list['items']:
+                        if cargo.get('id') == placement_cargo_id:
+                            placement_ready_cargo = cargo
+                            break
+                    
+                    if placement_ready_cargo:
+                        print("   ✅ Cargo appears in placement-ready status")
+                        print(f"   📋 Status: {placement_ready_cargo.get('processing_status')}")
+                    else:
+                        print("   ❌ Cargo not found in placement-ready list")
+                        all_success = False
+        
+        # Test 3: Test Warehouse and Cell Management for Placement
+        print("\n   🏭 Testing Warehouse and Cell Management...")
+        
+        # Get available warehouses
+        success, warehouses_response = self.run_test(
+            "Get Available Warehouses",
+            "GET",
+            "/api/warehouses",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        target_warehouse_id = None
+        if success and warehouses_response:
+            warehouses = warehouses_response if isinstance(warehouses_response, list) else []
+            if warehouses:
+                target_warehouse = warehouses[0]  # Use first available warehouse
+                target_warehouse_id = target_warehouse.get('id')
+                warehouse_name = target_warehouse.get('name', 'Unknown')
+                
+                print(f"   ✅ Found {len(warehouses)} warehouses")
+                print(f"   🏭 Target warehouse: {warehouse_name} (ID: {target_warehouse_id})")
+                
+                # Verify warehouse cell structure
+                blocks_count = target_warehouse.get('blocks_count', 1)
+                shelves_per_block = target_warehouse.get('shelves_per_block', 1)
+                cells_per_shelf = target_warehouse.get('cells_per_shelf', 10)
+                
+                print(f"   📊 Warehouse structure: {blocks_count} blocks, {shelves_per_block} shelves/block, {cells_per_shelf} cells/shelf")
+            else:
+                print("   ❌ No warehouses available for placement testing")
+                all_success = False
+        
+        # Test 4: Test Cargo Placement API (Main Barcode Scanner Endpoint)
+        print("\n   📱 Testing Cargo Placement API (Barcode Scanner Endpoint)...")
+        
+        if placement_cargo_id and target_warehouse_id:
+            # Test placement with valid cargo ID, warehouse ID, and cell coordinates
+            placement_data = {
+                "cargo_id": placement_cargo_id,
+                "warehouse_id": target_warehouse_id,
+                "block_number": 1,
+                "shelf_number": 1,
+                "cell_number": 5  # Test cell coordinates
+            }
+            
+            success, placement_response = self.run_test(
+                "Place Cargo via Barcode Scanner API",
+                "POST",
+                "/api/operator/cargo/place",
+                200,
+                placement_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Cargo placement via barcode scanner successful")
+                print(f"   📍 Placed at: Б1-П1-Я5")
+                
+                # Verify cargo status changed after placement
+                success, updated_cargo_list = self.run_test(
+                    "Verify Cargo Status After Placement",
+                    "GET",
+                    "/api/operator/cargo/list",
+                    200,
+                    token=self.tokens['admin']
+                )
+                all_success &= success
+                
+                if success and 'items' in updated_cargo_list:
+                    placed_cargo = None
+                    for cargo in updated_cargo_list['items']:
+                        if cargo.get('id') == placement_cargo_id:
+                            placed_cargo = cargo
+                            break
+                    
+                    if placed_cargo:
+                        new_status = placed_cargo.get('processing_status')
+                        warehouse_location = placed_cargo.get('warehouse_location')
+                        
+                        print(f"   📋 New status: {new_status}")
+                        print(f"   📍 Warehouse location: {warehouse_location}")
+                        
+                        # Verify status transition: paid → placed
+                        if new_status == "placed":
+                            print("   ✅ Cargo status correctly changed to 'placed'")
+                        else:
+                            print(f"   ❌ Expected status 'placed', got '{new_status}'")
+                            all_success = False
+                        
+                        # Verify warehouse location is set
+                        if warehouse_location and "Б1-П1-Я5" in warehouse_location:
+                            print("   ✅ Warehouse location correctly set")
+                        else:
+                            print(f"   ❌ Warehouse location not set correctly: {warehouse_location}")
+                            all_success = False
+                    else:
+                        print("   ❌ Could not find placed cargo in list")
+                        all_success = False
+            else:
+                print("   ❌ Cargo placement failed")
+        
+        # Test 5: Test Cargo Status Workflow Transitions
+        print("\n   🔄 Testing Complete Cargo Status Workflow...")
+        
+        # Create another cargo to test full workflow
+        workflow_cargo_data = {
+            "sender_full_name": "Тест Workflow",
+            "sender_phone": "+79999333444",
+            "recipient_full_name": "Получатель Workflow",
+            "recipient_phone": "+992900333444",
+            "recipient_address": "Душанбе, ул. Workflow, 2",
+            "cargo_items": [
+                {"cargo_name": "Тест товар", "weight": 5.0, "price_per_kg": 50.0}
+            ],
+            "description": "Тест полного workflow",
+            "route": "moscow_dushanbe"
+        }
+        
+        success, workflow_cargo_response = self.run_test(
+            "Create Workflow Test Cargo",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            workflow_cargo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        workflow_cargo_id = None
+        if success and 'id' in workflow_cargo_response:
+            workflow_cargo_id = workflow_cargo_response['id']
+            initial_status = workflow_cargo_response.get('processing_status', 'unknown')
+            
+            print(f"   ✅ Workflow cargo created: {workflow_cargo_response.get('cargo_number')}")
+            print(f"   📋 Initial status: {initial_status}")
+            
+            # Test status transitions: created → payment_pending → paid → placed
+            status_transitions = [
+                ("payment_pending", "Payment pending status"),
+                ("paid", "Paid status"),
+                ("invoice_printed", "Invoice printed status"),
+                ("placed", "Placed status")
+            ]
+            
+            for target_status, description in status_transitions:
+                success, transition_response = self.run_test(
+                    f"Status Transition: {description}",
+                    "PUT",
+                    f"/api/cargo/{workflow_cargo_id}/processing-status",
+                    200,
+                    {"processing_status": target_status},
+                    self.tokens['admin']
+                )
+                all_success &= success
+                
+                if success:
+                    print(f"   ✅ Status transition to '{target_status}' successful")
+                else:
+                    print(f"   ❌ Status transition to '{target_status}' failed")
+                    break
+        
+        # Test 6: Generate Test Data for Scanner (Barcode and QR Codes)
+        print("\n   🏷️  Testing Barcode and QR Code Generation...")
+        
+        if placement_cargo_id:
+            # Test cargo QR code generation
+            success, qr_response = self.run_test(
+                "Generate Cargo QR Code",
+                "GET",
+                f"/api/cargo/{placement_cargo_id}/qr-code",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                qr_code_data = qr_response.get('qr_code', '')
+                cargo_number_in_qr = qr_response.get('cargo_number')
+                
+                print(f"   ✅ Cargo QR code generated for: {cargo_number_in_qr}")
+                print(f"   📱 QR code format: {'Base64 image' if qr_code_data.startswith('data:image') else 'Invalid format'}")
+                
+                # Verify QR code contains expected cargo data
+                if cargo_number_in_qr == placement_cargo_number:
+                    print("   ✅ QR code contains correct cargo number")
+                else:
+                    print("   ❌ QR code cargo number mismatch")
+                    all_success = False
+        
+        if target_warehouse_id:
+            # Test warehouse cell QR code generation
+            success, cell_qr_response = self.run_test(
+                "Generate Warehouse Cell QR Code",
+                "GET",
+                f"/api/warehouse/{target_warehouse_id}/cell-qr/1/1/5",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                cell_qr_data = cell_qr_response.get('qr_code', '')
+                cell_location = cell_qr_response.get('location')
+                warehouse_name = cell_qr_response.get('warehouse_name')
+                
+                print(f"   ✅ Cell QR code generated for: {warehouse_name} - {cell_location}")
+                print(f"   📱 Cell QR format: {'Base64 image' if cell_qr_data.startswith('data:image') else 'Invalid format'}")
+                
+                # Verify cell QR code format matches expected pattern
+                if cell_location == "Б1-П1-Я5":
+                    print("   ✅ Cell QR code location format correct")
+                else:
+                    print(f"   ❌ Cell QR code location format incorrect: {cell_location}")
+                    all_success = False
+        
+        # Test 7: Test QR Code Scanning Simulation
+        print("\n   📱 Testing QR Code Scanning Simulation...")
+        
+        if placement_cargo_number:
+            # Simulate scanning cargo QR code
+            cargo_qr_text = f"""ГРУЗ №{placement_cargo_number}
+Наименование: Документы, Одежда, Электроника
+Вес: 135.0 кг
+Отправитель: Тест Размещение
+Тел. отправителя: +79999111222
+Получатель: Получатель Размещение
+Тел. получателя: +992900111222
+Город получения: Душанбе, ул. Размещения, 1"""
+            
+            success, scan_response = self.run_test(
+                "Scan Cargo QR Code",
+                "POST",
+                "/api/qr/scan",
+                200,
+                {"qr_text": cargo_qr_text},
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                scan_type = scan_response.get('type')
+                scanned_cargo_number = scan_response.get('cargo_number')
+                cargo_status = scan_response.get('status')
+                
+                print(f"   ✅ Cargo QR scan successful")
+                print(f"   📋 Scanned cargo: {scanned_cargo_number}")
+                print(f"   📊 Status: {cargo_status}")
+                
+                if scan_type == "cargo" and scanned_cargo_number == placement_cargo_number:
+                    print("   ✅ QR scan correctly identified cargo")
+                else:
+                    print("   ❌ QR scan failed to identify cargo correctly")
+                    all_success = False
+        
+        if target_warehouse_id:
+            # Simulate scanning warehouse cell QR code
+            cell_qr_text = f"""ЯЧЕЙКА СКЛАДА
+Местоположение: Склад-Б1-П1-Я5
+Склад: Тестовый склад
+Адрес склада: Москва, Складская территория
+Блок: 1
+Полка: 1
+Ячейка: 5
+ID склада: {target_warehouse_id}"""
+            
+            success, cell_scan_response = self.run_test(
+                "Scan Warehouse Cell QR Code",
+                "POST",
+                "/api/qr/scan",
+                200,
+                {"qr_text": cell_qr_text},
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                scan_type = cell_scan_response.get('type')
+                scanned_warehouse_id = cell_scan_response.get('warehouse_id')
+                cell_location = cell_scan_response.get('location')
+                is_occupied = cell_scan_response.get('is_occupied', False)
+                
+                print(f"   ✅ Cell QR scan successful")
+                print(f"   🏭 Warehouse: {scanned_warehouse_id}")
+                print(f"   📍 Location: {cell_location}")
+                print(f"   📦 Occupied: {is_occupied}")
+                
+                if scan_type == "warehouse_cell" and scanned_warehouse_id == target_warehouse_id:
+                    print("   ✅ Cell QR scan correctly identified warehouse cell")
+                else:
+                    print("   ❌ Cell QR scan failed to identify cell correctly")
+                    all_success = False
+        
+        # Test 8: Test Invalid Placement Scenarios
+        print("\n   ⚠️  Testing Invalid Placement Scenarios...")
+        
+        if target_warehouse_id:
+            # Test placement with invalid cargo ID
+            invalid_placement_data = {
+                "cargo_id": "invalid-cargo-id",
+                "warehouse_id": target_warehouse_id,
+                "block_number": 1,
+                "shelf_number": 1,
+                "cell_number": 10
+            }
+            
+            success, _ = self.run_test(
+                "Invalid Cargo ID Placement (Should Fail)",
+                "POST",
+                "/api/operator/cargo/place",
+                404,  # Should return 404 Not Found
+                invalid_placement_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Invalid cargo ID properly rejected")
+            
+            # Test placement with invalid warehouse ID
+            if workflow_cargo_id:
+                invalid_warehouse_data = {
+                    "cargo_id": workflow_cargo_id,
+                    "warehouse_id": "invalid-warehouse-id",
+                    "block_number": 1,
+                    "shelf_number": 1,
+                    "cell_number": 10
+                }
+                
+                success, _ = self.run_test(
+                    "Invalid Warehouse ID Placement (Should Fail)",
+                    "POST",
+                    "/api/operator/cargo/place",
+                    404,  # Should return 404 Not Found
+                    invalid_warehouse_data,
+                    self.tokens['admin']
+                )
+                all_success &= success
+                
+                if success:
+                    print("   ✅ Invalid warehouse ID properly rejected")
+        
+        # Test Summary
+        print("\n   📊 BARCODE SCANNING PLACEMENT WORKFLOW SUMMARY:")
+        if all_success:
+            print("   ✅ All barcode scanning placement tests passed")
+            print("   ✅ Cargo creation and payment workflow working")
+            print("   ✅ Placement API endpoint functional")
+            print("   ✅ Status transitions working correctly")
+            print("   ✅ QR code generation and scanning working")
+            print("   ✅ Warehouse and cell management operational")
+            print("   ✅ Error handling for invalid scenarios working")
+        else:
+            print("   ❌ Some barcode scanning placement tests failed")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
@@ -18384,6 +18846,8 @@ ID склада: {self.warehouse_id}"""
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            # 🎯 PRIMARY FOCUS: BARCODE SCANNING CARGO PLACEMENT WORKFLOW (Review Request)
+            ("🎯 BARCODE SCANNING CARGO PLACEMENT WORKFLOW", self.test_barcode_scanning_cargo_placement_workflow),
             # 🎯 PRIMARY FOCUS: AUTO-FILL FUNCTIONALITY DATA STRUCTURES (Review Request)
             ("🎯 AUTO-FILL FUNCTIONALITY DATA STRUCTURES", self.test_auto_fill_functionality_data_structures),
             # 🎯 PRIMARY FOCUS: NEW ADMIN USER MANAGEMENT API (Review Request)
