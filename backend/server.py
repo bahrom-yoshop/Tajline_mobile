@@ -4755,9 +4755,9 @@ async def advanced_search(
         if search_request.sort_by:
             reverse_order = search_request.sort_order == "desc"
             if search_request.sort_by == "relevance_score":
-                results.sort(key=lambda x: x.get("relevance_score", 0), reverse=reverse_order)
+                results.sort(key=lambda x: x.relevance_score or 0, reverse=reverse_order)
             elif search_request.sort_by == "created_at":
-                results.sort(key=lambda x: x.get("details", {}).get("created_at", ""), reverse=reverse_order)
+                results.sort(key=lambda x: x.details.get("created_at", ""), reverse=reverse_order)
         
         # Пагинация
         page = max(1, search_request.page or 1)
