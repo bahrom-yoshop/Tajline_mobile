@@ -1095,8 +1095,10 @@ async def register(user_data: UserCreate):
     user_role = UserRole.USER  # Всегда USER для обычной регистрации
     
     user_id = str(uuid.uuid4())
+    user_number = generate_user_number()  # Генерируем индивидуальный номер
     user = {
         "id": user_id,
+        "user_number": user_number,  # Добавляем индивидуальный номер
         "full_name": user_data.full_name,
         "phone": user_data.phone,
         "password": hash_password(user_data.password),
