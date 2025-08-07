@@ -18629,7 +18629,7 @@ ID склада: {self.warehouse_id}"""
                     "PUT",
                     f"/api/cargo/{workflow_cargo_id}/processing-status",
                     200,
-                    {"processing_status": target_status},
+                    {"new_status": target_status},
                     self.tokens['admin']
                 )
                 all_success &= success
