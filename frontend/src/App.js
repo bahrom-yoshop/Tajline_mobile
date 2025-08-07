@@ -1060,6 +1060,7 @@ function App() {
         fetchWarehouses();
         fetchOperatorCargo('', 1, 25);
         fetchAvailableCargoForPlacement(1, 25); // Добавляем загрузку грузов для размещения
+        fetchPlacedCargo(1, 25); // Добавляем загрузку размещенных грузов
         fetchUnpaidCargo();
         fetchPaymentHistory();
         fetchCargoRequests();
