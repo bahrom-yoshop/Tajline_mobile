@@ -16327,6 +16327,8 @@ ID склада: {self.warehouse_id}"""
             ("🎯 WAREHOUSE OPERATOR ROLE VERIFICATION", self.test_warehouse_operator_role_verification),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            # 🎯 PRIMARY FOCUS: ENHANCED USER PROFILE FUNCTIONALITY (Review Request)
+            ("🎯 ENHANCED USER PROFILE FUNCTIONALITY", self.test_enhanced_user_profile_functionality),
             # 🎯 PRIMARY FOCUS: ADMIN PANEL ENHANCEMENTS (Review Request)
             ("🎯 ADMIN PANEL ENHANCEMENTS", self.test_admin_panel_enhancements),
             # 🎯 PRIMARY TEST: COMPREHENSIVE WAREHOUSE LAYOUT FUNCTIONALITY (Review Request)
