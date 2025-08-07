@@ -4049,6 +4049,145 @@ async def get_my_cargo_requests(
     requests = list(db.cargo_requests.find({"created_by": current_user.id}).sort("created_at", -1))
     return [CargoRequest(**request) for request in requests]
 
+@app.get("/api/user/dashboard")
+async def get_personal_dashboard(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить данные личного кабинета пользователя"""
+    try:
+        # Информация о пользователе
+        user_info = current_user
+        
+        # История заявок на грузы (как отправитель)
+        cargo_requests = []
+        requests = list(db.cargo_requests.find(
+            {"created_by": current_user.id}
+        ).sort("created_at", -1).limit(50))
+        
+        for request in requests:
+            cargo_requests.append({
+                "id": request["id"],
+                "cargo_name": request.get("cargo_name", "Груз"),
+                "weight": request.get("weight", 0),
+                "declared_value": request.get("declared_value", 0),
+                "recipient_name": request.get("recipient_name", "Не указан"),
+                "recipient_phone": request.get("recipient_phone", "Не указан"),
+                "recipient_address": request.get("recipient_address", "Не указан"),
+                "status": request.get("status", "pending"),
+                "created_at": request.get("created_at"),
+                "route": request.get("route", "moscow_to_tajikistan"),
+                "type": "cargo_request"
+            })
+        
+        # История отправленных грузов (как отправитель)
+        sent_cargo = []
+        # Поиск в пользовательских грузах
+        user_cargo = list(db.cargo.find(
+            {"sender_phone": current_user.phone}
+        ).sort("created_at", -1).limit(50))
+        
+        for cargo in user_cargo:
+            sent_cargo.append({
+                "id": cargo["id"],
+                "cargo_number": cargo.get("cargo_number", "N/A"),
+                "cargo_name": cargo.get("cargo_name", "Груз"),
+                "weight": cargo.get("weight", 0),
+                "declared_value": cargo.get("declared_value", 0),
+                "recipient_name": cargo.get("recipient_full_name", "Не указан"),
+                "recipient_phone": cargo.get("recipient_phone", "Не указан"),
+                "status": cargo.get("status", "accepted"),
+                "payment_status": cargo.get("payment_status", "pending"),
+                "created_at": cargo.get("created_at"),
+                "route": cargo.get("route", "moscow_to_tajikistan"),
+                "warehouse_location": cargo.get("warehouse_location"),
+                "type": "user_cargo"
+            })
+        
+        # Поиск в операторских грузах
+        operator_cargo = list(db.operator_cargo.find(
+            {"sender_phone": current_user.phone}
+        ).sort("created_at", -1).limit(50))
+        
+        for cargo in operator_cargo:
+            sent_cargo.append({
+                "id": cargo["id"],
+                "cargo_number": cargo.get("cargo_number", "N/A"),
+                "cargo_name": cargo.get("cargo_name", "Груз"),
+                "weight": cargo.get("weight", 0),
+                "declared_value": cargo.get("declared_value", 0),
+                "recipient_name": cargo.get("recipient_full_name", "Не указан"),
+                "recipient_phone": cargo.get("recipient_phone", "Не указан"),
+                "status": cargo.get("status", "accepted"),
+                "payment_status": cargo.get("payment_status", "pending"),
+                "processing_status": cargo.get("processing_status", "payment_pending"),
+                "created_at": cargo.get("created_at"),
+                "route": cargo.get("route", "moscow_to_tajikistan"),
+                "warehouse_location": cargo.get("warehouse_location"),
+                "created_by_operator": cargo.get("created_by_operator"),
+                "type": "operator_cargo"
+            })
+        
+        # История полученных грузов (как получатель)
+        received_cargo = []
+        # Поиск по номеру телефона получателя
+        received_user_cargo = list(db.cargo.find(
+            {"recipient_phone": current_user.phone}
+        ).sort("created_at", -1).limit(50))
+        
+        for cargo in received_user_cargo:
+            received_cargo.append({
+                "id": cargo["id"],
+                "cargo_number": cargo.get("cargo_number", "N/A"),
+                "cargo_name": cargo.get("cargo_name", "Груз"),
+                "weight": cargo.get("weight", 0),
+                "declared_value": cargo.get("declared_value", 0),
+                "sender_name": cargo.get("sender_full_name", "Не указан"),
+                "sender_phone": cargo.get("sender_phone", "Не указан"),
+                "status": cargo.get("status", "accepted"),
+                "payment_status": cargo.get("payment_status", "pending"),
+                "created_at": cargo.get("created_at"),
+                "route": cargo.get("route", "moscow_to_tajikistan"),
+                "warehouse_location": cargo.get("warehouse_location"),
+                "type": "received_user_cargo"
+            })
+        
+        received_operator_cargo = list(db.operator_cargo.find(
+            {"recipient_phone": current_user.phone}
+        ).sort("created_at", -1).limit(50))
+        
+        for cargo in received_operator_cargo:
+            received_cargo.append({
+                "id": cargo["id"],
+                "cargo_number": cargo.get("cargo_number", "N/A"),
+                "cargo_name": cargo.get("cargo_name", "Груз"),
+                "weight": cargo.get("weight", 0),
+                "declared_value": cargo.get("declared_value", 0),
+                "sender_name": cargo.get("sender_full_name", "Не указан"),
+                "sender_phone": cargo.get("sender_phone", "Не указан"),
+                "status": cargo.get("status", "accepted"),
+                "payment_status": cargo.get("payment_status", "pending"),
+                "processing_status": cargo.get("processing_status", "payment_pending"),
+                "created_at": cargo.get("created_at"),
+                "route": cargo.get("route", "moscow_to_tajikistan"),
+                "warehouse_location": cargo.get("warehouse_location"),
+                "created_by_operator": cargo.get("created_by_operator"),
+                "type": "received_operator_cargo"
+            })
+        
+        # Сортируем все грузы по дате
+        sent_cargo.sort(key=lambda x: x.get("created_at", datetime.min), reverse=True)
+        received_cargo.sort(key=lambda x: x.get("created_at", datetime.min), reverse=True)
+        
+        return PersonalDashboard(
+            user_info=user_info,
+            cargo_requests=cargo_requests[:20],  # Ограничиваем количество
+            sent_cargo=sent_cargo[:20],
+            received_cargo=received_cargo[:20]
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving dashboard data: {str(e)}")
+
 # === УПРАВЛЕНИЕ ОПЕРАТОРАМИ И СКЛАДАМИ ===
 
 @app.post("/api/admin/operator-warehouse-binding")
