@@ -421,6 +421,53 @@ class AutoFillTester:
         
         return all_success
 
+    def create_test_user_with_complete_profile(self):
+        """Create a test user with complete profile data for auto-fill testing"""
+        print("\n👤 CREATING TEST USER WITH COMPLETE PROFILE")
+        
+        # Create user
+        user_data = {
+            "full_name": "Тест Автозаполнение Пользователь",
+            "phone": "+79888777666",
+            "password": "test123",
+            "role": "user"
+        }
+        
+        success, response = self.run_test(
+            "Create Test User for Auto-fill",
+            "POST",
+            "/api/auth/register",
+            200,
+            user_data
+        )
+        
+        if success and 'access_token' in response:
+            user_token = response['access_token']
+            user_id = response['user']['id']
+            
+            # Update user profile with complete data
+            profile_data = {
+                "full_name": "Тест Автозаполнение Пользователь",
+                "phone": "+79888777666",
+                "email": "test.autofill@example.com",
+                "address": "Москва, ул. Автозаполнения, 123"
+            }
+            
+            success, _ = self.run_test(
+                "Update User Profile with Complete Data",
+                "PUT",
+                "/api/user/profile",
+                200,
+                profile_data,
+                user_token
+            )
+            
+            if success:
+                print(f"   ✅ Test user created with complete profile: {user_id}")
+                return user_id, user_token
+        
+        return None, None
+
     def run_all_tests(self):
         """Run all auto-fill tests"""
         print("\n🚀 STARTING AUTO-FILL FUNCTIONALITY TESTING")
@@ -430,6 +477,11 @@ class AutoFillTester:
         if not self.login_admin():
             print("❌ Failed to login as admin")
             return False
+        
+        # Create test user with complete profile
+        user_id, user_token = self.create_test_user_with_complete_profile()
+        if user_id:
+            print(f"   ✅ Test user created for auto-fill testing")
         
         # Run the auto-fill functionality test
         success = self.test_auto_fill_functionality_data_structures()
