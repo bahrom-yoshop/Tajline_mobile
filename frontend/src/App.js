@@ -3369,19 +3369,30 @@ function App() {
 
   const handlePlaceCargo = async (cargoId, warehouseId, blockNumber, shelfNumber, cellNumber) => {
     try {
-      await apiCall('/api/operator/cargo/place', 'POST', {
+      const response = await apiCall('/api/operator/cargo/place', 'POST', {
         cargo_id: cargoId,
         warehouse_id: warehouseId,
         block_number: parseInt(blockNumber),
         shelf_number: parseInt(shelfNumber),
         cell_number: parseInt(cellNumber)
       });
-      showAlert('Груз успешно размещен на складе!', 'success');
-      fetchOperatorCargo();
-      fetchAvailableCargo();
-      fetchAvailableCells(warehouseId);
+
+      showAlert(`✅ Груз успешно размещен на ${response.warehouse_name}`, 'success');
+      
+      // Обновляем статус груза на "размещен" во ВСЕХ таблицах
+      await updateCargoProcessingStatus(cargoId, 'placed');
+      
+      // Обновляем все списки для синхронизации
+      fetchAvailableCargoForPlacement(); // Убираем из "Ожидает размещение"
+      fetchPlacedCargo(); // Добавляем в "Размещенные грузы"
+      fetchOperatorCargo(operatorCargoFilter, operatorCargoPage, operatorCargoPerPage);
+      fetchAllCargo(); // Админский список
+      
+      return response;
     } catch (error) {
-      console.error('Place cargo error:', error);
+      console.error('Error placing cargo:', error);
+      showAlert('Ошибка размещения груза: ' + error.message, 'error');
+      throw error;
     }
   };
 
