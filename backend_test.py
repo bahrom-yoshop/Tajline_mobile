@@ -16641,6 +16641,725 @@ ID склада: {self.warehouse_id}"""
         
         return all_success
 
+    def test_admin_user_management_api(self):
+        """Test the new PUT /api/admin/users/{user_id}/update endpoint for full user profile editing by admins"""
+        print("\n👑 ADMIN USER MANAGEMENT API TESTING")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Get all users to find a user to update
+        print("\n   👥 Getting Users for Admin Management Testing...")
+        
+        success, users_response = self.run_test(
+            "Get All Users",
+            "GET",
+            "/api/admin/users",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if not success or not users_response:
+            print("   ❌ Could not get users list")
+            return False
+        
+        # Find a regular user to update (not admin)
+        target_user = None
+        if isinstance(users_response, dict) and 'items' in users_response:
+            users_list = users_response['items']
+        else:
+            users_list = users_response if isinstance(users_response, list) else []
+        
+        for user in users_list:
+            if user.get('role') == 'user' and user.get('id') != self.users.get('admin', {}).get('id'):
+                target_user = user
+                break
+        
+        if not target_user:
+            print("   ❌ No suitable user found for admin management testing")
+            return False
+        
+        user_id = target_user['id']
+        original_data = {
+            'full_name': target_user.get('full_name'),
+            'phone': target_user.get('phone'),
+            'email': target_user.get('email'),
+            'address': target_user.get('address'),
+            'role': target_user.get('role'),
+            'is_active': target_user.get('is_active')
+        }
+        
+        print(f"   👤 Target user: {original_data['full_name']} ({original_data['phone']})")
+        print(f"   🆔 User ID: {user_id}")
+        
+        # Test 2: Update full user profile by admin
+        print("\n   ✏️  Testing Admin User Profile Update...")
+        
+        admin_update_data = {
+            "full_name": "Обновлен Админом Пользователь",
+            "phone": "+992900000099",  # New unique phone
+            "email": "admin.updated.user@test.com",
+            "address": "Душанбе, ул. Обновленная Админом, 999",
+            "role": "user",  # Keep same role initially
+            "is_active": True
+        }
+        
+        success, updated_user = self.run_test(
+            "Admin Update User Profile (Full Update)",
+            "PUT",
+            f"/api/admin/users/{user_id}/update",
+            200,
+            admin_update_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print(f"   ✅ User profile updated by admin successfully")
+            print(f"   👤 New name: {updated_user.get('full_name')}")
+            print(f"   📞 New phone: {updated_user.get('phone')}")
+            print(f"   📧 New email: {updated_user.get('email')}")
+            print(f"   🏠 New address: {updated_user.get('address')}")
+            print(f"   👑 Role: {updated_user.get('role')}")
+            print(f"   ✅ Active: {updated_user.get('is_active')}")
+            
+            # Verify all fields were updated correctly
+            if (updated_user.get('full_name') == admin_update_data['full_name'] and
+                updated_user.get('phone') == admin_update_data['phone'] and
+                updated_user.get('email') == admin_update_data['email'] and
+                updated_user.get('address') == admin_update_data['address'] and
+                updated_user.get('role') == admin_update_data['role'] and
+                updated_user.get('is_active') == admin_update_data['is_active']):
+                print("   ✅ All admin update fields verified correctly")
+            else:
+                print("   ❌ Some admin update fields not updated correctly")
+                all_success = False
+        
+        # Test 3: Test phone uniqueness validation
+        print("\n   🔒 Testing Phone Number Uniqueness Validation...")
+        
+        # Try to use admin's phone number (should fail)
+        admin_phone_data = {
+            "phone": "+79999888777"  # Admin's phone from test setup
+        }
+        
+        success, _ = self.run_test(
+            "Admin Update with Duplicate Phone (Should Fail)",
+            "PUT",
+            f"/api/admin/users/{user_id}/update",
+            400,  # Should return 400 Bad Request
+            admin_phone_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Phone number uniqueness validation working correctly for admin updates")
+        
+        # Test 4: Test email uniqueness validation
+        print("\n   📧 Testing Email Uniqueness Validation...")
+        
+        # Try to use another user's email (should fail)
+        duplicate_email_data = {
+            "email": "admin@tajline.tj"  # Assuming this exists
+        }
+        
+        success, _ = self.run_test(
+            "Admin Update with Duplicate Email (Should Fail)",
+            "PUT",
+            f"/api/admin/users/{user_id}/update",
+            400,  # Should return 400 Bad Request
+            duplicate_email_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Email uniqueness validation working correctly for admin updates")
+        
+        # Test 5: Test role changes by admin
+        print("\n   👑 Testing Role Changes by Admin...")
+        
+        # Change user role to warehouse_operator
+        role_change_data = {
+            "role": "warehouse_operator"
+        }
+        
+        success, role_updated_user = self.run_test(
+            "Admin Change User Role to Warehouse Operator",
+            "PUT",
+            f"/api/admin/users/{user_id}/update",
+            200,
+            role_change_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            if role_updated_user.get('role') == 'warehouse_operator':
+                print("   ✅ Role change to warehouse_operator successful")
+            else:
+                print("   ❌ Role change failed")
+                all_success = False
+        
+        # Change role back to user
+        role_revert_data = {
+            "role": "user"
+        }
+        
+        success, _ = self.run_test(
+            "Admin Revert User Role to User",
+            "PUT",
+            f"/api/admin/users/{user_id}/update",
+            200,
+            role_revert_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Role revert to user successful")
+        
+        # Test 6: Test is_active status changes
+        print("\n   🔄 Testing User Active Status Changes...")
+        
+        # Deactivate user
+        deactivate_data = {
+            "is_active": False
+        }
+        
+        success, deactivated_user = self.run_test(
+            "Admin Deactivate User",
+            "PUT",
+            f"/api/admin/users/{user_id}/update",
+            200,
+            deactivate_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            if deactivated_user.get('is_active') == False:
+                print("   ✅ User deactivation successful")
+            else:
+                print("   ❌ User deactivation failed")
+                all_success = False
+        
+        # Reactivate user
+        reactivate_data = {
+            "is_active": True
+        }
+        
+        success, _ = self.run_test(
+            "Admin Reactivate User",
+            "PUT",
+            f"/api/admin/users/{user_id}/update",
+            200,
+            reactivate_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ User reactivation successful")
+        
+        # Test 7: Test data persistence after admin updates
+        print("\n   💾 Testing Data Persistence After Admin Updates...")
+        
+        success, final_user = self.run_test(
+            "Get Updated User Info (Verify Admin Update Persistence)",
+            "GET",
+            f"/api/admin/users/{user_id}",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            # Verify the admin updated data persists
+            if (final_user.get('full_name') == admin_update_data['full_name'] and
+                final_user.get('phone') == admin_update_data['phone'] and
+                final_user.get('email') == admin_update_data['email'] and
+                final_user.get('address') == admin_update_data['address']):
+                print("   ✅ Admin updated information properly persisted")
+            else:
+                print("   ❌ Admin updated information not persisted correctly")
+                all_success = False
+        
+        # Test 8: Test access control - regular user should not be able to update other users
+        print("\n   🔒 Testing Access Control for User Management...")
+        
+        if 'user' in self.tokens:
+            success, _ = self.run_test(
+                "Regular User Attempt Admin Update (Should Fail)",
+                "PUT",
+                f"/api/admin/users/{user_id}/update",
+                403,  # Should return 403 Forbidden
+                {"full_name": "Unauthorized Update"},
+                self.tokens['user']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Regular users correctly denied admin user management access")
+        
+        return all_success
+
+    def test_cargo_creation_for_repeat_orders(self):
+        """Test multi-cargo functionality with the existing POST /api/operator/cargo/accept endpoint"""
+        print("\n📦 CARGO CREATION FOR REPEAT ORDERS TESTING")
+        
+        if 'warehouse_operator' not in self.tokens and 'admin' not in self.tokens:
+            print("   ❌ No operator or admin token available")
+            return False
+            
+        # Use admin token if warehouse_operator not available
+        operator_token = self.tokens.get('warehouse_operator', self.tokens.get('admin'))
+        all_success = True
+        
+        # Test 1: Create cargo with multiple items in cargo_items array
+        print("\n   📋 Testing Multi-Cargo Creation with Individual Pricing...")
+        
+        multi_cargo_data = {
+            "sender_full_name": "Повторный Заказ Отправитель",
+            "sender_phone": "+79999111222",
+            "recipient_full_name": "Повторный Заказ Получатель",
+            "recipient_phone": "+992999111222",
+            "recipient_address": "Душанбе, ул. Повторная, 123",
+            "cargo_items": [
+                {"cargo_name": "Документы", "weight": 5.0, "price_per_kg": 80.0},
+                {"cargo_name": "Одежда", "weight": 15.0, "price_per_kg": 75.0},
+                {"cargo_name": "Электроника", "weight": 8.0, "price_per_kg": 120.0}
+            ],
+            "description": "Повторный заказ с несколькими видами груза",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, multi_cargo_response = self.run_test(
+            "Create Multi-Cargo for Repeat Order",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            multi_cargo_data,
+            operator_token
+        )
+        all_success &= success
+        
+        multi_cargo_id = None
+        if success and 'id' in multi_cargo_response:
+            multi_cargo_id = multi_cargo_response['id']
+            cargo_number = multi_cargo_response.get('cargo_number', 'N/A')
+            total_weight = multi_cargo_response.get('weight', 0)
+            total_cost = multi_cargo_response.get('declared_value', 0)
+            cargo_name = multi_cargo_response.get('cargo_name', 'N/A')
+            
+            print(f"   ✅ Multi-cargo created: {cargo_number}")
+            print(f"   📊 Total weight: {total_weight} kg")
+            print(f"   💰 Total cost: {total_cost} руб")
+            print(f"   🏷️  Combined cargo name: {cargo_name}")
+            
+            # Verify calculations:
+            # Документы: 5.0 кг × 80.0 руб/кг = 400 руб
+            # Одежда: 15.0 кг × 75.0 руб/кг = 1125 руб
+            # Электроника: 8.0 кг × 120.0 руб/кг = 960 руб
+            # Total: 28.0 кг, 2485 руб
+            expected_weight = 5.0 + 15.0 + 8.0  # 28.0 kg
+            expected_cost = (5.0 * 80.0) + (15.0 * 75.0) + (8.0 * 120.0)  # 400 + 1125 + 960 = 2485 rubles
+            expected_name = "Документы, Одежда, Электроника"
+            
+            if (abs(total_weight - expected_weight) < 0.01 and 
+                abs(total_cost - expected_cost) < 0.01 and 
+                cargo_name == expected_name):
+                print("   ✅ Multi-cargo calculations verified correctly")
+            else:
+                print(f"   ❌ Calculation error: expected {expected_weight}kg/{expected_cost}руб, got {total_weight}kg/{total_cost}руб")
+                all_success = False
+        
+        # Test 2: Test all fields for repeat orders (sender data, recipient data, route, etc.)
+        print("\n   📋 Testing Complete Repeat Order Data Structure...")
+        
+        complete_repeat_order_data = {
+            "sender_full_name": "Полный Повторный Отправитель",
+            "sender_phone": "+79999333444",
+            "recipient_full_name": "Полный Повторный Получатель",
+            "recipient_phone": "+992999333444",
+            "recipient_address": "Душанбе, ул. Полная Повторная, 456, кв. 10",
+            "cargo_items": [
+                {"cargo_name": "Медикаменты", "weight": 2.5, "price_per_kg": 150.0},
+                {"cargo_name": "Книги", "weight": 12.0, "price_per_kg": 60.0},
+                {"cargo_name": "Сувениры", "weight": 3.5, "price_per_kg": 100.0},
+                {"cargo_name": "Продукты", "weight": 20.0, "price_per_kg": 45.0}
+            ],
+            "description": "Полный повторный заказ со всеми полями",
+            "route": "moscow_dushanbe"  # Different route
+        }
+        
+        success, complete_response = self.run_test(
+            "Create Complete Repeat Order",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            complete_repeat_order_data,
+            operator_token
+        )
+        all_success &= success
+        
+        if success and 'id' in complete_response:
+            cargo_number = complete_response.get('cargo_number', 'N/A')
+            total_weight = complete_response.get('weight', 0)
+            total_cost = complete_response.get('declared_value', 0)
+            route = complete_response.get('route', 'N/A')
+            sender_name = complete_response.get('sender_full_name', 'N/A')
+            recipient_name = complete_response.get('recipient_full_name', 'N/A')
+            sender_phone = complete_response.get('sender_phone', 'N/A')
+            recipient_phone = complete_response.get('recipient_phone', 'N/A')
+            recipient_address = complete_response.get('recipient_address', 'N/A')
+            
+            print(f"   ✅ Complete repeat order created: {cargo_number}")
+            print(f"   📊 Total weight: {total_weight} kg")
+            print(f"   💰 Total cost: {total_cost} руб")
+            print(f"   🛣️  Route: {route}")
+            print(f"   👤 Sender: {sender_name} ({sender_phone})")
+            print(f"   👤 Recipient: {recipient_name} ({recipient_phone})")
+            print(f"   🏠 Address: {recipient_address}")
+            
+            # Verify all fields are preserved
+            expected_weight = 2.5 + 12.0 + 3.5 + 20.0  # 38.0 kg
+            expected_cost = (2.5 * 150.0) + (12.0 * 60.0) + (3.5 * 100.0) + (20.0 * 45.0)  # 375 + 720 + 350 + 900 = 2345 rubles
+            
+            fields_correct = (
+                abs(total_weight - expected_weight) < 0.01 and
+                abs(total_cost - expected_cost) < 0.01 and
+                route == "moscow_dushanbe" and
+                sender_name == complete_repeat_order_data['sender_full_name'] and
+                recipient_name == complete_repeat_order_data['recipient_full_name'] and
+                sender_phone == complete_repeat_order_data['sender_phone'] and
+                recipient_phone == complete_repeat_order_data['recipient_phone'] and
+                recipient_address == complete_repeat_order_data['recipient_address']
+            )
+            
+            if fields_correct:
+                print("   ✅ All repeat order fields verified correctly")
+            else:
+                print("   ❌ Some repeat order fields incorrect")
+                all_success = False
+        
+        # Test 3: Test individual price_per_kg for each cargo item
+        print("\n   💰 Testing Individual Price Per Kg Validation...")
+        
+        # Test with missing price_per_kg (should fail)
+        invalid_pricing_data = {
+            "sender_full_name": "Тест Валидация",
+            "sender_phone": "+79999555666",
+            "recipient_full_name": "Тест Получатель",
+            "recipient_phone": "+992999555666",
+            "recipient_address": "Душанбе",
+            "cargo_items": [
+                {"cargo_name": "Тест груз", "weight": 5.0}  # Missing price_per_kg
+            ],
+            "description": "Тест валидации цены",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, _ = self.run_test(
+            "Invalid Pricing Data (Missing price_per_kg)",
+            "POST",
+            "/api/operator/cargo/accept",
+            422,  # Validation error expected
+            invalid_pricing_data,
+            operator_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Individual price_per_kg validation working correctly")
+        
+        # Test 4: Verify total_weight and total_cost calculations
+        print("\n   🧮 Testing Total Weight and Cost Calculations...")
+        
+        calculation_test_data = {
+            "sender_full_name": "Калькулятор Тест",
+            "sender_phone": "+79999777888",
+            "recipient_full_name": "Калькулятор Получатель",
+            "recipient_phone": "+992999777888",
+            "recipient_address": "Душанбе, ул. Калькулятор, 789",
+            "cargo_items": [
+                {"cargo_name": "Тест 1", "weight": 10.5, "price_per_kg": 50.0},
+                {"cargo_name": "Тест 2", "weight": 7.25, "price_per_kg": 80.0},
+                {"cargo_name": "Тест 3", "weight": 15.75, "price_per_kg": 65.0}
+            ],
+            "description": "Тест точности вычислений",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        success, calc_response = self.run_test(
+            "Calculation Precision Test",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            calculation_test_data,
+            operator_token
+        )
+        all_success &= success
+        
+        if success and 'id' in calc_response:
+            total_weight = calc_response.get('weight', 0)
+            total_cost = calc_response.get('declared_value', 0)
+            
+            # Precise calculations:
+            # Тест 1: 10.5 кг × 50.0 руб/кг = 525.0 руб
+            # Тест 2: 7.25 кг × 80.0 руб/кг = 580.0 руб
+            # Тест 3: 15.75 кг × 65.0 руб/кг = 1023.75 руб
+            # Total: 33.5 кг, 2128.75 руб
+            expected_weight = 10.5 + 7.25 + 15.75  # 33.5 kg
+            expected_cost = (10.5 * 50.0) + (7.25 * 80.0) + (15.75 * 65.0)  # 525.0 + 580.0 + 1023.75 = 2128.75 rubles
+            
+            print(f"   🧮 Expected: {expected_weight}kg, {expected_cost}руб")
+            print(f"   🧮 Actual: {total_weight}kg, {total_cost}руб")
+            
+            if (abs(total_weight - expected_weight) < 0.01 and 
+                abs(total_cost - expected_cost) < 0.01):
+                print("   ✅ Calculation precision verified correctly")
+            else:
+                print("   ❌ Calculation precision error")
+                all_success = False
+        
+        # Test 5: Test cargo appears in operator cargo list
+        print("\n   📋 Testing Cargo List Integration...")
+        
+        success, cargo_list = self.run_test(
+            "Get Operator Cargo List",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            cargo_items = cargo_list.get('items', []) if isinstance(cargo_list, dict) else cargo_list
+            
+            # Find our test cargo
+            multi_cargo_found = False
+            for cargo in cargo_items:
+                if cargo.get('id') == multi_cargo_id:
+                    multi_cargo_found = True
+                    print(f"   ✅ Multi-cargo found in list: {cargo.get('cargo_name')}")
+                    print(f"   💰 Cost in list: {cargo.get('declared_value')} руб")
+                    break
+            
+            if multi_cargo_found:
+                print("   ✅ Multi-cargo appears correctly in cargo list")
+            else:
+                print("   ❌ Multi-cargo missing from cargo list")
+                all_success = False
+        
+        return all_success
+
+    def test_session_management_improvements_new(self):
+        """Verify that authentication remains stable during multiple API calls"""
+        print("\n🔐 SESSION MANAGEMENT IMPROVEMENTS TESTING")
+        
+        if 'admin' not in self.tokens or 'user' not in self.tokens:
+            print("   ❌ Required tokens not available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Admin session stability during multiple operations
+        print("\n   👑 Testing Admin Session Stability...")
+        
+        admin_operations = [
+            ("Get Current User Info", "GET", "/api/auth/me", 200, None),
+            ("Get All Users", "GET", "/api/admin/users", 200, None),
+            ("Get User Dashboard", "GET", "/api/user/dashboard", 200, None),
+            ("Get Current User Info Again", "GET", "/api/auth/me", 200, None),
+            ("Get All Users Again", "GET", "/api/admin/users", 200, None)
+        ]
+        
+        admin_success_count = 0
+        for i, (name, method, endpoint, expected_status, data) in enumerate(admin_operations):
+            success, response = self.run_test(
+                f"Admin Session Test #{i+1}: {name}",
+                method,
+                endpoint,
+                expected_status,
+                data,
+                self.tokens['admin']
+            )
+            
+            if success:
+                admin_success_count += 1
+                # Verify admin user data consistency
+                if endpoint == "/api/auth/me" and 'role' in response:
+                    if response['role'] == 'admin':
+                        print(f"   ✅ Admin role verified in session test #{i+1}")
+                    else:
+                        print(f"   ❌ Admin role inconsistent in session test #{i+1}")
+                        all_success = False
+        
+        if admin_success_count == len(admin_operations):
+            print(f"   ✅ Admin session stable across {len(admin_operations)} operations")
+        else:
+            print(f"   ❌ Admin session instability detected ({admin_success_count}/{len(admin_operations)} operations successful)")
+            all_success = False
+        
+        # Test 2: Regular user session stability
+        print("\n   👤 Testing Regular User Session Stability...")
+        
+        user_operations = [
+            ("Get Current User Info", "GET", "/api/auth/me", 200, None),
+            ("Get My Cargo", "GET", "/api/cargo/my", 200, None),
+            ("Get User Dashboard", "GET", "/api/user/dashboard", 200, None),
+            ("Get Notifications", "GET", "/api/notifications", 200, None),
+            ("Get Current User Info Again", "GET", "/api/auth/me", 200, None)
+        ]
+        
+        user_success_count = 0
+        for i, (name, method, endpoint, expected_status, data) in enumerate(user_operations):
+            success, response = self.run_test(
+                f"User Session Test #{i+1}: {name}",
+                method,
+                endpoint,
+                expected_status,
+                data,
+                self.tokens['user']
+            )
+            
+            if success:
+                user_success_count += 1
+                # Verify user data consistency
+                if endpoint == "/api/auth/me" and 'role' in response:
+                    if response['role'] == 'user':
+                        print(f"   ✅ User role verified in session test #{i+1}")
+                    else:
+                        print(f"   ❌ User role inconsistent in session test #{i+1}")
+                        all_success = False
+        
+        if user_success_count == len(user_operations):
+            print(f"   ✅ User session stable across {len(user_operations)} operations")
+        else:
+            print(f"   ❌ User session instability detected ({user_success_count}/{len(user_operations)} operations successful)")
+            all_success = False
+        
+        # Test 3: Cross-user session isolation
+        print("\n   🔒 Testing Cross-User Session Isolation...")
+        
+        # Admin should not be able to access with user token
+        success, _ = self.run_test(
+            "Admin Endpoint with User Token (Should Fail)",
+            "GET",
+            "/api/admin/users",
+            403,  # Should return 403 Forbidden
+            token=self.tokens['user']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Cross-user session isolation working correctly")
+        
+        # Test 4: Token validation consistency
+        print("\n   🔑 Testing Token Validation Consistency...")
+        
+        # Test multiple /api/auth/me calls to ensure consistent token validation
+        auth_me_tests = []
+        for i in range(5):
+            success, response = self.run_test(
+                f"Token Validation Test #{i+1}",
+                "GET",
+                "/api/auth/me",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success and response:
+                auth_me_tests.append({
+                    'success': True,
+                    'user_id': response.get('id'),
+                    'role': response.get('role'),
+                    'phone': response.get('phone')
+                })
+            else:
+                auth_me_tests.append({'success': False})
+        
+        # Verify all responses are consistent
+        successful_tests = [t for t in auth_me_tests if t['success']]
+        if len(successful_tests) == 5:
+            # Check consistency
+            first_response = successful_tests[0]
+            consistent = all(
+                t['user_id'] == first_response['user_id'] and
+                t['role'] == first_response['role'] and
+                t['phone'] == first_response['phone']
+                for t in successful_tests
+            )
+            
+            if consistent:
+                print("   ✅ Token validation consistency verified")
+            else:
+                print("   ❌ Token validation inconsistency detected")
+                all_success = False
+        else:
+            print(f"   ❌ Token validation failed ({len(successful_tests)}/5 tests successful)")
+            all_success = False
+        
+        # Test 5: Session persistence during form operations
+        print("\n   📝 Testing Session Persistence During Form Operations...")
+        
+        # Simulate form submission operations
+        form_operations = [
+            # Profile update
+            ("Profile Update", "PUT", "/api/user/profile", 200, {"full_name": "Сессия Тест Пользователь"}),
+            # Verify update
+            ("Verify Profile Update", "GET", "/api/auth/me", 200, None),
+            # Another profile update
+            ("Another Profile Update", "PUT", "/api/user/profile", 200, {"address": "Душанбе, ул. Сессия, 123"}),
+            # Final verification
+            ("Final Profile Verification", "GET", "/api/auth/me", 200, None)
+        ]
+        
+        form_success_count = 0
+        for i, (name, method, endpoint, expected_status, data) in enumerate(form_operations):
+            success, response = self.run_test(
+                f"Form Session Test #{i+1}: {name}",
+                method,
+                endpoint,
+                expected_status,
+                data,
+                self.tokens['user']
+            )
+            
+            if success:
+                form_success_count += 1
+        
+        if form_success_count == len(form_operations):
+            print(f"   ✅ Session persistence during form operations verified")
+        else:
+            print(f"   ❌ Session issues during form operations ({form_success_count}/{len(form_operations)} operations successful)")
+            all_success = False
+        
+        # Test 6: Invalid token handling
+        print("\n   🚫 Testing Invalid Token Handling...")
+        
+        invalid_token = "invalid.token.here"
+        success, _ = self.run_test(
+            "Invalid Token Test (Should Fail)",
+            "GET",
+            "/api/auth/me",
+            401,  # Should return 401 Unauthorized
+            token=invalid_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Invalid token properly rejected")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
