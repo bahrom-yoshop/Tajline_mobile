@@ -180,6 +180,7 @@ class User(BaseModel):
     email: Optional[str] = None
     address: Optional[str] = None
     is_active: bool = True
+    token_version: int = 1  # Добавляем версионирование токенов
     created_at: datetime
 
 # Модель для обновления роли пользователя
