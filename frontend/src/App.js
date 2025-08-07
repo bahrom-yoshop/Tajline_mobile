@@ -3256,6 +3256,162 @@ function App() {
     }
   };
 
+  // Функции для редактирования пользователей админом
+  const openAdminEditUser = (user) => {
+    setSelectedUserForEdit(user);
+    setAdminEditUserForm({
+      id: user.id,
+      full_name: user.full_name || '',
+      phone: user.phone || '',
+      email: user.email || '',
+      address: user.address || '',
+      role: user.role || 'user',
+      is_active: user.is_active !== undefined ? user.is_active : true
+    });
+    setShowAdminEditUser(true);
+  };
+
+  const saveAdminUserEdit = async () => {
+    try {
+      const updatedUser = await apiCall(`/api/admin/users/${adminEditUserForm.id}/update`, 'PUT', adminEditUserForm);
+      setShowAdminEditUser(false);
+      setSelectedUserForEdit(null);
+      
+      // Обновляем списки пользователей
+      fetchUsers();
+      fetchUsersByRole();
+      
+      showAlert('Данные пользователя обновлены успешно!', 'success');
+    } catch (error) {
+      showAlert('Ошибка обновления данных пользователя: ' + error.message, 'error');
+    }
+  };
+
+  // Функции для повторного заказа админом/оператором
+  const openAdminRepeatOrder = (cargo) => {
+    setAdminRepeatOrderData(cargo);
+    setAdminRepeatOrderForm({
+      sender_id: cargo.sender_id || '',
+      sender_full_name: cargo.sender_full_name || '',
+      sender_phone: cargo.sender_phone || '',
+      cargo_items: [{ 
+        cargo_name: '', // Админ должен заполнить заново
+        weight: '', // Админ должен заполнить заново
+        price_per_kg: '50' // Значение по умолчанию
+      }],
+      recipient_full_name: cargo.recipient_full_name || '',
+      recipient_phone: cargo.recipient_phone || '',
+      recipient_address: cargo.recipient_address || '',
+      route: cargo.route || 'moscow_dushanbe',
+      delivery_type: 'standard',
+      insurance_requested: false,
+      special_instructions: `Повтор груза №${cargo.cargo_number}`,
+      use_multi_cargo: true
+    });
+    setShowAdminRepeatOrderModal(true);
+    calculateAdminRepeatOrderTotals([{ 
+      cargo_name: '', 
+      weight: '', 
+      price_per_kg: '50'
+    }]);
+  };
+
+  // Функция для расчета итогов повторного заказа админа/оператора
+  const calculateAdminRepeatOrderTotals = (cargoItems) => {
+    let totalWeight = 0;
+    let totalCost = 0;
+    const breakdown = [];
+
+    cargoItems.forEach((item, index) => {
+      const weight = parseFloat(item.weight) || 0;
+      const pricePerKg = parseFloat(item.price_per_kg) || 0;
+      const itemCost = weight * pricePerKg;
+
+      totalWeight += weight;
+      totalCost += itemCost;
+
+      breakdown.push({
+        index: index,
+        cargo_name: item.cargo_name || `Груз ${index + 1}`,
+        weight: weight,
+        price_per_kg: pricePerKg,
+        cost: itemCost
+      });
+    });
+
+    setAdminRepeatOrderTotalWeight(totalWeight);
+    setAdminRepeatOrderTotalCost(totalCost);
+    setAdminRepeatOrderBreakdown(breakdown);
+  };
+
+  // Обработчик изменения элементов груза в повторном заказе админа
+  const handleAdminRepeatOrderItemChange = (index, field, value) => {
+    const updatedItems = [...adminRepeatOrderForm.cargo_items];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+    setAdminRepeatOrderForm({ ...adminRepeatOrderForm, cargo_items: updatedItems });
+    calculateAdminRepeatOrderTotals(updatedItems);
+  };
+
+  // Добавление нового элемента груза в повторный заказ админа
+  const addAdminRepeatOrderItem = () => {
+    const newItems = [...adminRepeatOrderForm.cargo_items, { cargo_name: '', weight: '', price_per_kg: '50' }];
+    setAdminRepeatOrderForm({ ...adminRepeatOrderForm, cargo_items: newItems });
+    calculateAdminRepeatOrderTotals(newItems);
+  };
+
+  // Удаление элемента груза из повторного заказа админа
+  const removeAdminRepeatOrderItem = (index) => {
+    if (adminRepeatOrderForm.cargo_items.length > 1) {
+      const newItems = adminRepeatOrderForm.cargo_items.filter((_, i) => i !== index);
+      setAdminRepeatOrderForm({ ...adminRepeatOrderForm, cargo_items: newItems });
+      calculateAdminRepeatOrderTotals(newItems);
+    }
+  };
+
+  // Отправка повторного заказа админом/оператором
+  const submitAdminRepeatOrder = async () => {
+    try {
+      if (adminRepeatOrderForm.cargo_items.some(item => !item.cargo_name || !item.weight || !item.price_per_kg)) {
+        showAlert('Пожалуйста, заполните все поля для всех грузов', 'error');
+        return;
+      }
+
+      if (!adminRepeatOrderForm.recipient_full_name || !adminRepeatOrderForm.recipient_phone) {
+        showAlert('Пожалуйста, заполните данные получателя', 'error');
+        return;
+      }
+
+      if (!adminRepeatOrderForm.sender_full_name || !adminRepeatOrderForm.sender_phone) {
+        showAlert('Пожалуйста, заполните данные отправителя', 'error');
+        return;
+      }
+
+      const orderData = {
+        ...adminRepeatOrderForm,
+        total_weight: adminRepeatOrderTotalWeight,
+        total_cost: adminRepeatOrderTotalCost
+      };
+
+      const result = await apiCall('/api/operator/cargo/accept', 'POST', orderData);
+      
+      setShowAdminRepeatOrderModal(false);
+      setAdminRepeatOrderData(null);
+      
+      // Обновляем данные
+      if (user.role === 'admin') {
+        fetchAllCargo();
+      } else if (user.role === 'warehouse_operator') {
+        fetchOperatorCargo();
+      }
+      
+      showAlert(`Повторный заказ успешно создан! Номер: ${result.cargo_number}`, 'success');
+      
+    } catch (error) {
+      console.error('Error creating admin repeat order:', error);
+      showAlert('Ошибка создания заказа: ' + error.message, 'error');
+    }
+  };
+
   // Боковое меню для админа и оператора склада
   const SidebarMenu = () => {
     if (user?.role === 'user') return null;
