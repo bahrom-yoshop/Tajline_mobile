@@ -112,11 +112,24 @@ class AutoFillTester:
         all_success &= success
         
         if success and users_list:
+            # Debug: Print the actual structure
+            print(f"   🔍 Debug - users_list type: {type(users_list)}")
+            print(f"   🔍 Debug - users_list keys: {list(users_list.keys()) if isinstance(users_list, dict) else 'Not a dict'}")
+            
             # Check if users_list is a list or dict
-            if isinstance(users_list, list) and len(users_list) > 0:
+            if isinstance(users_list, list):
                 users = users_list
-            elif isinstance(users_list, dict) and 'users' in users_list:
-                users = users_list['users']
+            elif isinstance(users_list, dict):
+                # Try different possible keys
+                if 'users' in users_list:
+                    users = users_list['users']
+                elif 'items' in users_list:
+                    users = users_list['items']
+                elif 'data' in users_list:
+                    users = users_list['data']
+                else:
+                    # If it's a dict but no known key, treat the dict values as users
+                    users = list(users_list.values()) if users_list else []
             else:
                 print(f"   ⚠️  Unexpected users_list structure: {type(users_list)}")
                 users = []
