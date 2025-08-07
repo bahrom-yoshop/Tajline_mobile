@@ -6305,6 +6305,15 @@ function App() {
                                     <Button
                                       size="sm"
                                       variant="outline"
+                                      onClick={() => openAdminEditUser(u)}
+                                      className="text-orange-600 hover:text-orange-700"
+                                      title="Редактировать профиль пользователя"
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
                                       onClick={() => fetchUserProfile(u.id)}
                                       className="text-blue-600 hover:text-blue-700"
                                       title="Просмотр профиля и истории"
