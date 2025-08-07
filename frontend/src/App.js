@@ -4408,6 +4408,212 @@ function App() {
                 </div>
               )}
 
+              {/* Личный кабинет */}
+              {activeSection === 'personal-dashboard' && (
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <User className="mr-2 h-5 w-5" />
+                        Личный кабинет
+                      </CardTitle>
+                      <CardDescription>
+                        Ваша персональная информация и история операций
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between mb-6">
+                        <Button 
+                          onClick={fetchPersonalDashboard}
+                          disabled={dashboardLoading}
+                        >
+                          {dashboardLoading ? 'Загрузка...' : 'Обновить данные'}
+                        </Button>
+                      </div>
+                      
+                      {personalDashboardData && (
+                        <div className="space-y-6">
+                          {/* Информация о пользователе */}
+                          <div className="bg-gray-50 p-6 rounded-lg">
+                            <h3 className="text-lg font-semibold mb-4">Информация о пользователе</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Номер пользователя</label>
+                                <p className="text-lg">{personalDashboardData.user_info.user_number}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">ФИО</label>
+                                <p className="text-lg">{personalDashboardData.user_info.full_name}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Телефон</label>
+                                <p className="text-lg">{personalDashboardData.user_info.phone}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Роль</label>
+                                <Badge variant="outline">{getRoleLabel(personalDashboardData.user_info.role)}</Badge>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Дата регистрации</label>
+                                <p className="text-lg">{new Date(personalDashboardData.user_info.created_at).toLocaleDateString('ru-RU')}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Заявки на грузы */}
+                          <div>
+                            <h3 className="text-lg font-semibold mb-4 flex items-center">
+                              <FileText className="mr-2 h-5 w-5" />
+                              Мои заявки на грузы ({personalDashboardData.cargo_requests.length})
+                            </h3>
+                            {personalDashboardData.cargo_requests.length > 0 ? (
+                              <div className="space-y-3">
+                                {personalDashboardData.cargo_requests.slice(0, 10).map((request, index) => (
+                                  <div key={index} className="bg-white border rounded-lg p-4">
+                                    <div className="flex justify-between items-start">
+                                      <div>
+                                        <h4 className="font-medium">{request.cargo_name}</h4>
+                                        <p className="text-sm text-gray-600">
+                                          Вес: {request.weight} кг | Стоимость: {request.declared_value} руб
+                                        </p>
+                                        <p className="text-sm text-gray-600">
+                                          Получатель: {request.recipient_name} ({request.recipient_phone})
+                                        </p>
+                                      </div>
+                                      <div className="text-right">
+                                        <Badge variant="secondary">{request.status}</Badge>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                          {new Date(request.created_at).toLocaleDateString('ru-RU')}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-gray-500">У вас пока нет заявок на грузы</p>
+                            )}
+                          </div>
+
+                          {/* Отправленные грузы */}
+                          <div>
+                            <h3 className="text-lg font-semibold mb-4 flex items-center">
+                              <Package className="mr-2 h-5 w-5" />
+                              Отправленные грузы ({personalDashboardData.sent_cargo.length})
+                            </h3>
+                            {personalDashboardData.sent_cargo.length > 0 ? (
+                              <div className="space-y-3">
+                                {personalDashboardData.sent_cargo.slice(0, 10).map((cargo, index) => (
+                                  <div key={index} className="bg-white border rounded-lg p-4">
+                                    <div className="flex justify-between items-start">
+                                      <div>
+                                        <h4 className="font-medium">
+                                          {cargo.cargo_number} - {cargo.cargo_name}
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Вес: {cargo.weight} кг | Стоимость: {cargo.declared_value} руб
+                                        </p>
+                                        <p className="text-sm text-gray-600">
+                                          Получатель: {cargo.recipient_name} ({cargo.recipient_phone})
+                                        </p>
+                                        {cargo.created_by_operator && (
+                                          <p className="text-sm text-gray-500">
+                                            Принято оператором: {cargo.created_by_operator}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <div className="text-right">
+                                        <div className="space-y-1">
+                                          <Badge variant="default">{cargo.status}</Badge>
+                                          {cargo.payment_status && (
+                                            <Badge variant="secondary" className="block">
+                                              {cargo.payment_status}
+                                            </Badge>
+                                          )}
+                                          {cargo.processing_status && (
+                                            <Badge variant="outline" className="block">
+                                              {cargo.processing_status}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                          {new Date(cargo.created_at).toLocaleDateString('ru-RU')}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-gray-500">У вас пока нет отправленных грузов</p>
+                            )}
+                          </div>
+
+                          {/* Полученные грузы */}
+                          <div>
+                            <h3 className="text-lg font-semibold mb-4 flex items-center">
+                              <Truck className="mr-2 h-5 w-5" />
+                              Полученные грузы ({personalDashboardData.received_cargo.length})
+                            </h3>
+                            {personalDashboardData.received_cargo.length > 0 ? (
+                              <div className="space-y-3">
+                                {personalDashboardData.received_cargo.slice(0, 10).map((cargo, index) => (
+                                  <div key={index} className="bg-white border rounded-lg p-4">
+                                    <div className="flex justify-between items-start">
+                                      <div>
+                                        <h4 className="font-medium">
+                                          {cargo.cargo_number} - {cargo.cargo_name}
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Вес: {cargo.weight} кг | Стоимость: {cargo.declared_value} руб
+                                        </p>
+                                        <p className="text-sm text-gray-600">
+                                          Отправитель: {cargo.sender_name} ({cargo.sender_phone})
+                                        </p>
+                                        {cargo.created_by_operator && (
+                                          <p className="text-sm text-gray-500">
+                                            Принято оператором: {cargo.created_by_operator}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <div className="text-right">
+                                        <div className="space-y-1">
+                                          <Badge variant="default">{cargo.status}</Badge>
+                                          {cargo.payment_status && (
+                                            <Badge variant="secondary" className="block">
+                                              {cargo.payment_status}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                          {new Date(cargo.created_at).toLocaleDateString('ru-RU')}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-gray-500">У вас пока нет полученных грузов</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {!personalDashboardData && !dashboardLoading && (
+                        <div className="text-center py-8">
+                          <User className="mx-auto h-12 w-12 text-gray-400" />
+                          <h3 className="mt-4 text-sm font-medium text-gray-900">Данные не загружены</h3>
+                          <p className="mt-1 text-sm text-gray-500">
+                            Нажмите кнопку "Обновить данные" для загрузки информации
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
               {/* Управление грузами */}
               {activeSection === 'cargo-management' && (
                 <div className="space-y-6">
