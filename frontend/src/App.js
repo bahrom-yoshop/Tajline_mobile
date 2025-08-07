@@ -486,7 +486,7 @@ function App() {
 
       if (!response.ok) {
         // Обработка 401 ошибки (unauthorized) - токен истек или невалиден
-        if (response.status === 401 && !isLoggingOut) {
+        if (response.status === 401 && !isLoggingOut && !isLoggingIn) {
           console.log('Received 401 response, checking token validity...');
           
           // Проверяем, действительно ли токен истек на клиенте
@@ -513,9 +513,9 @@ function App() {
                 throw new Error('Session expired');
               }
             }
-          } else {
-            // Нет токена вообще
-            console.log('No token available, logging out');
+          } else if (!isLoggingIn) {
+            // Нет токена и это не процесс логина
+            console.log('No token available and not logging in, logging out');
             handleLogout();
             throw new Error('Authentication required');
           }
