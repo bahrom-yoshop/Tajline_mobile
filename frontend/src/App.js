@@ -1418,6 +1418,7 @@ function App() {
     if (!query || query.length < 2) {
       setSearchResults([]);
       setShowSearchResults(false);
+      setShowSuggestions(false);
       return;
     }
 
@@ -1426,11 +1427,78 @@ function App() {
       // Убеждаемся, что результат всегда является массивом
       setSearchResults(Array.isArray(results) ? results : []);
       setShowSearchResults(true);
+      setShowSuggestions(false);
     } catch (error) {
       console.error('Search error:', error);
       setSearchResults([]);
       setShowSearchResults(false);
     }
+  };
+
+  // Advanced search function
+  const handleAdvancedSearch = async (query = searchQuery, filters = searchFilters) => {
+    setSearchLoading(true);
+    try {
+      const searchRequest = {
+        query: query.trim(),
+        search_type: searchType,
+        ...filters
+      };
+
+      const response = await apiCall('/api/search/advanced', 'POST', searchRequest);
+      
+      setSearchResults(Array.isArray(response.results) ? response.results : []);
+      setShowSearchResults(true);
+      setShowSuggestions(false);
+      setSearchTime(response.search_time_ms);
+      
+      // Обновляем предложения для автодополнения
+      if (response.suggestions && response.suggestions.length > 0) {
+        setSearchSuggestions(response.suggestions);
+      }
+      
+    } catch (error) {
+      console.error('Advanced search error:', error);
+      setSearchResults([]);
+      setShowSearchResults(false);
+      setSearchTime(0);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // Autocomplete suggestions
+  const handleSearchInput = async (value) => {
+    setSearchQuery(value);
+    
+    if (value.length >= 2) {
+      try {
+        // Используем простой поиск для получения предложений
+        const response = await apiCall('/api/search/advanced', 'POST', {
+          query: value.trim(),
+          search_type: searchType,
+          per_page: 5
+        });
+        
+        if (response.suggestions && response.suggestions.length > 0) {
+          setSearchSuggestions(response.suggestions);
+          setShowSuggestions(true);
+        } else {
+          setShowSuggestions(false);
+        }
+      } catch (error) {
+        setShowSuggestions(false);
+      }
+    } else {
+      setShowSuggestions(false);
+      setSearchSuggestions([]);
+    }
+  };
+
+  const selectSearchSuggestion = (suggestion) => {
+    setSearchQuery(suggestion);
+    setShowSuggestions(false);
+    handleAdvancedSearch(suggestion);
   };
 
   const clearSearch = () => {
