@@ -12609,8 +12609,37 @@ function App() {
                 <h3 className="font-semibold text-lg flex items-center">
                   <MapPin className="mr-2 h-5 w-5" />
                   Выбор местоположения
+                  {structureLoading && (
+                    <RefreshCw className="ml-2 h-4 w-4 animate-spin text-blue-500" />
+                  )}
                 </h3>
                 
+                {/* Показываем статистику склада */}
+                {warehouseDetailedStructure?.statistics && (
+                  <div className="bg-white border border-gray-200 rounded-lg p-3 mb-4">
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div>
+                        <div className="text-lg font-bold text-blue-600">{warehouseDetailedStructure.statistics.total_cells}</div>
+                        <div className="text-xs text-gray-600">Всего ячеек</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-green-600">{warehouseDetailedStructure.statistics.available_cells}</div>
+                        <div className="text-xs text-gray-600">Свободных</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-red-600">{warehouseDetailedStructure.statistics.occupied_cells}</div>
+                        <div className="text-xs text-gray-600">Занятых</div>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-center">
+                      <div className="text-sm text-gray-600">
+                        Занятость: {warehouseDetailedStructure.statistics.occupancy_rate}%
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Селекторы для выбора места */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Выбор блока */}
                   <div>
@@ -12626,7 +12655,12 @@ function App() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from({length: 10}, (_, i) => i + 1).map(blockNum => (
+                        {warehouseDetailedStructure?.blocks?.map(block => (
+                          <SelectItem key={block.block_number} value={block.block_number.toString()}>
+                            Блок {block.block_number}
+                          </SelectItem>
+                        )) || 
+                        Array.from({length: 10}, (_, i) => i + 1).map(blockNum => (
                           <SelectItem key={blockNum} value={blockNum.toString()}>
                             Блок {blockNum}
                           </SelectItem>
@@ -12649,7 +12683,12 @@ function App() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from({length: 10}, (_, i) => i + 1).map(shelfNum => (
+                        {warehouseDetailedStructure?.blocks?.find(b => b.block_number === selectedBlockForPlacement)?.shelves?.map(shelf => (
+                          <SelectItem key={shelf.shelf_number} value={shelf.shelf_number.toString()}>
+                            Полка {shelf.shelf_number}
+                          </SelectItem>
+                        )) ||
+                        Array.from({length: 10}, (_, i) => i + 1).map(shelfNum => (
                           <SelectItem key={shelfNum} value={shelfNum.toString()}>
                             Полка {shelfNum}
                           </SelectItem>
@@ -12663,29 +12702,117 @@ function App() {
                     <Label>Ячейка</Label>
                     <Select 
                       value={selectedCellForPlacement.toString()} 
-                      onValueChange={(value) => setSelectedCellForPlacement(parseInt(value))}
+                      onValueChange={(value) => handleCellSelection(parseInt(value))}
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableCellsForPlacement.length > 0 ? (
+                        {warehouseDetailedStructure?.blocks
+                          ?.find(b => b.block_number === selectedBlockForPlacement)?.shelves
+                          ?.find(s => s.shelf_number === selectedShelfForPlacement)?.cells
+                          ?.map(cell => (
+                            <SelectItem 
+                              key={cell.cell_number} 
+                              value={cell.cell_number.toString()}
+                              disabled={cell.status === 'occupied'}
+                              className={cell.status === 'occupied' ? 'text-red-500' : 'text-green-600'}
+                            >
+                              Ячейка {cell.cell_number} {cell.status === 'occupied' ? '(ЗАНЯТА)' : '(свободна)'}
+                              {cell.cargo_info && (
+                                <span className="text-xs block text-red-600">
+                                  {cell.cargo_info.cargo_number}
+                                </span>
+                              )}
+                            </SelectItem>
+                          )) ||
                           availableCellsForPlacement.map(cellNum => (
                             <SelectItem key={cellNum} value={cellNum.toString()}>
                               Ячейка {cellNum} (свободна)
                             </SelectItem>
-                          ))
-                        ) : (
+                          )) ||
                           Array.from({length: 10}, (_, i) => i + 1).map(cellNum => (
                             <SelectItem key={cellNum} value={cellNum.toString()}>
                               Ячейка {cellNum}
                             </SelectItem>
                           ))
-                        )}
+                        }
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
+
+                {/* Визуальная сетка ячеек для выбранной полки */}
+                {warehouseDetailedStructure && (
+                  <div className="mt-6">
+                    <h4 className="font-medium mb-3 flex items-center">
+                      <Grid3X3 className="mr-2 h-4 w-4" />
+                      Визуализация полки {selectedShelfForPlacement} (Блок {selectedBlockForPlacement})
+                    </h4>
+                    <div className="border border-gray-300 rounded-lg p-4 bg-white">
+                      <div className="grid grid-cols-5 gap-2 max-w-lg">
+                        {warehouseDetailedStructure.blocks
+                          ?.find(b => b.block_number === selectedBlockForPlacement)?.shelves
+                          ?.find(s => s.shelf_number === selectedShelfForPlacement)?.cells
+                          ?.map(cell => (
+                            <button
+                              key={cell.cell_number}
+                              onClick={() => handleCellSelection(cell.cell_number)}
+                              disabled={cell.status === 'occupied'}
+                              className={`
+                                w-12 h-12 rounded border-2 text-xs font-medium transition-all
+                                ${cell.cell_number === selectedCellForPlacement 
+                                  ? 'border-blue-500 bg-blue-100 text-blue-700 shadow-md' 
+                                  : cell.status === 'occupied' 
+                                  ? 'border-red-300 bg-red-100 text-red-600 cursor-not-allowed opacity-60'
+                                  : 'border-gray-300 bg-green-50 text-green-700 hover:border-green-400 hover:bg-green-100'
+                                }
+                              `}
+                              title={cell.status === 'occupied' 
+                                ? `Занята: ${cell.cargo_info?.cargo_number || 'Груз'}`
+                                : `Свободна: Ячейка ${cell.cell_number}`
+                              }
+                            >
+                              {cell.cell_number}
+                            </button>
+                          )) ||
+                          // Fallback если нет детальных данных
+                          Array.from({length: 10}, (_, i) => i + 1).map(cellNum => (
+                            <button
+                              key={cellNum}
+                              onClick={() => handleCellSelection(cellNum)}
+                              className={`
+                                w-12 h-12 rounded border-2 text-xs font-medium transition-all
+                                ${cellNum === selectedCellForPlacement 
+                                  ? 'border-blue-500 bg-blue-100 text-blue-700 shadow-md' 
+                                  : 'border-gray-300 bg-green-50 text-green-700 hover:border-green-400 hover:bg-green-100'
+                                }
+                              `}
+                            >
+                              {cellNum}
+                            </button>
+                          ))
+                        }
+                      </div>
+                      
+                      {/* Легенда */}
+                      <div className="flex flex-wrap gap-4 mt-4 text-xs">
+                        <div className="flex items-center">
+                          <div className="w-4 h-4 bg-green-50 border border-gray-300 rounded mr-2"></div>
+                          <span>Свободная</span>
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-4 h-4 bg-red-100 border border-red-300 rounded mr-2"></div>
+                          <span>Занятая</span>
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-4 h-4 bg-blue-100 border-2 border-blue-500 rounded mr-2"></div>
+                          <span>Выбранная</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Предпросмотр адреса */}
                 <div className="mt-4 p-3 bg-white border rounded-lg">
@@ -12695,7 +12822,15 @@ function App() {
                     Блок {selectedBlockForPlacement} - 
                     Полка {selectedShelfForPlacement} - 
                     Ячейка {selectedCellForPlacement}
+                    {!isCellAvailable(selectedBlockForPlacement, selectedShelfForPlacement, selectedCellForPlacement) && (
+                      <span className="text-red-600 ml-2">⚠️ ЗАНЯТА</span>
+                    )}
                   </p>
+                  {selectedCellForVisualization?.info?.cargo_info && (
+                    <div className="mt-2 text-sm text-red-600">
+                      <strong>Внимание!</strong> Ячейка занята грузом: {selectedCellForVisualization.info.cargo_info.cargo_number}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
