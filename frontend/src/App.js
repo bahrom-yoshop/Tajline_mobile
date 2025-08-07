@@ -465,6 +465,23 @@ function App() {
   const [camerasAvailable, setCamerasAvailable] = useState([]);
   const [selectedCamera, setSelectedCamera] = useState(null);
 
+  // Новые состояния для улучшенного размещения груза
+  const [enhancedPlacementModal, setEnhancedPlacementModal] = useState(false);
+  const [selectedCargoForEnhancedPlacement, setSelectedCargoForEnhancedPlacement] = useState(null);
+  const [warehouseAnalytics, setWarehouseAnalytics] = useState(null);
+  const [selectedWarehouseForPlacement, setSelectedWarehouseForPlacement] = useState('');
+  const [selectedBlockForPlacement, setSelectedBlockForPlacement] = useState(1);
+  const [selectedShelfForPlacement, setSelectedShelfForPlacement] = useState(1);
+  const [selectedCellForPlacement, setSelectedCellForPlacement] = useState(1);
+  const [availableCellsForPlacement, setAvailableCellsForPlacement] = useState([]);
+  const [placementLoading, setPlacementLoading] = useState(false);
+
+  // Состояния для размещенных грузов
+  const [placedCargoList, setPlacedCargoList] = useState([]);
+  const [placedCargoPagination, setPlacedCargoPagination] = useState({});
+  const [placedCargoPage, setPlacedCargoPage] = useState(1);
+  const [placedCargoPerPage, setPlacedCargoPerPage] = useState(25);
+
   const showAlert = (message, type = 'info') => {
     const id = Date.now();
     setAlerts(prev => [...prev, { id, message, type }]);
