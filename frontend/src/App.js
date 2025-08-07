@@ -2890,7 +2890,7 @@ function App() {
       }
       
       await apiCall('/api/operator/cargo/accept', 'POST', requestData);
-      showAlert('Груз успешно принят!', 'success');
+      showAlert('Груз успешно принят и отправлен в кассу для оплаты!', 'success');
       
       // Сброс формы
       setOperatorCargoForm({
