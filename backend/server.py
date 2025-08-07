@@ -6331,6 +6331,239 @@ async def get_warehouses_for_interwarehouse_transport(
         }
     }
 
+@app.get("/api/warehouses/analytics")
+async def get_warehouse_analytics(
+    current_user: User = Depends(get_current_user)
+):
+    """Получение аналитики по складам для улучшенного размещения"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для просмотра аналитики складов"
+        )
+    
+    try:
+        # Получаем общее количество складов
+        if current_user.role == UserRole.ADMIN:
+            total_warehouses = db.warehouses.count_documents({})
+            warehouses_cursor = db.warehouses.find({})
+        else:
+            # Для операторов - только их склады
+            operator_warehouse_bindings = list(db.operator_warehouse_bindings.find(
+                {"operator_id": current_user.id}
+            ))
+            warehouse_ids = [binding["warehouse_id"] for binding in operator_warehouse_bindings]
+            total_warehouses = len(warehouse_ids)
+            warehouses_cursor = db.warehouses.find({"id": {"$in": warehouse_ids}})
+        
+        warehouses = list(warehouses_cursor)
+        
+        # Подсчитываем свободные и занятые ячейки
+        total_cells = 0
+        occupied_cells = 0
+        
+        for warehouse in warehouses:
+            # Каждый склад по умолчанию имеет 10x10x10 = 1000 ячеек
+            blocks_count = warehouse.get("blocks_count", 10)
+            shelves_per_block = warehouse.get("shelves_per_block", 10) 
+            cells_per_shelf = warehouse.get("cells_per_shelf", 10)
+            warehouse_total_cells = blocks_count * shelves_per_block * cells_per_shelf
+            total_cells += warehouse_total_cells
+            
+            # Подсчитываем занятые ячейки на этом складе
+            warehouse_occupied = db.cargo.count_documents({
+                "warehouse_id": warehouse["id"],
+                "status": "placed_in_warehouse"
+            })
+            occupied_cells += warehouse_occupied
+        
+        available_cells = total_cells - occupied_cells
+        
+        analytics_data = {
+            "total_warehouses": total_warehouses,
+            "available_cells": available_cells,
+            "occupied_cells": occupied_cells,
+            "total_cells": total_cells,
+            "occupancy_rate": round((occupied_cells / total_cells) * 100, 2) if total_cells > 0 else 0
+        }
+        
+        return analytics_data
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка получения аналитики складов: {str(e)}"
+        )
+
+@app.get("/api/warehouses/placed-cargo")
+async def get_placed_cargo(
+    page: int = 1,
+    per_page: int = 25,
+    current_user: User = Depends(get_current_user)
+):
+    """Получение списка размещенных грузов"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для просмотра размещенных грузов"
+        )
+    
+    try:
+        # Определяем фильтр для складов в зависимости от роли пользователя
+        warehouse_filter = {}
+        if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+            # Оператор видит только грузы на своих складах
+            operator_warehouse_bindings = list(db.operator_warehouse_bindings.find(
+                {"operator_id": current_user.id}
+            ))
+            warehouse_ids = [binding["warehouse_id"] for binding in operator_warehouse_bindings]
+            warehouse_filter = {"warehouse_id": {"$in": warehouse_ids}}
+        
+        # Основной фильтр - только размещенные грузы
+        base_filter = {
+            "status": "placed_in_warehouse",
+            **warehouse_filter
+        }
+        
+        # Подсчитываем общее количество
+        total_count = db.cargo.count_documents(base_filter)
+        
+        # Вычисляем параметры пагинации
+        skip = (page - 1) * per_page
+        total_pages = math.ceil(total_count / per_page)
+        
+        # Получаем грузы с пагинацией
+        cargo_cursor = db.cargo.find(base_filter).skip(skip).limit(per_page).sort("created_at", -1)
+        cargo_list = list(cargo_cursor)
+        
+        # Получаем информацию о складах для каждого груза
+        warehouse_ids = list(set([cargo.get("warehouse_id") for cargo in cargo_list if cargo.get("warehouse_id")]))
+        warehouses_cursor = db.warehouses.find({"id": {"$in": warehouse_ids}})
+        warehouses = {wh["id"]: wh for wh in warehouses_cursor}
+        
+        # Обогащаем данные о грузах информацией о местоположении
+        enriched_cargo = []
+        for cargo in cargo_list:
+            cargo_data = serialize_mongo_document(cargo)
+            
+            # Добавляем информацию о складе
+            warehouse_id = cargo.get("warehouse_id")
+            if warehouse_id and warehouse_id in warehouses:
+                warehouse = warehouses[warehouse_id]
+                cargo_data["warehouse_name"] = warehouse.get("name", "Неизвестный склад")
+                cargo_data["warehouse_address"] = warehouse.get("address", "Адрес не указан")
+            else:
+                cargo_data["warehouse_name"] = "Неизвестный склад"
+                cargo_data["warehouse_address"] = "Адрес не указан"
+            
+            # Добавляем информацию о местоположении
+            cargo_data["block_number"] = cargo.get("block_number", "Не указан")
+            cargo_data["shelf_number"] = cargo.get("shelf_number", "Не указан") 
+            cargo_data["cell_number"] = cargo.get("cell_number", "Не указан")
+            
+            # Добавляем дату размещения
+            cargo_data["placement_date"] = cargo.get("placed_at", cargo.get("updated_at"))
+            
+            # Добавляем информацию об операторе, который разместил груз
+            cargo_data["placement_operator"] = cargo.get("placed_by_operator", "Не указан")
+            
+            # Добавляем статус обработки
+            cargo_data["processing_status"] = cargo.get("processing_status", "unknown")
+            
+            enriched_cargo.append(cargo_data)
+        
+        # Формируем ответ с пагинацией
+        result = {
+            "items": enriched_cargo,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": total_count,
+                "pages": total_pages,
+                "has_next": page < total_pages,
+                "has_prev": page > 1
+            }
+        }
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка получения размещенных грузов: {str(e)}"
+        )
+
+@app.get("/api/warehouses/{warehouse_id}/available-cells/{block_number}/{shelf_number}")
+async def get_available_cells_for_block_shelf(
+    warehouse_id: str,
+    block_number: int,
+    shelf_number: int,
+    current_user: User = Depends(get_current_user)
+):
+    """Получение свободных ячеек для конкретного блока и полки"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для просмотра свободных ячеек"
+        )
+    
+    try:
+        # Проверяем существование склада
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Склад не найден"
+            )
+        
+        # Для оператора проверяем доступ к складу
+        if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+            operator_binding = db.operator_warehouse_bindings.find_one({
+                "operator_id": current_user.id,
+                "warehouse_id": warehouse_id
+            })
+            if not operator_binding:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Нет доступа к данному складу"
+                )
+        
+        # Получаем занятые ячейки для данного блока и полки
+        occupied_cargo = list(db.cargo.find({
+            "warehouse_id": warehouse_id,
+            "block_number": block_number,
+            "shelf_number": shelf_number,
+            "status": "placed_in_warehouse"
+        }, {"cell_number": 1}))
+        
+        occupied_cells = {cargo["cell_number"] for cargo in occupied_cargo if cargo.get("cell_number")}
+        
+        # Генерируем список всех возможных ячеек (по умолчанию 10 ячеек на полку)
+        cells_per_shelf = warehouse.get("cells_per_shelf", 10)
+        all_cells = set(range(1, cells_per_shelf + 1))
+        
+        # Определяем свободные ячейки
+        available_cells = sorted(list(all_cells - occupied_cells))
+        
+        return {
+            "warehouse_id": warehouse_id,
+            "warehouse_name": warehouse.get("name", "Неизвестный склад"),
+            "block_number": block_number,
+            "shelf_number": shelf_number,
+            "available_cells": available_cells,
+            "total_cells": cells_per_shelf,
+            "occupied_cells": len(occupied_cells),
+            "available_count": len(available_cells)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка получения свободных ячеек: {str(e)}"
+        )
+
 @app.post("/api/transport/create-interwarehouse")
 async def create_interwarehouse_transport(
     transport_data: dict,
