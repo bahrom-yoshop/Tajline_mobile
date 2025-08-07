@@ -7250,6 +7250,135 @@ function App() {
                     </div>
                   )}
 
+                  {/* Размещенные грузы */}
+                  {activeTab === 'warehouses-placed-cargo' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Package className="mr-2 h-5 w-5" />
+                          Размещенные грузы
+                        </CardTitle>
+                        <p className="text-sm text-gray-600">
+                          Список всех грузов, размещенных на складах с указанием точного местоположения
+                        </p>
+                      </CardHeader>
+                      <CardContent>
+                        {placedCargoList.length === 0 ? (
+                          <div className="text-center py-8">
+                            <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                            <p className="text-gray-500 mb-4">Размещенных грузов пока нет</p>
+                            <p className="text-sm text-gray-400">Грузы появятся здесь после их размещения в ячейки складов</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {placedCargoList.map((item) => (
+                              <Card key={item.id} className="border-l-4 border-l-green-500">
+                                <CardContent className="p-6">
+                                  <div className="flex justify-between items-start">
+                                    {/* Основная информация о грузе */}
+                                    <div className="flex-1">
+                                      <div className="flex items-center space-x-4 mb-4">
+                                        <h3 className="font-bold text-xl text-green-600">{item.cargo_number}</h3>
+                                        <Badge variant="success">Размещен</Badge>
+                                        {item.placement_date && (
+                                          <Badge variant="outline">
+                                            <Calendar className="mr-1 h-3 w-3" />
+                                            {new Date(item.placement_date).toLocaleDateString('ru-RU')}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        {/* Информация о грузе */}
+                                        <div className="space-y-2">
+                                          <h4 className="font-semibold text-lg text-gray-700 mb-3">📦 Информация о грузе</h4>
+                                          <div className="space-y-1 text-sm">
+                                            <p><strong>Наименование:</strong> {item.cargo_name}</p>
+                                            <p><strong>Общий вес:</strong> {item.total_weight} кг</p>
+                                            <p><strong>Стоимость:</strong> {item.total_cost} руб</p>
+                                            <p><strong>Отправитель:</strong> {item.sender_name}</p>
+                                            <p><strong>Получатель:</strong> {item.receiver_name}</p>
+                                          </div>
+                                        </div>
+
+                                        {/* Местоположение на складе */}
+                                        <div className="space-y-2">
+                                          <h4 className="font-semibold text-lg text-gray-700 mb-3 flex items-center">
+                                            <MapPin className="mr-2 h-4 w-4" />
+                                            Местоположение
+                                          </h4>
+                                          <div className="space-y-1 text-sm bg-green-50 border border-green-200 rounded-lg p-3">
+                                            <p><strong>Склад:</strong> {item.warehouse_name || item.warehouse_id}</p>
+                                            <p><strong>Блок:</strong> {item.block_number}</p>
+                                            <p><strong>Полка:</strong> {item.shelf_number}</p>
+                                            <p><strong>Ячейка:</strong> {item.cell_number}</p>
+                                            <div className="mt-2 p-2 bg-green-100 rounded border">
+                                              <p className="font-mono text-xs">
+                                                <strong>Адрес:</strong> {item.warehouse_name || item.warehouse_id}-{item.block_number}-{item.shelf_number}-{item.cell_number}
+                                              </p>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        {/* Дополнительная информация */}
+                                        <div className="space-y-2">
+                                          <h4 className="font-semibold text-lg text-gray-700 mb-3">ℹ️ Дополнительно</h4>
+                                          <div className="space-y-1 text-sm">
+                                            <p><strong>Статус:</strong> {getProcessingStatusLabel(item.processing_status)}</p>
+                                            <p><strong>Маршрут:</strong> {item.route}</p>
+                                            {item.placement_operator && (
+                                              <p><strong>Размещен оператором:</strong> {item.placement_operator}</p>
+                                            )}
+                                            <p><strong>Создан:</strong> {new Date(item.created_at).toLocaleDateString('ru-RU')}</p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Кнопки действий */}
+                                    <div className="ml-6 flex flex-col space-y-2">
+                                      <Button
+                                        onClick={() => {
+                                          setSelectedCargoForDetailView(item);
+                                          setCargoDetailsModal(true);
+                                        }}
+                                        variant="outline"
+                                        className="flex items-center"
+                                      >
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        Подробнее
+                                      </Button>
+                                      
+                                      <Button
+                                        onClick={() => printInvoice(item)}
+                                        variant="outline"
+                                        className="flex items-center"
+                                      >
+                                        <Printer className="mr-2 h-4 w-4" />
+                                        Печать
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Пагинация для размещенных грузов */}
+                        {placedCargoList.length > 0 && placedCargoPagination && (
+                          <div className="mt-6">
+                            <DataPagination
+                              pagination={placedCargoPagination}
+                              onPageChange={handlePlacedCargoPageChange}
+                              onPerPageChange={handlePlacedCargoPerPageChange}
+                            />
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
                   {/* История грузов */}
                   {activeTab === 'cargo-history' && (
                     <Card>
