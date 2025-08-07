@@ -2364,6 +2364,89 @@ async def update_user_role(
         }
     }
 
+# Модель для полного редактирования пользователя админом
+class AdminUserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    role: Optional[UserRole] = None
+    is_active: Optional[bool] = None
+
+@app.put("/api/admin/users/{user_id}/update")
+async def admin_update_user(
+    user_id: str,
+    user_update: AdminUserUpdate,
+    current_user: User = Depends(require_role(UserRole.ADMIN))
+):
+    """Admin endpoint to fully update user information"""
+    # Проверяем, что пользователь существует
+    existing_user = db.users.find_one({"id": user_id})
+    if not existing_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    update_data = {}
+    
+    # Собираем только заполненные поля
+    if user_update.full_name is not None:
+        update_data["full_name"] = user_update.full_name
+        
+    if user_update.phone is not None:
+        # Проверяем, не занят ли номер телефона другим пользователем
+        existing_phone_user = db.users.find_one({"phone": user_update.phone, "id": {"$ne": user_id}})
+        if existing_phone_user:
+            raise HTTPException(status_code=400, detail="Этот номер телефона уже используется другим пользователем")
+        update_data["phone"] = user_update.phone
+        
+    if user_update.email is not None:
+        # Проверяем, не занят ли email другим пользователем
+        existing_email_user = db.users.find_one({"email": user_update.email, "id": {"$ne": user_id}})
+        if existing_email_user:
+            raise HTTPException(status_code=400, detail="Этот email уже используется другим пользователем")
+        update_data["email"] = user_update.email
+        
+    if user_update.address is not None:
+        update_data["address"] = user_update.address
+        
+    if user_update.role is not None:
+        update_data["role"] = user_update.role.value
+        
+    if user_update.is_active is not None:
+        update_data["is_active"] = user_update.is_active
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="Нет данных для обновления")
+    
+    # Обновляем пользователя в базе данных
+    update_data["updated_at"] = datetime.utcnow()
+    result = db.users.update_one(
+        {"id": user_id},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=400, detail="Не удалось обновить пользователя")
+    
+    # Получаем обновленные данные пользователя
+    updated_user = db.users.find_one({"id": user_id})
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    return {
+        "message": "Данные пользователя обновлены успешно",
+        "user": User(
+            id=updated_user["id"],
+            user_number=updated_user.get("user_number"),
+            full_name=updated_user["full_name"],
+            phone=updated_user["phone"],
+            role=updated_user["role"],
+            email=updated_user.get("email"),
+            address=updated_user.get("address"),
+            is_active=updated_user["is_active"],
+            created_at=updated_user["created_at"]
+        )
+    }
+
 @app.get("/api/admin/operators/profile/{operator_id}")
 async def get_operator_profile(
     operator_id: str,
