@@ -177,6 +177,8 @@ class User(BaseModel):
     full_name: str
     phone: str
     role: UserRole
+    email: Optional[str] = None
+    address: Optional[str] = None
     is_active: bool = True
     created_at: datetime
 
