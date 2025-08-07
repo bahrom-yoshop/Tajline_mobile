@@ -18456,7 +18456,7 @@ ID склада: {self.warehouse_id}"""
                 success, cargo_list = self.run_test(
                     "Get Cargo List (Check Placement Ready)",
                     "GET",
-                    "/api/operator/cargo/list?filter_status=awaiting_placement",
+                    "/api/operator/cargo/list",  # Remove filter to see all cargo
                     200,
                     token=self.tokens['admin']
                 )
