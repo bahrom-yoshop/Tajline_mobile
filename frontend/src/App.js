@@ -1390,14 +1390,161 @@ function App() {
       showAlert(`✅ Оплата принята для груза ${cargoNumber}`, 'success');
       showAlert('📦 Груз автоматически перемещен в раздел "Ожидает размещение"', 'info');
       
-      // Обновляем все списки
+      // Обновляем все списки и статусы во ВСЕХ таблицах и категориях
       fetchOperatorCargo(operatorCargoFilter);
       fetchAvailableCargoForPlacement();
+      fetchAllCargo(); // Админский список
+      fetchUnpaidCargo(); // Касса
+      fetchPaymentHistory(); // История платежей
+      fetchPlacedCargo(); // Размещенные грузы
       
     } catch (error) {
       console.error('Error accepting payment:', error);
       showAlert('Ошибка при принятии оплаты: ' + error.message, 'error');
     }
+  };
+
+  // Новые функции для улучшенного размещения
+
+  // Получение аналитики по складам
+  const fetchWarehouseAnalytics = async () => {
+    try {
+      const data = await apiCall('/api/warehouses/analytics');
+      setWarehouseAnalytics(data);
+      return data;
+    } catch (error) {
+      console.error('Error fetching warehouse analytics:', error);
+      showAlert('Ошибка загрузки аналитики складов', 'error');
+      return null;
+    }
+  };
+
+  // Получение доступных ячеек для размещения
+  const fetchAvailableCellsForEnhancedPlacement = async (warehouseId, blockNumber, shelfNumber) => {
+    try {
+      const data = await apiCall(`/api/warehouses/${warehouseId}/available-cells/${blockNumber}/${shelfNumber}`);
+      setAvailableCellsForPlacement(data.available_cells || []);
+      return data.available_cells || [];
+    } catch (error) {
+      console.error('Error fetching available cells:', error);
+      setAvailableCellsForPlacement([]);
+      return [];
+    }
+  };
+
+  // Обработка выбора склада для размещения
+  const handleWarehouseSelectionForPlacement = async (warehouseId) => {
+    setSelectedWarehouseForPlacement(warehouseId);
+    setSelectedBlockForPlacement(1);
+    setSelectedShelfForPlacement(1);
+    setSelectedCellForPlacement(1);
+    
+    // Загружаем доступные ячейки для выбранного склада
+    await fetchAvailableCellsForEnhancedPlacement(warehouseId, 1, 1);
+  };
+
+  // Обработка выбора блока и полки
+  const handleBlockShelfSelection = async (blockNumber, shelfNumber) => {
+    setSelectedBlockForPlacement(blockNumber);
+    setSelectedShelfForPlacement(shelfNumber);
+    setSelectedCellForPlacement(1);
+    
+    if (selectedWarehouseForPlacement) {
+      await fetchAvailableCellsForEnhancedPlacement(selectedWarehouseForPlacement, blockNumber, shelfNumber);
+    }
+  };
+
+  // Обработчик улучшенного размещения груза
+  const handleEnhancedCargoPlacement = async () => {
+    if (!selectedCargoForEnhancedPlacement || !selectedWarehouseForPlacement) {
+      showAlert('Выберите груз и склад для размещения', 'error');
+      return;
+    }
+
+    setPlacementLoading(true);
+    try {
+      const response = await apiCall('/api/operator/cargo/place', 'POST', {
+        cargo_id: selectedCargoForEnhancedPlacement.id,
+        warehouse_id: selectedWarehouseForPlacement,
+        block_number: selectedBlockForPlacement,
+        shelf_number: selectedShelfForPlacement,
+        cell_number: selectedCellForPlacement
+      });
+
+      showAlert(
+        `✅ Груз ${selectedCargoForEnhancedPlacement.cargo_number} успешно размещен в ${response.warehouse_name} (Блок ${selectedBlockForPlacement}, Полка ${selectedShelfForPlacement}, Ячейка ${selectedCellForPlacement})`,
+        'success'
+      );
+
+      // Закрываем модальное окно
+      setEnhancedPlacementModal(false);
+      setSelectedCargoForEnhancedPlacement(null);
+
+      // Обновляем все списки
+      fetchAvailableCargoForPlacement(); // Убираем из "Ожидает размещение"
+      fetchPlacedCargo(); // Добавляем в "Размещенные грузы"
+      fetchOperatorCargo(operatorCargoFilter);
+      
+    } catch (error) {
+      console.error('Enhanced placement error:', error);
+      showAlert('Ошибка размещения груза: ' + error.message, 'error');
+    } finally {
+      setPlacementLoading(false);
+    }
+  };
+
+  // Открытие модального окна улучшенного размещения
+  const openEnhancedPlacementModal = async (cargo) => {
+    setSelectedCargoForEnhancedPlacement(cargo);
+    setEnhancedPlacementModal(true);
+    
+    // Загружаем аналитику складов
+    await fetchWarehouseAnalytics();
+    
+    // Сбрасываем выбор
+    setSelectedWarehouseForPlacement('');
+    setSelectedBlockForPlacement(1);
+    setSelectedShelfForPlacement(1);
+    setSelectedCellForPlacement(1);
+    setAvailableCellsForPlacement([]);
+  };
+
+  // Получение списка размещенных грузов
+  const fetchPlacedCargo = async (page = placedCargoPage, perPage = placedCargoPerPage) => {
+    try {
+      const params = {
+        page: page,
+        per_page: perPage,
+        status: 'placed'
+      };
+      
+      const response = await apiCall('/api/warehouses/placed-cargo', 'GET', null, params);
+      
+      if (response.items) {
+        setPlacedCargoList(response.items);
+        setPlacedCargoPagination(response.pagination);
+      } else {
+        setPlacedCargoList(response.cargo_list || response);
+        setPlacedCargoPagination({});
+      }
+    } catch (error) {
+      console.error('Error fetching placed cargo:', error);
+      setPlacedCargoList([]);
+      setPlacedCargoPagination({});
+    }
+  };
+
+  // Обработчики пагинации для размещенных грузов
+  const handlePlacedCargoPageChange = (newPage) => {
+    setPlacedCargoPage(newPage);
+    fetchPlacedCargo(newPage, placedCargoPerPage);
+  };
+
+  const handlePlacedCargoPerPageChange = (newPerPage) => {
+    const perPage = parseInt(newPerPage);
+    setPlacedCargoPerPage(perPage);
+    setPlacedCargoPage(1);
+    fetchPlacedCargo(1, perPage);
   };
 
   const updateCargoProcessingStatus = async (cargoId, newStatus) => {
