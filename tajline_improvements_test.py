@@ -625,14 +625,13 @@ class TAJLINEImprovementsTester:
         
         all_success = True
         
-        # Test all status synchronization endpoints
-        print("\n   📊 Testing status synchronization across all endpoints...")
+        # Test existing status synchronization endpoints
+        print("\n   📊 Testing status synchronization across available endpoints...")
         
         endpoints_to_test = [
-            ("Operator Cargo List", "/api/operator/cargo", {}),
-            ("Admin Cargo List", "/api/admin/cargo", {}),
-            ("Unpaid Cargo List", "/api/cargo/unpaid", {}),
-            ("Placement Ready Cargo", "/api/cargo/placement-ready", {})
+            ("Operator Cargo List", "/api/operator/cargo/list", {}),
+            ("All Cargo (Admin)", "/api/cargo/all", {}),
+            ("Warehouse Cargo", "/api/warehouse/cargo", {}),
         ]
         
         for endpoint_name, endpoint_path, params in endpoints_to_test:
@@ -738,6 +737,36 @@ class TAJLINEImprovementsTester:
                     all_success = False
             else:
                 print("   ℹ️  Could not find test cargo in multiple endpoints for comparison")
+        
+        # Test specific status filters
+        print("\n   🔍 Testing status-based filtering...")
+        
+        # Test payment_pending filter
+        success, payment_pending = self.run_test(
+            "Check Payment Pending Filter",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            params={"filter_status": "payment_pending"},
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success and 'items' in payment_pending:
+            pending_count = len(payment_pending['items'])
+            print(f"   📊 Payment pending cargo: {pending_count} items")
+            
+            # Verify all items have payment_pending status
+            if payment_pending['items']:
+                all_pending = all(
+                    cargo.get('processing_status') == 'payment_pending' or 
+                    cargo.get('payment_status') == 'pending'
+                    for cargo in payment_pending['items']
+                )
+                if all_pending:
+                    print("   ✅ Payment pending filter working correctly")
+                else:
+                    print("   ⚠️  Payment pending filter may have inconsistencies")
         
         return all_success
 
