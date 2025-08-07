@@ -1564,10 +1564,17 @@ function App() {
     });
   };
 
-  // Обработчик улучшенного размещения груза
+  // Обработчик улучшенного размещения груза с проверкой доступности
   const handleEnhancedCargoPlacement = async () => {
     if (!selectedCargoForEnhancedPlacement || !selectedWarehouseForPlacement) {
       showAlert('Выберите груз и склад для размещения', 'error');
+      return;
+    }
+
+    // Проверяем доступность выбранной ячейки
+    const isCellFree = isCellAvailable(selectedBlockForPlacement, selectedShelfForPlacement, selectedCellForPlacement);
+    if (!isCellFree) {
+      showAlert('Выбранная ячейка занята! Пожалуйста, выберите свободную ячейку.', 'error');
       return;
     }
 
