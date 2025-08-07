@@ -1248,11 +1248,6 @@ async def login(user_data: UserLogin):
     if not user["is_active"]:
         raise HTTPException(status_code=401, detail="Account is disabled")
     
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user_data.phone}, expires_delta=access_token_expires
-    )
-    
     # Генерируем user_number если его нет
     user_number = user.get("user_number")
     if not user_number:
@@ -1261,6 +1256,18 @@ async def login(user_data: UserLogin):
             {"id": user["id"]},
             {"$set": {"user_number": user_number}}
         )
+    
+    # Получаем версию токена пользователя
+    token_version = user.get("token_version", 1)
+    
+    # Создаем токен с user_id и token_version
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_user_token(
+        user_id=user["id"],
+        phone=user_data.phone,
+        token_version=token_version,
+        expires_delta=access_token_expires
+    )
     
     return {
         "access_token": access_token,
@@ -1272,6 +1279,7 @@ async def login(user_data: UserLogin):
             phone=user["phone"],
             role=user["role"],
             is_active=user["is_active"],
+            token_version=token_version,
             created_at=user["created_at"]
         )
     }
