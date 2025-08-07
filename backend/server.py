@@ -791,6 +791,15 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+def create_user_token(user_id: str, phone: str, token_version: int = 1, expires_delta: Optional[timedelta] = None):
+    """Создает токен с информацией о пользователе включая версию токена"""
+    token_data = {
+        "sub": phone,
+        "user_id": user_id,
+        "token_version": token_version
+    }
+    return create_access_token(token_data, expires_delta)
+
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         token = credentials.credentials
