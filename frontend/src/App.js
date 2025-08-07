@@ -6694,17 +6694,136 @@ function App() {
                     </Card>
                   )}
 
-                  {/* Размещение груза - Улучшенный интерфейс */}
+                  {/* Размещение груза - Улучшенный интерфейс со сканером */}
                   {activeTab === 'cargo-placement' && (
                     <div className="space-y-6">
+                      {/* Интерфейс сканирования */}
+                      {(scannerActive || scannedCargoData || placementInProgress) && (
+                        <Card className="border-2 border-blue-500 bg-blue-50">
+                          <CardHeader>
+                            <CardTitle className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <Camera className="mr-2 h-5 w-5 text-blue-600" />
+                                {scannerMode === 'cargo-barcode' ? 'Сканирование штрих-кода груза' :
+                                 scannerMode === 'cell-qr' ? 'Сканирование QR-кода ячейки' :
+                                 placementInProgress ? 'Размещение груза...' : 'Готово к сканированию'}
+                              </div>
+                              {(scannerActive || scannedCargoData) && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={resetScannerState}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <X className="h-4 w-4" />
+                                  Отменить
+                                </Button>
+                              )}
+                            </CardTitle>
+                            <CardDescription>
+                              {scannerMode === 'cargo-barcode' && 'Наведите камеру на штрих-код груза для его идентификации'}
+                              {scannerMode === 'cell-qr' && 'Наведите камеру на QR-код свободной ячейки для размещения'}
+                              {placementInProgress && 'Выполняется размещение груза в выбранную ячейку...'}
+                              {scannerMode === 'none' && scannedCargoData && !placementInProgress && 'Груз идентифицирован, ожидается выбор ячейки'}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            {/* Статус сканирования */}
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Информация о отсканированном грузе */}
+                                {scannedCargoData && (
+                                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                                    <h4 className="font-medium text-green-800 mb-2 flex items-center">
+                                      <CheckCircle className="mr-2 h-4 w-4" />
+                                      Груз идентифицирован
+                                    </h4>
+                                    <p><strong>Номер:</strong> {scannedCargoData.cargo_number}</p>
+                                    <p><strong>Описание:</strong> {scannedCargoData.description || scannedCargoData.cargo_name}</p>
+                                    <p><strong>Вес:</strong> {scannedCargoData.weight} кг</p>
+                                    <p><strong>Отправитель:</strong> {scannedCargoData.sender_full_name}</p>
+                                  </div>
+                                )}
+                                
+                                {/* Информация о выбранной ячейке */}
+                                {scannedCellData && (
+                                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <h4 className="font-medium text-blue-800 mb-2 flex items-center">
+                                      <Grid3X3 className="mr-2 h-4 w-4" />
+                                      Ячейка выбрана
+                                    </h4>
+                                    <p><strong>Склад:</strong> {scannedCellData.warehouse_id}</p>
+                                    <p><strong>Блок:</strong> {scannedCellData.block_number}</p>
+                                    <p><strong>Полка:</strong> {scannedCellData.shelf_number}</p>
+                                    <p><strong>Ячейка:</strong> {scannedCellData.cell_number}</p>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Ошибки сканирования */}
+                              {scannerError && (
+                                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                                  <p className="text-red-800 flex items-center">
+                                    <XCircle className="mr-2 h-4 w-4" />
+                                    {scannerError}
+                                  </p>
+                                </div>
+                              )}
+                              
+                              {/* Прогресс размещения */}
+                              {placementInProgress && (
+                                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                  <p className="text-yellow-800 flex items-center">
+                                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                    Размещение груза в процессе...
+                                  </p>
+                                </div>
+                              )}
+                              
+                              {/* Тестовые кнопки (для отладки) */}
+                              {process.env.NODE_ENV === 'development' && (
+                                <div className="flex flex-wrap gap-2 p-3 bg-gray-100 rounded-lg border-2 border-dashed">
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => simulateBarcodeScan('2501999271')}
+                                  >
+                                    Тест штрих-кода груза
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => simulateBarcodeScan('WH001:1:2:5')}
+                                  >
+                                    Тест QR-кода ячейки
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* Основной интерфейс */}
                       <Card>
                         <CardHeader>
-                          <CardTitle className="flex items-center">
-                            <Grid3X3 className="mr-2 h-5 w-5" />
-                            Ожидает размещение
+                          <CardTitle className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <Grid3X3 className="mr-2 h-5 w-5" />
+                              Ожидает размещение
+                            </div>
+                            {!scannerActive && !placementInProgress && (
+                              <Button 
+                                onClick={startCargoScanner}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                <Camera className="mr-2 h-4 w-4" />
+                                Начать сканирование
+                              </Button>
+                            )}
                           </CardTitle>
                           <CardDescription>
-                            Оплаченные грузы, готовые к размещению на складе. Автоматически обновляется при принятии оплат.
+                            Оплаченные грузы, готовые к размещению на складе. Используйте сканер для быстрого размещения.
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
