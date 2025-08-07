@@ -688,7 +688,7 @@ function App() {
       );
       
       // Сбрасываем состояние сканирования
-      resetScannerState();
+      await resetScannerState();
       
       // Обновляем списки
       fetchAvailableCargoForPlacement();
