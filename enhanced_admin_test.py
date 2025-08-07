@@ -137,16 +137,15 @@ class EnhancedAdminPanelTester:
         if not self.test_operator_id:
             print("   ⚠️  No warehouse operator found, will create one")
             
-            # Create test operator
+            # Create test operator as regular user first
             operator_data = {
                 "full_name": "Тест Оператор Профиль",
                 "phone": "+992777888999",
-                "password": "operator123",
-                "role": "warehouse_operator"
+                "password": "operator123"
             }
             
             success, response = self.run_test(
-                "Create Test Operator",
+                "Create Test User for Operator",
                 "POST",
                 "/api/auth/register",
                 200,
@@ -155,7 +154,74 @@ class EnhancedAdminPanelTester:
             
             if success and 'user' in response:
                 self.test_operator_id = response['user']['id']
-                print(f"   ✅ Test operator created (ID: {self.test_operator_id})")
+                print(f"   ✅ Test user created (ID: {self.test_operator_id})")
+                
+                # Now change role to warehouse_operator
+                role_update_data = {
+                    "user_id": self.test_operator_id,
+                    "new_role": "warehouse_operator"
+                }
+                
+                success, role_response = self.run_test(
+                    "Change User Role to Warehouse Operator",
+                    "PUT",
+                    "/api/admin/users/role",
+                    200,
+                    role_update_data,
+                    self.admin_token
+                )
+                
+                if success:
+                    print("   ✅ Role changed to warehouse_operator")
+                else:
+                    print("   ❌ Failed to change role to warehouse_operator")
+                    return False
+                    
+                # Create a warehouse for the operator
+                warehouse_data = {
+                    "name": "Тест Склад для Оператора",
+                    "location": "Тестовый адрес склада",
+                    "blocks_count": 2,
+                    "shelves_per_block": 2,
+                    "cells_per_shelf": 10
+                }
+                
+                success, warehouse_response = self.run_test(
+                    "Create Test Warehouse",
+                    "POST",
+                    "/api/admin/warehouses",
+                    200,
+                    warehouse_data,
+                    self.admin_token
+                )
+                
+                if success and 'id' in warehouse_response:
+                    warehouse_id = warehouse_response['id']
+                    print(f"   ✅ Test warehouse created (ID: {warehouse_id})")
+                    
+                    # Bind operator to warehouse
+                    binding_data = {
+                        "operator_id": self.test_operator_id,
+                        "warehouse_id": warehouse_id
+                    }
+                    
+                    success, binding_response = self.run_test(
+                        "Bind Operator to Warehouse",
+                        "POST",
+                        "/api/admin/operator-warehouse-binding",
+                        200,
+                        binding_data,
+                        self.admin_token
+                    )
+                    
+                    if success:
+                        print("   ✅ Operator bound to warehouse")
+                    else:
+                        print("   ❌ Failed to bind operator to warehouse")
+                        return False
+                else:
+                    print("   ❌ Failed to create test warehouse")
+                    return False
             else:
                 print("   ❌ Failed to create test operator")
                 return False
