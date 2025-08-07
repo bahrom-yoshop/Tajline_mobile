@@ -2666,6 +2666,11 @@ function App() {
       setTotalWeight(0);
       setTotalCost(0);
       setCargoBreakdown([]);
+      
+      // Сброс флагов автозаполнения
+      setIsFilledFromProfile(false);
+      setProfileSourceUser(null);
+      
       fetchOperatorCargo();
       fetchAvailableCargo();
     } catch (error) {
