@@ -1970,8 +1970,38 @@ function App() {
 
   // Print invoice for individual cargo - TAJLINE format
   const printInvoice = (cargo) => {
+    // Попытка открыть новое окно
     const printWindow = window.open('', '_blank');
     
+    // Проверяем, удалось ли открыть окно (может быть заблокировано браузером)
+    if (!printWindow) {
+      // Если окно не открылось, используем альтернативный метод
+      showAlert('Всплывающие окна заблокированы. Накладная будет открыта в новой вкладке.', 'warning');
+      
+      // Создаем временный элемент для печати
+      const printContent = createInvoiceHTML(cargo);
+      
+      // Открываем в новой вкладке с data URL
+      const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(printContent)}`;
+      window.open(dataUrl, '_blank');
+      return;
+    }
+    
+    try {
+      const invoiceHTML = createInvoiceHTML(cargo);
+      printWindow.document.write(invoiceHTML);
+      printWindow.document.close();
+    } catch (error) {
+      console.error('Error creating print window:', error);
+      showAlert('Ошибка создания накладной. Попробуйте снова.', 'error');
+      if (printWindow) {
+        printWindow.close();
+      }
+    }
+  };
+
+  // Функция создания HTML для накладной
+  const createInvoiceHTML = (cargo) => {
     // Получаем текущую дату в формате dd.mm.yy
     const currentDate = new Date().toLocaleDateString('ru-RU', {
       day: '2-digit',
@@ -2014,8 +2044,6 @@ function App() {
     
     const totalWeight = cargoItems.reduce((sum, item) => sum + item.quantity, 0);
     const totalAmount = cargoItems.reduce((sum, item) => sum + item.total, 0);
-    
-    printWindow.document.write(`
       <html>
         <head>
           <title>Накладная TAJLINE № ${cargo.cargo_number}</title>
