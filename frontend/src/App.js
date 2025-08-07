@@ -379,6 +379,33 @@ function App() {
   // Состояние для предотвращения множественных logout'ов
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  // Новые состояния для расширенного профиля пользователя
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editProfileForm, setEditProfileForm] = useState({
+    full_name: '',
+    phone: '',
+    email: '',
+    address: ''
+  });
+  const [showRepeatOrderModal, setShowRepeatOrderModal] = useState(false);
+  const [repeatOrderData, setRepeatOrderData] = useState(null);
+  const [repeatOrderForm, setRepeatOrderForm] = useState({
+    cargo_items: [{ cargo_name: '', weight: '', price_per_kg: '' }],
+    recipient_full_name: '',
+    recipient_phone: '',
+    recipient_address: '',
+    route: 'moscow_dushanbe',
+    delivery_type: 'standard',
+    insurance_requested: false,
+    special_instructions: '',
+    use_multi_cargo: true
+  });
+  
+  // Состояния для мульти-груз калькулятора в повторном заказе
+  const [repeatOrderTotalWeight, setRepeatOrderTotalWeight] = useState(0);
+  const [repeatOrderTotalCost, setRepeatOrderTotalCost] = useState(0);
+  const [repeatOrderBreakdown, setRepeatOrderBreakdown] = useState([]);
+
   const showAlert = (message, type = 'info') => {
     const id = Date.now();
     setAlerts(prev => [...prev, { id, message, type }]);
