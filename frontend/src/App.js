@@ -415,18 +415,39 @@ function App() {
 
       if (!response.ok) {
         // Обработка 401 ошибки (unauthorized) - токен истек или невалиден
-        if (response.status === 401) {
-          console.log('Token expired or invalid, logging out user');
-          // Очищаем токен и данные пользователя
-          localStorage.removeItem('token');
-          setToken(null);
-          setUser(null);
-          // Перенаправляем на страницу входа
-          setActiveTab('login');
-          setActiveSection('login');
-          // Показываем предупреждение о истекшей сессии
-          showAlert('Ваша сессия истекла. Пожалуйста, войдите в систему снова.', 'warning');
-          throw new Error('Session expired');
+        if (response.status === 401 && !isLoggingOut) {
+          console.log('Received 401 response, checking token validity...');
+          
+          // Проверяем, действительно ли токен истек на клиенте
+          if (token && !isTokenValid(token)) {
+            console.log('Token is expired client-side, logging out');
+            handleLogout();
+            throw new Error('Session expired');
+          } else if (token && isTokenValid(token)) {
+            // Токен валиден на клиенте, но сервер вернул 401
+            // Это может быть временная проблема - попробуем еще раз
+            console.log('Token appears valid client-side but server returned 401, will retry once...');
+            
+            // Повторный запрос только один раз для избежания бесконечных циклов
+            if (!config.retryCount) {
+              config.retryCount = 1;
+              const retryResponse = await fetch(url, config);
+              if (retryResponse.ok) {
+                const retryResult = await retryResponse.json();
+                return retryResult;
+              } else if (retryResponse.status === 401) {
+                // Если повторный запрос тоже вернул 401, то токен действительно невалиден
+                console.log('Retry also returned 401, token is invalid on server');
+                handleLogout();
+                throw new Error('Session expired');
+              }
+            }
+          } else {
+            // Нет токена вообще
+            console.log('No token available, logging out');
+            handleLogout();
+            throw new Error('Authentication required');
+          }
         }
         
         // Правильная обработка detail - может быть строкой или массивом объектов
