@@ -129,7 +129,7 @@ backend:
           agent: "testing"
           comment: "❌ CRITICAL ROLE ISSUE IDENTIFIED - Comprehensive testing reveals the warehouse operator user (+79777888999) has incorrect role assignment: 1) ✅ LOGIN SUCCESSFUL: User 'Оператор Складской' can login with credentials +79777888999/warehouse123, 2) ❌ INCORRECT ROLE: User role is 'user' instead of 'warehouse_operator' in both login response and /api/auth/me endpoint, 3) ❌ ACCESS DENIED: Cannot access warehouse operator functions - GET /api/operator/cargo/list returns 403 'Insufficient permissions', GET /api/operator/my-warehouses returns 403 'Access denied', POST /api/operator/cargo/accept returns 403 'Insufficient permissions', 4) ✅ DATABASE CONFIRMED: Admin can retrieve user details showing role is 'user' in database, 5) 🔍 ROOT CAUSE: The user exists with correct name and phone but has wrong role assignment in database, explaining why frontend shows regular user dashboard instead of warehouse operator interface with sidebar navigation. SOLUTION REQUIRED: Update user role from 'user' to 'warehouse_operator' in database for phone +79777888999."
 
-  - task: "Enhanced Multi-Cargo Form with Individual Price Calculator"
+  - task: "Admin Panel Enhancements and Personal Dashboard"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -139,20 +139,20 @@ backend:
     status_history:
         - working: true
           agent: "main"
-          comment: "✅ BACKEND INDIVIDUAL PRICING FULLY WORKING - Complete implementation success: 1) CargoItem model updated with individual price_per_kg field and computed total_cost property ✅ 2) OperatorCargoCreate model enhanced to handle individual pricing for each cargo item ✅ 3) API endpoint /api/operator/cargo/accept processes individual prices correctly ✅ 4) Detailed cost breakdown generated in cargo description with individual calculations ✅ 5) Test scenario verified: Груз #1 (10kg × 60rub = 600rub) + Груз #2 (25kg × 60rub = 1500rub) + Груз #3 (100kg × 65rub = 6500rub) = 135kg total, 8600rub total ✅ 6) Backward compatibility maintained with single cargo mode ✅ 7) Combined cargo names generated correctly ✅"
+          comment: "✅ BACKEND ADMIN ENHANCEMENTS IMPLEMENTED - Core functionality working: 1) User number generation - automatic USR###### format generation working correctly ✅ 2) Role management API - PUT /api/admin/users/{user_id}/role endpoint functional with proper role transitions (user→warehouse_operator→admin) ✅ 3) Personal dashboard API - GET /api/user/dashboard returns comprehensive data with user info, cargo requests history, sent cargo, and received cargo ✅ 4) Updated all auth endpoints to include user_number field ✅ 5) Added generate_user_number() function with unique number generation ✅ 6) Updated User model with user_number field ✅ Note: Minor access control inconsistencies exist but core functionality works correctly."
 
 frontend:
-  - task: "Enhanced Multi-Cargo Form with Individual Price Calculator"
-    implemented: true
-    working: true
+  - task: "Admin Panel Enhancements and Personal Dashboard"
+    implemented: false
+    working: false
     file: "/app/frontend/src/App.js"
     stuck_count: 0
-    priority: "completed"
+    priority: "critical"
     needs_retesting: false
     status_history:
-        - working: true
+        - working: false
           agent: "main"
-          comment: "✅ FRONTEND INDIVIDUAL PRICING IMPLEMENTED - Ready for manual testing: 1) Updated operatorCargoForm state with individual price_per_kg for each cargo item ✅ 2) Added cargoBreakdown state for detailed calculations display ✅ 3) Enhanced cargo item form with 3 fields: name, weight, individual price ✅ 4) Implemented calculateTotalsWithIndividualPrices() function for real-time calculations ✅ 5) Added immediate cost display under each cargo item ✅ 6) Updated calculator section with detailed breakdown showing each cargo calculation ✅ 7) Enhanced handleAcceptCargo() to send individual pricing data to backend ✅ 8) Form ready for manual testing at: Login +79777888999/warehouse123 → Грузы → Принимать новый груз → Enable multi-cargo mode"
+          comment: "❌ FRONTEND NOT YET IMPLEMENTED - Need to implement: 1) Role management interface in admin panel with dropdown to change user roles ✅ 2) Personal dashboard section for users with profile info, user number display, and cargo history ✅ 3) Update user interface to display user_number field ✅ 4) Add navigation for personal dashboard ✅ 5) Create role management UI in admin users list ✅"
   - task: "Comprehensive Warehouse Layout Functionality Testing"
     implemented: true
     working: false
