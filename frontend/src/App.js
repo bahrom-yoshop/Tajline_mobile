@@ -5889,8 +5889,29 @@ function App() {
                                     <Button
                                       size="sm"
                                       variant="outline"
+                                      onClick={() => fetchUserProfile(u.id)}
+                                      className="text-blue-600 hover:text-blue-700"
+                                      title="Просмотр профиля и истории"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    {user.role === 'warehouse_operator' && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => openQuickCargoModal(u)}
+                                        className="text-green-600 hover:text-green-700"
+                                        title="Быстрое создание груза"
+                                      >
+                                        <Plus className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
                                       onClick={() => openRoleModal(u)}
                                       className="text-blue-600 hover:text-blue-700"
+                                      title="Изменить роль"
                                     >
                                       <Shield className="h-4 w-4" />
                                     </Button>
