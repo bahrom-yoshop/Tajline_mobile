@@ -1331,6 +1331,11 @@ async def update_user_profile(
     if not update_data:
         raise HTTPException(status_code=400, detail="Нет данных для обновления")
     
+    # Увеличиваем версию токена при изменении профиля
+    current_token_version = current_user.token_version
+    new_token_version = current_token_version + 1
+    update_data["token_version"] = new_token_version
+    
     # Обновляем пользователя в базе данных
     update_data["updated_at"] = datetime.utcnow()
     result = db.users.update_one(
@@ -1355,6 +1360,7 @@ async def update_user_profile(
         email=updated_user.get("email"),
         address=updated_user.get("address"),
         is_active=updated_user["is_active"],
+        token_version=updated_user.get("token_version", 1),
         created_at=updated_user["created_at"]
     )
 
