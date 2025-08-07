@@ -57,8 +57,8 @@
 ##   test_priority: "high_first"  # or "sequential" or "stuck_first"
 ##
 ## agent_communication:
-##     -agent: "main"  # or "testing" or "user"
-##     -message: "Communication message between agents"
+##     - agent: "main"
+##       message: "Начинаю комплексное тестирование функции сканирования штрих-кодов для размещения груза. Бэкенд уже полностью реализован и протестирован (100% успешности). UI для сканера интегрирован в 'Cargo Placement' секцию согласно current_work. Проверю сначала бэкенд endpoints для подтверждения готовности, затем протестирую фронтенд интерфейс сканирования. Также нужно проверить отображение 'Номер пользователя' и систему разрешений админа."
 
 # Protocol Guidelines for Main agent
 #
