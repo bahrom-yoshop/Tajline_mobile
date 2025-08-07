@@ -9063,6 +9063,63 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Модальное окно изменения роли пользователя */}
+      <Dialog open={showRoleModal} onOpenChange={setShowRoleModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Изменение роли пользователя</DialogTitle>
+            <DialogDescription>
+              Изменение роли пользователя {selectedUserForRole?.full_name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedUserForRole && (
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="text-sm">
+                  <p><strong>Номер:</strong> {selectedUserForRole.user_number || 'N/A'}</p>
+                  <p><strong>ФИО:</strong> {selectedUserForRole.full_name}</p>
+                  <p><strong>Телефон:</strong> {selectedUserForRole.phone}</p>
+                  <p><strong>Текущая роль:</strong> {getRoleLabel(selectedUserForRole.role)}</p>
+                </div>
+              </div>
+            )}
+            
+            <div>
+              <Label htmlFor="role-select">Новая роль</Label>
+              <Select value={newRole} onValueChange={setNewRole}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите роль" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Пользователь</SelectItem>
+                  <SelectItem value="warehouse_operator">Оператор склада</SelectItem>
+                  <SelectItem value="admin">Администратор</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="flex justify-end space-x-2 mt-6">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowRoleModal(false);
+                setSelectedUserForRole(null);
+                setNewRole('');
+              }}
+            >
+              Отмена
+            </Button>
+            <Button 
+              onClick={handleRoleChange}
+              disabled={!newRole || newRole === selectedUserForRole?.role}
+            >
+              Изменить роль
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
