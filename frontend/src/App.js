@@ -7221,10 +7221,7 @@ function App() {
                                           </Button>
                                           
                                           <Button
-                                            onClick={() => {
-                                              setSelectedCargoForDetailView(item);
-                                              setQuickPlacementModal(true);
-                                            }}
+                                            onClick={() => openEnhancedPlacementModal(item)}
                                             className="bg-green-600 hover:bg-green-700 text-white flex items-center"
                                           >
                                             <Grid3X3 className="mr-2 h-4 w-4" />
