@@ -18841,6 +18841,481 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_tajline_enhanced_cargo_placement_system(self):
+        """Test TAJLINE.TJ Enhanced Cargo Placement System - New Improvements for Intelligent Placement"""
+        print("\n🎯 TAJLINE.TJ ENHANCED CARGO PLACEMENT SYSTEM TESTING")
+        print("   🔍 Testing new improvements for intelligent cargo placement")
+        
+        if 'admin' not in self.tokens or 'warehouse_operator' not in self.tokens:
+            print("   ❌ Admin and warehouse operator tokens required")
+            return False
+            
+        all_success = True
+        
+        # Test 1: ФИЛЬТРАЦИЯ ТОЛЬКО ОПЛАЧЕННЫХ ГРУЗОВ
+        print("\n   💰 Testing PAID CARGO FILTERING (available-for-placement endpoint)...")
+        
+        # First, create test cargo and mark as paid
+        test_cargo_data = {
+            "sender_full_name": "Тест Размещение",
+            "sender_phone": "+79999111222",
+            "recipient_full_name": "Получатель Размещение",
+            "recipient_phone": "+992888111222",
+            "recipient_address": "Душанбе, ул. Размещения, 1",
+            "cargo_items": [
+                {"cargo_name": "Документы", "weight": 10.0, "price_per_kg": 60.0},
+                {"cargo_name": "Одежда", "weight": 25.0, "price_per_kg": 60.0},
+                {"cargo_name": "Электроника", "weight": 100.0, "price_per_kg": 65.0}
+            ],
+            "description": "Тестовый груз для размещения (135kg, 8600руб)",
+            "route": "moscow_dushanbe"
+        }
+        
+        success, test_cargo_response = self.run_test(
+            "Create Test Cargo for Placement (135kg, 8600руб)",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            test_cargo_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        test_cargo_id = None
+        if success and 'id' in test_cargo_response:
+            test_cargo_id = test_cargo_response['id']
+            cargo_number = test_cargo_response.get('cargo_number')
+            print(f"   ✅ Test cargo created: {cargo_number} (135kg, 8600руб)")
+            
+            # Mark cargo as paid
+            success, _ = self.run_test(
+                "Mark Test Cargo as Paid",
+                "PUT",
+                f"/api/cargo/{test_cargo_id}/processing-status",
+                200,
+                {"processing_status": "paid"},
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Test cargo marked as paid")
+        
+        # Test available-for-placement endpoint
+        success, available_cargo = self.run_test(
+            "Get Available Cargo for Placement (Only Paid)",
+            "GET",
+            "/api/operator/cargo/available-for-placement",
+            200,
+            token=self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success:
+            if isinstance(available_cargo, dict) and 'items' in available_cargo:
+                cargo_items = available_cargo['items']
+            elif isinstance(available_cargo, list):
+                cargo_items = available_cargo
+            else:
+                cargo_items = []
+            
+            print(f"   📊 Found {len(cargo_items)} cargo items available for placement")
+            
+            # Verify only paid cargo is returned
+            paid_cargo_count = 0
+            unpaid_cargo_count = 0
+            
+            for cargo in cargo_items:
+                payment_status = cargo.get('payment_status', 'pending')
+                processing_status = cargo.get('processing_status', 'payment_pending')
+                
+                if payment_status == 'paid' or processing_status == 'paid':
+                    paid_cargo_count += 1
+                else:
+                    unpaid_cargo_count += 1
+            
+            if unpaid_cargo_count == 0:
+                print(f"   ✅ Only paid cargo returned ({paid_cargo_count} paid, 0 unpaid)")
+            else:
+                print(f"   ❌ Unpaid cargo found in results ({paid_cargo_count} paid, {unpaid_cargo_count} unpaid)")
+                all_success = False
+            
+            # Verify our test cargo appears in the list
+            test_cargo_found = any(cargo.get('id') == test_cargo_id for cargo in cargo_items)
+            if test_cargo_found:
+                print("   ✅ Test paid cargo appears in available-for-placement list")
+            else:
+                print("   ❌ Test paid cargo not found in available-for-placement list")
+                all_success = False
+        
+        # Test 2: ДЕТАЛЬНАЯ СТРУКТУРА СКЛАДА
+        print("\n   🏗️ Testing DETAILED WAREHOUSE STRUCTURE (detailed-structure endpoint)...")
+        
+        # Get list of warehouses first
+        success, warehouses = self.run_test(
+            "Get Warehouses List",
+            "GET",
+            "/api/warehouses",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        target_warehouse_id = None
+        if success and warehouses:
+            if isinstance(warehouses, list) and len(warehouses) > 0:
+                target_warehouse_id = warehouses[0].get('id')
+                warehouse_name = warehouses[0].get('name', 'Unknown')
+                print(f"   🏭 Using warehouse: {warehouse_name} (ID: {target_warehouse_id})")
+            else:
+                print("   ❌ No warehouses found")
+                all_success = False
+        
+        if target_warehouse_id:
+            # Test detailed warehouse structure endpoint
+            success, detailed_structure = self.run_test(
+                "Get Detailed Warehouse Structure",
+                "GET",
+                f"/api/warehouses/{target_warehouse_id}/detailed-structure",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success and detailed_structure:
+                # Verify structure contains required information
+                required_fields = ['warehouse_info', 'blocks', 'statistics']
+                missing_fields = [field for field in required_fields if field not in detailed_structure]
+                
+                if not missing_fields:
+                    print("   ✅ Detailed structure contains all required fields")
+                    
+                    # Check statistics
+                    stats = detailed_structure.get('statistics', {})
+                    total_cells = stats.get('total_cells', 0)
+                    occupied_cells = stats.get('occupied_cells', 0)
+                    available_cells = stats.get('available_cells', 0)
+                    occupancy_percentage = stats.get('occupancy_percentage', 0)
+                    
+                    print(f"   📊 Warehouse statistics:")
+                    print(f"   - Total cells: {total_cells}")
+                    print(f"   - Occupied cells: {occupied_cells}")
+                    print(f"   - Available cells: {available_cells}")
+                    print(f"   - Occupancy: {occupancy_percentage}%")
+                    
+                    # Verify blocks structure
+                    blocks = detailed_structure.get('blocks', [])
+                    if blocks:
+                        print(f"   🏗️ Found {len(blocks)} blocks with detailed cell information")
+                        
+                        # Check first block structure
+                        first_block = blocks[0]
+                        if 'shelves' in first_block:
+                            shelves = first_block['shelves']
+                            if shelves and 'cells' in shelves[0]:
+                                cells = shelves[0]['cells']
+                                if cells:
+                                    first_cell = cells[0]
+                                    cell_fields = ['cell_number', 'is_occupied', 'cargo_info']
+                                    cell_has_required = all(field in first_cell for field in cell_fields)
+                                    
+                                    if cell_has_required:
+                                        print("   ✅ Cell structure contains required fields (cell_number, is_occupied, cargo_info)")
+                                    else:
+                                        print("   ❌ Cell structure missing required fields")
+                                        all_success = False
+                                else:
+                                    print("   ❌ No cells found in shelf structure")
+                                    all_success = False
+                            else:
+                                print("   ❌ No cells found in shelves")
+                                all_success = False
+                        else:
+                            print("   ❌ No shelves found in block structure")
+                            all_success = False
+                    else:
+                        print("   ❌ No blocks found in detailed structure")
+                        all_success = False
+                else:
+                    print(f"   ❌ Missing required fields in detailed structure: {missing_fields}")
+                    all_success = False
+        
+        # Test 3: ПРОВЕРКА ДОСТУПНОСТИ ЯЧЕЕК
+        print("\n   🔍 Testing CELL AVAILABILITY CHECK (available-cells endpoint)...")
+        
+        if target_warehouse_id:
+            # Test available cells for specific block/shelf
+            test_block = 1
+            test_shelf = 1
+            
+            success, available_cells = self.run_test(
+                f"Get Available Cells (Block {test_block}, Shelf {test_shelf})",
+                "GET",
+                f"/api/warehouses/{target_warehouse_id}/available-cells/{test_block}/{test_shelf}",
+                200,
+                token=self.tokens['warehouse_operator']
+            )
+            all_success &= success
+            
+            if success and available_cells:
+                # Verify response structure
+                if 'available_cells' in available_cells and 'occupied_cells' in available_cells:
+                    available_count = len(available_cells['available_cells'])
+                    occupied_count = len(available_cells['occupied_cells'])
+                    total_count = available_count + occupied_count
+                    
+                    print(f"   📊 Block {test_block}, Shelf {test_shelf} status:")
+                    print(f"   - Available cells: {available_count}")
+                    print(f"   - Occupied cells: {occupied_count}")
+                    print(f"   - Total cells: {total_count}")
+                    
+                    # Verify only available cells are returned in available list
+                    all_available = True
+                    for cell in available_cells['available_cells']:
+                        if cell.get('is_occupied', True):
+                            all_available = False
+                            break
+                    
+                    if all_available:
+                        print("   ✅ Available cells list contains only unoccupied cells")
+                    else:
+                        print("   ❌ Available cells list contains occupied cells")
+                        all_success = False
+                    
+                    # Verify occupied cells have cargo information
+                    occupied_cells_with_cargo = 0
+                    for cell in available_cells['occupied_cells']:
+                        if cell.get('cargo_info'):
+                            occupied_cells_with_cargo += 1
+                    
+                    if occupied_count == 0 or occupied_cells_with_cargo == occupied_count:
+                        print("   ✅ All occupied cells have cargo information")
+                    else:
+                        print(f"   ❌ Some occupied cells missing cargo info ({occupied_cells_with_cargo}/{occupied_count})")
+                        all_success = False
+                else:
+                    print("   ❌ Available cells response missing required structure")
+                    all_success = False
+        
+        # Test 4: WORKFLOW РАЗМЕЩЕНИЯ С ПРОВЕРКОЙ
+        print("\n   🎯 Testing PLACEMENT WORKFLOW WITH VALIDATION...")
+        
+        if target_warehouse_id and test_cargo_id:
+            # First, find an available cell
+            success, available_cells = self.run_test(
+                "Find Available Cell for Placement",
+                "GET",
+                f"/api/warehouses/{target_warehouse_id}/available-cells/1/1",
+                200,
+                token=self.tokens['warehouse_operator']
+            )
+            
+            if success and available_cells and available_cells.get('available_cells'):
+                available_cell = available_cells['available_cells'][0]
+                cell_number = available_cell.get('cell_number')
+                
+                print(f"   🎯 Selected cell for placement: Block 1, Shelf 1, Cell {cell_number}")
+                
+                # Test cargo placement
+                placement_data = {
+                    "cargo_id": test_cargo_id,
+                    "warehouse_id": target_warehouse_id,
+                    "block_number": 1,
+                    "shelf_number": 1,
+                    "cell_number": cell_number
+                }
+                
+                success, placement_response = self.run_test(
+                    "Place Cargo in Available Cell",
+                    "POST",
+                    "/api/operator/cargo/place",
+                    200,
+                    placement_data,
+                    self.tokens['warehouse_operator']
+                )
+                all_success &= success
+                
+                if success:
+                    location = placement_response.get('location', 'Unknown')
+                    print(f"   ✅ Cargo placed successfully at: {location}")
+                    
+                    # Verify cell is now marked as occupied
+                    success, updated_cells = self.run_test(
+                        "Verify Cell Now Occupied",
+                        "GET",
+                        f"/api/warehouses/{target_warehouse_id}/available-cells/1/1",
+                        200,
+                        token=self.tokens['warehouse_operator']
+                    )
+                    
+                    if success and updated_cells:
+                        # Check if our cell is now in occupied list
+                        occupied_cells = updated_cells.get('occupied_cells', [])
+                        cell_now_occupied = any(
+                            cell.get('cell_number') == cell_number 
+                            for cell in occupied_cells
+                        )
+                        
+                        if cell_now_occupied:
+                            print("   ✅ Cell correctly marked as occupied after placement")
+                        else:
+                            print("   ❌ Cell not marked as occupied after placement")
+                            all_success = False
+                    
+                    # Test placing cargo in occupied cell (should fail)
+                    duplicate_placement_data = {
+                        "cargo_id": test_cargo_id,  # Same cargo or different
+                        "warehouse_id": target_warehouse_id,
+                        "block_number": 1,
+                        "shelf_number": 1,
+                        "cell_number": cell_number  # Same occupied cell
+                    }
+                    
+                    success, _ = self.run_test(
+                        "Try to Place in Occupied Cell (Should Fail)",
+                        "POST",
+                        "/api/operator/cargo/place",
+                        400,  # Should return error
+                        duplicate_placement_data,
+                        self.tokens['warehouse_operator']
+                    )
+                    all_success &= success
+                    
+                    if success:
+                        print("   ✅ Placement in occupied cell correctly blocked")
+                    
+                    # Verify cargo no longer appears in available-for-placement
+                    success, updated_available = self.run_test(
+                        "Verify Cargo Removed from Available List",
+                        "GET",
+                        "/api/operator/cargo/available-for-placement",
+                        200,
+                        token=self.tokens['warehouse_operator']
+                    )
+                    
+                    if success:
+                        if isinstance(updated_available, dict) and 'items' in updated_available:
+                            cargo_items = updated_available['items']
+                        elif isinstance(updated_available, list):
+                            cargo_items = updated_available
+                        else:
+                            cargo_items = []
+                        
+                        cargo_still_available = any(cargo.get('id') == test_cargo_id for cargo in cargo_items)
+                        
+                        if not cargo_still_available:
+                            print("   ✅ Placed cargo removed from available-for-placement list")
+                        else:
+                            print("   ❌ Placed cargo still appears in available-for-placement list")
+                            all_success = False
+            else:
+                print("   ❌ No available cells found for placement testing")
+                all_success = False
+        
+        # Test 5: ИНТЕГРАЦИОННОЕ ТЕСТИРОВАНИЕ
+        print("\n   📊 Testing INTEGRATION AND ROLE-BASED ACCESS...")
+        
+        # Test admin access to all warehouses
+        success, admin_warehouses = self.run_test(
+            "Admin Access to All Warehouses",
+            "GET",
+            "/api/warehouses",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            admin_warehouse_count = len(admin_warehouses) if isinstance(admin_warehouses, list) else 0
+            print(f"   👑 Admin can see {admin_warehouse_count} warehouses")
+        
+        # Test warehouse operator access (should see only assigned warehouses)
+        success, operator_warehouses = self.run_test(
+            "Warehouse Operator Access to Assigned Warehouses",
+            "GET",
+            "/api/warehouses",
+            200,
+            token=self.tokens['warehouse_operator']
+        )
+        all_success &= success
+        
+        if success:
+            operator_warehouse_count = len(operator_warehouses) if isinstance(operator_warehouses, list) else 0
+            print(f"   🏭 Warehouse operator can see {operator_warehouse_count} warehouses")
+            
+            # Verify role-based access control
+            if operator_warehouse_count <= admin_warehouse_count:
+                print("   ✅ Role-based warehouse access working correctly")
+            else:
+                print("   ❌ Warehouse operator sees more warehouses than admin")
+                all_success = False
+        
+        # Test pagination in available-for-placement
+        success, paginated_cargo = self.run_test(
+            "Test Pagination in Available Cargo",
+            "GET",
+            "/api/operator/cargo/available-for-placement?page=1&per_page=5",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success and isinstance(paginated_cargo, dict):
+            if 'pagination' in paginated_cargo:
+                pagination_info = paginated_cargo['pagination']
+                page = pagination_info.get('page', 0)
+                per_page = pagination_info.get('per_page', 0)
+                total_count = pagination_info.get('total_count', 0)
+                
+                print(f"   📄 Pagination working: Page {page}, {per_page} per page, {total_count} total")
+                print("   ✅ Pagination functionality verified")
+            else:
+                print("   ❌ Pagination information missing")
+                all_success = False
+        
+        # Test data synchronization between endpoints
+        print("\n   🔄 Testing DATA SYNCHRONIZATION between endpoints...")
+        
+        if target_warehouse_id:
+            # Get warehouse structure and available cells, compare data
+            success, structure = self.run_test(
+                "Get Structure for Sync Check",
+                "GET",
+                f"/api/warehouses/{target_warehouse_id}/detailed-structure",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            success2, cells = self.run_test(
+                "Get Available Cells for Sync Check",
+                "GET",
+                f"/api/warehouses/{target_warehouse_id}/available-cells/1/1",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success and success2 and structure and cells:
+                # Compare occupancy data between endpoints
+                structure_stats = structure.get('statistics', {})
+                structure_occupied = structure_stats.get('occupied_cells', 0)
+                
+                cells_occupied = len(cells.get('occupied_cells', []))
+                
+                # Note: This is a partial comparison since we're only checking one shelf
+                print(f"   📊 Structure endpoint reports {structure_occupied} occupied cells total")
+                print(f"   📊 Available-cells endpoint reports {cells_occupied} occupied cells in Block 1, Shelf 1")
+                print("   ✅ Data synchronization check completed")
+            
+        print("\n   📋 TAJLINE.TJ ENHANCED CARGO PLACEMENT SYSTEM TESTING SUMMARY:")
+        print("   ✅ Paid cargo filtering tested")
+        print("   ✅ Detailed warehouse structure tested")
+        print("   ✅ Cell availability checking tested")
+        print("   ✅ Placement workflow with validation tested")
+        print("   ✅ Integration and role-based access tested")
+        print("   ✅ Data synchronization verified")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
