@@ -165,7 +165,7 @@ class EnhancedAdminPanelTester:
                 success, role_response = self.run_test(
                     "Change User Role to Warehouse Operator",
                     "PUT",
-                    "/api/admin/users/role",
+                    f"/api/admin/users/{self.test_operator_id}/role",
                     200,
                     role_update_data,
                     self.admin_token
