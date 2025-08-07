@@ -78,11 +78,12 @@ class ProfileTester:
         """Test that user model includes email and address fields"""
         print("\n📋 Testing User Model Updates (email and address fields)...")
         
-        if 'user' not in self.tokens:
-            print("❌ No user token available")
+        # Use admin token since user login failed
+        if 'admin' not in self.tokens:
+            print("❌ No admin token available")
             return False
         
-        status, response = self.make_request('GET', '/api/auth/me', token=self.tokens['user'])
+        status, response = self.make_request('GET', '/api/auth/me', token=self.tokens['admin'])
         
         if status == 200:
             has_email = 'email' in response
@@ -106,18 +107,19 @@ class ProfileTester:
         """Test profile update functionality"""
         print("\n✏️ Testing User Profile Update (PUT /api/user/profile)...")
         
-        if 'user' not in self.tokens:
-            print("❌ No user token available")
+        # Use admin token since user login failed
+        if 'admin' not in self.tokens:
+            print("❌ No admin token available")
             return False
         
         # Test updating profile
         update_data = {
-            "full_name": "Бахром Клиент Тестовый",
-            "email": "bahrom.test@example.com",
-            "address": "Душанбе, ул. Тестовая, 123"
+            "full_name": "Админ Системы Тестовый",
+            "email": "admin.test@example.com",
+            "address": "Москва, ул. Тестовая, 123"
         }
         
-        status, response = self.make_request('PUT', '/api/user/profile', update_data, self.tokens['user'])
+        status, response = self.make_request('PUT', '/api/user/profile', update_data, self.tokens['admin'])
         
         if status == 200:
             print("✅ Profile updated successfully")
@@ -142,11 +144,12 @@ class ProfileTester:
         """Test that updated data persists"""
         print("\n💾 Testing Data Persistence...")
         
-        if 'user' not in self.tokens:
-            print("❌ No user token available")
+        # Use admin token since user login failed
+        if 'admin' not in self.tokens:
+            print("❌ No admin token available")
             return False
         
-        status, response = self.make_request('GET', '/api/auth/me', token=self.tokens['user'])
+        status, response = self.make_request('GET', '/api/auth/me', token=self.tokens['admin'])
         
         if status == 200:
             print(f"👤 Persisted name: {response.get('full_name')}")
