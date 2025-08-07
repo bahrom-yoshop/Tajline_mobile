@@ -18514,13 +18514,17 @@ ID склада: {self.warehouse_id}"""
         print("\n   📱 Testing Cargo Placement API (Barcode Scanner Endpoint)...")
         
         if placement_cargo_id and target_warehouse_id:
+            # Use a random cell number to avoid conflicts
+            import random
+            cell_number = random.randint(1, 12)
+            
             # Test placement with valid cargo ID, warehouse ID, and cell coordinates
             placement_data = {
                 "cargo_id": placement_cargo_id,
                 "warehouse_id": target_warehouse_id,
                 "block_number": 1,
                 "shelf_number": 1,
-                "cell_number": 8  # Use a different cell to avoid conflicts
+                "cell_number": cell_number
             }
             
             success, placement_response = self.run_test(
