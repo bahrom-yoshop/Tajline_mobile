@@ -128,13 +128,9 @@ class EnhancedAdminPanelTester:
         )
         
         if success and isinstance(users_list, list):
+            # First check for existing test user by phone
             for user in users_list:
-                if user.get('role') == 'warehouse_operator':
-                    self.test_operator_id = user.get('id')
-                    print(f"   ✅ Found warehouse operator (ID: {self.test_operator_id})")
-                    break
-                elif user.get('phone') == '+992777888999':
-                    # Found the test user, check if we need to change role
+                if user.get('phone') == '+992777888999':
                     self.test_operator_id = user.get('id')
                     if user.get('role') != 'warehouse_operator':
                         print(f"   ⚠️  Found test user with wrong role, will update (ID: {self.test_operator_id})")
@@ -162,6 +158,14 @@ class EnhancedAdminPanelTester:
                     else:
                         print(f"   ✅ Found existing warehouse operator (ID: {self.test_operator_id})")
                     break
+            
+            # If not found by phone, look for any warehouse operator
+            if not self.test_operator_id:
+                for user in users_list:
+                    if user.get('role') == 'warehouse_operator':
+                        self.test_operator_id = user.get('id')
+                        print(f"   ✅ Found warehouse operator (ID: {self.test_operator_id})")
+                        break
         
         if not self.test_operator_id:
             print("   ⚠️  No warehouse operator found, will create one")
