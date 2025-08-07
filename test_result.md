@@ -1659,13 +1659,14 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Barcode Scanning Cargo Placement Workflow Testing" # COMPLETED ✅
-    - "Enhanced Admin Panel with Advanced User Management Frontend"
-    - "Session Management Fix"
-    - "Calculate Cost Button Fix"
-  stuck_tasks: []
+    - "Barcode Scanning Cargo Placement Workflow Re-Testing"
+    - "Frontend Barcode Scanner Interface Testing"
+    - "User Number Display Consistency Check"
+    - "Admin Permission System Verification"
+  stuck_tasks:
+    - "Warehouse Operator Role Verification"
   test_all: false
-  test_priority: "high_first"
+  test_priority: "critical_first"
 
   - task: "Информация об операторах на складах - GET /api/warehouses"
     implemented: true
