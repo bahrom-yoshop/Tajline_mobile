@@ -186,6 +186,27 @@ function App() {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedUserForRole, setSelectedUserForRole] = useState(null);
   const [newRole, setNewRole] = useState('');
+
+  // Advanced search states
+  const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false);
+  const [searchFilters, setSearchFilters] = useState({
+    cargo_status: '',
+    payment_status: '',
+    processing_status: '',
+    route: '',
+    sender_phone: '',
+    recipient_phone: '',
+    date_from: '',
+    date_to: '',
+    user_role: '',
+    user_status: null,
+    sort_by: 'created_at',
+    sort_order: 'desc'
+  });
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchTime, setSearchTime] = useState(0);
   const [operatorCargoFilter, setOperatorCargoFilter] = useState(''); // Фильтр для списка грузов
   const [operatorCargoPagination, setOperatorCargoPagination] = useState({}); // Пагинация для списка грузов
   const [operatorCargoPage, setOperatorCargoPage] = useState(1);
