@@ -2297,6 +2297,360 @@ async def update_user_role(
         }
     }
 
+@app.get("/api/admin/operators/profile/{operator_id}")
+async def get_operator_profile(
+    operator_id: str,
+    current_user: User = Depends(require_role(UserRole.ADMIN))
+):
+    """Получить детальный профиль оператора склада"""
+    try:
+        # Получаем данные оператора
+        operator = db.users.find_one({"id": operator_id, "role": "warehouse_operator"})
+        if not operator:
+            raise HTTPException(status_code=404, detail="Operator not found")
+        
+        # Создаем объект User
+        operator_user = User(
+            id=operator["id"],
+            user_number=operator.get("user_number", "N/A"),
+            full_name=operator["full_name"],
+            phone=operator["phone"],
+            role=operator["role"],
+            is_active=operator["is_active"],
+            created_at=operator["created_at"]
+        )
+        
+        # Статистика работы
+        total_cargo_accepted = db.operator_cargo.count_documents({"created_by": operator_id})
+        
+        # Статистика по периодам (последние 30 дней)
+        from datetime import datetime, timedelta
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        recent_cargo_count = db.operator_cargo.count_documents({
+            "created_by": operator_id,
+            "created_at": {"$gte": thirty_days_ago}
+        })
+        
+        # Статистика по статусам
+        status_stats = {}
+        for status in ["payment_pending", "paid", "ready_for_placement", "placed"]:
+            count = db.operator_cargo.count_documents({
+                "created_by": operator_id,
+                "processing_status": status
+            })
+            status_stats[status] = count
+        
+        work_statistics = {
+            "total_cargo_accepted": total_cargo_accepted,
+            "recent_cargo_count": recent_cargo_count,
+            "status_breakdown": status_stats,
+            "avg_cargo_per_day": round(recent_cargo_count / 30, 1) if recent_cargo_count > 0 else 0
+        }
+        
+        # История принятых грузов (последние 20)
+        cargo_history = list(db.operator_cargo.find(
+            {"created_by": operator_id},
+            {"_id": 0}
+        ).sort("created_at", -1).limit(20))
+        
+        # Связанные склады
+        warehouse_bindings = list(db.operator_warehouse_bindings.find(
+            {"operator_id": operator_id},
+            {"_id": 0}
+        ))
+        
+        associated_warehouses = []
+        for binding in warehouse_bindings:
+            warehouse = db.warehouses.find_one({"id": binding["warehouse_id"]})
+            if warehouse:
+                cargo_count = db.operator_cargo.count_documents({
+                    "created_by": operator_id,
+                    "target_warehouse_id": warehouse["id"]
+                })
+                associated_warehouses.append({
+                    "id": warehouse["id"],
+                    "name": warehouse["name"],
+                    "location": warehouse.get("location", "Не указано"),
+                    "cargo_count": cargo_count,
+                    "binding_date": binding.get("created_at")
+                })
+        
+        # Последняя активность (последние 10 действий)
+        recent_activity = list(db.operator_cargo.find(
+            {"created_by": operator_id},
+            {
+                "cargo_number": 1,
+                "cargo_name": 1,
+                "sender_full_name": 1,
+                "created_at": 1,
+                "processing_status": 1,
+                "_id": 0
+            }
+        ).sort("created_at", -1).limit(10))
+        
+        return OperatorProfile(
+            user_info=operator_user,
+            work_statistics=work_statistics,
+            cargo_history=cargo_history,
+            associated_warehouses=associated_warehouses,
+            recent_activity=recent_activity
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving operator profile: {str(e)}")
+
+@app.get("/api/admin/users/profile/{user_id}")
+async def get_user_profile(
+    user_id: str,
+    current_user: User = Depends(require_role(UserRole.ADMIN))
+):
+    """Получить детальный профиль пользователя"""
+    try:
+        # Получаем данные пользователя
+        user = db.users.find_one({"id": user_id})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Создаем объект User
+        user_obj = User(
+            id=user["id"],
+            user_number=user.get("user_number", "N/A"),
+            full_name=user["full_name"],
+            phone=user["phone"],
+            role=user["role"],
+            is_active=user["is_active"],
+            created_at=user["created_at"]
+        )
+        
+        # Статистика отправлений
+        total_cargo_requests = db.cargo_requests.count_documents({"created_by": user_id})
+        total_sent_cargo = (
+            db.cargo.count_documents({"sender_phone": user["phone"]}) +
+            db.operator_cargo.count_documents({"sender_phone": user["phone"]})
+        )
+        total_received_cargo = (
+            db.cargo.count_documents({"recipient_phone": user["phone"]}) +
+            db.operator_cargo.count_documents({"recipient_phone": user["phone"]})
+        )
+        
+        # Статистика по статусам
+        cargo_status_stats = {}
+        for collection_name in ["cargo", "operator_cargo"]:
+            collection = getattr(db, collection_name)
+            statuses = collection.aggregate([
+                {"$match": {"sender_phone": user["phone"]}},
+                {"$group": {"_id": "$status", "count": {"$sum": 1}}}
+            ])
+            for status_doc in statuses:
+                status = status_doc["_id"]
+                count = status_doc["count"]
+                cargo_status_stats[status] = cargo_status_stats.get(status, 0) + count
+        
+        shipping_statistics = {
+            "total_cargo_requests": total_cargo_requests,
+            "total_sent_cargo": total_sent_cargo,
+            "total_received_cargo": total_received_cargo,
+            "status_breakdown": cargo_status_stats,
+            "registration_days": (datetime.utcnow() - user["created_at"]).days
+        }
+        
+        # Последние отправления (из обеих коллекций)
+        recent_shipments = []
+        
+        # Из коллекции operator_cargo
+        operator_shipments = list(db.operator_cargo.find(
+            {"sender_phone": user["phone"]},
+            {"_id": 0}
+        ).sort("created_at", -1).limit(10))
+        
+        for shipment in operator_shipments:
+            shipment["collection_type"] = "operator_cargo"
+            recent_shipments.append(shipment)
+        
+        # Из коллекции cargo
+        user_shipments = list(db.cargo.find(
+            {"sender_phone": user["phone"]},
+            {"_id": 0}
+        ).sort("created_at", -1).limit(10))
+        
+        for shipment in user_shipments:
+            shipment["collection_type"] = "cargo"
+            recent_shipments.append(shipment)
+        
+        # Сортируем по дате
+        recent_shipments.sort(key=lambda x: x.get("created_at", datetime.min), reverse=True)
+        recent_shipments = recent_shipments[:15]  # Ограничиваем до 15
+        
+        # Часто используемые получатели
+        frequent_recipients = []
+        
+        # Собираем статистику по получателям из обеих коллекций
+        recipient_stats = {}
+        
+        for collection_name in ["cargo", "operator_cargo"]:
+            collection = getattr(db, collection_name)
+            recipients = collection.aggregate([
+                {"$match": {"sender_phone": user["phone"]}},
+                {"$group": {
+                    "_id": {
+                        "name": "$recipient_full_name",
+                        "phone": "$recipient_phone",
+                        "address": "$recipient_address"
+                    },
+                    "count": {"$sum": 1},
+                    "last_sent": {"$max": "$created_at"},
+                    "total_weight": {"$sum": "$weight"},
+                    "total_value": {"$sum": "$declared_value"}
+                }}
+            ])
+            
+            for recipient in recipients:
+                key = f"{recipient['_id']['name']}_{recipient['_id']['phone']}"
+                if key not in recipient_stats:
+                    recipient_stats[key] = {
+                        "recipient_full_name": recipient["_id"]["name"],
+                        "recipient_phone": recipient["_id"]["phone"],
+                        "recipient_address": recipient["_id"]["address"],
+                        "shipment_count": 0,
+                        "last_sent": None,
+                        "total_weight": 0,
+                        "total_value": 0
+                    }
+                
+                recipient_stats[key]["shipment_count"] += recipient["count"]
+                recipient_stats[key]["total_weight"] += recipient.get("total_weight", 0)
+                recipient_stats[key]["total_value"] += recipient.get("total_value", 0)
+                
+                if not recipient_stats[key]["last_sent"] or recipient["last_sent"] > recipient_stats[key]["last_sent"]:
+                    recipient_stats[key]["last_sent"] = recipient["last_sent"]
+        
+        # Сортируем по количеству отправлений
+        frequent_recipients = sorted(
+            recipient_stats.values(),
+            key=lambda x: x["shipment_count"],
+            reverse=True
+        )[:10]
+        
+        # История заявок
+        cargo_requests_history = list(db.cargo_requests.find(
+            {"created_by": user_id},
+            {"_id": 0}
+        ).sort("created_at", -1).limit(15))
+        
+        return UserProfile(
+            user_info=user_obj,
+            shipping_statistics=shipping_statistics,
+            recent_shipments=recent_shipments,
+            frequent_recipients=frequent_recipients,
+            cargo_requests_history=cargo_requests_history
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving user profile: {str(e)}")
+
+@app.post("/api/admin/users/{user_id}/quick-cargo")
+async def create_quick_cargo_for_user(
+    user_id: str,
+    cargo_request: QuickCargoRequest,
+    current_user: User = Depends(require_role(UserRole.WAREHOUSE_OPERATOR))
+):
+    """Быстрое создание груза для пользователя с автозаполнением"""
+    try:
+        # Получаем данные отправителя
+        sender = db.users.find_one({"id": user_id})
+        if not sender:
+            raise HTTPException(status_code=404, detail="Sender not found")
+        
+        # Проверяем роль текущего пользователя
+        if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+            raise HTTPException(status_code=403, detail="Only operators can create cargo")
+        
+        # Находим целевой склад для оператора
+        warehouse_binding = db.operator_warehouse_bindings.find_one({"operator_id": current_user.id})
+        if not warehouse_binding:
+            raise HTTPException(status_code=400, detail="Operator not assigned to any warehouse")
+        
+        target_warehouse_id = warehouse_binding["warehouse_id"]
+        warehouse = db.warehouses.find_one({"id": target_warehouse_id})
+        
+        # Вычисляем общий вес и стоимость
+        total_weight = sum(item.weight for item in cargo_request.cargo_items)
+        total_cost = sum(item.total_cost for item in cargo_request.cargo_items)
+        
+        # Создаем объединенное название груза
+        cargo_names = [item.cargo_name for item in cargo_request.cargo_items]
+        combined_cargo_name = ", ".join(cargo_names)
+        
+        # Детальная информация о грузах
+        cargo_details = []
+        for i, item in enumerate(cargo_request.cargo_items, 1):
+            item_cost = item.weight * item.price_per_kg
+            cargo_details.append(f"{i}. {item.cargo_name} - {item.weight} кг × {item.price_per_kg} руб/кг = {item_cost} руб")
+        
+        detailed_description = f"{cargo_request.description}\n\nДетальный расчет по грузам:\n" + "\n".join(cargo_details)
+        detailed_description += f"\n\nИТОГО:"
+        detailed_description += f"\nОбщий вес: {total_weight} кг"
+        detailed_description += f"\nОбщая стоимость: {total_cost} руб"
+        detailed_description += f"\n\nСоздано через быстрое оформление из профиля пользователя"
+        
+        # Создаем груз
+        cargo_id = str(uuid.uuid4())
+        cargo_number = generate_cargo_number()
+        
+        cargo = {
+            "id": cargo_id,
+            "cargo_number": cargo_number,
+            "sender_full_name": sender["full_name"],
+            "sender_phone": sender["phone"],
+            "recipient_full_name": cargo_request.recipient_data.get("recipient_full_name"),
+            "recipient_phone": cargo_request.recipient_data.get("recipient_phone"),
+            "recipient_address": cargo_request.recipient_data.get("recipient_address"),
+            "weight": total_weight,
+            "cargo_name": combined_cargo_name,
+            "declared_value": total_cost,
+            "description": detailed_description,
+            "route": cargo_request.route,
+            "status": CargoStatus.ACCEPTED,
+            "payment_status": "pending",
+            "processing_status": "payment_pending",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "created_by": current_user.id,
+            "created_by_operator": current_user.full_name,
+            "target_warehouse_id": target_warehouse_id,
+            "target_warehouse_name": warehouse.get("name") if warehouse else None,
+            "warehouse_location": None,
+            "warehouse_id": None,
+            "block_number": None,
+            "shelf_number": None,
+            "cell_number": None,
+            "placed_by_operator": None,
+            "placed_by_operator_id": None,
+            "cargo_items": [item.dict() for item in cargo_request.cargo_items],
+            "quick_created": True,  # Маркер быстрого создания
+            "sender_id": user_id  # ID отправителя для связи
+        }
+        
+        # Сохраняем груз
+        db.operator_cargo.insert_one(cargo)
+        
+        return {
+            "success": True,
+            "message": "Груз успешно создан из профиля пользователя",
+            "cargo": {
+                "id": cargo_id,
+                "cargo_number": cargo_number,
+                "sender_name": sender["full_name"],
+                "recipient_name": cargo_request.recipient_data.get("recipient_full_name"),
+                "total_weight": total_weight,
+                "total_cost": total_cost,
+                "items_count": len(cargo_request.cargo_items)
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating quick cargo: {str(e)}")
+
 # Уведомления
 @app.get("/api/notifications")
 async def get_notifications(current_user: User = Depends(get_current_user)):
