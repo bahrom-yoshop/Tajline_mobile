@@ -6597,6 +6597,12 @@ async def get_warehouse_detailed_structure(
         warehouse_structure = {
             "warehouse_id": warehouse_id,
             "warehouse_name": warehouse.get("name", "Неизвестный склад"),
+            "warehouse_info": {
+                "name": warehouse.get("name", "Неизвестный склад"),
+                "address": warehouse.get("address", "Адрес не указан"),
+                "description": warehouse.get("description", ""),
+                "is_active": warehouse.get("is_active", True)
+            },
             "dimensions": {
                 "blocks_count": blocks_count,
                 "shelves_per_block": shelves_per_block,
