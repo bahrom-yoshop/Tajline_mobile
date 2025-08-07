@@ -3412,6 +3412,67 @@ function App() {
     }
   };
 
+  // Функция для открытия формы приема груза из профиля пользователя
+  const openQuickCargoFromProfile = async (userInfo) => {
+    try {
+      // Закрываем модальное окно профиля
+      setShowUserProfile(false);
+      
+      // Получаем историю отправлений пользователя для автозаполнения
+      const historyData = selectedUserProfile?.sent_cargo || [];
+      let senderData = {
+        full_name: userInfo.full_name || '',
+        phone: userInfo.phone || '',
+        address: userInfo.address || ''
+      };
+      
+      let recipientData = {
+        full_name: '',
+        phone: '',
+        address: ''
+      };
+      
+      // Если есть история отправлений, берем данные последнего отправления
+      if (historyData.length > 0) {
+        const lastCargo = historyData[0]; // Первый элемент - самый последний
+        recipientData = {
+          full_name: lastCargo.recipient_full_name || '',
+          phone: lastCargo.recipient_phone || '',
+          address: lastCargo.recipient_address || ''
+        };
+      }
+      
+      // Заполняем форму оператора с автозаполненными данными
+      setOperatorCargoForm({
+        sender_full_name: senderData.full_name,
+        sender_phone: senderData.phone,
+        sender_address: senderData.address,
+        recipient_full_name: recipientData.full_name,
+        recipient_phone: recipientData.phone,
+        recipient_address: recipientData.address,
+        cargo_items: [{ cargo_name: '', weight: '', price_per_kg: '50' }],
+        route: historyData.length > 0 ? historyData[0].route || 'moscow_dushanbe' : 'moscow_dushanbe',
+        delivery_type: 'standard',
+        insurance_requested: false,
+        special_instructions: '',
+        use_multi_cargo: true
+      });
+      
+      // Рассчитываем калькулятор
+      calculateCargoTotals([{ cargo_name: '', weight: '', price_per_kg: '50' }]);
+      
+      // Переходим на страницу приема груза
+      setActiveSection('cargo-management');
+      setActiveTab('cargo-accept');
+      
+      showAlert(`Форма заполнена данными пользователя: ${userInfo.full_name}`, 'info');
+      
+    } catch (error) {
+      console.error('Error opening cargo form from profile:', error);
+      showAlert('Ошибка открытия формы: ' + error.message, 'error');
+    }
+  };
+
   // Боковое меню для админа и оператора склада
   const SidebarMenu = () => {
     if (user?.role === 'user') return null;
