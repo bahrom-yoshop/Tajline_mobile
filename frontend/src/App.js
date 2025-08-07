@@ -773,13 +773,8 @@ function App() {
       setUser(userData);
     } catch (error) {
       console.error('Failed to fetch user data:', error);
-      // Token is invalid, clear it - this is now handled in apiCall function
-      // but we double-check here to ensure cleanup
-      if (error.message === 'Session expired' || error.message.includes('401')) {
-        localStorage.removeItem('token');
-        setToken(null);
-        setUser(null);
-      }
+      // Session clearing is now handled in apiCall function
+      // No duplicate clearing logic needed here
     }
   };
 
