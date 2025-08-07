@@ -6572,6 +6572,136 @@ async def get_available_cells_for_block_shelf(
             detail=f"Ошибка получения свободных ячеек: {str(e)}"
         )
 
+@app.get("/api/warehouses/{warehouse_id}/detailed-structure")
+async def get_warehouse_detailed_structure(
+    warehouse_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получение детальной структуры склада с информацией о занятости каждой ячейки"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для просмотра структуры склада"
+        )
+    
+    try:
+        # Проверяем существование склада
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Склад не найден"
+            )
+        
+        # Для оператора проверяем доступ к складу
+        if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+            operator_binding = db.operator_warehouse_bindings.find_one({
+                "operator_id": current_user.id,
+                "warehouse_id": warehouse_id
+            })
+            if not operator_binding:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Нет доступа к данному складу"
+                )
+        
+        # Получаем размеры склада
+        blocks_count = warehouse.get("blocks_count", 10)
+        shelves_per_block = warehouse.get("shelves_per_block", 10)
+        cells_per_shelf = warehouse.get("cells_per_shelf", 10)
+        
+        # Получаем все занятые ячейки на складе
+        occupied_cargo = list(db.cargo.find({
+            "warehouse_id": warehouse_id,
+            "status": "placed_in_warehouse",
+            "block_number": {"$exists": True, "$ne": None},
+            "shelf_number": {"$exists": True, "$ne": None},
+            "cell_number": {"$exists": True, "$ne": None}
+        }, {
+            "block_number": 1,
+            "shelf_number": 1,
+            "cell_number": 1,
+            "cargo_number": 1,
+            "cargo_name": 1,
+            "total_weight": 1,
+            "placed_at": 1
+        }))
+        
+        # Создаем структуру склада
+        warehouse_structure = {
+            "warehouse_id": warehouse_id,
+            "warehouse_name": warehouse.get("name", "Неизвестный склад"),
+            "dimensions": {
+                "blocks_count": blocks_count,
+                "shelves_per_block": shelves_per_block,
+                "cells_per_shelf": cells_per_shelf
+            },
+            "blocks": []
+        }
+        
+        # Создаем карту занятых ячеек для быстрого поиска
+        occupied_cells = {}
+        for cargo in occupied_cargo:
+            key = f"{cargo['block_number']}-{cargo['shelf_number']}-{cargo['cell_number']}"
+            occupied_cells[key] = {
+                "cargo_number": cargo.get("cargo_number"),
+                "cargo_name": cargo.get("cargo_name", "Груз"),
+                "weight": cargo.get("total_weight", 0),
+                "placed_at": cargo.get("placed_at")
+            }
+        
+        # Генерируем структуру блоков
+        for block_num in range(1, blocks_count + 1):
+            block = {
+                "block_number": block_num,
+                "shelves": []
+            }
+            
+            # Генерируем полки для каждого блока
+            for shelf_num in range(1, shelves_per_block + 1):
+                shelf = {
+                    "shelf_number": shelf_num,
+                    "cells": []
+                }
+                
+                # Генерируем ячейки для каждой полки
+                for cell_num in range(1, cells_per_shelf + 1):
+                    cell_key = f"{block_num}-{shelf_num}-{cell_num}"
+                    is_occupied = cell_key in occupied_cells
+                    
+                    cell = {
+                        "cell_number": cell_num,
+                        "status": "occupied" if is_occupied else "available",
+                        "cargo_info": occupied_cells.get(cell_key) if is_occupied else None
+                    }
+                    shelf["cells"].append(cell)
+                
+                block["shelves"].append(shelf)
+            
+            warehouse_structure["blocks"].append(block)
+        
+        # Добавляем статистику
+        total_cells = blocks_count * shelves_per_block * cells_per_shelf
+        occupied_count = len(occupied_cargo)
+        available_count = total_cells - occupied_count
+        
+        warehouse_structure["statistics"] = {
+            "total_cells": total_cells,
+            "occupied_cells": occupied_count,
+            "available_cells": available_count,
+            "occupancy_rate": round((occupied_count / total_cells) * 100, 2) if total_cells > 0 else 0
+        }
+        
+        return warehouse_structure
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка получения структуры склада: {str(e)}"
+        )
+
 @app.post("/api/transport/create-interwarehouse")
 async def create_interwarehouse_transport(
     transport_data: dict,
