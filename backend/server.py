@@ -1247,6 +1247,69 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information"""
     return current_user
 
+# Модель для обновления профиля пользователя
+class UserProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+
+@app.put("/api/user/profile")
+async def update_user_profile(
+    profile_update: UserProfileUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update user profile information"""
+    update_data = {}
+    
+    # Собираем только заполненные поля
+    if profile_update.full_name:
+        update_data["full_name"] = profile_update.full_name
+    if profile_update.phone:
+        # Проверяем, не занят ли номер телефона другим пользователем
+        existing_user = db.users.find_one({"phone": profile_update.phone, "id": {"$ne": current_user.id}})
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Этот номер телефона уже используется")
+        update_data["phone"] = profile_update.phone
+    if profile_update.email:
+        # Проверяем, не занят ли email другим пользователем
+        existing_user = db.users.find_one({"email": profile_update.email, "id": {"$ne": current_user.id}})
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Этот email уже используется")
+        update_data["email"] = profile_update.email
+    if profile_update.address:
+        update_data["address"] = profile_update.address
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="Нет данных для обновления")
+    
+    # Обновляем пользователя в базе данных
+    update_data["updated_at"] = datetime.utcnow()
+    result = db.users.update_one(
+        {"id": current_user.id},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    # Получаем обновленные данные пользователя
+    updated_user = db.users.find_one({"id": current_user.id})
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    return User(
+        id=updated_user["id"],
+        user_number=updated_user.get("user_number"),
+        full_name=updated_user["full_name"],
+        phone=updated_user["phone"],
+        role=updated_user["role"],
+        email=updated_user.get("email"),
+        address=updated_user.get("address"),
+        is_active=updated_user["is_active"],
+        created_at=updated_user["created_at"]
+    )
+
 # QR Code APIs
 @app.get("/api/cargo/{cargo_id}/qr-code")
 async def get_cargo_qr_code(
