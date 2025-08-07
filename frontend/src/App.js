@@ -723,11 +723,16 @@ function App() {
   };
 
   useEffect(() => {
-    if (token && !isLoggingOut) {
+    if (token && !isLoggingOut && !isLoggingIn) {
       // Проверяем валидность токена перед использованием
       if (isTokenValid(token)) {
         // Попытка получить информацию о пользователе при загрузке
-        fetchUserData();
+        // Добавляем небольшую задержку, чтобы избежать race condition
+        setTimeout(() => {
+          if (token && !isLoggingIn) {
+            fetchUserData();
+          }
+        }, 500);
       } else {
         // Токен истек, очищаем его
         console.log('Token expired on startup, clearing session');
