@@ -3127,7 +3127,12 @@ function App() {
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                   {getRoleIcon(user.role)}
-                  <span className="text-sm font-medium">{user.full_name}</span>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{user.full_name}</span>
+                    {user.user_number && (
+                      <span className="text-xs text-gray-500">№ {user.user_number}</span>
+                    )}
+                  </div>
                   <Badge variant="outline">{getRoleLabel(user.role)}</Badge>
                 </div>
                 
