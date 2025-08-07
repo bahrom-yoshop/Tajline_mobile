@@ -3589,6 +3589,262 @@ function App() {
     }
   };
 
+  // Функции для печати накладной и штрих-кода текущей заявки
+  const canPrintInvoice = () => {
+    // Проверяем, что основные поля заполнены
+    return (
+      operatorCargoForm.sender_full_name && 
+      operatorCargoForm.sender_phone && 
+      operatorCargoForm.recipient_full_name && 
+      operatorCargoForm.recipient_phone &&
+      totalWeight > 0 &&
+      totalCost > 0
+    );
+  };
+
+  const handlePrintCurrentInvoice = () => {
+    if (!canPrintInvoice()) {
+      showAlert('Заполните все обязательные поля для печати накладной', 'warning');
+      return;
+    }
+
+    // Создаем временный объект груза из текущей формы
+    const tempCargo = {
+      cargo_number: `TEMP-${Date.now()}`, // Временный номер
+      route: operatorCargoForm.route,
+      sender_full_name: operatorCargoForm.sender_full_name,
+      sender_phone: operatorCargoForm.sender_phone,
+      sender_address: operatorCargoForm.sender_address,
+      recipient_full_name: operatorCargoForm.recipient_full_name,
+      recipient_phone: operatorCargoForm.recipient_phone,
+      recipient_address: operatorCargoForm.recipient_address,
+      weight: totalWeight,
+      total_cost: totalCost,
+      declared_value: totalCost,
+      cargo_items: operatorCargoForm.use_multi_cargo ? operatorCargoForm.cargo_items : [{
+        cargo_name: operatorCargoForm.description || 'Груз',
+        weight: operatorCargoForm.weight,
+        price_per_kg: operatorCargoForm.declared_value / operatorCargoForm.weight
+      }],
+      created_at: new Date().toISOString()
+    };
+
+    // Печатаем накладную
+    printInvoice(tempCargo);
+  };
+
+  const generateBarcodeData = (cargoData) => {
+    // Генерируем данные для штрих-кода
+    return {
+      cargo_number: cargoData.cargo_number,
+      sender: cargoData.sender_full_name,
+      recipient: cargoData.recipient_full_name,
+      weight: cargoData.weight,
+      route: cargoData.route,
+      date: new Date().toLocaleDateString('ru-RU')
+    };
+  };
+
+  const handlePrintCurrentBarcode = () => {
+    if (!canPrintInvoice()) {
+      showAlert('Заполните все обязательные поля для печати штрих-кода', 'warning');
+      return;
+    }
+
+    // Создаем временный объект груза
+    const tempCargo = {
+      cargo_number: `TEMP-${Date.now()}`,
+      sender_full_name: operatorCargoForm.sender_full_name,
+      recipient_full_name: operatorCargoForm.recipient_full_name,
+      weight: totalWeight,
+      route: operatorCargoForm.route
+    };
+
+    // Генерируем и печатаем штрих-код
+    printBarcode(tempCargo);
+  };
+
+  const printBarcode = (cargo) => {
+    const printWindow = window.open('', '_blank');
+    
+    if (!printWindow) {
+      showAlert('Всплывающие окна заблокированы. Штрих-код будет открыт в новой вкладке.', 'warning');
+      const barcodeContent = createBarcodeHTML(cargo);
+      const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(barcodeContent)}`;
+      window.open(dataUrl, '_blank');
+      return;
+    }
+
+    try {
+      const barcodeHTML = createBarcodeHTML(cargo);
+      printWindow.document.write(barcodeHTML);
+      printWindow.document.close();
+    } catch (error) {
+      console.error('Error creating barcode print:', error);
+      showAlert('Ошибка создания штрих-кода. Попробуйте снова.', 'error');
+      if (printWindow) {
+        printWindow.close();
+      }
+    }
+  };
+
+  const createBarcodeHTML = (cargo) => {
+    return `
+      <html>
+        <head>
+          <title>Штрих-код TAJLINE № ${cargo.cargo_number}</title>
+          <meta charset="utf-8">
+          <style>
+            @page {
+              size: A5 landscape;
+              margin: 10mm;
+            }
+            
+            body {
+              font-family: Arial, sans-serif;
+              margin: 0;
+              padding: 20px;
+              text-align: center;
+            }
+            
+            .barcode-container {
+              border: 3px solid #000;
+              padding: 30px;
+              margin: 20px auto;
+              max-width: 500px;
+              background: white;
+            }
+            
+            .logo {
+              font-size: 32px;
+              font-weight: bold;
+              letter-spacing: 3px;
+              margin-bottom: 20px;
+              color: #000;
+            }
+            
+            .cargo-number {
+              font-size: 24px;
+              font-weight: bold;
+              margin: 20px 0;
+              padding: 15px;
+              border: 2px solid #000;
+              background: #f0f0f0;
+            }
+            
+            .barcode-visual {
+              margin: 30px 0;
+              padding: 20px;
+              border: 1px solid #ccc;
+              background: white;
+              font-family: 'Courier New', monospace;
+              letter-spacing: 2px;
+            }
+            
+            .barcode-lines {
+              height: 60px;
+              background: repeating-linear-gradient(
+                90deg,
+                #000 0px,
+                #000 2px,
+                #fff 2px,
+                #fff 4px
+              );
+              margin: 10px 0;
+            }
+            
+            .cargo-info {
+              margin: 20px 0;
+              text-align: left;
+              font-size: 14px;
+            }
+            
+            .cargo-info div {
+              margin: 8px 0;
+              display: flex;
+              justify-content: space-between;
+              border-bottom: 1px dotted #ccc;
+              padding-bottom: 5px;
+            }
+            
+            .cargo-info .label {
+              font-weight: bold;
+              width: 40%;
+            }
+            
+            .cargo-info .value {
+              width: 60%;
+              text-align: right;
+            }
+            
+            .print-date {
+              font-size: 10px;
+              color: #666;
+              margin-top: 20px;
+              border-top: 1px solid #ccc;
+              padding-top: 10px;
+            }
+
+            @media print {
+              body { -webkit-print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="barcode-container">
+            <div class="logo">TAJLINE</div>
+            
+            <div class="cargo-number">
+              ${cargo.cargo_number}
+            </div>
+            
+            <div class="barcode-visual">
+              <div class="barcode-lines"></div>
+              <div style="font-size: 16px; font-weight: bold;">${cargo.cargo_number}</div>
+            </div>
+            
+            <div class="cargo-info">
+              <div>
+                <span class="label">Отправитель:</span>
+                <span class="value">${cargo.sender_full_name}</span>
+              </div>
+              <div>
+                <span class="label">Получатель:</span>
+                <span class="value">${cargo.recipient_full_name}</span>
+              </div>
+              <div>
+                <span class="label">Вес:</span>
+                <span class="value">${cargo.weight} кг</span>
+              </div>
+              <div>
+                <span class="label">Маршрут:</span>
+                <span class="value">${cargo.route === 'moscow_dushanbe' ? 'Москва → Душанбе' : 
+                                     cargo.route === 'moscow_khujand' ? 'Москва → Худжанд' : 
+                                     cargo.route === 'moscow_kulob' ? 'Москва → Кулоб' : 
+                                     cargo.route === 'moscow_kurgantyube' ? 'Москва → Курган-Тюбе' : 'Таджикистан'}</span>
+              </div>
+            </div>
+            
+            <div class="print-date">
+              Дата печати: ${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU')}
+            </div>
+          </div>
+          
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+                window.onafterprint = function() {
+                  window.close();
+                };
+              }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `;
+  };
+
   // Боковое меню для админа и оператора склада
   const SidebarMenu = () => {
     if (user?.role === 'user') return null;
