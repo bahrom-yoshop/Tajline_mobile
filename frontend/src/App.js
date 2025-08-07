@@ -10834,6 +10834,346 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Модальное окно редактирования пользователя админом */}
+      <Dialog open={showAdminEditUser} onOpenChange={setShowAdminEditUser}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Редактирование пользователя</DialogTitle>
+            <DialogDescription>
+              Редактирование профиля пользователя: {selectedUserForEdit?.full_name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="admin_edit_full_name">Полное имя</Label>
+              <Input
+                id="admin_edit_full_name"
+                value={adminEditUserForm.full_name}
+                onChange={(e) => setAdminEditUserForm({...adminEditUserForm, full_name: e.target.value})}
+                placeholder="Введите полное имя"
+              />
+            </div>
+            <div>
+              <Label htmlFor="admin_edit_phone">Телефон</Label>
+              <Input
+                id="admin_edit_phone"
+                value={adminEditUserForm.phone}
+                onChange={(e) => setAdminEditUserForm({...adminEditUserForm, phone: e.target.value})}
+                placeholder="+7XXXXXXXXXX"
+              />
+            </div>
+            <div>
+              <Label htmlFor="admin_edit_email">Email</Label>
+              <Input
+                id="admin_edit_email"
+                type="email"
+                value={adminEditUserForm.email}
+                onChange={(e) => setAdminEditUserForm({...adminEditUserForm, email: e.target.value})}
+                placeholder="example@email.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="admin_edit_address">Адрес</Label>
+              <Textarea
+                id="admin_edit_address"
+                value={adminEditUserForm.address}
+                onChange={(e) => setAdminEditUserForm({...adminEditUserForm, address: e.target.value})}
+                placeholder="Введите адрес пользователя"
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="admin_edit_role">Роль</Label>
+              <Select value={adminEditUserForm.role} onValueChange={(value) => setAdminEditUserForm({...adminEditUserForm, role: value})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Пользователь</SelectItem>
+                  <SelectItem value="warehouse_operator">Оператор склада</SelectItem>
+                  <SelectItem value="admin">Администратор</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="admin_edit_active"
+                checked={adminEditUserForm.is_active}
+                onChange={(e) => setAdminEditUserForm({...adminEditUserForm, is_active: e.target.checked})}
+              />
+              <Label htmlFor="admin_edit_active">Активный пользователь</Label>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowAdminEditUser(false)}>
+                Отмена
+              </Button>
+              <Button onClick={saveAdminUserEdit}>
+                <Save className="mr-2 h-4 w-4" />
+                Сохранить изменения
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Модальное окно повторного заказа админа/оператора */}
+      <Dialog open={showAdminRepeatOrderModal} onOpenChange={setShowAdminRepeatOrderModal}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Повторить заказ (Admin/Operator)</DialogTitle>
+            <DialogDescription>
+              Создание нового заказа на основе груза #{adminRepeatOrderData?.cargo_number}
+              <br />
+              <span className="text-xs text-gray-500">
+                Данные отправителя и получателя автозаполнены. Заполните данные грузов.
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Информация об отправителе (заблокированная) */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-lg font-medium mb-3 flex items-center">
+                <User className="mr-2 h-5 w-5" />
+                Отправитель (автозаполнено)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>ФИО отправителя</Label>
+                  <Input
+                    value={adminRepeatOrderForm.sender_full_name}
+                    onChange={(e) => setAdminRepeatOrderForm({...adminRepeatOrderForm, sender_full_name: e.target.value})}
+                    placeholder="ФИО отправителя"
+                  />
+                </div>
+                <div>
+                  <Label>Телефон отправителя</Label>
+                  <Input
+                    value={adminRepeatOrderForm.sender_phone}
+                    onChange={(e) => setAdminRepeatOrderForm({...adminRepeatOrderForm, sender_phone: e.target.value})}
+                    placeholder="+7XXXXXXXXXX"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Информация о получателе (автозаполненная) */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="text-lg font-medium mb-3 flex items-center">
+                <MapPin className="mr-2 h-5 w-5" />
+                Получатель (автозаполнено)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>ФИО получателя</Label>
+                  <Input
+                    value={adminRepeatOrderForm.recipient_full_name}
+                    onChange={(e) => setAdminRepeatOrderForm({...adminRepeatOrderForm, recipient_full_name: e.target.value})}
+                    placeholder="ФИО получателя"
+                  />
+                </div>
+                <div>
+                  <Label>Телефон получателя</Label>
+                  <Input
+                    value={adminRepeatOrderForm.recipient_phone}
+                    onChange={(e) => setAdminRepeatOrderForm({...adminRepeatOrderForm, recipient_phone: e.target.value})}
+                    placeholder="+992XXXXXXXXX"
+                  />
+                </div>
+              </div>
+              <div className="mt-4">
+                <Label>Адрес получателя</Label>
+                <Textarea
+                  value={adminRepeatOrderForm.recipient_address}
+                  onChange={(e) => setAdminRepeatOrderForm({...adminRepeatOrderForm, recipient_address: e.target.value})}
+                  placeholder="Полный адрес доставки"
+                  rows={2}
+                />
+              </div>
+            </div>
+
+            {/* Маршрут и тип доставки */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Маршрут</Label>
+                <Select value={adminRepeatOrderForm.route} onValueChange={(value) => setAdminRepeatOrderForm({...adminRepeatOrderForm, route: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="moscow_dushanbe">Москва → Душанбе</SelectItem>
+                    <SelectItem value="moscow_khujand">Москва → Худжанд</SelectItem>
+                    <SelectItem value="moscow_kulob">Москва → Кулоб</SelectItem>
+                    <SelectItem value="moscow_kurgantyube">Москва → Курган-Тюбе</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Тип доставки</Label>
+                <Select value={adminRepeatOrderForm.delivery_type} onValueChange={(value) => setAdminRepeatOrderForm({...adminRepeatOrderForm, delivery_type: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">Стандартная</SelectItem>
+                    <SelectItem value="express">Экспресс</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Мульти-груз форма с калькулятором для админа */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium flex items-center">
+                  <Package className="mr-2 h-5 w-5" />
+                  Грузы для отправки (заполните заново)
+                </h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addAdminRepeatOrderItem}
+                >
+                  <Plus className="mr-1 h-4 w-4" />
+                  Добавить груз
+                </Button>
+              </div>
+
+              {/* Список грузов */}
+              <div className="space-y-4">
+                {adminRepeatOrderForm.cargo_items.map((item, index) => (
+                  <div key={index} className="grid grid-cols-12 gap-4 items-end border rounded p-3 bg-gray-50">
+                    <div className="col-span-4">
+                      <Label>Название груза *</Label>
+                      <Input
+                        value={item.cargo_name}
+                        onChange={(e) => handleAdminRepeatOrderItemChange(index, 'cargo_name', e.target.value)}
+                        placeholder="Название груза"
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <Label>Вес (кг) *</Label>
+                      <Input
+                        type="number"
+                        value={item.weight}
+                        onChange={(e) => handleAdminRepeatOrderItemChange(index, 'weight', e.target.value)}
+                        placeholder="0.0"
+                        step="0.1"
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <Label>Цена за кг (₽) *</Label>
+                      <Input
+                        type="number"
+                        value={item.price_per_kg}
+                        onChange={(e) => handleAdminRepeatOrderItemChange(index, 'price_per_kg', e.target.value)}
+                        placeholder="50"
+                        step="0.01"
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <Label className="text-xs text-gray-600">Стоимость</Label>
+                      <div className="text-sm font-medium">
+                        {((parseFloat(item.weight) || 0) * (parseFloat(item.price_per_kg) || 0)).toFixed(2)} ₽
+                      </div>
+                    </div>
+                    <div className="col-span-1">
+                      {adminRepeatOrderForm.cargo_items.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeAdminRepeatOrderItem(index)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Калькулятор итогов для админа */}
+              <div className="mt-4 p-4 bg-green-50 rounded-lg">
+                <h4 className="font-medium mb-3 flex items-center">
+                  <Calculator className="mr-2 h-4 w-4" />
+                  Расчет стоимости
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {adminRepeatOrderTotalWeight.toFixed(2)} кг
+                    </div>
+                    <div className="text-sm text-gray-600">Общий вес</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {adminRepeatOrderTotalCost.toFixed(2)} ₽
+                    </div>
+                    <div className="text-sm text-gray-600">Общая стоимость</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {adminRepeatOrderForm.cargo_items.length}
+                    </div>
+                    <div className="text-sm text-gray-600">Количество грузов</div>
+                  </div>
+                </div>
+
+                {/* Детальная разбивка */}
+                {adminRepeatOrderBreakdown.length > 0 && (
+                  <div className="mt-4">
+                    <h5 className="text-sm font-medium mb-2">Детализация по грузам:</h5>
+                    <div className="space-y-1">
+                      {adminRepeatOrderBreakdown.map((item, index) => (
+                        <div key={index} className="flex justify-between text-sm">
+                          <span>{item.cargo_name || `Груз ${index + 1}`}: {item.weight}кг × {item.price_per_kg}₽</span>
+                          <span className="font-medium">{item.cost.toFixed(2)} ₽</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Дополнительные опции */}
+            <div>
+              <Label>Особые указания</Label>
+              <Textarea
+                value={adminRepeatOrderForm.special_instructions}
+                onChange={(e) => setAdminRepeatOrderForm({...adminRepeatOrderForm, special_instructions: e.target.value})}
+                placeholder="Дополнительная информация для доставки"
+                rows={2}
+              />
+            </div>
+
+            {/* Кнопки действий */}
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowAdminRepeatOrderModal(false)}>
+                Отмена
+              </Button>
+              <Button 
+                onClick={submitAdminRepeatOrder}
+                disabled={
+                  !adminRepeatOrderForm.recipient_full_name ||
+                  !adminRepeatOrderForm.recipient_phone ||
+                  !adminRepeatOrderForm.sender_full_name ||
+                  !adminRepeatOrderForm.sender_phone ||
+                  adminRepeatOrderForm.cargo_items.some(item => !item.cargo_name || !item.weight || !item.price_per_kg)
+                }
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Создать заказ ({adminRepeatOrderTotalCost.toFixed(2)} ₽)
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
