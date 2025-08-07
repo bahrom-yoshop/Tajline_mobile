@@ -736,6 +736,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         
         return User(
             id=user["id"],
+            user_number=user.get("user_number", "N/A"),  # Обратная совместимость
             full_name=user["full_name"],
             phone=user["phone"],
             role=user["role"],
