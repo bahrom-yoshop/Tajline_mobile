@@ -1520,6 +1520,119 @@ function App() {
     handleAdvancedSearch(suggestion);
   };
 
+  // Profile management functions
+  const fetchOperatorProfile = async (operatorId) => {
+    setProfileLoading(true);
+    try {
+      const profile = await apiCall(`/api/admin/operators/profile/${operatorId}`, 'GET');
+      setSelectedOperatorProfile(profile);
+      setShowOperatorProfile(true);
+    } catch (error) {
+      console.error('Error fetching operator profile:', error);
+      showAlert('Ошибка загрузки профиля оператора', 'error');
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const fetchUserProfile = async (userId) => {
+    setProfileLoading(true);
+    try {
+      const profile = await apiCall(`/api/admin/users/profile/${userId}`, 'GET');
+      setSelectedUserProfile(profile);
+      setFrequentRecipients(profile.frequent_recipients || []);
+      setShowUserProfile(true);
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      showAlert('Ошибка загрузки профиля пользователя', 'error');
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  // Quick cargo creation functions
+  const openQuickCargoModal = (user) => {
+    setQuickCargoForm({
+      sender_id: user.id,
+      recipient_data: {},
+      cargo_items: [{ cargo_name: '', weight: '', price_per_kg: '' }],
+      route: 'moscow_to_tajikistan',
+      description: ''
+    });
+    
+    // Загружаем профиль пользователя для получения частых получателей
+    fetchUserProfile(user.id);
+    setShowQuickCargoModal(true);
+  };
+
+  const selectRecipientFromHistory = (recipient) => {
+    setSelectedRecipient(recipient);
+    setQuickCargoForm({
+      ...quickCargoForm,
+      recipient_data: {
+        recipient_full_name: recipient.recipient_full_name,
+        recipient_phone: recipient.recipient_phone,
+        recipient_address: recipient.recipient_address
+      }
+    });
+  };
+
+  const addQuickCargoItem = () => {
+    setQuickCargoForm({
+      ...quickCargoForm,
+      cargo_items: [...quickCargoForm.cargo_items, { cargo_name: '', weight: '', price_per_kg: '' }]
+    });
+  };
+
+  const removeQuickCargoItem = (index) => {
+    if (quickCargoForm.cargo_items.length > 1) {
+      const newItems = quickCargoForm.cargo_items.filter((_, i) => i !== index);
+      setQuickCargoForm({
+        ...quickCargoForm,
+        cargo_items: newItems
+      });
+    }
+  };
+
+  const updateQuickCargoItem = (index, field, value) => {
+    const newItems = [...quickCargoForm.cargo_items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setQuickCargoForm({
+      ...quickCargoForm,
+      cargo_items: newItems
+    });
+  };
+
+  const calculateQuickCargoTotals = () => {
+    const totalWeight = quickCargoForm.cargo_items.reduce((sum, item) => {
+      return sum + (parseFloat(item.weight) || 0);
+    }, 0);
+
+    const totalCost = quickCargoForm.cargo_items.reduce((sum, item) => {
+      const weight = parseFloat(item.weight) || 0;
+      const price = parseFloat(item.price_per_kg) || 0;
+      return sum + (weight * price);
+    }, 0);
+
+    return { totalWeight, totalCost };
+  };
+
+  const submitQuickCargo = async () => {
+    try {
+      const response = await apiCall(`/api/admin/users/${quickCargoForm.sender_id}/quick-cargo`, 'POST', quickCargoForm);
+      showAlert('Груз успешно создан из профиля пользователя!', 'success');
+      setShowQuickCargoModal(false);
+      setShowUserProfile(false);
+      
+      // Обновляем список грузов
+      fetchOperatorCargo();
+      
+    } catch (error) {
+      console.error('Error creating quick cargo:', error);
+      showAlert(error.message || 'Ошибка создания груза', 'error');
+    }
+  };
+
   const clearSearch = () => {
     setSearchQuery('');
     setSearchResults([]);
