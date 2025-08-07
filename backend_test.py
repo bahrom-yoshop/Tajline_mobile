@@ -163,6 +163,335 @@ class CargoTransportAPITester:
                 
         return all_success
 
+    def test_enhanced_user_profile_functionality(self):
+        """Test enhanced user profile functionality as requested in review"""
+        print("\n👤 ENHANCED USER PROFILE FUNCTIONALITY TESTING")
+        
+        if 'user' not in self.tokens:
+            print("   ❌ No user token available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Get current user info and verify new fields are included
+        print("\n   📋 Testing User Model Updates (email and address fields)...")
+        
+        success, current_user = self.run_test(
+            "Get Current User Info (/api/auth/me)",
+            "GET",
+            "/api/auth/me",
+            200,
+            token=self.tokens['user']
+        )
+        all_success &= success
+        
+        if success:
+            # Verify new fields are present in the response
+            has_email_field = 'email' in current_user
+            has_address_field = 'address' in current_user
+            
+            print(f"   📧 Email field present: {has_email_field}")
+            print(f"   🏠 Address field present: {has_address_field}")
+            print(f"   👤 User: {current_user.get('full_name')} ({current_user.get('phone')})")
+            print(f"   🆔 User Number: {current_user.get('user_number', 'N/A')}")
+            
+            if has_email_field and has_address_field:
+                print("   ✅ User model includes new email and address fields")
+            else:
+                print("   ❌ User model missing email or address fields")
+                all_success = False
+        
+        # Test 2: Update user profile with new information
+        print("\n   ✏️  Testing User Profile Update (PUT /api/user/profile)...")
+        
+        # Test updating all fields
+        profile_update_data = {
+            "full_name": "Бахром Клиент Обновленный",
+            "phone": "+992900000001",  # Different from original
+            "email": "bahrom.updated@test.com",
+            "address": "Душанбе, ул. Обновленная, 123"
+        }
+        
+        success, updated_profile = self.run_test(
+            "Update User Profile (All Fields)",
+            "PUT",
+            "/api/user/profile",
+            200,
+            profile_update_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        if success:
+            print(f"   ✅ Profile updated successfully")
+            print(f"   👤 New name: {updated_profile.get('full_name')}")
+            print(f"   📞 New phone: {updated_profile.get('phone')}")
+            print(f"   📧 New email: {updated_profile.get('email')}")
+            print(f"   🏠 New address: {updated_profile.get('address')}")
+            
+            # Verify all fields were updated correctly
+            if (updated_profile.get('full_name') == profile_update_data['full_name'] and
+                updated_profile.get('phone') == profile_update_data['phone'] and
+                updated_profile.get('email') == profile_update_data['email'] and
+                updated_profile.get('address') == profile_update_data['address']):
+                print("   ✅ All profile fields updated correctly")
+            else:
+                print("   ❌ Some profile fields not updated correctly")
+                all_success = False
+        
+        # Test 3: Verify updated information is persisted
+        print("\n   💾 Testing Data Persistence...")
+        
+        success, persisted_user = self.run_test(
+            "Get Updated User Info (Verify Persistence)",
+            "GET",
+            "/api/auth/me",
+            200,
+            token=self.tokens['user']
+        )
+        all_success &= success
+        
+        if success:
+            # Verify the updated data persists
+            if (persisted_user.get('full_name') == profile_update_data['full_name'] and
+                persisted_user.get('phone') == profile_update_data['phone'] and
+                persisted_user.get('email') == profile_update_data['email'] and
+                persisted_user.get('address') == profile_update_data['address']):
+                print("   ✅ Updated profile information properly persisted")
+            else:
+                print("   ❌ Updated profile information not persisted correctly")
+                all_success = False
+        
+        # Test 4: Test validation - phone number uniqueness
+        print("\n   🔒 Testing Phone Number Uniqueness Validation...")
+        
+        # Try to use admin's phone number (should fail)
+        admin_phone_data = {
+            "phone": "+79999888777"  # Admin's phone from test setup
+        }
+        
+        success, _ = self.run_test(
+            "Update with Duplicate Phone (Should Fail)",
+            "PUT",
+            "/api/user/profile",
+            400,  # Should return 400 Bad Request
+            admin_phone_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Phone number uniqueness validation working correctly")
+        
+        # Test 5: Test validation - email uniqueness
+        print("\n   📧 Testing Email Uniqueness Validation...")
+        
+        # First, set an email for admin user
+        admin_email_data = {
+            "email": "admin@tajline.tj"
+        }
+        
+        success, _ = self.run_test(
+            "Set Admin Email",
+            "PUT",
+            "/api/user/profile",
+            200,
+            admin_email_data,
+            self.tokens['admin']
+        )
+        
+        if success:
+            # Now try to use the same email with regular user (should fail)
+            duplicate_email_data = {
+                "email": "admin@tajline.tj"
+            }
+            
+            success, _ = self.run_test(
+                "Update with Duplicate Email (Should Fail)",
+                "PUT",
+                "/api/user/profile",
+                400,  # Should return 400 Bad Request
+                duplicate_email_data,
+                self.tokens['user']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Email uniqueness validation working correctly")
+        
+        # Test 6: Test partial updates
+        print("\n   📝 Testing Partial Profile Updates...")
+        
+        # Update only email
+        partial_update_data = {
+            "email": "bahrom.partial@test.com"
+        }
+        
+        success, partial_updated = self.run_test(
+            "Partial Update (Email Only)",
+            "PUT",
+            "/api/user/profile",
+            200,
+            partial_update_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        if success:
+            if partial_updated.get('email') == partial_update_data['email']:
+                print("   ✅ Partial update (email only) working correctly")
+            else:
+                print("   ❌ Partial update failed")
+                all_success = False
+        
+        # Test 7: Test empty update (should fail)
+        print("\n   🚫 Testing Empty Update Validation...")
+        
+        success, _ = self.run_test(
+            "Empty Update (Should Fail)",
+            "PUT",
+            "/api/user/profile",
+            400,  # Should return 400 Bad Request
+            {},
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Empty update validation working correctly")
+        
+        # Test 8: Test session management during profile updates
+        print("\n   🔐 Testing Session Management During Profile Updates...")
+        
+        # Make multiple profile updates to test session stability
+        session_test_updates = [
+            {"full_name": "Бахром Сессия Тест 1"},
+            {"address": "Душанбе, ул. Сессия, 1"},
+            {"full_name": "Бахром Сессия Тест 2"},
+            {"address": "Душанбе, ул. Сессия, 2"}
+        ]
+        
+        session_success_count = 0
+        for i, update_data in enumerate(session_test_updates):
+            success, _ = self.run_test(
+                f"Session Test Update #{i+1}",
+                "PUT",
+                "/api/user/profile",
+                200,
+                update_data,
+                self.tokens['user']
+            )
+            
+            if success:
+                session_success_count += 1
+            
+            # Verify session is still valid after each update
+            success, _ = self.run_test(
+                f"Session Validation After Update #{i+1}",
+                "GET",
+                "/api/auth/me",
+                200,
+                token=self.tokens['user']
+            )
+            
+            if success:
+                session_success_count += 1
+        
+        expected_session_tests = len(session_test_updates) * 2  # Update + validation for each
+        if session_success_count == expected_session_tests:
+            print(f"   ✅ Session management stable during profile updates ({session_success_count}/{expected_session_tests} tests passed)")
+        else:
+            print(f"   ❌ Session management issues detected ({session_success_count}/{expected_session_tests} tests passed)")
+            all_success = False
+        
+        # Test 9: Test with different user roles
+        print("\n   👑 Testing Profile Updates with Different User Roles...")
+        
+        # Test admin profile update
+        admin_profile_data = {
+            "full_name": "Админ Системы Обновленный",
+            "email": "admin.updated@tajline.tj",
+            "address": "Москва, ул. Административная, 1"
+        }
+        
+        success, admin_updated = self.run_test(
+            "Admin Profile Update",
+            "PUT",
+            "/api/user/profile",
+            200,
+            admin_profile_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Admin profile update working correctly")
+            print(f"   👑 Admin name: {admin_updated.get('full_name')}")
+            print(f"   📧 Admin email: {admin_updated.get('email')}")
+        
+        # Test warehouse operator profile update (if available)
+        if 'warehouse_operator' in self.tokens:
+            operator_profile_data = {
+                "full_name": "Оператор Складской Обновленный",
+                "email": "operator.updated@tajline.tj",
+                "address": "Москва, ул. Складская, 1"
+            }
+            
+            success, operator_updated = self.run_test(
+                "Warehouse Operator Profile Update",
+                "PUT",
+                "/api/user/profile",
+                200,
+                operator_profile_data,
+                self.tokens['warehouse_operator']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Warehouse operator profile update working correctly")
+                print(f"   🏭 Operator name: {operator_updated.get('full_name')}")
+        
+        # Test 10: Test profile update error handling
+        print("\n   ⚠️  Testing Profile Update Error Handling...")
+        
+        # Test with invalid phone format
+        invalid_phone_data = {
+            "phone": "invalid-phone"
+        }
+        
+        success, _ = self.run_test(
+            "Invalid Phone Format (Should Fail)",
+            "PUT",
+            "/api/user/profile",
+            400,
+            invalid_phone_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Invalid phone format validation working")
+        
+        # Test with invalid email format
+        invalid_email_data = {
+            "email": "invalid-email"
+        }
+        
+        success, _ = self.run_test(
+            "Invalid Email Format (Should Fail)",
+            "PUT",
+            "/api/user/profile",
+            400,
+            invalid_email_data,
+            self.tokens['user']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Invalid email format validation working")
+        
+        return all_success
+
     def test_cargo_creation(self):
         """Test cargo creation by regular user"""
         print("\n📦 CARGO CREATION")
