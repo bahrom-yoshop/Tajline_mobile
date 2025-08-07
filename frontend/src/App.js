@@ -2920,6 +2920,9 @@ function App() {
       
       fetchOperatorCargo();
       fetchAvailableCargo();
+      
+      // Показываем информацию о следующих шагах
+      showAlert('Груз теперь доступен в разделе "Касса" → "Не оплачено" для обработки платежа', 'info');
     } catch (error) {
       console.error('Accept cargo error:', error);
     }
