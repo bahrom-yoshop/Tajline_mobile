@@ -3738,6 +3738,14 @@ function App() {
                 <div className="flex items-center space-x-4">
                   <Button 
                     variant="outline" 
+                    onClick={openEditProfile}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    Редактировать профиль
+                  </Button>
+                  <Button 
+                    variant="outline" 
                     onClick={() => {
                       fetchClientDashboard();
                       fetchClientCargo();
