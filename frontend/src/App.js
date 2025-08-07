@@ -2967,6 +2967,15 @@ function App() {
   };
 
   const handleLogout = () => {
+    // Предотвращаем множественные logout'ы
+    if (isLoggingOut) {
+      console.log('Logout already in progress, skipping...');
+      return;
+    }
+    
+    console.log('Starting logout process...');
+    setIsLoggingOut(true);
+    
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
@@ -3005,7 +3014,18 @@ function App() {
       shelf_number: '',
       cell_number: ''
     });
+    
+    // Перенаправляем на страницу входа
+    setActiveTab('login');
+    setActiveSection('login');
+    
     showAlert('Вы вышли из системы', 'info');
+    
+    // Сбрасываем флаг логаута через небольшую задержку
+    setTimeout(() => {
+      setIsLoggingOut(false);
+      console.log('Logout process completed');
+    }, 1000);
   };
 
   const getStatusBadge = (status) => {
