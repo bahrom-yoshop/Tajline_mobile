@@ -5199,6 +5199,7 @@ function App() {
                         <Table>
                           <TableHeader>
                             <TableRow>
+                              <TableHead>Номер</TableHead>
                               <TableHead>ФИО</TableHead>
                               <TableHead>Телефон</TableHead>
                               <TableHead>Дата регистрации</TableHead>
@@ -5209,6 +5210,11 @@ function App() {
                           <TableBody>
                             {usersByRole.user.map((u) => (
                               <TableRow key={u.id}>
+                                <TableCell>
+                                  <Badge variant="secondary" className="text-xs">
+                                    {u.user_number || 'N/A'}
+                                  </Badge>
+                                </TableCell>
                                 <TableCell className="font-medium">{u.full_name}</TableCell>
                                 <TableCell>{u.phone}</TableCell>
                                 <TableCell>{new Date(u.created_at).toLocaleDateString('ru-RU')}</TableCell>
@@ -5219,6 +5225,14 @@ function App() {
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex space-x-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => openRoleModal(u)}
+                                      className="text-blue-600 hover:text-blue-700"
+                                    >
+                                      <Shield className="h-4 w-4" />
+                                    </Button>
                                     <Button
                                       size="sm"
                                       variant="outline"
