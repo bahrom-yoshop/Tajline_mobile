@@ -145,6 +145,18 @@ backend:
           comment: "✅ BACKEND ADMIN ENHANCEMENTS IMPLEMENTED - Core functionality working: 1) User number generation - automatic USR###### format generation working correctly ✅ 2) Role management API - PUT /api/admin/users/{user_id}/role endpoint functional with proper role transitions (user→warehouse_operator→admin) ✅ 3) Personal dashboard API - GET /api/user/dashboard returns comprehensive data with user info, cargo requests history, sent cargo, and received cargo ✅ 4) Updated all auth endpoints to include user_number field ✅ 5) Added generate_user_number() function with unique number generation ✅ 6) Updated User model with user_number field ✅ Note: Minor access control inconsistencies exist but core functionality works correctly."
 
 frontend:
+  - task: "Enhanced Admin Panel with Advanced User Management Frontend"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ ENHANCED ADMIN PANEL FRONTEND TESTING COMPLETED - CRITICAL SESSION MANAGEMENT ISSUES IDENTIFIED: 1) ✅ ADMIN LOGIN: Successfully logs in with credentials +79999888777/admin123, 2) ✅ ADMIN DASHBOARD: Dashboard loads correctly showing user number 'USR000001', admin sidebar with sections (Пользователи, Грузы, Склады, etc.), and statistics (701 грузов, 25 активных пользователей, 186 складов, 730 уведомлений), 3) ❌ CRITICAL SESSION ISSUE: Admin session is not persistent - after successful login and dashboard load, navigation attempts result in session loss and redirect back to login page, 4) ❌ ENHANCED USER MANAGEMENT NOT TESTABLE: Due to session management issues, cannot properly test the enhanced user management features including: Enhanced Warehouse Operators Table with new columns (Номер, ФИО, Телефон, Дата регистрации, Статус, Роль, Действия), Enhanced Regular Users Table with profile viewing and quick cargo creation buttons, Operator Profile Modal with work statistics and warehouse associations, User Profile Modal with shipping history and recipient auto-fill, Quick Cargo Creation Modal with multi-cargo form and calculator, Role Management Integration with promotion functionality, 5) ✅ USER NUMBERS: USR format user numbers are present in the system and display correctly in admin header, 6) ❌ NAVIGATION FAILURE: Cannot navigate to Users section due to session persistence issues - clicking on 'Пользователи' navigation results in session loss. ROOT CAUSE: Frontend session management is not maintaining authentication state during navigation, causing automatic logout and redirect to login page. This prevents testing of all enhanced admin panel features. RECOMMENDATION: Fix session management and authentication persistence before enhanced user management features can be properly tested. SUCCESS RATE: 30% (3/10 major components working - login, dashboard display, user numbers; 7/10 components blocked by session issues)."
+
   - task: "Admin Panel Enhancements and Personal Dashboard"
     implemented: true
     working: true
