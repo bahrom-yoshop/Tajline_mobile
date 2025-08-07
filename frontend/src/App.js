@@ -476,6 +476,11 @@ function App() {
   const [availableCellsForPlacement, setAvailableCellsForPlacement] = useState([]);
   const [placementLoading, setPlacementLoading] = useState(false);
 
+  // Состояния для детальной структуры склада
+  const [warehouseDetailedStructure, setWarehouseDetailedStructure] = useState(null);
+  const [structureLoading, setStructureLoading] = useState(false);
+  const [selectedCellForVisualization, setSelectedCellForVisualization] = useState(null);
+
   // Состояния для размещенных грузов
   const [placedCargoList, setPlacedCargoList] = useState([]);
   const [placedCargoPagination, setPlacedCargoPagination] = useState({});
