@@ -14,7 +14,7 @@ import json
 from datetime import datetime
 
 class DeclaredValueTester:
-    def __init__(self, base_url="https://4eda4900-48c0-4e87-838d-cadf96fdd4bb.preview.emergentagent.com"):
+    def __init__(self, base_url="https://4e5ad43f-b37d-44c8-8ded-6e3e54f9b9da.preview.emergentagent.com"):
         self.base_url = base_url
         self.user_token = None
         self.tests_run = 0
