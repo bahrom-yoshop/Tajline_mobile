@@ -817,6 +817,8 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             full_name=user["full_name"],
             phone=user["phone"],
             role=user["role"],
+            email=user.get("email"),
+            address=user.get("address"),
             is_active=user["is_active"],
             created_at=user["created_at"]
         )
