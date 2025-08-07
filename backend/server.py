@@ -173,7 +173,7 @@ class UserLogin(BaseModel):
 
 class User(BaseModel):
     id: str
-    user_number: str  # Индивидуальный номер пользователя
+    user_number: Optional[str] = None  # Делаем опциональным для обратной совместимости
     full_name: str
     phone: str
     role: UserRole
