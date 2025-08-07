@@ -4486,13 +4486,26 @@ function App() {
                                   </span>
                                 )}
                               </div>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => fetchClientCargoDetails(cargo.id)}
-                              >
-                                Подробнее
-                              </Button>
+                              <div className="flex space-x-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => openRepeatOrder(cargo)}
+                                  className="text-green-600 hover:text-green-700"
+                                  title="Повторить заказ с теми же данными"
+                                >
+                                  <Copy className="mr-1 h-4 w-4" />
+                                  Повторить
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => fetchClientCargoDetails(cargo.id)}
+                                >
+                                  <Eye className="mr-1 h-4 w-4" />
+                                  Подробнее
+                                </Button>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>
