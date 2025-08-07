@@ -442,6 +442,10 @@ function App() {
   const [adminRepeatOrderTotalCost, setAdminRepeatOrderTotalCost] = useState(0);
   const [adminRepeatOrderBreakdown, setAdminRepeatOrderBreakdown] = useState([]);
 
+  // Состояние для отслеживания автозаполнения из профиля
+  const [isFilledFromProfile, setIsFilledFromProfile] = useState(false);
+  const [profileSourceUser, setProfileSourceUser] = useState(null);
+
   const showAlert = (message, type = 'info') => {
     const id = Date.now();
     setAlerts(prev => [...prev, { id, message, type }]);
