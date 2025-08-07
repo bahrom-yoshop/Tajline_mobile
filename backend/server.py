@@ -4726,6 +4726,357 @@ def _get_location_description(cargo):
     else:
         return f"Статус: {status}"
 
+@app.post("/api/search/advanced")
+async def advanced_search(
+    search_request: AdvancedSearchRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Расширенный поиск с фильтрами и сортировкой"""
+    import time
+    start_time = time.time()
+    
+    try:
+        results = []
+        total_count = 0
+        
+        if search_request.search_type in ["all", "cargo"]:
+            cargo_results = await search_cargo_advanced(search_request, current_user)
+            results.extend(cargo_results)
+        
+        if search_request.search_type in ["all", "users"] and current_user.role in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+            user_results = await search_users_advanced(search_request, current_user)
+            results.extend(user_results)
+        
+        if search_request.search_type in ["all", "warehouses"] and current_user.role in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+            warehouse_results = await search_warehouses_advanced(search_request, current_user)
+            results.extend(warehouse_results)
+        
+        # Сортировка результатов
+        if search_request.sort_by:
+            reverse_order = search_request.sort_order == "desc"
+            if search_request.sort_by == "relevance_score":
+                results.sort(key=lambda x: x.get("relevance_score", 0), reverse=reverse_order)
+            elif search_request.sort_by == "created_at":
+                results.sort(key=lambda x: x.get("details", {}).get("created_at", ""), reverse=reverse_order)
+        
+        # Пагинация
+        page = max(1, search_request.page or 1)
+        per_page = min(100, max(1, search_request.per_page or 20))
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        
+        total_count = len(results)
+        paginated_results = results[start_idx:end_idx]
+        total_pages = (total_count + per_page - 1) // per_page
+        
+        # Генерация предложений для автодополнения
+        suggestions = await generate_search_suggestions(search_request.query, current_user)
+        
+        search_time_ms = int((time.time() - start_time) * 1000)
+        
+        return AdvancedSearchResponse(
+            results=paginated_results,
+            total_count=total_count,
+            page=page,
+            per_page=per_page,
+            total_pages=total_pages,
+            search_time_ms=search_time_ms,
+            suggestions=suggestions
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search error: {str(e)}")
+
+async def search_cargo_advanced(search_request: AdvancedSearchRequest, current_user: User) -> List[SearchResult]:
+    """Поиск грузов с расширенными фильтрами"""
+    cargo_results = []
+    
+    # Построение запроса для поиска грузов
+    search_criteria = {}
+    
+    # Текстовый поиск
+    if search_request.query:
+        query = search_request.query.strip()
+        text_search = {
+            "$or": [
+                {"cargo_number": {"$regex": query, "$options": "i"}},
+                {"cargo_name": {"$regex": query, "$options": "i"}},
+                {"sender_full_name": {"$regex": query, "$options": "i"}},
+                {"recipient_full_name": {"$regex": query, "$options": "i"}},
+                {"sender_phone": {"$regex": query, "$options": "i"}},
+                {"recipient_phone": {"$regex": query, "$options": "i"}},
+                {"description": {"$regex": query, "$options": "i"}}
+            ]
+        }
+        search_criteria.update(text_search)
+    
+    # Фильтр по статусу
+    if search_request.cargo_status:
+        search_criteria["status"] = search_request.cargo_status
+    
+    if search_request.payment_status:
+        search_criteria["payment_status"] = search_request.payment_status
+    
+    if search_request.processing_status:
+        search_criteria["processing_status"] = search_request.processing_status
+    
+    if search_request.route:
+        search_criteria["route"] = search_request.route
+    
+    if search_request.sender_phone:
+        search_criteria["sender_phone"] = {"$regex": search_request.sender_phone, "$options": "i"}
+    
+    if search_request.recipient_phone:
+        search_criteria["recipient_phone"] = {"$regex": search_request.recipient_phone, "$options": "i"}
+    
+    # Фильтр по дате
+    if search_request.date_from or search_request.date_to:
+        date_filter = {}
+        if search_request.date_from:
+            date_filter["$gte"] = datetime.fromisoformat(search_request.date_from.replace('Z', '+00:00'))
+        if search_request.date_to:
+            date_filter["$lte"] = datetime.fromisoformat(search_request.date_to.replace('Z', '+00:00'))
+        search_criteria["created_at"] = date_filter
+    
+    # Поиск в коллекциях грузов
+    for collection_name in ["cargo", "operator_cargo"]:
+        collection = getattr(db, collection_name)
+        cargo_list = list(collection.find(search_criteria, {"_id": 0}).limit(50))
+        
+        for cargo in cargo_list:
+            relevance_score = calculate_cargo_relevance(cargo, search_request.query)
+            
+            # Формируем результат поиска
+            result = SearchResult(
+                type="cargo",
+                id=cargo["id"],
+                title=f"{cargo.get('cargo_number', 'N/A')} - {cargo.get('cargo_name', 'Груз')}",
+                subtitle=f"{cargo.get('sender_full_name', 'Неизвестно')} → {cargo.get('recipient_full_name', 'Неизвестно')}",
+                details={
+                    "cargo_number": cargo.get("cargo_number"),
+                    "cargo_name": cargo.get("cargo_name"),
+                    "weight": cargo.get("weight"),
+                    "declared_value": cargo.get("declared_value"),
+                    "status": cargo.get("status"),
+                    "payment_status": cargo.get("payment_status"),
+                    "processing_status": cargo.get("processing_status"),
+                    "route": cargo.get("route"),
+                    "sender_full_name": cargo.get("sender_full_name"),
+                    "sender_phone": cargo.get("sender_phone"),
+                    "recipient_full_name": cargo.get("recipient_full_name"),
+                    "recipient_phone": cargo.get("recipient_phone"),
+                    "created_at": cargo.get("created_at"),
+                    "warehouse_location": cargo.get("warehouse_location"),
+                    "collection": collection_name
+                },
+                relevance_score=relevance_score
+            )
+            cargo_results.append(result)
+    
+    return cargo_results
+
+async def search_users_advanced(search_request: AdvancedSearchRequest, current_user: User) -> List[SearchResult]:
+    """Поиск пользователей с фильтрами"""
+    user_results = []
+    
+    search_criteria = {}
+    
+    # Текстовый поиск по пользователям
+    if search_request.query:
+        query = search_request.query.strip()
+        search_criteria["$or"] = [
+            {"full_name": {"$regex": query, "$options": "i"}},
+            {"phone": {"$regex": query, "$options": "i"}},
+            {"user_number": {"$regex": query, "$options": "i"}}
+        ]
+    
+    # Фильтры пользователей
+    if search_request.user_role:
+        search_criteria["role"] = search_request.user_role
+    
+    if search_request.user_status is not None:
+        search_criteria["is_active"] = search_request.user_status
+    
+    users = list(db.users.find(search_criteria, {"password": 0, "_id": 0}).limit(20))
+    
+    for user in users:
+        relevance_score = calculate_user_relevance(user, search_request.query)
+        
+        result = SearchResult(
+            type="user",
+            id=user["id"],
+            title=f"{user.get('user_number', 'N/A')} - {user['full_name']}",
+            subtitle=f"{user['phone']} ({user['role']})",
+            details={
+                "user_number": user.get("user_number"),
+                "full_name": user["full_name"],
+                "phone": user["phone"],
+                "role": user["role"],
+                "is_active": user["is_active"],
+                "created_at": user.get("created_at")
+            },
+            relevance_score=relevance_score
+        )
+        user_results.append(result)
+    
+    return user_results
+
+async def search_warehouses_advanced(search_request: AdvancedSearchRequest, current_user: User) -> List[SearchResult]:
+    """Поиск складов с фильтрами"""
+    warehouse_results = []
+    
+    search_criteria = {}
+    
+    # Текстовый поиск по складам
+    if search_request.query:
+        query = search_request.query.strip()
+        search_criteria["$or"] = [
+            {"name": {"$regex": query, "$options": "i"}},
+            {"location": {"$regex": query, "$options": "i"}},
+            {"description": {"$regex": query, "$options": "i"}}
+        ]
+    
+    warehouses = list(db.warehouses.find(search_criteria, {"_id": 0}).limit(10))
+    
+    for warehouse in warehouses:
+        # Подсчитаем количество грузов на складе
+        cargo_count = db.operator_cargo.count_documents({"warehouse_id": warehouse["id"]})
+        
+        relevance_score = calculate_warehouse_relevance(warehouse, search_request.query)
+        
+        result = SearchResult(
+            type="warehouse",
+            id=warehouse["id"],
+            title=warehouse["name"],
+            subtitle=f"{warehouse.get('location', 'Местоположение не указано')} ({cargo_count} грузов)",
+            details={
+                "name": warehouse["name"],
+                "location": warehouse.get("location"),
+                "description": warehouse.get("description"),
+                "cargo_count": cargo_count,
+                "structure": warehouse.get("structure", {}),
+                "created_at": warehouse.get("created_at")
+            },
+            relevance_score=relevance_score
+        )
+        warehouse_results.append(result)
+    
+    return warehouse_results
+
+def calculate_cargo_relevance(cargo: dict, query: str) -> float:
+    """Расчет релевантности груза"""
+    if not query:
+        return 1.0
+    
+    query = query.lower()
+    score = 0.0
+    
+    # Точное совпадение номера груза - максимальная релевантность
+    if cargo.get("cargo_number", "").lower() == query:
+        score += 100.0
+    elif query in cargo.get("cargo_number", "").lower():
+        score += 50.0
+    
+    # Совпадение в названии груза
+    if query in cargo.get("cargo_name", "").lower():
+        score += 30.0
+    
+    # Совпадение в именах отправителя/получателя
+    if query in cargo.get("sender_full_name", "").lower():
+        score += 20.0
+    if query in cargo.get("recipient_full_name", "").lower():
+        score += 20.0
+    
+    # Совпадение в телефонах
+    if query in cargo.get("sender_phone", "").lower():
+        score += 25.0
+    if query in cargo.get("recipient_phone", "").lower():
+        score += 25.0
+    
+    return min(score, 100.0)
+
+def calculate_user_relevance(user: dict, query: str) -> float:
+    """Расчет релевантности пользователя"""
+    if not query:
+        return 1.0
+    
+    query = query.lower()
+    score = 0.0
+    
+    # Точное совпадение номера пользователя
+    if user.get("user_number", "").lower() == query:
+        score += 100.0
+    elif query in user.get("user_number", "").lower():
+        score += 70.0
+    
+    # Совпадение в имени
+    if query in user.get("full_name", "").lower():
+        score += 50.0
+    
+    # Совпадение в телефоне
+    if query in user.get("phone", "").lower():
+        score += 60.0
+    
+    return min(score, 100.0)
+
+def calculate_warehouse_relevance(warehouse: dict, query: str) -> float:
+    """Расчет релевантности склада"""
+    if not query:
+        return 1.0
+    
+    query = query.lower()
+    score = 0.0
+    
+    # Совпадение в названии склада
+    if query in warehouse.get("name", "").lower():
+        score += 70.0
+    
+    # Совпадение в местоположении
+    if query in warehouse.get("location", "").lower():
+        score += 50.0
+    
+    # Совпадение в описании
+    if query in warehouse.get("description", "").lower():
+        score += 30.0
+    
+    return min(score, 100.0)
+
+async def generate_search_suggestions(query: str, current_user: User) -> List[str]:
+    """Генерация предложений для автодополнения"""
+    if not query or len(query) < 2:
+        return []
+    
+    suggestions = []
+    query_lower = query.lower()
+    
+    # Предложения на основе номеров грузов
+    cargo_numbers = []
+    for collection_name in ["cargo", "operator_cargo"]:
+        collection = getattr(db, collection_name)
+        cargo_docs = collection.find(
+            {"cargo_number": {"$regex": f"^{query}", "$options": "i"}},
+            {"cargo_number": 1, "_id": 0}
+        ).limit(5)
+        cargo_numbers.extend([doc["cargo_number"] for doc in cargo_docs])
+    
+    suggestions.extend(cargo_numbers[:3])
+    
+    # Предложения на основе имен
+    if current_user.role in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        # Имена отправителей/получателей
+        name_suggestions = []
+        for collection_name in ["cargo", "operator_cargo"]:
+            collection = getattr(db, collection_name)
+            sender_docs = collection.find(
+                {"sender_full_name": {"$regex": query, "$options": "i"}},
+                {"sender_full_name": 1, "_id": 0}
+            ).limit(3)
+            name_suggestions.extend([doc["sender_full_name"] for doc in sender_docs])
+        
+        suggestions.extend(name_suggestions[:2])
+    
+    return list(set(suggestions))[:5]  # Убираем дубликаты и ограничиваем до 5
+
 # === НОВЫЕ API ЭТАПА 1: ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ ГРУЗОВ ===
 
 @app.post("/api/cargo/photo/upload")
