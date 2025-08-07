@@ -1449,6 +1449,7 @@ metadata:
 
 test_plan:
   current_focus:
+    - "Enhanced Admin Panel with Advanced User Management Frontend"
     - "Session Management Fix"
     - "Calculate Cost Button Fix"
   stuck_tasks: []
