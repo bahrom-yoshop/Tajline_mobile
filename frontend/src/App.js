@@ -1402,11 +1402,13 @@ function App() {
 
     try {
       const results = await apiCall(`/api/cargo/search?query=${encodeURIComponent(query)}&search_type=${searchType}`);
-      setSearchResults(results || []);
+      // Убеждаемся, что результат всегда является массивом
+      setSearchResults(Array.isArray(results) ? results : []);
       setShowSearchResults(true);
     } catch (error) {
       console.error('Search error:', error);
       setSearchResults([]);
+      setShowSearchResults(false);
     }
   };
 
