@@ -473,27 +473,109 @@ function App() {
     }, 5000);
   };
 
+  // Функции для работы с камерой и сканированием
+  const initializeCamera = async () => {
+    try {
+      // Проверяем доступные камеры
+      const cameras = await Html5Qrcode.getCameras();
+      setCamerasAvailable(cameras);
+      
+      if (cameras && cameras.length > 0) {
+        setCameraPermission(true);
+        // Предпочтительно задняя камера для мобильных устройств
+        const backCamera = cameras.find(camera => 
+          camera.label.toLowerCase().includes('back') || 
+          camera.label.toLowerCase().includes('rear') ||
+          camera.label.toLowerCase().includes('environment')
+        );
+        setSelectedCamera(backCamera ? backCamera.id : cameras[0].id);
+        return true;
+      } else {
+        setCameraPermission(false);
+        setScannerError('Камера недоступна');
+        return false;
+      }
+    } catch (error) {
+      console.error('Camera initialization error:', error);
+      setCameraPermission(false);
+      setScannerError('Ошибка доступа к камере. Проверьте разрешения.');
+      return false;
+    }
+  };
+
+  const startCameraScanner = async () => {
+    try {
+      const cameraInitialized = await initializeCamera();
+      if (!cameraInitialized) return;
+
+      const qrCodeInstance = new Html5Qrcode("qr-reader");
+      setHtml5QrCode(qrCodeInstance);
+
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        disableFlip: false,
+      };
+
+      await qrCodeInstance.start(
+        selectedCamera,
+        config,
+        (decodedText, decodedResult) => {
+          console.log('QR Code scanned:', decodedText);
+          handleBarcodeScan(decodedText);
+          stopCameraScanner();
+        },
+        (errorMessage) => {
+          // Игнорируем постоянные ошибки сканирования
+          console.debug('QR scan error:', errorMessage);
+        }
+      );
+
+      showAlert(scannerMode === 'cargo-barcode' ? 
+        'Камера активирована. Наведите на штрих-код груза' : 
+        'Камера активирована. Наведите на QR-код ячейки', 'info');
+    } catch (error) {
+      console.error('Camera start error:', error);
+      setScannerError('Не удалось запустить камеру');
+      showAlert('Не удалось запустить камеру. Проверьте разрешения.', 'error');
+    }
+  };
+
+  const stopCameraScanner = async () => {
+    if (html5QrCode) {
+      try {
+        await html5QrCode.stop();
+        html5QrCode.clear();
+        setHtml5QrCode(null);
+      } catch (error) {
+        console.error('Camera stop error:', error);
+      }
+    }
+  };
+
   // Функции для сканирования штрих-кодов и QR-кодов
-  const startCargoScanner = () => {
+  const startCargoScanner = async () => {
     setScannerMode('cargo-barcode');
     setScannerActive(true);
     setScannerError(null);
     setScannedCargoData(null);
-    showAlert('Наведите камеру на штрих-код груза для сканирования', 'info');
+    await startCameraScanner();
   };
 
-  const startCellScanner = () => {
+  const startCellScanner = async () => {
     setScannerMode('cell-qr');
     setScannerActive(true);
     setScannerError(null);
     setScannedCellData(null);
-    showAlert('Наведите камеру на QR-код свободной ячейки для сканирования', 'info');
+    await startCameraScanner();
   };
 
-  const stopScanner = () => {
+  const stopScanner = async () => {
     setScannerMode('none');
     setScannerActive(false);
     setScannerError(null);
+    await stopCameraScanner();
   };
 
   const handleBarcodeScan = async (scannedData) => {
