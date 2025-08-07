@@ -192,7 +192,7 @@ class PersonalDashboard(BaseModel):
     received_cargo: List[dict] = []  # Полученные грузы (как получатель)
     sent_cargo: List[dict] = []     # Отправленные грузы
 
-# Модели для расширенного поиска
+
 class AdvancedSearchRequest(BaseModel):
     query: Optional[str] = None  # Основной поисковый запрос
     search_type: str = "all"  # all, cargo, users, warehouses
