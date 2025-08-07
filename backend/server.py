@@ -1153,12 +1153,21 @@ async def login(user_data: UserLogin):
         data={"sub": user_data.phone}, expires_delta=access_token_expires
     )
     
+    # Генерируем user_number если его нет
+    user_number = user.get("user_number")
+    if not user_number:
+        user_number = generate_user_number()
+        db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {"user_number": user_number}}
+        )
+    
     return {
         "access_token": access_token,
         "token_type": "bearer",
         "user": User(
             id=user["id"],
-            user_number=user.get("user_number") or generate_user_number(),  # Генерируем если нет
+            user_number=user_number,
             full_name=user["full_name"],
             phone=user["phone"],
             role=user["role"],
