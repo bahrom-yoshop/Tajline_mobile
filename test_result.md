@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Enhanced Multi-Cargo Form with Individual Price Calculator: Upgrade the existing multi-cargo form to support individual pricing for each cargo item. Each cargo in the form should have its own price per kg field. The calculator should multiply each cargo's weight by its individual price and show both intermediate calculations and total sum. Example: Cargo 1 (Documents, 10kg × 60 rub/kg = 600 rub), Cargo 2 (Clothes, 25kg × 60 rub/kg = 1500 rub), Cargo 3 (Electronics, 100kg × 65 rub/kg = 6500 rub). Total: 135kg, 8600 rub. Display breakdown for each cargo and final totals."
+user_problem_statement: "Admin Panel Enhancements and Personal Dashboard: 1) Add role management functionality for admin to change operator role to administrator, 2) Create personal dashboard for each user showing profile information and complete history of cargo requests and shipments with full data, 3) Generate individual user numbers for each user. Implementation includes: role update API endpoints, personal dashboard interface with user info and cargo history, automatic user number generation system, and comprehensive cargo tracking for users."
 
 backend:
   - task: "Warehouse Operator Role Verification"
