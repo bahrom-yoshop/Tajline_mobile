@@ -1284,8 +1284,10 @@ async def login(user_data: UserLogin):
             full_name=user["full_name"],
             phone=user["phone"],
             role=user["role"],
+            email=user.get("email"),
+            address=user.get("address"),
             is_active=user["is_active"],
-            token_version=token_version,
+            token_version=user.get("token_version", 1),
             created_at=user["created_at"]
         )
     }
