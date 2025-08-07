@@ -2752,6 +2752,12 @@ function App() {
         section: 'dashboard'
       },
       {
+        id: 'personal-dashboard',
+        label: 'Личный кабинет',
+        icon: <User className="w-5 h-5" />,
+        section: 'personal-dashboard'
+      },
+      {
         id: 'users',
         label: 'Пользователи',
         icon: <Users className="w-5 h-5" />,
