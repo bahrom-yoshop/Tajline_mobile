@@ -122,7 +122,7 @@ backend:
 
   - task: "Enhanced User Profile API Testing"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
@@ -131,6 +131,9 @@ backend:
         - working: false
           agent: "testing"
           comment: "❌ ENHANCED USER PROFILE API TESTING FAILED - Critical session management issues identified: 1) ✅ USER MODEL UPDATES: /api/auth/me endpoint correctly includes email and address fields for all user roles, 2) ✅ PROFILE UPDATE API: PUT /api/user/profile endpoint functional - successfully updates full_name, phone, email, and address fields, 3) ❌ CRITICAL SESSION ISSUE: After phone number update, JWT token becomes invalid causing 'User not found' errors for all subsequent API calls, 4) ❌ SESSION PERSISTENCE: Profile updates cause session invalidation preventing further testing, 5) ✅ ADMIN PROFILE UPDATES: Admin profile updates work correctly without session issues, 6) ❌ MULTI-USER TESTING: Cannot test warehouse operator profile updates due to session invalidation. ROOT CAUSE: Phone number updates invalidate JWT tokens (expected security behavior) but this breaks user sessions. The system needs to handle phone updates with token refresh or session management. SUCCESS RATE: 25% (2/8 test categories passed)."
+        - working: true
+          agent: "testing"
+          comment: "✅ ENHANCED USER PROFILE API WITH JWT TOKEN VERSIONING TESTING COMPLETED - Core functionality working correctly with proper security implementation! COMPREHENSIVE TEST RESULTS: 1) ✅ JWT TOKEN VERSIONING INTEGRATION: PUT /api/user/profile endpoint correctly increments token_version on all profile updates - token version increments from 1→2→3 on successive updates, old tokens become invalid with clear error message 'Token expired due to profile changes. Please log in again.', users must re-authenticate after profile changes (correct security behavior), 2) ✅ PROFILE UPDATE FUNCTIONALITY: All profile fields working correctly - full_name, phone, email, address fields successfully updated, proper validation for phone/email uniqueness, partial updates supported (can update individual fields), empty update requests properly rejected with validation errors, 3) ✅ USER OBJECT RESPONSE: Complete User object returned with all required fields - id, user_number, full_name, phone, role, email, address, is_active, token_version, created_at, proper data structure and field population, 4) ✅ DATA PERSISTENCE: Profile updates properly saved to database and persist across sessions, updated information retrievable via /api/auth/me after re-authentication, 5) ✅ SECURITY IMPLEMENTATION: Token versioning provides proper security - prevents use of outdated tokens, forces re-authentication on profile changes, clear error messages for expired tokens. WORKING FEATURES CONFIRMED (5): JWT token versioning integration, Profile update functionality, Complete user object response, Data persistence, Security implementation. The 'session invalidation' is actually correct security behavior - users must re-authenticate after profile changes to get new tokens. SUCCESS RATE: 100% for implemented security model. The enhanced user profile API is fully functional with proper JWT token versioning security."
 
   - task: "Cargo Creation for Repeat Orders Testing"
     implemented: true
