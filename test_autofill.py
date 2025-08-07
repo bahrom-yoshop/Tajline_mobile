@@ -112,12 +112,20 @@ class AutoFillTester:
         all_success &= success
         
         if success and users_list and len(users_list) > 0:
-            # Find a user with complete profile data
+            # Find a user with complete profile data or use the first available user
             target_user = None
+            print(f"   📊 Found {len(users_list)} users in system")
+            
+            # First try to find a user with complete data
             for user in users_list:
                 if isinstance(user, dict) and user.get('full_name') and user.get('phone'):
                     target_user = user
                     break
+            
+            # If no complete user found, use the first user and show what data is available
+            if not target_user and len(users_list) > 0:
+                target_user = users_list[0]
+                print("   ⚠️  Using first available user (may have incomplete data)")
             
             if target_user:
                 user_id = target_user.get('id')
