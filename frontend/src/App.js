@@ -449,6 +449,14 @@ function App() {
   const [isFilledFromProfile, setIsFilledFromProfile] = useState(false);
   const [profileSourceUser, setProfileSourceUser] = useState(null);
 
+  // Состояния для сканирования штрих-кодов и QR-кодов при размещении
+  const [scannerMode, setScannerMode] = useState('none'); // 'none', 'cargo-barcode', 'cell-qr'
+  const [scannerActive, setScannerActive] = useState(false);
+  const [scannedCargoData, setScannedCargoData] = useState(null);
+  const [scannedCellData, setScannedCellData] = useState(null);
+  const [placementInProgress, setPlacementInProgress] = useState(false);
+  const [scannerError, setScannerError] = useState(null);
+
   const showAlert = (message, type = 'info') => {
     const id = Date.now();
     setAlerts(prev => [...prev, { id, message, type }]);
