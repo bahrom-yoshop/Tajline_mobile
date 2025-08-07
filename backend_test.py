@@ -18470,10 +18470,11 @@ ID склада: {self.warehouse_id}"""
                             break
                     
                     if placement_ready_cargo:
-                        print("   ✅ Cargo appears in placement-ready status")
+                        print("   ✅ Cargo found in cargo list after payment")
                         print(f"   📋 Status: {placement_ready_cargo.get('processing_status')}")
+                        print(f"   💰 Payment status: {placement_ready_cargo.get('payment_status')}")
                     else:
-                        print("   ❌ Cargo not found in placement-ready list")
+                        print("   ❌ Cargo not found in cargo list")
                         all_success = False
         
         # Test 3: Test Warehouse and Cell Management for Placement
