@@ -2071,68 +2071,61 @@ class ProcessingStatusUpdate(BaseModel):
 
 @app.put("/api/cargo/{cargo_id}/processing-status")
 async def update_cargo_processing_status(
-    cargo_id: str,
-    status_data: ProcessingStatusUpdate,
+    cargo_id: str, 
+    status_update: dict,
     current_user: User = Depends(get_current_user)
 ):
-    """Обновить статус обработки груза (оплата, печать накладной, размещение)"""
+    """Обновление статуса обработки груза"""
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для изменения статуса груза"
+        )
     
-    new_status = status_data.new_status
-    
-    # Проверяем валидность нового статуса
-    valid_statuses = ["payment_pending", "paid", "invoice_printed", "placed"]
-    if new_status not in valid_statuses:
-        raise HTTPException(status_code=400, detail="Invalid processing status")
-    
-    # Ищем груз в обеих коллекциях
-    cargo = db.operator_cargo.find_one({"id": cargo_id})
-    collection = "operator_cargo"
-    
-    if not cargo:
-        cargo = db.cargo.find_one({"id": cargo_id})
-        collection = "cargo"
-    
-    if not cargo:
-        raise HTTPException(status_code=404, detail="Cargo not found")
-    
-    update_data = {
-        "processing_status": new_status,
-        "updated_at": datetime.utcnow()
-    }
-    
-    # Обновляем соответствующие статусы
-    if new_status == "paid":
-        update_data["payment_status"] = "paid"
-        # При оплате также обновляем главный статус
-        update_data["status"] = CargoStatus.PAID
-    elif new_status == "invoice_printed":
-        update_data["status"] = CargoStatus.INVOICE_PRINTED
-    elif new_status == "placed":
-        update_data["status"] = CargoStatus.AWAITING_PLACEMENT
-    
-    # Обновляем в соответствующей коллекции
-    if collection == "operator_cargo":
-        db.operator_cargo.update_one({"id": cargo_id}, {"$set": update_data})
-    else:
-        db.cargo.update_one({"id": cargo_id}, {"$set": update_data})
-    
-    # Создание уведомления
-    status_messages = {
-        "paid": "оплачен",
-        "invoice_printed": "накладная напечатана",
-        "placed": "готов к размещению"
-    }
-    
-    message = f"Статус груза {cargo['cargo_number']} обновлен: {status_messages.get(new_status, new_status)}"
-    
-    # Уведомляем клиента (если есть sender_id)
-    sender_id = cargo.get("sender_id") or cargo.get("created_by")
-    if sender_id and sender_id != current_user.id:
-        create_notification(sender_id, message, cargo_id)
-    
-    return {"message": "Processing status updated successfully", "new_status": new_status}
+    try:
+        # Принимаем как new_status (старый формат), так и processing_status (новый формат)
+        new_status = status_update.get('new_status') or status_update.get('processing_status')
+        
+        if not new_status:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Укажите новый статус (new_status или processing_status)"
+            )
+        
+        # Обновляем в обеих коллекциях
+        update_result_operator = db.operator_cargo.update_one(
+            {"id": cargo_id},
+            {"$set": {
+                "processing_status": new_status,
+                "updated_at": datetime.utcnow(),
+                "updated_by": current_user.full_name
+            }}
+        )
+        
+        update_result_user = db.cargo.update_one(
+            {"id": cargo_id},
+            {"$set": {
+                "processing_status": new_status,
+                "updated_at": datetime.utcnow(),
+                "updated_by": current_user.full_name
+            }}
+        )
+        
+        if update_result_operator.matched_count == 0 and update_result_user.matched_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Груз не найден"
+            )
+        
+        return {"message": f"Статус груза обновлен на {new_status}"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка обновления статуса груза: {str(e)}"
+        )
 
 @app.put("/api/cargo/{cargo_id}/status")
 async def update_cargo_status(
