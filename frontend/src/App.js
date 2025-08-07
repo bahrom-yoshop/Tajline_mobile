@@ -6826,6 +6826,35 @@ function App() {
                             </CardDescription>
                           </CardHeader>
                           <CardContent>
+                            {/* Интерфейс камеры */}
+                            {scannerActive && (
+                              <div className="mb-6">
+                                <div className="bg-black rounded-lg overflow-hidden" style={{maxWidth: '500px', margin: '0 auto'}}>
+                                  <div 
+                                    id="qr-reader" 
+                                    className="w-full"
+                                    style={{
+                                      width: '100%',
+                                      maxWidth: '500px',
+                                      minHeight: '300px'
+                                    }}
+                                  />
+                                </div>
+                                <div className="text-center mt-4 space-y-2">
+                                  <p className="text-sm text-gray-600">
+                                    {scannerMode === 'cargo-barcode' ? 
+                                      'Наведите камеру на штрих-код груза' : 
+                                      'Наведите камеру на QR-код ячейки'}
+                                  </p>
+                                  {cameraPermission === false && (
+                                    <p className="text-sm text-red-600">
+                                      Для работы сканера необходимо разрешение на использование камеры
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
                             {/* Статус сканирования */}
                             <div className="space-y-4">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
