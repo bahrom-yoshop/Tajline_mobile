@@ -5995,10 +5995,52 @@ function App() {
                             />
                           </div>
 
-                          <Button type="submit" className="w-full">
-                            <Plus className="mr-2 h-4 w-4" />
-                            Принять груз
-                          </Button>
+                          {/* Кнопки действий */}
+                          <div className="flex flex-col gap-4">
+                            {/* Кнопки печати */}
+                            <div className="flex gap-2">
+                              <Button 
+                                type="button" 
+                                variant="outline"
+                                onClick={handlePrintCurrentInvoice}
+                                disabled={!canPrintInvoice()}
+                                className="flex-1"
+                              >
+                                <Printer className="mr-2 h-4 w-4" />
+                                Печать накладной
+                              </Button>
+                              <Button 
+                                type="button" 
+                                variant="outline"
+                                onClick={handlePrintCurrentBarcode}
+                                disabled={!canPrintInvoice()}
+                                className="flex-1"
+                              >
+                                <QrCode className="mr-2 h-4 w-4" />
+                                Штрих-код
+                              </Button>
+                            </div>
+                            
+                            {/* Главная кнопка приема груза */}
+                            <Button type="submit" className="w-full" size="lg">
+                              <Plus className="mr-2 h-4 w-4" />
+                              Принять груз
+                            </Button>
+                            
+                            {/* Информация о статусе */}
+                            <div className="text-sm text-gray-600 text-center bg-blue-50 p-3 rounded-lg">
+                              <div className="flex items-center justify-center mb-2">
+                                <Clock className="mr-2 h-4 w-4" />
+                                <span className="font-medium">После приема груз поступает в:</span>
+                              </div>
+                              <div className="text-blue-800 font-semibold">
+                                Касса → Не оплачено
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                После оплаты груз автоматически переместится в "Размещение груза"
+                              </div>
+                            </div>
+                          </div>
                         </form>
                       </CardContent>
                     </Card>
