@@ -18573,10 +18573,11 @@ ID склада: {self.warehouse_id}"""
                             all_success = False
                         
                         # Verify warehouse location is set
-                        if warehouse_location and "B1-S1-C8" in warehouse_location:
+                        expected_location = f"B1-S1-C{cell_number}"
+                        if warehouse_location and expected_location in warehouse_location:
                             print("   ✅ Warehouse location correctly set")
                         else:
-                            print(f"   ❌ Warehouse location not set correctly: {warehouse_location}")
+                            print(f"   ❌ Warehouse location not set correctly: {warehouse_location} (expected: {expected_location})")
                             all_success = False
                     else:
                         print("   ❌ Could not find placed cargo in list")
