@@ -177,6 +177,15 @@ function App() {
   const [totalWeight, setTotalWeight] = useState(0);
   const [totalCost, setTotalCost] = useState(0);
   const [cargoBreakdown, setCargoBreakdown] = useState([]);  // Детальная разбивка по каждому грузу
+
+  // Personal dashboard states
+  const [personalDashboardData, setPersonalDashboardData] = useState(null);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+  
+  // Role management states
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [selectedUserForRole, setSelectedUserForRole] = useState(null);
+  const [newRole, setNewRole] = useState('');
   const [operatorCargoFilter, setOperatorCargoFilter] = useState(''); // Фильтр для списка грузов
   const [operatorCargoPagination, setOperatorCargoPagination] = useState({}); // Пагинация для списка грузов
   const [operatorCargoPage, setOperatorCargoPage] = useState(1);
