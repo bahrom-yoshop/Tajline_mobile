@@ -2503,6 +2503,7 @@ async def admin_update_user(
             email=updated_user.get("email"),
             address=updated_user.get("address"),
             is_active=updated_user["is_active"],
+            token_version=updated_user.get("token_version", 1),
             created_at=updated_user["created_at"]
         )
     }
