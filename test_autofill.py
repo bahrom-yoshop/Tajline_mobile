@@ -111,20 +111,30 @@ class AutoFillTester:
         )
         all_success &= success
         
-        if success and users_list and len(users_list) > 0:
+        if success and users_list:
+            # Check if users_list is a list or dict
+            if isinstance(users_list, list) and len(users_list) > 0:
+                users = users_list
+            elif isinstance(users_list, dict) and 'users' in users_list:
+                users = users_list['users']
+            else:
+                print(f"   ⚠️  Unexpected users_list structure: {type(users_list)}")
+                users = []
+            
+            print(f"   📊 Found {len(users)} users in system")
+            
             # Find a user with complete profile data or use the first available user
             target_user = None
-            print(f"   📊 Found {len(users_list)} users in system")
             
             # First try to find a user with complete data
-            for user in users_list:
+            for user in users:
                 if isinstance(user, dict) and user.get('full_name') and user.get('phone'):
                     target_user = user
                     break
             
             # If no complete user found, use the first user and show what data is available
-            if not target_user and len(users_list) > 0:
-                target_user = users_list[0]
+            if not target_user and len(users) > 0:
+                target_user = users[0]
                 print("   ⚠️  Using first available user (may have incomplete data)")
             
             if target_user:
