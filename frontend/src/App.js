@@ -9139,17 +9139,40 @@ function App() {
                                     </Button>
                                     
                                     <Button 
-                                      onClick={() => openTransportVisualization(transport)}
-                                      variant="outline"
-                                      size="sm"
-                                      title="Схема загрузки транспорта"
-                                    >
-                                      <Grid3X3 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              </Card>
-                            ))
+9132|                                        fetchAvailableCargoForTransport();
+9133|                                        setTransportManagementModal(true);
+9134|                                      }}
+9135|                                      className="flex-1"
+9136|                                      variant="outline"
+9137|                                    >
+9138|                                      <Truck className="mr-1 h-3 w-3" />
+9139|                                      Управление
+9140|                                    </Button>
+9141|                                    
+9142|                                    <Button 
+9143|                                      onClick={() => openTransportVisualization(transport)}
+9144|                                      variant="outline"
+9145|                                      size="sm"
+9146|                                      title="Схема загрузки транспорта"
+9147|                                    >
+9148|                                      <Grid3X3 className="h-3 w-3" />
+9149|                                    </Button>
+
+9150|                                    {user?.role === 'admin' && (
+9151|                                      <Button 
+9152|                                        onClick={() => handleDeleteTransport(transport.id)}
+9153|                                        variant="outline"
+9154|                                        size="sm"
+9155|                                        className="text-red-600 border-red-300 hover:bg-red-50"
+9156|                                        title="Удалить транспорт"
+9157|                                      >
+9158|                                        <Trash2 className="h-3 w-3" />
+9159|                                      </Button>
+9160|                                    )}
+9161|                                  </div>
+9162|                                </div>
+9163|                              </Card>
+9164|                            ))
                           )}
                         </div>
                       </CardContent>
