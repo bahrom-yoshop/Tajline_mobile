@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 class PaginationTester:
-    def __init__(self, base_url="https://4e5ad43f-b37d-44c8-8ded-6e3e54f9b9da.preview.emergentagent.com"):
+    def __init__(self, base_url="https://86835c32-e799-4e16-a50f-ea2e0b5110c5.preview.emergentagent.com"):
         self.base_url = base_url
         self.tokens = {}  # Store tokens for different users
         self.users = {}   # Store user data

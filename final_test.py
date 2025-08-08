@@ -10,7 +10,7 @@ import json
 from datetime import datetime
 
 class FinalTester:
-    def __init__(self, base_url="https://4e5ad43f-b37d-44c8-8ded-6e3e54f9b9da.preview.emergentagent.com"):
+    def __init__(self, base_url="https://86835c32-e799-4e16-a50f-ea2e0b5110c5.preview.emergentagent.com"):
         self.base_url = base_url
         self.admin_token = None
         self.operator_token = None

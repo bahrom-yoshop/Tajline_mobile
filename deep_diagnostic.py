@@ -8,7 +8,7 @@ import requests
 import json
 
 def deep_diagnostic():
-    base_url = "https://4e5ad43f-b37d-44c8-8ded-6e3e54f9b9da.preview.emergentagent.com"
+    base_url = "https://86835c32-e799-4e16-a50f-ea2e0b5110c5.preview.emergentagent.com"
     
     # Login as admin
     admin_login = {
