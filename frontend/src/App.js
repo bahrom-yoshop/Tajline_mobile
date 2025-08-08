@@ -13479,8 +13479,8 @@ function App() {
                   )}
                   {deleteConfirmData.type === 'cargo' && (
                     deleteConfirmData.isBulk 
-                      ? `Вы уверены, что хотите удалить ${deleteConfirmData.count} груз(ов)? Это действие необратимо.`
-                      : `Вы уверены, что хотите удалить груз "${deleteConfirmData.items[0]?.cargo_number}"? Это действие необратимо.`
+                      ? `Вы уверены, что хотите удалить ${deleteConfirmData.count} груз(ов)? ВНИМАНИЕ: Если груз размещен на складе или в транспорте, удаление может повлиять на логистику. Это действие необратимо.`
+                      : `Вы уверены, что хотите удалить груз "${deleteConfirmData.items[0]?.cargo_number}"? ВНИМАНИЕ: Если груз размещен на складе или в транспорте, удаление может повлиять на логистику. Это действие необратимо.`
                   )}
                   {deleteConfirmData.type === 'user' && (
                     deleteConfirmData.isBulk 
