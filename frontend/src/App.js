@@ -2369,15 +2369,11 @@ function App() {
   };
 
   const handleDeleteTransport = async (transportId) => {
-    if (window.confirm('Вы уверены, что хотите удалить этот транспорт?')) {
-      try {
-        await apiCall(`/api/transport/${transportId}`, 'DELETE');
-        showAlert('Транспорт удален!', 'success');
-        fetchTransports();
-        setTransportManagementModal(false);
-      } catch (error) {
-        console.error('Delete transport error:', error);
-      }
+    const transport = transports.find(t => t.id === transportId);
+    if (transport) {
+      openDeleteConfirmModal('transport', transport, false);
+    } else {
+      showAlert('Транспорт не найден', 'error');
     }
   };
 
