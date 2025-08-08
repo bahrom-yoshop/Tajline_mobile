@@ -8006,9 +8006,21 @@ function App() {
                   {activeTab === 'users-operators' && (
                     <Card>
                       <CardHeader>
-                        <CardTitle className="flex items-center">
-                          <Warehouse className="mr-2 h-5 w-5" />
-                          Операторы складов ({usersByRole.warehouse_operator.length})
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Warehouse className="mr-2 h-5 w-5" />
+                            Операторы складов ({usersByRole.warehouse_operator.length})
+                          </div>
+                          {selectedOperators.length > 0 && (
+                            <Button
+                              onClick={handleBulkDeleteOperators}
+                              variant="outline"
+                              className="text-red-600 border-red-300 hover:bg-red-50"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Удалить выбранных ({selectedOperators.length})
+                            </Button>
+                          )}
                         </CardTitle>
                         <CardDescription>Операторы складов с детальной информацией и управлением ролями</CardDescription>
                       </CardHeader>
@@ -8016,6 +8028,16 @@ function App() {
                         <Table>
                           <TableHeader>
                             <TableRow>
+                              <TableHead>
+                                {usersByRole.warehouse_operator.length > 0 && (
+                                  <input
+                                    type="checkbox"
+                                    checked={selectAllOperators}
+                                    onChange={(e) => handleSelectAllOperators(e.target.checked, usersByRole.warehouse_operator)}
+                                    className="rounded border-gray-300"
+                                  />
+                                )}
+                              </TableHead>
                               <TableHead>Номер</TableHead>
                               <TableHead>ФИО</TableHead>
                               <TableHead>Телефон</TableHead>
@@ -8028,6 +8050,14 @@ function App() {
                           <TableBody>
                             {usersByRole.warehouse_operator.map((u) => (
                               <TableRow key={u.id}>
+                                <TableCell>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedOperators.includes(u.id)}
+                                    onChange={(e) => handleOperatorSelect(u.id, e.target.checked)}
+                                    className="rounded border-gray-300"
+                                  />
+                                </TableCell>
                                 <TableCell>
                                   <Badge variant="secondary" className="text-xs">
                                     {u.user_number || 'N/A'}
