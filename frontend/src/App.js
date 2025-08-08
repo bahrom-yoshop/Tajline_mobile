@@ -1879,12 +1879,7 @@ function App() {
     openDeleteConfirmModal('operator', selectedOperatorItems, true);
   };
 
-  // Функции удаления транспорта
-  const handleDeleteTransport = async (transportId) => {
-    const transport = transports.find(t => t.id === transportId);
-    openDeleteConfirmModal('transport', transport, false);
-  };
-
+  // Функция массового удаления транспорта
   const handleBulkDeleteTransports = () => {
     if (selectedTransports.length === 0) {
       showAlert('Выберите транспорт для удаления', 'error');
