@@ -1976,6 +1976,24 @@ function App() {
         setSelectAllOperators(false);
         fetchUsersByRole(); // Обновляем список операторов
       }
+
+      else if (type === 'transport') {
+        if (isBulk) {
+          const ids = items.map(transport => transport.id);
+          const response = await apiCall('/api/admin/transports/bulk', 'DELETE', { ids });
+          showAlert(response.message, response.errors?.length > 0 ? 'warning' : 'success');
+          if (response.errors?.length > 0) {
+            response.errors.forEach(error => showAlert(error, 'error'));
+          }
+        } else {
+          const response = await apiCall(`/api/admin/transports/${items[0].id}`, 'DELETE');
+          showAlert(response.message, 'success');
+        }
+        setSelectedTransports([]);
+        setSelectAllTransports(false);
+        fetchTransports(); // Обновляем список транспорта
+        setTransportManagementModal(false); // Закрываем модальное окно если было открыто
+      }
       
       setDeleteConfirmModal(false);
       setDeleteConfirmData(null);
