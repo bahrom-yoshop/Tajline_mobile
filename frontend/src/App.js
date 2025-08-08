@@ -1776,6 +1776,25 @@ function App() {
     }
   };
 
+  // Функции для работы с выбранными транспортами
+  const handleTransportSelect = (transportId, isSelected) => {
+    if (isSelected) {
+      setSelectedTransports(prev => [...prev, transportId]);
+    } else {
+      setSelectedTransports(prev => prev.filter(id => id !== transportId));
+    }
+  };
+
+  const handleSelectAllTransports = (isSelected, transportList) => {
+    setSelectAllTransports(isSelected);
+    if (isSelected) {
+      const allIds = transportList.map(transport => transport.id);
+      setSelectedTransports(allIds);
+    } else {
+      setSelectedTransports([]);
+    }
+  };
+
   // Открытие модального окна подтверждения удаления
   const openDeleteConfirmModal = (type, items, isBulk = false) => {
     setDeleteConfirmData({
