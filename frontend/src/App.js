@@ -7463,7 +7463,7 @@ function App() {
                                           <Button
                                             size="sm"
                                             variant="outline"
-                                            onClick={() => handleDeleteCargo(item.id)}
+                                            onClick={() => handleDeleteCargo(item.id, operatorCargo)}
                                             className="flex items-center text-xs px-2 py-1 text-red-600 border-red-300 hover:bg-red-50"
                                             title="Удалить груз"
                                           >
