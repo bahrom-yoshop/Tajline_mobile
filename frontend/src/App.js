@@ -1879,6 +1879,21 @@ function App() {
     openDeleteConfirmModal('operator', selectedOperatorItems, true);
   };
 
+  // Функции удаления транспорта
+  const handleDeleteTransport = async (transportId) => {
+    const transport = transports.find(t => t.id === transportId);
+    openDeleteConfirmModal('transport', transport, false);
+  };
+
+  const handleBulkDeleteTransports = () => {
+    if (selectedTransports.length === 0) {
+      showAlert('Выберите транспорт для удаления', 'error');
+      return;
+    }
+    const selectedTransportItems = transports.filter(t => selectedTransports.includes(t.id));
+    openDeleteConfirmModal('transport', selectedTransportItems, true);
+  };
+
   // Выполнение удаления после подтверждения
   const executeDelete = async () => {
     if (!deleteConfirmData) return;
