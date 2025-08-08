@@ -1251,7 +1251,7 @@ async def register(user_data: UserCreate):
 @app.post("/api/auth/login")
 async def login(user_data: UserLogin):
     user = db.users.find_one({"phone": user_data.phone})
-    if not user or not verify_password(user_data.password, user["password"]):
+    if not user or not verify_password(user_data.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid phone or password")
     
     if not user["is_active"]:
