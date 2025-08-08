@@ -493,6 +493,7 @@ function App() {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [selectedRequests, setSelectedRequests] = useState([]); // Выбранные заявки
   const [selectedOperators, setSelectedOperators] = useState([]); // Выбранные операторы
+  const [selectedTransports, setSelectedTransports] = useState([]); // Выбранные транспорты
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState(false);
   const [deleteConfirmData, setDeleteConfirmData] = useState(null);
@@ -501,6 +502,7 @@ function App() {
   const [selectAllUsers, setSelectAllUsers] = useState(false);
   const [selectAllRequests, setSelectAllRequests] = useState(false); // Выбрать все заявки
   const [selectAllOperators, setSelectAllOperators] = useState(false); // Выбрать всех операторов
+  const [selectAllTransports, setSelectAllTransports] = useState(false); // Выбрать все транспорты
 
   const showAlert = (message, type = 'info') => {
     const id = Date.now();
