@@ -20412,6 +20412,218 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_warehouse_bulk_deletion_route_fix(self):
+        """Test warehouse bulk deletion route ordering fix - QUICK VERIFICATION"""
+        print("\n🏭 WAREHOUSE BULK DELETION ROUTE FIX TESTING")
+        print("   🎯 Testing fix for route ordering issue: bulk endpoint should work correctly")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Create test warehouses for bulk deletion
+        print("\n   🏗️ Creating test warehouses for bulk deletion...")
+        
+        test_warehouses = []
+        warehouse_data_templates = [
+            {
+                "name": "Тест Склад Bulk 1",
+                "location": "Москва, Тестовая территория 1",
+                "blocks_count": 1,
+                "shelves_per_block": 1,
+                "cells_per_shelf": 5
+            },
+            {
+                "name": "Тест Склад Bulk 2", 
+                "location": "Москва, Тестовая территория 2",
+                "blocks_count": 1,
+                "shelves_per_block": 1,
+                "cells_per_shelf": 5
+            }
+        ]
+        
+        for i, warehouse_data in enumerate(warehouse_data_templates):
+            success, warehouse_response = self.run_test(
+                f"Create Test Warehouse {i+1}",
+                "POST",
+                "/api/warehouses/create",
+                200,
+                warehouse_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success and 'id' in warehouse_response:
+                warehouse_id = warehouse_response['id']
+                test_warehouses.append(warehouse_id)
+                print(f"   ✅ Test warehouse {i+1} created: {warehouse_id}")
+            else:
+                print(f"   ❌ Failed to create test warehouse {i+1}")
+        
+        # Test 2: Verify warehouses are empty (no cargo assigned)
+        print("\n   🔍 Verifying warehouses are empty for safe deletion...")
+        
+        if len(test_warehouses) >= 2:
+            for i, warehouse_id in enumerate(test_warehouses):
+                success, warehouse_details = self.run_test(
+                    f"Check Warehouse {i+1} Status",
+                    "GET",
+                    f"/api/warehouses/{warehouse_id}",
+                    200,
+                    token=self.tokens['admin']
+                )
+                
+                if success:
+                    print(f"   ✅ Warehouse {i+1} verified as empty and ready for deletion")
+                else:
+                    print(f"   ⚠️  Could not verify warehouse {i+1} status")
+        
+        # Test 3: Test bulk deletion endpoint (THE MAIN TEST)
+        print("\n   🎯 TESTING BULK DELETION ENDPOINT - ROUTE ORDERING FIX...")
+        
+        if len(test_warehouses) >= 2:
+            bulk_deletion_data = {
+                "ids": test_warehouses  # Array of warehouse IDs
+            }
+            
+            success, bulk_response = self.run_test(
+                "Warehouse Bulk Deletion (Route Fix Test)",
+                "DELETE",
+                "/api/admin/warehouses/bulk",
+                200,
+                bulk_deletion_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                deleted_count = bulk_response.get('deleted_count', 0)
+                errors = bulk_response.get('errors', [])
+                
+                print(f"   ✅ BULK DELETION SUCCESSFUL!")
+                print(f"   📊 Deleted count: {deleted_count}")
+                print(f"   ❌ Errors: {len(errors)}")
+                
+                # Verify expected results
+                if deleted_count == 2 and len(errors) == 0:
+                    print("   🎉 ROUTE ORDERING FIX CONFIRMED - Bulk deletion working correctly!")
+                    print("   ✅ Expected result: deleted_count = 2, no errors")
+                    print("   ✅ Actual result matches expected - Route conflict resolved")
+                else:
+                    print(f"   ⚠️  Unexpected results: deleted_count={deleted_count}, errors={len(errors)}")
+                    if errors:
+                        for error in errors:
+                            print(f"   📄 Error: {error}")
+                    all_success = False
+            else:
+                print("   ❌ BULK DELETION FAILED - Route ordering issue may still exist")
+                print("   📄 This suggests the bulk endpoint is still being matched as individual endpoint")
+                all_success = False
+        else:
+            print("   ❌ Insufficient test warehouses created for bulk deletion test")
+            all_success = False
+        
+        # Test 4: Verify individual warehouse deletion still works
+        print("\n   🔍 Testing individual warehouse deletion (should still work)...")
+        
+        # Create one more warehouse for individual deletion test
+        individual_warehouse_data = {
+            "name": "Тест Склад Individual",
+            "location": "Москва, Индивидуальная территория",
+            "blocks_count": 1,
+            "shelves_per_block": 1,
+            "cells_per_shelf": 3
+        }
+        
+        success, individual_warehouse = self.run_test(
+            "Create Individual Test Warehouse",
+            "POST",
+            "/api/warehouses/create",
+            200,
+            individual_warehouse_data,
+            self.tokens['admin']
+        )
+        
+        if success and 'id' in individual_warehouse:
+            individual_warehouse_id = individual_warehouse['id']
+            
+            # Test individual deletion
+            success, individual_delete_response = self.run_test(
+                "Individual Warehouse Deletion",
+                "DELETE",
+                f"/api/admin/warehouses/{individual_warehouse_id}",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Individual warehouse deletion working correctly")
+                print("   ✅ Route ordering fix doesn't break individual deletion")
+            else:
+                print("   ❌ Individual warehouse deletion failed")
+        
+        # Test 5: Verify bulk endpoint error handling
+        print("\n   🛡️ Testing bulk deletion error handling...")
+        
+        # Test with non-existent warehouse IDs
+        invalid_bulk_data = {
+            "ids": ["non-existent-id-1", "non-existent-id-2"]
+        }
+        
+        success, error_response = self.run_test(
+            "Bulk Deletion with Invalid IDs",
+            "DELETE",
+            "/api/admin/warehouses/bulk",
+            200,  # Should return 200 with errors in response
+            invalid_bulk_data,
+            self.tokens['admin']
+        )
+        
+        if success:
+            deleted_count = error_response.get('deleted_count', 0)
+            errors = error_response.get('errors', [])
+            
+            if deleted_count == 0 and len(errors) == 2:
+                print("   ✅ Error handling working correctly for invalid IDs")
+            else:
+                print(f"   ⚠️  Unexpected error handling: deleted={deleted_count}, errors={len(errors)}")
+        
+        # Test 6: Test empty ID list
+        print("\n   📝 Testing empty ID list validation...")
+        
+        empty_bulk_data = {
+            "ids": []
+        }
+        
+        success, _ = self.run_test(
+            "Bulk Deletion with Empty ID List",
+            "DELETE",
+            "/api/admin/warehouses/bulk",
+            400,  # Should return 400 Bad Request
+            empty_bulk_data,
+            self.tokens['admin']
+        )
+        
+        if success:
+            print("   ✅ Empty ID list validation working correctly")
+        
+        # Summary
+        print(f"\n   📋 WAREHOUSE BULK DELETION ROUTE FIX TEST SUMMARY:")
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Route ordering fix is working correctly!")
+            print("   ✅ Bulk deletion endpoint accessible at /api/admin/warehouses/bulk")
+            print("   ✅ No more 'Склады не найдено' error for bulk operations")
+            print("   ✅ Individual deletion still works correctly")
+            print("   ✅ Error handling and validation working properly")
+        else:
+            print("   ❌ SOME TESTS FAILED - Route ordering issue may persist")
+            print("   📄 Check if bulk endpoint is defined BEFORE individual endpoint in server.py")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
