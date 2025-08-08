@@ -8381,12 +8381,24 @@ function App() {
                         <CardTitle className="flex items-center justify-between">
                           <div className="flex items-center">
                             <Building className="mr-2 h-5 w-5" />
-                            Список складов
+                            Список складов ({warehouses.length})
                           </div>
-                          <Button onClick={() => setActiveTab('warehouses-create')}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Создать склад
-                          </Button>
+                          <div className="flex items-center space-x-2">
+                            {selectedWarehouses.length > 0 && (
+                              <Button 
+                                variant="destructive" 
+                                onClick={handleBulkDeleteWarehouses}
+                                disabled={bulkDeleteLoading}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Удалить выбранные ({selectedWarehouses.length})
+                              </Button>
+                            )}
+                            <Button onClick={() => setActiveTab('warehouses-create')}>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Создать склад
+                            </Button>
+                          </div>
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -8401,62 +8413,98 @@ function App() {
                               </Button>
                             </div>
                           ) : (
-                            warehouses.map((warehouse) => (
-                              <div key={warehouse.id} className="border rounded-lg p-4">
-                                <div className="flex justify-between items-start mb-2">
-                                  <div>
-                                    <h3 className="font-semibold text-lg">{warehouse.name}</h3>
-                                    <p className="text-gray-600">{warehouse.location}</p>
-                                  </div>
-                                  <Badge variant="default">Активен</Badge>
+                            <>
+                              {/* Панель массового выбора */}
+                              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectAllWarehouses}
+                                    onChange={(e) => handleSelectAllWarehouses(e.target.checked)}
+                                    className="rounded"
+                                  />
+                                  <label className="text-sm font-medium">
+                                    {selectAllWarehouses ? 'Отменить выбор всех' : 'Выбрать все склады'}
+                                  </label>
                                 </div>
-                                
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                                  <div className="text-center">
-                                    <div className="text-2xl font-bold text-blue-600">{warehouse.blocks_count}</div>
-                                    <div className="text-sm text-gray-500">Блоков</div>
-                                  </div>
-                                  <div className="text-center">
-                                    <div className="text-2xl font-bold text-green-600">{warehouse.shelves_per_block}</div>
-                                    <div className="text-sm text-gray-500">Полок/блок</div>
-                                  </div>
-                                  <div className="text-center">
-                                    <div className="text-2xl font-bold text-purple-600">{warehouse.cells_per_shelf}</div>
-                                    <div className="text-sm text-gray-500">Ячеек/полка</div>
-                                  </div>
-                                  <div className="text-center">
-                                    <div className="text-2xl font-bold text-orange-600">{warehouse.total_capacity}</div>
-                                    <div className="text-sm text-gray-500">Всего ячеек</div>
-                                  </div>
-                                </div>
-                                
-                                <div className="flex justify-between items-center mt-4 pt-4 border-t">
-                                  <span className="text-sm text-gray-500">
-                                    Создан: {new Date(warehouse.created_at).toLocaleDateString('ru-RU')}
-                                  </span>
-                                  <div className="flex space-x-2">
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline"
-                                      onClick={() => handleOpenWarehouseLayout(warehouse)}
-                                    >
-                                      <Grid3X3 className="mr-2 h-4 w-4" />
-                                      Управление
-                                    </Button>
-                                    
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline"
-                                      onClick={() => printWarehouseCellsQr(warehouse)}
-                                      title="Печать QR кодов всех ячеек"
-                                    >
-                                      <QrCode className="mr-2 h-4 w-4" />
-                                      QR ячеек
-                                    </Button>
-                                  </div>
+                                <div className="text-sm text-gray-600">
+                                  {selectedWarehouses.length > 0 ? (
+                                    <span>Выбрано: {selectedWarehouses.length} из {warehouses.length}</span>
+                                  ) : (
+                                    <span>Всего складов: {warehouses.length}</span>
+                                  )}
                                 </div>
                               </div>
-                            ))
+
+                              {warehouses.map((warehouse) => (
+                                <div key={warehouse.id} className="border rounded-lg p-4">
+                                  <div className="flex items-start space-x-3">
+                                    {/* Чекбокс выбора */}
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedWarehouses.includes(warehouse.id)}
+                                      onChange={(e) => handleWarehouseSelect(warehouse.id, e.target.checked)}
+                                      className="rounded mt-1"
+                                    />
+                                    
+                                    <div className="flex-1">
+                                      <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                          <h3 className="font-semibold text-lg">{warehouse.name}</h3>
+                                          <p className="text-gray-600">{warehouse.location}</p>
+                                        </div>
+                                        <Badge variant="default">Активен</Badge>
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                                        <div className="text-center">
+                                          <div className="text-2xl font-bold text-blue-600">{warehouse.blocks_count}</div>
+                                          <div className="text-sm text-gray-500">Блоков</div>
+                                        </div>
+                                        <div className="text-center">
+                                          <div className="text-2xl font-bold text-green-600">{warehouse.shelves_per_block}</div>
+                                          <div className="text-sm text-gray-500">Полок</div>
+                                        </div>
+                                        <div className="text-center">
+                                          <div className="text-2xl font-bold text-orange-600">{warehouse.cells_per_shelf}</div>
+                                          <div className="text-sm text-gray-500">Ячеек</div>
+                                        </div>
+                                        <div className="text-center">
+                                          <div className="text-2xl font-bold text-purple-600">
+                                            {(warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)}
+                                          </div>
+                                          <div className="text-sm text-gray-500">Всего ячеек</div>
+                                        </div>
+                                      </div>
+
+                                      {/* Кнопки действий */}
+                                      <div className="flex justify-end space-x-2 mt-4">
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => {
+                                            setSelectedWarehouseForDetailView(warehouse);
+                                            setWarehouseDetailsModal(true);
+                                          }}
+                                        >
+                                          <Eye className="mr-2 h-4 w-4" />
+                                          Подробнее
+                                        </Button>
+                                        <Button
+                                          variant="destructive"
+                                          size="sm"
+                                          onClick={() => handleDeleteWarehouse(warehouse.id)}
+                                          disabled={bulkDeleteLoading}
+                                        >
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          Удалить
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </>
                           )}
                         </div>
                       </CardContent>
