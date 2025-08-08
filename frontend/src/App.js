@@ -487,6 +487,17 @@ function App() {
   const [placedCargoPage, setPlacedCargoPage] = useState(1);
   const [placedCargoPerPage, setPlacedCargoPerPage] = useState(25);
 
+  // Состояния для массового удаления (административные функции)
+  const [selectedWarehouses, setSelectedWarehouses] = useState([]);
+  const [selectedCargo, setSelectedCargo] = useState([]);
+  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState(false);
+  const [deleteConfirmData, setDeleteConfirmData] = useState(null);
+  const [selectAllWarehouses, setSelectAllWarehouses] = useState(false);
+  const [selectAllCargo, setSelectAllCargo] = useState(false);
+  const [selectAllUsers, setSelectAllUsers] = useState(false);
+
   const showAlert = (message, type = 'info') => {
     const id = Date.now();
     setAlerts(prev => [...prev, { id, message, type }]);
