@@ -1828,6 +1828,36 @@ function App() {
     openDeleteConfirmModal('user', selectedUserItems, true);
   };
 
+  // Функции удаления заявок
+  const handleDeleteRequest = async (requestId) => {
+    const request = cargoRequests.find(r => r.id === requestId);
+    openDeleteConfirmModal('request', request, false);
+  };
+
+  const handleBulkDeleteRequests = () => {
+    if (selectedRequests.length === 0) {
+      showAlert('Выберите заявки для удаления', 'error');
+      return;
+    }
+    const selectedRequestItems = cargoRequests.filter(r => selectedRequests.includes(r.id));
+    openDeleteConfirmModal('request', selectedRequestItems, true);
+  };
+
+  // Функции удаления операторов
+  const handleDeleteOperator = async (operatorId) => {
+    const operator = usersByRole.warehouse_operator.find(o => o.id === operatorId);
+    openDeleteConfirmModal('operator', operator, false);
+  };
+
+  const handleBulkDeleteOperators = () => {
+    if (selectedOperators.length === 0) {
+      showAlert('Выберите операторов для удаления', 'error');
+      return;
+    }
+    const selectedOperatorItems = usersByRole.warehouse_operator.filter(o => selectedOperators.includes(o.id));
+    openDeleteConfirmModal('operator', selectedOperatorItems, true);
+  };
+
   // Выполнение удаления после подтверждения
   const executeDelete = async () => {
     if (!deleteConfirmData) return;
