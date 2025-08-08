@@ -8482,10 +8482,7 @@ function App() {
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          onClick={() => {
-                                            setSelectedWarehouseForDetailView(warehouse);
-                                            setWarehouseDetailsModal(true);
-                                          }}
+                                          onClick={() => handleOpenWarehouseLayout(warehouse)}
                                         >
                                           <Eye className="mr-2 h-4 w-4" />
                                           Подробнее
