@@ -1718,6 +1718,7 @@ metadata:
 
 test_plan:
   current_focus:
+    - "Bulk Deletion Endpoints Testing"
     - "Barcode Scanning Cargo Placement Workflow Re-Testing"
     - "Frontend Barcode Scanner Interface Testing"
     - "User Number Display Consistency Check"
