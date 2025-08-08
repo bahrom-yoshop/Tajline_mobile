@@ -1673,6 +1673,186 @@ function App() {
     fetchPlacedCargo(1, perPage);
   };
 
+  // ===== ФУНКЦИИ МАССОВОГО УДАЛЕНИЯ =====
+
+  // Функции для работы с выбранными складами
+  const handleWarehouseSelect = (warehouseId, isSelected) => {
+    if (isSelected) {
+      setSelectedWarehouses(prev => [...prev, warehouseId]);
+    } else {
+      setSelectedWarehouses(prev => prev.filter(id => id !== warehouseId));
+    }
+  };
+
+  const handleSelectAllWarehouses = (isSelected) => {
+    setSelectAllWarehouses(isSelected);
+    if (isSelected) {
+      const allIds = warehouses.map(warehouse => warehouse.id);
+      setSelectedWarehouses(allIds);
+    } else {
+      setSelectedWarehouses([]);
+    }
+  };
+
+  // Функции для работы с выбранными грузами
+  const handleCargoSelect = (cargoId, isSelected) => {
+    if (isSelected) {
+      setSelectedCargo(prev => [...prev, cargoId]);
+    } else {
+      setSelectedCargo(prev => prev.filter(id => id !== cargoId));
+    }
+  };
+
+  const handleSelectAllCargo = (isSelected, cargoList) => {
+    setSelectAllCargo(isSelected);
+    if (isSelected) {
+      const allIds = cargoList.map(cargo => cargo.id);
+      setSelectedCargo(allIds);
+    } else {
+      setSelectedCargo([]);
+    }
+  };
+
+  // Функции для работы с выбранными пользователями
+  const handleUserSelect = (userId, isSelected) => {
+    if (isSelected) {
+      setSelectedUsers(prev => [...prev, userId]);
+    } else {
+      setSelectedUsers(prev => prev.filter(id => id !== userId));
+    }
+  };
+
+  const handleSelectAllUsers = (isSelected, userList) => {
+    setSelectAllUsers(isSelected);
+    if (isSelected) {
+      const allIds = userList.map(user => user.id).filter(id => id !== user.id); // Исключаем текущего пользователя
+      setSelectedUsers(allIds);
+    } else {
+      setSelectedUsers([]);
+    }
+  };
+
+  // Открытие модального окна подтверждения удаления
+  const openDeleteConfirmModal = (type, items, isBulk = false) => {
+    setDeleteConfirmData({
+      type,
+      items: isBulk ? items : [items],
+      isBulk,
+      count: isBulk ? items.length : 1
+    });
+    setDeleteConfirmModal(true);
+  };
+
+  // Функции удаления отдельных элементов
+  const handleDeleteWarehouse = async (warehouseId) => {
+    const warehouse = warehouses.find(w => w.id === warehouseId);
+    openDeleteConfirmModal('warehouse', warehouse, false);
+  };
+
+  const handleDeleteCargo = async (cargoId, cargoList) => {
+    const cargo = cargoList.find(c => c.id === cargoId);
+    openDeleteConfirmModal('cargo', cargo, false);
+  };
+
+  const handleDeleteUser = async (userId, userList) => {
+    const userToDelete = userList.find(u => u.id === userId);
+    openDeleteConfirmModal('user', userToDelete, false);
+  };
+
+  // Функции массового удаления
+  const handleBulkDeleteWarehouses = () => {
+    if (selectedWarehouses.length === 0) {
+      showAlert('Выберите склады для удаления', 'error');
+      return;
+    }
+    openDeleteConfirmModal('warehouse', selectedWarehouses, true);
+  };
+
+  const handleBulkDeleteCargo = (cargoList) => {
+    if (selectedCargo.length === 0) {
+      showAlert('Выберите грузы для удаления', 'error');
+      return;
+    }
+    const selectedCargoItems = cargoList.filter(c => selectedCargo.includes(c.id));
+    openDeleteConfirmModal('cargo', selectedCargoItems, true);
+  };
+
+  const handleBulkDeleteUsers = (userList) => {
+    if (selectedUsers.length === 0) {
+      showAlert('Выберите пользователей для удаления', 'error');
+      return;
+    }
+    const selectedUserItems = userList.filter(u => selectedUsers.includes(u.id));
+    openDeleteConfirmModal('user', selectedUserItems, true);
+  };
+
+  // Выполнение удаления после подтверждения
+  const executeDelete = async () => {
+    if (!deleteConfirmData) return;
+    
+    setBulkDeleteLoading(true);
+    try {
+      const { type, items, isBulk } = deleteConfirmData;
+      
+      if (type === 'warehouse') {
+        if (isBulk) {
+          const response = await apiCall('/api/admin/warehouses/bulk', 'DELETE', { ids: items });
+          showAlert(response.message, response.errors?.length > 0 ? 'warning' : 'success');
+          if (response.errors?.length > 0) {
+            response.errors.forEach(error => showAlert(error, 'error'));
+          }
+        } else {
+          const response = await apiCall(`/api/admin/warehouses/${items[0].id}`, 'DELETE');
+          showAlert(response.message, 'success');
+        }
+        setSelectedWarehouses([]);
+        setSelectAllWarehouses(false);
+        fetchWarehouses();
+      }
+      
+      else if (type === 'cargo') {
+        if (isBulk) {
+          const ids = items.map(cargo => cargo.id);
+          const response = await apiCall('/api/admin/cargo/bulk', 'DELETE', { ids });
+          showAlert(response.message, 'success');
+        } else {
+          const response = await apiCall(`/api/admin/cargo/${items[0].id}`, 'DELETE');
+          showAlert(response.message, 'success');
+        }
+        setSelectedCargo([]);
+        setSelectAllCargo(false);
+        fetchAllCargo();
+        fetchOperatorCargo();
+      }
+      
+      else if (type === 'user') {
+        if (isBulk) {
+          const ids = items.map(user => user.id);
+          const response = await apiCall('/api/admin/users/bulk', 'DELETE', { ids });
+          showAlert(response.message, 'success');
+          if (response.warnings?.length > 0) {
+            response.warnings.forEach(warning => showAlert(warning, 'warning'));
+          }
+        } else {
+          const response = await apiCall(`/api/admin/users/${items[0].id}`, 'DELETE');
+          showAlert(response.message, response.warning ? 'warning' : 'success');
+        }
+        setSelectedUsers([]);
+        setSelectAllUsers(false);
+        fetchUsers();
+      }
+      
+      setDeleteConfirmModal(false);
+      setDeleteConfirmData(null);
+      
+    } catch (error) {
+      console.error('Delete error:', error);
+      showAlert('Ошибка при удалении: ' + error.message, 'error');
+    } finally {
+      setBulkDeleteLoading(false);
+    }
+  };
+
   const updateCargoProcessingStatus = async (cargoId, newStatus) => {
     try {
       await apiCall(`/api/cargo/${cargoId}/processing-status`, 'PUT', { new_status: newStatus });
