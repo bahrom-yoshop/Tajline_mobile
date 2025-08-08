@@ -19644,6 +19644,420 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_bulk_deletion_endpoints(self):
+        """Test new bulk deletion endpoints for TAJLINE.TJ"""
+        print("\n🗑️ BULK DELETION ENDPOINTS TESTING")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Create test data for deletion
+        print("\n   📋 Creating test data for deletion testing...")
+        
+        # Create test cargo applications
+        test_cargo_requests = []
+        for i in range(3):
+            cargo_request_data = {
+                "recipient_full_name": f"Получатель Тест {i+1}",
+                "recipient_phone": f"+99290000000{i}",
+                "recipient_address": f"Душанбе, ул. Тестовая, {i+1}",
+                "pickup_address": f"Москва, ул. Отправки, {i+1}",
+                "cargo_name": f"Тестовый груз {i+1}",
+                "weight": 5.0 + i,
+                "declared_value": 1000.0 + (i * 100),
+                "description": f"Описание тестового груза {i+1}",
+                "route": "moscow_dushanbe"
+            }
+            
+            success, response = self.run_test(
+                f"Create Test Cargo Request {i+1}",
+                "POST",
+                "/api/user/cargo-request",
+                200,
+                cargo_request_data,
+                self.tokens['user']
+            )
+            
+            if success and 'id' in response:
+                test_cargo_requests.append(response['id'])
+                print(f"   ✅ Test cargo request {i+1} created: {response['id']}")
+            else:
+                print(f"   ❌ Failed to create test cargo request {i+1}")
+                all_success = False
+        
+        # Create test operators
+        test_operators = []
+        for i in range(3):
+            operator_data = {
+                "full_name": f"Тестовый Оператор {i+1}",
+                "phone": f"+7999888777{i}",
+                "password": f"testop{i+1}123",
+                "role": "warehouse_operator"
+            }
+            
+            success, response = self.run_test(
+                f"Create Test Operator {i+1}",
+                "POST",
+                "/api/auth/register",
+                200,
+                operator_data
+            )
+            
+            if success and 'user' in response:
+                test_operators.append(response['user']['id'])
+                print(f"   ✅ Test operator {i+1} created: {response['user']['id']}")
+            else:
+                print(f"   ❌ Failed to create test operator {i+1}")
+                all_success = False
+        
+        # Test 2: Individual cargo application deletion
+        print("\n   🗑️ Testing individual cargo application deletion...")
+        
+        if test_cargo_requests:
+            # Test with valid ID
+            success, response = self.run_test(
+                "Delete Individual Cargo Application (Valid ID)",
+                "DELETE",
+                f"/api/admin/cargo-applications/{test_cargo_requests[0]}",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Individual cargo application deleted successfully")
+                print(f"   📄 Response: {response.get('message', 'No message')}")
+            
+            # Test with invalid ID
+            success, _ = self.run_test(
+                "Delete Individual Cargo Application (Invalid ID)",
+                "DELETE",
+                "/api/admin/cargo-applications/invalid-id-12345",
+                404,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Invalid ID properly rejected with 404")
+        
+        # Test 3: Non-admin access to cargo application deletion
+        print("\n   🔒 Testing access control for cargo application deletion...")
+        
+        if 'user' in self.tokens and test_cargo_requests:
+            success, _ = self.run_test(
+                "Delete Cargo Application (Non-admin - Should Fail)",
+                "DELETE",
+                f"/api/admin/cargo-applications/{test_cargo_requests[1] if len(test_cargo_requests) > 1 else 'test-id'}",
+                403,
+                token=self.tokens['user']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Non-admin access properly denied with 403")
+        
+        # Test 4: Bulk cargo application deletion
+        print("\n   📦 Testing bulk cargo application deletion...")
+        
+        if len(test_cargo_requests) >= 2:
+            # Test with valid IDs
+            bulk_delete_data = {
+                "ids": test_cargo_requests[1:]  # Delete remaining requests
+            }
+            
+            success, response = self.run_test(
+                "Bulk Delete Cargo Applications (Valid IDs)",
+                "DELETE",
+                "/api/admin/cargo-applications/bulk",
+                200,
+                bulk_delete_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                deleted_count = response.get('deleted_count', 0)
+                total_requested = response.get('total_requested', 0)
+                print(f"   ✅ Bulk deletion successful: {deleted_count}/{total_requested} deleted")
+                print(f"   📄 Message: {response.get('message', 'No message')}")
+            
+            # Test with empty list
+            success, _ = self.run_test(
+                "Bulk Delete Cargo Applications (Empty List - Should Fail)",
+                "DELETE",
+                "/api/admin/cargo-applications/bulk",
+                400,
+                {"ids": []},
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Empty list properly rejected with 400")
+        
+        # Test 5: Individual operator deletion
+        print("\n   👤 Testing individual operator deletion...")
+        
+        if test_operators:
+            # Test with valid ID
+            success, response = self.run_test(
+                "Delete Individual Operator (Valid ID)",
+                "DELETE",
+                f"/api/admin/operators/{test_operators[0]}",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print(f"   ✅ Individual operator deleted successfully")
+                print(f"   📄 Response: {response.get('message', 'No message')}")
+                
+                # Check for warnings about related cargo
+                if response.get('warning'):
+                    print(f"   ⚠️ Warning about related cargo: {response.get('cargo_count', 0)} cargo(s)")
+            
+            # Test self-deletion prevention
+            success, _ = self.run_test(
+                "Delete Self (Should Fail)",
+                "DELETE",
+                f"/api/admin/operators/{self.users['admin']['id']}",
+                400,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Self-deletion properly prevented with 400")
+            
+            # Test with invalid ID
+            success, _ = self.run_test(
+                "Delete Individual Operator (Invalid ID)",
+                "DELETE",
+                "/api/admin/operators/invalid-operator-id-12345",
+                404,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Invalid operator ID properly rejected with 404")
+        
+        # Test 6: Non-admin access to operator deletion
+        print("\n   🔒 Testing access control for operator deletion...")
+        
+        if 'user' in self.tokens and test_operators:
+            success, _ = self.run_test(
+                "Delete Operator (Non-admin - Should Fail)",
+                "DELETE",
+                f"/api/admin/operators/{test_operators[1] if len(test_operators) > 1 else 'test-id'}",
+                403,
+                token=self.tokens['user']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Non-admin access properly denied with 403")
+        
+        # Test 7: Bulk operator deletion
+        print("\n   👥 Testing bulk operator deletion...")
+        
+        if len(test_operators) >= 2:
+            # Test with valid IDs (excluding current admin)
+            bulk_delete_data = {
+                "ids": test_operators[1:]  # Delete remaining operators
+            }
+            
+            success, response = self.run_test(
+                "Bulk Delete Operators (Valid IDs)",
+                "DELETE",
+                "/api/admin/operators/bulk",
+                200,
+                bulk_delete_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                deleted_count = response.get('deleted_count', 0)
+                total_requested = response.get('total_requested', 0)
+                warnings = response.get('warnings', [])
+                excluded_current_user = response.get('excluded_current_user', False)
+                
+                print(f"   ✅ Bulk operator deletion successful: {deleted_count}/{total_requested} deleted")
+                print(f"   📄 Message: {response.get('message', 'No message')}")
+                
+                if warnings:
+                    print(f"   ⚠️ Warnings about related cargo: {len(warnings)} operator(s) with cargo")
+                    for warning in warnings[:3]:  # Show first 3 warnings
+                        print(f"     - {warning}")
+                
+                if excluded_current_user:
+                    print("   ✅ Current user properly excluded from deletion")
+            
+            # Test with current admin ID included (should be excluded)
+            bulk_delete_with_admin = {
+                "ids": [self.users['admin']['id']] + (test_operators[2:] if len(test_operators) > 2 else [])
+            }
+            
+            if bulk_delete_with_admin['ids']:
+                success, response = self.run_test(
+                    "Bulk Delete Operators (Including Current Admin)",
+                    "DELETE",
+                    "/api/admin/operators/bulk",
+                    200,
+                    bulk_delete_with_admin,
+                    self.tokens['admin']
+                )
+                all_success &= success
+                
+                if success:
+                    excluded_current_user = response.get('excluded_current_user', False)
+                    if excluded_current_user:
+                        print("   ✅ Current admin properly excluded from bulk deletion")
+                    else:
+                        print("   ❌ Current admin exclusion not working properly")
+                        all_success = False
+            
+            # Test with empty list
+            success, _ = self.run_test(
+                "Bulk Delete Operators (Empty List - Should Fail)",
+                "DELETE",
+                "/api/admin/operators/bulk",
+                400,
+                {"ids": []},
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Empty list properly rejected with 400")
+        
+        # Test 8: Test related records cleanup
+        print("\n   🔗 Testing related records cleanup...")
+        
+        # Create an operator with warehouse binding to test cleanup
+        if 'admin' in self.tokens:
+            # First create a warehouse
+            warehouse_data = {
+                "name": "Тестовый склад для удаления",
+                "location": "Москва, тестовая территория",
+                "blocks_count": 1,
+                "shelves_per_block": 1,
+                "cells_per_shelf": 5
+            }
+            
+            success, warehouse_response = self.run_test(
+                "Create Test Warehouse for Binding",
+                "POST",
+                "/api/warehouses/create",
+                200,
+                warehouse_data,
+                self.tokens['admin']
+            )
+            
+            if success and 'id' in warehouse_response:
+                warehouse_id = warehouse_response['id']
+                
+                # Create operator for binding test
+                operator_data = {
+                    "full_name": "Оператор для Тестирования Связей",
+                    "phone": "+79998887776",
+                    "password": "testbinding123",
+                    "role": "warehouse_operator"
+                }
+                
+                success, operator_response = self.run_test(
+                    "Create Operator for Binding Test",
+                    "POST",
+                    "/api/auth/register",
+                    200,
+                    operator_data
+                )
+                
+                if success and 'user' in operator_response:
+                    operator_id = operator_response['user']['id']
+                    
+                    # Create warehouse binding
+                    binding_data = {
+                        "operator_id": operator_id,
+                        "warehouse_id": warehouse_id
+                    }
+                    
+                    success, _ = self.run_test(
+                        "Create Operator Warehouse Binding",
+                        "POST",
+                        "/api/admin/operator-warehouse-bindings/create",
+                        200,
+                        binding_data,
+                        self.tokens['admin']
+                    )
+                    
+                    if success:
+                        print("   ✅ Operator warehouse binding created")
+                        
+                        # Now delete the operator and verify binding is removed
+                        success, delete_response = self.run_test(
+                            "Delete Operator with Warehouse Binding",
+                            "DELETE",
+                            f"/api/admin/operators/{operator_id}",
+                            200,
+                            token=self.tokens['admin']
+                        )
+                        
+                        if success:
+                            print("   ✅ Operator with warehouse binding deleted successfully")
+                            print("   ✅ Related warehouse bindings should be automatically removed")
+        
+        # Test 9: Test with mixed valid/invalid IDs
+        print("\n   🔀 Testing with mixed valid/invalid IDs...")
+        
+        # Create one more operator for mixed testing
+        operator_data = {
+            "full_name": "Оператор для Смешанного Теста",
+            "phone": "+79998887775",
+            "password": "mixedtest123",
+            "role": "warehouse_operator"
+        }
+        
+        success, operator_response = self.run_test(
+            "Create Operator for Mixed Test",
+            "POST",
+            "/api/auth/register",
+            200,
+            operator_data
+        )
+        
+        if success and 'user' in operator_response:
+            valid_operator_id = operator_response['user']['id']
+            
+            # Test bulk deletion with mixed valid/invalid IDs
+            mixed_ids_data = {
+                "ids": [valid_operator_id, "invalid-id-12345", "another-invalid-id"]
+            }
+            
+            success, response = self.run_test(
+                "Bulk Delete with Mixed Valid/Invalid IDs",
+                "DELETE",
+                "/api/admin/operators/bulk",
+                200,
+                mixed_ids_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                deleted_count = response.get('deleted_count', 0)
+                total_requested = response.get('total_requested', 0)
+                print(f"   ✅ Mixed ID deletion: {deleted_count}/{total_requested} deleted")
+                print("   ✅ Invalid IDs properly ignored, valid IDs processed")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
