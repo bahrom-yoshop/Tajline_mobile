@@ -1736,6 +1736,44 @@ function App() {
     }
   };
 
+  // Функции для работы с выбранными заявками
+  const handleRequestSelect = (requestId, isSelected) => {
+    if (isSelected) {
+      setSelectedRequests(prev => [...prev, requestId]);
+    } else {
+      setSelectedRequests(prev => prev.filter(id => id !== requestId));
+    }
+  };
+
+  const handleSelectAllRequests = (isSelected, requestList) => {
+    setSelectAllRequests(isSelected);
+    if (isSelected) {
+      const allIds = requestList.map(request => request.id);
+      setSelectedRequests(allIds);
+    } else {
+      setSelectedRequests([]);
+    }
+  };
+
+  // Функции для работы с выбранными операторами
+  const handleOperatorSelect = (operatorId, isSelected) => {
+    if (isSelected) {
+      setSelectedOperators(prev => [...prev, operatorId]);
+    } else {
+      setSelectedOperators(prev => prev.filter(id => id !== operatorId));
+    }
+  };
+
+  const handleSelectAllOperators = (isSelected, operatorList) => {
+    setSelectAllOperators(isSelected);
+    if (isSelected) {
+      const allIds = operatorList.map(operator => operator.id).filter(id => id !== user.id); // Исключаем текущего пользователя
+      setSelectedOperators(allIds);
+    } else {
+      setSelectedOperators([]);
+    }
+  };
+
   // Открытие модального окна подтверждения удаления
   const openDeleteConfirmModal = (type, items, isBulk = false) => {
     setDeleteConfirmData({
