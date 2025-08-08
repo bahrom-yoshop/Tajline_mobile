@@ -7218,11 +7218,38 @@ function App() {
                             <Package className="mr-2 h-5 w-5" />
                             Список грузов
                           </div>
-                          <Button onClick={() => {setActiveTab('cargo-accept'); fetchOperatorCargo();}}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Принять груз
-                          </Button>
+                          <div className="flex space-x-2">
+                            {user?.role === 'admin' && selectedCargo.length > 0 && (
+                              <Button
+                                onClick={handleBulkDeleteCargo}
+                                variant="outline"
+                                className="text-red-600 border-red-300 hover:bg-red-50"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Удалить выбранные ({selectedCargo.length})
+                              </Button>
+                            )}
+                            <Button onClick={() => {setActiveTab('cargo-accept'); fetchOperatorCargo();}}>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Принять груз
+                            </Button>
+                          </div>
                         </CardTitle>
+                        
+                        {/* Чекбокс "Выбрать все" для админа */}
+                        {user?.role === 'admin' && operatorCargo.length > 0 && (
+                          <div className="flex items-center space-x-2 mt-4 p-3 bg-gray-50 rounded-lg">
+                            <input
+                              type="checkbox"
+                              checked={selectAllCargo}
+                              onChange={(e) => handleSelectAllCargo(e.target.checked, operatorCargo)}
+                              className="rounded border-gray-300"
+                            />
+                            <label className="text-sm font-medium text-gray-700">
+                              Выбрать все ({operatorCargo.length})
+                            </label>
+                          </div>
+                        )}
                         
                         {/* Фильтры */}
                         <div className="flex items-center space-x-4 mt-4">
