@@ -46,7 +46,7 @@ class CargoTransportAPITester:
             elif method == 'PUT':
                 response = requests.put(url, json=data, headers=headers, params=params)
             elif method == 'DELETE':
-                response = requests.delete(url, headers=headers)
+                response = requests.delete(url, json=data, headers=headers)
 
             success = response.status_code == expected_status
             
