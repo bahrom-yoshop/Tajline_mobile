@@ -9139,15 +9139,18 @@ function App() {
                                     </Button>
                                     
                                     <Button 
-9132|                                        fetchAvailableCargoForTransport();
-9133|                                        setTransportManagementModal(true);
-9134|                                      }}
-9135|                                      className="flex-1"
-9136|                                      variant="outline"
-9137|                                    >
-9138|                                      <Truck className="mr-1 h-3 w-3" />
-9139|                                      Управление
-9140|                                    </Button>
+                                      onClick={() => {
+                                        setSelectedTransport(transport);
+                                        fetchTransportCargoList(transport.id);
+                                        fetchAvailableCargoForTransport();
+                                        setTransportManagementModal(true);
+                                      }}
+                                      className="flex-1"
+                                      variant="outline"
+                                    >
+                                      <Truck className="mr-1 h-3 w-3" />
+                                      Управление
+                                    </Button>
 9141|                                    
 9142|                                    <Button 
 9143|                                      onClick={() => openTransportVisualization(transport)}
