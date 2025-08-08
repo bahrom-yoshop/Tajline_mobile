@@ -4955,14 +4955,20 @@ async def create_operator_by_admin(
     
     # Создание оператора
     operator_id = str(uuid.uuid4())
+    
+    # Генерируем user_number для оператора
+    user_number = generate_user_number()
+    
     operator = {
         "id": operator_id,
+        "user_number": user_number,
         "full_name": operator_data.full_name,
         "phone": operator_data.phone,
         "address": operator_data.address,  # Адрес проживания
-        "password": hash_password(operator_data.password),
+        "password_hash": hash_password(operator_data.password),  # ИСПРАВЛЕНО: было "password"
         "role": UserRole.WAREHOUSE_OPERATOR.value,  # Всегда оператор склада
         "is_active": True,
+        "token_version": 1,  # Начальная версия токена
         "created_at": datetime.utcnow(),
         "created_by": current_user.id,  # Кто создал
         "created_by_name": current_user.full_name
