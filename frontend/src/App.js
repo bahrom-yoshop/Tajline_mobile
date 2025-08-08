@@ -9331,15 +9331,40 @@ function App() {
                             <Bell className="mr-2 h-5 w-5" />
                             Новые заявки ({cargoRequests.length})
                           </div>
-                          <Button onClick={fetchCargoRequests}>
-                            Обновить
-                          </Button>
+                          <div className="flex space-x-2">
+                            {selectedRequests.length > 0 && (
+                              <Button
+                                onClick={handleBulkDeleteRequests}
+                                variant="outline"
+                                className="text-red-600 border-red-300 hover:bg-red-50"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Удалить выбранные ({selectedRequests.length})
+                              </Button>
+                            )}
+                            <Button onClick={fetchCargoRequests}>
+                              Обновить
+                            </Button>
+                          </div>
                         </CardTitle>
                         <CardDescription>
                           Заявки от пользователей на отправку грузов
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
+                        {cargoRequests.length > 0 && (
+                          <div className="flex items-center space-x-2 mb-4 p-3 bg-gray-50 rounded-lg">
+                            <input
+                              type="checkbox"
+                              checked={selectAllRequests}
+                              onChange={(e) => handleSelectAllRequests(e.target.checked, cargoRequests)}
+                              className="rounded border-gray-300"
+                            />
+                            <label className="text-sm font-medium text-gray-700">
+                              Выбрать все ({cargoRequests.length})
+                            </label>
+                          </div>
+                        )}
                         <div className="space-y-4">
                           {cargoRequests.length === 0 ? (
                             <div className="text-center py-8">
@@ -9350,11 +9375,30 @@ function App() {
                             cargoRequests.map((request) => (
                               <div key={request.id} className="border rounded-lg p-6 bg-blue-50">
                                 <div className="flex justify-between items-start mb-4">
-                                  <div>
-                                    <h3 className="text-lg font-semibold text-blue-800">{request.request_number}</h3>
-                                    <p className="text-sm text-gray-600">Подана: {new Date(request.created_at).toLocaleDateString('ru-RU')} {new Date(request.created_at).toLocaleTimeString('ru-RU')}</p>
+                                  <div className="flex items-start space-x-3">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedRequests.includes(request.id)}
+                                      onChange={(e) => handleRequestSelect(request.id, e.target.checked)}
+                                      className="mt-1 rounded border-gray-300"
+                                    />
+                                    <div>
+                                      <h3 className="text-lg font-semibold text-blue-800">{request.request_number}</h3>
+                                      <p className="text-sm text-gray-600">Подана: {new Date(request.created_at).toLocaleDateString('ru-RU')} {new Date(request.created_at).toLocaleTimeString('ru-RU')}</p>
+                                    </div>
                                   </div>
-                                  <Badge variant="secondary">Новая заявка</Badge>
+                                  <div className="flex items-center space-x-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleDeleteRequest(request.id)}
+                                      className="text-red-600 border-red-300 hover:bg-red-50"
+                                      title="Удалить заявку"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                    <Badge variant="secondary">Новая заявка</Badge>
+                                  </div>
                                 </div>
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
