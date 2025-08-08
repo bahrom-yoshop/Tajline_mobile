@@ -1913,6 +1913,37 @@ function App() {
         setSelectAllUsers(false);
         fetchUsers();
       }
+
+      else if (type === 'request') {
+        if (isBulk) {
+          const ids = items.map(request => request.id);
+          const response = await apiCall('/api/admin/cargo-applications/bulk', 'DELETE', { ids });
+          showAlert(response.message, 'success');
+        } else {
+          const response = await apiCall(`/api/admin/cargo-applications/${items[0].id}`, 'DELETE');
+          showAlert(response.message, 'success');
+        }
+        setSelectedRequests([]);
+        setSelectAllRequests(false);
+        fetchCargoRequests();
+      }
+
+      else if (type === 'operator') {
+        if (isBulk) {
+          const ids = items.map(operator => operator.id);
+          const response = await apiCall('/api/admin/operators/bulk', 'DELETE', { ids });
+          showAlert(response.message, 'success');
+          if (response.warnings?.length > 0) {
+            response.warnings.forEach(warning => showAlert(warning, 'warning'));
+          }
+        } else {
+          const response = await apiCall(`/api/admin/operators/${items[0].id}`, 'DELETE');
+          showAlert(response.message, response.warning ? 'warning' : 'success');
+        }
+        setSelectedOperators([]);
+        setSelectAllOperators(false);
+        fetchUsersByRole(); // Обновляем список операторов
+      }
       
       setDeleteConfirmModal(false);
       setDeleteConfirmData(null);
