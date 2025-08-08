@@ -9139,35 +9139,26 @@ function App() {
                                     </Button>
                                     
                                     <Button 
-                                      onClick={() => {
-                                        setSelectedTransport(transport);
-                                        fetchTransportCargoList(transport.id);
-                                        fetchAvailableCargoForTransport();
-                                        setTransportManagementModal(true);
-                                      }}
-                                      className="flex-1"
+                                      onClick={() => openTransportVisualization(transport)}
                                       variant="outline"
+                                      size="sm"
+                                      title="Схема загрузки транспорта"
                                     >
-                                      <Truck className="mr-1 h-3 w-3" />
-                                      Управление
+                                      <Grid3X3 className="h-3 w-3" />
                                     </Button>
-9141|                                    
-9142|                                    <Button 
-9143|                                      onClick={() => openTransportVisualization(transport)}
-9144|                                      variant="outline"
-9145|                                      size="sm"
-9146|                                      title="Схема загрузки транспорта"
-9147|                                    >
-9148|                                      <Grid3X3 className="h-3 w-3" />
-9149|                                    </Button>
 
-9150|                                    {user?.role === 'admin' && (
-9151|                                      <Button 
-9152|                                        onClick={() => handleDeleteTransport(transport.id)}
-9153|                                        variant="outline"
-9154|                                        size="sm"
-9155|                                        className="text-red-600 border-red-300 hover:bg-red-50"
-9156|                                        title="Удалить транспорт"
+                                    {user?.role === 'admin' && (
+                                      <Button 
+                                        onClick={() => handleDeleteTransport(transport.id)}
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-red-600 border-red-300 hover:bg-red-50"
+                                        title="Удалить транспорт"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                  </div>
 9157|                                      >
 9158|                                        <Trash2 className="h-3 w-3" />
 9159|                                      </Button>
