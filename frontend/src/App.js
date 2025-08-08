@@ -7457,6 +7457,20 @@ function App() {
                                             Повторить
                                           </Button>
                                         )}
+
+                                        {/* Кнопка удаления груза (только для администратора) */}
+                                        {user?.role === 'admin' && (
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => handleDeleteCargo(item.id)}
+                                            className="flex items-center text-xs px-2 py-1 text-red-600 border-red-300 hover:bg-red-50"
+                                            title="Удалить груз"
+                                          >
+                                            <Trash2 className="mr-1 h-3 w-3" />
+                                            Удалить
+                                          </Button>
+                                        )}
                                       </div>
                                     </TableCell>
                                   </TableRow>
