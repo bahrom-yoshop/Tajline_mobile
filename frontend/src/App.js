@@ -9159,14 +9159,9 @@ function App() {
                                       </Button>
                                     )}
                                   </div>
-9157|                                      >
-9158|                                        <Trash2 className="h-3 w-3" />
-9159|                                      </Button>
-9160|                                    )}
-9161|                                  </div>
-9162|                                </div>
-9163|                              </Card>
-9164|                            ))
+                                </div>
+                              </Card>
+                            ))
                           )}
                         </div>
                       </CardContent>
