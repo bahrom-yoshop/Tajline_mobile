@@ -7166,6 +7166,68 @@ async def delete_operators_bulk(
             detail=f"Ошибка массового удаления операторов: {str(e)}"
         )
 
+@app.delete("/api/admin/operators/{operator_id}")
+async def delete_operator(
+    operator_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Удаление оператора склада (только для администратора)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для удаления операторов"
+        )
+    
+    try:
+        # Нельзя удалить самого себя
+        if operator_id == current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Нельзя удалить свой собственный аккаунт"
+            )
+        
+        # Найдем пользователя-оператора
+        operator = db.users.find_one({"id": operator_id, "role": "warehouse_operator"})
+        if not operator:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Оператор склада не найден"
+            )
+        
+        # Проверяем, есть ли связанные грузы, обработанные оператором
+        cargo_count = db.operator_cargo.count_documents({"created_by": operator_id})
+        if cargo_count > 0:
+            return {
+                "message": f"Внимание: оператор {operator.get('full_name', 'Неизвестно')} обработал {cargo_count} груз(ов). Удаление выполнено, но грузы сохранены.",
+                "warning": True,
+                "cargo_count": cargo_count
+            }
+        
+        # Удаляем привязки к складам
+        db.operator_warehouse_bindings.delete_many({"operator_id": operator_id})
+        
+        # Удаляем оператора
+        result = db.users.delete_one({"id": operator_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Оператор не найден для удаления"
+            )
+        
+        return {
+            "message": f"Оператор '{operator.get('full_name', 'Неизвестно')}' успешно удален",
+            "deleted_id": operator_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка удаления оператора: {str(e)}"
+        )
+
 @app.post("/api/transport/create-interwarehouse")
 async def create_interwarehouse_transport(
     transport_data: dict,
