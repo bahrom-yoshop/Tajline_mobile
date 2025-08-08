@@ -13447,6 +13447,11 @@ function App() {
                       ? `Вы уверены, что хотите удалить ${deleteConfirmData.count} оператор(ов)? Это действие необратимо.`
                       : `Вы уверены, что хотите удалить оператора "${deleteConfirmData.items[0]?.full_name}"? Это действие необратимо.`
                   )}
+                  {deleteConfirmData.type === 'transport' && (
+                    deleteConfirmData.isBulk 
+                      ? `Вы уверены, что хотите удалить ${deleteConfirmData.count} транспорт(ов)? ВНИМАНИЕ: Удаляются только ПУСТЫЕ транспорты. Это действие необратимо.`
+                      : `Вы уверены, что хотите удалить транспорт "${deleteConfirmData.items[0]?.transport_number}"? ВНИМАНИЕ: Транспорт должен быть ПУСТОЙ. Это действие необратимо.`
+                  )}
                 </p>
               </div>
 
