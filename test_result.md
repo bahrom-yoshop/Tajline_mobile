@@ -125,6 +125,18 @@
 user_problem_statement: "Enhanced Admin Panel with Advanced User Management: 1) OPERATOR ROLE MANAGEMENT: Enhanced warehouse operator list with full data and role change functionality (operator to administrator) with complete role information display, 2) OPERATOR PROFILE MANAGEMENT: Detailed operator profiles viewable through admin panel showing work history, accepted cargo statistics, activity periods, and associated warehouses, 3) ENHANCED USER MANAGEMENT SYSTEM: User profile viewing with complete shipping history, recipient history for auto-filling, one-click cargo request creation with auto-filled sender/recipient data from history, integration with multi-cargo form and individual pricing calculator for operators to only fill cargo names, weights, and prices while other data is auto-populated from user history."
 
 backend:
+  - task: "Bulk Deletion Endpoints Testing"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Implemented new bulk deletion endpoints for TAJLINE.TJ: DELETE /api/admin/cargo-applications/{request_id} for individual cargo application deletion, DELETE /api/admin/cargo-applications/bulk for bulk cargo application deletion, DELETE /api/admin/operators/{operator_id} for individual operator deletion, DELETE /api/admin/operators/bulk for bulk operator deletion. All endpoints include admin-only access control, self-deletion prevention for operators, related records cleanup (warehouse bindings), and warnings about related cargo. Need comprehensive testing of all endpoints with various scenarios including access control, validation, and edge cases."
+
   - task: "TAJLINE.TJ Final Comprehensive Testing"
     implemented: true
     working: false
