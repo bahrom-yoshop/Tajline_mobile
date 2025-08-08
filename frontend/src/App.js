@@ -9100,7 +9100,17 @@ function App() {
                               <Card key={transport.id} className="p-4">
                                 <div className="space-y-3">
                                   <div className="flex justify-between items-start">
-                                    <h3 className="font-semibold text-lg">{transport.transport_number}</h3>
+                                    <div className="flex items-start space-x-2">
+                                      {user?.role === 'admin' && (
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedTransports.includes(transport.id)}
+                                          onChange={(e) => handleTransportSelect(transport.id, e.target.checked)}
+                                          className="mt-1 rounded border-gray-300"
+                                        />
+                                      )}
+                                      <h3 className="font-semibold text-lg">{transport.transport_number}</h3>
+                                    </div>
                                     <Badge variant={transport.status === 'empty' ? 'secondary' : 'default'}>
                                       {transport.status === 'empty' ? 'Пустой' : 'Заполнено'}
                                     </Badge>
