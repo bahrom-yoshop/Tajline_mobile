@@ -7057,6 +7057,49 @@ async def delete_cargo_applications_bulk(
             detail=f"Ошибка массового удаления заявок: {str(e)}"
         )
 
+@app.delete("/api/admin/cargo-applications/{request_id}")
+async def delete_cargo_application(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Удаление заявки на груз (только для администратора)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для удаления заявок"
+        )
+    
+    try:
+        # Найдем заявку
+        request = db.cargo_requests.find_one({"id": request_id})
+        if not request:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Заявка не найдена"
+            )
+        
+        # Удаляем заявку
+        result = db.cargo_requests.delete_one({"id": request_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Заявка не найдена для удаления"
+            )
+        
+        return {
+            "message": f"Заявка №{request.get('request_number', 'Неизвестно')} успешно удалена",
+            "deleted_id": request_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка удаления заявки: {str(e)}"
+        )
+
 @app.delete("/api/admin/operators/{operator_id}")
 async def delete_operator(
     operator_id: str,
