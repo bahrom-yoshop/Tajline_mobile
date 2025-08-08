@@ -7228,6 +7228,120 @@ async def delete_operator(
             detail=f"Ошибка удаления оператора: {str(e)}"
         )
 
+# ===== ЭНДПОИНТЫ УДАЛЕНИЯ ТРАНСПОРТА =====
+
+@app.delete("/api/admin/transports/bulk")
+async def delete_transports_bulk(
+    transport_ids: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Массовое удаление транспорта (только для администратора)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для удаления транспорта"
+        )
+    
+    try:
+        ids_to_delete = transport_ids.get("ids", [])
+        if not ids_to_delete:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Список ID для удаления не может быть пустым"
+            )
+        
+        deleted_count = 0
+        errors = []
+        
+        for transport_id in ids_to_delete:
+            try:
+                # Найдем транспорт
+                transport = db.transports.find_one({"id": transport_id})
+                if not transport:
+                    errors.append(f"Транспорт {transport_id}: не найден")
+                    continue
+                
+                # Проверяем, есть ли груз в транспорте
+                cargo_count = len(transport.get("cargo_list", []))
+                if cargo_count > 0:
+                    transport_name = f"Транспорт {transport.get('transport_number', transport_id)}"
+                    errors.append(f"{transport_name}: содержит {cargo_count} груз(ов). Удаление запрещено")
+                    continue
+                
+                # Удаляем транспорт (только пустой)
+                result = db.transports.delete_one({"id": transport_id})
+                if result.deleted_count > 0:
+                    deleted_count += 1
+                    
+            except Exception as e:
+                errors.append(f"Транспорт {transport_id}: {str(e)}")
+        
+        return {
+            "message": f"Успешно удалено транспорта: {deleted_count}",
+            "deleted_count": deleted_count,
+            "total_requested": len(ids_to_delete),
+            "errors": errors
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка массового удаления транспорта: {str(e)}"
+        )
+
+@app.delete("/api/admin/transports/{transport_id}")
+async def delete_transport(
+    transport_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Удаление транспорта (только для администратора)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для удаления транспорта"
+        )
+    
+    try:
+        # Найдем транспорт
+        transport = db.transports.find_one({"id": transport_id})
+        if not transport:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Транспорт не найден"
+            )
+        
+        # Проверяем, есть ли груз в транспорте
+        cargo_count = len(transport.get("cargo_list", []))
+        if cargo_count > 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Невозможно удалить транспорт. В транспорте находится {cargo_count} груз(ов). Сначала удалите или переместите груз"
+            )
+        
+        # Удаляем транспорт
+        result = db.transports.delete_one({"id": transport_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Транспорт не найден для удаления"
+            )
+        
+        return {
+            "message": f"Транспорт '{transport.get('transport_number', 'Неизвестно')}' успешно удален",
+            "deleted_id": transport_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка удаления транспорта: {str(e)}"
+        )
+
 @app.post("/api/transport/create-interwarehouse")
 async def create_interwarehouse_transport(
     transport_data: dict,
