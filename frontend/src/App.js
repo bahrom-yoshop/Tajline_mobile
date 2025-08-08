@@ -13299,6 +13299,85 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Модальное окно подтверждения удаления */}
+      <Dialog open={deleteConfirmModal} onOpenChange={setDeleteConfirmModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">
+              <Trash2 className="mr-2 h-5 w-5 inline" />
+              Подтвердите удаление
+            </DialogTitle>
+          </DialogHeader>
+          
+          {deleteConfirmData && (
+            <div className="space-y-4">
+              <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                <h4 className="font-medium text-red-800 mb-2">
+                  {deleteConfirmData.isBulk 
+                    ? `Удаление ${deleteConfirmData.count} элемент(ов)` 
+                    : 'Удаление элемента'
+                  }
+                </h4>
+                <p className="text-sm text-red-700">
+                  {deleteConfirmData.type === 'warehouse' && (
+                    deleteConfirmData.isBulk 
+                      ? `Вы уверены, что хотите удалить ${deleteConfirmData.count} склад(ов)? Это действие необратимо.`
+                      : `Вы уверены, что хотите удалить склад "${deleteConfirmData.items[0]?.name}"? Это действие необратимо.`
+                  )}
+                  {deleteConfirmData.type === 'cargo' && (
+                    deleteConfirmData.isBulk 
+                      ? `Вы уверены, что хотите удалить ${deleteConfirmData.count} груз(ов)? Это действие необратимо.`
+                      : `Вы уверены, что хотите удалить груз "${deleteConfirmData.items[0]?.cargo_number}"? Это действие необратимо.`
+                  )}
+                  {deleteConfirmData.type === 'user' && (
+                    deleteConfirmData.isBulk 
+                      ? `Вы уверены, что хотите удалить ${deleteConfirmData.count} пользовател(ей)? Это действие необратимо.`
+                      : `Вы уверены, что хотите удалить пользователя "${deleteConfirmData.items[0]?.full_name}"? Это действие необратимо.`
+                  )}
+                  {deleteConfirmData.type === 'request' && (
+                    deleteConfirmData.isBulk 
+                      ? `Вы уверены, что хотите удалить ${deleteConfirmData.count} заявк(и)? Это действие необратимо.`
+                      : `Вы уверены, что хотите удалить заявку "${deleteConfirmData.items[0]?.request_number}"? Это действие необратимо.`
+                  )}
+                  {deleteConfirmData.type === 'operator' && (
+                    deleteConfirmData.isBulk 
+                      ? `Вы уверены, что хотите удалить ${deleteConfirmData.count} оператор(ов)? Это действие необратимо.`
+                      : `Вы уверены, что хотите удалить оператора "${deleteConfirmData.items[0]?.full_name}"? Это действие необратимо.`
+                  )}
+                </p>
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteConfirmModal(false)}
+                  disabled={bulkDeleteLoading}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  onClick={executeDelete}
+                  disabled={bulkDeleteLoading}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {bulkDeleteLoading ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Удаление...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Удалить
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
