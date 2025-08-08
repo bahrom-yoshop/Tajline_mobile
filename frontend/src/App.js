@@ -7221,7 +7221,7 @@ function App() {
                           <div className="flex space-x-2">
                             {user?.role === 'admin' && selectedCargo.length > 0 && (
                               <Button
-                                onClick={handleBulkDeleteCargo}
+                                onClick={() => handleBulkDeleteCargo(operatorCargo)}
                                 variant="outline"
                                 className="text-red-600 border-red-300 hover:bg-red-50"
                               >
