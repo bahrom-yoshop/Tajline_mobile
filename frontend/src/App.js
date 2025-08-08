@@ -1015,12 +1015,16 @@ function App() {
       if (token && !isLoggingIn && !isLoggingOut && !user) {
         console.log('Token found, fetching user data...');
         try {
+          // Добавляем задержку для предотвращения race conditions
+          await new Promise(resolve => setTimeout(resolve, 500));
           await fetchUserData();
         } catch (error) {
           console.error('Failed to initialize app with token:', error);
-          // Токен недействителен, очищаем его
-          localStorage.removeItem('token');
-          setToken(null);
+          // Только удаляем токен, если это действительно проблема с токеном
+          if (error.message === 'Session expired') {
+            localStorage.removeItem('token');
+            setToken(null);
+          }
         }
       }
     };
