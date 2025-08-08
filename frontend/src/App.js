@@ -1133,14 +1133,30 @@ function App() {
   };
 
   const fetchUserData = async () => {
+    // Предотвращаем множественные запросы данных пользователя
+    if (isLoggingIn || isLoggingOut) {
+      console.log('Skipping fetchUserData - login/logout in progress');
+      return;
+    }
+
     try {
+      console.log('Fetching user data...');
       // Get user data from backend using the token
       const userData = await apiCall('/api/auth/me', 'GET');
+      console.log('User data received:', userData.full_name, userData.role);
       setUser(userData);
+      
+      // Сбрасываем флаг логина если он был установлен
+      if (isLoggingIn) {
+        setIsLoggingIn(false);
+      }
     } catch (error) {
       console.error('Failed to fetch user data:', error);
-      // Session clearing is now handled in apiCall function
-      // No duplicate clearing logic needed here
+      // Не очищаем токен автоматически - позволяем apiCall обработать это
+      if (error.message !== 'Session expired') {
+        showAlert('Ошибка загрузки данных пользователя', 'error');
+      }
+      throw error;
     }
   };
 
