@@ -20635,6 +20635,8 @@ ID склада: {target_warehouse_id}"""
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            # 🎯 QUICK WAREHOUSE BULK DELETION ROUTE FIX TEST (Primary Focus)
+            ("🏭 WAREHOUSE BULK DELETION ROUTE FIX", self.test_warehouse_bulk_deletion_route_fix),
             # 🎯 PRIMARY FOCUS: TAJLINE DELETION ENDPOINTS (Review Request)
             ("🎯 TAJLINE DELETION ENDPOINTS", self.test_tajline_deletion_endpoints),
             # 🎯 PRIMARY FOCUS: FINAL COMPREHENSIVE TESTING (Review Request)
