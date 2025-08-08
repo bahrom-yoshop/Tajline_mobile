@@ -6677,64 +6677,6 @@ async def get_warehouse_detailed_structure(
 
 # ===== АДМИНИСТРАТИВНЫЕ ФУНКЦИИ УДАЛЕНИЯ =====
 
-@app.delete("/api/admin/warehouses/{warehouse_id}")
-async def delete_warehouse(
-    warehouse_id: str,
-    current_user: User = Depends(get_current_user)
-):
-    """Удаление склада (только для администратора)"""
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Нет прав для удаления складов"
-        )
-    
-    try:
-        # Проверяем существование склада
-        warehouse = db.warehouses.find_one({"id": warehouse_id})
-        if not warehouse:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Склад не найден"
-            )
-        
-        # Проверяем, нет ли грузов на складе
-        cargo_count = db.cargo.count_documents({
-            "warehouse_id": warehouse_id,
-            "status": "placed_in_warehouse"
-        })
-        
-        if cargo_count > 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Невозможно удалить склад. На складе находится {cargo_count} груз(ов)"
-            )
-        
-        # Удаляем привязки операторов к складу
-        db.operator_warehouse_bindings.delete_many({"warehouse_id": warehouse_id})
-        
-        # Удаляем склад
-        result = db.warehouses.delete_one({"id": warehouse_id})
-        
-        if result.deleted_count == 0:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Склад не найден для удаления"
-            )
-        
-        return {
-            "message": f"Склад '{warehouse.get('name', 'Неизвестно')}' успешно удален",
-            "deleted_id": warehouse_id
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка удаления склада: {str(e)}"
-        )
-
 @app.delete("/api/admin/warehouses/bulk")
 async def delete_warehouses_bulk(
     warehouse_ids: dict,
@@ -6796,6 +6738,64 @@ async def delete_warehouses_bulk(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка массового удаления складов: {str(e)}"
+        )
+
+@app.delete("/api/admin/warehouses/{warehouse_id}")
+async def delete_warehouse(
+    warehouse_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Удаление склада (только для администратора)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для удаления складов"
+        )
+    
+    try:
+        # Проверяем существование склада
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Склад не найден"
+            )
+        
+        # Проверяем, нет ли грузов на складе
+        cargo_count = db.cargo.count_documents({
+            "warehouse_id": warehouse_id,
+            "status": "placed_in_warehouse"
+        })
+        
+        if cargo_count > 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Невозможно удалить склад. На складе находится {cargo_count} груз(ов)"
+            )
+        
+        # Удаляем привязки операторов к складу
+        db.operator_warehouse_bindings.delete_many({"warehouse_id": warehouse_id})
+        
+        # Удаляем склад
+        result = db.warehouses.delete_one({"id": warehouse_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Склад не найден для удаления"
+            )
+        
+        return {
+            "message": f"Склад '{warehouse.get('name', 'Неизвестно')}' успешно удален",
+            "deleted_id": warehouse_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка удаления склада: {str(e)}"
         )
 
 @app.delete("/api/admin/cargo/{cargo_id}")
