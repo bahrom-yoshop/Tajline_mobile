@@ -31,8 +31,9 @@ app.add_middleware(
 
 # MongoDB подключение
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+DB_NAME = os.environ.get('DB_NAME', 'cargo_transport')
 client = MongoClient(MONGO_URL)
-db = client.cargo_transport
+db = client[DB_NAME]  # Используем имя базы из переменной окружения
 
 # JWT настройки
 SECRET_KEY = "cargo_transport_secret_key_2025"
