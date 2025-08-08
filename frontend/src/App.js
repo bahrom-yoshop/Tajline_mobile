@@ -9051,6 +9051,16 @@ function App() {
                             Список транспортов ({transports.filter(t => t.status === 'empty' || t.status === 'filled').length})
                           </div>
                           <div className="flex space-x-2">
+                            {user?.role === 'admin' && selectedTransports.length > 0 && (
+                              <Button
+                                onClick={handleBulkDeleteTransports}
+                                variant="outline"
+                                className="text-red-600 border-red-300 hover:bg-red-50"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Удалить выбранные ({selectedTransports.length})
+                              </Button>
+                            )}
                             <Button 
                               variant="outline" 
                               onClick={() => setInterwarehouseTransportModal(true)}
@@ -9066,6 +9076,19 @@ function App() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
+                        {user?.role === 'admin' && transports.filter(t => t.status === 'empty' || t.status === 'filled').length > 0 && (
+                          <div className="flex items-center space-x-2 mb-4 p-3 bg-gray-50 rounded-lg">
+                            <input
+                              type="checkbox"
+                              checked={selectAllTransports}
+                              onChange={(e) => handleSelectAllTransports(e.target.checked, transports.filter(t => t.status === 'empty' || t.status === 'filled'))}
+                              className="rounded border-gray-300"
+                            />
+                            <label className="text-sm font-medium text-gray-700">
+                              Выбрать все ({transports.filter(t => t.status === 'empty' || t.status === 'filled').length})
+                            </label>
+                          </div>
+                        )}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {transports.filter(transport => transport.status === 'empty' || transport.status === 'filled').length === 0 ? (
                             <div className="col-span-full text-center py-8">
