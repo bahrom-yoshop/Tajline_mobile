@@ -20183,6 +20183,8 @@ ID склада: {target_warehouse_id}"""
             ("💰 UNPAID ORDERS SYSTEM", self.test_unpaid_orders_system),
             ("🔄 FULL WORKFLOW: UNPAID ORDERS", self.test_full_workflow_unpaid_orders),
             ("🧹 TEST DATA CLEANUP FUNCTIONALITY", self.test_test_data_cleanup_functionality),
+            # 🎯 PRIMARY FOCUS: BULK DELETION ENDPOINTS (Review Request)
+            ("🗑️ BULK DELETION ENDPOINTS", self.test_bulk_deletion_endpoints),
             ("Notifications", self.test_notifications),
             ("Error Handling", self.test_error_cases)
         ]
