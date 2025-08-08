@@ -7300,6 +7300,16 @@ function App() {
                             <Table>
                               <TableHeader>
                                 <TableRow>
+                                  {user?.role === 'admin' && (
+                                    <TableHead className="w-12">
+                                      <input
+                                        type="checkbox"
+                                        checked={selectAllCargo}
+                                        onChange={(e) => handleSelectAllCargo(e.target.checked, operatorCargo)}
+                                        className="rounded border-gray-300"
+                                      />
+                                    </TableHead>
+                                  )}
                                   <TableHead>Номер груза</TableHead>
                                   <TableHead>Отправитель</TableHead>
                                   <TableHead>Получатель</TableHead>
@@ -7314,6 +7324,16 @@ function App() {
                               <TableBody>
                                 {operatorCargo.map((item) => (
                                   <TableRow key={item.id}>
+                                    {user?.role === 'admin' && (
+                                      <TableCell>
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedCargo.includes(item.id)}
+                                          onChange={(e) => handleCargoSelect(item.id, e.target.checked)}
+                                          className="rounded border-gray-300"
+                                        />
+                                      </TableCell>
+                                    )}
                                     <TableCell className="font-medium">{item.cargo_number}</TableCell>
                                     <TableCell>
                                       <div>
