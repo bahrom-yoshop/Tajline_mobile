@@ -1868,7 +1868,8 @@ function App() {
       
       if (type === 'warehouse') {
         if (isBulk) {
-          const response = await apiCall('/api/admin/warehouses/bulk', 'DELETE', { ids: items });
+          const ids = items.map(warehouse => warehouse.id);
+          const response = await apiCall('/api/admin/warehouses/bulk', 'DELETE', { ids });
           showAlert(response.message, response.errors?.length > 0 ? 'warning' : 'success');
           if (response.errors?.length > 0) {
             response.errors.forEach(error => showAlert(error, 'error'));
