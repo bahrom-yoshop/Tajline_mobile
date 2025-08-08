@@ -491,12 +491,16 @@ function App() {
   const [selectedWarehouses, setSelectedWarehouses] = useState([]);
   const [selectedCargo, setSelectedCargo] = useState([]);
   const [selectedUsers, setSelectedUsers] = useState([]);
+  const [selectedRequests, setSelectedRequests] = useState([]); // Выбранные заявки
+  const [selectedOperators, setSelectedOperators] = useState([]); // Выбранные операторы
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState(false);
   const [deleteConfirmData, setDeleteConfirmData] = useState(null);
   const [selectAllWarehouses, setSelectAllWarehouses] = useState(false);
   const [selectAllCargo, setSelectAllCargo] = useState(false);
   const [selectAllUsers, setSelectAllUsers] = useState(false);
+  const [selectAllRequests, setSelectAllRequests] = useState(false); // Выбрать все заявки
+  const [selectAllOperators, setSelectAllOperators] = useState(false); // Выбрать всех операторов
 
   const showAlert = (message, type = 'info') => {
     const id = Date.now();
