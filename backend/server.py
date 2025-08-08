@@ -7017,6 +7017,217 @@ async def delete_users_bulk(
             detail=f"Ошибка массового удаления пользователей: {str(e)}"
         )
 
+# ===== ДОПОЛНИТЕЛЬНЫЕ ЭНДПОИНТЫ МАССОВОГО УДАЛЕНИЯ =====
+
+@app.delete("/api/admin/cargo-applications/{request_id}")
+async def delete_cargo_application(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Удаление заявки на груз (только для администратора)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для удаления заявок"
+        )
+    
+    try:
+        # Найдем заявку
+        request = db.cargo_requests.find_one({"id": request_id})
+        if not request:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Заявка не найдена"
+            )
+        
+        # Удаляем заявку
+        result = db.cargo_requests.delete_one({"id": request_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Заявка не найдена для удаления"
+            )
+        
+        return {
+            "message": f"Заявка №{request.get('request_number', 'Неизвестно')} успешно удалена",
+            "deleted_id": request_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка удаления заявки: {str(e)}"
+        )
+
+@app.delete("/api/admin/cargo-applications/bulk")
+async def delete_cargo_applications_bulk(
+    request_ids: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Массовое удаление заявок на груз"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для удаления заявок"
+        )
+    
+    try:
+        ids_to_delete = request_ids.get("ids", [])
+        if not ids_to_delete:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Список ID для удаления не может быть пустым"
+            )
+        
+        # Массовое удаление заявок
+        result = db.cargo_requests.delete_many({"id": {"$in": ids_to_delete}})
+        deleted_count = result.deleted_count
+        
+        return {
+            "message": f"Успешно удалено заявок: {deleted_count}",
+            "deleted_count": deleted_count,
+            "total_requested": len(ids_to_delete)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка массового удаления заявок: {str(e)}"
+        )
+
+@app.delete("/api/admin/operators/{operator_id}")
+async def delete_operator(
+    operator_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Удаление оператора склада (только для администратора)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для удаления операторов"
+        )
+    
+    try:
+        # Нельзя удалить самого себя
+        if operator_id == current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Нельзя удалить свой собственный аккаунт"
+            )
+        
+        # Найдем пользователя-оператора
+        operator = db.users.find_one({"id": operator_id, "role": "warehouse_operator"})
+        if not operator:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Оператор склада не найден"
+            )
+        
+        # Проверяем, есть ли связанные грузы, обработанные оператором
+        cargo_count = db.operator_cargo.count_documents({"created_by": operator_id})
+        if cargo_count > 0:
+            return {
+                "message": f"Внимание: оператор {operator.get('full_name', 'Неизвестно')} обработал {cargo_count} груз(ов). Удаление выполнено, но грузы сохранены.",
+                "warning": True,
+                "cargo_count": cargo_count
+            }
+        
+        # Удаляем привязки к складам
+        db.operator_warehouse_bindings.delete_many({"operator_id": operator_id})
+        
+        # Удаляем оператора
+        result = db.users.delete_one({"id": operator_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Оператор не найден для удаления"
+            )
+        
+        return {
+            "message": f"Оператор '{operator.get('full_name', 'Неизвестно')}' успешно удален",
+            "deleted_id": operator_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка удаления оператора: {str(e)}"
+        )
+
+@app.delete("/api/admin/operators/bulk")
+async def delete_operators_bulk(
+    operator_ids: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Массовое удаление операторов склада"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для удаления операторов"
+        )
+    
+    try:
+        ids_to_delete = operator_ids.get("ids", [])
+        if not ids_to_delete:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Список ID для удаления не может быть пустым"
+            )
+        
+        # Исключаем текущего пользователя из списка удаления
+        ids_to_delete = [uid for uid in ids_to_delete if uid != current_user.id]
+        
+        if not ids_to_delete:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="После исключения вашего аккаунта список для удаления пуст"
+            )
+        
+        deleted_count = 0
+        warnings = []
+        
+        # Удаляем привязки операторов к складам
+        db.operator_warehouse_bindings.delete_many({"operator_id": {"$in": ids_to_delete}})
+        
+        # Проверяем связанные грузы
+        for operator_id in ids_to_delete:
+            cargo_count = db.operator_cargo.count_documents({"created_by": operator_id})
+            if cargo_count > 0:
+                operator = db.users.find_one({"id": operator_id})
+                operator_name = operator.get('full_name', f'Оператор {operator_id}') if operator else f'Оператор {operator_id}'
+                warnings.append(f"{operator_name}: обработал {cargo_count} груз(ов)")
+        
+        # Массовое удаление операторов (только с ролью warehouse_operator)
+        result = db.users.delete_many({
+            "id": {"$in": ids_to_delete}, 
+            "role": "warehouse_operator"
+        })
+        deleted_count = result.deleted_count
+        
+        return {
+            "message": f"Успешно удалено операторов: {deleted_count}",
+            "deleted_count": deleted_count,
+            "total_requested": len(ids_to_delete),
+            "warnings": warnings,
+            "excluded_current_user": current_user.id in operator_ids.get("ids", [])
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка массового удаления операторов: {str(e)}"
+        )
+
 @app.post("/api/transport/create-interwarehouse")
 async def create_interwarehouse_transport(
     transport_data: dict,
