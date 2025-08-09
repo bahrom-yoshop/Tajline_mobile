@@ -3019,7 +3019,7 @@ async def get_warehouses(current_user: User = Depends(get_current_user)):
         warehouses = list(db.warehouses.find({"is_active": True}))
     else:
         # Оператор видит только склады, к которым он привязан
-        operator_warehouse_ids = get_operator_warehouses(current_user.id)
+        operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
         if not operator_warehouse_ids:
             # Если оператор не привязан ни к одному складу, возвращаем пустой список
             return []
