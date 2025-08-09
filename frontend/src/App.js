@@ -12623,7 +12623,7 @@ function App() {
             <div className="bg-green-50 p-4 rounded-lg">
               <h3 className="font-semibold text-lg mb-3">Грузы</h3>
               {quickCargoForm.cargo_items.map((item, index) => (
-                <div key={index} className="mb-4 p-3 bg-white rounded border">
+                <div key={`quick-cargo-${index}-${item.cargo_name || 'empty'}`} className="mb-4 p-3 bg-white rounded border">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium text-sm">Груз #{index + 1}</span>
                     {quickCargoForm.cargo_items.length > 1 && (
