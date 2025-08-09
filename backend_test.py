@@ -21657,6 +21657,8 @@ ID склада: {target_warehouse_id}"""
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            # 🎯 PRIMARY FOCUS: ENHANCED CARGO ACCEPTANCE SYSTEM (Review Request)
+            ("🎯 ENHANCED CARGO ACCEPTANCE SYSTEM", self.test_enhanced_cargo_acceptance_system),
             # 🎯 PRIORITY: OPERATOR REGISTRATION AND LOGIN FIX (Review Request)
             ("🔧 OPERATOR REGISTRATION AND LOGIN FIXED", self.test_operator_registration_and_login_fixed),
             # 🎯 PRIMARY FOCUS: TAJLINE.TJ DELETION SYSTEM COMPREHENSIVE TESTING (Review Request)
