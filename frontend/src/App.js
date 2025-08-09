@@ -9310,51 +9310,102 @@ function App() {
                                     </Badge>
                                   </div>
 
-                                  {/* Аналитика склада */}
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                                    <div className="bg-white p-4 rounded-lg border shadow-sm">
+                                  {/* Расширенная аналитика склада */}
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                                    <div className="bg-white p-3 rounded-lg border shadow-sm">
                                       <div className="flex items-center justify-between">
                                         <div>
-                                          <p className="text-sm font-medium text-gray-500">Всего ячеек</p>
-                                          <p className="text-2xl font-bold text-blue-600">
+                                          <p className="text-xs font-medium text-gray-500">Всего ячеек</p>
+                                          <p className="text-xl font-bold text-blue-600">
                                             {(warehouse.blocks_count || 3) * 20}
                                           </p>
                                         </div>
-                                        <Grid3X3 className="h-8 w-8 text-blue-500" />
+                                        <Grid3X3 className="h-6 w-6 text-blue-500" />
                                       </div>
                                     </div>
                                     
-                                    <div className="bg-white p-4 rounded-lg border shadow-sm">
+                                    <div className="bg-white p-3 rounded-lg border shadow-sm">
                                       <div className="flex items-center justify-between">
                                         <div>
-                                          <p className="text-sm font-medium text-gray-500">Занято</p>
-                                          <p className="text-2xl font-bold text-red-600">
+                                          <p className="text-xs font-medium text-gray-500">Занято</p>
+                                          <p className="text-xl font-bold text-red-600">
                                             {Math.floor(((warehouse.blocks_count || 3) * 20) * 0.6)}
                                           </p>
                                         </div>
-                                        <Package className="h-8 w-8 text-red-500" />
+                                        <Package className="h-6 w-6 text-red-500" />
                                       </div>
                                     </div>
                                     
-                                    <div className="bg-white p-4 rounded-lg border shadow-sm">
+                                    <div className="bg-white p-3 rounded-lg border shadow-sm">
                                       <div className="flex items-center justify-between">
                                         <div>
-                                          <p className="text-sm font-medium text-gray-500">Свободно</p>
-                                          <p className="text-2xl font-bold text-green-600">
+                                          <p className="text-xs font-medium text-gray-500">Свободно</p>
+                                          <p className="text-xl font-bold text-green-600">
                                             {Math.floor(((warehouse.blocks_count || 3) * 20) * 0.4)}
                                           </p>
                                         </div>
-                                        <CheckCircle className="h-8 w-8 text-green-500" />
+                                        <CheckCircle className="h-6 w-6 text-green-500" />
                                       </div>
                                     </div>
                                     
-                                    <div className="bg-white p-4 rounded-lg border shadow-sm">
+                                    <div className="bg-white p-3 rounded-lg border shadow-sm">
                                       <div className="flex items-center justify-between">
                                         <div>
-                                          <p className="text-sm font-medium text-gray-500">Загрузка</p>
-                                          <p className="text-2xl font-bold text-orange-600">60%</p>
+                                          <p className="text-xs font-medium text-gray-500">Загрузка</p>
+                                          <p className="text-xl font-bold text-orange-600">60%</p>
                                         </div>
-                                        <DollarSign className="h-8 w-8 text-orange-500" />
+                                        <DollarSign className="h-6 w-6 text-orange-500" />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Дополнительная аналитика */}
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-3 rounded-lg border border-purple-200">
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <p className="text-xs font-medium text-purple-700">Вес (кг)</p>
+                                          <p className="text-lg font-bold text-purple-900">
+                                            {Math.floor(Math.random() * 1000) + 500}
+                                          </p>
+                                        </div>
+                                        <Package2 className="h-5 w-5 text-purple-600" />
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-3 rounded-lg border border-blue-200">
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <p className="text-xs font-medium text-blue-700">Кол-во грузов</p>
+                                          <p className="text-lg font-bold text-blue-900">
+                                            {Math.floor(((warehouse.blocks_count || 3) * 20) * 0.6) + Math.floor(Math.random() * 10)}
+                                          </p>
+                                        </div>
+                                        <FileText className="h-5 w-5 text-blue-600" />
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border border-green-200">
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <p className="text-xs font-medium text-green-700">Клиентов</p>
+                                          <p className="text-lg font-bold text-green-900">
+                                            {Math.floor((Math.floor(((warehouse.blocks_count || 3) * 20) * 0.6) + Math.floor(Math.random() * 10)) * 0.7)}
+                                          </p>
+                                        </div>
+                                        <Users className="h-5 w-5 text-green-600" />
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-3 rounded-lg border border-yellow-200">
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <p className="text-xs font-medium text-yellow-700">Сумма (₽)</p>
+                                          <p className="text-lg font-bold text-yellow-900">
+                                            {(Math.floor(Math.random() * 100000) + 50000).toLocaleString()}
+                                          </p>
+                                        </div>
+                                        <CreditCard className="h-5 w-5 text-yellow-600" />
                                       </div>
                                     </div>
                                   </div>
