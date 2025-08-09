@@ -5215,6 +5215,8 @@ function App() {
                       {trackingResult.warehouse_location && (
                         <p><strong>Местоположение на складе:</strong> {trackingResult.warehouse_location}</p>
                       )}
+                    </>
+                  )}
                     </div>
                   </div>
                 )}
