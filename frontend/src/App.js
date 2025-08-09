@@ -7985,6 +7985,29 @@ function App() {
                             Обновить список грузов
                           </Button>
                           
+                          {/* Легенда цветов складов */}
+                          {availableCargoForPlacement.length > 0 && (
+                            <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
+                              <h4 className="font-semibold text-sm text-gray-700 mb-3 flex items-center">
+                                <Palette className="mr-2 h-4 w-4" />
+                                Цветовая схема по складам
+                              </h4>
+                              <div className="flex flex-wrap gap-3">
+                                {getWarehouseLegend().map((item, index) => (
+                                  <div key={index} className="flex items-center space-x-2">
+                                    <div className={`w-4 h-4 ${item.color} rounded`}></div>
+                                    <span className={`text-sm font-medium ${item.textColor}`}>
+                                      {item.name}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                              <p className="text-xs text-gray-500 mt-2">
+                                Каждый груз окрашен в цвет своего склада назначения для удобства идентификации
+                              </p>
+                            </div>
+                          )}
+                          
                           <div className="space-y-4">
                             {availableCargoForPlacement.length === 0 ? (
                               <div className="text-center py-8">
