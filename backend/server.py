@@ -6182,6 +6182,103 @@ async def update_debt_status(
     
     return {"message": "Debt status updated successfully"}
 
+# ===== ЭНДПОИНТЫ УПРАВЛЕНИЯ УВЕДОМЛЕНИЯМИ =====
+
+@app.get("/api/notifications")
+async def get_user_notifications(
+    status: Optional[str] = None,  # unread, read, all
+    limit: int = 50,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить уведомления пользователя"""
+    query = {"user_id": current_user.id}
+    
+    if status and status != "all":
+        query["status"] = status
+    
+    notifications = list(
+        db.notifications.find(query, {"_id": 0})
+        .sort("created_at", -1)
+        .limit(limit)
+    )
+    
+    return notifications
+
+@app.put("/api/notifications/{notification_id}/status")
+async def update_notification_status(
+    notification_id: str,
+    status_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Обновить статус уведомления (прочитано/удалено)"""
+    new_status = status_data.get("status")
+    if new_status not in ["read", "deleted", "unread"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    
+    result = db.notifications.update_one(
+        {"id": notification_id, "user_id": current_user.id},
+        {
+            "$set": {
+                "status": new_status,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    return {"message": "Notification status updated successfully"}
+
+@app.delete("/api/notifications/{notification_id}")
+async def delete_notification(
+    notification_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Удалить уведомление"""
+    result = db.notifications.delete_one({
+        "id": notification_id, 
+        "user_id": current_user.id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    return {"message": "Notification deleted successfully"}
+
+@app.get("/api/notifications/{notification_id}/details")
+async def get_notification_details(
+    notification_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить детали уведомления"""
+    notification = db.notifications.find_one({
+        "id": notification_id, 
+        "user_id": current_user.id
+    }, {"_id": 0})
+    
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    # Автоматически отмечаем как прочитанное
+    db.notifications.update_one(
+        {"id": notification_id, "user_id": current_user.id},
+        {"$set": {"status": "read", "updated_at": datetime.utcnow()}}
+    )
+    
+    # Получаем связанные данные если есть related_id
+    related_data = None
+    if notification.get("related_id"):
+        # Ищем в грузах
+        cargo = db.operator_cargo.find_one({"id": notification["related_id"]}, {"_id": 0})
+        if cargo:
+            related_data = {"type": "cargo", "data": cargo}
+    
+    return {
+        "notification": notification,
+        "related_data": related_data
+    }
+
 # === ТРАНСПОРТ API ===
 
 @app.post("/api/transport/create")
