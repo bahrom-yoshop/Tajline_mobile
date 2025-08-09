@@ -14956,6 +14956,189 @@ function App() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* МОДАЛЬНОЕ ОКНО ОТЧЕТА ПО СКЛАДУ */}
+      <Dialog open={!!showWarehouseReport} onOpenChange={() => setShowWarehouseReport(null)}>
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <FileText className="mr-2 h-5 w-5" />
+              Отчет по складу
+            </DialogTitle>
+            <DialogDescription>
+              {showWarehouseReport && (
+                <span>
+                  Подробный отчет о грузах склада: <strong>
+                    {operatorWarehouses.find(w => w.id === showWarehouseReport)?.name}
+                  </strong>
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {showWarehouseReport && (
+            <div className="space-y-6">
+              {/* Сводная аналитика */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div className="text-center">
+                    <Package className="mx-auto h-8 w-8 text-blue-600 mb-2" />
+                    <p className="text-sm font-medium text-blue-700">Всего грузов</p>
+                    <p className="text-2xl font-bold text-blue-900">{warehouseReportData.length}</p>
+                  </div>
+                </div>
+                
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <div className="text-center">
+                    <DollarSign className="mx-auto h-8 w-8 text-green-600 mb-2" />
+                    <p className="text-sm font-medium text-green-700">Общая сумма</p>
+                    <p className="text-2xl font-bold text-green-900">
+                      {warehouseReportData.reduce((sum, item) => sum + item.total_amount, 0).toLocaleString()} ₽
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <div className="text-center">
+                    <Package2 className="mx-auto h-8 w-8 text-purple-600 mb-2" />
+                    <p className="text-sm font-medium text-purple-700">Общий вес</p>
+                    <p className="text-2xl font-bold text-purple-900">
+                      {warehouseReportData.reduce((sum, item) => sum + item.weight, 0).toFixed(1)} кг
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                  <div className="text-center">
+                    <Users className="mx-auto h-8 w-8 text-orange-600 mb-2" />
+                    <p className="text-sm font-medium text-orange-700">Уник. клиенты</p>
+                    <p className="text-2xl font-bold text-orange-900">
+                      {new Set(warehouseReportData.map(item => item.sender)).size}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Фильтры и поиск */}
+              <div className="flex justify-between items-center">
+                <div className="flex space-x-4">
+                  <input
+                    type="text"
+                    placeholder="Поиск по номеру груза или отправителю..."
+                    className="px-4 py-2 border border-gray-300 rounded-lg w-80"
+                  />
+                  <select className="px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Все статусы оплаты</option>
+                    <option value="paid">Оплачено</option>
+                    <option value="transfer">Перевод на карту</option>
+                    <option value="cod">Оплата при получении</option>
+                    <option value="debt">Оплата в долг</option>
+                  </select>
+                </div>
+                
+                <Button className="bg-green-600 hover:bg-green-700">
+                  <Download className="mr-2 h-4 w-4" />
+                  Экспорт в Excel
+                </Button>
+              </div>
+
+              {/* Таблица отчета */}
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-300">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                        Номер груза
+                      </th>
+                      <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                        Наименование
+                      </th>
+                      <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                        Вес (кг)
+                      </th>
+                      <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                        Сумма (₽)
+                      </th>
+                      <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                        Отправитель
+                      </th>
+                      <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                        Получатель
+                      </th>
+                      <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                        Телефон получателя
+                      </th>
+                      <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                        Маршрут
+                      </th>
+                      <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                        Статус оплаты
+                      </th>
+                      <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                        Дата приема
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {warehouseReportData.map((item, index) => (
+                      <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <td className="border border-gray-300 px-3 py-2 text-sm font-semibold text-blue-600">
+                          {item.cargo_number}
+                        </td>
+                        <td className="border border-gray-300 px-3 py-2 text-sm">
+                          {item.cargo_name}
+                        </td>
+                        <td className="border border-gray-300 px-3 py-2 text-sm text-center">
+                          {item.weight}
+                        </td>
+                        <td className="border border-gray-300 px-3 py-2 text-sm font-semibold text-green-600">
+                          {item.total_amount.toLocaleString()}
+                        </td>
+                        <td className="border border-gray-300 px-3 py-2 text-sm">
+                          {item.sender}
+                        </td>
+                        <td className="border border-gray-300 px-3 py-2 text-sm">
+                          {item.recipient}
+                        </td>
+                        <td className="border border-gray-300 px-3 py-2 text-sm font-mono">
+                          {item.recipient_phone}
+                        </td>
+                        <td className="border border-gray-300 px-3 py-2 text-sm">
+                          {item.route}
+                        </td>
+                        <td className="border border-gray-300 px-3 py-2 text-sm">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            item.payment_status === 'Оплачено' ? 'bg-green-100 text-green-800' :
+                            item.payment_status === 'Перевод на карту' ? 'bg-blue-100 text-blue-800' :
+                            item.payment_status === 'Оплата при получении' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {item.payment_status}
+                          </span>
+                        </td>
+                        <td className="border border-gray-300 px-3 py-2 text-sm">
+                          {item.acceptance_date}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Действия */}
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setShowWarehouseReport(null)}>
+                  Закрыть
+                </Button>
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Printer className="mr-2 h-4 w-4" />
+                  Печать отчета
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
