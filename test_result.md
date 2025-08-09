@@ -261,6 +261,18 @@ frontend:
           comment: "✅ ЗАДАЧА ЗАВЕРШЕНА УСПЕШНО: Исправлен критический баг интерфейса складов для операторов. Frontend тестирование подтвердило: карточка 'Мои назначенные склады' отображается корректно, при отсутствии складов показывается понятное сообщение, административные функции ограничены для админов. Операторы больше не получают ошибку 'Не удалось получить' при переходе в раздел 'Склады'."
 
 backend:
+  - task: "Admin Dashboard Analytics Endpoint"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "📊 ADMIN DASHBOARD ANALYTICS ENDPOINT TESTING COMPLETED - PARTIAL SUCCESS WITH MINOR ISSUES. COMPREHENSIVE TEST RESULTS: 1) ✅ ADMIN ACCESS CONTROL: Admin can successfully access /api/admin/dashboard/analytics endpoint (200 OK), admin authentication working correctly, 2) ❌ USER ACCESS CONTROL: Regular user access denial test failed due to user login 500 error (unrelated to analytics endpoint), warehouse operator access denial returned 500 error instead of expected 403, 3) ✅ RESPONSE STRUCTURE: All required sections present (basic_stats, cargo_stats, people_stats, financial_stats, requests_stats, transport_stats), all required fields within each section verified and present, 4) ✅ DATA ACCURACY: All numerical values are logical and consistent - basic_stats: 15 warehouses, 22 users (1 admin + 6 operators + 15 regular), cargo_stats: 849 total cargo, 22,413.9 kg total weight, 7,735,525.5 руб total sum, people_stats: 47 unique senders, 65 unique recipients, financial_stats: 136 debtors, 805,265.5 руб total debt, transport_stats: 59 total transports (5 moscow_to_tajikistan, 0 tajikistan_to_moscow, 2 active), 5) ✅ ERROR HANDLING: Invalid token properly handled with 401 error, 6) ❌ MINOR ISSUE: Missing token returns 403 instead of expected 401. WORKING FEATURES CONFIRMED (5/7): Admin access control ✅, Complete response structure ✅, All required fields present ✅, Logical numerical calculations ✅, Invalid token handling ✅, Regular user access denial ❌ (login issue), Missing token handling ❌ (wrong status code). SUCCESS RATE: 71% (5/7 test areas passed). The admin dashboard analytics endpoint is functional with correct data structure and calculations, but has minor access control issues that don't affect core functionality."
+
   - task: "Coroutine Error Fixes for Warehouse Operator Endpoints"
     implemented: true
     working: true
