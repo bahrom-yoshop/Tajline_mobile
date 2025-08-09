@@ -12481,7 +12481,7 @@ function App() {
                   <h3 className="font-semibold text-lg mb-3">Часто используемые получатели</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto">
                     {selectedUserProfile.frequent_recipients.slice(0, 6).map((recipient, index) => (
-                      <div key={index} className="bg-white border rounded-lg p-3">
+                      <div key={`recipient-${index}-${recipient.recipient_full_name}`} className="bg-white border rounded-lg p-3">
                         <div className="flex justify-between items-start">
                           <div>
                             <h4 className="font-medium">{recipient.recipient_full_name}</h4>
