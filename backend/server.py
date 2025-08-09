@@ -6935,6 +6935,203 @@ async def get_admin_dashboard_analytics(
             detail=f"Ошибка получения аналитики дашборда: {str(e)}"
         )
 
+@app.get("/api/operator/dashboard/analytics")
+async def get_operator_dashboard_analytics(
+    current_user: User = Depends(get_current_user)
+):
+    """Получение расширенной аналитики для дашборда оператора (только по его складам)"""
+    if current_user.role != UserRole.WAREHOUSE_OPERATOR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Доступ только для операторов складов"
+        )
+    
+    try:
+        # Получаем склады оператора
+        operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+        if not operator_warehouse_ids:
+            # Если у оператора нет складов, возвращаем пустую аналитику
+            return {
+                "basic_stats": {
+                    "assigned_warehouses": 0,
+                    "total_users": 0,
+                    "total_admins": 0,
+                    "total_operators": 0,
+                    "total_regular_users": 0
+                },
+                "cargo_stats": {
+                    "total_cargo": 0,
+                    "total_weight_kg": 0,
+                    "total_sum_rub": 0,
+                    "awaiting_recipient": 0
+                },
+                "people_stats": {
+                    "unique_senders": 0,
+                    "unique_recipients": 0
+                },
+                "financial_stats": {
+                    "debtors_count": 0,
+                    "total_debt_amount": 0
+                },
+                "requests_stats": {
+                    "new_requests": 0
+                },
+                "transport_stats": {
+                    "total_transports": 0,
+                    "moscow_to_tajikistan": 0,
+                    "tajikistan_to_moscow": 0,
+                    "active_transports": 0
+                }
+            }
+        
+        # Основная статистика складов оператора
+        assigned_warehouses = len(operator_warehouse_ids)
+        
+        # Общая статистика пользователей (глобальная)
+        total_users = db.users.count_documents({})
+        total_admins = db.users.count_documents({"role": "admin"})
+        total_operators = db.users.count_documents({"role": "warehouse_operator"})
+        total_regular_users = db.users.count_documents({"role": "user"})
+        
+        # Статистика грузов только по складам оператора
+        warehouse_cargo_query = {"warehouse_id": {"$in": operator_warehouse_ids}}
+        
+        user_cargo = list(db.cargo.find(warehouse_cargo_query))
+        operator_cargo = list(db.operator_cargo.find(warehouse_cargo_query))
+        all_cargo = user_cargo + operator_cargo
+        
+        total_cargo = len(all_cargo)
+        
+        # Подсчет общего веса и суммы по складам оператора
+        total_weight = 0
+        total_sum = 0
+        
+        for cargo in all_cargo:
+            weight = cargo.get('weight', 0)
+            if isinstance(weight, (int, float)):
+                total_weight += weight
+            
+            # Считаем сумму из различных полей
+            cargo_sum = 0
+            if cargo.get('declared_value'):
+                try:
+                    cargo_sum = float(cargo.get('declared_value', 0))
+                except (ValueError, TypeError):
+                    cargo_sum = 0
+            elif cargo.get('total_cost'):
+                try:
+                    cargo_sum = float(cargo.get('total_cost', 0))
+                except (ValueError, TypeError):
+                    cargo_sum = 0
+            
+            total_sum += cargo_sum
+        
+        # Статистика отправителей и получателей (уникальные по складам оператора)
+        senders = set()
+        recipients = set()
+        
+        for cargo in all_cargo:
+            sender_phone = cargo.get('sender_phone')
+            if sender_phone:
+                senders.add(sender_phone)
+                
+            recipient_phone = cargo.get('recipient_phone')
+            if recipient_phone:
+                recipients.add(recipient_phone)
+        
+        # Грузы, ожидающие получателя (только по складам оператора)
+        awaiting_recipient_count = 0
+        for cargo in all_cargo:
+            status = cargo.get('status', '').lower()
+            processing_status = cargo.get('processing_status', '').lower()
+            if 'delivered' in status or 'доставлен' in status or 'awaiting_pickup' in status or 'ожидает_получения' in processing_status:
+                awaiting_recipient_count += 1
+        
+        # Должники (грузы по складам оператора)
+        debtors_count = 0
+        total_debt_amount = 0
+        
+        for cargo in all_cargo:
+            payment_method = cargo.get('payment_method', '')
+            payment_status = cargo.get('payment_status', '')
+            processing_status = cargo.get('processing_status', '')
+            
+            if (payment_method == 'credit' and payment_status in ['pending', 'unpaid']) or processing_status == 'payment_pending':
+                debtors_count += 1
+                try:
+                    debt_amount = float(cargo.get('declared_value', 0) or cargo.get('total_cost', 0))
+                    total_debt_amount += debt_amount
+                except (ValueError, TypeError):
+                    pass
+        
+        # Новые заявки пользователей (только по складам оператора)
+        new_requests_count = db.cargo.count_documents({
+            "warehouse_id": {"$in": operator_warehouse_ids},
+            "$or": [
+                {"status": "pending"},
+                {"status": "new_request"},
+                {"processing_status": "payment_pending"}
+            ]
+        })
+        
+        # Транспорты по маршрутам (глобальная статистика, так как транспорты не привязаны к складам)
+        moscow_to_tajikistan_transports = db.transports.count_documents({
+            "direction": {"$regex": "moscow.*tajikistan", "$options": "i"}
+        })
+        
+        tajikistan_to_moscow_transports = db.transports.count_documents({
+            "direction": {"$regex": "tajikistan.*moscow", "$options": "i"}
+        })
+        
+        total_transports = db.transports.count_documents({})
+        
+        # Статистика по активности транспортов
+        active_transports = db.transports.count_documents({
+            "status": {"$in": ["loading", "in_transit", "active"]}
+        })
+        
+        # Возвращаем полную аналитику по складам оператора
+        analytics = {
+            "basic_stats": {
+                "assigned_warehouses": assigned_warehouses,
+                "total_users": total_users,
+                "total_admins": total_admins,
+                "total_operators": total_operators,
+                "total_regular_users": total_regular_users
+            },
+            "cargo_stats": {
+                "total_cargo": total_cargo,
+                "total_weight_kg": round(total_weight, 2),
+                "total_sum_rub": round(total_sum, 2),
+                "awaiting_recipient": awaiting_recipient_count
+            },
+            "people_stats": {
+                "unique_senders": len(senders),
+                "unique_recipients": len(recipients)
+            },
+            "financial_stats": {
+                "debtors_count": debtors_count,
+                "total_debt_amount": round(total_debt_amount, 2)
+            },
+            "requests_stats": {
+                "new_requests": new_requests_count
+            },
+            "transport_stats": {
+                "total_transports": total_transports,
+                "moscow_to_tajikistan": moscow_to_tajikistan_transports,
+                "tajikistan_to_moscow": tajikistan_to_moscow_transports,
+                "active_transports": active_transports
+            }
+        }
+        
+        return analytics
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка получения аналитики дашборда оператора: {str(e)}"
+        )
+
 @app.get("/api/warehouse/{warehouse_id}/cargo-with-clients")
 async def get_warehouse_cargo_with_clients(
     warehouse_id: str,
