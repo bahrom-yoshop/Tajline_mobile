@@ -1097,7 +1097,6 @@ function App() {
         fetchUnpaidCargo();
         fetchPaymentHistory();
         fetchCargoRequests();
-        fetchSystemNotifications();
         fetchTransports();
         fetchOperatorWarehouseBindings();
         fetchAllOperators(); // Функция 2 - загрузка операторов для админа
