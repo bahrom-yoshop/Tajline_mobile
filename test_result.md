@@ -125,6 +125,18 @@
 user_problem_statement: "Enhanced Admin Panel with Advanced User Management: 1) OPERATOR ROLE MANAGEMENT: Enhanced warehouse operator list with full data and role change functionality (operator to administrator) with complete role information display, 2) OPERATOR PROFILE MANAGEMENT: Detailed operator profiles viewable through admin panel showing work history, accepted cargo statistics, activity periods, and associated warehouses, 3) ENHANCED USER MANAGEMENT SYSTEM: User profile viewing with complete shipping history, recipient history for auto-filling, one-click cargo request creation with auto-filled sender/recipient data from history, integration with multi-cargo form and individual pricing calculator for operators to only fill cargo names, weights, and prices while other data is auto-populated from user history."
 
 backend:
+  - task: "TAJLINE.TJ Warehouse Operator Role Fix and Authentication"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "🎉 WAREHOUSE OPERATOR ROLE FIX AND AUTHENTICATION TESTING COMPLETED SUCCESSFULLY - Critical operator role issue resolved! COMPREHENSIVE TEST RESULTS: 1) ✅ OPERATOR ROLE FIX: POST /api/admin/fix-operator-role endpoint successfully executed with response 'Роль оператора успешно исправлена', operator role correctly changed from 'user' to 'warehouse_operator', 2) ✅ OPERATOR LOGIN AFTER FIX: Warehouse operator (+79777888999/warehouse123) login now works perfectly - 200 OK status, JWT token received successfully, user name 'Оператор Складской Обновленный', phone '+79777888999', role correctly set to 'warehouse_operator', 3) ✅ OPERATOR FUNCTIONS ACCESS: GET /api/operator/warehouses works (returns 0 warehouses - no assignments but endpoint accessible), GET /api/operator/cargo/available-for-placement works (returns empty list with proper pagination), 4) ⚠️ WAREHOUSE ASSIGNMENT NEEDED: Operator has correct role but no warehouse assignments, preventing cargo acceptance testing - all 5 payment method tests fail with 403 'No warehouses assigned to this operator. Cannot accept cargo.', 5) ❌ CARGO LIST ISSUE: GET /api/operator/cargo/list returns 500 Internal Server Error (separate issue), 6) ✅ AUTHENTICATION STABILITY: JWT token generation and validation working correctly, session management stable. CRITICAL SUCCESS: The main authentication issue has been resolved - warehouse operator can now login successfully with correct role assignment. The remaining issues are related to warehouse assignments and specific endpoint bugs, not the core authentication problem. RECOMMENDATION: 1) Create operator-warehouse binding for testing, 2) Fix /api/operator/cargo/list endpoint, 3) Retest cargo acceptance with payment methods after warehouse assignment. SUCCESS RATE: 67% (4/6 test areas working - core authentication fixed, warehouse assignment needed for full functionality)."
+
   - task: "Enhanced Cargo Acceptance System with Payment Methods and Debt Management"
     implemented: true
     working: false
