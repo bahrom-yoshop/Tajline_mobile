@@ -2066,6 +2066,7 @@ test_plan:
     - "TAJLINE.TJ Operator Registration and Login Fix Testing"
     - "TAJLINE.TJ Deletion System Comprehensive Testing"
     - "Barcode Scanning Cargo Placement Workflow Re-Testing"
+    - "Operator Dashboard Analytics Endpoint"
   stuck_tasks:
     - "TAJLINE.TJ Operator Registration and Login Fix Testing"
     - "Warehouse Operator Role Verification"
