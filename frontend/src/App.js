@@ -5543,7 +5543,15 @@ function App() {
             {filteredItems.map((item) => (
               <div key={item.id}>
                 <button
-                  onClick={() => setActiveSection(item.section)}
+                  onClick={() => {
+                    setActiveSection(item.section);
+                    // Автоматически устанавливаем первый подраздел для некоторых секций
+                    if (item.section === 'warehouses' && user?.role === 'admin') {
+                      setActiveTab('warehouses-list');
+                    } else if (item.section === 'users' && user?.role === 'admin') {
+                      setActiveTab('users-regular');
+                    }
+                  }}
                   className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${
                     activeSection === item.section
                       ? 'bg-blue-600 text-white'
