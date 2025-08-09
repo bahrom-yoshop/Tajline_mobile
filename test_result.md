@@ -163,6 +163,18 @@ frontend:
           comment: "✅ ЗАДАЧА ЗАВЕРШЕНА УСПЕШНО: Исправлен критический баг интерфейса складов для операторов. Frontend тестирование подтвердило: карточка 'Мои назначенные склады' отображается корректно, при отсутствии складов показывается понятное сообщение, административные функции ограничены для админов. Операторы больше не получают ошибку 'Не удалось получить' при переходе в раздел 'Склады'."
 
 backend:
+  - task: "Route-based Warehouse Filtering Backend Endpoint"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "main"
+          comment: "Создан новый endpoint /api/warehouses/by-route/{route} для фильтрации складов по маршруту. Поддерживает маршруты moscow_to_tajikistan и tajikistan_to_moscow. Использует фильтрацию по ключевым словам в названии и местоположении складов. Для 'Москва → Таджикистан' показывает склады с ключевыми словами таджикистанских городов, для 'Таджикистан → Москва' - московские склады. Требуется тестирование."
+
   - task: "TAJLINE.TJ Warehouse Operator Isolation Improvements"
     implemented: true
     working: true
