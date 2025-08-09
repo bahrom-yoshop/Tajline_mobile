@@ -10002,7 +10002,7 @@ function App() {
                         <CardTitle className="flex items-center justify-between">
                           <div className="flex items-center">
                             <Bell className="mr-2 h-5 w-5" />
-                            Системные уведомления ({systemNotifications.length})
+                            Системные уведомления ({notifications.length})
                           </div>
                           <Button onClick={fetchNotifications}>
                             Обновить
