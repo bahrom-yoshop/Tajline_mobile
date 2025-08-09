@@ -14462,7 +14462,7 @@ function App() {
                             `}
                             onClick={() => {
                               if (cell.is_occupied) {
-                                alert(`Ячейка ${cell.cell_number}\nГруз: ${cell.cargo_number}\nОтправитель: ${cell.cargo_sender}\n\nВ Фазе 4 здесь будет модальное окно управления грузом`);
+                                openCargoManagementModal(cell);
                               }
                             }}
                           >
