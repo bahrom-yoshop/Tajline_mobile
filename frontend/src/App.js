@@ -7506,14 +7506,232 @@ function App() {
               {/* Личный кабинет */}
               {activeSection === 'personal-dashboard' && (
                 <div className="space-y-6">
+                  {/* Аналитический дашборд для операторов склада */}
+                  {user?.role === 'warehouse_operator' && (
+                    <div className="space-y-6">
+                      {/* Заголовок с кнопкой обновления */}
+                      <div className="flex justify-between items-center">
+                        <h2 className="text-2xl font-bold">Аналитический дашборд оператора</h2>
+                        <Button 
+                          onClick={fetchOperatorDashboardAnalytics}
+                          disabled={operatorAnalyticsLoading}
+                          variant="outline"
+                        >
+                          <RefreshCw className={`h-4 w-4 mr-2 ${operatorAnalyticsLoading ? 'animate-spin' : ''}`} />
+                          {operatorAnalyticsLoading ? 'Загрузка...' : 'Обновить аналитику'}
+                        </Button>
+                      </div>
+
+                      {operatorDashboardAnalytics ? (
+                        <>
+                          {/* Основная статистика по складам оператора */}
+                          <div>
+                            <h3 className="text-lg font-semibold mb-4 text-gray-700">Мои склады и основная статистика</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Мои склады</CardTitle>
+                                  <Building className="h-4 w-4 text-blue-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-blue-700">{operatorDashboardAnalytics.basic_stats.assigned_warehouses}</div>
+                                  <p className="text-xs text-blue-600 mt-1">Назначенных складов</p>
+                                </CardContent>
+                              </Card>
+                              
+                              <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Пользователи</CardTitle>
+                                  <Users className="h-4 w-4 text-green-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-green-700">{operatorDashboardAnalytics.basic_stats.total_users}</div>
+                                  <p className="text-xs text-green-600 mt-1">
+                                    Операторы: {operatorDashboardAnalytics.basic_stats.total_operators}
+                                  </p>
+                                </CardContent>
+                              </Card>
+                              
+                              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Отправители</CardTitle>
+                                  <User className="h-4 w-4 text-purple-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-purple-700">{operatorDashboardAnalytics.people_stats.unique_senders}</div>
+                                  <p className="text-xs text-purple-600 mt-1">По моим складам</p>
+                                </CardContent>
+                              </Card>
+                              
+                              <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Получатели</CardTitle>
+                                  <User className="h-4 w-4 text-orange-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-orange-700">{operatorDashboardAnalytics.people_stats.unique_recipients}</div>
+                                  <p className="text-xs text-orange-600 mt-1">По моим складам</p>
+                                </CardContent>
+                              </Card>
+                              
+                              <Card className="bg-gradient-to-br from-teal-50 to-teal-100 border-teal-200">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Всего грузов</CardTitle>
+                                  <Package className="h-4 w-4 text-teal-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-teal-700">{operatorDashboardAnalytics.cargo_stats.total_cargo}</div>
+                                  <p className="text-xs text-teal-600 mt-1">На моих складах</p>
+                                </CardContent>
+                              </Card>
+                            </div>
+                          </div>
+
+                          {/* Статистика грузов на складах оператора */}
+                          <div>
+                            <h3 className="text-lg font-semibold mb-4 text-gray-700">Статистика грузов на моих складах</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Общий вес</CardTitle>
+                                  <Package2 className="h-4 w-4 text-indigo-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-indigo-700">{operatorDashboardAnalytics.cargo_stats.total_weight_kg.toLocaleString()}</div>
+                                  <p className="text-xs text-indigo-600 mt-1">кг (только мои склады)</p>
+                                </CardContent>
+                              </Card>
+                              
+                              <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Общая сумма</CardTitle>
+                                  <DollarSign className="h-4 w-4 text-emerald-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-emerald-700">{operatorDashboardAnalytics.cargo_stats.total_sum_rub.toLocaleString()}</div>
+                                  <p className="text-xs text-emerald-600 mt-1">₽ (только мои склады)</p>
+                                </CardContent>
+                              </Card>
+                              
+                              <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Ожидают получателя</CardTitle>
+                                  <Clock className="h-4 w-4 text-amber-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-amber-700">{operatorDashboardAnalytics.cargo_stats.awaiting_recipient}</div>
+                                  <p className="text-xs text-amber-600 mt-1">грузов на моих складах</p>
+                                </CardContent>
+                              </Card>
+                            </div>
+                          </div>
+
+                          {/* Финансовая статистика по складам оператора */}
+                          <div>
+                            <h3 className="text-lg font-semibold mb-4 text-gray-700">Финансовая статистика (мои склады)</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Должники</CardTitle>
+                                  <CreditCard className="h-4 w-4 text-red-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-red-700">{operatorDashboardAnalytics.financial_stats.debtors_count}</div>
+                                  <p className="text-xs text-red-600 mt-1">
+                                    Сумма задолженности: {operatorDashboardAnalytics.financial_stats.total_debt_amount.toLocaleString()} ₽
+                                  </p>
+                                </CardContent>
+                              </Card>
+                              
+                              <Card className="bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-200">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Новые заявки</CardTitle>
+                                  <FileText className="h-4 w-4 text-cyan-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-cyan-700">{operatorDashboardAnalytics.requests_stats.new_requests}</div>
+                                  <p className="text-xs text-cyan-600 mt-1">по моим складам</p>
+                                </CardContent>
+                              </Card>
+                            </div>
+                          </div>
+
+                          {/* Статистика транспортов (общая) */}
+                          <div>
+                            <h3 className="text-lg font-semibold mb-4 text-gray-700">Транспорты по маршрутам (общая статистика)</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                              <Card className="bg-gradient-to-br from-violet-50 to-violet-100 border-violet-200">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Всего транспортов</CardTitle>
+                                  <Truck className="h-4 w-4 text-violet-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-violet-700">{operatorDashboardAnalytics.transport_stats.total_transports}</div>
+                                </CardContent>
+                              </Card>
+                              
+                              <Card className="bg-gradient-to-br from-rose-50 to-rose-100 border-rose-200">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Москва → Таджикистан</CardTitle>
+                                  <MapPin className="h-4 w-4 text-rose-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-rose-700">{operatorDashboardAnalytics.transport_stats.moscow_to_tajikistan}</div>
+                                </CardContent>
+                              </Card>
+                              
+                              <Card className="bg-gradient-to-br from-lime-50 to-lime-100 border-lime-200">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Таджикистан → Москва</CardTitle>
+                                  <MapPin className="h-4 w-4 text-lime-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-lime-700">{operatorDashboardAnalytics.transport_stats.tajikistan_to_moscow}</div>
+                                </CardContent>
+                              </Card>
+                              
+                              <Card className="bg-gradient-to-br from-sky-50 to-sky-100 border-sky-200">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">Активные</CardTitle>
+                                  <Zap className="h-4 w-4 text-sky-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-sky-700">{operatorDashboardAnalytics.transport_stats.active_transports}</div>
+                                  <p className="text-xs text-sky-600 mt-1">в пути</p>
+                                </CardContent>
+                              </Card>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <Card>
+                          <CardContent className="p-6">
+                            <div className="text-center py-8">
+                              <RefreshCw className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                              <p className="text-gray-500 mb-4">Загружаем аналитику по вашим складам...</p>
+                              <Button onClick={fetchOperatorDashboardAnalytics} variant="outline">
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Загрузить аналитику
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Персональная информация */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center">
                         <User className="mr-2 h-5 w-5" />
-                        Личный кабинет
+                        {user?.role === 'warehouse_operator' ? 'Профиль оператора склада' : 'Личный кабинет'}
                       </CardTitle>
                       <CardDescription>
-                        Ваша персональная информация и история операций
+                        {user?.role === 'warehouse_operator' ? 
+                          'Ваша персональная информация и статистика работы' : 
+                          'Ваша персональная информация и история операций'
+                        }
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
