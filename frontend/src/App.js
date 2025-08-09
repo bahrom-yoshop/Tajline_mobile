@@ -8678,6 +8678,113 @@ function App() {
                       </CardContent>
                     </Card>
                   )}
+
+                  {/* НОВАЯ ВКЛАДКА: Список задолжников */}
+                  {activeTab === 'users-debtors' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <CreditCard className="mr-2 h-5 w-5" />
+                            Список задолжников ({debtorsList.length})
+                          </div>
+                          <Button onClick={fetchDebtorsList}>
+                            Обновить
+                          </Button>
+                        </CardTitle>
+                        <CardDescription>
+                          Грузы оформленные в долг с датами погашения
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {debtorsList.length === 0 ? (
+                          <div className="text-center py-8">
+                            <CreditCard className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                            <p className="text-gray-500">Нет активных долгов</p>
+                          </div>
+                        ) : (
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Номер груза</TableHead>
+                                <TableHead>Должник</TableHead>
+                                <TableHead>Телефон</TableHead>
+                                <TableHead>Сумма долга</TableHead>
+                                <TableHead>Оплачено</TableHead>
+                                <TableHead>Остаток</TableHead>
+                                <TableHead>Срок погашения</TableHead>
+                                <TableHead>Склад</TableHead>
+                                <TableHead>Статус</TableHead>
+                                <TableHead>Действия</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {debtorsList.map((debt) => {
+                                const isOverdue = new Date(debt.debt_due_date) < new Date();
+                                return (
+                                  <TableRow key={debt.id}>
+                                    <TableCell className="font-medium">
+                                      {debt.cargo_number}
+                                    </TableCell>
+                                    <TableCell>{debt.debtor_name}</TableCell>
+                                    <TableCell>{debt.debtor_phone}</TableCell>
+                                    <TableCell className="font-semibold">
+                                      {debt.debt_amount?.toFixed(2)} сом
+                                    </TableCell>
+                                    <TableCell className="text-green-600">
+                                      {debt.payment_amount?.toFixed(2) || 0} сом
+                                    </TableCell>
+                                    <TableCell className="font-semibold text-red-600">
+                                      {debt.remaining_amount?.toFixed(2)} сом
+                                    </TableCell>
+                                    <TableCell className={isOverdue ? "text-red-600 font-semibold" : ""}>
+                                      {new Date(debt.debt_due_date).toLocaleDateString('ru-RU')}
+                                      {isOverdue && " (ПРОСРОЧЕН)"}
+                                    </TableCell>
+                                    <TableCell>{debt.warehouse_name}</TableCell>
+                                    <TableCell>
+                                      <Badge variant={
+                                        debt.status === 'paid' ? 'default' : 
+                                        isOverdue ? 'destructive' : 'secondary'
+                                      }>
+                                        {debt.status === 'paid' ? 'Оплачен' : 
+                                         isOverdue ? 'Просрочен' : 'Активный'}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      {debt.status === 'active' && (
+                                        <div className="flex space-x-2">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                              // TODO: Открыть модальное окно оплаты долга
+                                            }}
+                                          >
+                                            Погасить
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                              // TODO: Отметить как просроченный
+                                            }}
+                                            className="text-orange-600"
+                                          >
+                                            Просрочен
+                                          </Button>
+                                        </div>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               )}
 
