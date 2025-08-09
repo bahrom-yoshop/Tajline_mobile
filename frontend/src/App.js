@@ -19,7 +19,7 @@ import {
   Clock, MapPin, User, Shield, Warehouse, Menu, X, Building, 
   DollarSign, FileText, Grid3X3, Package2, Home, CreditCard, Printer, Zap, MessageCircle,
   QrCode, Camera, Download, Calculator, ShoppingCart, RefreshCw, Eye, XCircle, Save, Filter,
-  ArrowUp, Ban, Settings, Copy, Minus
+  ArrowUp, Ban, Settings, Copy, Minus, Palette
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
