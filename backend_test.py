@@ -24592,6 +24592,571 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_operator_dashboard_analytics_endpoint(self):
+        """Test новый endpoint /api/operator/dashboard/analytics для аналитического дашборда оператора склада"""
+        print("\n📊 OPERATOR DASHBOARD ANALYTICS ENDPOINT TESTING")
+        print("   🎯 Testing new endpoint /api/operator/dashboard/analytics for warehouse operator analytics dashboard")
+        
+        all_success = True
+        
+        # Test 1: АУТЕНТИФИКАЦИЯ ОПЕРАТОРА СКЛАДА
+        print("\n   🔐 Test 1: WAREHOUSE OPERATOR AUTHENTICATION...")
+        
+        # Login as warehouse operator (+79777888999/warehouse123)
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            print(f"   📞 Phone: {operator_user.get('phone')}")
+            
+            # Store operator token for further tests
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+            
+            # Verify role is correct
+            if operator_role == 'warehouse_operator':
+                print("   ✅ Operator role correctly set to 'warehouse_operator'")
+            else:
+                print(f"   ❌ Operator role incorrect: expected 'warehouse_operator', got '{operator_role}'")
+                all_success = False
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+            return False
+        
+        # Test 2: ДОСТУПНОСТЬ ENDPOINT'А ДЛЯ ОПЕРАТОРОВ СКЛАДОВ
+        print("\n   📡 Test 2: ENDPOINT ACCESSIBILITY FOR WAREHOUSE OPERATORS...")
+        
+        success, analytics_response = self.run_test(
+            "Get Operator Dashboard Analytics",
+            "GET",
+            "/api/operator/dashboard/analytics",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if not success:
+            print("   ❌ Operator cannot access dashboard analytics endpoint")
+            all_success = False
+            return False
+        
+        print("   ✅ Operator can access dashboard analytics endpoint")
+        
+        # Test 3: СТРУКТУРА ОТВЕТА - ПРОВЕРКА ВСЕХ РАЗДЕЛОВ
+        print("\n   📋 Test 3: RESPONSE STRUCTURE VERIFICATION...")
+        
+        if analytics_response and isinstance(analytics_response, dict):
+            print("   ✅ Response is a valid dictionary")
+            
+            # Check required top-level sections
+            required_sections = [
+                'basic_stats',
+                'cargo_stats', 
+                'people_stats',
+                'financial_stats',
+                'requests_stats',
+                'transport_stats'
+            ]
+            
+            missing_sections = []
+            for section in required_sections:
+                if section not in analytics_response:
+                    missing_sections.append(section)
+                else:
+                    section_data = analytics_response[section]
+                    print(f"   ✅ {section}: {type(section_data).__name__}")
+            
+            if missing_sections:
+                print(f"   ❌ Missing required sections: {missing_sections}")
+                all_success = False
+            else:
+                print("   ✅ All required sections present")
+            
+            # Test 3.1: basic_stats section
+            print("\n   📊 Test 3.1: Basic Stats Section...")
+            
+            basic_stats = analytics_response.get('basic_stats', {})
+            basic_required_fields = [
+                'assigned_warehouses',
+                'total_users',
+                'total_admins', 
+                'total_operators',
+                'total_regular_users'
+            ]
+            
+            basic_missing = [field for field in basic_required_fields if field not in basic_stats]
+            if not basic_missing:
+                print("   ✅ Basic stats has all required fields")
+                assigned_warehouses = basic_stats.get('assigned_warehouses', 0)
+                total_users = basic_stats.get('total_users', 0)
+                total_admins = basic_stats.get('total_admins', 0)
+                total_operators = basic_stats.get('total_operators', 0)
+                total_regular_users = basic_stats.get('total_regular_users', 0)
+                
+                print(f"   📊 Assigned warehouses: {assigned_warehouses}")
+                print(f"   📊 Total users: {total_users}")
+                print(f"   📊 Total admins: {total_admins}")
+                print(f"   📊 Total operators: {total_operators}")
+                print(f"   📊 Total regular users: {total_regular_users}")
+                
+                # Verify data types and logical values
+                if isinstance(assigned_warehouses, int) and assigned_warehouses >= 0:
+                    print("   ✅ assigned_warehouses is valid integer")
+                else:
+                    print(f"   ❌ assigned_warehouses invalid: {assigned_warehouses}")
+                    all_success = False
+                    
+                if isinstance(total_users, int) and total_users >= 0:
+                    print("   ✅ total_users is valid integer")
+                else:
+                    print(f"   ❌ total_users invalid: {total_users}")
+                    all_success = False
+            else:
+                print(f"   ❌ Basic stats missing fields: {basic_missing}")
+                all_success = False
+            
+            # Test 3.2: cargo_stats section (only operator's warehouses)
+            print("\n   📦 Test 3.2: Cargo Stats Section (Operator Warehouses Only)...")
+            
+            cargo_stats = analytics_response.get('cargo_stats', {})
+            cargo_required_fields = [
+                'total_cargo',
+                'total_weight_kg',
+                'total_sum_rub',
+                'awaiting_recipient'
+            ]
+            
+            cargo_missing = [field for field in cargo_required_fields if field not in cargo_stats]
+            if not cargo_missing:
+                print("   ✅ Cargo stats has all required fields")
+                total_cargo = cargo_stats.get('total_cargo', 0)
+                total_weight = cargo_stats.get('total_weight_kg', 0)
+                total_sum = cargo_stats.get('total_sum_rub', 0)
+                awaiting_recipient = cargo_stats.get('awaiting_recipient', 0)
+                
+                print(f"   📦 Total cargo (operator warehouses): {total_cargo}")
+                print(f"   ⚖️  Total weight: {total_weight} kg")
+                print(f"   💰 Total sum: {total_sum} руб")
+                print(f"   📮 Awaiting recipient: {awaiting_recipient}")
+                
+                # Verify data types and logical values
+                if isinstance(total_cargo, int) and total_cargo >= 0:
+                    print("   ✅ total_cargo is valid integer")
+                else:
+                    print(f"   ❌ total_cargo invalid: {total_cargo}")
+                    all_success = False
+                    
+                if isinstance(total_weight, (int, float)) and total_weight >= 0:
+                    print("   ✅ total_weight_kg is valid number")
+                else:
+                    print(f"   ❌ total_weight_kg invalid: {total_weight}")
+                    all_success = False
+                    
+                if isinstance(total_sum, (int, float)) and total_sum >= 0:
+                    print("   ✅ total_sum_rub is valid number")
+                else:
+                    print(f"   ❌ total_sum_rub invalid: {total_sum}")
+                    all_success = False
+            else:
+                print(f"   ❌ Cargo stats missing fields: {cargo_missing}")
+                all_success = False
+            
+            # Test 3.3: people_stats section (only operator's warehouses)
+            print("\n   👥 Test 3.3: People Stats Section (Operator Warehouses Only)...")
+            
+            people_stats = analytics_response.get('people_stats', {})
+            people_required_fields = [
+                'unique_senders',
+                'unique_recipients'
+            ]
+            
+            people_missing = [field for field in people_required_fields if field not in people_stats]
+            if not people_missing:
+                print("   ✅ People stats has all required fields")
+                unique_senders = people_stats.get('unique_senders', 0)
+                unique_recipients = people_stats.get('unique_recipients', 0)
+                
+                print(f"   👤 Unique senders (operator warehouses): {unique_senders}")
+                print(f"   📮 Unique recipients (operator warehouses): {unique_recipients}")
+                
+                # Verify data types and logical values
+                if isinstance(unique_senders, int) and unique_senders >= 0:
+                    print("   ✅ unique_senders is valid integer")
+                else:
+                    print(f"   ❌ unique_senders invalid: {unique_senders}")
+                    all_success = False
+                    
+                if isinstance(unique_recipients, int) and unique_recipients >= 0:
+                    print("   ✅ unique_recipients is valid integer")
+                else:
+                    print(f"   ❌ unique_recipients invalid: {unique_recipients}")
+                    all_success = False
+            else:
+                print(f"   ❌ People stats missing fields: {people_missing}")
+                all_success = False
+            
+            # Test 3.4: financial_stats section (only operator's warehouses)
+            print("\n   💰 Test 3.4: Financial Stats Section (Operator Warehouses Only)...")
+            
+            financial_stats = analytics_response.get('financial_stats', {})
+            financial_required_fields = [
+                'debtors_count',
+                'total_debt_amount'
+            ]
+            
+            financial_missing = [field for field in financial_required_fields if field not in financial_stats]
+            if not financial_missing:
+                print("   ✅ Financial stats has all required fields")
+                debtors_count = financial_stats.get('debtors_count', 0)
+                total_debt_amount = financial_stats.get('total_debt_amount', 0)
+                
+                print(f"   💳 Debtors count (operator warehouses): {debtors_count}")
+                print(f"   💰 Total debt amount (operator warehouses): {total_debt_amount} руб")
+                
+                # Verify data types and logical values
+                if isinstance(debtors_count, int) and debtors_count >= 0:
+                    print("   ✅ debtors_count is valid integer")
+                else:
+                    print(f"   ❌ debtors_count invalid: {debtors_count}")
+                    all_success = False
+                    
+                if isinstance(total_debt_amount, (int, float)) and total_debt_amount >= 0:
+                    print("   ✅ total_debt_amount is valid number")
+                else:
+                    print(f"   ❌ total_debt_amount invalid: {total_debt_amount}")
+                    all_success = False
+            else:
+                print(f"   ❌ Financial stats missing fields: {financial_missing}")
+                all_success = False
+            
+            # Test 3.5: requests_stats section (only operator's warehouses)
+            print("\n   📋 Test 3.5: Requests Stats Section (Operator Warehouses Only)...")
+            
+            requests_stats = analytics_response.get('requests_stats', {})
+            requests_required_fields = [
+                'new_requests'
+            ]
+            
+            requests_missing = [field for field in requests_required_fields if field not in requests_stats]
+            if not requests_missing:
+                print("   ✅ Requests stats has all required fields")
+                new_requests = requests_stats.get('new_requests', 0)
+                
+                print(f"   📋 New requests (operator warehouses): {new_requests}")
+                
+                # Verify data types and logical values
+                if isinstance(new_requests, int) and new_requests >= 0:
+                    print("   ✅ new_requests is valid integer")
+                else:
+                    print(f"   ❌ new_requests invalid: {new_requests}")
+                    all_success = False
+            else:
+                print(f"   ❌ Requests stats missing fields: {requests_missing}")
+                all_success = False
+            
+            # Test 3.6: transport_stats section (general statistics)
+            print("\n   🚛 Test 3.6: Transport Stats Section (General Statistics)...")
+            
+            transport_stats = analytics_response.get('transport_stats', {})
+            transport_required_fields = [
+                'total_transports',
+                'moscow_to_tajikistan',
+                'tajikistan_to_moscow',
+                'active_transports'
+            ]
+            
+            transport_missing = [field for field in transport_required_fields if field not in transport_stats]
+            if not transport_missing:
+                print("   ✅ Transport stats has all required fields")
+                total_transports = transport_stats.get('total_transports', 0)
+                moscow_to_tajikistan = transport_stats.get('moscow_to_tajikistan', 0)
+                tajikistan_to_moscow = transport_stats.get('tajikistan_to_moscow', 0)
+                active_transports = transport_stats.get('active_transports', 0)
+                
+                print(f"   🚛 Total transports: {total_transports}")
+                print(f"   ➡️  Moscow to Tajikistan: {moscow_to_tajikistan}")
+                print(f"   ⬅️  Tajikistan to Moscow: {tajikistan_to_moscow}")
+                print(f"   🔄 Active transports: {active_transports}")
+                
+                # Verify data types and logical values
+                if isinstance(total_transports, int) and total_transports >= 0:
+                    print("   ✅ total_transports is valid integer")
+                else:
+                    print(f"   ❌ total_transports invalid: {total_transports}")
+                    all_success = False
+                    
+                if isinstance(moscow_to_tajikistan, int) and moscow_to_tajikistan >= 0:
+                    print("   ✅ moscow_to_tajikistan is valid integer")
+                else:
+                    print(f"   ❌ moscow_to_tajikistan invalid: {moscow_to_tajikistan}")
+                    all_success = False
+                    
+                if isinstance(tajikistan_to_moscow, int) and tajikistan_to_moscow >= 0:
+                    print("   ✅ tajikistan_to_moscow is valid integer")
+                else:
+                    print(f"   ❌ tajikistan_to_moscow invalid: {tajikistan_to_moscow}")
+                    all_success = False
+                    
+                if isinstance(active_transports, int) and active_transports >= 0:
+                    print("   ✅ active_transports is valid integer")
+                else:
+                    print(f"   ❌ active_transports invalid: {active_transports}")
+                    all_success = False
+            else:
+                print(f"   ❌ Transport stats missing fields: {transport_missing}")
+                all_success = False
+        else:
+            print("   ❌ Response is not a valid dictionary")
+            all_success = False
+            return False
+        
+        # Test 4: ОТКЛОНЕНИЕ ЗАПРОСОВ ОТ АДМИНИСТРАТОРОВ
+        print("\n   🚫 Test 4: ADMIN ACCESS DENIAL...")
+        
+        # Login as admin if not already logged in
+        if 'admin' not in self.tokens:
+            admin_login_data = {
+                "phone": "+79999888777",
+                "password": "admin123"
+            }
+            
+            success, admin_login_response = self.run_test(
+                "Admin Login",
+                "POST",
+                "/api/auth/login",
+                200,
+                admin_login_data
+            )
+            
+            if success and 'access_token' in admin_login_response:
+                self.tokens['admin'] = admin_login_response['access_token']
+                self.users['admin'] = admin_login_response.get('user', {})
+        
+        if 'admin' in self.tokens:
+            success, _ = self.run_test(
+                "Admin Access to Operator Analytics (Should Be Denied)",
+                "GET",
+                "/api/operator/dashboard/analytics",
+                403,  # Should return 403 Forbidden
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Admin access properly denied with 403 error")
+            else:
+                print("   ❌ Admin access control not working correctly")
+                all_success = False
+        else:
+            print("   ❌ Admin token not available for testing")
+            all_success = False
+        
+        # Test 5: ОТКЛОНЕНИЕ ЗАПРОСОВ ОТ ОБЫЧНЫХ ПОЛЬЗОВАТЕЛЕЙ
+        print("\n   🚫 Test 5: REGULAR USER ACCESS DENIAL...")
+        
+        # Login as regular user if not already logged in
+        if 'user' not in self.tokens:
+            user_login_data = {
+                "phone": "+992900000000",
+                "password": "123456"
+            }
+            
+            success, user_login_response = self.run_test(
+                "Regular User Login",
+                "POST",
+                "/api/auth/login",
+                200,
+                user_login_data
+            )
+            
+            if success and 'access_token' in user_login_response:
+                self.tokens['user'] = user_login_response['access_token']
+                self.users['user'] = user_login_response.get('user', {})
+        
+        if 'user' in self.tokens:
+            success, _ = self.run_test(
+                "Regular User Access to Operator Analytics (Should Be Denied)",
+                "GET",
+                "/api/operator/dashboard/analytics",
+                403,  # Should return 403 Forbidden
+                token=self.tokens['user']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Regular user access properly denied with 403 error")
+            else:
+                print("   ❌ Regular user access control not working correctly")
+                all_success = False
+        else:
+            print("   ❌ Regular user token not available for testing")
+            all_success = False
+        
+        # Test 6: ИЗОЛЯЦИЯ ДАННЫХ - ОПЕРАТОР ВИДИТ ТОЛЬКО СВОИ СКЛАДЫ
+        print("\n   🔒 Test 6: DATA ISOLATION - OPERATOR SEES ONLY ASSIGNED WAREHOUSES...")
+        
+        # Get operator's assigned warehouses
+        success, operator_warehouses = self.run_test(
+            "Get Operator Warehouses",
+            "GET",
+            "/api/operator/warehouses",
+            200,
+            token=operator_token
+        )
+        
+        if success and operator_warehouses:
+            operator_warehouse_count = len(operator_warehouses)
+            analytics_assigned_warehouses = analytics_response.get('basic_stats', {}).get('assigned_warehouses', 0)
+            
+            print(f"   🏭 Operator warehouses from /api/operator/warehouses: {operator_warehouse_count}")
+            print(f"   📊 Analytics assigned_warehouses: {analytics_assigned_warehouses}")
+            
+            if operator_warehouse_count == analytics_assigned_warehouses:
+                print("   ✅ Data isolation working - analytics matches operator's assigned warehouses")
+            else:
+                print("   ❌ Data isolation broken - analytics doesn't match operator's warehouses")
+                all_success = False
+            
+            # Compare with admin's total warehouses to ensure operator sees subset
+            if 'admin' in self.tokens:
+                success, admin_warehouses = self.run_test(
+                    "Get All Warehouses (Admin)",
+                    "GET",
+                    "/api/warehouses",
+                    200,
+                    token=self.tokens['admin']
+                )
+                
+                if success and admin_warehouses:
+                    admin_warehouse_count = len(admin_warehouses)
+                    print(f"   👑 Admin sees {admin_warehouse_count} total warehouses")
+                    
+                    if operator_warehouse_count <= admin_warehouse_count:
+                        print("   ✅ Operator sees same or fewer warehouses than admin (isolation working)")
+                    else:
+                        print("   ❌ Operator sees more warehouses than admin (isolation broken)")
+                        all_success = False
+        else:
+            print("   ❌ Could not get operator warehouses for isolation test")
+            all_success = False
+        
+        # Test 7: КОРРЕКТНОСТЬ ВЫЧИСЛЕНИЙ
+        print("\n   🧮 Test 7: CALCULATION CORRECTNESS VERIFICATION...")
+        
+        if analytics_response:
+            # Verify that numerical values are logical
+            basic_stats = analytics_response.get('basic_stats', {})
+            cargo_stats = analytics_response.get('cargo_stats', {})
+            people_stats = analytics_response.get('people_stats', {})
+            financial_stats = analytics_response.get('financial_stats', {})
+            
+            # Check if total users = admins + operators + regular users
+            total_users = basic_stats.get('total_users', 0)
+            total_admins = basic_stats.get('total_admins', 0)
+            total_operators = basic_stats.get('total_operators', 0)
+            total_regular_users = basic_stats.get('total_regular_users', 0)
+            
+            calculated_total = total_admins + total_operators + total_regular_users
+            if total_users == calculated_total:
+                print("   ✅ User count calculation correct: total_users = admins + operators + regular_users")
+            else:
+                print(f"   ❌ User count calculation incorrect: {total_users} ≠ {calculated_total}")
+                all_success = False
+            
+            # Check logical relationships
+            total_cargo = cargo_stats.get('total_cargo', 0)
+            unique_senders = people_stats.get('unique_senders', 0)
+            unique_recipients = people_stats.get('unique_recipients', 0)
+            
+            if total_cargo > 0:
+                if unique_senders > 0 and unique_recipients > 0:
+                    print("   ✅ Logical relationship: cargo > 0 implies senders > 0 and recipients > 0")
+                else:
+                    print(f"   ❌ Logical relationship broken: {total_cargo} cargo but {unique_senders} senders, {unique_recipients} recipients")
+                    all_success = False
+            else:
+                print("   ⚠️  No cargo found for operator's warehouses")
+            
+            # Check debt calculations
+            debtors_count = financial_stats.get('debtors_count', 0)
+            total_debt_amount = financial_stats.get('total_debt_amount', 0)
+            
+            if debtors_count > 0:
+                if total_debt_amount > 0:
+                    print("   ✅ Debt calculation logical: debtors > 0 implies debt amount > 0")
+                else:
+                    print(f"   ❌ Debt calculation illogical: {debtors_count} debtors but {total_debt_amount} debt amount")
+                    all_success = False
+            elif total_debt_amount > 0:
+                print(f"   ❌ Debt calculation illogical: 0 debtors but {total_debt_amount} debt amount")
+                all_success = False
+            else:
+                print("   ✅ No debts found (logical)")
+        
+        # Test 8: ОБРАБОТКА СЛУЧАЯ КОГДА У ОПЕРАТОРА НЕТ НАЗНАЧЕННЫХ СКЛАДОВ
+        print("\n   🏭 Test 8: HANDLING OPERATOR WITH NO ASSIGNED WAREHOUSES...")
+        
+        # This test would require creating a new operator with no warehouse assignments
+        # For now, we'll verify the current operator has warehouses
+        if analytics_response:
+            assigned_warehouses = analytics_response.get('basic_stats', {}).get('assigned_warehouses', 0)
+            if assigned_warehouses > 0:
+                print(f"   ✅ Current operator has {assigned_warehouses} assigned warehouses")
+                print("   ℹ️  Cannot test 'no warehouses' scenario with current operator")
+            else:
+                print("   ⚠️  Current operator has no assigned warehouses - testing empty response")
+                # Verify all stats are 0 for operator with no warehouses
+                cargo_stats = analytics_response.get('cargo_stats', {})
+                if (cargo_stats.get('total_cargo', 0) == 0 and 
+                    cargo_stats.get('total_weight_kg', 0) == 0 and
+                    cargo_stats.get('total_sum_rub', 0) == 0):
+                    print("   ✅ Empty warehouse handling correct - all cargo stats are 0")
+                else:
+                    print("   ❌ Empty warehouse handling incorrect - cargo stats not 0")
+                    all_success = False
+        
+        # SUMMARY
+        print("\n   📊 OPERATOR DASHBOARD ANALYTICS ENDPOINT SUMMARY:")
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Operator dashboard analytics endpoint working perfectly!")
+            print("   ✅ Warehouse operator authentication successful")
+            print("   ✅ Endpoint accessible only to warehouse operators")
+            print("   ✅ Response structure complete with all required sections")
+            print("   ✅ basic_stats: assigned_warehouses, total_users, total_admins, total_operators, total_regular_users")
+            print("   ✅ cargo_stats: total_cargo, total_weight_kg, total_sum_rub, awaiting_recipient (operator warehouses only)")
+            print("   ✅ people_stats: unique_senders, unique_recipients (operator warehouses only)")
+            print("   ✅ financial_stats: debtors_count, total_debt_amount (operator warehouses only)")
+            print("   ✅ requests_stats: new_requests (operator warehouses only)")
+            print("   ✅ transport_stats: total_transports, moscow_to_tajikistan, tajikistan_to_moscow, active_transports (general)")
+            print("   ✅ Admin and regular user access properly denied (403 error)")
+            print("   ✅ Data isolation working - operator sees only assigned warehouse stats")
+            print("   ✅ Numerical calculations are logical and correct")
+        else:
+            print("   ❌ SOME TESTS FAILED - Operator dashboard analytics endpoint needs attention")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
