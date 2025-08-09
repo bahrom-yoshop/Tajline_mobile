@@ -8757,19 +8757,16 @@ function App() {
                                           <Button
                                             size="sm"
                                             variant="outline"
-                                            onClick={() => {
-                                              // TODO: Открыть модальное окно оплаты долга
-                                            }}
+                                            onClick={() => handlePayOffDebt(debt.id, debt.remaining_amount)}
+                                            className="text-green-600 hover:text-green-700"
                                           >
                                             Погасить
                                           </Button>
                                           <Button
                                             size="sm"
                                             variant="outline"
-                                            onClick={() => {
-                                              // TODO: Отметить как просроченный
-                                            }}
-                                            className="text-orange-600"
+                                            onClick={() => handleMarkOverdue(debt.id)}
+                                            className="text-orange-600 hover:text-orange-700"
                                           >
                                             Просрочен
                                           </Button>
