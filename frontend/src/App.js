@@ -3728,6 +3728,127 @@ function App() {
     setShowCargoManagementModal(true);
   };
 
+  // НОВЫЕ ФУНКЦИИ ДЛЯ АНАЛИТИКИ И ОТЧЕТОВ
+
+  // Получение детального отчета по складу
+  const fetchWarehouseReport = async (warehouseId) => {
+    try {
+      const data = await apiCall(`/api/warehouse/${warehouseId}/report`);
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching warehouse report:', error);
+      return [];
+    }
+  };
+
+  // Получение детальной аналитики склада
+  const fetchWarehouseDetailedAnalytics = async (warehouseId) => {
+    try {
+      const data = await apiCall(`/api/warehouse/${warehouseId}/detailed-analytics`);
+      return data || {};
+    } catch (error) {
+      console.error('Error fetching warehouse detailed analytics:', error);
+      return {};
+    }
+  };
+
+  // Открытие отчета по складу
+  const openWarehouseReport = async (warehouse) => {
+    setShowWarehouseReport(warehouse.id);
+    
+    // Получаем данные отчета (симуляция)
+    const reportData = generateWarehouseReportData(warehouse);
+    setWarehouseReportData(reportData);
+    
+    // Получаем детальную аналитику (симуляция)
+    const analytics = generateWarehouseAnalytics(warehouse);
+    setWarehouseDetailedAnalytics(prev => ({
+      ...prev,
+      [warehouse.id]: analytics
+    }));
+  };
+
+  // Генерация данных отчета по складу (симуляция)
+  const generateWarehouseReportData = (warehouse) => {
+    const reportData = [];
+    const senders = [
+      { name: 'Иванов Иван Иванович', phone: '+79991234567' },
+      { name: 'Петрова Мария Сергеевна', phone: '+79887654321' },
+      { name: 'Сидоров Петр Николаевич', phone: '+79776543210' },
+      { name: 'Козлова Анна Владимировна', phone: '+79665432109' }
+    ];
+    
+    const recipients = [
+      { name: 'Рахимов Фарход Алиевич', phone: '+992987654321' },
+      { name: 'Назарова Гуля Махмудовна', phone: '+992988765432' },
+      { name: 'Исматов Санжар Рустамович', phone: '+992987123456' },
+      { name: 'Юсупова Дилором Каримовна', phone: '+992986543210' }
+    ];
+    
+    const cargoTypes = ['Документы', 'Электроника', 'Одежда', 'Продукты питания', 'Косметика', 'Игрушки'];
+    const paymentStatuses = ['Оплачено', 'Перевод на карту', 'Оплата при получении', 'Оплата в долг'];
+    const routes = ['Москва → Душанбе', 'Москва → Худжанд', 'Москва → Кулоб'];
+    
+    // Генерируем 15-25 записей груза для склада
+    const itemCount = Math.floor(Math.random() * 10) + 15;
+    
+    for (let i = 1; i <= itemCount; i++) {
+      const sender = senders[Math.floor(Math.random() * senders.length)];
+      const recipient = recipients[Math.floor(Math.random() * recipients.length)];
+      const weight = (Math.random() * 50 + 0.5).toFixed(1);
+      const amount = Math.floor(Math.random() * 5000) + 500;
+      const cargoType = cargoTypes[Math.floor(Math.random() * cargoTypes.length)];
+      const paymentStatus = paymentStatuses[Math.floor(Math.random() * paymentStatuses.length)];
+      const route = routes[Math.floor(Math.random() * routes.length)];
+      
+      const date = new Date();
+      date.setDate(date.getDate() - Math.floor(Math.random() * 30));
+      
+      reportData.push({
+        id: `${warehouse.id}-cargo-${i}`,
+        cargo_number: `CRG${Date.now()}-${i}`,
+        cargo_name: cargoType,
+        weight: parseFloat(weight),
+        total_amount: amount,
+        sender: sender.name,
+        recipient: recipient.name,
+        recipient_phone: recipient.phone,
+        route: route,
+        destination_warehouse: warehouse.name,
+        payment_status: paymentStatus,
+        acceptance_date: date.toISOString().split('T')[0],
+        created_date: date.toISOString()
+      });
+    }
+    
+    return reportData.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+  };
+
+  // Генерация детальной аналитики склада (симуляция)
+  const generateWarehouseAnalytics = (warehouse) => {
+    const blocksCount = warehouse.blocks_count || 3;
+    const totalCells = blocksCount * 20;
+    const occupiedCells = Math.floor(totalCells * 0.6);
+    const freeCells = totalCells - occupiedCells;
+    
+    const totalWeight = Math.floor(Math.random() * 1000) + 500; // кг
+    const totalCargoCount = occupiedCells + Math.floor(Math.random() * 10);
+    const uniqueClientsCount = Math.floor(totalCargoCount * 0.7); // 70% уникальных клиентов
+    const totalAmount = Math.floor(Math.random() * 100000) + 50000; // рубли
+    
+    return {
+      total_blocks: blocksCount,
+      total_cells: totalCells,
+      occupied_cells: occupiedCells,
+      free_cells: freeCells,
+      loading_percentage: Math.round((occupiedCells / totalCells) * 100),
+      total_weight_kg: totalWeight,
+      total_cargo_count: totalCargoCount,
+      unique_clients_count: uniqueClientsCount,
+      total_amount_rub: totalAmount
+    };
+  };
+
   // НОВЫЕ ФУНКЦИИ: Управление долгами
   const handlePayOffDebt = async (debtId, remainingAmount) => {
     if (window.confirm(`Подтвердите полное погашение долга на сумму ${remainingAmount?.toFixed(2)} сом`)) {
