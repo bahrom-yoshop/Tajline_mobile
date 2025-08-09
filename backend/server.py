@@ -403,6 +403,12 @@ class OperatorCargoCreate(BaseModel):
     description: str = Field(..., min_length=1, max_length=500)
     route: RouteType = RouteType.MOSCOW_TO_TAJIKISTAN
     
+    # НОВЫЕ ПОЛЯ ДЛЯ УЛУЧШЕННОЙ СИСТЕМЫ ОПЛАТЫ
+    warehouse_id: Optional[str] = Field(None, description="Выбранный склад оператора")
+    payment_method: PaymentMethod = PaymentMethod.NOT_PAID  # Способ оплаты
+    payment_amount: Optional[float] = Field(None, gt=0, description="Сумма оплаты для наличных/карты")
+    debt_due_date: Optional[str] = Field(None, description="Дата погашения долга (YYYY-MM-DD)")  # Для оплаты в долг
+    
     # Computed fields
     @property
     def total_weight(self) -> float:
