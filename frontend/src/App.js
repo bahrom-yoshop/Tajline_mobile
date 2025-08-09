@@ -5301,9 +5301,9 @@ function App() {
                   <DropdownMenuTrigger asChild>
                     <div className="relative cursor-pointer">
                       <Bell className="h-5 w-5 text-gray-600 hover:text-gray-800 transition-colors" />
-                      {(notifications.filter(n => !n.is_read).length + systemNotifications.filter(n => !n.is_read).length) > 0 && (
+                      {notifications.filter(n => n.status === 'unread').length > 0 && (
                         <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                          {notifications.filter(n => !n.is_read).length + systemNotifications.filter(n => !n.is_read).length}
+                          {notifications.filter(n => n.status === 'unread').length}
                         </span>
                       )}
                     </div>
