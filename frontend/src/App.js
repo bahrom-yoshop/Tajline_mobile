@@ -12553,7 +12553,7 @@ function App() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-32 overflow-y-auto">
                   {frequentRecipients.slice(0, 6).map((recipient, index) => (
                     <button
-                      key={index}
+                      key={`frequent-recipient-${index}-${recipient.recipient_phone}`}
                       className={`p-2 text-left rounded border ${
                         selectedRecipient?.recipient_phone === recipient.recipient_phone
                           ? 'bg-blue-100 border-blue-300'
