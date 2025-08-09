@@ -1100,6 +1100,327 @@ class CargoTransportAPITester:
             
         return all_success
 
+    def test_operator_registration_and_login_fixed(self):
+        """Test FIXED operator registration and login functionality in TAJLINE.TJ"""
+        print("\n🔧 OPERATOR REGISTRATION AND LOGIN FIXED FUNCTIONALITY TESTING")
+        print("   🎯 Testing the FIXED operator creation and login workflow")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: Admin creates operator through admin panel
+        print("\n   👑 Test 1: Admin Creating Operator...")
+        
+        # First, get a warehouse for operator binding
+        success, warehouses = self.run_test(
+            "Get Warehouses for Operator Binding",
+            "GET",
+            "/api/warehouses",
+            200,
+            token=self.tokens['admin']
+        )
+        
+        warehouse_id = None
+        if success and warehouses and len(warehouses) > 0:
+            warehouse_id = warehouses[0].get('id')
+            warehouse_name = warehouses[0].get('name', 'Unknown Warehouse')
+            print(f"   🏭 Using warehouse: {warehouse_name} (ID: {warehouse_id})")
+        else:
+            # Create a test warehouse if none exists
+            warehouse_data = {
+                "name": "Тестовый Склад для Оператора",
+                "location": "Москва, ул. Тестовая, 1",
+                "blocks_count": 3,
+                "shelves_per_block": 2,
+                "cells_per_shelf": 10
+            }
+            
+            success, warehouse_response = self.run_test(
+                "Create Test Warehouse for Operator",
+                "POST",
+                "/api/warehouses/create",
+                200,
+                warehouse_data,
+                self.tokens['admin']
+            )
+            
+            if success and 'id' in warehouse_response:
+                warehouse_id = warehouse_response['id']
+                warehouse_name = warehouse_response.get('name')
+                print(f"   🏭 Created test warehouse: {warehouse_name} (ID: {warehouse_id})")
+            else:
+                print("   ❌ Could not get or create warehouse for operator")
+                return False
+        
+        # Create operator with FIXED data structure (password_hash, user_number, token_version)
+        operator_data = {
+            "full_name": "Тестовый Оператор Исправленный",
+            "phone": "+79888777666",
+            "address": "Москва, ул. Операторская, 123",
+            "password": "operator123",  # This should be converted to password_hash
+            "warehouse_id": warehouse_id
+        }
+        
+        success, operator_response = self.run_test(
+            "Create Operator via Admin Panel (FIXED)",
+            "POST",
+            "/api/admin/create-operator",
+            200,
+            operator_data,
+            self.tokens['admin']
+        )
+        all_success &= success
+        
+        operator_id = None
+        if success and 'id' in operator_response:
+            operator_id = operator_response['id']
+            operator_phone = operator_response.get('phone')
+            operator_name = operator_response.get('full_name')
+            warehouse_name = operator_response.get('warehouse_name')
+            
+            print(f"   ✅ Operator created successfully")
+            print(f"   👤 Name: {operator_name}")
+            print(f"   📞 Phone: {operator_phone}")
+            print(f"   🏭 Warehouse: {warehouse_name}")
+            print(f"   🆔 Operator ID: {operator_id}")
+            
+            # Verify operator has correct role and fields
+            role = operator_response.get('role')
+            is_active = operator_response.get('is_active')
+            
+            if role == 'warehouse_operator' and is_active:
+                print("   ✅ Operator role and status correctly set")
+            else:
+                print(f"   ❌ Operator role/status incorrect: role={role}, active={is_active}")
+                all_success = False
+        else:
+            print("   ❌ Operator creation failed")
+            return False
+        
+        # Test 2: Login with created operator (FIXED - should work now)
+        print("\n   🔐 Test 2: Login with Created Operator (FIXED)...")
+        
+        login_data = {
+            "phone": operator_phone,
+            "password": "operator123"
+        }
+        
+        success, login_response = self.run_test(
+            "Login Created Operator (FIXED)",
+            "POST",
+            "/api/auth/login",
+            200,
+            login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            user_info = login_response.get('user', {})
+            
+            print(f"   ✅ Operator login successful!")
+            print(f"   🔑 JWT token received")
+            print(f"   👤 User: {user_info.get('full_name')}")
+            print(f"   📞 Phone: {user_info.get('phone')}")
+            print(f"   👑 Role: {user_info.get('role')}")
+            print(f"   🔢 User Number: {user_info.get('user_number')}")
+            print(f"   🔄 Token Version: {user_info.get('token_version')}")
+            
+            # Verify user has correct role and fields
+            if (user_info.get('role') == 'warehouse_operator' and 
+                user_info.get('user_number') and 
+                user_info.get('token_version')):
+                print("   ✅ Operator login data structure correct")
+            else:
+                print("   ❌ Operator login data structure incorrect")
+                all_success = False
+        else:
+            print("   ❌ Operator login failed - this was the original problem!")
+            print("   🔍 This indicates the fix may not be working properly")
+            all_success = False
+            return False
+        
+        # Test 3: Test operator functionality with JWT token
+        print("\n   🛠️  Test 3: Test Operator Functionality...")
+        
+        # Test operator can access their profile
+        success, operator_profile = self.run_test(
+            "Get Operator Profile",
+            "GET",
+            "/api/auth/me",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            print(f"   ✅ Operator can access profile")
+            print(f"   👤 Profile: {operator_profile.get('full_name')} ({operator_profile.get('role')})")
+        
+        # Test operator can access cargo list
+        success, cargo_list = self.run_test(
+            "Get Operator Cargo List",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            cargo_count = len(cargo_list.get('items', [])) if 'items' in cargo_list else 0
+            print(f"   ✅ Operator can access cargo list ({cargo_count} items)")
+        
+        # Test operator can create cargo
+        test_cargo_data = {
+            "sender_full_name": "Тест Отправитель",
+            "sender_phone": "+79999888777",
+            "recipient_full_name": "Тест Получатель",
+            "recipient_phone": "+992999888777",
+            "recipient_address": "Душанбе, ул. Тестовая, 1",
+            "weight": 5.0,
+            "cargo_name": "Тестовый груз оператора",
+            "declared_value": 1000.0,
+            "description": "Груз созданный новым оператором",
+            "route": "moscow_dushanbe"
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create Cargo as Operator",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            test_cargo_data,
+            operator_token
+        )
+        all_success &= success
+        
+        if success and 'cargo_number' in cargo_response:
+            cargo_number = cargo_response.get('cargo_number')
+            print(f"   ✅ Operator can create cargo: {cargo_number}")
+        
+        # Test 4: Test warehouse binding functionality
+        print("\n   🏭 Test 4: Test Warehouse Binding...")
+        
+        # Test operator can access warehouse information
+        success, warehouses_list = self.run_test(
+            "Get Warehouses as Operator",
+            "GET",
+            "/api/warehouses",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            warehouse_count = len(warehouses_list) if isinstance(warehouses_list, list) else 0
+            print(f"   ✅ Operator can access warehouses ({warehouse_count} warehouses)")
+            
+            # Check if operator is bound to the correct warehouse
+            bound_warehouse = None
+            for warehouse in warehouses_list:
+                if warehouse.get('id') == warehouse_id:
+                    bound_warehouse = warehouse
+                    break
+            
+            if bound_warehouse:
+                print(f"   ✅ Operator correctly bound to warehouse: {bound_warehouse.get('name')}")
+            else:
+                print("   ❌ Operator warehouse binding not found")
+                all_success = False
+        
+        # Test 5: Verify database consistency
+        print("\n   🔍 Test 5: Verify Database Consistency...")
+        
+        # Admin should be able to see the created operator
+        success, users_list = self.run_test(
+            "Get All Users (Admin)",
+            "GET",
+            "/api/admin/users",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            # Find our created operator
+            created_operator = None
+            for user in users_list:
+                if user.get('id') == operator_id:
+                    created_operator = user
+                    break
+            
+            if created_operator:
+                print(f"   ✅ Created operator found in users list")
+                print(f"   👤 Name: {created_operator.get('full_name')}")
+                print(f"   👑 Role: {created_operator.get('role')}")
+                print(f"   ✅ Active: {created_operator.get('is_active')}")
+                print(f"   🔢 User Number: {created_operator.get('user_number')}")
+                
+                # Verify all required fields are present
+                required_fields = ['id', 'full_name', 'phone', 'role', 'is_active', 'user_number', 'token_version']
+                missing_fields = [field for field in required_fields if field not in created_operator or created_operator.get(field) is None]
+                
+                if not missing_fields:
+                    print("   ✅ All required operator fields present in database")
+                else:
+                    print(f"   ❌ Missing operator fields: {missing_fields}")
+                    all_success = False
+            else:
+                print("   ❌ Created operator not found in users list")
+                all_success = False
+        
+        # Test 6: Test session stability
+        print("\n   🔐 Test 6: Test Session Stability...")
+        
+        # Make multiple API calls to test session stability
+        session_tests = [
+            ("Get Profile", "GET", "/api/auth/me"),
+            ("Get Cargo List", "GET", "/api/operator/cargo/list"),
+            ("Get Warehouses", "GET", "/api/warehouses"),
+            ("Get Profile Again", "GET", "/api/auth/me")
+        ]
+        
+        session_success_count = 0
+        for test_name, method, endpoint in session_tests:
+            success, _ = self.run_test(
+                f"Session Test: {test_name}",
+                method,
+                endpoint,
+                200,
+                token=operator_token
+            )
+            
+            if success:
+                session_success_count += 1
+        
+        if session_success_count == len(session_tests):
+            print(f"   ✅ Session stability verified ({session_success_count}/{len(session_tests)} tests passed)")
+        else:
+            print(f"   ❌ Session stability issues ({session_success_count}/{len(session_tests)} tests passed)")
+            all_success = False
+        
+        # Summary
+        print("\n   📊 OPERATOR REGISTRATION AND LOGIN FIX SUMMARY:")
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Operator registration and login fix is working!")
+            print("   ✅ Admin can create operators through admin panel")
+            print("   ✅ Created operators can login successfully (no more Internal Server Error)")
+            print("   ✅ Operators receive valid JWT tokens")
+            print("   ✅ Operators can perform their functions")
+            print("   ✅ Warehouse binding works correctly")
+            print("   ✅ Session management is stable")
+            print("   ✅ Database consistency maintained")
+        else:
+            print("   ❌ SOME TESTS FAILED - Operator registration/login fix needs attention")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
     def test_enhanced_multi_cargo_form_functionality(self):
         """Test enhanced multi-cargo form functionality with calculator features"""
         print("\n🧮 ENHANCED MULTI-CARGO FORM WITH CALCULATOR")
