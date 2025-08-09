@@ -1135,6 +1135,7 @@ function App() {
         fetchNewOrdersCount(); // Загрузка количества новых заказов
         fetchPlacedCargo(); // Добавляем загрузку размещенных грузов для админа
         fetchDebtorsList(); // Загрузка списка задолжников
+        fetchAdminDashboardAnalytics(); // Загрузка расширенной аналитики дашборда
       } else if (user.role === 'warehouse_operator') {
         fetchWarehouseCargo();
         fetchWarehouses();
