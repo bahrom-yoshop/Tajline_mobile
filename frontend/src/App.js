@@ -14506,6 +14506,278 @@ function App() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* МОДАЛЬНОЕ ОКНО УПРАВЛЕНИЯ ГРУЗОМ (ФАЗА 4 - ФИНАЛЬНАЯ) */}
+      <Dialog open={showCargoManagementModal} onOpenChange={setShowCargoManagementModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Package className="mr-2 h-5 w-5" />
+              Управление грузом: {selectedCargoForManagement?.cargo_number}
+            </DialogTitle>
+            <DialogDescription>
+              Полная информация о грузе и функции управления
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedCargoForManagement && (
+            <div className="space-y-6">
+              {/* Основная информация о грузе */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Статус груза */}
+                <Card className="border-l-4 border-l-blue-500">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <Package className="h-8 w-8 text-blue-600" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Статус груза</p>
+                        <p className="text-lg font-bold text-blue-900">РАЗМЕЩЕН</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Статус оплаты */}
+                <Card className="border-l-4 border-l-green-500">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <CreditCard className="h-8 w-8 text-green-600" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Оплата</p>
+                        <p className="text-lg font-bold text-green-900">ОПЛАЧЕН</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Вес и стоимость */}
+                <Card className="border-l-4 border-l-orange-500">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <DollarSign className="h-8 w-8 text-orange-600" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Вес / Сумма</p>
+                        <p className="text-lg font-bold text-orange-900">
+                          {selectedCargoForManagement.cargo_details.weight} кг / {selectedCargoForManagement.payment_amount}₽
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Информация об отправителе и получателе */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Отправитель */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-lg">
+                      <User className="mr-2 h-5 w-5" />
+                      Отправитель
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <p className="text-sm text-gray-500">ФИО</p>
+                      <p className="font-semibold">{selectedCargoForManagement.sender.full_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Телефон</p>
+                      <p className="font-semibold">{selectedCargoForManagement.sender.phone}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Адрес</p>
+                      <p className="font-semibold">{selectedCargoForManagement.sender.address}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Email</p>
+                      <p className="font-semibold text-blue-600">{selectedCargoForManagement.sender.email}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Получатель */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-lg">
+                      <Users className="mr-2 h-5 w-5" />
+                      Получатель
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <p className="text-sm text-gray-500">ФИО</p>
+                      <p className="font-semibold">{selectedCargoForManagement.recipient.full_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Телефон</p>
+                      <p className="font-semibold">{selectedCargoForManagement.recipient.phone}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Адрес</p>
+                      <p className="font-semibold">{selectedCargoForManagement.recipient.address}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Email</p>
+                      <p className="font-semibold text-blue-600">{selectedCargoForManagement.recipient.email}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Детали груза */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-lg">
+                    <FileText className="mr-2 h-5 w-5" />
+                    Детали груза
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Вес</p>
+                      <p className="font-semibold">{selectedCargoForManagement.cargo_details.weight} кг</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Объявленная стоимость</p>
+                      <p className="font-semibold">{selectedCargoForManagement.cargo_details.declared_value}₽</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Дата создания</p>
+                      <p className="font-semibold">{selectedCargoForManagement.cargo_details.created_date}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Ожидаемая доставка</p>
+                      <p className="font-semibold">{selectedCargoForManagement.cargo_details.expected_delivery}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-500">Описание</p>
+                    <p className="font-semibold">{selectedCargoForManagement.cargo_details.description}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* История операций */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-lg">
+                    <Clock className="mr-2 h-5 w-5" />
+                    История операций
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {selectedCargoForManagement.history.map((item, index) => (
+                      <div key={index} className="flex items-start space-x-4 p-3 bg-gray-50 rounded-lg">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-semibold text-gray-900">{item.action}</p>
+                              <p className="text-sm text-gray-600">{item.details}</p>
+                              <p className="text-sm text-gray-500">Исполнитель: {item.user}</p>
+                            </div>
+                            <p className="text-xs text-gray-400 whitespace-nowrap">{item.date}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Функциональные кнопки управления */}
+              <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-lg text-blue-900">
+                    <Settings className="mr-2 h-5 w-5" />
+                    Управление грузом
+                  </CardTitle>
+                  <CardDescription className="text-blue-700">
+                    Выберите действие для работы с грузом
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Перемещение груза */}
+                    <Button
+                      className="h-16 flex-col space-y-1 bg-blue-600 hover:bg-blue-700 text-white"
+                      onClick={() => {
+                        const newCell = prompt('Введите ID новой ячейки для перемещения груза:');
+                        if (newCell) {
+                          handleMoveCargoToCell(selectedCargoForManagement.id, newCell);
+                          setShowCargoManagementModal(false);
+                        }
+                      }}
+                    >
+                      <ArrowUp className="h-5 w-5" />
+                      <span className="text-sm font-medium">Переместить груз</span>
+                      <span className="text-xs opacity-90">в другую ячейку</span>
+                    </Button>
+
+                    {/* Возврат товара */}
+                    <Button
+                      className="h-16 flex-col space-y-1 bg-red-600 hover:bg-red-700 text-white"
+                      onClick={() => {
+                        const reason = prompt('Укажите причину возврата:');
+                        if (reason) {
+                          handleReturnCargo(selectedCargoForManagement.id, reason);
+                          setShowCargoManagementModal(false);
+                        }
+                      }}
+                    >
+                      <Ban className="h-5 w-5" />
+                      <span className="text-sm font-medium">Возврат товара</span>
+                      <span className="text-xs opacity-90">отправителю</span>
+                    </Button>
+
+                    {/* Размещение на транспорт */}
+                    <Button
+                      className="h-16 flex-col space-y-1 bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => {
+                        const transportId = prompt('Введите ID транспорта:');
+                        if (transportId) {
+                          handleMoveCargoToTransport(selectedCargoForManagement.id, transportId);
+                          setShowCargoManagementModal(false);
+                        }
+                      }}
+                    >
+                      <Truck className="h-5 w-5" />
+                      <span className="text-sm font-medium">На транспорт</span>
+                      <span className="text-xs opacity-90">для доставки</span>
+                    </Button>
+
+                    {/* Редактирование информации */}
+                    <Button
+                      className="h-16 flex-col space-y-1 bg-orange-600 hover:bg-orange-700 text-white"
+                      onClick={() => {
+                        alert('Функция редактирования груза будет реализована в следующих версиях');
+                      }}
+                    >
+                      <Edit className="h-5 w-5" />
+                      <span className="text-sm font-medium">Редактировать</span>
+                      <span className="text-xs opacity-90">информацию</span>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Кнопки закрытия */}
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setShowCargoManagementModal(false)}>
+                  Закрыть
+                </Button>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Printer className="mr-2 h-4 w-4" />
+                  Печать отчета
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
