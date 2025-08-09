@@ -125,6 +125,18 @@
 user_problem_statement: "Enhanced Admin Panel with Advanced User Management: 1) OPERATOR ROLE MANAGEMENT: Enhanced warehouse operator list with full data and role change functionality (operator to administrator) with complete role information display, 2) OPERATOR PROFILE MANAGEMENT: Detailed operator profiles viewable through admin panel showing work history, accepted cargo statistics, activity periods, and associated warehouses, 3) ENHANCED USER MANAGEMENT SYSTEM: User profile viewing with complete shipping history, recipient history for auto-filling, one-click cargo request creation with auto-filled sender/recipient data from history, integration with multi-cargo form and individual pricing calculator for operators to only fill cargo names, weights, and prices while other data is auto-populated from user history."
 
 backend:
+  - task: "Enhanced Cargo Acceptance System with Payment Methods and Debt Management"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ ENHANCED CARGO ACCEPTANCE SYSTEM TESTING FAILED - Critical authentication and permission issues prevent testing of new payment methods and debt management! DETAILED TEST RESULTS: 1) ❌ WAREHOUSE SELECTION BY OPERATOR: GET /api/operator/warehouses returned 403 'Insufficient permissions' - warehouse operator cannot access their assigned warehouses, 2) ❌ NEW PAYMENT METHODS SYSTEM: All 5 payment method tests failed with 403 'Insufficient permissions' when trying to create cargo with payment_method fields (not_paid, cash, card_transfer, cash_on_delivery, credit), 3) ❌ PAYMENT STATUS LOGIC: GET /api/operator/cargo/available-for-placement returned 403 'Нет прав для просмотра грузов для размещения' - cannot verify payment status logic, 4) ✅ DEBT MANAGEMENT SYSTEM: GET /api/admin/debts endpoint working (returned 0 debts) - debt system structure appears functional, 5) ❌ WAREHOUSE ISOLATION: GET /api/operator/cargo/list returned 403 'Insufficient permissions' - cannot test warehouse isolation, 6) ❌ AUTOMATIC WAREHOUSE SELECTION: POST /api/operator/cargo/accept returned 403 'Insufficient permissions' - cannot test auto-selection. ROOT CAUSE ANALYSIS: The core issue is authentication/authorization problems: 1) Warehouse operator login fails with 500 Internal Server Error, 2) Admin token works but warehouse operator endpoints require 'warehouse_operator' role, 3) User registration creates 'warehouse_operator' role but login fails, 4) This blocks testing of all enhanced cargo acceptance features. CRITICAL FINDINGS: 1) Payment method enum (not_paid, cash, card_transfer, cash_on_delivery, credit) appears implemented in backend code, 2) Debt management endpoint exists and responds, 3) All operator-specific endpoints exist but are inaccessible due to auth issues, 4) Cannot verify processing_status logic (not_paid → payment_pending, others → paid), 5) Cannot test debt creation for credit payments. RECOMMENDATION: Fix warehouse operator authentication issues first, then retest enhanced cargo acceptance system. The payment methods and debt management appear to be implemented but are blocked by authentication problems. SUCCESS RATE: 17% (1/6 test areas passed - only debt endpoint accessible). All enhanced cargo acceptance features require working warehouse operator authentication to test properly."
+
   - task: "TAJLINE.TJ Operator Registration and Login Fix Testing"
     implemented: true
     working: false
