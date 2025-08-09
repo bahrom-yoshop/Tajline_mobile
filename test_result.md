@@ -124,7 +124,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Enhanced Admin Panel with Advanced User Management: 1) OPERATOR ROLE MANAGEMENT: Enhanced warehouse operator list with full data and role change functionality (operator to administrator) with complete role information display, 2) OPERATOR PROFILE MANAGEMENT: Detailed operator profiles viewable through admin panel showing work history, accepted cargo statistics, activity periods, and associated warehouses, 3) ENHANCED USER MANAGEMENT SYSTEM: User profile viewing with complete shipping history, recipient history for auto-filling, one-click cargo request creation with auto-filled sender/recipient data from history, integration with multi-cargo form and individual pricing calculator for operators to only fill cargo names, weights, and prices while other data is auto-populated from user history."
+user_problem_statement: "Исправление критического бага интерфейса складов для операторов: Операторы успешно логинятся в систему, но не могут видеть свои назначенные склады в разделе 'Список складов'. Получают ошибку 'Не удалось получить' при попытке просмотра. Backend endpoint /api/operator/warehouses работает корректно, но в frontend секции 'warehouses' отсутствует интерфейс для операторов - показывается только админский интерфейс создания складов. Требуется добавить операторский интерфейс для просмотра назначенных складов."
 
 backend:
   - task: "TAJLINE.TJ Warehouse Operator Isolation Improvements"
