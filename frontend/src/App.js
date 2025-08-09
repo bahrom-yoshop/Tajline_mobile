@@ -10172,14 +10172,14 @@ function App() {
                             />
                           </div>
 
-                          <div className="bg-gray-50 p-4 rounded-lg">
+                          <div key="warehouse-params-display" className="bg-gray-50 p-4 rounded-lg">
                             <h4 className="font-medium mb-2">Параметры склада:</h4>
                             <div className="text-sm text-gray-600 space-y-1">
-                              <p>Блоков: {warehouseForm.blocks_count}</p>
-                              <p>Полок в блоке: {warehouseForm.shelves_per_block}</p>
-                              <p>Ячеек на полке: {warehouseForm.cells_per_shelf}</p>
+                              <p>Блоков: {warehouseForm.blocks_count || 1}</p>
+                              <p>Полок в блоке: {warehouseForm.shelves_per_block || 1}</p>
+                              <p>Ячеек на полке: {warehouseForm.cells_per_shelf || 1}</p>
                               <p className="font-medium text-gray-900">
-                                Общая вместимость: {warehouseForm.blocks_count * warehouseForm.shelves_per_block * warehouseForm.cells_per_shelf} ячеек
+                                Общая вместимость: {(warehouseForm.blocks_count || 1) * (warehouseForm.shelves_per_block || 1) * (warehouseForm.cells_per_shelf || 1)} ячеек
                               </p>
                             </div>
                           </div>
