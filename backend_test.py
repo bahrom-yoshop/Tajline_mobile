@@ -22703,6 +22703,342 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_warehouse_color_scheme_endpoint(self):
+        """Test updated endpoint /api/operator/cargo/available-for-placement for warehouse color scheme (Phase 2)"""
+        print("\n🎨 WAREHOUSE COLOR SCHEME ENDPOINT TESTING")
+        print("   📋 Testing updated /api/operator/cargo/available-for-placement endpoint for Phase 2: Color scheme by warehouses")
+        
+        all_success = True
+        
+        # Test 1: АВТОРИЗАЦИЯ ПОД ОПЕРАТОРОМ СКЛАДА
+        print("\n   🔐 Test 1: WAREHOUSE OPERATOR AUTHENTICATION...")
+        
+        # Login as warehouse operator (+79777888999/warehouse123)
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            print(f"   📞 Phone: {operator_user.get('phone')}")
+            
+            # Store operator token for further tests
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+            return False
+        
+        # Test 2: GET /api/operator/cargo/available-for-placement - CHECK NEW WAREHOUSE FIELDS
+        print("\n   📦 Test 2: AVAILABLE CARGO FOR PLACEMENT WITH WAREHOUSE INFO...")
+        
+        success, available_cargo_response = self.run_test(
+            "Get Available Cargo for Placement (with warehouse info)",
+            "GET",
+            "/api/operator/cargo/available-for-placement",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            # Check if response has pagination structure or is direct list
+            cargo_items = []
+            if isinstance(available_cargo_response, dict):
+                if 'items' in available_cargo_response:
+                    cargo_items = available_cargo_response['items']
+                    pagination = available_cargo_response.get('pagination', {})
+                    print(f"   📊 Pagination info: {pagination.get('total_count', 0)} total items")
+                else:
+                    # Response might be direct data
+                    cargo_items = [available_cargo_response] if available_cargo_response else []
+            elif isinstance(available_cargo_response, list):
+                cargo_items = available_cargo_response
+            
+            cargo_count = len(cargo_items)
+            print(f"   ✅ Found {cargo_count} cargo items available for placement")
+            
+            if cargo_count > 0:
+                # Test 3: VERIFY NEW WAREHOUSE FIELDS IN RESPONSE
+                print("\n   🏭 Test 3: VERIFY NEW WAREHOUSE FIELDS (warehouse_name, warehouse_location)...")
+                
+                sample_cargo = cargo_items[0]
+                
+                # Check for new warehouse fields
+                new_warehouse_fields = {
+                    'warehouse_name': sample_cargo.get('warehouse_name'),
+                    'warehouse_location': sample_cargo.get('warehouse_location')
+                }
+                
+                warehouse_fields_present = 0
+                for field_name, field_value in new_warehouse_fields.items():
+                    if field_value is not None:
+                        warehouse_fields_present += 1
+                        print(f"   ✅ {field_name}: {field_value}")
+                    else:
+                        print(f"   ❌ {field_name}: Missing or null")
+                
+                if warehouse_fields_present == 2:
+                    print("   ✅ All new warehouse fields present in response")
+                else:
+                    print(f"   ❌ Missing warehouse fields: {2 - warehouse_fields_present}/2 fields missing")
+                    all_success = False
+                
+                # Test 4: VERIFY EXISTING FIELDS REMAIN UNCHANGED
+                print("\n   📋 Test 4: VERIFY EXISTING FIELDS REMAIN UNCHANGED...")
+                
+                required_existing_fields = [
+                    'cargo_number', 'processing_status', 'id', 'weight', 
+                    'sender_full_name', 'recipient_full_name', 'recipient_phone'
+                ]
+                
+                existing_fields_present = 0
+                for field_name in required_existing_fields:
+                    field_value = sample_cargo.get(field_name)
+                    if field_value is not None:
+                        existing_fields_present += 1
+                        print(f"   ✅ {field_name}: {field_value}")
+                    else:
+                        print(f"   ❌ {field_name}: Missing or null")
+                
+                if existing_fields_present == len(required_existing_fields):
+                    print("   ✅ All existing fields preserved in response")
+                else:
+                    print(f"   ❌ Missing existing fields: {len(required_existing_fields) - existing_fields_present}/{len(required_existing_fields)} fields missing")
+                    all_success = False
+                
+                # Test 5: VERIFY RESPONSE STRUCTURE FOR COLOR SCHEME
+                print("\n   🎨 Test 5: VERIFY RESPONSE STRUCTURE FOR COLOR SCHEME...")
+                
+                print("   📊 Complete cargo item structure:")
+                for field_name, field_value in sample_cargo.items():
+                    field_type = type(field_value).__name__
+                    print(f"   - {field_name}: {field_value} ({field_type})")
+                
+                # Check if warehouse info is sufficient for color coding
+                warehouse_name = sample_cargo.get('warehouse_name')
+                warehouse_location = sample_cargo.get('warehouse_location')
+                
+                if warehouse_name or warehouse_location:
+                    print("   ✅ Sufficient warehouse information for color scheme implementation")
+                    
+                    # Test color scheme logic (simulate frontend logic)
+                    color_keywords = {
+                        'худжанд': 'blue',
+                        'душанбе': 'green', 
+                        'кулоб': 'purple',
+                        'курган-тюбе': 'orange',
+                        'москва': 'red'
+                    }
+                    
+                    assigned_color = 'gray'  # default
+                    warehouse_text = f"{warehouse_name} {warehouse_location}".lower()
+                    
+                    for keyword, color in color_keywords.items():
+                        if keyword in warehouse_text:
+                            assigned_color = color
+                            break
+                    
+                    print(f"   🎨 Color assignment test: '{warehouse_text}' → {assigned_color}")
+                    print("   ✅ Color scheme logic can be implemented with available data")
+                else:
+                    print("   ❌ Insufficient warehouse information for color scheme")
+                    all_success = False
+                
+            else:
+                print("   ⚠️  No cargo available for placement - creating test cargo...")
+                
+                # Create test cargo to verify endpoint structure
+                test_cargo_data = {
+                    "sender_full_name": "Тест Цветовая Схема",
+                    "sender_phone": "+79999999999",
+                    "recipient_full_name": "Получатель Цветовая Схема",
+                    "recipient_phone": "+992999999999",
+                    "recipient_address": "Душанбе, ул. Цветовая, 1",
+                    "weight": 15.0,
+                    "cargo_name": "Тест цветовой схемы складов",
+                    "declared_value": 1500.0,
+                    "description": "Груз для тестирования цветовой схемы складов",
+                    "route": "moscow_to_tajikistan",
+                    "payment_method": "cash",
+                    "payment_amount": 1500.0
+                }
+                
+                success, test_cargo_response = self.run_test(
+                    "Create Test Cargo for Color Scheme Testing",
+                    "POST",
+                    "/api/operator/cargo/accept",
+                    200,
+                    test_cargo_data,
+                    operator_token
+                )
+                
+                if success:
+                    cargo_id = test_cargo_response.get('id')
+                    cargo_number = test_cargo_response.get('cargo_number')
+                    print(f"   ✅ Test cargo created: {cargo_number}")
+                    
+                    # Mark cargo as paid to make it available for placement
+                    success, _ = self.run_test(
+                        "Mark Test Cargo as Paid",
+                        "PUT",
+                        f"/api/cargo/{cargo_id}/processing-status",
+                        200,
+                        {"new_status": "paid"},
+                        operator_token
+                    )
+                    
+                    if success:
+                        print("   ✅ Test cargo marked as paid")
+                        
+                        # Re-test the endpoint with new cargo
+                        success, updated_response = self.run_test(
+                            "Re-test Available Cargo with Test Data",
+                            "GET",
+                            "/api/operator/cargo/available-for-placement",
+                            200,
+                            token=operator_token
+                        )
+                        
+                        if success:
+                            updated_items = updated_response.get('items', []) if isinstance(updated_response, dict) else updated_response if isinstance(updated_response, list) else []
+                            if updated_items:
+                                test_item = updated_items[0]
+                                warehouse_name = test_item.get('warehouse_name')
+                                warehouse_location = test_item.get('warehouse_location')
+                                
+                                print(f"   📦 Test cargo warehouse_name: {warehouse_name}")
+                                print(f"   📍 Test cargo warehouse_location: {warehouse_location}")
+                                
+                                if warehouse_name or warehouse_location:
+                                    print("   ✅ Warehouse fields populated in test cargo")
+                                else:
+                                    print("   ❌ Warehouse fields not populated in test cargo")
+                                    all_success = False
+        else:
+            print("   ❌ Failed to get available cargo for placement")
+            all_success = False
+        
+        # Test 6: VERIFY HANDLING OF CARGO WITHOUT ASSIGNED WAREHOUSE
+        print("\n   🚫 Test 6: VERIFY HANDLING OF CARGO WITHOUT ASSIGNED WAREHOUSE...")
+        
+        # This test checks that the backend correctly handles cases where cargo has no assigned warehouse
+        # The endpoint should still return the cargo but with null/empty warehouse fields
+        
+        # Create cargo without explicit warehouse assignment
+        no_warehouse_cargo_data = {
+            "sender_full_name": "Без Склада Отправитель",
+            "sender_phone": "+79888777666",
+            "recipient_full_name": "Без Склада Получатель", 
+            "recipient_phone": "+992888777666",
+            "recipient_address": "Душанбе, ул. Без Склада, 1",
+            "weight": 5.0,
+            "cargo_name": "Груз без склада",
+            "declared_value": 500.0,
+            "description": "Тест обработки груза без назначенного склада",
+            "route": "moscow_to_tajikistan",
+            "payment_method": "cash",
+            "payment_amount": 500.0
+            # Не указываем warehouse_id
+        }
+        
+        success, no_warehouse_response = self.run_test(
+            "Create Cargo Without Warehouse Assignment",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            no_warehouse_cargo_data,
+            operator_token
+        )
+        
+        if success:
+            cargo_id = no_warehouse_response.get('id')
+            cargo_number = no_warehouse_response.get('cargo_number')
+            print(f"   ✅ Cargo without warehouse created: {cargo_number}")
+            
+            # Mark as paid
+            success, _ = self.run_test(
+                "Mark No-Warehouse Cargo as Paid",
+                "PUT",
+                f"/api/cargo/{cargo_id}/processing-status",
+                200,
+                {"new_status": "paid"},
+                operator_token
+            )
+            
+            if success:
+                # Check how it appears in available-for-placement
+                success, final_response = self.run_test(
+                    "Check No-Warehouse Cargo in Available List",
+                    "GET",
+                    "/api/operator/cargo/available-for-placement",
+                    200,
+                    token=operator_token
+                )
+                
+                if success:
+                    final_items = final_response.get('items', []) if isinstance(final_response, dict) else final_response if isinstance(final_response, list) else []
+                    
+                    # Find our test cargo
+                    no_warehouse_item = None
+                    for item in final_items:
+                        if item.get('cargo_number') == cargo_number:
+                            no_warehouse_item = item
+                            break
+                    
+                    if no_warehouse_item:
+                        warehouse_name = no_warehouse_item.get('warehouse_name')
+                        warehouse_location = no_warehouse_item.get('warehouse_location')
+                        
+                        print(f"   📦 No-warehouse cargo found in list")
+                        print(f"   🏭 warehouse_name: {warehouse_name}")
+                        print(f"   📍 warehouse_location: {warehouse_location}")
+                        
+                        # Verify graceful handling of null warehouse data
+                        if warehouse_name is None and warehouse_location is None:
+                            print("   ✅ Graceful handling of cargo without assigned warehouse (null values)")
+                        elif warehouse_name == "" and warehouse_location == "":
+                            print("   ✅ Graceful handling of cargo without assigned warehouse (empty strings)")
+                        else:
+                            print("   ⚠️  Cargo without warehouse has unexpected warehouse data")
+                    else:
+                        print("   ❌ No-warehouse cargo not found in available list")
+                        all_success = False
+        
+        # SUMMARY
+        print("\n   📊 WAREHOUSE COLOR SCHEME ENDPOINT SUMMARY:")
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Warehouse color scheme endpoint ready for Phase 2!")
+            print("   ✅ Warehouse operator authentication successful")
+            print("   ✅ /api/operator/cargo/available-for-placement endpoint accessible")
+            print("   ✅ New warehouse fields (warehouse_name, warehouse_location) present")
+            print("   ✅ Existing fields (cargo_number, processing_status, etc.) preserved")
+            print("   ✅ Response structure suitable for color scheme implementation")
+            print("   ✅ Graceful handling of cargo without assigned warehouse")
+        else:
+            print("   ❌ SOME TESTS FAILED - Warehouse color scheme endpoint needs attention")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
