@@ -9629,7 +9629,7 @@ function App() {
                                         <div>
                                           <p className="text-xs font-medium text-gray-500">Всего ячеек</p>
                                           <p className="text-xl font-bold text-blue-600">
-                                            {(warehouse.blocks_count || 3) * 20}
+                                            {warehouse.total_cells || ((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)) || 0}
                                           </p>
                                         </div>
                                         <Grid3X3 className="h-6 w-6 text-blue-500" />
