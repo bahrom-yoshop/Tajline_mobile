@@ -6103,6 +6103,9 @@ async def get_operator_warehouses(current_user: User = Depends(get_current_user)
             "name": w["name"], 
             "location": w["location"],
             "blocks_count": w.get("blocks_count", 0),
+            "shelves_per_block": w.get("shelves_per_block", 0),
+            "cells_per_shelf": w.get("cells_per_shelf", 0),
+            "total_cells": w.get("blocks_count", 0) * w.get("shelves_per_block", 0) * w.get("cells_per_shelf", 0),
             "is_active": w.get("is_active", True)
         }
         for w in warehouses
