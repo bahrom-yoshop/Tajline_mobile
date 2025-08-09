@@ -6129,6 +6129,47 @@ async def get_operator_warehouses(current_user: User = Depends(get_current_user)
         for w in warehouses
     ]
 
+@app.get("/api/warehouses/by-route/{route}")
+async def get_warehouses_by_route(route: str, current_user: User = Depends(get_current_user)):
+    """Получить список складов по маршруту для операторов и админов"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Определяем регион назначения по маршруту
+    destination_region = None
+    if route == "moscow_to_tajikistan":
+        # Для маршрута Москва → Таджикистан показываем склады в Таджикистане
+        destination_keywords = ["таджикистан", "душанбе", "худжанд", "кулоб", "курган-тюбе", "tajikistan", "dushanbe", "khujand", "kulob"]
+    elif route == "tajikistan_to_moscow":
+        # Для маршрута Таджикистан → Москва показываем склады в Москве
+        destination_keywords = ["москва", "moscow", "россия", "russia"]
+    else:
+        raise HTTPException(status_code=400, detail="Invalid route")
+    
+    # Получаем все активные склады
+    all_warehouses = list(db.warehouses.find({"is_active": True}))
+    
+    # Фильтруем по региону назначения
+    filtered_warehouses = []
+    for warehouse in all_warehouses:
+        location_lower = warehouse.get("location", "").lower()
+        name_lower = warehouse.get("name", "").lower()
+        
+        # Проверяем, содержит ли название или местоположение ключевые слова региона
+        if any(keyword in location_lower or keyword in name_lower for keyword in destination_keywords):
+            filtered_warehouses.append(warehouse)
+    
+    return [
+        {
+            "id": w["id"],
+            "name": w["name"], 
+            "location": w["location"],
+            "blocks_count": w.get("blocks_count", 0),
+            "is_active": w.get("is_active", True)
+        }
+        for w in filtered_warehouses
+    ]
+
 @app.get("/api/admin/debts")
 async def get_debtors_list(current_user: User = Depends(get_current_user)):
     """Получить список задолжников для админа"""
