@@ -126,6 +126,19 @@
 
 user_problem_statement: "Исправление критического бага интерфейса складов для операторов: Операторы успешно логинятся в систему, но не могут видеть свои назначенные склады в разделе 'Список складов'. Получают ошибку 'Не удалось получить' при попытке просмотра. Backend endpoint /api/operator/warehouses работает корректно, но в frontend секции 'warehouses' отсутствует интерфейс для операторов - показывается только админский интерфейс создания складов. Требуется добавить операторский интерфейс для просмотра назначенных складов."
 
+frontend:
+  - task: "Frontend Interface Fix for Warehouse Operators Warehouse List"
+    implemented: false
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "main"
+          comment: "Проблема выявлена: В секции activeSection === 'warehouses' отсутствует интерфейс для операторов складов. Backend endpoint /api/operator/warehouses работает корректно (подтверждено тестированием), но frontend показывает только админский интерфейс создания складов. Операторы не могут видеть свои назначенные склады. Требуется добавить роль-зависимый интерфейс в секцию warehouses."
+
 backend:
   - task: "TAJLINE.TJ Warehouse Operator Isolation Improvements"
     implemented: true
