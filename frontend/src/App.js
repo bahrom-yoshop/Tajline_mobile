@@ -12507,7 +12507,7 @@ function App() {
                   <h3 className="font-semibold text-lg mb-3">Последние отправления</h3>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {selectedUserProfile.recent_shipments.slice(0, 8).map((shipment, index) => (
-                      <div key={index} className="bg-white border rounded-lg p-3">
+                      <div key={`shipment-${shipment.cargo_number || index}-${shipment.cargo_name}`} className="bg-white border rounded-lg p-3">
                         <div className="flex justify-between items-start">
                           <div>
                             <h4 className="font-medium">{shipment.cargo_number} - {shipment.cargo_name}</h4>
