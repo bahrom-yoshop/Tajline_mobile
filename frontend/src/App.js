@@ -4292,6 +4292,55 @@ function App() {
     return labels[role] || role;
   };
 
+  // Функция для назначения цветов складам
+  const getWarehouseColor = (warehouseName) => {
+    if (!warehouseName) return { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-700' };
+    
+    // Нормализуем название склада для поиска ключевых слов
+    const name = warehouseName.toLowerCase();
+    
+    // Цветовая схема на основе ключевых слов в названии склада
+    if (name.includes('худжанд') || name.includes('khujand')) {
+      return { bg: 'bg-blue-50', border: 'border-l-blue-500', text: 'text-blue-800', badge: 'bg-blue-100' };
+    } else if (name.includes('душанбе') || name.includes('dushanbe')) {
+      return { bg: 'bg-green-50', border: 'border-l-green-500', text: 'text-green-800', badge: 'bg-green-100' };
+    } else if (name.includes('кулоб') || name.includes('kulob')) {
+      return { bg: 'bg-purple-50', border: 'border-l-purple-500', text: 'text-purple-800', badge: 'bg-purple-100' };
+    } else if (name.includes('курган') || name.includes('kurgan')) {
+      return { bg: 'bg-orange-50', border: 'border-l-orange-500', text: 'text-orange-800', badge: 'bg-orange-100' };
+    } else if (name.includes('москва') || name.includes('moscow')) {
+      return { bg: 'bg-red-50', border: 'border-l-red-500', text: 'text-red-800', badge: 'bg-red-100' };
+    } else {
+      // Для других складов используем случайный цвет на основе хеша названия
+      const colors = [
+        { bg: 'bg-yellow-50', border: 'border-l-yellow-500', text: 'text-yellow-800', badge: 'bg-yellow-100' },
+        { bg: 'bg-pink-50', border: 'border-l-pink-500', text: 'text-pink-800', badge: 'bg-pink-100' },
+        { bg: 'bg-indigo-50', border: 'border-l-indigo-500', text: 'text-indigo-800', badge: 'bg-indigo-100' },
+        { bg: 'bg-teal-50', border: 'border-l-teal-500', text: 'text-teal-800', badge: 'bg-teal-100' }
+      ];
+      
+      // Простой хеш для консистентного выбора цвета
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) {
+        hash = ((hash << 5) - hash + name.charCodeAt(i)) & 0xffffffff;
+      }
+      const colorIndex = Math.abs(hash) % colors.length;
+      return colors[colorIndex];
+    }
+  };
+
+  // Функция для получения легенды цветов складов
+  const getWarehouseLegend = () => {
+    const legend = [
+      { name: 'Склады Худжанда', color: 'bg-blue-500', textColor: 'text-blue-800' },
+      { name: 'Склады Душанбе', color: 'bg-green-500', textColor: 'text-green-800' },
+      { name: 'Склады Кулоба', color: 'bg-purple-500', textColor: 'text-purple-800' },
+      { name: 'Склады Курган-Тюбе', color: 'bg-orange-500', textColor: 'text-orange-800' },
+      { name: 'Склады Москвы', color: 'bg-red-500', textColor: 'text-red-800' }
+    ];
+    return legend;
+  };
+
   // Функция для редактирования профиля пользователя
   const openEditProfile = () => {
     setEditProfileForm({
