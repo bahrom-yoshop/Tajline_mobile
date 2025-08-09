@@ -3673,6 +3673,12 @@ function App() {
 
   // Генерация схемы ячеек для визуализации с цветовой маркировкой по клиентам
   const generateWarehouseScheme = async (warehouse) => {
+    // Проверяем что объект склада существует
+    if (!warehouse || typeof warehouse !== 'object') {
+      console.error('generateWarehouseScheme: Invalid warehouse object:', warehouse);
+      return [];
+    }
+    
     const blocks = warehouse.blocks_count || 3;
     const shelves_per_block = warehouse.shelves_per_block || 4; // Количество полок на блок
     const cells_per_shelf = warehouse.cells_per_shelf || 5; // Количество ячеек на полку
