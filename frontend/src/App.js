@@ -3580,6 +3580,69 @@ function App() {
     }
   };
 
+  // ФАЗА 3: ФУНКЦИИ ДЛЯ АНАЛИТИКИ И СХЕМЫ СКЛАДОВ
+  
+  // Получение аналитики конкретного склада
+  const fetchWarehouseSpecificAnalytics = async (warehouseId) => {
+    try {
+      const data = await apiCall(`/api/warehouse/${warehouseId}/analytics`);
+      return data || {};
+    } catch (error) {
+      console.error('Error fetching warehouse analytics:', error);
+      return {};
+    }
+  };
+
+  // Получение схемы ячеек склада
+  const fetchWarehouseCells = async (warehouseId) => {
+    try {
+      const data = await apiCall(`/api/warehouse/${warehouseId}/cells`);
+      setWarehouseCells(data || []);
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching warehouse cells:', error);
+      setWarehouseCells([]);
+      return [];
+    }
+  };
+
+  // Генерация схемы ячеек для визуализации (если нет данных от backend)
+  const generateWarehouseScheme = (warehouse) => {
+    const blocks = warehouse.blocks_count || 3;
+    const cellsPerBlock = 20; // 20 ячеек на блок (4x5 сетка)
+    const scheme = [];
+    
+    for (let block = 1; block <= blocks; block++) {
+      const blockCells = [];
+      for (let cell = 1; cell <= cellsPerBlock; cell++) {
+        const cellId = `${warehouse.id}-${block}-${cell}`;
+        const isOccupied = Math.random() < 0.6; // 60% вероятность занятости
+        
+        blockCells.push({
+          id: cellId,
+          block_number: block,
+          cell_number: cell,
+          is_occupied: isOccupied,
+          cargo_number: isOccupied ? `CRG${Date.now()}-${cell}` : null,
+          cargo_sender: isOccupied ? `Отправитель ${cell}` : null,
+          position: {
+            row: Math.ceil(cell / 4),
+            col: ((cell - 1) % 4) + 1
+          }
+        });
+      }
+      scheme.push({
+        block_number: block,
+        cells: blockCells,
+        total_cells: cellsPerBlock,
+        occupied_cells: blockCells.filter(c => c.is_occupied).length,
+        free_cells: blockCells.filter(c => !c.is_occupied).length
+      });
+    }
+    
+    return scheme;
+  };
+
   // НОВЫЕ ФУНКЦИИ: Управление долгами
   const handlePayOffDebt = async (debtId, remainingAmount) => {
     if (window.confirm(`Подтвердите полное погашение долга на сумму ${remainingAmount?.toFixed(2)} сом`)) {
