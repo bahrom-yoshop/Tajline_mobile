@@ -1086,6 +1086,26 @@ function App() {
     }
   }, [operatorWarehouses, user]);
 
+  // НОВЫЙ USEEFFECT: Загрузка складов по маршруту
+  useEffect(() => {
+    const loadRouteWarehouses = async () => {
+      if (operatorCargoForm.route && user) {
+        const warehouses = await fetchWarehousesByRoute(operatorCargoForm.route);
+        setRouteWarehouses(warehouses);
+        
+        // Сброс выбранного склада при смене маршрута
+        if (operatorCargoForm.warehouse_id && !warehouses.find(w => w.id === operatorCargoForm.warehouse_id)) {
+          setOperatorCargoForm(prev => ({
+            ...prev,
+            warehouse_id: ''
+          }));
+        }
+      }
+    };
+    
+    loadRouteWarehouses();
+  }, [operatorCargoForm.route, user]);
+
   useEffect(() => {
     if (user) {
       fetchNotifications();
