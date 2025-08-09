@@ -9639,6 +9639,53 @@ async def get_client_cargo_details(
         }
     }
 
+@app.post("/api/admin/fix-operator-role")
+async def fix_warehouse_operator_role(current_user: User = Depends(get_current_user)):
+    """Временный эндпоинт для исправления роли оператора склада"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can fix operator roles")
+    
+    try:
+        # Исправляем роль оператора +79777888999
+        warehouse_operator = db.users.find_one({"phone": "+79777888999"})
+        if warehouse_operator:
+            # Обновляем роль и учетные данные
+            update_result = db.users.update_one(
+                {"phone": "+79777888999"},
+                {"$set": {
+                    "role": UserRole.WAREHOUSE_OPERATOR.value,
+                    "password_hash": hash_password("warehouse123"),
+                    "token_version": 1,
+                    "user_number": warehouse_operator.get("user_number") or generate_user_number(),
+                    "full_name": "Оператор Складской Обновленный",
+                    "is_active": True
+                }}
+            )
+            
+            if update_result.modified_count > 0:
+                return {"message": "Роль оператора успешно исправлена", "fixed": True}
+            else:
+                return {"message": "Оператор уже имеет корректные настройки", "fixed": False}
+        else:
+            # Создаем нового оператора
+            operator_id = str(uuid.uuid4())
+            operator_user_number = generate_user_number()
+            db.users.insert_one({
+                "id": operator_id,
+                "user_number": operator_user_number,
+                "full_name": "Оператор Складской Обновленный",
+                "phone": "+79777888999",
+                "password_hash": hash_password("warehouse123"),
+                "role": UserRole.WAREHOUSE_OPERATOR.value,
+                "is_active": True,
+                "token_version": 1,
+                "created_at": datetime.utcnow()
+            })
+            return {"message": "Новый оператор склада создан", "created": True}
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка исправления роли: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
