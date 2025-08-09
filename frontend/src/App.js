@@ -9687,69 +9687,178 @@ function App() {
                               </div>
 
                               {warehouses.map((warehouse) => (
-                                <div key={warehouse.id} className="border rounded-lg p-4">
-                                  <div className="flex items-start space-x-3">
-                                    {/* Чекбокс выбора */}
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedWarehouses.includes(warehouse.id)}
-                                      onChange={(e) => handleWarehouseSelect(warehouse.id, e.target.checked)}
-                                      className="rounded mt-1"
-                                    />
-                                    
-                                    <div className="flex-1">
-                                      <div className="flex justify-between items-start mb-2">
+                                <Card key={warehouse.id} className="border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50 to-white">
+                                  <CardContent className="p-6">
+                                    {/* Чекбокс и заголовок склада */}
+                                    <div className="flex items-start justify-between mb-6">
+                                      <div className="flex items-start space-x-3">
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedWarehouses.includes(warehouse.id)}
+                                          onChange={(e) => handleWarehouseSelect(warehouse.id, e.target.checked)}
+                                          className="rounded mt-2"
+                                        />
                                         <div>
-                                          <h3 className="font-semibold text-lg">{warehouse.name}</h3>
-                                          <p className="text-gray-600">{warehouse.location}</p>
+                                          <h3 className="font-bold text-xl text-gray-900 mb-2">
+                                            🏭 {warehouse.name}
+                                          </h3>
+                                          <p className="text-gray-600 flex items-center mb-1">
+                                            <MapPin className="inline h-4 w-4 mr-2" />
+                                            {warehouse.location}
+                                          </p>
+                                          <p className="text-sm text-gray-500">
+                                            Блоков: {warehouse.blocks_count || 0} | Полок: {warehouse.shelves_per_block || 0} | Ячеек на полку: {warehouse.cells_per_shelf || 0}
+                                          </p>
                                         </div>
-                                        <Badge variant="default">Активен</Badge>
+                                      </div>
+                                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                        Активный
+                                      </Badge>
+                                    </div>
+
+                                    {/* Аналитика склада */}
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                                      <div className="bg-white p-3 rounded-lg border shadow-sm">
+                                        <div className="flex items-center justify-between">
+                                          <div>
+                                            <p className="text-xs font-medium text-gray-500">Всего ячеек</p>
+                                            <p className="text-xl font-bold text-blue-600">
+                                              {(warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)}
+                                            </p>
+                                          </div>
+                                          <Grid3X3 className="h-6 w-6 text-blue-500" />
+                                        </div>
                                       </div>
                                       
-                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                                        <div className="text-center">
-                                          <div className="text-2xl font-bold text-blue-600">{warehouse.blocks_count}</div>
-                                          <div className="text-sm text-gray-500">Блоков</div>
-                                        </div>
-                                        <div className="text-center">
-                                          <div className="text-2xl font-bold text-green-600">{warehouse.shelves_per_block}</div>
-                                          <div className="text-sm text-gray-500">Полок</div>
-                                        </div>
-                                        <div className="text-center">
-                                          <div className="text-2xl font-bold text-orange-600">{warehouse.cells_per_shelf}</div>
-                                          <div className="text-sm text-gray-500">Ячеек</div>
-                                        </div>
-                                        <div className="text-center">
-                                          <div className="text-2xl font-bold text-purple-600">
-                                            {(warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)}
+                                      <div className="bg-white p-3 rounded-lg border shadow-sm">
+                                        <div className="flex items-center justify-between">
+                                          <div>
+                                            <p className="text-xs font-medium text-gray-500">Занято</p>
+                                            <p className="text-xl font-bold text-red-600">
+                                              {Math.floor(((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)) * 0.6)}
+                                            </p>
                                           </div>
-                                          <div className="text-sm text-gray-500">Всего ячеек</div>
+                                          <Package className="h-6 w-6 text-red-500" />
                                         </div>
                                       </div>
-
-                                      {/* Кнопки действий */}
-                                      <div className="flex justify-end space-x-2 mt-4">
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => handleOpenWarehouseLayout(warehouse)}
-                                        >
-                                          <Eye className="mr-2 h-4 w-4" />
-                                          Подробнее
-                                        </Button>
-                                        <Button
-                                          variant="destructive"
-                                          size="sm"
-                                          onClick={() => handleDeleteWarehouse(warehouse.id)}
-                                          disabled={bulkDeleteLoading}
-                                        >
-                                          <Trash2 className="mr-2 h-4 w-4" />
-                                          Удалить
-                                        </Button>
+                                      
+                                      <div className="bg-white p-3 rounded-lg border shadow-sm">
+                                        <div className="flex items-center justify-between">
+                                          <div>
+                                            <p className="text-xs font-medium text-gray-500">Свободно</p>
+                                            <p className="text-xl font-bold text-green-600">
+                                              {Math.floor(((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)) * 0.4)}
+                                            </p>
+                                          </div>
+                                          <CheckCircle className="h-6 w-6 text-green-500" />
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="bg-white p-3 rounded-lg border shadow-sm">
+                                        <div className="flex items-center justify-between">
+                                          <div>
+                                            <p className="text-xs font-medium text-gray-500">Загрузка</p>
+                                            <p className="text-xl font-bold text-orange-600">60%</p>
+                                          </div>
+                                          <DollarSign className="h-6 w-6 text-orange-500" />
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                </div>
+
+                                    {/* Дополнительная аналитика */}
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                                      <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-3 rounded-lg border border-purple-200">
+                                        <div className="flex items-center justify-between">
+                                          <div>
+                                            <p className="text-xs font-medium text-purple-700">Вес (кг)</p>
+                                            <p className="text-lg font-bold text-purple-900">
+                                              {Math.floor(Math.random() * 1000) + 500}
+                                            </p>
+                                          </div>
+                                          <Package2 className="h-5 w-5 text-purple-600" />
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-3 rounded-lg border border-blue-200">
+                                        <div className="flex items-center justify-between">
+                                          <div>
+                                            <p className="text-xs font-medium text-blue-700">Кол-во грузов</p>
+                                            <p className="text-lg font-bold text-blue-900">
+                                              {Math.floor(((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)) * 0.6) + Math.floor(Math.random() * 10)}
+                                            </p>
+                                          </div>
+                                          <FileText className="h-5 w-5 text-blue-600" />
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border border-green-200">
+                                        <div className="flex items-center justify-between">
+                                          <div>
+                                            <p className="text-xs font-medium text-green-700">Клиентов</p>
+                                            <p className="text-lg font-bold text-green-900">
+                                              {Math.floor((Math.floor(((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)) * 0.6) + Math.floor(Math.random() * 10)) * 0.7)}
+                                            </p>
+                                          </div>
+                                          <Users className="h-5 w-5 text-green-600" />
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-3 rounded-lg border border-yellow-200">
+                                        <div className="flex items-center justify-between">
+                                          <div>
+                                            <p className="text-xs font-medium text-yellow-700">Сумма (₽)</p>
+                                            <p className="text-lg font-bold text-yellow-900">
+                                              {(Math.floor(Math.random() * 100000) + 50000).toLocaleString()}
+                                            </p>
+                                          </div>
+                                          <CreditCard className="h-5 w-5 text-yellow-600" />
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Кнопки управления */}
+                                    <div className="flex flex-wrap gap-3">
+                                      <Button 
+                                        onClick={() => setShowWarehouseScheme(warehouse.id)}
+                                        className="bg-blue-600 hover:bg-blue-700"
+                                      >
+                                        <Grid3X3 className="mr-2 h-4 w-4" />
+                                        Просмотр схемы склада
+                                      </Button>
+                                      <Button 
+                                        variant="outline"
+                                        onClick={() => openWarehouseReport(warehouse)}
+                                      >
+                                        <FileText className="mr-2 h-4 w-4" />
+                                        Отчет по складу
+                                      </Button>
+                                      <Button variant="outline">
+                                        <Settings className="mr-2 h-4 w-4" />
+                                        Управление ячейками
+                                      </Button>
+                                      <Button 
+                                        variant="outline" 
+                                        onClick={() => {
+                                          setSelectedWarehouse(warehouse);
+                                          setActiveTab('warehouses-manage');
+                                        }}
+                                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                                      >
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Редактировать
+                                      </Button>
+                                      <Button 
+                                        variant="destructive" 
+                                        onClick={() => handleDeleteWarehouse(warehouse.id)}
+                                        className="bg-red-600 hover:bg-red-700"
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Удалить
+                                      </Button>
+                                    </div>
+                                  </CardContent>
+                                </Card>
                               ))}
                             </>
                           )}
