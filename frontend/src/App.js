@@ -15088,11 +15088,13 @@ function App() {
 
               {/* Схема блоков и ячеек */}
               <div className="space-y-6">
-                {(() => {
-                  const warehouse = operatorWarehouses.find(w => w.id === showWarehouseScheme);
-                  const scheme = generateWarehouseScheme(warehouse);
-                  
-                  return scheme.map((block) => (
+                {warehouseSchemeLoading ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span className="ml-2 text-gray-600">Загрузка схемы склада...</span>
+                  </div>
+                ) : (
+                  warehouseSchemeData.map((block) => (
                     <div key={block.block_number} className="border rounded-lg p-4 bg-white">
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="font-bold text-lg text-gray-800">
