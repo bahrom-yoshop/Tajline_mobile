@@ -3614,7 +3614,7 @@ async def get_available_cargo_for_placement(
         cargo_cursor = db.cargo.find(placement_query).skip(skip).limit(pagination.per_page).sort("created_at", -1)
         cargo_list = list(cargo_cursor)
         
-        # Обрабатываем данные и добавляем информацию об операторах
+        # Обрабатываем данные и добавляем информацию об операторах и складах
         normalized_cargo = []
         for cargo in cargo_list:
             # Сериализуем данные
@@ -3630,6 +3630,20 @@ async def get_available_cargo_for_placement(
                 else:
                     cargo_data['creator_name'] = 'Неизвестно'
                     cargo_data['creator_phone'] = 'Не указан'
+            
+            # Получаем информацию о складе назначения
+            warehouse_id = cargo.get('warehouse_id')
+            if warehouse_id:
+                warehouse = db.warehouses.find_one({"id": warehouse_id})
+                if warehouse:
+                    cargo_data['warehouse_name'] = warehouse.get('name', 'Неизвестный склад')
+                    cargo_data['warehouse_location'] = warehouse.get('location', 'Не указано')
+                else:
+                    cargo_data['warehouse_name'] = 'Неизвестный склад'
+                    cargo_data['warehouse_location'] = 'Не указано'
+            else:
+                cargo_data['warehouse_name'] = 'Склад не назначен'
+                cargo_data['warehouse_location'] = 'Не указано'
             
             # Добавляем статус готовности к размещению
             cargo_data['ready_for_placement'] = True
