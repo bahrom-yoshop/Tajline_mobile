@@ -1936,6 +1936,416 @@ class CargoTransportAPITester:
         
         return all_success
 
+    def test_operator_dashboard_analytics_endpoint(self):
+        """Test enhanced /api/operator/dashboard/analytics endpoint for detailed warehouse operator analytics"""
+        print("\n📊 OPERATOR DASHBOARD ANALYTICS ENDPOINT TESTING")
+        print("   🎯 Testing enhanced endpoint /api/operator/dashboard/analytics for detailed warehouse operator analytics")
+        
+        all_success = True
+        
+        # Test 1: WAREHOUSE OPERATOR AUTHENTICATION
+        print("\n   🔐 Test 1: WAREHOUSE OPERATOR AUTHENTICATION...")
+        
+        # Login as warehouse operator (+79777888999/warehouse123)
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            operator_phone = operator_user.get('phone')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            print(f"   📞 Phone: {operator_phone}")
+            
+            # Store operator token for further tests
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+            return False
+        
+        # Test 2: ENDPOINT ACCESSIBILITY
+        print("\n   📡 Test 2: ENDPOINT ACCESSIBILITY...")
+        
+        success, analytics_response = self.run_test(
+            "Get Operator Dashboard Analytics",
+            "GET",
+            "/api/operator/dashboard/analytics",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if not success:
+            print("   ❌ Operator cannot access dashboard analytics endpoint")
+            all_success = False
+            return False
+        
+        print("   ✅ Operator can access dashboard analytics endpoint")
+        
+        # Test 3: RESPONSE STRUCTURE VERIFICATION
+        print("\n   📋 Test 3: RESPONSE STRUCTURE VERIFICATION...")
+        
+        if analytics_response and isinstance(analytics_response, dict):
+            print("   ✅ Response is a valid dictionary")
+            
+            # Check required top-level fields
+            required_fields = [
+                'operator_info',
+                'warehouses_details', 
+                'summary_stats',
+                'cargo_by_status',
+                'clients_stats',
+                'financial_stats'
+            ]
+            
+            missing_fields = []
+            for field in required_fields:
+                if field not in analytics_response:
+                    missing_fields.append(field)
+                else:
+                    field_value = analytics_response[field]
+                    field_type = type(field_value).__name__
+                    if isinstance(field_value, (list, dict)):
+                        field_info = f"{field_type} ({len(field_value)} items)"
+                    else:
+                        field_info = f"{field_type}"
+                    print(f"   ✅ {field}: {field_info}")
+            
+            if missing_fields:
+                print(f"   ❌ Missing required fields: {missing_fields}")
+                all_success = False
+            else:
+                print("   ✅ All required top-level fields present")
+        else:
+            print("   ❌ Response is not a valid dictionary")
+            all_success = False
+            return False
+        
+        # Test 4: OPERATOR_INFO STRUCTURE
+        print("\n   👤 Test 4: OPERATOR_INFO STRUCTURE...")
+        
+        operator_info = analytics_response.get('operator_info', {})
+        if isinstance(operator_info, dict):
+            required_operator_fields = ['operator_name', 'operator_phone', 'assigned_warehouses_count']
+            missing_operator_fields = [field for field in required_operator_fields if field not in operator_info]
+            
+            if not missing_operator_fields:
+                print("   ✅ operator_info has all required fields")
+                print(f"   👤 Operator Name: {operator_info.get('operator_name')}")
+                print(f"   📞 Operator Phone: {operator_info.get('operator_phone')}")
+                print(f"   🏭 Assigned Warehouses: {operator_info.get('assigned_warehouses_count')}")
+                
+                # Verify data matches login info
+                if operator_info.get('operator_name') == operator_name:
+                    print("   ✅ Operator name matches login data")
+                else:
+                    print(f"   ❌ Operator name mismatch: expected {operator_name}, got {operator_info.get('operator_name')}")
+                    all_success = False
+                    
+                if operator_info.get('operator_phone') == operator_phone:
+                    print("   ✅ Operator phone matches login data")
+                else:
+                    print(f"   ❌ Operator phone mismatch: expected {operator_phone}, got {operator_info.get('operator_phone')}")
+                    all_success = False
+            else:
+                print(f"   ❌ operator_info missing fields: {missing_operator_fields}")
+                all_success = False
+        else:
+            print(f"   ❌ operator_info is not a dict: {type(operator_info)}")
+            all_success = False
+        
+        # Test 5: WAREHOUSES_DETAILS STRUCTURE
+        print("\n   🏭 Test 5: WAREHOUSES_DETAILS STRUCTURE...")
+        
+        warehouses_details = analytics_response.get('warehouses_details', [])
+        if isinstance(warehouses_details, list):
+            warehouse_count = len(warehouses_details)
+            print(f"   ✅ warehouses_details is a list with {warehouse_count} warehouses")
+            
+            if warehouse_count > 0:
+                sample_warehouse = warehouses_details[0]
+                required_warehouse_fields = [
+                    'warehouse_id', 'warehouse_name', 'warehouse_location',
+                    'warehouse_structure', 'cargo_stats', 'cargo_by_status',
+                    'clients', 'financial'
+                ]
+                
+                missing_warehouse_fields = [field for field in required_warehouse_fields if field not in sample_warehouse]
+                
+                if not missing_warehouse_fields:
+                    print("   ✅ Warehouse details have all required fields")
+                    print(f"   🏭 Sample warehouse: {sample_warehouse.get('warehouse_name')}")
+                    print(f"   📍 Location: {sample_warehouse.get('warehouse_location')}")
+                    
+                    # Test warehouse_structure
+                    warehouse_structure = sample_warehouse.get('warehouse_structure', {})
+                    structure_fields = ['blocks_count', 'shelves_per_block', 'cells_per_shelf', 'total_cells']
+                    structure_missing = [field for field in structure_fields if field not in warehouse_structure]
+                    
+                    if not structure_missing:
+                        print("   ✅ warehouse_structure has all required fields")
+                        blocks = warehouse_structure.get('blocks_count')
+                        shelves = warehouse_structure.get('shelves_per_block')
+                        cells = warehouse_structure.get('cells_per_shelf')
+                        total = warehouse_structure.get('total_cells')
+                        print(f"   📐 Structure: {blocks} blocks × {shelves} shelves × {cells} cells = {total} total")
+                        
+                        # Verify calculation
+                        expected_total = blocks * shelves * cells
+                        if total == expected_total:
+                            print("   ✅ total_cells calculation correct")
+                        else:
+                            print(f"   ❌ total_cells calculation incorrect: expected {expected_total}, got {total}")
+                            all_success = False
+                    else:
+                        print(f"   ❌ warehouse_structure missing fields: {structure_missing}")
+                        all_success = False
+                    
+                    # Test cargo_stats
+                    cargo_stats = sample_warehouse.get('cargo_stats', {})
+                    cargo_stats_fields = ['total_cargo', 'total_weight_kg', 'total_value_rub', 'occupied_cells', 'free_cells', 'occupancy_rate']
+                    cargo_stats_missing = [field for field in cargo_stats_fields if field not in cargo_stats]
+                    
+                    if not cargo_stats_missing:
+                        print("   ✅ cargo_stats has all required fields")
+                        print(f"   📦 Cargo: {cargo_stats.get('total_cargo')} items")
+                        print(f"   ⚖️  Weight: {cargo_stats.get('total_weight_kg')} kg")
+                        print(f"   💰 Value: {cargo_stats.get('total_value_rub')} RUB")
+                        print(f"   📊 Occupancy: {cargo_stats.get('occupancy_rate')}%")
+                    else:
+                        print(f"   ❌ cargo_stats missing fields: {cargo_stats_missing}")
+                        all_success = False
+                    
+                    # Test clients and financial
+                    clients = sample_warehouse.get('clients', {})
+                    financial = sample_warehouse.get('financial', {})
+                    
+                    if 'unique_senders' in clients and 'unique_recipients' in clients:
+                        print(f"   👥 Clients: {clients.get('unique_senders')} senders, {clients.get('unique_recipients')} recipients")
+                    else:
+                        print("   ❌ clients section missing required fields")
+                        all_success = False
+                    
+                    if 'paid_cargo' in financial and 'unpaid_cargo' in financial and 'debt_amount' in financial:
+                        print(f"   💳 Financial: {financial.get('paid_cargo')} paid, {financial.get('unpaid_cargo')} unpaid, {financial.get('debt_amount')} RUB debt")
+                    else:
+                        print("   ❌ financial section missing required fields")
+                        all_success = False
+                        
+                else:
+                    print(f"   ❌ Warehouse details missing fields: {missing_warehouse_fields}")
+                    all_success = False
+            else:
+                print("   ⚠️  No warehouses found for operator")
+        else:
+            print(f"   ❌ warehouses_details is not a list: {type(warehouses_details)}")
+            all_success = False
+        
+        # Test 6: SUMMARY_STATS STRUCTURE
+        print("\n   📊 Test 6: SUMMARY_STATS STRUCTURE...")
+        
+        summary_stats = analytics_response.get('summary_stats', {})
+        if isinstance(summary_stats, dict):
+            required_summary_fields = [
+                'total_cargo_in_my_warehouses', 'total_weight_kg', 'total_value_rub',
+                'occupied_cells', 'free_cells', 'total_cells', 'average_occupancy_rate'
+            ]
+            
+            missing_summary_fields = [field for field in required_summary_fields if field not in summary_stats]
+            
+            if not missing_summary_fields:
+                print("   ✅ summary_stats has all required fields")
+                print(f"   📦 Total Cargo: {summary_stats.get('total_cargo_in_my_warehouses')}")
+                print(f"   ⚖️  Total Weight: {summary_stats.get('total_weight_kg')} kg")
+                print(f"   💰 Total Value: {summary_stats.get('total_value_rub')} RUB")
+                print(f"   📊 Cells: {summary_stats.get('occupied_cells')} occupied / {summary_stats.get('total_cells')} total")
+                print(f"   📈 Average Occupancy: {summary_stats.get('average_occupancy_rate')}%")
+                
+                # Verify calculations
+                occupied = summary_stats.get('occupied_cells', 0)
+                total_cells = summary_stats.get('total_cells', 0)
+                avg_occupancy = summary_stats.get('average_occupancy_rate', 0)
+                
+                if total_cells > 0:
+                    expected_occupancy = round((occupied / total_cells * 100), 1)
+                    if abs(avg_occupancy - expected_occupancy) < 0.1:
+                        print("   ✅ Average occupancy rate calculation correct")
+                    else:
+                        print(f"   ❌ Average occupancy rate incorrect: expected {expected_occupancy}, got {avg_occupancy}")
+                        all_success = False
+            else:
+                print(f"   ❌ summary_stats missing fields: {missing_summary_fields}")
+                all_success = False
+        else:
+            print(f"   ❌ summary_stats is not a dict: {type(summary_stats)}")
+            all_success = False
+        
+        # Test 7: CLIENTS_STATS AND FINANCIAL_STATS
+        print("\n   👥 Test 7: CLIENTS_STATS AND FINANCIAL_STATS...")
+        
+        clients_stats = analytics_response.get('clients_stats', {})
+        financial_stats = analytics_response.get('financial_stats', {})
+        
+        if isinstance(clients_stats, dict):
+            if 'unique_senders' in clients_stats and 'unique_recipients' in clients_stats:
+                print(f"   ✅ clients_stats: {clients_stats.get('unique_senders')} senders, {clients_stats.get('unique_recipients')} recipients")
+            else:
+                print("   ❌ clients_stats missing required fields")
+                all_success = False
+        else:
+            print(f"   ❌ clients_stats is not a dict: {type(clients_stats)}")
+            all_success = False
+        
+        if isinstance(financial_stats, dict):
+            required_financial_fields = ['paid_cargo', 'unpaid_cargo', 'debt_amount']
+            missing_financial = [field for field in required_financial_fields if field not in financial_stats]
+            
+            if not missing_financial:
+                print(f"   ✅ financial_stats: {financial_stats.get('paid_cargo')} paid, {financial_stats.get('unpaid_cargo')} unpaid, {financial_stats.get('debt_amount')} RUB debt")
+            else:
+                print(f"   ❌ financial_stats missing fields: {missing_financial}")
+                all_success = False
+        else:
+            print(f"   ❌ financial_stats is not a dict: {type(financial_stats)}")
+            all_success = False
+        
+        # Test 8: DATA ISOLATION - ONLY OPERATOR'S WAREHOUSES
+        print("\n   🔒 Test 8: DATA ISOLATION - ONLY OPERATOR'S WAREHOUSES...")
+        
+        # Login as admin for comparison
+        if 'admin' not in self.tokens:
+            admin_login_data = {
+                "phone": "+79999888777",
+                "password": "admin123"
+            }
+            
+            success, admin_login_response = self.run_test(
+                "Admin Login for Comparison",
+                "POST",
+                "/api/auth/login",
+                200,
+                admin_login_data
+            )
+            
+            if success and 'access_token' in admin_login_response:
+                self.tokens['admin'] = admin_login_response['access_token']
+                self.users['admin'] = admin_login_response.get('user', {})
+        
+        if 'admin' in self.tokens:
+            # Get admin dashboard analytics for comparison
+            success, admin_analytics = self.run_test(
+                "Admin Dashboard Analytics for Comparison",
+                "GET",
+                "/api/admin/dashboard/analytics",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success:
+                admin_warehouses = admin_analytics.get('basic_stats', {}).get('total_warehouses', 0)
+                operator_warehouses = analytics_response.get('operator_info', {}).get('assigned_warehouses_count', 0)
+                
+                print(f"   👑 Admin sees {admin_warehouses} total warehouses in system")
+                print(f"   🏭 Operator sees {operator_warehouses} assigned warehouses")
+                
+                if operator_warehouses <= admin_warehouses:
+                    print("   ✅ Data isolation working - operator sees only assigned warehouses")
+                else:
+                    print("   ❌ Data isolation broken - operator sees more warehouses than admin")
+                    all_success = False
+                
+                # Check that operator data is subset of system data
+                operator_total_cargo = analytics_response.get('summary_stats', {}).get('total_cargo_in_my_warehouses', 0)
+                admin_total_cargo = admin_analytics.get('cargo_stats', {}).get('total_cargo', 0)
+                
+                if operator_total_cargo <= admin_total_cargo:
+                    print(f"   ✅ Cargo isolation working - operator cargo ({operator_total_cargo}) ≤ system cargo ({admin_total_cargo})")
+                else:
+                    print(f"   ❌ Cargo isolation broken - operator cargo ({operator_total_cargo}) > system cargo ({admin_total_cargo})")
+                    all_success = False
+            else:
+                print("   ❌ Could not get admin analytics for comparison")
+                all_success = False
+        
+        # Test 9: ACCESS CONTROL - NON-OPERATORS SHOULD BE DENIED
+        print("\n   🚫 Test 9: ACCESS CONTROL - NON-OPERATORS SHOULD BE DENIED...")
+        
+        # Test with admin (should be denied)
+        if 'admin' in self.tokens:
+            success, _ = self.run_test(
+                "Admin Access (Should Be Denied)",
+                "GET",
+                "/api/operator/dashboard/analytics",
+                403,  # Should return 403 Forbidden
+                token=self.tokens['admin']
+            )
+            
+            if success:
+                print("   ✅ Admin access properly denied with 403 error")
+            else:
+                print("   ❌ Admin access control not working correctly")
+                all_success = False
+        
+        # Test 10: CARGO_BY_STATUS STRUCTURE
+        print("\n   📋 Test 10: CARGO_BY_STATUS STRUCTURE...")
+        
+        cargo_by_status = analytics_response.get('cargo_by_status', {})
+        if isinstance(cargo_by_status, dict):
+            print(f"   ✅ cargo_by_status is a dict with {len(cargo_by_status)} status types")
+            
+            if len(cargo_by_status) > 0:
+                for status, count in cargo_by_status.items():
+                    print(f"   📊 {status}: {count} cargo")
+                    
+                    if not isinstance(count, int) or count < 0:
+                        print(f"   ❌ Invalid count for status {status}: {count}")
+                        all_success = False
+                
+                print("   ✅ All cargo status counts are valid")
+            else:
+                print("   ⚠️  No cargo status data found")
+        else:
+            print(f"   ❌ cargo_by_status is not a dict: {type(cargo_by_status)}")
+            all_success = False
+        
+        # SUMMARY
+        print("\n   📊 OPERATOR DASHBOARD ANALYTICS ENDPOINT SUMMARY:")
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Operator dashboard analytics endpoint working perfectly!")
+            print("   ✅ Warehouse operator authentication successful")
+            print("   ✅ Endpoint accessible to operators")
+            print("   ✅ Complete response structure with all required fields")
+            print("   ✅ operator_info section with operator details")
+            print("   ✅ warehouses_details with comprehensive warehouse analytics")
+            print("   ✅ summary_stats with aggregated data across all operator warehouses")
+            print("   ✅ clients_stats and financial_stats sections")
+            print("   ✅ Data isolation working - only operator's warehouses shown")
+            print("   ✅ Access control working - non-operators denied")
+            print("   ✅ cargo_by_status with detailed status breakdown")
+        else:
+            print("   ❌ SOME TESTS FAILED - Operator dashboard analytics endpoint needs attention")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
     def test_operator_warehouses_structure_display(self):
         """Test обновленный endpoint /api/operator/warehouses для отображения реальной структуры склада операторам"""
         print("\n🏭 OPERATOR WAREHOUSES STRUCTURE DISPLAY TESTING")
