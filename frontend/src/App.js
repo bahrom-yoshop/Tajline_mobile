@@ -378,6 +378,7 @@ function App() {
 
   // Operator-specific states
   const [operatorWarehouses, setOperatorWarehouses] = useState([]);
+  const [routeWarehouses, setRouteWarehouses] = useState([]);  // Склады по выбранному маршруту
   const [interwarehouseTransportModal, setInterwarehouseTransportModal] = useState(false);
   const [interwarehouseForm, setInterwarehouseForm] = useState({
     source_warehouse_id: '',
