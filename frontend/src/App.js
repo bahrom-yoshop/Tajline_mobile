@@ -12343,7 +12343,7 @@ function App() {
                   <h3 className="font-semibold text-lg mb-3">Связанные склады</h3>
                   <div className="space-y-2">
                     {selectedOperatorProfile.associated_warehouses.map((warehouse, index) => (
-                      <div key={index} className="bg-white border rounded-lg p-3">
+                      <div key={`operator-warehouse-${warehouse.id || index}-${warehouse.name}`} className="bg-white border rounded-lg p-3">
                         <div className="flex justify-between items-center">
                           <div>
                             <h4 className="font-medium">{warehouse.name}</h4>
