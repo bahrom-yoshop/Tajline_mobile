@@ -1188,6 +1188,7 @@ function App() {
         fetchArrivedTransports();
         fetchOperatorWarehouses(); // Добавлено для операторов
         fetchNewOrdersCount(); // Загрузка количества новых заказов для операторов
+        fetchOperatorDashboardAnalytics(); // Загрузка аналитики дашборда оператора
       } else {
         fetchMyCargo();
         fetchMyRequests();
