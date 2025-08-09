@@ -8858,8 +8858,58 @@ function App() {
               {/* Управление складами */}
               {activeSection === 'warehouses' && (
                 <div className="space-y-6">
+                  {/* ИНТЕРФЕЙС ДЛЯ ОПЕРАТОРОВ СКЛАДОВ */}
+                  {user?.role === 'warehouse_operator' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Building className="mr-2 h-5 w-5" />
+                          Мои назначенные склады ({operatorWarehouses.length})
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {operatorWarehouses.length === 0 ? (
+                          <div className="text-center py-8">
+                            <Building className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                            <p className="text-gray-500 mb-4">Вам не назначены склады</p>
+                            <p className="text-sm text-gray-400">Обратитесь к администратору для привязки к складам</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {operatorWarehouses.map((warehouse) => (
+                              <div key={warehouse.id} className="border rounded-lg p-4 bg-gray-50">
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <h3 className="font-semibold text-lg text-gray-900">
+                                      {warehouse.name}
+                                    </h3>
+                                    <p className="text-gray-600 mb-2">
+                                      <MapPin className="inline h-4 w-4 mr-1" />
+                                      {warehouse.location}
+                                    </p>
+                                    {warehouse.blocks_count && (
+                                      <p className="text-sm text-gray-500">
+                                        Блоков: {warehouse.blocks_count}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                      Назначен
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* АДМИНИСТРАТИВНЫЙ ИНТЕРФЕЙС (ТОЛЬКО ДЛЯ АДМИНОВ) */}
                   {/* Создание склада */}
-                  {activeTab === 'warehouses-create' && (
+                  {activeTab === 'warehouses-create' && user?.role === 'admin' && (
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center">
