@@ -4149,8 +4149,20 @@ async def get_payment_history(
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
-    # Получаем историю платежей
-    payments = list(db.payment_transactions.find({}).sort("payment_date", -1))
+    # ОБНОВЛЕНО: Фильтрация истории платежей по складам оператора
+    if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+        # Оператор видит только платежи по своим складам
+        operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+        if not operator_warehouse_ids:
+            return []
+        
+        query = {"warehouse_id": {"$in": operator_warehouse_ids}}
+    else:
+        # Админ видит всю историю платежей
+        query = {}
+    
+    # Получаем историю платежей с фильтрацией
+    payments = list(db.payment_transactions.find(query).sort("payment_date", -1))
     
     return [PaymentTransaction(**payment) for payment in payments]
 
