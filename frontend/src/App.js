@@ -1112,7 +1112,6 @@ function App() {
         fetchUnpaidCargo();
         fetchPaymentHistory();
         fetchCargoRequests();
-        fetchSystemNotifications();
         fetchTransportsList(); // Обновлено для операторов
         fetchArrivedTransports();
         fetchOperatorWarehouses(); // Добавлено для операторов
