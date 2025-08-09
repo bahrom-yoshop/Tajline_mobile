@@ -15415,7 +15415,6 @@ function App() {
                           <div className="flex justify-between items-start">
                             <div>
                               <p className="font-semibold text-gray-900">{item.action}</p>
-                              <p className="text-sm text-gray-600">{item.details}</p>
                               <p className="text-sm text-gray-500">Исполнитель: {item.user}</p>
                             </div>
                             <p className="text-xs text-gray-400 whitespace-nowrap">{item.date}</p>
