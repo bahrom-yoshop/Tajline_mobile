@@ -23224,6 +23224,251 @@ ID склада: {target_warehouse_id}"""
             print(f"\n⚠️  {total_suites - passed_suites} test suite(s) failed.")
             return 1
 
+    def test_coroutine_error_fixes(self):
+        """Test исправленные endpoints для операторов после исправления ошибок корутин"""
+        print("\n🔧 COROUTINE ERROR FIXES TESTING")
+        print("   🎯 Testing fixed endpoints for warehouse operators after coroutine error fixes")
+        print("   📋 Checking: operator auth, /api/warehouses, /api/operator/cargo/list, /api/operator/warehouses")
+        
+        all_success = True
+        
+        # Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРА СКЛАДА
+        print("\n   🔐 Test 1: WAREHOUSE OPERATOR AUTHENTICATION...")
+        
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login (+79777888999/warehouse123)",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            print(f"   📞 Phone: {operator_user.get('phone')}")
+            print(f"   🔑 JWT Token received: {operator_token[:50]}...")
+            
+            # Store operator token for further tests
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+            
+            # Verify role is correct
+            if operator_role == 'warehouse_operator':
+                print("   ✅ Operator role correctly set to 'warehouse_operator'")
+            else:
+                print(f"   ❌ Operator role incorrect: expected 'warehouse_operator', got '{operator_role}'")
+                all_success = False
+        else:
+            print("   ❌ Operator login failed - no access token received")
+            print(f"   📄 Response: {login_response}")
+            all_success = False
+            return False
+        
+        # Test 2: GET /api/warehouses - должен работать без 500 ошибки
+        print("\n   🏭 Test 2: GET /api/warehouses (should work without 500 error)...")
+        
+        success, warehouses_response = self.run_test(
+            "Get All Warehouses (Fixed Coroutine Error)",
+            "GET",
+            "/api/warehouses",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            warehouse_count = len(warehouses_response) if isinstance(warehouses_response, list) else 0
+            print(f"   ✅ GET /api/warehouses working - returned {warehouse_count} warehouses")
+            print("   ✅ No 500 Internal Server Error - coroutine issue fixed!")
+            
+            if warehouse_count > 0:
+                sample_warehouse = warehouses_response[0]
+                print(f"   📦 Sample warehouse: {sample_warehouse.get('name')} - {sample_warehouse.get('location')}")
+                
+                # Check for coroutine objects in response
+                response_str = str(warehouses_response)
+                if 'coroutine' in response_str.lower():
+                    print("   ❌ Coroutine objects still found in warehouses response!")
+                    all_success = False
+                else:
+                    print("   ✅ No coroutine objects in warehouses response")
+        else:
+            print("   ❌ GET /api/warehouses still returning error - coroutine issue not fixed")
+            all_success = False
+        
+        # Test 3: GET /api/operator/cargo/list?page=1&per_page=25 - должен работать без 500 ошибки
+        print("\n   📋 Test 3: GET /api/operator/cargo/list (should work without 500 error)...")
+        
+        success, cargo_list_response = self.run_test(
+            "Get Operator Cargo List (Fixed Coroutine Error)",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            token=operator_token,
+            params={"page": 1, "per_page": 25}
+        )
+        all_success &= success
+        
+        if success:
+            # Check if response has pagination structure
+            if isinstance(cargo_list_response, dict) and 'items' in cargo_list_response:
+                cargo_items = cargo_list_response['items']
+                pagination = cargo_list_response.get('pagination', {})
+                total_count = pagination.get('total_count', len(cargo_items))
+                
+                print(f"   ✅ GET /api/operator/cargo/list working - returned {len(cargo_items)} items")
+                print(f"   📊 Total count: {total_count}")
+                print("   ✅ No 500 Internal Server Error - coroutine issue fixed!")
+                print("   ✅ Pagination structure present")
+                
+                # Check for coroutine objects in response
+                response_str = str(cargo_list_response)
+                if 'coroutine' in response_str.lower():
+                    print("   ❌ Coroutine objects still found in cargo list response!")
+                    all_success = False
+                else:
+                    print("   ✅ No coroutine objects in cargo list response")
+                    
+            elif isinstance(cargo_list_response, list):
+                print(f"   ✅ GET /api/operator/cargo/list working - returned {len(cargo_list_response)} items")
+                print("   ✅ No 500 Internal Server Error - coroutine issue fixed!")
+                
+                # Check for coroutine objects in response
+                response_str = str(cargo_list_response)
+                if 'coroutine' in response_str.lower():
+                    print("   ❌ Coroutine objects still found in cargo list response!")
+                    all_success = False
+                else:
+                    print("   ✅ No coroutine objects in cargo list response")
+            else:
+                print(f"   ⚠️  Unexpected response format: {type(cargo_list_response)}")
+        else:
+            print("   ❌ GET /api/operator/cargo/list still returning error - coroutine issue not fixed")
+            all_success = False
+        
+        # Test 4: GET /api/operator/warehouses - проверить, что работает корректно
+        print("\n   🏭 Test 4: GET /api/operator/warehouses (should work correctly)...")
+        
+        success, operator_warehouses_response = self.run_test(
+            "Get Operator Warehouses (Fixed Coroutine Error)",
+            "GET",
+            "/api/operator/warehouses",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            warehouse_count = len(operator_warehouses_response) if isinstance(operator_warehouses_response, list) else 0
+            print(f"   ✅ GET /api/operator/warehouses working - returned {warehouse_count} warehouses")
+            print("   ✅ No 500 Internal Server Error - coroutine issue fixed!")
+            
+            if warehouse_count > 0:
+                sample_warehouse = operator_warehouses_response[0]
+                required_fields = ['id', 'name', 'location']
+                missing_fields = [field for field in required_fields if field not in sample_warehouse]
+                
+                if not missing_fields:
+                    print("   ✅ Warehouse data structure complete")
+                    print(f"   🏭 Sample warehouse: {sample_warehouse.get('name')} - {sample_warehouse.get('location')}")
+                else:
+                    print(f"   ❌ Missing warehouse fields: {missing_fields}")
+                    all_success = False
+                    
+                # Check for coroutine objects in response
+                response_str = str(operator_warehouses_response)
+                if 'coroutine' in response_str.lower():
+                    print("   ❌ Coroutine objects still found in operator warehouses response!")
+                    all_success = False
+                else:
+                    print("   ✅ No coroutine objects in operator warehouses response")
+            else:
+                print("   ⚠️  No warehouses assigned to operator (but endpoint working)")
+        else:
+            print("   ❌ GET /api/operator/warehouses still returning error - coroutine issue not fixed")
+            all_success = False
+        
+        # Test 5: Проверить отсутствие ошибок "InvalidDocument: cannot encode object: coroutine"
+        print("\n   🔍 Test 5: VERIFY NO COROUTINE ENCODING ERRORS...")
+        
+        # Test multiple endpoints that previously had coroutine issues
+        coroutine_test_endpoints = [
+            {
+                "name": "Available Cargo for Placement",
+                "endpoint": "/api/operator/cargo/available-for-placement",
+                "params": {"page": 1, "per_page": 10}
+            },
+            {
+                "name": "Warehouse Analytics",
+                "endpoint": "/api/warehouses/analytics",
+                "params": None
+            }
+        ]
+        
+        coroutine_errors_found = 0
+        
+        for endpoint_test in coroutine_test_endpoints:
+            print(f"\n   🔍 Testing {endpoint_test['name']} for coroutine errors...")
+            
+            success, response = self.run_test(
+                f"Coroutine Error Check - {endpoint_test['name']}",
+                "GET",
+                endpoint_test['endpoint'],
+                200,
+                token=operator_token,
+                params=endpoint_test['params']
+            )
+            
+            if success:
+                print(f"   ✅ {endpoint_test['name']} - No coroutine errors")
+                
+                # Check response for any coroutine-related issues
+                response_str = str(response)
+                if 'coroutine' in response_str.lower():
+                    print(f"   ❌ Coroutine object found in response: {response_str[:200]}...")
+                    coroutine_errors_found += 1
+                    all_success = False
+                else:
+                    print(f"   ✅ Response clean - no coroutine objects")
+            else:
+                print(f"   ❌ {endpoint_test['name']} - endpoint error (may be coroutine-related)")
+                coroutine_errors_found += 1
+                all_success = False
+        
+        if coroutine_errors_found == 0:
+            print("   🎉 NO COROUTINE ENCODING ERRORS FOUND - All fixes successful!")
+        else:
+            print(f"   ❌ Found {coroutine_errors_found} potential coroutine-related issues")
+        
+        # SUMMARY
+        print("\n   📊 COROUTINE ERROR FIXES SUMMARY:")
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Coroutine error fixes successful!")
+            print("   ✅ Warehouse operator authentication working (+79777888999/warehouse123)")
+            print("   ✅ GET /api/warehouses working without 500 error")
+            print("   ✅ GET /api/operator/cargo/list working without 500 error")
+            print("   ✅ GET /api/operator/warehouses working correctly")
+            print("   ✅ No 'InvalidDocument: cannot encode object: coroutine' errors found")
+            print("   🎯 Critical endpoints for operator dashboard are now functional!")
+        else:
+            print("   ❌ SOME TESTS FAILED - Coroutine error fixes need attention")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
 def main():
     """Main test execution"""
     tester = CargoTransportAPITester()
