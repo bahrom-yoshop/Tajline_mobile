@@ -192,6 +192,10 @@ function App() {
   const [personalDashboardData, setPersonalDashboardData] = useState(null);
   const [dashboardLoading, setDashboardLoading] = useState(false);
   
+  // Admin dashboard analytics states
+  const [adminDashboardAnalytics, setAdminDashboardAnalytics] = useState(null);
+  const [adminAnalyticsLoading, setAdminAnalyticsLoading] = useState(false);
+  
   // Role management states
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedUserForRole, setSelectedUserForRole] = useState(null);
