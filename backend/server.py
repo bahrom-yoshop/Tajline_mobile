@@ -3331,16 +3331,25 @@ async def accept_new_cargo(
         }
         db.debts.insert_one(debt_record)
     
-    # Создание уведомления с информацией о целевом складе
-    notification_message = f"Принят новый груз {cargo_number} от {cargo_data.sender_full_name}"
+    # ОБНОВЛЕНО: Создание уведомлений по маршруту
+    notification_message = f"Новый груз {cargo_number} от {cargo_data.sender_full_name}"
     if warehouse:
-        notification_message += f" (целевой склад: {warehouse['name']})"
+        notification_message += f" (склад: {warehouse['name']})"
     if cargo_data.payment_method != PaymentMethod.NOT_PAID:
         notification_message += f" - {cargo_data.payment_method.value.replace('_', ' ').title()}"
     
-    create_notification(
-        current_user.id,
+    # Используем умную систему уведомлений по маршруту
+    route_display = {
+        "moscow_to_tajikistan": "Москва-Таджикистан",
+        "tajikistan_to_moscow": "Таджикистан-Москва"
+    }.get(cargo_data.route, cargo_data.route)
+    
+    notification_message += f" (маршрут: {route_display})"
+    
+    # Отправляем уведомления операторам соответствующих складов по маршруту
+    create_route_based_notifications(
         notification_message,
+        route_display,
         cargo_id
     )
     
