@@ -23520,11 +23520,13 @@ ID склада: {target_warehouse_id}"""
         
         test_results = []
         
-        # Run test suites in order - prioritizing COROUTINE ERROR FIXES
+        # Run test suites in order - prioritizing CURRENT REVIEW REQUEST
         test_suites = [
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            # 📊 CURRENT REVIEW REQUEST: ADMIN DASHBOARD ANALYTICS ENDPOINT
+            ("📊 ADMIN DASHBOARD ANALYTICS ENDPOINT", self.test_admin_dashboard_analytics_endpoint),
             # 🔧 PRIORITY: COROUTINE ERROR FIXES (Current Review Request)
             ("🔧 COROUTINE ERROR FIXES", self.test_coroutine_error_fixes),
             # 🎨 NEW: WAREHOUSE COLOR SCHEME ENDPOINT (Current Review Request - Phase 2)
