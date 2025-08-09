@@ -6952,175 +6952,205 @@ async def get_operator_dashboard_analytics(
         if not operator_warehouse_ids:
             # Если у оператора нет складов, возвращаем пустую аналитику
             return {
-                "basic_stats": {
-                    "assigned_warehouses": 0,
-                    "total_users": 0,
-                    "total_admins": 0,
-                    "total_operators": 0,
-                    "total_regular_users": 0
+                "operator_info": {
+                    "operator_name": current_user.full_name,
+                    "operator_phone": current_user.phone,
+                    "assigned_warehouses_count": 0
                 },
-                "cargo_stats": {
-                    "total_cargo": 0,
+                "warehouses_details": [],
+                "summary_stats": {
+                    "total_cargo_in_my_warehouses": 0,
                     "total_weight_kg": 0,
-                    "total_sum_rub": 0,
-                    "awaiting_recipient": 0
+                    "total_value_rub": 0,
+                    "occupied_cells": 0,
+                    "free_cells": 0,
+                    "total_cells": 0
                 },
-                "people_stats": {
+                "cargo_by_status": {},
+                "clients_stats": {
                     "unique_senders": 0,
                     "unique_recipients": 0
                 },
                 "financial_stats": {
-                    "debtors_count": 0,
-                    "total_debt_amount": 0
-                },
-                "requests_stats": {
-                    "new_requests": 0
-                },
-                "transport_stats": {
-                    "total_transports": 0,
-                    "moscow_to_tajikistan": 0,
-                    "tajikistan_to_moscow": 0,
-                    "active_transports": 0
+                    "paid_cargo": 0,
+                    "unpaid_cargo": 0,
+                    "debt_amount": 0
                 }
             }
         
-        # Основная статистика складов оператора
-        assigned_warehouses = len(operator_warehouse_ids)
+        # Получаем детальную информацию о каждом складе оператора
+        warehouses_details = []
+        all_cargo_operator = []
         
-        # Общая статистика пользователей (глобальная)
-        total_users = db.users.count_documents({})
-        total_admins = db.users.count_documents({"role": "admin"})
-        total_operators = db.users.count_documents({"role": "warehouse_operator"})
-        total_regular_users = db.users.count_documents({"role": "user"})
-        
-        # Статистика грузов только по складам оператора
-        warehouse_cargo_query = {"warehouse_id": {"$in": operator_warehouse_ids}}
-        
-        user_cargo = list(db.cargo.find(warehouse_cargo_query))
-        operator_cargo = list(db.operator_cargo.find(warehouse_cargo_query))
-        all_cargo = user_cargo + operator_cargo
-        
-        total_cargo = len(all_cargo)
-        
-        # Подсчет общего веса и суммы по складам оператора
-        total_weight = 0
-        total_sum = 0
-        
-        for cargo in all_cargo:
-            weight = cargo.get('weight', 0)
-            if isinstance(weight, (int, float)):
-                total_weight += weight
-            
-            # Считаем сумму из различных полей
-            cargo_sum = 0
-            if cargo.get('declared_value'):
-                try:
-                    cargo_sum = float(cargo.get('declared_value', 0))
-                except (ValueError, TypeError):
-                    cargo_sum = 0
-            elif cargo.get('total_cost'):
-                try:
-                    cargo_sum = float(cargo.get('total_cost', 0))
-                except (ValueError, TypeError):
-                    cargo_sum = 0
-            
-            total_sum += cargo_sum
-        
-        # Статистика отправителей и получателей (уникальные по складам оператора)
-        senders = set()
-        recipients = set()
-        
-        for cargo in all_cargo:
-            sender_phone = cargo.get('sender_phone')
-            if sender_phone:
-                senders.add(sender_phone)
+        for warehouse_id in operator_warehouse_ids:
+            # Информация о складе
+            warehouse = db.warehouses.find_one({"id": warehouse_id}, {"_id": 0})
+            if not warehouse:
+                continue
                 
-            recipient_phone = cargo.get('recipient_phone')
-            if recipient_phone:
-                recipients.add(recipient_phone)
-        
-        # Грузы, ожидающие получателя (только по складам оператора)
-        awaiting_recipient_count = 0
-        for cargo in all_cargo:
-            status = cargo.get('status', '').lower()
-            processing_status = cargo.get('processing_status', '').lower()
-            if 'delivered' in status or 'доставлен' in status or 'awaiting_pickup' in status or 'ожидает_получения' in processing_status:
-                awaiting_recipient_count += 1
-        
-        # Должники (грузы по складам оператора)
-        debtors_count = 0
-        total_debt_amount = 0
-        
-        for cargo in all_cargo:
-            payment_method = cargo.get('payment_method', '')
-            payment_status = cargo.get('payment_status', '')
-            processing_status = cargo.get('processing_status', '')
+            # Грузы в этом складе
+            warehouse_cargo_query = {"warehouse_id": warehouse_id}
+            user_cargo = list(db.cargo.find(warehouse_cargo_query, {"_id": 0}))
+            operator_cargo = list(db.operator_cargo.find(warehouse_cargo_query, {"_id": 0}))
+            warehouse_cargo = user_cargo + operator_cargo
+            all_cargo_operator.extend(warehouse_cargo)
             
-            if (payment_method == 'credit' and payment_status in ['pending', 'unpaid']) or processing_status == 'payment_pending':
-                debtors_count += 1
-                try:
-                    debt_amount = float(cargo.get('declared_value', 0) or cargo.get('total_cost', 0))
-                    total_debt_amount += debt_amount
-                except (ValueError, TypeError):
-                    pass
+            # Статистика по складу
+            total_weight_warehouse = sum(cargo.get('weight', 0) for cargo in warehouse_cargo if isinstance(cargo.get('weight', 0), (int, float)))
+            total_value_warehouse = 0
+            
+            for cargo in warehouse_cargo:
+                cargo_value = 0
+                if cargo.get('declared_value'):
+                    try:
+                        cargo_value = float(cargo.get('declared_value', 0))
+                    except (ValueError, TypeError):
+                        cargo_value = 0
+                elif cargo.get('total_cost'):
+                    try:
+                        cargo_value = float(cargo.get('total_cost', 0))
+                    except (ValueError, TypeError):
+                        cargo_value = 0
+                total_value_warehouse += cargo_value
+            
+            # Вместимость склада
+            blocks_count = warehouse.get('blocks_count', 0)
+            shelves_per_block = warehouse.get('shelves_per_block', 0)  
+            cells_per_shelf = warehouse.get('cells_per_shelf', 0)
+            total_cells_warehouse = blocks_count * shelves_per_block * cells_per_shelf
+            
+            # Занятые ячейки (приблизительно 60% для демонстрации)
+            occupied_cells_warehouse = len(warehouse_cargo) if warehouse_cargo else 0
+            free_cells_warehouse = max(0, total_cells_warehouse - occupied_cells_warehouse)
+            
+            # Статистика по статусам грузов в складе
+            cargo_by_status_warehouse = {}
+            for cargo in warehouse_cargo:
+                status = cargo.get('status', 'unknown')
+                processing_status = cargo.get('processing_status', '')
+                combined_status = f"{status}_{processing_status}" if processing_status else status
+                
+                if combined_status not in cargo_by_status_warehouse:
+                    cargo_by_status_warehouse[combined_status] = 0
+                cargo_by_status_warehouse[combined_status] += 1
+            
+            # Клиенты склада
+            warehouse_senders = set()
+            warehouse_recipients = set()
+            
+            for cargo in warehouse_cargo:
+                if cargo.get('sender_phone'):
+                    warehouse_senders.add(cargo.get('sender_phone'))
+                if cargo.get('recipient_phone'):
+                    warehouse_recipients.add(cargo.get('recipient_phone'))
+            
+            # Финансовая статистика склада
+            paid_cargo_warehouse = 0
+            unpaid_cargo_warehouse = 0
+            debt_amount_warehouse = 0
+            
+            for cargo in warehouse_cargo:
+                payment_status = cargo.get('payment_status', '')
+                payment_method = cargo.get('payment_method', '')
+                processing_status = cargo.get('processing_status', '')
+                
+                if payment_status in ['paid', 'completed'] or processing_status == 'paid':
+                    paid_cargo_warehouse += 1
+                elif payment_method == 'credit' or payment_status in ['pending', 'unpaid'] or processing_status == 'payment_pending':
+                    unpaid_cargo_warehouse += 1
+                    try:
+                        debt_amount = float(cargo.get('declared_value', 0) or cargo.get('total_cost', 0))
+                        debt_amount_warehouse += debt_amount
+                    except (ValueError, TypeError):
+                        pass
+            
+            # Добавляем информацию о складе
+            warehouses_details.append({
+                "warehouse_id": warehouse_id,
+                "warehouse_name": warehouse.get('name', 'Неизвестный склад'),
+                "warehouse_location": warehouse.get('location', 'Не указано'),
+                "warehouse_structure": {
+                    "blocks_count": blocks_count,
+                    "shelves_per_block": shelves_per_block,
+                    "cells_per_shelf": cells_per_shelf,
+                    "total_cells": total_cells_warehouse
+                },
+                "cargo_stats": {
+                    "total_cargo": len(warehouse_cargo),
+                    "total_weight_kg": round(total_weight_warehouse, 2),
+                    "total_value_rub": round(total_value_warehouse, 2),
+                    "occupied_cells": occupied_cells_warehouse,
+                    "free_cells": free_cells_warehouse,
+                    "occupancy_rate": round((occupied_cells_warehouse / total_cells_warehouse * 100) if total_cells_warehouse > 0 else 0, 1)
+                },
+                "cargo_by_status": cargo_by_status_warehouse,
+                "clients": {
+                    "unique_senders": len(warehouse_senders),
+                    "unique_recipients": len(warehouse_recipients)
+                },
+                "financial": {
+                    "paid_cargo": paid_cargo_warehouse,
+                    "unpaid_cargo": unpaid_cargo_warehouse,
+                    "debt_amount": round(debt_amount_warehouse, 2)
+                }
+            })
         
-        # Новые заявки пользователей (только по складам оператора)
-        new_requests_count = db.cargo.count_documents({
-            "warehouse_id": {"$in": operator_warehouse_ids},
-            "$or": [
-                {"status": "pending"},
-                {"status": "new_request"},
-                {"processing_status": "payment_pending"}
-            ]
-        })
+        # Общая статистика по всем складам оператора
+        total_cargo = len(all_cargo_operator)
+        total_weight = sum(cargo.get('weight', 0) for cargo in all_cargo_operator if isinstance(cargo.get('weight', 0), (int, float)))
+        total_value = sum(wd["cargo_stats"]["total_value_rub"] for wd in warehouses_details)
+        total_occupied_cells = sum(wd["cargo_stats"]["occupied_cells"] for wd in warehouses_details)
+        total_free_cells = sum(wd["cargo_stats"]["free_cells"] for wd in warehouses_details)
+        total_cells = sum(wd["warehouse_structure"]["total_cells"] for wd in warehouses_details)
         
-        # Транспорты по маршрутам (глобальная статистика, так как транспорты не привязаны к складам)
-        moscow_to_tajikistan_transports = db.transports.count_documents({
-            "direction": {"$regex": "moscow.*tajikistan", "$options": "i"}
-        })
+        # Общая статистика по статусам
+        cargo_by_status_total = {}
+        for wd in warehouses_details:
+            for status, count in wd["cargo_by_status"].items():
+                if status not in cargo_by_status_total:
+                    cargo_by_status_total[status] = 0
+                cargo_by_status_total[status] += count
         
-        tajikistan_to_moscow_transports = db.transports.count_documents({
-            "direction": {"$regex": "tajikistan.*moscow", "$options": "i"}
-        })
+        # Общая статистика клиентов
+        all_senders = set()
+        all_recipients = set()
+        for cargo in all_cargo_operator:
+            if cargo.get('sender_phone'):
+                all_senders.add(cargo.get('sender_phone'))
+            if cargo.get('recipient_phone'):
+                all_recipients.add(cargo.get('recipient_phone'))
         
-        total_transports = db.transports.count_documents({})
+        # Общая финансовая статистика
+        total_paid_cargo = sum(wd["financial"]["paid_cargo"] for wd in warehouses_details)
+        total_unpaid_cargo = sum(wd["financial"]["unpaid_cargo"] for wd in warehouses_details)
+        total_debt_amount = sum(wd["financial"]["debt_amount"] for wd in warehouses_details)
         
-        # Статистика по активности транспортов
-        active_transports = db.transports.count_documents({
-            "status": {"$in": ["loading", "in_transit", "active"]}
-        })
-        
-        # Возвращаем полную аналитику по складам оператора
+        # Возвращаем детальную аналитику только по складам оператора
         analytics = {
-            "basic_stats": {
-                "assigned_warehouses": assigned_warehouses,
-                "total_users": total_users,
-                "total_admins": total_admins,
-                "total_operators": total_operators,
-                "total_regular_users": total_regular_users
+            "operator_info": {
+                "operator_name": current_user.full_name,
+                "operator_phone": current_user.phone,
+                "assigned_warehouses_count": len(operator_warehouse_ids)
             },
-            "cargo_stats": {
-                "total_cargo": total_cargo,
+            "warehouses_details": warehouses_details,
+            "summary_stats": {
+                "total_cargo_in_my_warehouses": total_cargo,
                 "total_weight_kg": round(total_weight, 2),
-                "total_sum_rub": round(total_sum, 2),
-                "awaiting_recipient": awaiting_recipient_count
+                "total_value_rub": round(total_value, 2),
+                "occupied_cells": total_occupied_cells,
+                "free_cells": total_free_cells,
+                "total_cells": total_cells,
+                "average_occupancy_rate": round((total_occupied_cells / total_cells * 100) if total_cells > 0 else 0, 1)
             },
-            "people_stats": {
-                "unique_senders": len(senders),
-                "unique_recipients": len(recipients)
+            "cargo_by_status": cargo_by_status_total,
+            "clients_stats": {
+                "unique_senders": len(all_senders),
+                "unique_recipients": len(all_recipients)
             },
             "financial_stats": {
-                "debtors_count": debtors_count,
-                "total_debt_amount": round(total_debt_amount, 2)
-            },
-            "requests_stats": {
-                "new_requests": new_requests_count
-            },
-            "transport_stats": {
-                "total_transports": total_transports,
-                "moscow_to_tajikistan": moscow_to_tajikistan_transports,
-                "tajikistan_to_moscow": tajikistan_to_moscow_transports,
-                "active_transports": active_transports
+                "paid_cargo": total_paid_cargo,
+                "unpaid_cargo": total_unpaid_cargo,
+                "debt_amount": round(total_debt_amount, 2)
             }
         }
         
