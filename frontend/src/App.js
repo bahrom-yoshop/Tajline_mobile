@@ -10142,14 +10142,18 @@ function App() {
 
                           <div>
                             <Label htmlFor="shelves_per_block">Количество полок на каждом блоке (1-3)</Label>
-                            <Select value={warehouseForm.shelves_per_block.toString()} onValueChange={(value) => setWarehouseForm({...warehouseForm, shelves_per_block: parseInt(value)})}>
+                            <Select 
+                              key="warehouse-shelves-select"
+                              value={warehouseForm.shelves_per_block.toString()} 
+                              onValueChange={(value) => setWarehouseForm({...warehouseForm, shelves_per_block: parseInt(value)})}
+                            >
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="1">1 полка</SelectItem>
-                                <SelectItem value="2">2 полки</SelectItem>
-                                <SelectItem value="3">3 полки</SelectItem>
+                                <SelectItem key="warehouse-shelves-1" value="1">1 полка</SelectItem>
+                                <SelectItem key="warehouse-shelves-2" value="2">2 полки</SelectItem>
+                                <SelectItem key="warehouse-shelves-3" value="3">3 полки</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
