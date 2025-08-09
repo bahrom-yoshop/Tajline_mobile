@@ -282,7 +282,7 @@ function App() {
   });
   const [cargoRequests, setCargoRequests] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
-  const [systemNotifications, setSystemNotifications] = useState([]);
+
   const [requestForm, setRequestForm] = useState({
     recipient_full_name: '',
     recipient_phone: '',
