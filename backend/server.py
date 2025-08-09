@@ -6908,6 +6908,157 @@ async def get_admin_dashboard_analytics(
             detail=f"Ошибка получения аналитики дашборда: {str(e)}"
         )
 
+@app.get("/api/warehouse/{warehouse_id}/cargo-with-clients")
+async def get_warehouse_cargo_with_clients(
+    warehouse_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получение грузов склада с информацией об отправителях и получателях для цветового кодирования"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Недостаточно прав для просмотра грузов склада"
+        )
+    
+    try:
+        # Проверяем доступ оператора к складу
+        if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+            operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+            if warehouse_id not in operator_warehouse_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Нет доступа к данному складу"
+                )
+        
+        # Ищем грузы размещенные на данном складе
+        cargo_query = {
+            "warehouse_id": warehouse_id,
+            "$or": [
+                {"status": "placed_in_warehouse"},
+                {"processing_status": "placed"},
+                {"warehouse_location": {"$exists": True, "$ne": None}}
+            ]
+        }
+        
+        # Получаем грузы из обеих коллекций
+        user_cargo = list(db.cargo.find(cargo_query, {
+            "_id": 0,
+            "id": 1,
+            "cargo_number": 1,
+            "sender_full_name": 1,
+            "sender_phone": 1,
+            "recipient_full_name": 1,
+            "recipient_phone": 1,
+            "warehouse_location": 1,
+            "weight": 1,
+            "declared_value": 1,
+            "total_cost": 1,
+            "created_at": 1
+        }))
+        
+        operator_cargo = list(db.operator_cargo.find(cargo_query, {
+            "_id": 0,
+            "id": 1,
+            "cargo_number": 1,
+            "sender_full_name": 1,
+            "sender_phone": 1,
+            "recipient_full_name": 1,
+            "recipient_phone": 1,
+            "warehouse_location": 1,
+            "weight": 1,
+            "declared_value": 1,
+            "total_cost": 1,
+            "created_at": 1
+        }))
+        
+        all_cargo = user_cargo + operator_cargo
+        
+        # Группируем грузы по отправителям и получателям
+        sender_groups = {}
+        recipient_groups = {}
+        
+        for cargo in all_cargo:
+            # Группировка по отправителям
+            sender_key = f"{cargo.get('sender_full_name', 'Не указан')}-{cargo.get('sender_phone', '')}"
+            if sender_key not in sender_groups:
+                sender_groups[sender_key] = {
+                    "sender_full_name": cargo.get('sender_full_name', 'Не указан'),
+                    "sender_phone": cargo.get('sender_phone', ''),
+                    "cargo_list": []
+                }
+            sender_groups[sender_key]["cargo_list"].append(cargo)
+            
+            # Группировка по получателям
+            recipient_key = f"{cargo.get('recipient_full_name', 'Не указан')}-{cargo.get('recipient_phone', '')}"
+            if recipient_key not in recipient_groups:
+                recipient_groups[recipient_key] = {
+                    "recipient_full_name": cargo.get('recipient_full_name', 'Не указан'),
+                    "recipient_phone": cargo.get('recipient_phone', ''),
+                    "cargo_list": []
+                }
+            recipient_groups[recipient_key]["cargo_list"].append(cargo)
+        
+        # Определяем цвета для групп (больше 1 груза = группа)
+        color_palette = [
+            {"name": "blue", "bg": "bg-blue-200", "border": "border-blue-400", "text": "text-blue-900"},
+            {"name": "green", "bg": "bg-green-200", "border": "border-green-400", "text": "text-green-900"},
+            {"name": "purple", "bg": "bg-purple-200", "border": "border-purple-400", "text": "text-purple-900"},
+            {"name": "orange", "bg": "bg-orange-200", "border": "border-orange-400", "text": "text-orange-900"},
+            {"name": "pink", "bg": "bg-pink-200", "border": "border-pink-400", "text": "text-pink-900"},
+            {"name": "indigo", "bg": "bg-indigo-200", "border": "border-indigo-400", "text": "text-indigo-900"},
+            {"name": "cyan", "bg": "bg-cyan-200", "border": "border-cyan-400", "text": "text-cyan-900"},
+            {"name": "yellow", "bg": "bg-yellow-200", "border": "border-yellow-400", "text": "text-yellow-900"}
+        ]
+        
+        # Назначаем цвета группам отправителей (больше 1 груза)
+        sender_color_assignments = {}
+        color_index = 0
+        for sender_key, sender_data in sender_groups.items():
+            if len(sender_data["cargo_list"]) > 1:  # Только группы с несколькими грузами
+                sender_color_assignments[sender_key] = color_palette[color_index % len(color_palette)]
+                color_index += 1
+        
+        # Назначаем цвета группам получателей (больше 1 груза)
+        recipient_color_assignments = {}
+        for recipient_key, recipient_data in recipient_groups.items():
+            if len(recipient_data["cargo_list"]) > 1:  # Только группы с несколькими грузами
+                recipient_color_assignments[recipient_key] = color_palette[color_index % len(color_palette)]
+                color_index += 1
+        
+        return {
+            "warehouse_id": warehouse_id,
+            "total_cargo": len(all_cargo),
+            "cargo": all_cargo,
+            "sender_groups": {
+                key: {
+                    **data,
+                    "color": sender_color_assignments.get(key, None),
+                    "is_group": len(data["cargo_list"]) > 1
+                }
+                for key, data in sender_groups.items()
+            },
+            "recipient_groups": {
+                key: {
+                    **data,
+                    "color": recipient_color_assignments.get(key, None),
+                    "is_group": len(data["cargo_list"]) > 1
+                }
+                for key, data in recipient_groups.items()
+            },
+            "color_assignments": {
+                "senders": sender_color_assignments,
+                "recipients": recipient_color_assignments
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка получения грузов склада: {str(e)}"
+        )
+
 @app.get("/api/warehouses/placed-cargo")
 async def get_placed_cargo(
     page: int = 1,
