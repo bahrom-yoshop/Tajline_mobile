@@ -7174,7 +7174,7 @@ function App() {
                                     <h4 className="font-medium text-sm text-gray-700 mb-2">Детальная разбивка:</h4>
                                     <div className="space-y-2">
                                       {cargoBreakdown.map((item, index) => (
-                                        <div key={index} className="bg-white p-3 rounded border-l-4 border-blue-400">
+                                        <div key={`breakdown-${index}-${item.name}`} className="bg-white p-3 rounded border-l-4 border-blue-400">
                                           <div className="flex justify-between items-center">
                                             <span className="text-sm font-medium text-gray-700">
                                               Груз #{item.index}: {item.name}
