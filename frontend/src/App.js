@@ -3534,6 +3534,17 @@ function App() {
     }
   };
 
+  // НОВАЯ ФУНКЦИЯ: Получение складов по маршруту
+  const fetchWarehousesByRoute = async (route) => {
+    try {
+      const data = await apiCall(`/api/warehouses/by-route/${route}`);
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching warehouses by route:', error);
+      return [];
+    }
+  };
+
   // НОВАЯ ФУНКЦИЯ: Загрузка списка задолжников для админа
   const fetchDebtorsList = async () => {
     if (user?.role !== 'admin') return;
