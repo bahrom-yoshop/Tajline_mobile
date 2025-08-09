@@ -14,7 +14,7 @@ load_dotenv('/app/frontend/.env')
 
 class ProfileTester:
     def __init__(self):
-        self.base_url = os.getenv('REACT_APP_BACKEND_URL', 'https://16bfc7eb-1b1c-46a5-9f05-7364d229ceec.preview.emergentagent.com')
+        self.base_url = os.getenv('REACT_APP_BACKEND_URL', 'https://c630d0ac-ac32-4c6b-95b6-f2db40d1b683.preview.emergentagent.com')
         self.tokens = {}
         
     def make_request(self, method, endpoint, data=None, token=None):
