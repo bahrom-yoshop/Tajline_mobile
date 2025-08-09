@@ -3647,17 +3647,6 @@ function App() {
 
   // ФАЗА 4: ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ ГРУЗОМ
 
-  // Получение детальной информации о грузе
-  const fetchCargoDetails = async (cargoNumber) => {
-    try {
-      const data = await apiCall(`/api/cargo/${cargoNumber}/details`);
-      return data || {};
-    } catch (error) {
-      console.error('Error fetching cargo details:', error);
-      return {};
-    }
-  };
-
   // Перемещение груза в другую ячейку
   const handleMoveCargoToCell = async (cargoId, newCellId) => {
     try {
