@@ -14679,21 +14679,39 @@ function App() {
 
               {/* Легенда */}
               <div className="bg-gray-50 p-4 rounded-lg border">
-                <h4 className="font-semibold text-sm text-gray-700 mb-3">🎨 Легенда ячеек</h4>
-                <div className="flex flex-wrap gap-4">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-6 h-6 bg-green-200 border border-green-400 rounded"></div>
-                    <span className="text-sm font-medium text-green-700">Свободная ячейка</span>
+                <h4 className="font-semibold text-sm text-gray-700 mb-3">🎨 Легенда ячеек и группировки грузов</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <p className="font-medium text-gray-700 mb-2">Статус ячеек:</p>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-6 h-6 bg-green-200 border border-green-400 rounded"></div>
+                      <span className="text-sm font-medium text-green-700">Свободная ячейка</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-6 h-6 bg-red-200 border border-red-400 rounded"></div>
+                      <span className="text-sm font-medium text-red-700">Одиночный груз</span>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-6 h-6 bg-red-200 border border-red-400 rounded"></div>
-                    <span className="text-sm font-medium text-red-700">Занятая ячейка</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-6 h-6 bg-yellow-200 border border-yellow-400 rounded"></div>
-                    <span className="text-sm font-medium text-yellow-700">Зарезервированная</span>
+                  
+                  <div className="space-y-2">
+                    <p className="font-medium text-gray-700 mb-2">Группы грузов одного клиента:</p>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-6 h-6 bg-blue-200 border border-blue-400 rounded"></div>
+                      <span className="text-sm font-medium text-blue-700">Группа 1</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-6 h-6 bg-purple-200 border border-purple-400 rounded"></div>
+                      <span className="text-sm font-medium text-purple-700">Группа 2</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-6 h-6 bg-orange-200 border border-orange-400 rounded"></div>
+                      <span className="text-sm font-medium text-orange-700">Группа 3+</span>
+                    </div>
                   </div>
                 </div>
+                <p className="text-xs text-gray-500 mt-3">
+                  Ячейки одного цвета содержат грузы от одного отправителя или для одного получателя
+                </p>
               </div>
 
               {/* Схема блоков и ячеек */}
