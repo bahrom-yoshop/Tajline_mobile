@@ -1122,10 +1122,13 @@ function App() {
   // НОВЫЙ USEEFFECT: Загрузка схемы склада при открытии модального окна
   useEffect(() => {
     const loadWarehouseScheme = async () => {
-      if (showWarehouseScheme && operatorWarehouses.length > 0) {
+      if (showWarehouseScheme) {
         setWarehouseSchemeLoading(true);
         try {
-          const warehouse = operatorWarehouses.find(w => w.id === showWarehouseScheme);
+          // Для администратора используем общий список warehouses, для оператора - operatorWarehouses
+          const warehousesList = user?.role === 'admin' ? warehouses : operatorWarehouses;
+          const warehouse = warehousesList.find(w => w.id === showWarehouseScheme);
+          
           if (warehouse && typeof warehouse === 'object') {
             console.log('Loading scheme for warehouse:', warehouse.name, warehouse);
             const scheme = await generateWarehouseScheme(warehouse);
@@ -1147,7 +1150,7 @@ function App() {
     };
 
     loadWarehouseScheme();
-  }, [showWarehouseScheme, operatorWarehouses]);
+  }, [showWarehouseScheme, operatorWarehouses, warehouses, user]);
 
   useEffect(() => {
     if (user) {
