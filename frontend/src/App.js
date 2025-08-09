@@ -7297,6 +7297,23 @@ function App() {
 
                           {/* НОВЫЕ ПОЛЯ ДЛЯ УЛУЧШЕННОЙ СИСТЕМЫ */}
                           
+                          {/* Выбор маршрута */}
+                          <div>
+                            <Label htmlFor="route">Маршрут доставки</Label>
+                            <Select 
+                              value={operatorCargoForm.route} 
+                              onValueChange={(value) => setOperatorCargoForm({...operatorCargoForm, route: value, warehouse_id: ''})}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Выберите маршрут" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="moscow_to_tajikistan">Москва → Таджикистан</SelectItem>
+                                <SelectItem value="tajikistan_to_moscow">Таджикистан → Москва</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
                           {/* Выбор склада */}
                           <div>
                             <Label htmlFor="warehouse_id">Склад</Label>
