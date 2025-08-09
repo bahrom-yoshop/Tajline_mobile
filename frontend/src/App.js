@@ -4094,7 +4094,7 @@ function App() {
       await apiCall(`/api/admin/cargo-requests/${requestId}/reject`, 'POST', { reason });
       showAlert('Заявка отклонена', 'info');
       fetchCargoRequests();
-      fetchSystemNotifications();
+      fetchNotifications();
     } catch (error) {
       console.error('Reject request error:', error);
     }
