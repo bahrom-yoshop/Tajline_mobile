@@ -25176,6 +25176,8 @@ ID склада: {target_warehouse_id}"""
             ("🏭 OPERATOR WAREHOUSES STRUCTURE DISPLAY", self.test_operator_warehouses_structure_display),
             # 📊 CURRENT REVIEW REQUEST: ADMIN DASHBOARD ANALYTICS ENDPOINT
             ("📊 ADMIN DASHBOARD ANALYTICS ENDPOINT", self.test_admin_dashboard_analytics_endpoint),
+            # 📊 CURRENT REVIEW REQUEST: OPERATOR DASHBOARD ANALYTICS ENDPOINT
+            ("📊 OPERATOR DASHBOARD ANALYTICS ENDPOINT", self.test_operator_dashboard_analytics_endpoint),
             # 🔧 PRIORITY: COROUTINE ERROR FIXES (Current Review Request)
             ("🔧 COROUTINE ERROR FIXES", self.test_coroutine_error_fixes),
             # 🎨 NEW: WAREHOUSE COLOR SCHEME ENDPOINT (Current Review Request - Phase 2)
