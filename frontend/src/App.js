@@ -383,6 +383,9 @@ function App() {
   const [warehouseCells, setWarehouseCells] = useState([]); // Ячейки склада
   const [showCargoManagementModal, setShowCargoManagementModal] = useState(false); // Модальное окно управления грузом
   const [selectedCargoForManagement, setSelectedCargoForManagement] = useState(null); // Выбранный груз для управления
+  const [showWarehouseReport, setShowWarehouseReport] = useState(null); // ID склада для отчета
+  const [warehouseReportData, setWarehouseReportData] = useState([]); // Данные отчета по складу
+  const [warehouseDetailedAnalytics, setWarehouseDetailedAnalytics] = useState({}); // Детальная аналитика складов
   const [interwarehouseTransportModal, setInterwarehouseTransportModal] = useState(false);
   const [interwarehouseForm, setInterwarehouseForm] = useState({
     source_warehouse_id: '',
