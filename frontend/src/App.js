@@ -8001,18 +8001,26 @@ function App() {
                               </div>
                             ) : (
                               <div className="grid gap-6">
-                                {availableCargoForPlacement.map((item) => (
-                                  <Card key={item.id} className="border-l-4 border-l-blue-500">
-                                    <CardContent className="p-6">
-                                      <div className="flex justify-between items-start">
-                                        {/* Основная информация о грузе */}
-                                        <div className="flex-1">
-                                          <div className="flex items-center space-x-4 mb-4">
-                                            <h3 className="font-bold text-xl text-blue-600">{item.cargo_number}</h3>
-                                            <Badge variant={getProcessingStatusBadgeVariant(item.processing_status)}>
-                                              {getProcessingStatusLabel(item.processing_status)}
-                                            </Badge>
-                                          </div>
+                                {availableCargoForPlacement.map((item) => {
+                                  const warehouseColors = getWarehouseColor(item.warehouse_name);
+                                  return (
+                                    <Card key={item.id} className={`${warehouseColors.border} ${warehouseColors.bg} border-l-4`}>
+                                      <CardContent className="p-6">
+                                        <div className="flex justify-between items-start">
+                                          {/* Основная информация о грузе */}
+                                          <div className="flex-1">
+                                            <div className="flex items-center space-x-4 mb-4">
+                                              <h3 className="font-bold text-xl text-blue-600">{item.cargo_number}</h3>
+                                              <Badge variant={getProcessingStatusBadgeVariant(item.processing_status)}>
+                                                {getProcessingStatusLabel(item.processing_status)}
+                                              </Badge>
+                                              {/* Бейдж с названием склада */}
+                                              {item.warehouse_name && (
+                                                <Badge className={`${warehouseColors.badge} ${warehouseColors.text} border-0`}>
+                                                  🏭 {item.warehouse_name}
+                                                </Badge>
+                                              )}
+                                            </div>
                                           
                                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             {/* Информация о грузе */}
