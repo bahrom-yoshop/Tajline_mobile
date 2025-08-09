@@ -3523,8 +3523,8 @@ function App() {
   // Operator Functions
   const fetchOperatorWarehouses = async () => {
     try {
-      const data = await apiCall('/api/operator/my-warehouses');
-      setOperatorWarehouses(data.warehouses || []);
+      const data = await apiCall('/api/operator/warehouses');  // Обновленный эндпоинт
+      setOperatorWarehouses(data || []);
     } catch (error) {
       console.error('Error fetching operator warehouses:', error);
     }
