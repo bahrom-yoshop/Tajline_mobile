@@ -6374,7 +6374,7 @@ function App() {
                         <div className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg">
                           {searchSuggestions.map((suggestion, index) => (
                             <div
-                              key={index}
+                              key={`search-${index}-${suggestion.id || suggestion.name || index}`}
                               className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
                               onClick={() => selectSearchSuggestion(suggestion)}
                             >
