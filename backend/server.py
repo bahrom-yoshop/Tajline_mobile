@@ -5990,6 +5990,92 @@ def add_cargo_history(cargo_id: str, cargo_number: str, action_type: str,
     db.cargo_history.insert_one(history_record)
     return history_id
 
+# ===== НОВЫЕ ЭНДПОИНТЫ ДЛЯ УЛУЧШЕННОЙ СИСТЕМЫ СКЛАДОВ И ДОЛГОВ =====
+
+@app.get("/api/operator/warehouses")
+async def get_operator_warehouses(current_user: User = Depends(get_current_user)):
+    """Получить список складов привязанных к оператору"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    if current_user.role == UserRole.ADMIN:
+        # Админ видит все склады
+        warehouses = list(db.warehouses.find({"is_active": True}))
+    else:
+        # Оператор видит только свои склады
+        operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+        if not operator_warehouse_ids:
+            return []
+        
+        warehouses = list(db.warehouses.find({
+            "id": {"$in": operator_warehouse_ids},
+            "is_active": True
+        }))
+    
+    return [
+        {
+            "id": w["id"],
+            "name": w["name"], 
+            "location": w["location"],
+            "blocks_count": w.get("blocks_count", 0),
+            "is_active": w.get("is_active", True)
+        }
+        for w in warehouses
+    ]
+
+@app.get("/api/admin/debts")
+async def get_debtors_list(current_user: User = Depends(get_current_user)):
+    """Получить список задолжников для админа"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can view debtors")
+    
+    # Получаем все активные долги
+    debts = list(db.debts.find({"status": "active"}))
+    
+    # Обогащаем данными из грузов
+    for debt in debts:
+        cargo = db.operator_cargo.find_one({"id": debt["cargo_id"]})
+        if cargo:
+            debt["cargo_info"] = {
+                "cargo_number": cargo["cargo_number"],
+                "recipient_name": cargo["recipient_full_name"],
+                "recipient_phone": cargo["recipient_phone"],
+                "weight": cargo["weight"],
+                "cargo_name": cargo["cargo_name"]
+            }
+    
+    return debts
+
+@app.put("/api/admin/debts/{debt_id}/status")
+async def update_debt_status(
+    debt_id: str,
+    status_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Обновить статус долга (оплачен/просрочен)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can update debt status")
+    
+    new_status = status_data.get("status")
+    if new_status not in ["active", "paid", "overdue"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    
+    result = db.debts.update_one(
+        {"id": debt_id},
+        {
+            "$set": {
+                "status": new_status,
+                "updated_at": datetime.utcnow(),
+                "updated_by": current_user.id
+            }
+        }
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Debt not found")
+    
+    return {"message": "Debt status updated successfully"}
+
 # === ТРАНСПОРТ API ===
 
 @app.post("/api/transport/create")
