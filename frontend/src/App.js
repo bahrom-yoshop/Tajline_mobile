@@ -12368,7 +12368,7 @@ function App() {
                   <h3 className="font-semibold text-lg mb-3">Последняя активность</h3>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {selectedOperatorProfile.recent_activity.map((activity, index) => (
-                      <div key={index} className="bg-white border rounded-lg p-3">
+                      <div key={`activity-${activity.cargo_number || index}-${activity.cargo_name}`} className="bg-white border rounded-lg p-3">
                         <div className="flex justify-between items-start">
                           <div>
                             <h4 className="font-medium">{activity.cargo_number}</h4>
