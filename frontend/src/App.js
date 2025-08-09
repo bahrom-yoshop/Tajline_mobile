@@ -10020,7 +10020,7 @@ function App() {
                               <p className="text-gray-500">Системных уведомлений нет</p>
                             </div>
                           ) : (
-                            systemNotifications.map((notification) => (
+                            notifications.map((notification) => (
                               <div
                                 key={notification.id}
                                 className={`border rounded-lg p-4 ${
