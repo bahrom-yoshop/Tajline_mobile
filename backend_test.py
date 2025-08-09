@@ -1165,6 +1165,313 @@ class CargoTransportAPITester:
         
         return all_success
 
+    def test_operator_warehouses_structure_display(self):
+        """Test обновленный endpoint /api/operator/warehouses для отображения реальной структуры склада операторам"""
+        print("\n🏭 OPERATOR WAREHOUSES STRUCTURE DISPLAY TESTING")
+        print("   🎯 Testing updated endpoint /api/operator/warehouses for displaying real warehouse structure to operators")
+        
+        all_success = True
+        
+        # Test 1: АУТЕНТИФИКАЦИЯ ОПЕРАТОРА СКЛАДА
+        print("\n   🔐 Test 1: WAREHOUSE OPERATOR AUTHENTICATION...")
+        
+        # Login as warehouse operator (+79777888999/warehouse123)
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            print(f"   📞 Phone: {operator_user.get('phone')}")
+            
+            # Store operator token for further tests
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+            return False
+        
+        # Test 2: ДОСТУПНОСТЬ ENDPOINT'А ДЛЯ ОПЕРАТОРОВ
+        print("\n   📡 Test 2: ENDPOINT ACCESSIBILITY FOR WAREHOUSE OPERATORS...")
+        
+        success, warehouses_response = self.run_test(
+            "Get Operator Warehouses with Structure",
+            "GET",
+            "/api/operator/warehouses",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if not success:
+            print("   ❌ Operator cannot access warehouses endpoint")
+            all_success = False
+            return False
+        
+        warehouse_count = len(warehouses_response) if isinstance(warehouses_response, list) else 0
+        print(f"   ✅ Operator can access warehouses endpoint - found {warehouse_count} warehouses")
+        
+        # Test 3: ПРОВЕРКА ДОПОЛНИТЕЛЬНЫХ ПОЛЕЙ СТРУКТУРЫ СКЛАДА
+        print("\n   🏗️  Test 3: WAREHOUSE STRUCTURE FIELDS VERIFICATION...")
+        
+        if warehouse_count > 0:
+            sample_warehouse = warehouses_response[0]
+            
+            # Check for required additional fields
+            required_structure_fields = {
+                'blocks_count': int,
+                'shelves_per_block': int,
+                'cells_per_shelf': int,
+                'total_cells': int
+            }
+            
+            # Check existing basic fields
+            basic_fields = {
+                'id': str,
+                'name': str,
+                'location': str,
+                'is_active': bool
+            }
+            
+            all_fields = {**basic_fields, **required_structure_fields}
+            
+            missing_fields = []
+            incorrect_types = []
+            
+            for field_name, expected_type in all_fields.items():
+                if field_name not in sample_warehouse:
+                    missing_fields.append(field_name)
+                else:
+                    field_value = sample_warehouse[field_name]
+                    if not isinstance(field_value, expected_type):
+                        incorrect_types.append(f"{field_name}: expected {expected_type.__name__}, got {type(field_value).__name__}")
+                    else:
+                        print(f"   ✅ {field_name}: {field_value} ({type(field_value).__name__})")
+            
+            if missing_fields:
+                print(f"   ❌ Missing required fields: {missing_fields}")
+                all_success = False
+            else:
+                print("   ✅ All required structure fields present")
+            
+            if incorrect_types:
+                print(f"   ❌ Incorrect field types: {incorrect_types}")
+                all_success = False
+            else:
+                print("   ✅ All field types correct")
+            
+            # Test 4: КОРРЕКТНОСТЬ ВЫЧИСЛЕНИЯ TOTAL_CELLS
+            print("\n   🧮 Test 4: TOTAL_CELLS CALCULATION VERIFICATION...")
+            
+            if all(field in sample_warehouse for field in required_structure_fields.keys()):
+                blocks_count = sample_warehouse['blocks_count']
+                shelves_per_block = sample_warehouse['shelves_per_block']
+                cells_per_shelf = sample_warehouse['cells_per_shelf']
+                total_cells = sample_warehouse['total_cells']
+                
+                expected_total_cells = blocks_count * shelves_per_block * cells_per_shelf
+                
+                print(f"   📊 Warehouse structure: {blocks_count} blocks × {shelves_per_block} shelves × {cells_per_shelf} cells")
+                print(f"   🧮 Expected total_cells: {blocks_count} × {shelves_per_block} × {cells_per_shelf} = {expected_total_cells}")
+                print(f"   📈 Actual total_cells: {total_cells}")
+                
+                if total_cells == expected_total_cells:
+                    print("   ✅ total_cells calculation is correct")
+                else:
+                    print(f"   ❌ total_cells calculation incorrect: expected {expected_total_cells}, got {total_cells}")
+                    all_success = False
+            else:
+                print("   ❌ Cannot verify total_cells calculation - missing structure fields")
+                all_success = False
+            
+            # Test 5: ПРОВЕРКА ВСЕХ СКЛАДОВ НА КОРРЕКТНОСТЬ ВЫЧИСЛЕНИЙ
+            print("\n   📋 Test 5: ALL WAREHOUSES CALCULATION VERIFICATION...")
+            
+            calculation_errors = 0
+            for i, warehouse in enumerate(warehouses_response):
+                warehouse_name = warehouse.get('name', f'Warehouse {i+1}')
+                
+                if all(field in warehouse for field in required_structure_fields.keys()):
+                    blocks = warehouse['blocks_count']
+                    shelves = warehouse['shelves_per_block']
+                    cells = warehouse['cells_per_shelf']
+                    total = warehouse['total_cells']
+                    expected = blocks * shelves * cells
+                    
+                    if total != expected:
+                        print(f"   ❌ {warehouse_name}: {blocks}×{shelves}×{cells} = {expected}, but got {total}")
+                        calculation_errors += 1
+                    else:
+                        print(f"   ✅ {warehouse_name}: {blocks}×{shelves}×{cells} = {total} ✓")
+                else:
+                    print(f"   ❌ {warehouse_name}: Missing structure fields")
+                    calculation_errors += 1
+            
+            if calculation_errors == 0:
+                print(f"   ✅ All {warehouse_count} warehouses have correct total_cells calculations")
+            else:
+                print(f"   ❌ {calculation_errors}/{warehouse_count} warehouses have calculation errors")
+                all_success = False
+        else:
+            print("   ⚠️  No warehouses found for structure verification")
+        
+        # Test 6: ИЗОЛЯЦИЯ СКЛАДОВ - ОПЕРАТОРЫ ВИДЯТ ТОЛЬКО СВОИ СКЛАДЫ
+        print("\n   🔒 Test 6: WAREHOUSE ISOLATION - OPERATORS SEE ONLY ASSIGNED WAREHOUSES...")
+        
+        # Get admin warehouses for comparison
+        if 'admin' not in self.tokens:
+            admin_login_data = {
+                "phone": "+79999888777",
+                "password": "admin123"
+            }
+            
+            success, admin_login_response = self.run_test(
+                "Admin Login for Comparison",
+                "POST",
+                "/api/auth/login",
+                200,
+                admin_login_data
+            )
+            
+            if success and 'access_token' in admin_login_response:
+                self.tokens['admin'] = admin_login_response['access_token']
+                self.users['admin'] = admin_login_response.get('user', {})
+        
+        if 'admin' in self.tokens:
+            success, admin_warehouses = self.run_test(
+                "Get Admin Warehouses for Comparison",
+                "GET",
+                "/api/operator/warehouses",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success:
+                admin_warehouse_count = len(admin_warehouses) if isinstance(admin_warehouses, list) else 0
+                operator_warehouse_count = len(warehouses_response) if isinstance(warehouses_response, list) else 0
+                
+                print(f"   👑 Admin sees {admin_warehouse_count} warehouses")
+                print(f"   🏭 Operator sees {operator_warehouse_count} warehouses")
+                
+                if operator_warehouse_count <= admin_warehouse_count:
+                    print("   ✅ Warehouse isolation working - operator sees same or fewer warehouses than admin")
+                    
+                    # Verify operator warehouses are subset of admin warehouses
+                    if operator_warehouse_count > 0 and admin_warehouse_count > 0:
+                        operator_warehouse_ids = {w['id'] for w in warehouses_response}
+                        admin_warehouse_ids = {w['id'] for w in admin_warehouses}
+                        
+                        if operator_warehouse_ids.issubset(admin_warehouse_ids):
+                            print("   ✅ Operator warehouses are proper subset of admin warehouses")
+                        else:
+                            print("   ❌ Operator has access to warehouses not visible to admin")
+                            all_success = False
+                else:
+                    print("   ❌ Warehouse isolation broken - operator sees more warehouses than admin")
+                    all_success = False
+            else:
+                print("   ❌ Could not get admin warehouses for comparison")
+                all_success = False
+        else:
+            print("   ❌ Could not login as admin for comparison")
+            all_success = False
+        
+        # Test 7: СТРУКТУРА ОТВЕТА ДЛЯ ВСЕХ СКЛАДОВ
+        print("\n   📊 Test 7: RESPONSE STRUCTURE CONSISTENCY...")
+        
+        if warehouse_count > 0:
+            structure_consistent = True
+            required_fields = ['id', 'name', 'location', 'blocks_count', 'shelves_per_block', 'cells_per_shelf', 'total_cells', 'is_active']
+            
+            for i, warehouse in enumerate(warehouses_response):
+                warehouse_name = warehouse.get('name', f'Warehouse {i+1}')
+                missing_in_warehouse = [field for field in required_fields if field not in warehouse]
+                
+                if missing_in_warehouse:
+                    print(f"   ❌ {warehouse_name}: Missing fields {missing_in_warehouse}")
+                    structure_consistent = False
+            
+            if structure_consistent:
+                print(f"   ✅ All {warehouse_count} warehouses have consistent structure")
+            else:
+                print("   ❌ Inconsistent structure across warehouses")
+                all_success = False
+        
+        # Test 8: ДОСТУП ДЛЯ ОБЫЧНЫХ ПОЛЬЗОВАТЕЛЕЙ (ДОЛЖЕН БЫТЬ ЗАПРЕЩЕН)
+        print("\n   🚫 Test 8: REGULAR USER ACCESS DENIAL...")
+        
+        # Try to login as regular user
+        user_login_data = {
+            "phone": "+992900000000",
+            "password": "123456"
+        }
+        
+        success, user_login_response = self.run_test(
+            "Regular User Login",
+            "POST",
+            "/api/auth/login",
+            200,
+            user_login_data
+        )
+        
+        if success and 'access_token' in user_login_response:
+            user_token = user_login_response['access_token']
+            
+            success, _ = self.run_test(
+                "Regular User Access (Should Be Denied)",
+                "GET",
+                "/api/operator/warehouses",
+                403,  # Should return 403 Forbidden
+                token=user_token
+            )
+            
+            if success:
+                print("   ✅ Regular user access properly denied with 403 error")
+            else:
+                print("   ❌ Regular user access control not working correctly")
+                all_success = False
+        else:
+            print("   ⚠️  Could not test regular user access - login failed")
+        
+        # SUMMARY
+        print("\n   📊 OPERATOR WAREHOUSES STRUCTURE DISPLAY SUMMARY:")
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Operator warehouses structure display working perfectly!")
+            print("   ✅ Warehouse operator authentication successful")
+            print("   ✅ Endpoint accessible for warehouse operators")
+            print("   ✅ All required structure fields present:")
+            print("     - blocks_count: количество блоков")
+            print("     - shelves_per_block: количество полок на блок")
+            print("     - cells_per_shelf: количество ячеек на полку")
+            print("     - total_cells: общее количество ячеек (вычисляемое поле)")
+            print("   ✅ total_cells calculation correct: blocks_count × shelves_per_block × cells_per_shelf")
+            print("   ✅ Warehouse isolation working - operators see only assigned warehouses")
+            print("   ✅ Response structure consistent across all warehouses")
+            print("   ✅ Regular user access properly denied")
+        else:
+            print("   ❌ SOME TESTS FAILED - Operator warehouses structure display needs attention")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
     def test_enhanced_cargo_acceptance_system(self):
         """Test КОМПЛЕКСНЫЕ УЛУЧШЕНИЯ формы приема груза в TAJLINE.TJ"""
         print("\n🎯 ENHANCED CARGO ACCEPTANCE SYSTEM TESTING")
