@@ -6158,22 +6158,49 @@ async def get_debtors_list(current_user: User = Depends(get_current_user)):
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Only admins can view debtors")
     
-    # Получаем все активные долги
-    debts = list(db.debts.find({"status": "active"}))
-    
-    # Обогащаем данными из грузов
-    for debt in debts:
-        cargo = db.operator_cargo.find_one({"id": debt["cargo_id"]})
-        if cargo:
-            debt["cargo_info"] = {
-                "cargo_number": cargo["cargo_number"],
-                "recipient_name": cargo["recipient_full_name"],
-                "recipient_phone": cargo["recipient_phone"],
-                "weight": cargo["weight"],
-                "cargo_name": cargo["cargo_name"]
-            }
-    
-    return debts
+    try:
+        # Получаем все активные долги
+        debts_cursor = db.debts.find({"status": "active"}, {"_id": 0})  # Исключаем _id
+        debts = list(debts_cursor)
+        
+        # Обогащаем данными из грузов
+        for debt in debts:
+            cargo = db.operator_cargo.find_one({"id": debt["cargo_id"]}, {"_id": 0})  # Исключаем _id
+            if cargo:
+                debt["cargo_info"] = {
+                    "cargo_number": cargo.get("cargo_number", ""),
+                    "recipient_name": cargo.get("recipient_full_name", ""),
+                    "recipient_phone": cargo.get("recipient_phone", ""),
+                    "weight": cargo.get("weight", 0),
+                    "cargo_name": cargo.get("cargo_name", "")
+                }
+            else:
+                # Проверяем также в коллекции cargo
+                cargo_user = db.cargo.find_one({"id": debt["cargo_id"]}, {"_id": 0})
+                if cargo_user:
+                    debt["cargo_info"] = {
+                        "cargo_number": cargo_user.get("cargo_number", ""),
+                        "recipient_name": cargo_user.get("recipient_full_name", ""),
+                        "recipient_phone": cargo_user.get("recipient_phone", ""),
+                        "weight": cargo_user.get("weight", 0),
+                        "cargo_name": cargo_user.get("cargo_name", "")
+                    }
+                else:
+                    debt["cargo_info"] = {
+                        "cargo_number": "Не найден",
+                        "recipient_name": "Не найден",
+                        "recipient_phone": "",
+                        "weight": 0,
+                        "cargo_name": "Не найден"
+                    }
+        
+        return debts
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка получения списка должников: {str(e)}"
+        )
 
 @app.put("/api/admin/debts/{debt_id}/status")
 async def update_debt_status(
