@@ -3673,8 +3673,8 @@ function App() {
     }
   };
 
-  // Размещение груза на транспорт
-  const handlePlaceCargoOnTransport = async (cargoId, transportId) => {
+  // Размещение груза на транспорт (управление из ячейки)
+  const handleMoveCargoToTransport = async (cargoId, transportId) => {
     try {
       const data = await apiCall(`/api/cargo/${cargoId}/place-transport`, 'POST', { transport_id: transportId });
       showNotification('Груз размещен на транспорт!', 'success');
