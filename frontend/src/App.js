@@ -7213,7 +7213,7 @@ function App() {
                                   <div className="mt-3 p-2 bg-white rounded text-sm border-t-2 border-green-400">
                                     <div className="font-medium text-gray-700 mb-1">ИТОГО:</div>
                                     {cargoBreakdown.map((item, index) => (
-                                      <div key={index} className="flex justify-between text-xs text-gray-600">
+                                      <div key={`cost-${index}-${item.name}`} className="flex justify-between text-xs text-gray-600">
                                         <span>{item.name}: {item.weight.toFixed(1)}кг × {item.pricePerKg.toFixed(2)}руб</span>
                                         <span>{item.cost.toFixed(2)}руб</span>
                                       </div>
