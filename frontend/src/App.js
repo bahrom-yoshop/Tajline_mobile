@@ -3870,8 +3870,17 @@ function App() {
       fetchOperatorCargo();
       fetchAvailableCargo();
       
-      // Показываем информацию о следующих шагах
-      showAlert('Груз теперь доступен в разделе "Касса" → "Не оплачено" для обработки платежа', 'info');
+      // Показываем информацию о следующих шагах в зависимости от оплаты
+      if (operatorCargoForm.payment_method === 'not_paid') {
+        showAlert('Груз теперь доступен в разделе "Касса" → "Не оплачено" для обработки платежа', 'info');
+      } else {
+        showAlert('Груз готов к размещению! Доступен в разделе "Склады" → "Размещение груза"', 'info');
+      }
+      
+      // Обновляем список задолжников если была оплата в долг
+      if (operatorCargoForm.payment_method === 'credit' && user?.role === 'admin') {
+        fetchDebtorsList();
+      }
     } catch (error) {
       console.error('Accept cargo error:', error);
     }
