@@ -1158,17 +1158,7 @@ def create_route_based_notifications(message: str, route: str, related_id: str =
     for admin in admins:
         create_notification(admin["id"], message, related_id)
 
-# Функция для создания базового уведомления (оставляем для совместимости)
-def create_notification(user_id: str, message: str, cargo_id: str = None):
-    notification = {
-        "id": str(uuid.uuid4()),
-        "user_id": user_id,
-        "message": message,
-        "cargo_id": cargo_id,
-        "is_read": False,
-        "created_at": datetime.utcnow()
-    }
-    db.notifications.insert_one(notification)
+# Функция create_notification определена выше с расширенным функционалом
 
 def create_system_notification(title: str, message: str, notification_type: str, related_id: str = None, user_id: str = None, created_by: str = None):
     """Создать системное уведомление"""
