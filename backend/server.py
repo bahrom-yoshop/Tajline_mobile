@@ -3238,10 +3238,33 @@ async def accept_new_cargo(
     
     db.operator_cargo.insert_one(cargo)
     
+    # НОВАЯ ЛОГИКА: Создание записи долга если оплата в долг
+    if cargo_data.payment_method == PaymentMethod.CREDIT:
+        debt_record = {
+            "id": str(uuid.uuid4()),
+            "cargo_id": cargo_id,
+            "cargo_number": cargo_number,
+            "debtor_name": cargo_data.sender_full_name,
+            "debtor_phone": cargo_data.sender_phone,
+            "debt_amount": total_cost,
+            "payment_amount": cargo_data.payment_amount or 0.0,
+            "remaining_amount": total_cost - (cargo_data.payment_amount or 0.0),
+            "debt_due_date": cargo_data.debt_due_date,
+            "created_at": datetime.utcnow(),
+            "created_by": current_user.id,
+            "created_by_operator": current_user.full_name,
+            "warehouse_id": target_warehouse_id,
+            "warehouse_name": warehouse.get("name") if warehouse else None,
+            "status": "active"  # active, paid, overdue
+        }
+        db.debts.insert_one(debt_record)
+    
     # Создание уведомления с информацией о целевом складе
     notification_message = f"Принят новый груз {cargo_number} от {cargo_data.sender_full_name}"
     if warehouse:
         notification_message += f" (целевой склад: {warehouse['name']})"
+    if cargo_data.payment_method != PaymentMethod.NOT_PAID:
+        notification_message += f" - {cargo_data.payment_method.value.replace('_', ' ').title()}"
     
     create_notification(
         current_user.id,
