@@ -4083,7 +4083,7 @@ function App() {
       showAlert('Заявка принята и груз создан!', 'success');
       fetchCargoRequests();
       fetchOperatorCargo();
-      fetchSystemNotifications();
+      fetchNotifications();
     } catch (error) {
       console.error('Accept request error:', error);
     }
