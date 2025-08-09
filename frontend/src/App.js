@@ -15028,7 +15028,10 @@ function App() {
                     <div>
                       <p className="text-sm font-medium text-blue-700">Всего блоков</p>
                       <p className="text-2xl font-bold text-blue-900">
-                        {operatorWarehouses.find(w => w.id === showWarehouseScheme)?.blocks_count || 0}
+                        {(() => {
+                          const warehousesList = user?.role === 'admin' ? warehouses : operatorWarehouses;
+                          return warehousesList.find(w => w.id === showWarehouseScheme)?.blocks_count || 0;
+                        })()}
                       </p>
                     </div>
                     <Building className="h-8 w-8 text-blue-600" />
@@ -15041,7 +15044,8 @@ function App() {
                       <p className="text-sm font-medium text-gray-700">Всего ячеек</p>
                       <p className="text-2xl font-bold text-gray-900">
                         {(() => {
-                          const warehouse = operatorWarehouses.find(w => w.id === showWarehouseScheme);
+                          const warehousesList = user?.role === 'admin' ? warehouses : operatorWarehouses;
+                          const warehouse = warehousesList.find(w => w.id === showWarehouseScheme);
                           return warehouse?.total_cells || 
                                  ((warehouse?.blocks_count || 0) * (warehouse?.shelves_per_block || 0) * (warehouse?.cells_per_shelf || 0)) || 0;
                         })()}
@@ -15057,7 +15061,8 @@ function App() {
                       <p className="text-sm font-medium text-red-700">Занято</p>
                       <p className="text-2xl font-bold text-red-900">
                         {(() => {
-                          const warehouse = operatorWarehouses.find(w => w.id === showWarehouseScheme);
+                          const warehousesList = user?.role === 'admin' ? warehouses : operatorWarehouses;
+                          const warehouse = warehousesList.find(w => w.id === showWarehouseScheme);
                           const totalCells = warehouse?.total_cells || 
                                            ((warehouse?.blocks_count || 0) * (warehouse?.shelves_per_block || 0) * (warehouse?.cells_per_shelf || 0)) || 0;
                           return Math.floor(totalCells * 0.6);
@@ -15074,7 +15079,8 @@ function App() {
                       <p className="text-sm font-medium text-green-700">Свободно</p>
                       <p className="text-2xl font-bold text-green-900">
                         {(() => {
-                          const warehouse = operatorWarehouses.find(w => w.id === showWarehouseScheme);
+                          const warehousesList = user?.role === 'admin' ? warehouses : operatorWarehouses;
+                          const warehouse = warehousesList.find(w => w.id === showWarehouseScheme);
                           const totalCells = warehouse?.total_cells || 
                                            ((warehouse?.blocks_count || 0) * (warehouse?.shelves_per_block || 0) * (warehouse?.cells_per_shelf || 0)) || 0;
                           return Math.floor(totalCells * 0.4);
