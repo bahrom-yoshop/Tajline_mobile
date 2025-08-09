@@ -10161,11 +10161,12 @@ function App() {
                           <div>
                             <Label htmlFor="cells_per_shelf">Количество ячеек на каждой полке</Label>
                             <Input
+                              key="warehouse-cells-input"
                               id="cells_per_shelf"
                               type="number"
                               min="1"
                               max="50"
-                              value={warehouseForm.cells_per_shelf}
+                              value={warehouseForm.cells_per_shelf || ''}
                               onChange={(e) => setWarehouseForm({...warehouseForm, cells_per_shelf: parseInt(e.target.value) || 1})}
                               required
                             />
