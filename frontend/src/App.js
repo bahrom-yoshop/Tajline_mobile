@@ -10122,13 +10122,19 @@ function App() {
 
                           <div>
                             <Label htmlFor="blocks_count">Количество блоков на складе (1-9)</Label>
-                            <Select value={warehouseForm.blocks_count.toString()} onValueChange={(value) => setWarehouseForm({...warehouseForm, blocks_count: parseInt(value)})}>
+                            <Select 
+                              key="warehouse-blocks-select"
+                              value={warehouseForm.blocks_count.toString()} 
+                              onValueChange={(value) => setWarehouseForm({...warehouseForm, blocks_count: parseInt(value)})}
+                            >
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 {[1,2,3,4,5,6,7,8,9].map(num => (
-                                  <SelectItem key={num} value={num.toString()}>{num} блок{num > 1 ? (num < 5 ? 'а' : 'ов') : ''}</SelectItem>
+                                  <SelectItem key={`warehouse-blocks-${num}`} value={num.toString()}>
+                                    {num} блок{num > 1 ? (num < 5 ? 'а' : 'ов') : ''}
+                                  </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
