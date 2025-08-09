@@ -13319,7 +13319,7 @@ function App() {
                     <h5 className="text-sm font-medium mb-2">Детализация по грузам:</h5>
                     <div className="space-y-1">
                       {adminRepeatOrderBreakdown.map((item, index) => (
-                        <div key={index} className="flex justify-between text-sm">
+                        <div key={`admin-repeat-breakdown-${index}-${item.cargo_name || index}`} className="flex justify-between text-sm">
                           <span>{item.cargo_name || `Груз ${index + 1}`}: {item.weight}кг × {item.price_per_kg}₽</span>
                           <span className="font-medium">{item.cost.toFixed(2)} ₽</span>
                         </div>
