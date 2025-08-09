@@ -15009,7 +15009,10 @@ function App() {
               {showWarehouseScheme && (
                 <span>
                   Визуализация ячеек склада: <strong>
-                    {operatorWarehouses.find(w => w.id === showWarehouseScheme)?.name}
+                    {(() => {
+                      const warehousesList = user?.role === 'admin' ? warehouses : operatorWarehouses;
+                      return warehousesList.find(w => w.id === showWarehouseScheme)?.name || 'Неизвестный склад';
+                    })()}
                   </strong>
                 </span>
               )}
