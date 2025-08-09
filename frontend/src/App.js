@@ -7083,7 +7083,7 @@ function App() {
                                 </h3>
                                 
                                 {operatorCargoForm.cargo_items.map((item, index) => (
-                                  <div key={index} className="mb-4 p-4 bg-white rounded border">
+                                  <div key={`cargo-item-${index}-${item.cargo_name || 'empty'}`} className="mb-4 p-4 bg-white rounded border">
                                     <div className="flex items-center justify-between mb-2">
                                       <span className="font-medium text-sm text-gray-600">
                                         Груз #{index + 1}
