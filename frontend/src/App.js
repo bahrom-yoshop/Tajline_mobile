@@ -13876,6 +13876,74 @@ function App() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Модальное окно деталей уведомления */}
+      <Dialog open={notificationDetailsModal} onOpenChange={setNotificationDetailsModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Bell className="mr-2 h-5 w-5 text-blue-600" />
+              Детали уведомления
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedNotificationDetails && (
+            <div className="space-y-4">
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-sm text-gray-800 leading-relaxed mb-2">
+                  {selectedNotificationDetails.notification.message}
+                </p>
+                <p className="text-xs text-gray-500">
+                  📅 {new Date(selectedNotificationDetails.notification.created_at).toLocaleString('ru-RU')}
+                </p>
+                {selectedNotificationDetails.notification.status === 'unread' && (
+                  <div className="mt-2">
+                    <span className="inline-block px-2 py-1 text-xs bg-red-100 text-red-600 rounded">
+                      Непрочитанное
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Связанные данные если есть */}
+              {selectedNotificationDetails.related_data && (
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <h4 className="font-medium text-gray-800 mb-2">📦 Связанная информация</h4>
+                  {selectedNotificationDetails.related_data.type === 'cargo' && (
+                    <div className="space-y-2 text-sm">
+                      <p><strong>Номер груза:</strong> {selectedNotificationDetails.related_data.data.cargo_number}</p>
+                      <p><strong>Отправитель:</strong> {selectedNotificationDetails.related_data.data.sender_full_name}</p>
+                      <p><strong>Получатель:</strong> {selectedNotificationDetails.related_data.data.recipient_full_name}</p>
+                      <p><strong>Вес:</strong> {selectedNotificationDetails.related_data.data.weight} кг</p>
+                      <p><strong>Статус:</strong> {selectedNotificationDetails.related_data.data.status}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setNotificationDetailsModal(false)}
+                >
+                  Закрыть
+                </Button>
+                {selectedNotificationDetails.notification.status === 'unread' && (
+                  <Button
+                    onClick={() => {
+                      handleMarkNotificationAsRead(selectedNotificationDetails.notification.id);
+                      setNotificationDetailsModal(false);
+                    }}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    Отметить как прочитанное
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
