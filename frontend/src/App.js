@@ -5264,28 +5264,60 @@ function App() {
                       <h3 className="font-semibold text-sm">Уведомления</h3>
                     </div>
                     
-                    {/* Личные уведомления */}
+                    {/* Уведомления с новой системой управления */}
                     {notifications.length > 0 && (
                       <>
                         <div className="px-3 py-1 bg-gray-50">
-                          <p className="text-xs font-medium text-gray-600">Личные уведомления</p>
+                          <p className="text-xs font-medium text-gray-600">Уведомления</p>
                         </div>
-                        {notifications.slice(0, 5).map((notification) => (
-                          <DropdownMenuItem key={`notification-${notification.id}`} className="flex-col items-start p-3 cursor-default">
-                            <div className={`w-full ${!notification.is_read ? 'font-medium' : ''}`}>
-                              <p className="text-sm leading-tight">{notification.message}</p>
+                        {notifications.slice(0, 8).map((notification) => (
+                          <div key={`notification-${notification.id}`} className={`p-3 border-b hover:bg-gray-50 ${notification.status === 'unread' ? 'bg-blue-50 border-l-4 border-l-blue-400' : ''}`}>
+                            <div className="w-full">
+                              <p className={`text-sm leading-tight ${notification.status === 'unread' ? 'font-medium' : ''}`}>
+                                {notification.message}
+                              </p>
                               <p className="text-xs text-gray-500 mt-1">
                                 {new Date(notification.created_at).toLocaleString('ru-RU')}
                               </p>
-                              {!notification.is_read && (
-                                <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mt-1"></span>
-                              )}
+                              
+                              {/* Функциональные кнопки */}
+                              <div className="flex space-x-1 mt-2">
+                                {notification.status === 'unread' && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMarkNotificationAsRead(notification.id);
+                                    }}
+                                    className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                                  >
+                                    Прочитано
+                                  </button>
+                                )}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewNotificationDetails(notification.id);
+                                  }}
+                                  className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                                >
+                                  Посмотреть
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteNotification(notification.id);
+                                  }}
+                                  className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                                >
+                                  Удалить
+                                </button>
+                              </div>
                             </div>
-                          </DropdownMenuItem>
+                          </div>
                         ))}
-                        {notifications.length > 5 && (
-                          <div className="px-3 py-1 text-xs text-gray-500 text-center">
-                            И еще {notifications.length - 5} уведомлений...
+                        {notifications.length > 8 && (
+                          <div className="px-3 py-2 text-xs text-gray-500 text-center border-t">
+                            И еще {notifications.length - 8} уведомлений...
                           </div>
                         )}
                       </>
