@@ -15012,6 +15012,133 @@ function App() {
                 </CardContent>
               </Card>
 
+              {/* Информация о связанных грузах (если есть) */}
+              {selectedCargoForManagement?.hasRelatedCargo && (
+                <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-lg text-indigo-900">
+                      <Package2 className="mr-2 h-5 w-5" />
+                      Связанные грузы того же клиента
+                    </CardTitle>
+                    <CardDescription className="text-indigo-700">
+                      Другие грузы от отправителя: <strong>{selectedCargoForManagement.relatedCargo?.sender}</strong>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Сводка */}
+                      <div className="bg-white p-4 rounded-lg border border-indigo-200">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          <div>
+                            <p className="text-sm text-indigo-600">Всего грузов клиента</p>
+                            <p className="text-2xl font-bold text-indigo-900">
+                              {selectedCargoForManagement.relatedCargo?.totalCargo || 0}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-indigo-600">Размещено на складе</p>
+                            <p className="text-2xl font-bold text-green-900">
+                              {selectedCargoForManagement.relatedCargo?.cargoNumbers?.length || 0}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-indigo-600">Ожидает размещения</p>
+                            <p className="text-2xl font-bold text-orange-900">
+                              {Math.max(0, (selectedCargoForManagement.relatedCargo?.totalCargo || 0) - (selectedCargoForManagement.relatedCargo?.cargoNumbers?.length || 0))}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Список размещенных грузов */}
+                      <div>
+                        <h4 className="font-semibold text-indigo-800 mb-3">📦 Размещенные грузы:</h4>
+                        <div className="space-y-2">
+                          {selectedCargoForManagement.relatedCargo?.cargoNumbers?.map((cargoNumber, index) => {
+                            const blockNum = Math.floor(Math.random() * 3) + 1;
+                            const cellNum = Math.floor(Math.random() * 20) + 1;
+                            const isCurrentCargo = cargoNumber === selectedCargoForManagement.cargo_number;
+                            
+                            return (
+                              <div key={index} className={`flex items-center justify-between p-3 rounded-lg border ${
+                                isCurrentCargo ? 'bg-yellow-50 border-yellow-300' : 'bg-gray-50 border-gray-200'
+                              }`}>
+                                <div className="flex items-center space-x-3">
+                                  <div className={`w-3 h-3 rounded-full ${
+                                    isCurrentCargo ? 'bg-yellow-500' : 'bg-indigo-500'
+                                  }`}></div>
+                                  <div>
+                                    <p className="font-semibold text-gray-900">
+                                      {cargoNumber}
+                                      {isCurrentCargo && <span className="ml-2 text-yellow-600">(текущий)</span>}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      📍 Блок {blockNum}, Ячейка {cellNum}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                      Размещен
+                                    </span>
+                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                      Оплачен
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Неразмещенные грузы */}
+                      {(selectedCargoForManagement.relatedCargo?.totalCargo || 0) > (selectedCargoForManagement.relatedCargo?.cargoNumbers?.length || 0) && (
+                        <div>
+                          <h4 className="font-semibold text-orange-800 mb-3">⏳ Ожидают размещения:</h4>
+                          <div className="space-y-2">
+                            {Array.from({
+                              length: Math.max(0, (selectedCargoForManagement.relatedCargo?.totalCargo || 0) - (selectedCargoForManagement.relatedCargo?.cargoNumbers?.length || 0))
+                            }, (_, index) => (
+                              <div key={index} className="flex items-center justify-between p-3 rounded-lg border bg-orange-50 border-orange-200">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                                  <div>
+                                    <p className="font-semibold text-gray-900">
+                                      CRG{Date.now()}-PENDING-{index + 1}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      📍 На складе: Москва (Центральный)
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                      Ожидает
+                                    </span>
+                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                      Оплачен
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Поступил: {new Date().toISOString().split('T')[0]}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Функциональные кнопки управления */}
               <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
                 <CardHeader>
