@@ -3355,41 +3355,6 @@ async def accept_new_cargo(
     
     return CargoWithLocation(**cargo)
 
-@app.get("/api/operator/cargo/list")
-async def get_operator_cargo_list(
-    current_user: User = Depends(get_current_user)
-):
-    """Получить список грузов оператора (только с привязанных складов)"""
-    # Проверяем права доступа
-    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-    
-    if current_user.role == UserRole.ADMIN:
-        # Админ видит все грузы
-        cargo_list = list(db.operator_cargo.find({}))
-    else:
-        # Оператор видит только грузы на привязанных к нему складах
-        operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
-        
-        if not operator_warehouse_ids:
-            # Если оператор не привязан к складам, возвращаем пустой список
-            cargo_list = []
-        else:
-            # Находим грузы на привязанных складах ИЛИ принятые этим оператором
-            cargo_list = list(db.operator_cargo.find({
-                "$or": [
-                    {"warehouse_id": {"$in": operator_warehouse_ids}},  # Грузы на его складах
-                    {"created_by": current_user.id}  # Грузы, принятые им лично
-                ]
-            }))
-    
-    # Ensure cargo_name field exists for backward compatibility
-    for cargo in cargo_list:
-        if 'cargo_name' not in cargo:
-            cargo['cargo_name'] = cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз'
-    
-    return [CargoWithLocation(**cargo) for cargo in cargo_list]
-
 @app.post("/api/operator/cargo/place")
 async def place_cargo_in_warehouse(
     placement_data: CargoPlacement,
