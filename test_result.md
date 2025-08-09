@@ -129,13 +129,25 @@
 user_problem_statement: "Улучшение функциональности системы TAJLINE.TJ - Фаза 1: Улучшение формы приема груза с маршрутизацией: 1) Добавить выпадающий список маршрутов (Москва-Таджикистан / Таджикистан-Москва) в форму 'Принять новый груз', 2) Динамически фильтровать склады по выбранному маршруту - при выборе 'Москва-Таджикистан' показывать склады в Таджикистане, при выборе 'Таджикистан-Москва' показывать склады в Москве, 3) Обновить backend логику для определения складов по маршруту. ПОСЛЕДУЮЩИЕ ФАЗЫ: Цветовая схема грузов по складам, расширенная карточка склада с аналитикой, модальное окно управления грузом."
 
 frontend:
-  - task: "Frontend Interface Fix for Warehouse Operators Warehouse List"
-    implemented: true
+  - task: "Enhanced Cargo Acceptance Form with Route-based Warehouse Filtering"
+    implemented: false
     working: false
     file: "/app/frontend/src/App.js"
     stuck_count: 0
-    priority: "critical"
+    priority: "high"
     needs_retesting: true
+    status_history:
+        - working: false
+          agent: "main"
+          comment: "Начало Фазы 1: Улучшение формы 'Принять новый груз' с маршрутизацией. Требуется: 1) Добавить выпадающий список маршрутов (Москва-Таджикистан / Таджикистан-Москва), 2) Реализовать динамическую фильтрацию складов по маршруту, 3) Обновить operatorCargoForm state для включения поля route, 4) Добавить логику определения складов по направлению маршрута."
+
+  - task: "Frontend Interface Fix for Warehouse Operators Warehouse List"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
     status_history:
         - working: false
           agent: "main"
@@ -143,6 +155,9 @@ frontend:
         - working: false
           agent: "main"
           comment: "Реализован операторский интерфейс в секции 'warehouses': Добавлена карточка 'Мои назначенные склады' для операторов с отображением данных из operatorWarehouses state. Показывает список назначенных складов с названием, местоположением и количеством блоков. При отсутствии складов показывает сообщение 'Вам не назначены склады'. Административные табы (создание, список складов, управление) ограничены только для админов. Требуется тестирование."
+        - working: true
+          agent: "main"
+          comment: "✅ ЗАДАЧА ЗАВЕРШЕНА УСПЕШНО: Исправлен критический баг интерфейса складов для операторов. Frontend тестирование подтвердило: карточка 'Мои назначенные склады' отображается корректно, при отсутствии складов показывается понятное сообщение, административные функции ограничены для админов. Операторы больше не получают ошибку 'Не удалось получить' при переходе в раздел 'Склады'."
 
 backend:
   - task: "TAJLINE.TJ Warehouse Operator Isolation Improvements"
