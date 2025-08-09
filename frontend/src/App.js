@@ -379,7 +379,6 @@ function App() {
   // Operator-specific states
   const [operatorWarehouses, setOperatorWarehouses] = useState([]);
   const [routeWarehouses, setRouteWarehouses] = useState([]);  // Склады по выбранному маршруту
-  const [warehouseAnalytics, setWarehouseAnalytics] = useState({}); // Аналитика складов
   const [showWarehouseScheme, setShowWarehouseScheme] = useState(null); // ID склада для показа схемы
   const [warehouseCells, setWarehouseCells] = useState([]); // Ячейки склада
   const [interwarehouseTransportModal, setInterwarehouseTransportModal] = useState(false);
