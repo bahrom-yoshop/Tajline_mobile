@@ -3553,6 +3553,33 @@ function App() {
     }
   };
 
+  // НОВЫЕ ФУНКЦИИ: Управление долгами
+  const handlePayOffDebt = async (debtId, remainingAmount) => {
+    if (window.confirm(`Подтвердите полное погашение долга на сумму ${remainingAmount?.toFixed(2)} сом`)) {
+      try {
+        await apiCall(`/api/admin/debts/${debtId}/status`, 'PUT', { status: 'paid' });
+        showAlert('Долг успешно погашен!', 'success');
+        fetchDebtorsList(); // Обновляем список
+      } catch (error) {
+        console.error('Error paying off debt:', error);
+        showAlert('Ошибка при погашении долга', 'error');
+      }
+    }
+  };
+
+  const handleMarkOverdue = async (debtId) => {
+    if (window.confirm('Отметить долг как просроченный?')) {
+      try {
+        await apiCall(`/api/admin/debts/${debtId}/status`, 'PUT', { status: 'overdue' });
+        showAlert('Долг отмечен как просроченный', 'success');
+        fetchDebtorsList(); // Обновляем список
+      } catch (error) {
+        console.error('Error marking debt overdue:', error);
+        showAlert('Ошибка при обновлении статуса долга', 'error');
+      }
+    }
+  };
+
   const fetchTransportsList = async () => {
     try {
       const data = await apiCall('/api/transport/list');
