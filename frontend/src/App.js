@@ -2307,15 +2307,6 @@ function App() {
     }
   };
 
-  const fetchSystemNotifications = async () => {
-    try {
-      const data = await apiCall('/api/system-notifications');
-      setSystemNotifications(data);
-    } catch (error) {
-      console.error('Error fetching system notifications:', error);
-    }
-  };
-
   // Transport functions
   const fetchTransports = async (status = null) => {
     try {
