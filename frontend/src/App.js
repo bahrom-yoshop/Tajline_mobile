@@ -15297,7 +15297,7 @@ function App() {
                       <div>
                         <p className="text-sm font-medium text-gray-500">Вес / Сумма</p>
                         <p className="text-lg font-bold text-orange-900">
-                          {selectedCargoForManagement.cargo_details.weight} кг / {selectedCargoForManagement.payment_amount}₽
+                          {selectedCargoForManagement.weight || 'Н/Д'} кг / {selectedCargoForManagement.payment_amount}₽
                         </p>
                       </div>
                     </div>
