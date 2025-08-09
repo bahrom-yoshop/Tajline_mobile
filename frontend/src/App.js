@@ -3823,7 +3823,17 @@ function App() {
       }
       
       await apiCall('/api/operator/cargo/accept', 'POST', requestData);
-      showAlert('Груз успешно принят и отправлен в кассу для оплаты!', 'success');
+      
+      // Сообщение зависит от способа оплаты
+      const paymentMessages = {
+        'not_paid': 'Груз принят и отправлен в кассу для оплаты!',
+        'cash': 'Груз принят с оплатой наличными и отправлен на размещение!',
+        'card_transfer': 'Груз принят с переводом на карту и отправлен на размещение!',
+        'cash_on_delivery': 'Груз принят с оплатой при получении и отправлен на размещение!',
+        'credit': 'Груз принят в долг и отправлен на размещение!'
+      };
+      
+      showAlert(paymentMessages[operatorCargoForm.payment_method] || 'Груз успешно принят!', 'success');
       
       // Сброс формы
       setOperatorCargoForm({
