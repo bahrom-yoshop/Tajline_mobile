@@ -1789,6 +1789,7 @@ metadata:
 
 test_plan:
   current_focus:
+    - "TAJLINE.TJ Warehouse Operator Isolation Improvements"
     - "TAJLINE.TJ Operator Registration and Login Fix Testing"
     - "TAJLINE.TJ Deletion System Comprehensive Testing"
     - "Barcode Scanning Cargo Placement Workflow Re-Testing"
