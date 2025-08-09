@@ -22714,6 +22714,8 @@ ID склада: {target_warehouse_id}"""
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            # 🎯 NEW: ROUTE-BASED WAREHOUSE FILTERING (Current Review Request)
+            ("🗺️ ROUTE-BASED WAREHOUSE FILTERING", self.test_route_based_warehouse_filtering),
             # 🎯 CRITICAL: WAREHOUSE OPERATOR ROLE FIX AND AUTHENTICATION (Review Request)
             ("🔧 WAREHOUSE OPERATOR ROLE FIX AND AUTHENTICATION", self.test_warehouse_operator_role_fix_and_authentication),
             # 🎯 PRIMARY FOCUS: ENHANCED CARGO ACCEPTANCE SYSTEM (Review Request)
