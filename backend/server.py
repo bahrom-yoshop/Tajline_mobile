@@ -3187,6 +3187,14 @@ async def accept_new_cargo(
         combined_cargo_name = cargo_data.cargo_name or cargo_data.description[:50]
         detailed_description = cargo_data.description
     
+    # Определяем статус обработки на основе способа оплаты
+    if cargo_data.payment_method == PaymentMethod.NOT_PAID:
+        processing_status = "payment_pending"  # Идет в "Касса" -> "Не оплачено"
+        payment_status = "pending"
+    else:
+        processing_status = "paid"  # Идет сразу на "Размещение"
+        payment_status = "paid"
+    
     cargo = {
         "id": cargo_id,
         "cargo_number": cargo_number,
@@ -3201,8 +3209,8 @@ async def accept_new_cargo(
         "description": detailed_description,
         "route": cargo_data.route,
         "status": CargoStatus.ACCEPTED,
-        "payment_status": "pending",
-        "processing_status": "payment_pending",  # Новый статус обработки
+        "payment_status": payment_status,
+        "processing_status": processing_status,  # Статус обработки
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
         "created_by": current_user.id,
@@ -3218,6 +3226,10 @@ async def accept_new_cargo(
         "placed_by_operator_id": None,
         # Новые поля для множественных грузов
         "cargo_items": [item.dict() for item in cargo_data.cargo_items] if cargo_data.cargo_items else None,
+        # НОВЫЕ ПОЛЯ ОПЛАТЫ
+        "payment_method": cargo_data.payment_method.value,  # Способ оплаты
+        "payment_amount": cargo_data.payment_amount,  # Сумма оплаты
+        "debt_due_date": cargo_data.debt_due_date,  # Дата погашения долга
         "price_per_kg": cargo_data.price_per_kg if cargo_data.cargo_items else None
     }
     
