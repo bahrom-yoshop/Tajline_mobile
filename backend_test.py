@@ -24375,6 +24375,8 @@ ID склада: {target_warehouse_id}"""
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            # 🎨 CURRENT REVIEW REQUEST: WAREHOUSE CARGO WITH CLIENTS COLOR CODING
+            ("🎨 WAREHOUSE CARGO WITH CLIENTS COLOR CODING", self.test_warehouse_cargo_with_clients_endpoint),
             # 🏭 CURRENT REVIEW REQUEST: OPERATOR WAREHOUSES STRUCTURE DISPLAY
             ("🏭 OPERATOR WAREHOUSES STRUCTURE DISPLAY", self.test_operator_warehouses_structure_display),
             # 📊 CURRENT REVIEW REQUEST: ADMIN DASHBOARD ANALYTICS ENDPOINT
