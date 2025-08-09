@@ -3632,6 +3632,17 @@ function App() {
     }
   };
 
+  // Получение грузов склада с информацией о клиентах для цветового кодирования
+  const fetchWarehouseCargoWithClients = async (warehouseId) => {
+    try {
+      const data = await apiCall(`/api/warehouse/${warehouseId}/cargo-with-clients`);
+      return data || {};
+    } catch (error) {
+      console.error('Error fetching warehouse cargo with clients:', error);
+      return {};
+    }
+  };
+
   // Генерация схемы ячеек для визуализации с цветовой маркировкой по клиентам
   const generateWarehouseScheme = (warehouse) => {
     const blocks = warehouse.blocks_count || 3;
