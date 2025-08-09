@@ -24601,6 +24601,8 @@ ID склада: {target_warehouse_id}"""
         # Run test suites in order - prioritizing CURRENT REVIEW REQUEST
         test_suites = [
             ("Health Check", self.test_health_check),
+            # 🔧 CRITICAL: ADMIN LOGIN FIX AND MAIN ENDPOINTS (Current Review Request)
+            ("🔧 ADMIN LOGIN FIX AND MAIN ENDPOINTS", self.test_admin_login_fix_and_main_endpoints),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
             # 🎨 CURRENT REVIEW REQUEST: WAREHOUSE CARGO WITH CLIENTS COLOR CODING
