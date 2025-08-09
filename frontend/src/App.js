@@ -9138,7 +9138,7 @@ function App() {
                   )}
 
                   {/* Управление товарами на складе */}
-                  {activeTab === 'warehouses-manage' && (
+                  {activeTab === 'warehouses-manage' && user?.role === 'admin' && (
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center">
