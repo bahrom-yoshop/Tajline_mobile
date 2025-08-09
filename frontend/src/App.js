@@ -6809,7 +6809,7 @@ function App() {
                             {personalDashboardData.sent_cargo.length > 0 ? (
                               <div className="space-y-3">
                                 {personalDashboardData.sent_cargo.slice(0, 10).map((cargo, index) => (
-                                  <div key={index} className="bg-white border rounded-lg p-4">
+                                  <div key={`sent-cargo-${cargo.id || index}-${cargo.cargo_number || index}`} className="bg-white border rounded-lg p-4">
                                     <div className="flex justify-between items-start">
                                       <div>
                                         <h4 className="font-medium">
