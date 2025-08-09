@@ -4116,10 +4116,23 @@ async def get_unpaid_cargo(
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
-    # Получаем неоплаченные грузы
-    unpaid_cargo = list(db.operator_cargo.find({
-        "payment_status": {"$ne": "paid"}
-    }).sort("created_at", -1))
+    # ОБНОВЛЕНО: Фильтрация по складам оператора
+    if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+        # Оператор видит только грузы своих складов
+        operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+        if not operator_warehouse_ids:
+            return []
+        
+        query = {
+            "payment_status": {"$ne": "paid"},
+            "target_warehouse_id": {"$in": operator_warehouse_ids}
+        }
+    else:
+        # Админ видит все неоплаченные грузы
+        query = {"payment_status": {"$ne": "paid"}}
+    
+    # Получаем неоплаченные грузы с фильтрацией по складам
+    unpaid_cargo = list(db.operator_cargo.find(query).sort("created_at", -1))
     
     # Ensure cargo_name field exists for backward compatibility
     for cargo in unpaid_cargo:
