@@ -1742,12 +1742,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Bulk Deletion Endpoints Testing"
+    - "TAJLINE.TJ Operator Registration and Login Fix Testing"
+    - "TAJLINE.TJ Deletion System Comprehensive Testing"
     - "Barcode Scanning Cargo Placement Workflow Re-Testing"
-    - "Frontend Barcode Scanner Interface Testing"
-    - "User Number Display Consistency Check"
-    - "Admin Permission System Verification"
   stuck_tasks:
+    - "TAJLINE.TJ Operator Registration and Login Fix Testing"
     - "Warehouse Operator Role Verification"
   test_all: false
   test_priority: "critical_first"
