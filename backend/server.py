@@ -1077,6 +1077,88 @@ ID склада: {warehouse_data.get('id', '')}"""
         print(f"Error generating QR code for warehouse cell: {e}")
         return ""
 
+def get_warehouses_by_route(route: str) -> list:
+    """Определить склады по маршруту для отправки уведомлений"""
+    route_lower = route.lower()
+    warehouse_cities = []
+    
+    # Определяем города по маршрутам
+    if "москва" in route_lower and "худжанд" in route_lower:
+        warehouse_cities = ["москва", "худжанд"]
+    elif "душанбе" in route_lower and "москва" in route_lower:
+        warehouse_cities = ["душанбе", "москва"]
+    elif "худжанд" in route_lower and "москва" in route_lower:
+        warehouse_cities = ["худжанд", "москва"]
+    elif "таджикистан" in route_lower and "москва" in route_lower:
+        warehouse_cities = ["москва"]  # Для маршрута "Таджикистан-Москва" - только московский склад
+    
+    if not warehouse_cities:
+        return []
+    
+    # Получаем ID складов по городам (поиск по location)
+    warehouse_ids = []
+    for city in warehouse_cities:
+        warehouses = db.warehouses.find({
+            "location": {"$regex": city, "$options": "i"},
+            "is_active": True
+        })
+        warehouse_ids.extend([w["id"] for w in warehouses])
+    
+    return warehouse_ids
+
+def get_operators_by_warehouses(warehouse_ids: list) -> list:
+    """Получить операторов, привязанных к указанным складам"""
+    if not warehouse_ids:
+        return []
+    
+    # Находим привязки операторов к складам
+    bindings = db.operator_warehouse_bindings.find({
+        "warehouse_id": {"$in": warehouse_ids}
+    })
+    
+    operator_ids = list(set([binding["operator_id"] for binding in bindings]))
+    return operator_ids
+
+def create_notification(user_id, message, related_id=None):
+    """Создание уведомления"""
+    notification_id = str(uuid.uuid4())
+    notification = {
+        "id": notification_id,
+        "user_id": user_id,
+        "message": message,
+        "type": "system",
+        "status": "unread",  # unread, read, deleted
+        "created_at": datetime.utcnow(),
+        "related_id": related_id
+    }
+    db.notifications.insert_one(notification)
+    return notification_id
+
+def create_route_based_notifications(message: str, route: str, related_id: str = None):
+    """НОВАЯ ФУНКЦИЯ: Создание уведомлений по маршруту"""
+    # Определяем склады по маршруту
+    target_warehouse_ids = get_warehouses_by_route(route)
+    
+    if not target_warehouse_ids:
+        # Если маршрут не определен, отправляем всем админам
+        admins = db.users.find({"role": "admin", "is_active": True})
+        for admin in admins:
+            create_notification(admin["id"], message, related_id)
+        return
+    
+    # Получаем операторов целевых складов
+    target_operator_ids = get_operators_by_warehouses(target_warehouse_ids)
+    
+    # Отправляем уведомления операторам целевых складов
+    for operator_id in target_operator_ids:
+        create_notification(operator_id, message, related_id)
+    
+    # Также отправляем админам для контроля
+    admins = db.users.find({"role": "admin", "is_active": True})
+    for admin in admins:
+        create_notification(admin["id"], message, related_id)
+
+# Функция для создания базового уведомления (оставляем для совместимости)
 def create_notification(user_id: str, message: str, cargo_id: str = None):
     notification = {
         "id": str(uuid.uuid4()),
