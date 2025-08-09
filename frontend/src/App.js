@@ -3645,6 +3645,100 @@ function App() {
     return scheme;
   };
 
+  // ФАЗА 4: ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ ГРУЗОМ
+
+  // Получение детальной информации о грузе
+  const fetchCargoDetails = async (cargoNumber) => {
+    try {
+      const data = await apiCall(`/api/cargo/${cargoNumber}/details`);
+      return data || {};
+    } catch (error) {
+      console.error('Error fetching cargo details:', error);
+      return {};
+    }
+  };
+
+  // Перемещение груза в другую ячейку
+  const handleMoveCargoToCell = async (cargoId, newCellId) => {
+    try {
+      const data = await apiCall(`/api/cargo/${cargoId}/move`, 'POST', { new_cell_id: newCellId });
+      showNotification('Груз успешно перемещен!', 'success');
+      return true;
+    } catch (error) {
+      console.error('Error moving cargo:', error);
+      showNotification('Ошибка при перемещении груза', 'error');
+      return false;
+    }
+  };
+
+  // Возврат товара
+  const handleReturnCargo = async (cargoId, returnReason) => {
+    try {
+      const data = await apiCall(`/api/cargo/${cargoId}/return`, 'POST', { reason: returnReason });
+      showNotification('Груз отправлен на возврат!', 'success');
+      return true;
+    } catch (error) {
+      console.error('Error returning cargo:', error);
+      showNotification('Ошибка при возврате груза', 'error');
+      return false;
+    }
+  };
+
+  // Размещение груза на транспорт
+  const handlePlaceCargoOnTransport = async (cargoId, transportId) => {
+    try {
+      const data = await apiCall(`/api/cargo/${cargoId}/place-transport`, 'POST', { transport_id: transportId });
+      showNotification('Груз размещен на транспорт!', 'success');
+      return true;
+    } catch (error) {
+      console.error('Error placing cargo on transport:', error);
+      showNotification('Ошибка при размещении груза на транспорт', 'error');
+      return false;
+    }
+  };
+
+  // Открытие модального окна управления грузом
+  const openCargoManagementModal = async (cargoInfo) => {
+    // Создаем симуляцию детальной информации о грузе
+    const detailedCargo = {
+      ...cargoInfo,
+      cargo_number: cargoInfo.cargo_number || `CRG${Date.now()}`,
+      status: 'placed',
+      payment_status: 'paid',
+      payment_method: 'cash',
+      payment_amount: 1500.0,
+      sender: {
+        full_name: cargoInfo.cargo_sender || 'Иванов Иван Иванович',
+        phone: '+79991234567',
+        address: 'г. Москва, ул. Красная площадь, д. 1',
+        email: 'ivanov@example.com'
+      },
+      recipient: {
+        full_name: 'Петров Петр Петрович',
+        phone: '+992987654321',
+        address: 'г. Душанбе, пр. Рудаки, д. 10',
+        email: 'petrov@example.com'
+      },
+      cargo_details: {
+        weight: 15.5,
+        declared_value: 1500.0,
+        description: 'Электроника, документы',
+        route: 'moscow_to_tajikistan',
+        created_date: '2024-12-09',
+        expected_delivery: '2024-12-15'
+      },
+      history: [
+        { date: '2024-12-09 10:00', action: 'Груз принят', user: 'Оператор Москвы', details: 'Принят в пункте приема' },
+        { date: '2024-12-09 14:30', action: 'Оплачен', user: 'Клиент', details: 'Оплата наличными 1500₽' },
+        { date: '2024-12-10 09:00', action: 'Размещен на складе', user: 'Оператор склада', details: `Ячейка ${cargoInfo.id}` },
+        { date: '2024-12-11 16:20', action: 'Готов к отправке', user: 'Система', details: 'Груз готов к транспортировке' }
+      ]
+    };
+
+    setSelectedCargoForManagement(detailedCargo);
+    setShowCargoManagementModal(true);
+  };
+
   // НОВЫЕ ФУНКЦИИ: Управление долгами
   const handlePayOffDebt = async (debtId, remainingAmount) => {
     if (window.confirm(`Подтвердите полное погашение долга на сумму ${remainingAmount?.toFixed(2)} сом`)) {
