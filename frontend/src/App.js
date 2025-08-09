@@ -170,7 +170,12 @@ function App() {
     // Новые поля для множественных грузов с индивидуальными ценами
     cargo_items: [{ cargo_name: '', weight: '', price_per_kg: '' }],  // Каждый груз имеет свою цену
     price_per_kg: '',  // Общая цена за кг (для совместимости)
-    use_multi_cargo: false  // Флаг для переключения между режимами
+    use_multi_cargo: false,  // Флаг для переключения между режимами
+    // НОВЫЕ ПОЛЯ ДЛЯ УЛУЧШЕННОЙ СИСТЕМЫ
+    warehouse_id: '',  // Выбранный склад
+    payment_method: 'not_paid',  // Способ оплаты
+    payment_amount: '',  // Сумма оплаты
+    debt_due_date: ''  // Дата погашения долга
   });
   // Operator cargo management states
   const [operatorCargo, setOperatorCargo] = useState([]);
