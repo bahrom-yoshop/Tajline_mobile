@@ -154,6 +154,13 @@ class RouteType(str, Enum):
     MOSCOW_KULOB = "moscow_kulob"
     MOSCOW_KURGANTYUBE = "moscow_kurgantyube"
 
+class PaymentMethod(str, Enum):
+    NOT_PAID = "not_paid"  # Не оплачено
+    CASH = "cash"  # Оплата наличными
+    CARD_TRANSFER = "card_transfer"  # Перевод на карту
+    CASH_ON_DELIVERY = "cash_on_delivery"  # Оплата при получении
+    CREDIT = "credit"  # Оплата в долг
+
 class TransportStatus(str, Enum):
     EMPTY = "empty"
     FILLED = "filled"
