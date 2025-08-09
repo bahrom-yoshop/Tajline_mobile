@@ -3651,11 +3651,10 @@ function App() {
   const handleMoveCargoToCell = async (cargoId, newCellId) => {
     try {
       const data = await apiCall(`/api/cargo/${cargoId}/move`, 'POST', { new_cell_id: newCellId });
-      showNotification('Груз успешно перемещен!', 'success');
+      console.log('Груз успешно перемещен!');
       return true;
     } catch (error) {
       console.error('Error moving cargo:', error);
-      showNotification('Ошибка при перемещении груза', 'error');
       return false;
     }
   };
@@ -3664,11 +3663,10 @@ function App() {
   const handleReturnCargo = async (cargoId, returnReason) => {
     try {
       const data = await apiCall(`/api/cargo/${cargoId}/return`, 'POST', { reason: returnReason });
-      showNotification('Груз отправлен на возврат!', 'success');
+      console.log('Груз отправлен на возврат!');
       return true;
     } catch (error) {
       console.error('Error returning cargo:', error);
-      showNotification('Ошибка при возврате груза', 'error');
       return false;
     }
   };
@@ -3677,11 +3675,10 @@ function App() {
   const handleMoveCargoToTransport = async (cargoId, transportId) => {
     try {
       const data = await apiCall(`/api/cargo/${cargoId}/place-transport`, 'POST', { transport_id: transportId });
-      showNotification('Груз размещен на транспорт!', 'success');
+      console.log('Груз размещен на транспорт!');
       return true;
     } catch (error) {
       console.error('Error placing cargo on transport:', error);
-      showNotification('Ошибка при размещении груза на транспорт', 'error');
       return false;
     }
   };
