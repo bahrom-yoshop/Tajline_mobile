@@ -131,11 +131,11 @@ user_problem_statement: "Улучшение функциональности с�
 frontend:
   - task: "Color-coded Cargo Display by Warehouse in Placement List"
     implemented: true
-    working: false
+    working: true
     file: "/app/frontend/src/App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: false
           agent: "main"
