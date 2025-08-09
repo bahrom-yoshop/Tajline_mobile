@@ -3114,26 +3114,40 @@ async def accept_new_cargo(
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
-    # Для операторов проверяем привязки к складам
+    # Для операторов проверяем привязки к складам и выбор склада
     if current_user.role == UserRole.WAREHOUSE_OPERATOR:
         operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
         if not operator_warehouse_ids:
             raise HTTPException(status_code=403, detail="No warehouses assigned to this operator. Cannot accept cargo.")
         
-        # Автоматически выбираем первый привязанный склад как целевой
-        target_warehouse_id = operator_warehouse_ids[0]
+        # НОВАЯ ЛОГИКА: Проверяем выбранный склад или автовыбор
+        if cargo_data.warehouse_id:
+            # Проверяем что выбранный склад принадлежит оператору
+            if cargo_data.warehouse_id not in operator_warehouse_ids:
+                raise HTTPException(status_code=403, detail="Selected warehouse is not assigned to this operator")
+            target_warehouse_id = cargo_data.warehouse_id
+        else:
+            # Автоматически выбираем первый привязанный склад
+            target_warehouse_id = operator_warehouse_ids[0]
+        
         warehouse = db.warehouses.find_one({"id": target_warehouse_id})
         if not warehouse:
             raise HTTPException(status_code=404, detail="Target warehouse not found")
     else:
-        # Админ может принимать грузы на любой склад - выбираем первый доступный
-        all_warehouses = list(db.warehouses.find({"is_active": True}))
-        if all_warehouses:
-            target_warehouse_id = all_warehouses[0]["id"]
-            warehouse = all_warehouses[0]
+        # Админ может принимать грузы на любой склад
+        if cargo_data.warehouse_id:
+            warehouse = db.warehouses.find_one({"id": cargo_data.warehouse_id, "is_active": True})
+            if not warehouse:
+                raise HTTPException(status_code=404, detail="Selected warehouse not found")
+            target_warehouse_id = cargo_data.warehouse_id
         else:
-            # Если нет активных складов, создаем ошибку вместо None
-            raise HTTPException(status_code=400, detail="No active warehouses available for cargo acceptance")
+            # Выбираем первый доступный склад
+            all_warehouses = list(db.warehouses.find({"is_active": True}))
+            if all_warehouses:
+                target_warehouse_id = all_warehouses[0]["id"]
+                warehouse = all_warehouses[0]
+            else:
+                raise HTTPException(status_code=400, detail="No active warehouses available for cargo acceptance")
     
     cargo_id = str(uuid.uuid4())
     cargo_number = generate_cargo_number()
