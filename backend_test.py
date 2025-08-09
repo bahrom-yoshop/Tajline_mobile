@@ -21931,11 +21931,13 @@ ID склада: {target_warehouse_id}"""
         
         test_results = []
         
-        # Run test suites in order - prioritizing OPERATOR REGISTRATION FIX
+        # Run test suites in order - prioritizing OPERATOR ROLE FIX
         test_suites = [
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            # 🎯 CRITICAL: WAREHOUSE OPERATOR ROLE FIX AND AUTHENTICATION (Review Request)
+            ("🔧 WAREHOUSE OPERATOR ROLE FIX AND AUTHENTICATION", self.test_warehouse_operator_role_fix_and_authentication),
             # 🎯 PRIMARY FOCUS: ENHANCED CARGO ACCEPTANCE SYSTEM (Review Request)
             ("🎯 ENHANCED CARGO ACCEPTANCE SYSTEM", self.test_enhanced_cargo_acceptance_system),
             # 🎯 PRIORITY: OPERATOR REGISTRATION AND LOGIN FIX (Review Request)
