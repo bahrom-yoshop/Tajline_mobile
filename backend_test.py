@@ -690,6 +690,481 @@ class CargoTransportAPITester:
         
         return all_success
 
+    def test_admin_dashboard_analytics_endpoint(self):
+        """Test новый endpoint /api/admin/dashboard/analytics для расширенной аналитики дашборда администратора"""
+        print("\n📊 ADMIN DASHBOARD ANALYTICS ENDPOINT TESTING")
+        print("   🎯 Testing new endpoint /api/admin/dashboard/analytics for enhanced admin dashboard analytics")
+        
+        all_success = True
+        
+        # Test 1: ДОСТУПНОСТЬ ENDPOINT'А ТОЛЬКО ДЛЯ АДМИНИСТРАТОРОВ
+        print("\n   👑 Test 1: ADMIN-ONLY ACCESS CONTROL...")
+        
+        # First ensure we have admin token
+        if 'admin' not in self.tokens:
+            # Login as admin
+            admin_login_data = {
+                "phone": "+79999888777",
+                "password": "admin123"
+            }
+            
+            success, admin_login_response = self.run_test(
+                "Admin Login for Analytics Testing",
+                "POST",
+                "/api/auth/login",
+                200,
+                admin_login_data
+            )
+            
+            if success and 'access_token' in admin_login_response:
+                self.tokens['admin'] = admin_login_response['access_token']
+                self.users['admin'] = admin_login_response.get('user', {})
+                admin_user = admin_login_response.get('user', {})
+                print(f"   ✅ Admin login successful: {admin_user.get('full_name')}")
+                print(f"   👑 Role: {admin_user.get('role')}")
+            else:
+                print("   ❌ Admin login failed")
+                return False
+        
+        # Test 1.1: Admin access should work
+        print("\n   ✅ Test 1.1: Admin Access Verification...")
+        
+        success, analytics_response = self.run_test(
+            "Admin Access to Analytics Endpoint",
+            "GET",
+            "/api/admin/dashboard/analytics",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Admin can access analytics endpoint")
+        else:
+            print("   ❌ Admin cannot access analytics endpoint")
+            all_success = False
+            return False
+        
+        # Test 1.2: Regular user access should be denied
+        print("\n   🚫 Test 1.2: Regular User Access Denial...")
+        
+        # Ensure we have a regular user token
+        if 'user' not in self.tokens:
+            user_login_data = {
+                "phone": "+992900000000",
+                "password": "123456"
+            }
+            
+            success, user_login_response = self.run_test(
+                "Regular User Login",
+                "POST",
+                "/api/auth/login",
+                200,
+                user_login_data
+            )
+            
+            if success and 'access_token' in user_login_response:
+                self.tokens['user'] = user_login_response['access_token']
+                self.users['user'] = user_login_response.get('user', {})
+        
+        if 'user' in self.tokens:
+            success, _ = self.run_test(
+                "Regular User Access (Should Be Denied)",
+                "GET",
+                "/api/admin/dashboard/analytics",
+                403,  # Should return 403 Forbidden
+                token=self.tokens['user']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Regular user access properly denied with 403 error")
+            else:
+                print("   ❌ Regular user access control not working correctly")
+                all_success = False
+        
+        # Test 1.3: Warehouse operator access should be denied
+        print("\n   🚫 Test 1.3: Warehouse Operator Access Denial...")
+        
+        # Ensure we have warehouse operator token
+        if 'warehouse_operator' not in self.tokens:
+            operator_login_data = {
+                "phone": "+79777888999",
+                "password": "warehouse123"
+            }
+            
+            success, operator_login_response = self.run_test(
+                "Warehouse Operator Login",
+                "POST",
+                "/api/auth/login",
+                200,
+                operator_login_data
+            )
+            
+            if success and 'access_token' in operator_login_response:
+                self.tokens['warehouse_operator'] = operator_login_response['access_token']
+                self.users['warehouse_operator'] = operator_login_response.get('user', {})
+        
+        if 'warehouse_operator' in self.tokens:
+            success, _ = self.run_test(
+                "Warehouse Operator Access (Should Be Denied)",
+                "GET",
+                "/api/admin/dashboard/analytics",
+                403,  # Should return 403 Forbidden
+                token=self.tokens['warehouse_operator']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Warehouse operator access properly denied with 403 error")
+            else:
+                print("   ❌ Warehouse operator access control not working correctly")
+                all_success = False
+        
+        # Test 2: СТРУКТУРА ОТВЕТА
+        print("\n   📋 Test 2: RESPONSE STRUCTURE VERIFICATION...")
+        
+        if analytics_response and isinstance(analytics_response, dict):
+            print("   ✅ Analytics response is a valid dictionary")
+            
+            # Check required sections
+            required_sections = [
+                'basic_stats',
+                'cargo_stats', 
+                'people_stats',
+                'financial_stats',
+                'requests_stats',
+                'transport_stats'
+            ]
+            
+            missing_sections = []
+            for section in required_sections:
+                if section not in analytics_response:
+                    missing_sections.append(section)
+                else:
+                    print(f"   ✅ Section '{section}' present")
+            
+            if missing_sections:
+                print(f"   ❌ Missing required sections: {missing_sections}")
+                all_success = False
+            else:
+                print("   ✅ All required sections present")
+            
+            # Test 2.1: basic_stats structure
+            print("\n   📊 Test 2.1: basic_stats Structure...")
+            basic_stats = analytics_response.get('basic_stats', {})
+            required_basic_fields = [
+                'total_warehouses',
+                'total_users', 
+                'total_admins',
+                'total_operators',
+                'total_regular_users'
+            ]
+            
+            missing_basic = []
+            for field in required_basic_fields:
+                if field not in basic_stats:
+                    missing_basic.append(field)
+                else:
+                    value = basic_stats[field]
+                    print(f"   📈 {field}: {value}")
+            
+            if missing_basic:
+                print(f"   ❌ Missing basic_stats fields: {missing_basic}")
+                all_success = False
+            else:
+                print("   ✅ basic_stats structure complete")
+            
+            # Test 2.2: cargo_stats structure
+            print("\n   📦 Test 2.2: cargo_stats Structure...")
+            cargo_stats = analytics_response.get('cargo_stats', {})
+            required_cargo_fields = [
+                'total_cargo',
+                'total_weight_kg',
+                'total_sum_rub',
+                'awaiting_recipient'
+            ]
+            
+            missing_cargo = []
+            for field in required_cargo_fields:
+                if field not in cargo_stats:
+                    missing_cargo.append(field)
+                else:
+                    value = cargo_stats[field]
+                    print(f"   📦 {field}: {value}")
+            
+            if missing_cargo:
+                print(f"   ❌ Missing cargo_stats fields: {missing_cargo}")
+                all_success = False
+            else:
+                print("   ✅ cargo_stats structure complete")
+            
+            # Test 2.3: people_stats structure
+            print("\n   👥 Test 2.3: people_stats Structure...")
+            people_stats = analytics_response.get('people_stats', {})
+            required_people_fields = [
+                'unique_senders',
+                'unique_recipients'
+            ]
+            
+            missing_people = []
+            for field in required_people_fields:
+                if field not in people_stats:
+                    missing_people.append(field)
+                else:
+                    value = people_stats[field]
+                    print(f"   👤 {field}: {value}")
+            
+            if missing_people:
+                print(f"   ❌ Missing people_stats fields: {missing_people}")
+                all_success = False
+            else:
+                print("   ✅ people_stats structure complete")
+            
+            # Test 2.4: financial_stats structure
+            print("\n   💰 Test 2.4: financial_stats Structure...")
+            financial_stats = analytics_response.get('financial_stats', {})
+            required_financial_fields = [
+                'debtors_count',
+                'total_debt_amount'
+            ]
+            
+            missing_financial = []
+            for field in required_financial_fields:
+                if field not in financial_stats:
+                    missing_financial.append(field)
+                else:
+                    value = financial_stats[field]
+                    print(f"   💸 {field}: {value}")
+            
+            if missing_financial:
+                print(f"   ❌ Missing financial_stats fields: {missing_financial}")
+                all_success = False
+            else:
+                print("   ✅ financial_stats structure complete")
+            
+            # Test 2.5: requests_stats structure
+            print("\n   📋 Test 2.5: requests_stats Structure...")
+            requests_stats = analytics_response.get('requests_stats', {})
+            required_requests_fields = [
+                'new_requests'
+            ]
+            
+            missing_requests = []
+            for field in required_requests_fields:
+                if field not in requests_stats:
+                    missing_requests.append(field)
+                else:
+                    value = requests_stats[field]
+                    print(f"   📝 {field}: {value}")
+            
+            if missing_requests:
+                print(f"   ❌ Missing requests_stats fields: {missing_requests}")
+                all_success = False
+            else:
+                print("   ✅ requests_stats structure complete")
+            
+            # Test 2.6: transport_stats structure
+            print("\n   🚛 Test 2.6: transport_stats Structure...")
+            transport_stats = analytics_response.get('transport_stats', {})
+            required_transport_fields = [
+                'total_transports',
+                'moscow_to_tajikistan',
+                'tajikistan_to_moscow',
+                'active_transports'
+            ]
+            
+            missing_transport = []
+            for field in required_transport_fields:
+                if field not in transport_stats:
+                    missing_transport.append(field)
+                else:
+                    value = transport_stats[field]
+                    print(f"   🚚 {field}: {value}")
+            
+            if missing_transport:
+                print(f"   ❌ Missing transport_stats fields: {missing_transport}")
+                all_success = False
+            else:
+                print("   ✅ transport_stats structure complete")
+        else:
+            print("   ❌ Analytics response is not a valid dictionary")
+            all_success = False
+        
+        # Test 3: КОРРЕКТНОСТЬ ВЫЧИСЛЕНИЙ
+        print("\n   🧮 Test 3: CALCULATION CORRECTNESS VERIFICATION...")
+        
+        if analytics_response:
+            # Test 3.1: Verify numerical values are logical
+            print("\n   📊 Test 3.1: Numerical Values Logic Check...")
+            
+            basic_stats = analytics_response.get('basic_stats', {})
+            cargo_stats = analytics_response.get('cargo_stats', {})
+            people_stats = analytics_response.get('people_stats', {})
+            financial_stats = analytics_response.get('financial_stats', {})
+            transport_stats = analytics_response.get('transport_stats', {})
+            
+            # Check that all values are non-negative numbers
+            all_values_valid = True
+            
+            # Basic stats checks
+            total_users = basic_stats.get('total_users', 0)
+            total_admins = basic_stats.get('total_admins', 0)
+            total_operators = basic_stats.get('total_operators', 0)
+            total_regular_users = basic_stats.get('total_regular_users', 0)
+            
+            if total_users >= 0 and total_admins >= 0 and total_operators >= 0 and total_regular_users >= 0:
+                print("   ✅ All user counts are non-negative")
+                
+                # Check if user breakdown makes sense
+                calculated_total = total_admins + total_operators + total_regular_users
+                if calculated_total <= total_users:
+                    print(f"   ✅ User breakdown logical: {total_admins} admins + {total_operators} operators + {total_regular_users} users ≤ {total_users} total")
+                else:
+                    print(f"   ⚠️  User breakdown inconsistent: {calculated_total} calculated > {total_users} total")
+            else:
+                print("   ❌ Some user counts are negative")
+                all_values_valid = False
+            
+            # Cargo stats checks
+            total_cargo = cargo_stats.get('total_cargo', 0)
+            total_weight = cargo_stats.get('total_weight_kg', 0)
+            total_sum = cargo_stats.get('total_sum_rub', 0)
+            awaiting_recipient = cargo_stats.get('awaiting_recipient', 0)
+            
+            if total_cargo >= 0 and total_weight >= 0 and total_sum >= 0 and awaiting_recipient >= 0:
+                print("   ✅ All cargo stats are non-negative")
+                
+                if awaiting_recipient <= total_cargo:
+                    print(f"   ✅ Awaiting recipient count logical: {awaiting_recipient} ≤ {total_cargo} total cargo")
+                else:
+                    print(f"   ❌ Awaiting recipient count illogical: {awaiting_recipient} > {total_cargo} total cargo")
+                    all_values_valid = False
+            else:
+                print("   ❌ Some cargo stats are negative")
+                all_values_valid = False
+            
+            # People stats checks
+            unique_senders = people_stats.get('unique_senders', 0)
+            unique_recipients = people_stats.get('unique_recipients', 0)
+            
+            if unique_senders >= 0 and unique_recipients >= 0:
+                print("   ✅ People stats are non-negative")
+                
+                # Logical check: if we have cargo, we should have senders and recipients
+                if total_cargo > 0:
+                    if unique_senders > 0 and unique_recipients > 0:
+                        print(f"   ✅ People stats logical: {unique_senders} senders, {unique_recipients} recipients for {total_cargo} cargo")
+                    else:
+                        print(f"   ⚠️  People stats questionable: {unique_senders} senders, {unique_recipients} recipients for {total_cargo} cargo")
+            else:
+                print("   ❌ People stats are negative")
+                all_values_valid = False
+            
+            # Financial stats checks
+            debtors_count = financial_stats.get('debtors_count', 0)
+            total_debt_amount = financial_stats.get('total_debt_amount', 0)
+            
+            if debtors_count >= 0 and total_debt_amount >= 0:
+                print("   ✅ Financial stats are non-negative")
+                
+                if debtors_count <= total_cargo:
+                    print(f"   ✅ Debtors count logical: {debtors_count} ≤ {total_cargo} total cargo")
+                else:
+                    print(f"   ❌ Debtors count illogical: {debtors_count} > {total_cargo} total cargo")
+                    all_values_valid = False
+            else:
+                print("   ❌ Financial stats are negative")
+                all_values_valid = False
+            
+            # Transport stats checks
+            total_transports = transport_stats.get('total_transports', 0)
+            moscow_to_tajikistan = transport_stats.get('moscow_to_tajikistan', 0)
+            tajikistan_to_moscow = transport_stats.get('tajikistan_to_moscow', 0)
+            active_transports = transport_stats.get('active_transports', 0)
+            
+            if all(x >= 0 for x in [total_transports, moscow_to_tajikistan, tajikistan_to_moscow, active_transports]):
+                print("   ✅ Transport stats are non-negative")
+                
+                route_total = moscow_to_tajikistan + tajikistan_to_moscow
+                if route_total <= total_transports:
+                    print(f"   ✅ Transport routes logical: {moscow_to_tajikistan} + {tajikistan_to_moscow} = {route_total} ≤ {total_transports} total")
+                else:
+                    print(f"   ⚠️  Transport routes exceed total: {route_total} > {total_transports}")
+                
+                if active_transports <= total_transports:
+                    print(f"   ✅ Active transports logical: {active_transports} ≤ {total_transports} total")
+                else:
+                    print(f"   ❌ Active transports illogical: {active_transports} > {total_transports} total")
+                    all_values_valid = False
+            else:
+                print("   ❌ Some transport stats are negative")
+                all_values_valid = False
+            
+            if all_values_valid:
+                print("   ✅ All numerical values are logical and consistent")
+            else:
+                print("   ❌ Some numerical values are illogical or inconsistent")
+                all_success = False
+        
+        # Test 4: ОБРАБОТКА ОШИБОК ПРИ НЕДОСТУПНОСТИ ДАННЫХ
+        print("\n   🔧 Test 4: ERROR HANDLING VERIFICATION...")
+        
+        # Test with invalid/expired token
+        print("\n   🚫 Test 4.1: Invalid Token Handling...")
+        
+        success, _ = self.run_test(
+            "Analytics with Invalid Token",
+            "GET",
+            "/api/admin/dashboard/analytics",
+            401,  # Should return 401 Unauthorized
+            token="invalid_token_12345"
+        )
+        
+        if success:
+            print("   ✅ Invalid token properly handled with 401 error")
+        else:
+            print("   ❌ Invalid token handling not working correctly")
+            all_success = False
+        
+        # Test without token
+        print("\n   🚫 Test 4.2: No Token Handling...")
+        
+        success, _ = self.run_test(
+            "Analytics without Token",
+            "GET",
+            "/api/admin/dashboard/analytics",
+            401,  # Should return 401 Unauthorized
+            token=None
+        )
+        
+        if success:
+            print("   ✅ Missing token properly handled with 401 error")
+        else:
+            print("   ❌ Missing token handling not working correctly")
+            all_success = False
+        
+        # Summary
+        print("\n   📊 ADMIN DASHBOARD ANALYTICS ENDPOINT SUMMARY:")
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Admin dashboard analytics endpoint working perfectly!")
+            print("   ✅ Admin-only access control working")
+            print("   ✅ Regular user and operator access properly denied")
+            print("   ✅ Response structure complete with all required sections:")
+            print("     - basic_stats: total_warehouses, total_users, total_admins, total_operators, total_regular_users")
+            print("     - cargo_stats: total_cargo, total_weight_kg, total_sum_rub, awaiting_recipient")
+            print("     - people_stats: unique_senders, unique_recipients")
+            print("     - financial_stats: debtors_count, total_debt_amount")
+            print("     - requests_stats: new_requests")
+            print("     - transport_stats: total_transports, moscow_to_tajikistan, tajikistan_to_moscow, active_transports")
+            print("   ✅ Numerical values are logical and consistent")
+            print("   ✅ Error handling working for invalid/missing tokens")
+        else:
+            print("   ❌ SOME TESTS FAILED - Admin dashboard analytics endpoint needs attention")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
     def test_enhanced_cargo_acceptance_system(self):
         """Test КОМПЛЕКСНЫЕ УЛУЧШЕНИЯ формы приема груза в TAJLINE.TJ"""
         print("\n🎯 ENHANCED CARGO ACCEPTANCE SYSTEM TESTING")
