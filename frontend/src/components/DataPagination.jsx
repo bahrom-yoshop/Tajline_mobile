@@ -151,7 +151,7 @@ const DataPagination = ({
           <div className="flex items-center space-x-1">
             {getPageNumbers().map((pageNum, index) => (
               <Button
-                key={index}
+                key={`page-${pageNum}-${index}`}
                 variant={pageNum === page ? "default" : "outline"}
                 size="sm"
                 onClick={() => typeof pageNum === 'number' && onPageChange(pageNum)}
