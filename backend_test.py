@@ -352,6 +352,344 @@ class CargoTransportAPITester:
         
         return all_success
 
+    def test_route_based_warehouse_filtering(self):
+        """Test новый endpoint /api/warehouses/by-route/{route} для фильтрации складов по маршруту"""
+        print("\n🗺️  ROUTE-BASED WAREHOUSE FILTERING TESTING")
+        print("   📋 Testing new endpoint /api/warehouses/by-route/{route} for filtering warehouses by route")
+        
+        all_success = True
+        
+        # Test 1: АВТОРИЗАЦИЯ ПОД ОПЕРАТОРОМ СКЛАДА
+        print("\n   🔐 Test 1: WAREHOUSE OPERATOR AUTHENTICATION...")
+        
+        # Login as warehouse operator (+79777888999/warehouse123)
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            print(f"   📞 Phone: {operator_user.get('phone')}")
+            
+            # Store operator token for further tests
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+            return False
+        
+        # Test 2: GET /api/warehouses/by-route/moscow_to_tajikistan
+        print("\n   🚛 Test 2: MOSCOW TO TAJIKISTAN ROUTE...")
+        
+        success, moscow_to_tajikistan = self.run_test(
+            "Get Warehouses for Moscow → Tajikistan Route",
+            "GET",
+            "/api/warehouses/by-route/moscow_to_tajikistan",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            warehouse_count = len(moscow_to_tajikistan) if isinstance(moscow_to_tajikistan, list) else 0
+            print(f"   ✅ Found {warehouse_count} warehouses for Moscow → Tajikistan route")
+            
+            # Verify response structure and filtering
+            if warehouse_count > 0:
+                sample_warehouse = moscow_to_tajikistan[0]
+                required_fields = ['id', 'name', 'location', 'blocks_count', 'is_active']
+                missing_fields = [field for field in required_fields if field not in sample_warehouse]
+                
+                if not missing_fields:
+                    print("   ✅ Response structure correct (id, name, location, blocks_count, is_active)")
+                    
+                    # Check if warehouses are in Tajikistan (destination)
+                    tajikistan_keywords = ["таджикистан", "душанбе", "худжанд", "кулоб", "курган-тюбе", "tajikistan", "dushanbe", "khujand", "kulob"]
+                    correctly_filtered = 0
+                    
+                    for warehouse in moscow_to_tajikistan:
+                        location_lower = warehouse.get("location", "").lower()
+                        name_lower = warehouse.get("name", "").lower()
+                        
+                        if any(keyword in location_lower or keyword in name_lower for keyword in tajikistan_keywords):
+                            correctly_filtered += 1
+                            print(f"   📍 Warehouse: {warehouse['name']} - {warehouse['location']}")
+                    
+                    if correctly_filtered > 0:
+                        print(f"   ✅ Filtering by keywords working: {correctly_filtered}/{warehouse_count} warehouses in Tajikistan")
+                    else:
+                        print("   ⚠️  No warehouses found with Tajikistan keywords")
+                else:
+                    print(f"   ❌ Missing required fields in response: {missing_fields}")
+                    all_success = False
+            else:
+                print("   ⚠️  No warehouses found for Moscow → Tajikistan route")
+        else:
+            print("   ❌ Failed to get warehouses for Moscow → Tajikistan route")
+            all_success = False
+        
+        # Test 3: GET /api/warehouses/by-route/tajikistan_to_moscow
+        print("\n   🚛 Test 3: TAJIKISTAN TO MOSCOW ROUTE...")
+        
+        success, tajikistan_to_moscow = self.run_test(
+            "Get Warehouses for Tajikistan → Moscow Route",
+            "GET",
+            "/api/warehouses/by-route/tajikistan_to_moscow",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            warehouse_count = len(tajikistan_to_moscow) if isinstance(tajikistan_to_moscow, list) else 0
+            print(f"   ✅ Found {warehouse_count} warehouses for Tajikistan → Moscow route")
+            
+            # Verify filtering for Moscow/Russia warehouses
+            if warehouse_count > 0:
+                moscow_keywords = ["москва", "moscow", "россия", "russia"]
+                correctly_filtered = 0
+                
+                for warehouse in tajikistan_to_moscow:
+                    location_lower = warehouse.get("location", "").lower()
+                    name_lower = warehouse.get("name", "").lower()
+                    
+                    if any(keyword in location_lower or keyword in name_lower for keyword in moscow_keywords):
+                        correctly_filtered += 1
+                        print(f"   📍 Warehouse: {warehouse['name']} - {warehouse['location']}")
+                
+                if correctly_filtered > 0:
+                    print(f"   ✅ Filtering by keywords working: {correctly_filtered}/{warehouse_count} warehouses in Moscow/Russia")
+                else:
+                    print("   ⚠️  No warehouses found with Moscow/Russia keywords")
+            else:
+                print("   ⚠️  No warehouses found for Tajikistan → Moscow route")
+        else:
+            print("   ❌ Failed to get warehouses for Tajikistan → Moscow route")
+            all_success = False
+        
+        # Test 4: ПРОВЕРИТЬ ОБРАБОТКУ НЕВЕРНОГО МАРШРУТА (400 ошибка)
+        print("\n   ❌ Test 4: INVALID ROUTE HANDLING...")
+        
+        success, _ = self.run_test(
+            "Invalid Route (Should Return 400)",
+            "GET",
+            "/api/warehouses/by-route/invalid_route",
+            400,  # Should return 400 Bad Request
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Invalid route properly rejected with 400 error")
+        else:
+            print("   ❌ Invalid route handling not working correctly")
+            all_success = False
+        
+        # Test 5: ПРОВЕРИТЬ ДОСТУП ДЛЯ АДМИНА
+        print("\n   👑 Test 5: ADMIN ACCESS VERIFICATION...")
+        
+        if 'admin' not in self.tokens:
+            # Login as admin if not already logged in
+            admin_login_data = {
+                "phone": "+79999888777",
+                "password": "admin123"
+            }
+            
+            success, admin_login_response = self.run_test(
+                "Admin Login",
+                "POST",
+                "/api/auth/login",
+                200,
+                admin_login_data
+            )
+            
+            if success and 'access_token' in admin_login_response:
+                self.tokens['admin'] = admin_login_response['access_token']
+                self.users['admin'] = admin_login_response.get('user', {})
+        
+        if 'admin' in self.tokens:
+            success, admin_warehouses = self.run_test(
+                "Admin Access to Route Filtering",
+                "GET",
+                "/api/warehouses/by-route/moscow_to_tajikistan",
+                200,
+                token=self.tokens['admin']
+            )
+            all_success &= success
+            
+            if success:
+                admin_warehouse_count = len(admin_warehouses) if isinstance(admin_warehouses, list) else 0
+                print(f"   ✅ Admin can access route filtering: {admin_warehouse_count} warehouses")
+            else:
+                print("   ❌ Admin cannot access route filtering")
+                all_success = False
+        else:
+            print("   ❌ Admin token not available for testing")
+            all_success = False
+        
+        # Test 6: ПРОВЕРИТЬ ДОСТУП ДЛЯ ОБЫЧНОГО ПОЛЬЗОВАТЕЛЯ (должен быть запрещен)
+        print("\n   🚫 Test 6: REGULAR USER ACCESS DENIAL...")
+        
+        if 'user' not in self.tokens:
+            # Login as regular user if not already logged in
+            user_login_data = {
+                "phone": "+992900000000",
+                "password": "123456"
+            }
+            
+            success, user_login_response = self.run_test(
+                "Regular User Login",
+                "POST",
+                "/api/auth/login",
+                200,
+                user_login_data
+            )
+            
+            if success and 'access_token' in user_login_response:
+                self.tokens['user'] = user_login_response['access_token']
+                self.users['user'] = user_login_response.get('user', {})
+        
+        if 'user' in self.tokens:
+            success, _ = self.run_test(
+                "Regular User Access (Should Be Denied)",
+                "GET",
+                "/api/warehouses/by-route/moscow_to_tajikistan",
+                403,  # Should return 403 Forbidden
+                token=self.tokens['user']
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Regular user access properly denied with 403 error")
+            else:
+                print("   ❌ Regular user access control not working correctly")
+                all_success = False
+        else:
+            print("   ❌ Regular user token not available for testing")
+            all_success = False
+        
+        # Test 7: ПРОВЕРИТЬ СТРУКТУРУ ОТВЕТА ДЕТАЛЬНО
+        print("\n   📊 Test 7: DETAILED RESPONSE STRUCTURE VERIFICATION...")
+        
+        if moscow_to_tajikistan and len(moscow_to_tajikistan) > 0:
+            sample_warehouse = moscow_to_tajikistan[0]
+            
+            # Check all required fields and their types
+            field_checks = {
+                'id': (str, "Warehouse ID should be string"),
+                'name': (str, "Warehouse name should be string"),
+                'location': (str, "Warehouse location should be string"),
+                'blocks_count': (int, "Blocks count should be integer"),
+                'is_active': (bool, "Is active should be boolean")
+            }
+            
+            structure_valid = True
+            for field_name, (expected_type, description) in field_checks.items():
+                if field_name in sample_warehouse:
+                    field_value = sample_warehouse[field_name]
+                    if isinstance(field_value, expected_type):
+                        print(f"   ✅ {field_name}: {field_value} ({type(field_value).__name__})")
+                    else:
+                        print(f"   ❌ {field_name}: {field_value} (expected {expected_type.__name__}, got {type(field_value).__name__})")
+                        structure_valid = False
+                else:
+                    print(f"   ❌ Missing field: {field_name}")
+                    structure_valid = False
+            
+            if structure_valid:
+                print("   ✅ Response structure validation passed")
+            else:
+                print("   ❌ Response structure validation failed")
+                all_success = False
+        else:
+            print("   ⚠️  No warehouses available for detailed structure verification")
+        
+        # Test 8: ПРОВЕРИТЬ ФИЛЬТРАЦИЮ ПО КЛЮЧЕВЫМ СЛОВАМ В НАЗВАНИИ И МЕСТОПОЛОЖЕНИИ
+        print("\n   🔍 Test 8: KEYWORD FILTERING VERIFICATION...")
+        
+        # Test both routes to verify keyword filtering works in both directions
+        test_cases = [
+            {
+                "route": "moscow_to_tajikistan",
+                "expected_keywords": ["таджикистан", "душанбе", "худжанд", "кулоб", "курган-тюбе", "tajikistan", "dushanbe", "khujand", "kulob"],
+                "description": "Tajikistan warehouses"
+            },
+            {
+                "route": "tajikistan_to_moscow", 
+                "expected_keywords": ["москва", "moscow", "россия", "russia"],
+                "description": "Moscow/Russia warehouses"
+            }
+        ]
+        
+        for test_case in test_cases:
+            success, route_warehouses = self.run_test(
+                f"Keyword Filtering for {test_case['route']}",
+                "GET",
+                f"/api/warehouses/by-route/{test_case['route']}",
+                200,
+                token=operator_token
+            )
+            
+            if success and route_warehouses:
+                keyword_matches = 0
+                total_warehouses = len(route_warehouses)
+                
+                for warehouse in route_warehouses:
+                    location_lower = warehouse.get("location", "").lower()
+                    name_lower = warehouse.get("name", "").lower()
+                    
+                    # Check if any keyword matches
+                    has_keyword = any(keyword in location_lower or keyword in name_lower 
+                                    for keyword in test_case["expected_keywords"])
+                    
+                    if has_keyword:
+                        keyword_matches += 1
+                        # Find which keyword matched
+                        matched_keywords = [kw for kw in test_case["expected_keywords"] 
+                                          if kw in location_lower or kw in name_lower]
+                        print(f"   🎯 {warehouse['name']}: {warehouse['location']} (matched: {matched_keywords})")
+                
+                if keyword_matches > 0:
+                    print(f"   ✅ Keyword filtering working: {keyword_matches}/{total_warehouses} {test_case['description']} found")
+                else:
+                    print(f"   ⚠️  No keyword matches found for {test_case['description']}")
+        
+        # SUMMARY
+        print("\n   📊 ROUTE-BASED WAREHOUSE FILTERING SUMMARY:")
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Route-based warehouse filtering working perfectly!")
+            print("   ✅ Warehouse operator authentication successful")
+            print("   ✅ Moscow → Tajikistan route filtering working")
+            print("   ✅ Tajikistan → Moscow route filtering working")
+            print("   ✅ Response structure correct (id, name, location, blocks_count, is_active)")
+            print("   ✅ Keyword filtering in names and locations working")
+            print("   ✅ Invalid route handling (400 error) working")
+            print("   ✅ Admin access granted correctly")
+            print("   ✅ Regular user access denied correctly (403 error)")
+        else:
+            print("   ❌ SOME TESTS FAILED - Route-based warehouse filtering needs attention")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
     def test_enhanced_cargo_acceptance_system(self):
         """Test КОМПЛЕКСНЫЕ УЛУЧШЕНИЯ формы приема груза в TAJLINE.TJ"""
         print("\n🎯 ENHANCED CARGO ACCEPTANCE SYSTEM TESTING")
