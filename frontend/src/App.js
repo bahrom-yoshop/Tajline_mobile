@@ -3800,7 +3800,12 @@ function App() {
             cargo_name: item.cargo_name,
             weight: parseFloat(item.weight),
             price_per_kg: parseFloat(item.price_per_kg)
-          }))
+          })),
+          // НОВЫЕ ПОЛЯ ОПЛАТЫ
+          warehouse_id: operatorCargoForm.warehouse_id || (operatorWarehouses.length === 1 ? operatorWarehouses[0].id : null),
+          payment_method: operatorCargoForm.payment_method,
+          payment_amount: operatorCargoForm.payment_amount ? parseFloat(operatorCargoForm.payment_amount) : null,
+          debt_due_date: operatorCargoForm.debt_due_date || null
         };
       } else {
         // Старый режим для совместимости
