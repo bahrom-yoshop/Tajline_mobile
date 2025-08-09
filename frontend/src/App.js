@@ -3580,63 +3580,6 @@ function App() {
     }
   };
 
-  // НОВЫЕ ФУНКЦИИ: Управление уведомлениями
-  const fetchNotifications = async () => {
-    try {
-      const data = await apiCall('/api/notifications?status=all&limit=50');
-      setNotifications(data || []);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    }
-  };
-
-  const handleMarkNotificationAsRead = async (notificationId) => {
-    try {
-      await apiCall(`/api/notifications/${notificationId}/status`, 'PUT', { status: 'read' });
-      // Обновляем локальное состояние
-      setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? {...n, status: 'read'} : n)
-      );
-      showAlert('Уведомление отмечено как прочитанное', 'success');
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-      showAlert('Ошибка при обновлении уведомления', 'error');
-    }
-  };
-
-  const handleDeleteNotification = async (notificationId) => {
-    if (window.confirm('Удалить это уведомление?')) {
-      try {
-        await apiCall(`/api/notifications/${notificationId}`, 'DELETE');
-        // Удаляем из локального состояния
-        setNotifications(prev => prev.filter(n => n.id !== notificationId));
-        showAlert('Уведомление удалено', 'success');
-      } catch (error) {
-        console.error('Error deleting notification:', error);
-        showAlert('Ошибка при удалении уведомления', 'error');
-      }
-    }
-  };
-
-  const [notificationDetailsModal, setNotificationDetailsModal] = useState(false);
-  const [selectedNotificationDetails, setSelectedNotificationDetails] = useState(null);
-
-  const handleViewNotificationDetails = async (notificationId) => {
-    try {
-      const data = await apiCall(`/api/notifications/${notificationId}/details`);
-      setSelectedNotificationDetails(data);
-      setNotificationDetailsModal(true);
-      
-      // Обновляем статус в локальном состоянии
-      setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? {...n, status: 'read'} : n)
-      );
-    } catch (error) {
-      console.error('Error fetching notification details:', error);
-      showAlert('Ошибка при загрузке деталей уведомления', 'error');
-    }
-  };
-
   const fetchTransportsList = async () => {
     try {
       const data = await apiCall('/api/transport/list');
