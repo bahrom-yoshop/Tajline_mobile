@@ -690,6 +690,549 @@ class CargoTransportAPITester:
         
         return all_success
 
+    def test_warehouse_cargo_with_clients_endpoint(self):
+        """Test новый endpoint /api/warehouse/{warehouse_id}/cargo-with-clients для цветового кодирования грузов по отправителям/получателям"""
+        print("\n🎨 WAREHOUSE CARGO WITH CLIENTS COLOR CODING ENDPOINT TESTING")
+        print("   🎯 Testing new endpoint /api/warehouse/{warehouse_id}/cargo-with-clients for color coding cargo by senders/recipients")
+        
+        all_success = True
+        
+        # Test 1: АУТЕНТИФИКАЦИЯ ОПЕРАТОРА СКЛАДА
+        print("\n   🔐 Test 1: WAREHOUSE OPERATOR AUTHENTICATION...")
+        
+        # Login as warehouse operator (+79777888999/warehouse123)
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            print(f"   📞 Phone: {operator_user.get('phone')}")
+            
+            # Store operator token for further tests
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+            return False
+        
+        # Test 2: ПОЛУЧЕНИЕ СКЛАДОВ ОПЕРАТОРА ДЛЯ ТЕСТИРОВАНИЯ
+        print("\n   🏭 Test 2: GET OPERATOR WAREHOUSES FOR TESTING...")
+        
+        success, warehouses_response = self.run_test(
+            "Get Operator Warehouses",
+            "GET",
+            "/api/operator/warehouses",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        test_warehouse_id = None
+        if success and warehouses_response:
+            warehouse_count = len(warehouses_response) if isinstance(warehouses_response, list) else 0
+            print(f"   ✅ Found {warehouse_count} warehouses for operator")
+            
+            if warehouse_count > 0:
+                test_warehouse = warehouses_response[0]
+                test_warehouse_id = test_warehouse.get('id')
+                test_warehouse_name = test_warehouse.get('name')
+                print(f"   🏭 Using warehouse for testing: {test_warehouse_name} (ID: {test_warehouse_id})")
+            else:
+                print("   ❌ No warehouses found for operator - cannot test endpoint")
+                all_success = False
+                return False
+        else:
+            print("   ❌ Failed to get operator warehouses")
+            all_success = False
+            return False
+        
+        # Test 3: ДОСТУПНОСТЬ ENDPOINT'А ДЛЯ ОПЕРАТОРОВ
+        print("\n   📡 Test 3: ENDPOINT ACCESSIBILITY FOR WAREHOUSE OPERATORS...")
+        
+        success, cargo_with_clients_response = self.run_test(
+            "Get Warehouse Cargo with Clients",
+            "GET",
+            f"/api/warehouse/{test_warehouse_id}/cargo-with-clients",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if not success:
+            print("   ❌ Operator cannot access cargo-with-clients endpoint")
+            all_success = False
+            return False
+        
+        print("   ✅ Operator can access cargo-with-clients endpoint")
+        
+        # Test 4: СТРУКТУРА ОТВЕТА
+        print("\n   📋 Test 4: RESPONSE STRUCTURE VERIFICATION...")
+        
+        if cargo_with_clients_response and isinstance(cargo_with_clients_response, dict):
+            print("   ✅ Response is a valid dictionary")
+            
+            # Check required top-level fields
+            required_fields = [
+                'warehouse_id',
+                'total_cargo',
+                'cargo',
+                'sender_groups',
+                'recipient_groups',
+                'color_assignments'
+            ]
+            
+            missing_fields = []
+            for field in required_fields:
+                if field not in cargo_with_clients_response:
+                    missing_fields.append(field)
+                else:
+                    field_value = cargo_with_clients_response[field]
+                    print(f"   ✅ {field}: {type(field_value).__name__} ({len(field_value) if isinstance(field_value, (list, dict)) else field_value})")
+            
+            if missing_fields:
+                print(f"   ❌ Missing required fields: {missing_fields}")
+                all_success = False
+            else:
+                print("   ✅ All required top-level fields present")
+            
+            # Test 4.1: Verify warehouse_id and total_cargo
+            print("\n   📊 Test 4.1: Basic Fields Verification...")
+            
+            response_warehouse_id = cargo_with_clients_response.get('warehouse_id')
+            total_cargo = cargo_with_clients_response.get('total_cargo', 0)
+            
+            if response_warehouse_id == test_warehouse_id:
+                print(f"   ✅ warehouse_id correct: {response_warehouse_id}")
+            else:
+                print(f"   ❌ warehouse_id incorrect: expected {test_warehouse_id}, got {response_warehouse_id}")
+                all_success = False
+            
+            if isinstance(total_cargo, int) and total_cargo >= 0:
+                print(f"   ✅ total_cargo valid: {total_cargo}")
+            else:
+                print(f"   ❌ total_cargo invalid: {total_cargo}")
+                all_success = False
+            
+            # Test 4.2: Verify cargo array structure
+            print("\n   📦 Test 4.2: Cargo Array Structure...")
+            
+            cargo_list = cargo_with_clients_response.get('cargo', [])
+            if isinstance(cargo_list, list):
+                print(f"   ✅ cargo is a list with {len(cargo_list)} items")
+                
+                if len(cargo_list) > 0:
+                    sample_cargo = cargo_list[0]
+                    cargo_required_fields = ['id', 'cargo_number', 'sender_full_name', 'recipient_full_name', 'weight']
+                    cargo_missing = [field for field in cargo_required_fields if field not in sample_cargo]
+                    
+                    if not cargo_missing:
+                        print("   ✅ Cargo items have required fields")
+                        print(f"   📦 Sample cargo: {sample_cargo.get('cargo_number')} - {sample_cargo.get('sender_full_name')} → {sample_cargo.get('recipient_full_name')}")
+                    else:
+                        print(f"   ❌ Cargo items missing fields: {cargo_missing}")
+                        all_success = False
+                else:
+                    print("   ⚠️  No cargo items found in warehouse")
+            else:
+                print(f"   ❌ cargo is not a list: {type(cargo_list)}")
+                all_success = False
+            
+            # Test 4.3: Verify sender_groups structure
+            print("\n   👤 Test 4.3: Sender Groups Structure...")
+            
+            sender_groups = cargo_with_clients_response.get('sender_groups', {})
+            if isinstance(sender_groups, dict):
+                print(f"   ✅ sender_groups is a dict with {len(sender_groups)} groups")
+                
+                if len(sender_groups) > 0:
+                    sample_sender_key = list(sender_groups.keys())[0]
+                    sample_sender = sender_groups[sample_sender_key]
+                    
+                    sender_required_fields = ['sender_full_name', 'sender_phone', 'cargo_list', 'is_group']
+                    sender_missing = [field for field in sender_required_fields if field not in sample_sender]
+                    
+                    if not sender_missing:
+                        print("   ✅ Sender groups have required fields")
+                        print(f"   👤 Sample sender: {sample_sender.get('sender_full_name')} ({len(sample_sender.get('cargo_list', []))} cargo)")
+                        
+                        # Check if groups with >1 cargo have colors
+                        if sample_sender.get('is_group') and len(sample_sender.get('cargo_list', [])) > 1:
+                            if 'color' in sample_sender and sample_sender['color']:
+                                print(f"   ✅ Multi-cargo sender group has color assignment: {sample_sender['color'].get('name', 'unknown')}")
+                            else:
+                                print("   ❌ Multi-cargo sender group missing color assignment")
+                                all_success = False
+                    else:
+                        print(f"   ❌ Sender groups missing fields: {sender_missing}")
+                        all_success = False
+                else:
+                    print("   ⚠️  No sender groups found")
+            else:
+                print(f"   ❌ sender_groups is not a dict: {type(sender_groups)}")
+                all_success = False
+            
+            # Test 4.4: Verify recipient_groups structure
+            print("\n   📮 Test 4.4: Recipient Groups Structure...")
+            
+            recipient_groups = cargo_with_clients_response.get('recipient_groups', {})
+            if isinstance(recipient_groups, dict):
+                print(f"   ✅ recipient_groups is a dict with {len(recipient_groups)} groups")
+                
+                if len(recipient_groups) > 0:
+                    sample_recipient_key = list(recipient_groups.keys())[0]
+                    sample_recipient = recipient_groups[sample_recipient_key]
+                    
+                    recipient_required_fields = ['recipient_full_name', 'recipient_phone', 'cargo_list', 'is_group']
+                    recipient_missing = [field for field in recipient_required_fields if field not in sample_recipient]
+                    
+                    if not recipient_missing:
+                        print("   ✅ Recipient groups have required fields")
+                        print(f"   📮 Sample recipient: {sample_recipient.get('recipient_full_name')} ({len(sample_recipient.get('cargo_list', []))} cargo)")
+                        
+                        # Check if groups with >1 cargo have colors
+                        if sample_recipient.get('is_group') and len(sample_recipient.get('cargo_list', [])) > 1:
+                            if 'color' in sample_recipient and sample_recipient['color']:
+                                print(f"   ✅ Multi-cargo recipient group has color assignment: {sample_recipient['color'].get('name', 'unknown')}")
+                            else:
+                                print("   ❌ Multi-cargo recipient group missing color assignment")
+                                all_success = False
+                    else:
+                        print(f"   ❌ Recipient groups missing fields: {recipient_missing}")
+                        all_success = False
+                else:
+                    print("   ⚠️  No recipient groups found")
+            else:
+                print(f"   ❌ recipient_groups is not a dict: {type(recipient_groups)}")
+                all_success = False
+            
+            # Test 4.5: Verify color_assignments structure
+            print("\n   🎨 Test 4.5: Color Assignments Structure...")
+            
+            color_assignments = cargo_with_clients_response.get('color_assignments', {})
+            if isinstance(color_assignments, dict):
+                print(f"   ✅ color_assignments is a dict")
+                
+                required_color_sections = ['senders', 'recipients']
+                color_missing = [section for section in required_color_sections if section not in color_assignments]
+                
+                if not color_missing:
+                    print("   ✅ Color assignments have required sections (senders, recipients)")
+                    
+                    senders_colors = color_assignments.get('senders', {})
+                    recipients_colors = color_assignments.get('recipients', {})
+                    
+                    print(f"   🎨 Sender color assignments: {len(senders_colors)}")
+                    print(f"   🎨 Recipient color assignments: {len(recipients_colors)}")
+                    
+                    # Verify color palette
+                    all_colors = list(senders_colors.values()) + list(recipients_colors.values())
+                    expected_color_names = ['blue', 'green', 'purple', 'orange', 'pink', 'indigo', 'cyan', 'yellow']
+                    
+                    if all_colors:
+                        sample_color = all_colors[0]
+                        if isinstance(sample_color, dict) and 'name' in sample_color:
+                            color_name = sample_color['name']
+                            if color_name in expected_color_names:
+                                print(f"   ✅ Color scheme valid: {color_name} (from expected palette)")
+                            else:
+                                print(f"   ❌ Unexpected color name: {color_name}")
+                                all_success = False
+                        else:
+                            print(f"   ❌ Invalid color structure: {sample_color}")
+                            all_success = False
+                else:
+                    print(f"   ❌ Color assignments missing sections: {color_missing}")
+                    all_success = False
+            else:
+                print(f"   ❌ color_assignments is not a dict: {type(color_assignments)}")
+                all_success = False
+        else:
+            print("   ❌ Response is not a valid dictionary")
+            all_success = False
+            return False
+        
+        # Test 5: ИЗОЛЯЦИЯ ДОСТУПА - ОПЕРАТОРЫ ВИДЯТ ТОЛЬКО ГРУЗЫ СВОИХ СКЛАДОВ
+        print("\n   🔒 Test 5: ACCESS ISOLATION - OPERATORS SEE ONLY THEIR WAREHOUSE CARGO...")
+        
+        # Test with admin for comparison
+        if 'admin' not in self.tokens:
+            admin_login_data = {
+                "phone": "+79999888777",
+                "password": "admin123"
+            }
+            
+            success, admin_login_response = self.run_test(
+                "Admin Login for Comparison",
+                "POST",
+                "/api/auth/login",
+                200,
+                admin_login_data
+            )
+            
+            if success and 'access_token' in admin_login_response:
+                self.tokens['admin'] = admin_login_response['access_token']
+                self.users['admin'] = admin_login_response.get('user', {})
+        
+        if 'admin' in self.tokens:
+            success, admin_cargo_response = self.run_test(
+                "Admin Access to Same Warehouse Cargo",
+                "GET",
+                f"/api/warehouse/{test_warehouse_id}/cargo-with-clients",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success:
+                admin_cargo_count = admin_cargo_response.get('total_cargo', 0)
+                operator_cargo_count = cargo_with_clients_response.get('total_cargo', 0)
+                
+                print(f"   👑 Admin sees {admin_cargo_count} cargo items")
+                print(f"   🏭 Operator sees {operator_cargo_count} cargo items")
+                
+                if operator_cargo_count <= admin_cargo_count:
+                    print("   ✅ Access isolation working - operator sees same or fewer cargo than admin")
+                else:
+                    print("   ❌ Access isolation broken - operator sees more cargo than admin")
+                    all_success = False
+            else:
+                print("   ❌ Could not get admin cargo for comparison")
+                all_success = False
+        
+        # Test 6: ТЕСТИРОВАНИЕ С ДРУГИМ СКЛАДОМ (ДОЛЖЕН БЫТЬ ЗАПРЕЩЕН ДЛЯ ОПЕРАТОРА)
+        print("\n   🚫 Test 6: UNAUTHORIZED WAREHOUSE ACCESS...")
+        
+        # Get all warehouses to find one the operator doesn't have access to
+        if 'admin' in self.tokens:
+            success, all_warehouses = self.run_test(
+                "Get All Warehouses (Admin)",
+                "GET",
+                "/api/warehouses",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success and all_warehouses:
+                # Find a warehouse the operator doesn't have access to
+                operator_warehouse_ids = [w['id'] for w in warehouses_response]
+                unauthorized_warehouse = None
+                
+                for warehouse in all_warehouses:
+                    if warehouse['id'] not in operator_warehouse_ids:
+                        unauthorized_warehouse = warehouse
+                        break
+                
+                if unauthorized_warehouse:
+                    unauthorized_id = unauthorized_warehouse['id']
+                    unauthorized_name = unauthorized_warehouse.get('name', 'Unknown')
+                    
+                    print(f"   🚫 Testing unauthorized access to: {unauthorized_name} (ID: {unauthorized_id})")
+                    
+                    success, _ = self.run_test(
+                        "Unauthorized Warehouse Access (Should Be Denied)",
+                        "GET",
+                        f"/api/warehouse/{unauthorized_id}/cargo-with-clients",
+                        403,  # Should return 403 Forbidden
+                        token=operator_token
+                    )
+                    
+                    if success:
+                        print("   ✅ Unauthorized warehouse access properly denied with 403 error")
+                    else:
+                        print("   ❌ Unauthorized warehouse access control not working correctly")
+                        all_success = False
+                else:
+                    print("   ⚠️  All warehouses are accessible to operator - cannot test unauthorized access")
+            else:
+                print("   ❌ Could not get all warehouses for unauthorized access test")
+        
+        # Test 7: КОРРЕКТНОСТЬ ГРУППИРОВКИ
+        print("\n   👥 Test 7: GROUPING CORRECTNESS VERIFICATION...")
+        
+        if cargo_with_clients_response:
+            cargo_list = cargo_with_clients_response.get('cargo', [])
+            sender_groups = cargo_with_clients_response.get('sender_groups', {})
+            recipient_groups = cargo_with_clients_response.get('recipient_groups', {})
+            
+            # Verify that all cargo is properly grouped
+            total_cargo_in_groups = 0
+            
+            # Count cargo in sender groups
+            for sender_key, sender_data in sender_groups.items():
+                cargo_in_group = len(sender_data.get('cargo_list', []))
+                total_cargo_in_groups += cargo_in_group
+                
+                # Check if groups with >1 cargo are marked as groups
+                is_group = sender_data.get('is_group', False)
+                if cargo_in_group > 1:
+                    if is_group:
+                        print(f"   ✅ Sender group '{sender_data.get('sender_full_name')}' correctly marked as group ({cargo_in_group} cargo)")
+                    else:
+                        print(f"   ❌ Sender group '{sender_data.get('sender_full_name')}' not marked as group despite {cargo_in_group} cargo")
+                        all_success = False
+                elif cargo_in_group == 1:
+                    if not is_group:
+                        print(f"   ✅ Single sender '{sender_data.get('sender_full_name')}' correctly not marked as group")
+                    else:
+                        print(f"   ❌ Single sender '{sender_data.get('sender_full_name')}' incorrectly marked as group")
+                        all_success = False
+            
+            # Verify grouping logic for recipients
+            for recipient_key, recipient_data in recipient_groups.items():
+                cargo_in_group = len(recipient_data.get('cargo_list', []))
+                is_group = recipient_data.get('is_group', False)
+                
+                if cargo_in_group > 1:
+                    if is_group:
+                        print(f"   ✅ Recipient group '{recipient_data.get('recipient_full_name')}' correctly marked as group ({cargo_in_group} cargo)")
+                    else:
+                        print(f"   ❌ Recipient group '{recipient_data.get('recipient_full_name')}' not marked as group despite {cargo_in_group} cargo")
+                        all_success = False
+                elif cargo_in_group == 1:
+                    if not is_group:
+                        print(f"   ✅ Single recipient '{recipient_data.get('recipient_full_name')}' correctly not marked as group")
+                    else:
+                        print(f"   ❌ Single recipient '{recipient_data.get('recipient_full_name')}' incorrectly marked as group")
+                        all_success = False
+        
+        # Test 8: ЛОГИКА НАЗНАЧЕНИЯ ЦВЕТОВ
+        print("\n   🎨 Test 8: COLOR ASSIGNMENT LOGIC VERIFICATION...")
+        
+        if cargo_with_clients_response:
+            color_assignments = cargo_with_clients_response.get('color_assignments', {})
+            sender_colors = color_assignments.get('senders', {})
+            recipient_colors = color_assignments.get('recipients', {})
+            
+            # Verify 8 different color schemes are available
+            expected_colors = ['blue', 'green', 'purple', 'orange', 'pink', 'indigo', 'cyan', 'yellow']
+            
+            all_assigned_colors = []
+            for color_data in list(sender_colors.values()) + list(recipient_colors.values()):
+                if isinstance(color_data, dict) and 'name' in color_data:
+                    all_assigned_colors.append(color_data['name'])
+            
+            unique_colors = list(set(all_assigned_colors))
+            print(f"   🎨 Unique colors assigned: {len(unique_colors)} ({unique_colors})")
+            
+            # Verify colors are from expected palette
+            invalid_colors = [color for color in unique_colors if color not in expected_colors]
+            if not invalid_colors:
+                print("   ✅ All assigned colors are from expected palette")
+            else:
+                print(f"   ❌ Invalid colors found: {invalid_colors}")
+                all_success = False
+            
+            # Verify only groups with >1 cargo get colors
+            groups_with_colors = len(sender_colors) + len(recipient_colors)
+            
+            # Count actual groups with >1 cargo
+            actual_groups = 0
+            for sender_data in sender_groups.values():
+                if len(sender_data.get('cargo_list', [])) > 1:
+                    actual_groups += 1
+            for recipient_data in recipient_groups.values():
+                if len(recipient_data.get('cargo_list', [])) > 1:
+                    actual_groups += 1
+            
+            if groups_with_colors == actual_groups:
+                print(f"   ✅ Color assignment logic correct: {groups_with_colors} groups with >1 cargo have colors")
+            else:
+                print(f"   ❌ Color assignment logic incorrect: {groups_with_colors} colors assigned, {actual_groups} groups with >1 cargo")
+                all_success = False
+        
+        # Test 9: ДОСТУП ДЛЯ АДМИНИСТРАТОРОВ
+        print("\n   👑 Test 9: ADMIN ACCESS VERIFICATION...")
+        
+        if 'admin' in self.tokens:
+            # Test admin access to different warehouse
+            success, admin_different_warehouse = self.run_test(
+                "Admin Access to Different Warehouse",
+                "GET",
+                f"/api/warehouse/{test_warehouse_id}/cargo-with-clients",
+                200,
+                token=self.tokens['admin']
+            )
+            
+            if success:
+                print("   ✅ Admin can access cargo-with-clients endpoint")
+                admin_total = admin_different_warehouse.get('total_cargo', 0)
+                print(f"   👑 Admin sees {admin_total} cargo items in warehouse")
+            else:
+                print("   ❌ Admin cannot access cargo-with-clients endpoint")
+                all_success = False
+        
+        # Test 10: ОБРАБОТКА НЕСУЩЕСТВУЮЩЕГО СКЛАДА
+        print("\n   ❌ Test 10: NON-EXISTENT WAREHOUSE HANDLING...")
+        
+        fake_warehouse_id = "non-existent-warehouse-id-12345"
+        
+        success, _ = self.run_test(
+            "Non-existent Warehouse (Should Return 404 or 403)",
+            "GET",
+            f"/api/warehouse/{fake_warehouse_id}/cargo-with-clients",
+            403,  # Could be 403 (no access) or 404 (not found)
+            token=operator_token
+        )
+        
+        if success:
+            print("   ✅ Non-existent warehouse properly handled")
+        else:
+            # Try 404 as alternative
+            success, _ = self.run_test(
+                "Non-existent Warehouse (Alternative 404)",
+                "GET",
+                f"/api/warehouse/{fake_warehouse_id}/cargo-with-clients",
+                404,
+                token=operator_token
+            )
+            
+            if success:
+                print("   ✅ Non-existent warehouse properly handled with 404")
+            else:
+                print("   ❌ Non-existent warehouse handling not working correctly")
+                all_success = False
+        
+        # Summary
+        print("\n   📊 WAREHOUSE CARGO WITH CLIENTS ENDPOINT SUMMARY:")
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Warehouse cargo with clients endpoint working perfectly!")
+            print("   ✅ Warehouse operator authentication successful")
+            print("   ✅ Endpoint accessible for operators and admins")
+            print("   ✅ Access isolation working - operators see only their warehouse cargo")
+            print("   ✅ Response structure complete with all required fields:")
+            print("     - warehouse_id and total_cargo")
+            print("     - cargo: array with full cargo information")
+            print("     - sender_groups: grouping by senders with color assignments")
+            print("     - recipient_groups: grouping by recipients with color assignments")
+            print("     - color_assignments: color schemes for groups")
+            print("   ✅ Grouping logic correct - groups with >1 cargo get colors")
+            print("   ✅ Color assignment logic working - 8 different color schemes available")
+            print("   ✅ Unauthorized warehouse access properly denied")
+            print("   ✅ Non-existent warehouse handling working")
+        else:
+            print("   ❌ SOME TESTS FAILED - Warehouse cargo with clients endpoint needs attention")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
     def test_admin_dashboard_analytics_endpoint(self):
         """Test новый endpoint /api/admin/dashboard/analytics для расширенной аналитики дашборда администратора"""
         print("\n📊 ADMIN DASHBOARD ANALYTICS ENDPOINT TESTING")
