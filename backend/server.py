@@ -1681,7 +1681,7 @@ async def get_operator_cargo_list(
     
     # Если это оператор, показываем только грузы с его складов
     if current_user.role == UserRole.WAREHOUSE_OPERATOR:
-        operator_warehouses = get_operator_warehouses(current_user.id)
+        operator_warehouses = get_operator_warehouse_ids(current_user.id)
         if operator_warehouses:
             base_query["warehouse_id"] = {"$in": operator_warehouses}
     
