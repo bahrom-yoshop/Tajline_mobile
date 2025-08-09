@@ -73,6 +73,352 @@ class CargoTransportAPITester:
             print(f"   ❌ FAILED - Exception: {str(e)}")
             return False, {}
 
+    def test_enhanced_cargo_acceptance_system(self):
+        """Test КОМПЛЕКСНЫЕ УЛУЧШЕНИЯ формы приема груза в TAJLINE.TJ"""
+        print("\n🎯 ENHANCED CARGO ACCEPTANCE SYSTEM TESTING")
+        print("   📋 Testing comprehensive improvements to cargo acceptance form with new payment methods and debt management")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # Test 1: ВЫБОР СКЛАДА ОПЕРАТОРОМ
+        print("\n   🏭 Test 1: WAREHOUSE SELECTION BY OPERATOR...")
+        
+        # Test operator warehouses endpoint
+        success, operator_warehouses = self.run_test(
+            "Get Operator Warehouses",
+            "GET",
+            "/api/operator/warehouses",
+            200,
+            token=self.tokens.get('warehouse_operator', self.tokens['admin'])
+        )
+        all_success &= success
+        
+        warehouse_id = None
+        if success:
+            warehouse_count = len(operator_warehouses) if isinstance(operator_warehouses, list) else 0
+            print(f"   ✅ Operator can access {warehouse_count} warehouses")
+            
+            # Verify warehouse structure
+            if warehouse_count > 0:
+                sample_warehouse = operator_warehouses[0]
+                required_fields = ['id', 'name', 'location']
+                missing_fields = [field for field in required_fields if field not in sample_warehouse]
+                
+                if not missing_fields:
+                    print("   ✅ Warehouse data structure complete")
+                    warehouse_id = sample_warehouse['id']
+                    warehouse_name = sample_warehouse['name']
+                    print(f"   🏭 Using warehouse: {warehouse_name} (ID: {warehouse_id})")
+                else:
+                    print(f"   ❌ Missing warehouse fields: {missing_fields}")
+                    all_success = False
+            else:
+                print("   ⚠️  No warehouses available for operator")
+        
+        # Test 2: НОВАЯ СИСТЕМА СПОСОБОВ ОПЛАТЫ
+        print("\n   💳 Test 2: NEW PAYMENT METHODS SYSTEM...")
+        
+        # Test each payment method with corresponding logic
+        payment_test_cases = [
+            {
+                "name": "Not Paid",
+                "payment_method": "not_paid",
+                "expected_processing_status": "payment_pending",
+                "description": "Груз должен попасть в 'Касса' → 'Не оплачено'"
+            },
+            {
+                "name": "Cash Payment",
+                "payment_method": "cash",
+                "payment_amount": 1500.0,
+                "expected_processing_status": "paid",
+                "description": "Груз сразу на 'Размещение'"
+            },
+            {
+                "name": "Card Transfer",
+                "payment_method": "card_transfer",
+                "payment_amount": 2000.0,
+                "expected_processing_status": "paid",
+                "description": "Груз сразу на 'Размещение'"
+            },
+            {
+                "name": "Cash on Delivery",
+                "payment_method": "cash_on_delivery",
+                "expected_processing_status": "paid",
+                "description": "Груз сразу на 'Размещение'"
+            },
+            {
+                "name": "Credit Payment",
+                "payment_method": "credit",
+                "debt_due_date": "2025-07-15",
+                "expected_processing_status": "paid",
+                "description": "Груз сразу на 'Размещение' + создание долга"
+            }
+        ]
+        
+        created_cargo_ids = []
+        
+        for i, test_case in enumerate(payment_test_cases, 1):
+            print(f"\n   💰 Test 2.{i}: {test_case['name']} Payment Method...")
+            
+            # Base cargo data
+            cargo_data = {
+                "sender_full_name": f"Тест Отправитель {i}",
+                "sender_phone": f"+7999888777{i}",
+                "recipient_full_name": f"Тест Получатель {i}",
+                "recipient_phone": f"+992999888777{i}",
+                "recipient_address": f"Душанбе, ул. Тестовая, {i}",
+                "weight": 10.0,
+                "cargo_name": f"Тестовый груз {test_case['name']}",
+                "declared_value": 1000.0,
+                "description": f"Тест {test_case['description']}",
+                "route": "moscow_dushanbe",
+                "payment_method": test_case["payment_method"]
+            }
+            
+            # Add payment-specific fields
+            if "payment_amount" in test_case:
+                cargo_data["payment_amount"] = test_case["payment_amount"]
+            if "debt_due_date" in test_case:
+                cargo_data["debt_due_date"] = test_case["debt_due_date"]
+            if warehouse_id:
+                cargo_data["warehouse_id"] = warehouse_id
+            
+            success, cargo_response = self.run_test(
+                f"Create Cargo with {test_case['name']} Payment",
+                "POST",
+                "/api/operator/cargo/accept",
+                200,
+                cargo_data,
+                self.tokens.get('warehouse_operator', self.tokens['admin'])
+            )
+            all_success &= success
+            
+            if success and 'id' in cargo_response:
+                cargo_id = cargo_response['id']
+                cargo_number = cargo_response.get('cargo_number')
+                processing_status = cargo_response.get('processing_status')
+                payment_method = cargo_response.get('payment_method')
+                
+                created_cargo_ids.append(cargo_id)
+                
+                print(f"   ✅ Cargo created: {cargo_number}")
+                print(f"   💳 Payment method: {payment_method}")
+                print(f"   📊 Processing status: {processing_status}")
+                
+                # Verify processing status logic
+                expected_status = test_case["expected_processing_status"]
+                if processing_status == expected_status:
+                    print(f"   ✅ Processing status correct: {processing_status}")
+                else:
+                    print(f"   ❌ Processing status incorrect: expected {expected_status}, got {processing_status}")
+                    all_success = False
+                
+                # For credit payment, verify debt creation
+                if test_case["payment_method"] == "credit":
+                    print("   🔍 Checking debt creation for credit payment...")
+                    
+                    success, debts_list = self.run_test(
+                        "Get Admin Debts List",
+                        "GET",
+                        "/api/admin/debts",
+                        200,
+                        token=self.tokens['admin']
+                    )
+                    
+                    if success and isinstance(debts_list, list):
+                        # Find debt for this cargo
+                        cargo_debt = None
+                        for debt in debts_list:
+                            if debt.get('cargo_id') == cargo_id:
+                                cargo_debt = debt
+                                break
+                        
+                        if cargo_debt:
+                            print(f"   ✅ Debt created for cargo {cargo_number}")
+                            print(f"   📅 Due date: {cargo_debt.get('due_date')}")
+                            print(f"   💰 Amount: {cargo_debt.get('amount')}")
+                            
+                            # Verify debt data enrichment
+                            if (cargo_debt.get('cargo_number') == cargo_number and
+                                cargo_debt.get('sender_name') and
+                                cargo_debt.get('sender_phone')):
+                                print("   ✅ Debt data enrichment verified")
+                            else:
+                                print("   ❌ Debt data enrichment incomplete")
+                                all_success = False
+                        else:
+                            print(f"   ❌ Debt not found for cargo {cargo_number}")
+                            all_success = False
+                    else:
+                        print("   ❌ Could not retrieve debts list")
+                        all_success = False
+            else:
+                print(f"   ❌ Failed to create cargo with {test_case['name']} payment")
+                all_success = False
+        
+        # Test 3: ЛОГИКА СТАТУСОВ ПО ОПЛАТЕ
+        print("\n   📊 Test 3: PAYMENT STATUS LOGIC VERIFICATION...")
+        
+        # Verify cargo placement availability based on payment status
+        success, available_cargo = self.run_test(
+            "Get Available Cargo for Placement",
+            "GET",
+            "/api/operator/cargo/available-for-placement",
+            200,
+            token=self.tokens.get('warehouse_operator', self.tokens['admin'])
+        )
+        all_success &= success
+        
+        if success:
+            available_count = len(available_cargo.get('items', [])) if 'items' in available_cargo else len(available_cargo) if isinstance(available_cargo, list) else 0
+            print(f"   📦 Found {available_count} cargo items available for placement")
+            
+            # Verify only paid cargo is available for placement
+            if available_count > 0:
+                paid_cargo_count = 0
+                for cargo in (available_cargo.get('items', []) if 'items' in available_cargo else available_cargo):
+                    if cargo.get('processing_status') in ['paid', 'invoice_printed']:
+                        paid_cargo_count += 1
+                
+                if paid_cargo_count == available_count:
+                    print("   ✅ Only paid cargo available for placement")
+                else:
+                    print(f"   ❌ Found unpaid cargo in placement list: {available_count - paid_cargo_count} unpaid items")
+                    all_success = False
+        
+        # Test 4: СИСТЕМА ДОЛГОВ
+        print("\n   💸 Test 4: DEBT MANAGEMENT SYSTEM...")
+        
+        # Test admin debts endpoint
+        success, all_debts = self.run_test(
+            "Get All Debts (Admin)",
+            "GET",
+            "/api/admin/debts",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            debt_count = len(all_debts) if isinstance(all_debts, list) else 0
+            print(f"   📊 Found {debt_count} total debts in system")
+            
+            # Verify debt data structure
+            if debt_count > 0:
+                sample_debt = all_debts[0]
+                required_debt_fields = ['id', 'cargo_id', 'amount', 'due_date', 'status']
+                enrichment_fields = ['cargo_number', 'sender_name', 'sender_phone']
+                
+                missing_required = [field for field in required_debt_fields if field not in sample_debt]
+                missing_enrichment = [field for field in enrichment_fields if field not in sample_debt]
+                
+                if not missing_required:
+                    print("   ✅ Debt data structure complete")
+                else:
+                    print(f"   ❌ Missing required debt fields: {missing_required}")
+                    all_success = False
+                
+                if not missing_enrichment:
+                    print("   ✅ Debt data enrichment complete")
+                else:
+                    print(f"   ⚠️  Missing enrichment fields: {missing_enrichment}")
+        
+        # Test 5: ИЗОЛЯЦИЯ СКЛАДОВ
+        print("\n   🔒 Test 5: WAREHOUSE ISOLATION...")
+        
+        # Test that operators only see cargo from their warehouses
+        if 'warehouse_operator' in self.tokens:
+            success, operator_cargo = self.run_test(
+                "Get Operator Cargo List",
+                "GET",
+                "/api/operator/cargo/list",
+                200,
+                token=self.tokens['warehouse_operator']
+            )
+            all_success &= success
+            
+            if success:
+                operator_cargo_items = operator_cargo.get('items', []) if 'items' in operator_cargo else operator_cargo if isinstance(operator_cargo, list) else []
+                operator_cargo_count = len(operator_cargo_items)
+                print(f"   📦 Operator sees {operator_cargo_count} cargo items")
+                
+                # Verify warehouse isolation
+                if operator_cargo_count > 0:
+                    # Check if all cargo belongs to operator's warehouses
+                    isolated_correctly = True
+                    for cargo in operator_cargo_items:
+                        cargo_warehouse_id = cargo.get('warehouse_id') or cargo.get('target_warehouse_id')
+                        if cargo_warehouse_id and cargo_warehouse_id != warehouse_id:
+                            isolated_correctly = False
+                            break
+                    
+                    if isolated_correctly:
+                        print("   ✅ Warehouse isolation working correctly")
+                    else:
+                        print("   ❌ Warehouse isolation failed - operator sees cargo from other warehouses")
+                        all_success = False
+        
+        # Test 6: АВТОВЫБОР СКЛАДА
+        print("\n   🎯 Test 6: AUTOMATIC WAREHOUSE SELECTION...")
+        
+        # Test cargo creation without explicit warehouse_id (should auto-select)
+        auto_warehouse_cargo_data = {
+            "sender_full_name": "Автовыбор Отправитель",
+            "sender_phone": "+79999999999",
+            "recipient_full_name": "Автовыбор Получатель",
+            "recipient_phone": "+992999999999",
+            "recipient_address": "Душанбе, ул. Автовыбор, 1",
+            "weight": 5.0,
+            "cargo_name": "Тест автовыбора склада",
+            "declared_value": 500.0,
+            "description": "Груз для тестирования автовыбора склада",
+            "route": "moscow_dushanbe",
+            "payment_method": "cash",
+            "payment_amount": 500.0
+            # Не указываем warehouse_id - должен выбраться автоматически
+        }
+        
+        success, auto_cargo_response = self.run_test(
+            "Create Cargo with Auto Warehouse Selection",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            auto_warehouse_cargo_data,
+            self.tokens.get('warehouse_operator', self.tokens['admin'])
+        )
+        all_success &= success
+        
+        if success and 'id' in auto_cargo_response:
+            auto_warehouse_id = auto_cargo_response.get('warehouse_id') or auto_cargo_response.get('target_warehouse_id')
+            cargo_number = auto_cargo_response.get('cargo_number')
+            
+            if auto_warehouse_id:
+                print(f"   ✅ Warehouse auto-selected for cargo {cargo_number}")
+                print(f"   🏭 Auto-selected warehouse ID: {auto_warehouse_id}")
+            else:
+                print(f"   ❌ Warehouse not auto-selected for cargo {cargo_number}")
+                all_success = False
+        
+        # Summary
+        print("\n   📊 ENHANCED CARGO ACCEPTANCE SYSTEM SUMMARY:")
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Enhanced cargo acceptance system working perfectly!")
+            print("   ✅ Warehouse selection by operators functional")
+            print("   ✅ New payment methods system working")
+            print("   ✅ Payment status logic correct (not_paid → payment_pending, others → paid)")
+            print("   ✅ Debt management system functional")
+            print("   ✅ Warehouse isolation working")
+            print("   ✅ Automatic warehouse selection working")
+        else:
+            print("   ❌ SOME TESTS FAILED - Enhanced cargo acceptance system needs attention")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
     def test_health_check(self):
         """Test basic health check"""
         print("\n🏥 HEALTH CHECK")
