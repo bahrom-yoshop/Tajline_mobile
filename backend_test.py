@@ -23045,11 +23045,13 @@ ID склада: {target_warehouse_id}"""
         
         test_results = []
         
-        # Run test suites in order - prioritizing OPERATOR ROLE FIX
+        # Run test suites in order - prioritizing COROUTINE ERROR FIXES
         test_suites = [
             ("Health Check", self.test_health_check),
             ("User Registration", self.test_user_registration), 
             ("User Login", self.test_user_login),
+            # 🔧 PRIORITY: COROUTINE ERROR FIXES (Current Review Request)
+            ("🔧 COROUTINE ERROR FIXES", self.test_coroutine_error_fixes),
             # 🎨 NEW: WAREHOUSE COLOR SCHEME ENDPOINT (Current Review Request - Phase 2)
             ("🎨 WAREHOUSE COLOR SCHEME ENDPOINT", self.test_warehouse_color_scheme_endpoint),
             # 🎯 NEW: ROUTE-BASED WAREHOUSE FILTERING (Current Review Request)
