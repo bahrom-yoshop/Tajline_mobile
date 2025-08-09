@@ -1198,8 +1198,8 @@ function App() {
 
   const fetchNotifications = async () => {
     try {
-      const data = await apiCall('/api/notifications');
-      setNotifications(data);
+      const data = await apiCall('/api/notifications?status=all&limit=50');
+      setNotifications(data || []);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     }
