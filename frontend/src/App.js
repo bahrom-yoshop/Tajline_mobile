@@ -13234,7 +13234,7 @@ function App() {
               {/* Список грузов */}
               <div className="space-y-4">
                 {adminRepeatOrderForm.cargo_items.map((item, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-4 items-end border rounded p-3 bg-gray-50">
+                  <div key={`repeat-cargo-${index}-${item.cargo_name || 'empty'}`} className="grid grid-cols-12 gap-4 items-end border rounded p-3 bg-gray-50">
                     <div className="col-span-4">
                       <Label>Название груза *</Label>
                       <Input
