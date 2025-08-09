@@ -311,6 +311,10 @@ function App() {
   const [transportCargoList, setTransportCargoList] = useState([]);
   const [contactModal, setContactModal] = useState(false);
 
+  // Notification management states
+  const [notificationDetailsModal, setNotificationDetailsModal] = useState(false);
+  const [selectedNotificationDetails, setSelectedNotificationDetails] = useState(null);
+
   // Search and header states
   const [searchType, setSearchType] = useState('all');
   const [showSearchResults, setShowSearchResults] = useState(false);
