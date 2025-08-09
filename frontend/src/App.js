@@ -1119,6 +1119,32 @@ function App() {
     loadRouteWarehouses();
   }, [operatorCargoForm.route, user]);
 
+  // НОВЫЙ USEEFFECT: Загрузка схемы склада при открытии модального окна
+  useEffect(() => {
+    const loadWarehouseScheme = async () => {
+      if (showWarehouseScheme && operatorWarehouses.length > 0) {
+        setWarehouseSchemeLoading(true);
+        try {
+          const warehouse = operatorWarehouses.find(w => w.id === showWarehouseScheme);
+          if (warehouse) {
+            const scheme = await generateWarehouseScheme(warehouse);
+            setWarehouseSchemeData(scheme);
+          }
+        } catch (error) {
+          console.error('Error loading warehouse scheme:', error);
+          showAlert('Ошибка загрузки схемы склада', 'error');
+          setWarehouseSchemeData([]);
+        } finally {
+          setWarehouseSchemeLoading(false);
+        }
+      } else {
+        setWarehouseSchemeData([]);
+      }
+    };
+
+    loadWarehouseScheme();
+  }, [showWarehouseScheme, operatorWarehouses]);
+
   useEffect(() => {
     if (user) {
       fetchNotifications();
