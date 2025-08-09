@@ -185,8 +185,7 @@ function App() {
   const [totalCost, setTotalCost] = useState(0);
   const [cargoBreakdown, setCargoBreakdown] = useState([]);  // Детальная разбивка по каждому грузу
 
-  // НОВЫЕ СОСТОЯНИЯ ДЛЯ УЛУЧШЕННОЙ СИСТЕМЫ
-  const [operatorWarehouses, setOperatorWarehouses] = useState([]);  // Склады оператора
+  // НОВЫЕ СОСТОЯНИЯ ДЛЯ УЛУЧШЕННОЙ СИСТЕМЫ  
   const [debtorsList, setDebtorsList] = useState([]);  // Список задолжников
 
   // Personal dashboard states
