@@ -3644,124 +3644,110 @@ function App() {
   };
 
   // Генерация схемы ячеек для визуализации с цветовой маркировкой по клиентам
-  const generateWarehouseScheme = (warehouse) => {
+  const generateWarehouseScheme = async (warehouse) => {
     const blocks = warehouse.blocks_count || 3;
-    const cellsPerBlock = 20; // 20 ячеек на блок (4x5 сетка)
+    const shelves_per_block = warehouse.shelves_per_block || 4; // Количество полок на блок
+    const cells_per_shelf = warehouse.cells_per_shelf || 5; // Количество ячеек на полку
+    const cellsPerBlock = shelves_per_block * cells_per_shelf; // Общее количество ячеек на блок
+    
+    // Получаем реальные данные о грузах склада с группировкой по клиентам
+    const warehouseCargoData = await fetchWarehouseCargoWithClients(warehouse.id);
+    const { sender_groups = {}, recipient_groups = {}, color_assignments = {} } = warehouseCargoData;
+    
     const scheme = [];
     
-    // Списки клиентов для группировки грузов
-    const senders = [
-      'Иванов Иван Иванович',
-      'Петрова Мария Сергеевна', 
-      'Сидоров Петр Николаевич',
-      'Козлова Анна Владимировна',
-      'Смирнов Алексей Викторович'
-    ];
-    
-    const recipients = [
-      'Рахимов Фарход Алиевич',
-      'Назарова Гуля Махмудовна',
-      'Исматов Санжар Рустамович', 
-      'Юсупова Дилором Каримовна',
-      'Хакимова Мухтарам Шавкатовна'
-    ];
-
-    // Цвета для группировки грузов одного клиента
-    const clientColors = [
-      { bg: 'bg-blue-200', border: 'border-blue-400', text: 'text-blue-900' },
-      { bg: 'bg-green-200', border: 'border-green-400', text: 'text-green-900' },
-      { bg: 'bg-purple-200', border: 'border-purple-400', text: 'text-purple-900' },
-      { bg: 'bg-orange-200', border: 'border-orange-400', text: 'text-orange-900' },
-      { bg: 'bg-pink-200', border: 'border-pink-400', text: 'text-pink-900' },
-      { bg: 'bg-indigo-200', border: 'border-indigo-400', text: 'text-indigo-900' }
-    ];
-
-    // Группы грузов по отправителям (симуляция того, что у одного отправителя несколько грузов)
-    const clientGroups = [];
-    for (let i = 0; i < 4; i++) {
-      const sender = senders[i];
-      const recipient = recipients[i];
-      const color = clientColors[i];
-      const cargoCount = Math.floor(Math.random() * 4) + 2; // 2-5 грузов на клиента
-      
-      clientGroups.push({
-        sender,
-        recipient,
-        color,
-        cargoCount,
-        cargoNumbers: Array.from({length: cargoCount}, (_, idx) => `CRG${Date.now()}-${i}-${idx}`)
-      });
-    }
-
     // Создаем схему блоков
     for (let block = 1; block <= blocks; block++) {
       const blockCells = [];
-      let groupIndex = 0;
-      let cargoInGroupIndex = 0;
       
-      for (let cell = 1; cell <= cellsPerBlock; cell++) {
-        const cellId = `${warehouse.id}-${block}-${cell}`;
-        const isOccupied = Math.random() < 0.6; // 60% вероятность занятости
-        
-        let cellData = {
-          id: cellId,
-          block_number: block,
-          cell_number: cell,
-          is_occupied: isOccupied,
-          position: {
-            row: Math.ceil(cell / 4),
-            col: ((cell - 1) % 4) + 1
-          }
-        };
-
-        if (isOccupied) {
-          // Определяем, принадлежит ли груз группе клиента
-          const currentGroup = clientGroups[groupIndex % clientGroups.length];
+      for (let shelf = 1; shelf <= shelves_per_block; shelf++) {
+        for (let cell = 1; cell <= cells_per_shelf; cell++) {
+          const cellNumber = (shelf - 1) * cells_per_shelf + cell;
+          const cellId = `${warehouse.id}-${block}-${shelf}-${cell}`;
           
-          if (cargoInGroupIndex < currentGroup.cargoCount) {
-            // Груз принадлежит текущей группе клиента
-            cellData = {
-              ...cellData,
-              cargo_number: currentGroup.cargoNumbers[cargoInGroupIndex],
-              cargo_sender: currentGroup.sender,
-              cargo_recipient: currentGroup.recipient,
-              clientGroup: currentGroup,
-              hasRelatedCargo: true,
-              relatedCargo: {
-                sender: currentGroup.sender,
-                recipient: currentGroup.recipient,
-                totalCargo: currentGroup.cargoCount,
-                cargoNumbers: currentGroup.cargoNumbers
-              }
-            };
-            cargoInGroupIndex++;
-            
-            if (cargoInGroupIndex >= currentGroup.cargoCount) {
-              // Переходим к следующей группе
-              groupIndex++;
-              cargoInGroupIndex = 0;
+          // Имитируем занятость ячеек (в реальном проекте это будет из базы данных)
+          const isOccupied = Math.random() < 0.6; // 60% вероятность занятости
+          
+          let cellData = {
+            id: cellId,
+            block_number: block,
+            shelf_number: shelf,
+            cell_number: cell,
+            cell_position: cellNumber,
+            is_occupied: isOccupied,
+            position: {
+              row: shelf,
+              col: cell
             }
-          } else {
-            // Одиночный груз
-            cellData = {
-              ...cellData,
-              cargo_number: `CRG${Date.now()}-SINGLE-${cell}`,
-              cargo_sender: `Одиночный отправитель ${cell}`,
-              cargo_recipient: `Получатель ${cell}`,
-              hasRelatedCargo: false
-            };
+          };
+
+          if (isOccupied) {
+            // Выбираем случайный груз из доступных данных склада
+            const allCargo = warehouseCargoData.cargo || [];
+            
+            if (allCargo.length > 0) {
+              const randomCargo = allCargo[Math.floor(Math.random() * allCargo.length)];
+              
+              // Определяем группу клиента (отправитель или получатель)
+              const senderKey = `${randomCargo.sender_full_name || 'Не указан'}-${randomCargo.sender_phone || ''}`;
+              const recipientKey = `${randomCargo.recipient_full_name || 'Не указан'}-${randomCargo.recipient_phone || ''}`;
+              
+              let clientGroup = null;
+              let groupType = 'single';
+              
+              // Проверяем, принадлежит ли груз к группе отправителей
+              if (sender_groups[senderKey] && sender_groups[senderKey].is_group) {
+                clientGroup = sender_groups[senderKey];
+                groupType = 'sender';
+              }
+              // Если не в группе отправителей, проверяем группу получателей
+              else if (recipient_groups[recipientKey] && recipient_groups[recipientKey].is_group) {
+                clientGroup = recipient_groups[recipientKey];
+                groupType = 'recipient';
+              }
+              
+              cellData = {
+                ...cellData,
+                cargo_number: randomCargo.cargo_number || `TEMP-${Date.now()}`,
+                cargo_sender: randomCargo.sender_full_name || 'Не указан',
+                cargo_sender_phone: randomCargo.sender_phone || '',
+                cargo_recipient: randomCargo.recipient_full_name || 'Не указан',
+                cargo_recipient_phone: randomCargo.recipient_phone || '',
+                cargo_weight: randomCargo.weight || 0,
+                cargo_value: randomCargo.declared_value || randomCargo.total_cost || 0,
+                clientGroup: clientGroup,
+                groupType: groupType,
+                hasRelatedCargo: clientGroup !== null,
+                relatedCargo: clientGroup ? {
+                  groupType: groupType,
+                  client_name: groupType === 'sender' ? clientGroup.sender_full_name : clientGroup.recipient_full_name,
+                  client_phone: groupType === 'sender' ? clientGroup.sender_phone : clientGroup.recipient_phone,
+                  totalCargo: clientGroup.cargo_list.length,
+                  cargoNumbers: clientGroup.cargo_list.map(c => c.cargo_number),
+                  cargoDetails: clientGroup.cargo_list
+                } : null
+              };
+            } else {
+              // Fallback данные если нет реальных грузов
+              cellData = {
+                ...cellData,
+                cargo_number: `TEMP-${Date.now()}-${cellNumber}`,
+                cargo_sender: `Отправитель ${cellNumber}`,
+                cargo_recipient: `Получатель ${cellNumber}`,
+                hasRelatedCargo: false
+              };
+            }
           }
+          
+          blockCells.push(cellData);
         }
-        
-        blockCells.push(cellData);
       }
       
       scheme.push({
         block_number: block,
         cells: blockCells,
         total_cells: cellsPerBlock,
-        occupied_cells: blockCells.filter(c => c.is_occupied).length,
-        free_cells: blockCells.filter(c => !c.is_occupied).length
+        occupied_cells: blockCells.filter(c => c.is_occupied).length
       });
     }
     
