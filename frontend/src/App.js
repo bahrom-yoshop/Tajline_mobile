@@ -381,6 +381,8 @@ function App() {
   const [routeWarehouses, setRouteWarehouses] = useState([]);  // Склады по выбранному маршруту
   const [showWarehouseScheme, setShowWarehouseScheme] = useState(null); // ID склада для показа схемы
   const [warehouseCells, setWarehouseCells] = useState([]); // Ячейки склада
+  const [showCargoManagementModal, setShowCargoManagementModal] = useState(false); // Модальное окно управления грузом
+  const [selectedCargoForManagement, setSelectedCargoForManagement] = useState(null); // Выбранный груз для управления
   const [interwarehouseTransportModal, setInterwarehouseTransportModal] = useState(false);
   const [interwarehouseForm, setInterwarehouseForm] = useState({
     source_warehouse_id: '',
