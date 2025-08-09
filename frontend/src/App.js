@@ -7348,31 +7348,33 @@ function App() {
 
                           {/* Выбор склада */}
                           <div>
-                            <Label htmlFor="warehouse_id">Склад</Label>
+                            <Label htmlFor="warehouse_id">Склад назначения</Label>
                             <Select 
                               value={operatorCargoForm.warehouse_id} 
                               onValueChange={(value) => setOperatorCargoForm({...operatorCargoForm, warehouse_id: value})}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder={
-                                  operatorWarehouses.length === 0 
-                                    ? "Загрузка складов..." 
-                                    : operatorWarehouses.length === 1 
-                                      ? `${operatorWarehouses[0]?.name} (автовыбор)`
-                                      : "Выберите склад"
+                                  !operatorCargoForm.route 
+                                    ? "Сначала выберите маршрут" 
+                                    : routeWarehouses.length === 0 
+                                      ? "Загрузка складов..." 
+                                      : "Выберите склад назначения"
                                 } />
                               </SelectTrigger>
                               <SelectContent>
-                                {operatorWarehouses.map((warehouse) => (
+                                {routeWarehouses.map((warehouse) => (
                                   <SelectItem key={warehouse.id} value={warehouse.id}>
                                     {warehouse.name} - {warehouse.location}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
-                            {operatorWarehouses.length === 1 && (
+                            {operatorCargoForm.route && (
                               <p className="text-xs text-gray-500 mt-1">
-                                У вас привязан только один склад, он будет выбран автоматически
+                                {operatorCargoForm.route === 'moscow_to_tajikistan' 
+                                  ? 'Склады в Таджикистане для доставки из Москвы' 
+                                  : 'Склады в Москве для доставки из Таджикистана'}
                               </p>
                             )}
                           </div>
