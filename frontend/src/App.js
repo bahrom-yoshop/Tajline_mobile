@@ -15152,7 +15152,10 @@ function App() {
                       {/* Сетка ячеек с цветовой группировкой - адаптивная сетка */}
                       <div className={`grid gap-2`} style={{
                         gridTemplateColumns: `repeat(${
-                          operatorWarehouses.find(w => w.id === showWarehouseScheme)?.cells_per_shelf || 5
+                          (() => {
+                            const warehousesList = user?.role === 'admin' ? warehouses : operatorWarehouses;
+                            return warehousesList.find(w => w.id === showWarehouseScheme)?.cells_per_shelf || 5;
+                          })()
                         }, 1fr)`
                       }}>
                         {block.cells.map((cell) => {
