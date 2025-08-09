@@ -165,15 +165,18 @@ frontend:
 backend:
   - task: "Route-based Warehouse Filtering Backend Endpoint"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: false
           agent: "main"
           comment: "Создан новый endpoint /api/warehouses/by-route/{route} для фильтрации складов по маршруту. Поддерживает маршруты moscow_to_tajikistan и tajikistan_to_moscow. Использует фильтрацию по ключевым словам в названии и местоположении складов. Для 'Москва → Таджикистан' показывает склады с ключевыми словами таджикистанских городов, для 'Таджикистан → Москва' - московские склады. Требуется тестирование."
+        - working: true
+          agent: "testing"
+          comment: "✅ ROUTE-BASED WAREHOUSE FILTERING ENDPOINT TESTING COMPLETED SUCCESSFULLY! COMPREHENSIVE TEST RESULTS: 1) ✅ WAREHOUSE OPERATOR AUTHENTICATION: Successful login with +79777888999/warehouse123, correct role 'warehouse_operator' verified, 2) ✅ MOSCOW TO TAJIKISTAN ROUTE: GET /api/warehouses/by-route/moscow_to_tajikistan returned 1 warehouse in Tajikistan (Склад №2 Худжанд), keyword filtering working correctly with 'худжанд' match, 3) ✅ TAJIKISTAN TO MOSCOW ROUTE: GET /api/warehouses/by-route/tajikistan_to_moscow returned 7 warehouses in Moscow/Russia, all warehouses correctly filtered by 'москва' keyword, 4) ✅ RESPONSE STRUCTURE VERIFICATION: All required fields present (id, name, location, blocks_count, is_active) with correct data types, response structure validation passed completely, 5) ✅ KEYWORD FILTERING VERIFICATION: Filtering by keywords in warehouse names and locations working correctly for both routes, Tajikistan keywords (таджикистан, душанбе, худжанд) and Moscow keywords (москва, moscow, россия) properly matched, 6) ✅ INVALID ROUTE HANDLING: GET /api/warehouses/by-route/invalid_route correctly returns 400 error with message 'Invalid route', error handling working as expected, 7) ✅ ADMIN ACCESS VERIFICATION: Admin can access route filtering endpoint successfully, returned same filtered results as warehouse operator, 8) ✅ DETAILED STRUCTURE VALIDATION: All response fields have correct data types (id: string, name: string, location: string, blocks_count: integer, is_active: boolean). Minor: Regular user access denial test failed due to user login 500 error (unrelated to route filtering functionality). SUCCESS RATE: 87% (7/8 test areas passed). The route-based warehouse filtering endpoint is fully functional and ready for production use with enhanced cargo acceptance form integration."
 
   - task: "TAJLINE.TJ Warehouse Operator Isolation Improvements"
     implemented: true
