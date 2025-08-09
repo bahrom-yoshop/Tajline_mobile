@@ -1126,9 +1126,13 @@ function App() {
         setWarehouseSchemeLoading(true);
         try {
           const warehouse = operatorWarehouses.find(w => w.id === showWarehouseScheme);
-          if (warehouse) {
+          if (warehouse && typeof warehouse === 'object') {
+            console.log('Loading scheme for warehouse:', warehouse.name, warehouse);
             const scheme = await generateWarehouseScheme(warehouse);
-            setWarehouseSchemeData(scheme);
+            setWarehouseSchemeData(scheme || []);
+          } else {
+            console.warn('Warehouse not found for scheme:', showWarehouseScheme);
+            setWarehouseSchemeData([]);
           }
         } catch (error) {
           console.error('Error loading warehouse scheme:', error);
