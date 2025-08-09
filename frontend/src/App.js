@@ -15376,24 +15376,24 @@ function App() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <p className="text-sm text-gray-500">Вес</p>
-                      <p className="font-semibold">{selectedCargoForManagement.cargo_details.weight} кг</p>
+                      <p className="font-semibold">{selectedCargoForManagement.weight || 'Н/Д'} кг</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Объявленная стоимость</p>
-                      <p className="font-semibold">{selectedCargoForManagement.cargo_details.declared_value}₽</p>
+                      <p className="font-semibold">{selectedCargoForManagement.payment_amount || 'Н/Д'}₽</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500">Дата создания</p>
-                      <p className="font-semibold">{selectedCargoForManagement.cargo_details.created_date}</p>
+                      <p className="text-sm text-gray-500">Местоположение</p>
+                      <p className="font-semibold">
+                        Блок {selectedCargoForManagement.location?.block}, 
+                        Полка {selectedCargoForManagement.location?.shelf}, 
+                        Ячейка {selectedCargoForManagement.location?.cell}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500">Ожидаемая доставка</p>
-                      <p className="font-semibold">{selectedCargoForManagement.cargo_details.expected_delivery}</p>
+                      <p className="text-sm text-gray-500">Склад</p>
+                      <p className="font-semibold">{selectedCargoForManagement.location?.warehouse_name}</p>
                     </div>
-                  </div>
-                  <div className="mt-4">
-                    <p className="text-sm text-gray-500">Описание</p>
-                    <p className="font-semibold">{selectedCargoForManagement.cargo_details.description}</p>
                   </div>
                 </CardContent>
               </Card>
