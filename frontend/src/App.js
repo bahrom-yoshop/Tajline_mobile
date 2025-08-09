@@ -9607,8 +9607,13 @@ function App() {
                                         <MapPin className="inline h-4 w-4 mr-2" />
                                         {warehouse.location}
                                       </p>
-                                      <p className="text-sm text-gray-500">
-                                        Блоков: {warehouse.blocks_count || 'Не указано'}
+                                      <div className="flex flex-wrap gap-3 text-sm text-gray-500">
+                                        <span>Блоков: {warehouse.blocks_count || 'Не указано'}</span>
+                                        <span>Полок/блок: {warehouse.shelves_per_block || 'Не указано'}</span>
+                                        <span>Ячеек/полка: {warehouse.cells_per_shelf || 'Не указано'}</span>
+                                      </div>
+                                      <p className="text-sm text-blue-600 font-medium mt-1">
+                                        Общее количество ячеек: {warehouse.total_cells || ((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)) || 'Не рассчитано'}
                                       </p>
                                     </div>
                                     <Badge className="bg-green-100 text-green-800 border-green-200">
