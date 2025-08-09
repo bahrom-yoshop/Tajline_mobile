@@ -9,7 +9,7 @@ import json
 from datetime import datetime
 
 class EnhancedCargoPlacementTester:
-    def __init__(self, base_url="https://86835c32-e799-4e16-a50f-ea2e0b5110c5.preview.emergentagent.com"):
+    def __init__(self, base_url="https://16bfc7eb-1b1c-46a5-9f05-7364d229ceec.preview.emergentagent.com"):
         self.base_url = base_url
         self.tokens = {}
         self.users = {}
