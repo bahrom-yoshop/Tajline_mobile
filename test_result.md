@@ -125,6 +125,18 @@
 user_problem_statement: "Enhanced Admin Panel with Advanced User Management: 1) OPERATOR ROLE MANAGEMENT: Enhanced warehouse operator list with full data and role change functionality (operator to administrator) with complete role information display, 2) OPERATOR PROFILE MANAGEMENT: Detailed operator profiles viewable through admin panel showing work history, accepted cargo statistics, activity periods, and associated warehouses, 3) ENHANCED USER MANAGEMENT SYSTEM: User profile viewing with complete shipping history, recipient history for auto-filling, one-click cargo request creation with auto-filled sender/recipient data from history, integration with multi-cargo form and individual pricing calculator for operators to only fill cargo names, weights, and prices while other data is auto-populated from user history."
 
 backend:
+  - task: "TAJLINE.TJ Operator Registration and Login Fix Testing"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ OPERATOR REGISTRATION AND LOGIN FIX TESTING FAILED - Critical issues identified preventing operator creation and login workflow! DETAILED TEST RESULTS: 1) ✅ ADMIN LOGIN: Successfully logged in as admin (+79999888777/admin123) with correct role 'admin', 2) ✅ WAREHOUSE AVAILABILITY: Found existing warehouse 'Склад № 1 Москва' (ID: af3897ce-5108-4245-94d6-251330b4e143) for operator binding, 3) ❌ CRITICAL ISSUE - OPERATOR CREATION FAILED: POST /api/admin/create-operator returned 200 status but response was empty/invalid - operator creation endpoint exists but has implementation issues, 4) ❌ OPERATOR LOGIN CANNOT BE TESTED: Due to operator creation failure, cannot test the fixed login functionality that was supposed to resolve the 'Internal Server Error' issue, 5) ❌ WORKFLOW BLOCKED: Cannot test operator functionality, warehouse binding, or session stability due to creation failure. ROOT CAUSE ANALYSIS: The /api/admin/create-operator endpoint appears to exist (returns 200) but has backend implementation issues - either the operator is not being created properly in the database, or the response structure is incorrect. The original problem was that operators created through admin panel couldn't login due to 'password' vs 'password_hash' field mismatch and missing user_number/token_version fields. CRITICAL FINDINGS: 1) Admin can access the create-operator endpoint, 2) Endpoint returns 200 but with invalid/empty response, 3) Backend implementation may not be properly handling the FIXED data structure (password_hash, user_number, token_version), 4) Cannot verify if the original 'Internal Server Error' during operator login has been resolved. RECOMMENDATION: The main agent needs to check the /api/admin/create-operator endpoint implementation to ensure it properly: 1) Creates operators with password_hash instead of password field, 2) Generates user_number and sets token_version=1, 3) Returns proper response structure with operator details, 4) Creates warehouse binding correctly. SUCCESS RATE: 33% (2/6 test phases passed - admin login and warehouse availability working, but operator creation and all subsequent tests failed)."
+
   - task: "TAJLINE.TJ Deletion System Comprehensive Testing"
     implemented: true
     working: true
