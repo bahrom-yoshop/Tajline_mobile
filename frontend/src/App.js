@@ -10004,7 +10004,7 @@ function App() {
                             <Bell className="mr-2 h-5 w-5" />
                             Системные уведомления ({systemNotifications.length})
                           </div>
-                          <Button onClick={fetchSystemNotifications}>
+                          <Button onClick={fetchNotifications}>
                             Обновить
                           </Button>
                         </CardTitle>
