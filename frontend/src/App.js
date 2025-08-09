@@ -14256,6 +14256,174 @@ function App() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* МОДАЛЬНОЕ ОКНО СХЕМЫ СКЛАДА (ФАЗА 3) */}
+      <Dialog open={!!showWarehouseScheme} onOpenChange={() => setShowWarehouseScheme(null)}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Grid3X3 className="mr-2 h-5 w-5" />
+              Схема склада
+            </DialogTitle>
+            <DialogDescription>
+              {showWarehouseScheme && (
+                <span>
+                  Визуализация ячеек склада: <strong>
+                    {operatorWarehouses.find(w => w.id === showWarehouseScheme)?.name}
+                  </strong>
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {showWarehouseScheme && (
+            <div className="space-y-6">
+              {/* Общая статистика */}
+              <div className="grid grid-cols-4 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-700">Всего блоков</p>
+                      <p className="text-2xl font-bold text-blue-900">
+                        {operatorWarehouses.find(w => w.id === showWarehouseScheme)?.blocks_count || 3}
+                      </p>
+                    </div>
+                    <Building className="h-8 w-8 text-blue-600" />
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Всего ячеек</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {((operatorWarehouses.find(w => w.id === showWarehouseScheme)?.blocks_count) || 3) * 20}
+                      </p>
+                    </div>
+                    <Grid3X3 className="h-8 w-8 text-gray-600" />
+                  </div>
+                </div>
+                
+                <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-red-700">Занято</p>
+                      <p className="text-2xl font-bold text-red-900">
+                        {Math.floor((((operatorWarehouses.find(w => w.id === showWarehouseScheme)?.blocks_count) || 3) * 20) * 0.6)}
+                      </p>
+                    </div>
+                    <Package className="h-8 w-8 text-red-600" />
+                  </div>
+                </div>
+                
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-green-700">Свободно</p>
+                      <p className="text-2xl font-bold text-green-900">
+                        {Math.floor((((operatorWarehouses.find(w => w.id === showWarehouseScheme)?.blocks_count) || 3) * 20) * 0.4)}
+                      </p>
+                    </div>
+                    <CheckCircle className="h-8 w-8 text-green-600" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Легенда */}
+              <div className="bg-gray-50 p-4 rounded-lg border">
+                <h4 className="font-semibold text-sm text-gray-700 mb-3">🎨 Легенда ячеек</h4>
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 bg-green-200 border border-green-400 rounded"></div>
+                    <span className="text-sm font-medium text-green-700">Свободная ячейка</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 bg-red-200 border border-red-400 rounded"></div>
+                    <span className="text-sm font-medium text-red-700">Занятая ячейка</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 bg-yellow-200 border border-yellow-400 rounded"></div>
+                    <span className="text-sm font-medium text-yellow-700">Зарезервированная</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Схема блоков и ячеек */}
+              <div className="space-y-6">
+                {(() => {
+                  const warehouse = operatorWarehouses.find(w => w.id === showWarehouseScheme);
+                  const scheme = generateWarehouseScheme(warehouse);
+                  
+                  return scheme.map((block) => (
+                    <div key={block.block_number} className="border rounded-lg p-4 bg-white">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-bold text-lg text-gray-800">
+                          📦 Блок {block.block_number}
+                        </h3>
+                        <div className="text-sm text-gray-600">
+                          Занято: {block.occupied_cells}/{block.total_cells} ячеек 
+                          ({Math.round((block.occupied_cells / block.total_cells) * 100)}%)
+                        </div>
+                      </div>
+                      
+                      {/* Сетка ячеек 4x5 */}
+                      <div className="grid grid-cols-4 gap-2">
+                        {block.cells.map((cell) => (
+                          <div
+                            key={cell.id}
+                            className={`
+                              relative border-2 rounded-lg p-3 text-center cursor-pointer transition-all hover:scale-105
+                              ${cell.is_occupied 
+                                ? 'bg-red-100 border-red-300 hover:bg-red-200' 
+                                : 'bg-green-100 border-green-300 hover:bg-green-200'
+                              }
+                            `}
+                            onClick={() => {
+                              if (cell.is_occupied) {
+                                alert(`Ячейка ${cell.cell_number}\nГруз: ${cell.cargo_number}\nОтправитель: ${cell.cargo_sender}\n\nВ Фазе 4 здесь будет модальное окно управления грузом`);
+                              }
+                            }}
+                          >
+                            <div className="text-xs font-medium text-gray-700 mb-1">
+                              Ячейка {cell.cell_number}
+                            </div>
+                            {cell.is_occupied ? (
+                              <div className="space-y-1">
+                                <div className="text-xs font-bold text-red-800">ЗАНЯТО</div>
+                                <div className="text-xs text-red-700 truncate" title={cell.cargo_number}>
+                                  {cell.cargo_number?.substring(0, 8)}...
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-xs font-bold text-green-800">СВОБОДНО</div>
+                            )}
+                            
+                            {/* Индикатор позиции */}
+                            <div className="absolute top-1 right-1 text-xs text-gray-400">
+                              {cell.position.row},{cell.position.col}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+
+              {/* Действия */}
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setShowWarehouseScheme(null)}>
+                  Закрыть
+                </Button>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Экспорт схемы
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
