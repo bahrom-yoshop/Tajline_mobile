@@ -9641,7 +9641,7 @@ function App() {
                                         <div>
                                           <p className="text-xs font-medium text-gray-500">Занято</p>
                                           <p className="text-xl font-bold text-red-600">
-                                            {Math.floor(((warehouse.blocks_count || 3) * 20) * 0.6)}
+                                            {Math.floor(((warehouse.total_cells || ((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0))) || 0) * 0.6)}
                                           </p>
                                         </div>
                                         <Package className="h-6 w-6 text-red-500" />
@@ -9653,7 +9653,7 @@ function App() {
                                         <div>
                                           <p className="text-xs font-medium text-gray-500">Свободно</p>
                                           <p className="text-xl font-bold text-green-600">
-                                            {Math.floor(((warehouse.blocks_count || 3) * 20) * 0.4)}
+                                            {Math.floor(((warehouse.total_cells || ((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0))) || 0) * 0.4)}
                                           </p>
                                         </div>
                                         <CheckCircle className="h-6 w-6 text-green-500" />
@@ -9664,9 +9664,9 @@ function App() {
                                       <div className="flex items-center justify-between">
                                         <div>
                                           <p className="text-xs font-medium text-gray-500">Загрузка</p>
-                                          <p className="text-xl font-bold text-orange-600">60%</p>
+                                          <p className="text-xl font-bold text-purple-600">60%</p>
                                         </div>
-                                        <DollarSign className="h-6 w-6 text-orange-500" />
+                                        <Calculator className="h-6 w-6 text-purple-500" />
                                       </div>
                                     </div>
                                   </div>
