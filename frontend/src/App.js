@@ -14732,44 +14732,84 @@ function App() {
                         </div>
                       </div>
                       
-                      {/* Сетка ячеек 4x5 */}
+                      {/* Сетка ячеек 4x5 с цветовой группировкой */}
                       <div className="grid grid-cols-4 gap-2">
-                        {block.cells.map((cell) => (
-                          <div
-                            key={cell.id}
-                            className={`
-                              relative border-2 rounded-lg p-3 text-center cursor-pointer transition-all hover:scale-105
-                              ${cell.is_occupied 
-                                ? 'bg-red-100 border-red-300 hover:bg-red-200' 
-                                : 'bg-green-100 border-green-300 hover:bg-green-200'
+                        {block.cells.map((cell) => {
+                          // Определяем цвет ячейки
+                          let cellStyle = '';
+                          if (!cell.is_occupied) {
+                            cellStyle = 'bg-green-100 border-green-300 hover:bg-green-200';
+                          } else if (cell.hasRelatedCargo && cell.clientGroup) {
+                            // Груз из группы - используем цвет группы
+                            cellStyle = `${cell.clientGroup.color.bg} ${cell.clientGroup.color.border} hover:opacity-80`;
+                          } else {
+                            // Одиночный груз
+                            cellStyle = 'bg-red-100 border-red-300 hover:bg-red-200';
+                          }
+                          
+                          return (
+                            <div
+                              key={cell.id}
+                              className={`
+                                relative border-2 rounded-lg p-3 text-center cursor-pointer transition-all hover:scale-105
+                                ${cellStyle}
+                              `}
+                              onClick={() => {
+                                if (cell.is_occupied) {
+                                  openCargoManagementModal(cell);
+                                }
+                              }}
+                              title={cell.is_occupied ? 
+                                (cell.hasRelatedCargo ? 
+                                  `Груз из группы: ${cell.cargo_sender} (всего грузов: ${cell.relatedCargo.totalCargo})` :
+                                  `Одиночный груз: ${cell.cargo_number}`
+                                ) : 
+                                'Свободная ячейка'
                               }
-                            `}
-                            onClick={() => {
-                              if (cell.is_occupied) {
-                                openCargoManagementModal(cell);
-                              }
-                            }}
-                          >
-                            <div className="text-xs font-medium text-gray-700 mb-1">
-                              Ячейка {cell.cell_number}
-                            </div>
-                            {cell.is_occupied ? (
-                              <div className="space-y-1">
-                                <div className="text-xs font-bold text-red-800">ЗАНЯТО</div>
-                                <div className="text-xs text-red-700 truncate" title={cell.cargo_number}>
-                                  {cell.cargo_number?.substring(0, 8)}...
-                                </div>
+                            >
+                              <div className="text-xs font-medium text-gray-700 mb-1">
+                                Ячейка {cell.cell_number}
                               </div>
-                            ) : (
-                              <div className="text-xs font-bold text-green-800">СВОБОДНО</div>
-                            )}
-                            
-                            {/* Индикатор позиции */}
-                            <div className="absolute top-1 right-1 text-xs text-gray-400">
-                              {cell.position.row},{cell.position.col}
+                              {cell.is_occupied ? (
+                                <div className="space-y-1">
+                                  <div className={`text-xs font-bold ${
+                                    cell.hasRelatedCargo && cell.clientGroup ? 
+                                      cell.clientGroup.color.text : 
+                                      'text-red-800'
+                                  }`}>
+                                    {cell.hasRelatedCargo ? 'ГРУППА' : 'ЗАНЯТО'}
+                                  </div>
+                                  <div className={`text-xs truncate ${
+                                    cell.hasRelatedCargo && cell.clientGroup ? 
+                                      cell.clientGroup.color.text : 
+                                      'text-red-700'
+                                  }`} title={cell.cargo_number}>
+                                    {cell.cargo_number?.substring(0, 8)}...
+                                  </div>
+                                  {cell.hasRelatedCargo && (
+                                    <div className={`text-xs ${cell.clientGroup.color.text}`}>
+                                      👥 {cell.relatedCargo.totalCargo} шт
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="text-xs font-bold text-green-800">СВОБОДНО</div>
+                              )}
+                              
+                              {/* Индикатор позиции */}
+                              <div className="absolute top-1 right-1 text-xs text-gray-400">
+                                {cell.position.row},{cell.position.col}
+                              </div>
+                              
+                              {/* Индикатор группы */}
+                              {cell.hasRelatedCargo && (
+                                <div className="absolute top-1 left-1">
+                                  <div className={`w-3 h-3 rounded-full ${cell.clientGroup.color.bg} ${cell.clientGroup.color.border} border`}></div>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   ));
