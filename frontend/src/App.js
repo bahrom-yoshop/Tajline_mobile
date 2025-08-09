@@ -6700,7 +6700,7 @@ function App() {
                         size="sm"
                         onClick={() => {
                           fetchNotifications();
-                          fetchSystemNotifications();
+                          fetchNotifications();
                         }}
                       >
                         <Bell className="h-4 w-4 mr-2" />
