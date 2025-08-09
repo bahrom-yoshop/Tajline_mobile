@@ -3832,42 +3832,63 @@ function App() {
 
   // Открытие модального окна управления грузом
   const openCargoManagementModal = async (cargoInfo) => {
-    // Создаем симуляцию детальной информации о грузе
+    // Создаем детальную информацию о грузе с данными о связанных грузах
     const detailedCargo = {
       ...cargoInfo,
       cargo_number: cargoInfo.cargo_number || `CRG${Date.now()}`,
       status: 'placed',
-      payment_status: 'paid',
+      payment_status: cargoInfo.cargo_value > 0 ? 'paid' : 'pending',
       payment_method: 'cash',
-      payment_amount: 1500.0,
+      payment_amount: cargoInfo.cargo_value || 1500.0,
+      weight: cargoInfo.cargo_weight || 15.5,
       sender: {
         full_name: cargoInfo.cargo_sender || 'Иванов Иван Иванович',
-        phone: '+79991234567',
+        phone: cargoInfo.cargo_sender_phone || '+79991234567',
         address: 'г. Москва, ул. Красная площадь, д. 1',
-        email: 'ivanov@example.com'
+        email: 'sender@example.com'
       },
       recipient: {
-        full_name: 'Петров Петр Петрович',
-        phone: '+992987654321',
+        full_name: cargoInfo.cargo_recipient || 'Петров Петр Петрович',
+        phone: cargoInfo.cargo_recipient_phone || '+992987654321',
         address: 'г. Душанбе, пр. Рудаки, д. 10',
-        email: 'petrov@example.com'
+        email: 'recipient@example.com'
       },
-      cargo_details: {
-        weight: 15.5,
-        declared_value: 1500.0,
-        description: 'Электроника, документы',
-        route: 'moscow_to_tajikistan',
-        created_date: '2024-12-09',
-        expected_delivery: '2024-12-15'
+      // Информация о связанных грузах от того же отправителя/получателя
+      relatedCargo: cargoInfo.hasRelatedCargo && cargoInfo.relatedCargo ? {
+        ...cargoInfo.relatedCargo,
+        // Дополнительные детали о связанных грузах с их местоположением
+        detailedCargoList: cargoInfo.relatedCargo.cargoDetails ? cargoInfo.relatedCargo.cargoDetails.map(relatedItem => ({
+          cargo_number: relatedItem.cargo_number,
+          weight: relatedItem.weight || 0,
+          value: relatedItem.declared_value || relatedItem.total_cost || 0,
+          // Симулируем местоположение (в реальной системе это будет из базы данных)
+          location: relatedItem.warehouse_location ? {
+            warehouse: relatedItem.warehouse_location,
+            block: Math.floor(Math.random() * 7) + 1,
+            shelf: Math.floor(Math.random() * 3) + 1,
+            cell: Math.floor(Math.random() * 10) + 1,
+            status: 'placed'
+          } : {
+            warehouse: 'В обработке',
+            status: 'pending',
+            payment_status: relatedItem.payment_status || 'paid'
+          }
+        })) : []
+      } : null,
+      location: {
+        warehouse_name: 'Склад №2 Худжанд',
+        block: cargoInfo.block_number || 1,
+        shelf: cargoInfo.shelf_number || 1, 
+        cell: cargoInfo.cell_number || 1
       },
+      // История движения груза
       history: [
-        { date: '2024-12-09 10:00', action: 'Груз принят', user: 'Оператор Москвы', details: 'Принят в пункте приема' },
-        { date: '2024-12-09 14:30', action: 'Оплачен', user: 'Клиент', details: 'Оплата наличными 1500₽' },
-        { date: '2024-12-10 09:00', action: 'Размещен на складе', user: 'Оператор склада', details: `Ячейка ${cargoInfo.id}` },
-        { date: '2024-12-11 16:20', action: 'Готов к отправке', user: 'Система', details: 'Груз готов к транспортировке' }
+        { date: new Date().toISOString().split('T')[0], action: 'Принят к перевозке', user: 'Оператор склада' },
+        { date: new Date(Date.now() - 86400000).toISOString().split('T')[0], action: 'Размещен на складе', user: 'Оператор склада' },
+        { date: new Date(Date.now() - 172800000).toISOString().split('T')[0], action: 'Груз создан', user: 'Система' }
       ]
     };
-
+    
     setSelectedCargoForManagement(detailedCargo);
     setShowCargoManagementModal(true);
   };
