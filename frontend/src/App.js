@@ -1175,6 +1175,22 @@ function App() {
     }
   };
 
+  // Функция загрузки аналитики админского дашборда
+  const fetchAdminDashboardAnalytics = async () => {
+    if (user?.role !== 'admin') return;
+    
+    setAdminAnalyticsLoading(true);
+    try {
+      const response = await apiCall('/api/admin/dashboard/analytics', 'GET');
+      setAdminDashboardAnalytics(response);
+    } catch (error) {
+      console.error('Error fetching admin dashboard analytics:', error);
+      showAlert('Ошибка загрузки аналитики дашборда', 'error');
+    } finally {
+      setAdminAnalyticsLoading(false);
+    }
+  };
+
   // Функция управления ролями
   const handleRoleChange = async () => {
     if (!selectedUserForRole || !newRole) return;
