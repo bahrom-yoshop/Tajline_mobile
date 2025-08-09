@@ -3530,6 +3530,18 @@ function App() {
     }
   };
 
+  // НОВАЯ ФУНКЦИЯ: Загрузка списка задолжников для админа
+  const fetchDebtorsList = async () => {
+    if (user?.role !== 'admin') return;
+    
+    try {
+      const data = await apiCall('/api/admin/debts');
+      setDebtorsList(data || []);
+    } catch (error) {
+      console.error('Error fetching debtors list:', error);
+    }
+  };
+
   const fetchTransportsList = async () => {
     try {
       const data = await apiCall('/api/transport/list');
