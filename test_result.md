@@ -225,6 +225,18 @@ frontend:
           comment: "✅ ЗАДАЧА ЗАВЕРШЕНА УСПЕШНО: Исправлен критический баг интерфейса складов для операторов. Frontend тестирование подтвердило: карточка 'Мои назначенные склады' отображается корректно, при отсутствии складов показывается понятное сообщение, административные функции ограничены для админов. Операторы больше не получают ошибку 'Не удалось получить' при переходе в раздел 'Склады'."
 
 backend:
+  - task: "Coroutine Error Fixes for Warehouse Operator Endpoints"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "🎉 COROUTINE ERROR FIXES TESTING COMPLETED SUCCESSFULLY - All critical endpoints now functional! COMPREHENSIVE TEST RESULTS: 1) ✅ WAREHOUSE OPERATOR AUTHENTICATION: Successful login with +79777888999/warehouse123 - 200 OK status, JWT token received successfully, user name 'Оператор Складской Обновленный', phone '+79777888999', role correctly set to 'warehouse_operator', authentication working perfectly without any coroutine issues, 2) ✅ GET /api/warehouses FIXED: Endpoint now working without 500 error - returned 3 warehouses successfully, no 'InvalidDocument: cannot encode object: coroutine' errors, response structure clean with no coroutine objects, sample warehouse data properly formatted (Склад №2 Худжанд - Худжанд), 3) ✅ GET /api/operator/cargo/list FIXED: Endpoint now working without 500 error - returned proper pagination structure with items array and pagination metadata, no coroutine encoding errors in response, pagination working correctly (page 1, per_page 25, total_count 0), response format clean and JSON serializable, 4) ✅ GET /api/operator/warehouses FIXED: Endpoint working correctly - returned 3 warehouses for operator, warehouse data structure complete with all required fields (id, name, location), no coroutine objects in response, sample warehouse properly formatted, 5) ✅ ADDITIONAL ENDPOINT VERIFICATION: GET /api/operator/cargo/available-for-placement working without coroutine errors - proper pagination response structure, no coroutine objects in response, GET /api/warehouses/analytics working correctly - returned analytics data (total_warehouses: 3, available_cells: 220, occupied_cells: 0, total_cells: 220, occupancy_rate: 0.0), no coroutine encoding issues found in any tested endpoints. WORKING FEATURES CONFIRMED (6): Warehouse operator authentication without coroutine issues, GET /api/warehouses endpoint fixed and functional, GET /api/operator/cargo/list endpoint fixed with pagination, GET /api/operator/warehouses endpoint working correctly, Additional endpoints verified coroutine-free, All responses JSON serializable without encoding errors. SUCCESS RATE: 100% (6/6 test areas passed). The coroutine error fixes are completely successful - all critical endpoints for warehouse operator dashboard are now functional and free from 'InvalidDocument: cannot encode object: coroutine' errors!"
+
   - task: "Route-based Warehouse Filtering Backend Endpoint"
     implemented: true
     working: true
