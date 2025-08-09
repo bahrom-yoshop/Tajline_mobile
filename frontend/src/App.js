@@ -1071,6 +1071,16 @@ function App() {
     }
   }, [token, user, isLoggingOut, isLoggingIn]);
 
+  // НОВЫЙ USEEFFECT: Автоматический выбор склада если он один у оператора
+  useEffect(() => {
+    if (operatorWarehouses.length === 1 && user?.role === 'warehouse_operator') {
+      setOperatorCargoForm(prev => ({
+        ...prev,
+        warehouse_id: operatorWarehouses[0].id
+      }));
+    }
+  }, [operatorWarehouses, user]);
+
   useEffect(() => {
     if (user) {
       fetchNotifications();
