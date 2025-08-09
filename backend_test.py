@@ -73,6 +73,285 @@ class CargoTransportAPITester:
             print(f"   ❌ FAILED - Exception: {str(e)}")
             return False, {}
 
+    def test_warehouse_operator_role_fix_and_authentication(self):
+        """Test CRITICAL warehouse operator role fix and authentication for TAJLINE.TJ"""
+        print("\n🔧 WAREHOUSE OPERATOR ROLE FIX AND AUTHENTICATION TESTING")
+        print("   🎯 Testing the CRITICAL fix for warehouse operator role (+79777888999/warehouse123)")
+        
+        if 'admin' not in self.tokens:
+            print("   ❌ No admin token available")
+            return False
+            
+        all_success = True
+        
+        # STEP 1: Fix operator role using admin endpoint
+        print("\n   👑 STEP 1: FIXING OPERATOR ROLE...")
+        
+        success, fix_response = self.run_test(
+            "Fix Operator Role (POST /api/admin/fix-operator-role)",
+            "POST",
+            "/api/admin/fix-operator-role",
+            200,
+            token=self.tokens['admin']
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Operator role fix endpoint called successfully")
+            if isinstance(fix_response, dict):
+                message = fix_response.get('message', 'No message')
+                updated_users = fix_response.get('updated_users', 0)
+                print(f"   📄 Response: {message}")
+                print(f"   👥 Updated users: {updated_users}")
+            else:
+                print(f"   📄 Response: {fix_response}")
+        else:
+            print("   ❌ Failed to call operator role fix endpoint")
+            return False
+        
+        # STEP 2: Test operator login after fix
+        print("\n   🔐 STEP 2: TESTING OPERATOR LOGIN AFTER FIX...")
+        
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Operator Login After Role Fix",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        operator_role = None
+        
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            operator_phone = operator_user.get('phone')
+            
+            print("   ✅ Operator login successful!")
+            print(f"   👤 Name: {operator_name}")
+            print(f"   📞 Phone: {operator_phone}")
+            print(f"   👑 Role: {operator_role}")
+            print(f"   🔑 JWT Token received: {operator_token[:50]}...")
+            
+            # Store operator token for further tests
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+            
+            # Verify role is correct
+            if operator_role == 'warehouse_operator':
+                print("   ✅ Operator role correctly set to 'warehouse_operator'")
+            else:
+                print(f"   ❌ Operator role incorrect: expected 'warehouse_operator', got '{operator_role}'")
+                all_success = False
+        else:
+            print("   ❌ Operator login failed - no access token received")
+            print(f"   📄 Response: {login_response}")
+            all_success = False
+            return False
+        
+        # STEP 3: Test operator functions
+        print("\n   🏭 STEP 3: TESTING OPERATOR FUNCTIONS...")
+        
+        # Test 3.1: Access operator warehouses
+        print("\n   📦 Test 3.1: Operator Warehouses Access...")
+        
+        success, warehouses_response = self.run_test(
+            "Get Operator Warehouses",
+            "GET",
+            "/api/operator/warehouses",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            warehouse_count = len(warehouses_response) if isinstance(warehouses_response, list) else 0
+            print(f"   ✅ Operator can access {warehouse_count} warehouses")
+            
+            if warehouse_count > 0:
+                sample_warehouse = warehouses_response[0]
+                warehouse_id = sample_warehouse.get('id')
+                warehouse_name = sample_warehouse.get('name')
+                print(f"   🏭 Sample warehouse: {warehouse_name} (ID: {warehouse_id})")
+            else:
+                print("   ⚠️  No warehouses assigned to operator")
+        else:
+            print("   ❌ Operator cannot access warehouses")
+            all_success = False
+        
+        # Test 3.2: Test cargo acceptance with new payment fields
+        print("\n   💳 Test 3.2: Cargo Acceptance with New Payment Methods...")
+        
+        # Test different payment methods as specified in the request
+        payment_test_cases = [
+            {
+                "name": "Not Paid",
+                "payment_method": "not_paid",
+                "expected_processing_status": "payment_pending"
+            },
+            {
+                "name": "Cash Payment",
+                "payment_method": "cash",
+                "payment_amount": 1500.0,
+                "expected_processing_status": "paid"
+            },
+            {
+                "name": "Card Transfer",
+                "payment_method": "card_transfer",
+                "payment_amount": 2000.0,
+                "expected_processing_status": "paid"
+            },
+            {
+                "name": "Cash on Delivery",
+                "payment_method": "cash_on_delivery",
+                "expected_processing_status": "paid"
+            },
+            {
+                "name": "Credit Payment",
+                "payment_method": "credit",
+                "debt_due_date": "2025-07-15",
+                "expected_processing_status": "paid"
+            }
+        ]
+        
+        for i, test_case in enumerate(payment_test_cases, 1):
+            print(f"\n   💰 Test 3.2.{i}: {test_case['name']} Payment Method...")
+            
+            # Base cargo data
+            cargo_data = {
+                "sender_full_name": f"Тест Отправитель {i}",
+                "sender_phone": f"+7999888777{i}",
+                "recipient_full_name": f"Тест Получатель {i}",
+                "recipient_phone": f"+992999888777{i}",
+                "recipient_address": f"Душанбе, ул. Тестовая, {i}",
+                "weight": 10.0,
+                "cargo_name": f"Тестовый груз {test_case['name']}",
+                "declared_value": 1000.0,
+                "description": f"Тест {test_case['name']} payment method",
+                "route": "moscow_dushanbe",
+                "payment_method": test_case["payment_method"]
+            }
+            
+            # Add payment-specific fields
+            if "payment_amount" in test_case:
+                cargo_data["payment_amount"] = test_case["payment_amount"]
+            if "debt_due_date" in test_case:
+                cargo_data["debt_due_date"] = test_case["debt_due_date"]
+            
+            success, cargo_response = self.run_test(
+                f"Create Cargo with {test_case['name']} Payment",
+                "POST",
+                "/api/operator/cargo/accept",
+                200,
+                cargo_data,
+                operator_token
+            )
+            all_success &= success
+            
+            if success and 'id' in cargo_response:
+                cargo_number = cargo_response.get('cargo_number')
+                processing_status = cargo_response.get('processing_status')
+                payment_method = cargo_response.get('payment_method')
+                
+                print(f"   ✅ Cargo created: {cargo_number}")
+                print(f"   💳 Payment method: {payment_method}")
+                print(f"   📊 Processing status: {processing_status}")
+                
+                # Verify processing status logic
+                expected_status = test_case["expected_processing_status"]
+                if processing_status == expected_status:
+                    print(f"   ✅ Processing status correct: {processing_status}")
+                else:
+                    print(f"   ❌ Processing status incorrect: expected {expected_status}, got {processing_status}")
+                    all_success = False
+            else:
+                print(f"   ❌ Failed to create cargo with {test_case['name']} payment")
+                all_success = False
+        
+        # Test 3.3: Test operator cargo list access
+        print("\n   📋 Test 3.3: Operator Cargo List Access...")
+        
+        success, cargo_list = self.run_test(
+            "Get Operator Cargo List",
+            "GET",
+            "/api/operator/cargo/list",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            cargo_items = cargo_list.get('items', []) if isinstance(cargo_list, dict) else cargo_list if isinstance(cargo_list, list) else []
+            cargo_count = len(cargo_items)
+            print(f"   ✅ Operator can access cargo list with {cargo_count} items")
+            
+            if cargo_count > 0:
+                sample_cargo = cargo_items[0]
+                cargo_number = sample_cargo.get('cargo_number')
+                cargo_status = sample_cargo.get('processing_status')
+                print(f"   📦 Sample cargo: {cargo_number} (status: {cargo_status})")
+        else:
+            print("   ❌ Operator cannot access cargo list")
+            all_success = False
+        
+        # Test 3.4: Test available cargo for placement
+        print("\n   🎯 Test 3.4: Available Cargo for Placement...")
+        
+        success, available_cargo = self.run_test(
+            "Get Available Cargo for Placement",
+            "GET",
+            "/api/operator/cargo/available-for-placement",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            available_items = available_cargo.get('items', []) if isinstance(available_cargo, dict) else available_cargo if isinstance(available_cargo, list) else []
+            available_count = len(available_items)
+            print(f"   ✅ Found {available_count} cargo items available for placement")
+            
+            # Verify only paid cargo is available
+            if available_count > 0:
+                paid_count = 0
+                for cargo in available_items:
+                    if cargo.get('processing_status') in ['paid', 'invoice_printed']:
+                        paid_count += 1
+                
+                if paid_count == available_count:
+                    print("   ✅ Only paid cargo available for placement")
+                else:
+                    print(f"   ❌ Found unpaid cargo in placement list: {available_count - paid_count} unpaid items")
+                    all_success = False
+        else:
+            print("   ❌ Operator cannot access available cargo for placement")
+            all_success = False
+        
+        # SUMMARY
+        print("\n   📊 WAREHOUSE OPERATOR ROLE FIX AND AUTHENTICATION SUMMARY:")
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Warehouse operator role fix successful!")
+            print("   ✅ Operator role fixed to 'warehouse_operator'")
+            print("   ✅ Operator login working (200 OK, JWT token received)")
+            print("   ✅ Operator can access warehouses")
+            print("   ✅ New payment system accessible to operator")
+            print("   ✅ Cargo acceptance with payment methods working")
+            print("   ✅ Operator functions fully operational")
+        else:
+            print("   ❌ SOME TESTS FAILED - Operator role fix needs attention")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
     def test_enhanced_cargo_acceptance_system(self):
         """Test КОМПЛЕКСНЫЕ УЛУЧШЕНИЯ формы приема груза в TAJLINE.TJ"""
         print("\n🎯 ENHANCED CARGO ACCEPTANCE SYSTEM TESTING")
