@@ -22380,6 +22380,8 @@ ID склада: {target_warehouse_id}"""
             ("🔧 WAREHOUSE OPERATOR ROLE FIX AND AUTHENTICATION", self.test_warehouse_operator_role_fix_and_authentication),
             # 🎯 PRIMARY FOCUS: ENHANCED CARGO ACCEPTANCE SYSTEM (Review Request)
             ("🎯 ENHANCED CARGO ACCEPTANCE SYSTEM", self.test_enhanced_cargo_acceptance_system),
+            # 🎯 NEW: WAREHOUSE OPERATOR ISOLATION IMPROVEMENTS (Current Review Request)
+            ("🏭 WAREHOUSE OPERATOR ISOLATION IMPROVEMENTS", self.test_warehouse_operator_isolation_improvements),
             # 🎯 PRIORITY: OPERATOR REGISTRATION AND LOGIN FIX (Review Request)
             ("🔧 OPERATOR REGISTRATION AND LOGIN FIXED", self.test_operator_registration_and_login_fixed),
             # 🎯 PRIMARY FOCUS: TAJLINE.TJ DELETION SYSTEM COMPREHENSIVE TESTING (Review Request)
