@@ -73,6 +73,234 @@ class CargoTransportAPITester:
             print(f"   ❌ FAILED - Exception: {str(e)}")
             return False, {}
 
+    def test_admin_login_fix_and_main_endpoints(self):
+        """Test admin login fix and all main endpoints called during admin login"""
+        print("\n🔧 ADMIN LOGIN FIX AND MAIN ENDPOINTS TESTING")
+        print("   🎯 Testing admin login fix (+79999888777/admin123) and all main endpoints")
+        
+        all_success = True
+        
+        # Test 1: ADMIN LOGIN
+        print("\n   👑 Test 1: ADMIN LOGIN...")
+        
+        admin_login_data = {
+            "phone": "+79999888777",
+            "password": "admin123"
+        }
+        
+        success, login_response = self.run_test(
+            "Admin Login (+79999888777/admin123)",
+            "POST",
+            "/api/auth/login",
+            200,
+            admin_login_data
+        )
+        all_success &= success
+        
+        admin_token = None
+        if success and 'access_token' in login_response:
+            admin_token = login_response['access_token']
+            admin_user = login_response.get('user', {})
+            admin_role = admin_user.get('role')
+            admin_name = admin_user.get('full_name')
+            admin_phone = admin_user.get('phone')
+            
+            print("   ✅ Admin login successful!")
+            print(f"   👤 Name: {admin_name}")
+            print(f"   📞 Phone: {admin_phone}")
+            print(f"   👑 Role: {admin_role}")
+            print(f"   🔑 JWT Token received: {admin_token[:50]}...")
+            
+            # Store admin token for further tests
+            self.tokens['admin'] = admin_token
+            self.users['admin'] = admin_user
+            
+            # Verify role is correct
+            if admin_role == 'admin':
+                print("   ✅ Admin role correctly set to 'admin'")
+            else:
+                print(f"   ❌ Admin role incorrect: expected 'admin', got '{admin_role}'")
+                all_success = False
+        else:
+            print("   ❌ Admin login failed - no access token received")
+            print(f"   📄 Response: {login_response}")
+            all_success = False
+            return False
+        
+        # Test 2: CRITICAL ENDPOINT - /api/admin/debts (was causing 500 error)
+        print("\n   💰 Test 2: ADMIN DEBTS ENDPOINT (CRITICAL FIX)...")
+        
+        success, debts_response = self.run_test(
+            "Admin Debts Endpoint (Critical Fix)",
+            "GET",
+            "/api/admin/debts",
+            200,
+            token=admin_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ /api/admin/debts endpoint working - 500 error fixed!")
+            if isinstance(debts_response, (list, dict)):
+                debt_count = len(debts_response) if isinstance(debts_response, list) else debts_response.get('total_count', 0)
+                print(f"   📊 Found {debt_count} debt records")
+        else:
+            print("   ❌ /api/admin/debts endpoint still failing")
+            all_success = False
+        
+        # Test 3: ADMIN DASHBOARD ANALYTICS
+        print("\n   📊 Test 3: ADMIN DASHBOARD ANALYTICS...")
+        
+        success, analytics_response = self.run_test(
+            "Admin Dashboard Analytics",
+            "GET",
+            "/api/admin/dashboard/analytics",
+            200,
+            token=admin_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ /api/admin/dashboard/analytics endpoint working!")
+            if isinstance(analytics_response, dict):
+                basic_stats = analytics_response.get('basic_stats', {})
+                cargo_stats = analytics_response.get('cargo_stats', {})
+                print(f"   📊 Warehouses: {basic_stats.get('total_warehouses', 0)}")
+                print(f"   📊 Users: {basic_stats.get('total_users', 0)}")
+                print(f"   📊 Cargo: {cargo_stats.get('total_cargo', 0)}")
+        else:
+            print("   ❌ /api/admin/dashboard/analytics endpoint failing")
+            all_success = False
+        
+        # Test 4: ALL MAIN ENDPOINTS CALLED DURING ADMIN LOGIN
+        print("\n   🔗 Test 4: ALL MAIN ENDPOINTS DURING ADMIN LOGIN...")
+        
+        main_endpoints = [
+            ("/api/cargo/all", "All Cargo"),
+            ("/api/admin/users", "Admin Users"),
+            ("/api/warehouses", "Warehouses"),
+            ("/api/operator/cargo/list", "Operator Cargo List"),
+            ("/api/admin/users/by-role/user", "Users by Role"),
+            ("/api/cashier/unpaid-cargo", "Unpaid Cargo"),
+            ("/api/cashier/payment-history", "Payment History"),
+            ("/api/admin/cargo-requests", "Cargo Requests"),
+            ("/api/transport/list", "Transport List"),
+            ("/api/admin/operator-warehouse-bindings", "Operator Warehouse Bindings"),
+            ("/api/admin/operators", "Admin Operators"),
+            ("/api/admin/new-orders-count", "New Orders Count"),
+            ("/api/warehouses/placed-cargo", "Warehouses Placed Cargo")
+        ]
+        
+        endpoint_results = []
+        
+        for endpoint, description in main_endpoints:
+            print(f"\n   🔍 Testing {description} ({endpoint})...")
+            
+            success, response = self.run_test(
+                description,
+                "GET",
+                endpoint,
+                200,
+                token=admin_token
+            )
+            
+            endpoint_results.append({
+                'endpoint': endpoint,
+                'description': description,
+                'success': success,
+                'response': response
+            })
+            
+            if success:
+                print(f"   ✅ {description} working")
+                # Check for JSON serialization issues (no ObjectId errors)
+                if isinstance(response, (dict, list)):
+                    response_str = str(response)
+                    if 'ObjectId' in response_str:
+                        print(f"   ⚠️  Potential ObjectId serialization issue in {description}")
+                        all_success = False
+                    else:
+                        print(f"   ✅ JSON serialization correct for {description}")
+            else:
+                print(f"   ❌ {description} failing")
+                all_success = False
+        
+        # Test 5: CHECK FOR 500 INTERNAL SERVER ERRORS
+        print("\n   🚨 Test 5: 500 INTERNAL SERVER ERROR CHECK...")
+        
+        error_500_count = 0
+        for result in endpoint_results:
+            if not result['success']:
+                # Check if it was a 500 error by making the request again and checking status
+                try:
+                    import requests
+                    url = f"{self.base_url}{result['endpoint']}"
+                    headers = {'Authorization': f'Bearer {admin_token}', 'Content-Type': 'application/json'}
+                    response = requests.get(url, headers=headers)
+                    if response.status_code == 500:
+                        error_500_count += 1
+                        print(f"   ❌ 500 Error in {result['description']} ({result['endpoint']})")
+                except:
+                    pass
+        
+        if error_500_count == 0:
+            print("   ✅ No 500 Internal Server Errors found!")
+        else:
+            print(f"   ❌ Found {error_500_count} endpoints with 500 Internal Server Errors")
+            all_success = False
+        
+        # Test 6: JSON SERIALIZATION CHECK (NO OBJECTID ERRORS)
+        print("\n   🔍 Test 6: JSON SERIALIZATION CHECK...")
+        
+        serialization_issues = 0
+        for result in endpoint_results:
+            if result['success'] and result['response']:
+                try:
+                    import json
+                    json_str = json.dumps(result['response'])
+                    if 'ObjectId' in json_str:
+                        serialization_issues += 1
+                        print(f"   ❌ ObjectId serialization issue in {result['description']}")
+                except Exception as e:
+                    serialization_issues += 1
+                    print(f"   ❌ JSON serialization error in {result['description']}: {str(e)}")
+        
+        if serialization_issues == 0:
+            print("   ✅ All endpoints have correct JSON serialization!")
+        else:
+            print(f"   ❌ Found {serialization_issues} endpoints with JSON serialization issues")
+            all_success = False
+        
+        # SUMMARY
+        print("\n   📊 ADMIN LOGIN FIX AND MAIN ENDPOINTS SUMMARY:")
+        
+        successful_endpoints = sum(1 for result in endpoint_results if result['success'])
+        total_endpoints = len(endpoint_results)
+        success_rate = (successful_endpoints / total_endpoints * 100) if total_endpoints > 0 else 0
+        
+        print(f"   📈 Endpoint Success Rate: {successful_endpoints}/{total_endpoints} ({success_rate:.1f}%)")
+        
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Admin login fix successful!")
+            print("   ✅ Admin login working (+79999888777/admin123)")
+            print("   ✅ /api/admin/debts endpoint fixed (no more 500 error)")
+            print("   ✅ /api/admin/dashboard/analytics working")
+            print("   ✅ All main admin endpoints working")
+            print("   ✅ No 500 Internal Server Errors")
+            print("   ✅ JSON serialization correct (no ObjectId errors)")
+        else:
+            print("   ❌ SOME TESTS FAILED - Admin login fix needs attention")
+            print("   🔍 Check the specific failed tests above for details")
+            
+            # List failed endpoints
+            failed_endpoints = [result for result in endpoint_results if not result['success']]
+            if failed_endpoints:
+                print("   ❌ Failed endpoints:")
+                for result in failed_endpoints:
+                    print(f"     - {result['description']} ({result['endpoint']})")
+        
+        return all_success
+
     def test_warehouse_operator_role_fix_and_authentication(self):
         """Test CRITICAL warehouse operator role fix and authentication for TAJLINE.TJ"""
         print("\n🔧 WAREHOUSE OPERATOR ROLE FIX AND AUTHENTICATION TESTING")
