@@ -5372,38 +5372,11 @@ function App() {
                       </>
                     )}
                     
-                    {/* Системные уведомления */}
-                    {systemNotifications.length > 0 && (
-                      <>
-                        {notifications.length > 0 && <DropdownMenuSeparator />}
-                        <div className="px-3 py-1 bg-gray-50">
-                          <p className="text-xs font-medium text-gray-600">Системные уведомления</p>
-                        </div>
-                        {systemNotifications.slice(0, 5).map((notification) => (
-                          <DropdownMenuItem key={`system-${notification.id}`} className="flex-col items-start p-3 cursor-default">
-                            <div className={`w-full ${!notification.is_read ? 'font-medium' : ''}`}>
-                              <p className="text-sm leading-tight">{notification.message}</p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                {new Date(notification.created_at).toLocaleString('ru-RU')}
-                              </p>
-                              {!notification.is_read && (
-                                <span className="inline-block w-2 h-2 bg-red-500 rounded-full mt-1"></span>
-                              )}
-                            </div>
-                          </DropdownMenuItem>
-                        ))}
-                        {systemNotifications.length > 5 && (
-                          <div className="px-3 py-1 text-xs text-gray-500 text-center">
-                            И еще {systemNotifications.length - 5} уведомлений...
-                          </div>
-                        )}
-                      </>
-                    )}
-                    
-                    {/* Если нет уведомлений */}
-                    {notifications.length === 0 && systemNotifications.length === 0 && (
-                      <div className="px-3 py-8 text-center text-gray-500 text-sm">
-                        Нет уведомлений
+                    {/* Пустое состояние */}
+                    {notifications.length === 0 && (
+                      <div className="p-4 text-center text-gray-500">
+                        <Bell className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                        <p className="text-sm">Нет уведомлений</p>
                       </div>
                     )}
                   </DropdownMenuContent>
