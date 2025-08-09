@@ -1119,7 +1119,7 @@ function App() {
       } else {
         fetchMyCargo();
         fetchMyRequests();
-        fetchSystemNotifications();
+        fetchNotifications(); // Новая система уведомлений
         // Новые функции для клиентского дашборда (Функция 1)
         fetchClientDashboard();
         fetchClientCargo();
