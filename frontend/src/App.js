@@ -3836,6 +3836,7 @@ function App() {
       showAlert(paymentMessages[operatorCargoForm.payment_method] || 'Груз успешно принят!', 'success');
       
       // Сброс формы
+      const warehouseId = operatorWarehouses.length === 1 ? operatorWarehouses[0].id : '';
       setOperatorCargoForm({
         sender_full_name: '',
         sender_phone: '',
@@ -3849,7 +3850,12 @@ function App() {
         route: 'moscow_to_tajikistan',
         cargo_items: [{ cargo_name: '', weight: '', price_per_kg: '' }],
         price_per_kg: '',
-        use_multi_cargo: false
+        use_multi_cargo: false,
+        // НОВЫЕ ПОЛЯ - сброс
+        warehouse_id: warehouseId,  // Сохраняем автовыбранный склад
+        payment_method: 'not_paid',
+        payment_amount: '',
+        debt_due_date: ''
       });
       
       // Сброс калькулятора
