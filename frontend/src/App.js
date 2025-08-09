@@ -9368,7 +9368,10 @@ function App() {
                                       <Grid3X3 className="mr-2 h-4 w-4" />
                                       Просмотр схемы склада
                                     </Button>
-                                    <Button variant="outline">
+                                    <Button 
+                                      variant="outline"
+                                      onClick={() => openWarehouseReport(warehouse)}
+                                    >
                                       <FileText className="mr-2 h-4 w-4" />
                                       Отчет по складу
                                     </Button>
