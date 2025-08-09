@@ -7179,6 +7179,95 @@ function App() {
                             />
                           </div>
 
+                          {/* НОВЫЕ ПОЛЯ ДЛЯ УЛУЧШЕННОЙ СИСТЕМЫ */}
+                          
+                          {/* Выбор склада */}
+                          <div>
+                            <Label htmlFor="warehouse_id">Склад</Label>
+                            <Select 
+                              value={operatorCargoForm.warehouse_id} 
+                              onValueChange={(value) => setOperatorCargoForm({...operatorCargoForm, warehouse_id: value})}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={
+                                  operatorWarehouses.length === 0 
+                                    ? "Загрузка складов..." 
+                                    : operatorWarehouses.length === 1 
+                                      ? `${operatorWarehouses[0]?.name} (автовыбор)`
+                                      : "Выберите склад"
+                                } />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {operatorWarehouses.map((warehouse) => (
+                                  <SelectItem key={warehouse.id} value={warehouse.id}>
+                                    {warehouse.name} - {warehouse.location}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {operatorWarehouses.length === 1 && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                У вас привязан только один склад, он будет выбран автоматически
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Способ оплаты */}
+                          <div>
+                            <Label htmlFor="payment_method">Способ оплаты</Label>
+                            <Select 
+                              value={operatorCargoForm.payment_method} 
+                              onValueChange={(value) => setOperatorCargoForm({
+                                ...operatorCargoForm, 
+                                payment_method: value,
+                                payment_amount: value === 'cash' || value === 'card_transfer' ? operatorCargoForm.payment_amount : '',
+                                debt_due_date: value === 'credit' ? operatorCargoForm.debt_due_date : ''
+                              })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="not_paid">Не оплачено</SelectItem>
+                                <SelectItem value="cash">Оплата наличными</SelectItem>
+                                <SelectItem value="card_transfer">Перевод на карту</SelectItem>
+                                <SelectItem value="cash_on_delivery">Оплата при получении</SelectItem>
+                                <SelectItem value="credit">Оплата в долг</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Поле суммы оплаты (только для наличных и карты) */}
+                          {(operatorCargoForm.payment_method === 'cash' || operatorCargoForm.payment_method === 'card_transfer') && (
+                            <div>
+                              <Label htmlFor="payment_amount">Сумма оплаты (сом)</Label>
+                              <Input
+                                id="payment_amount"
+                                type="number"
+                                step="0.01"
+                                value={operatorCargoForm.payment_amount}
+                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, payment_amount: e.target.value})}
+                                placeholder="Введите сумму оплаты"
+                                required={operatorCargoForm.payment_method === 'cash' || operatorCargoForm.payment_method === 'card_transfer'}
+                              />
+                            </div>
+                          )}
+
+                          {/* Дата погашения долга (только для оплаты в долг) */}
+                          {operatorCargoForm.payment_method === 'credit' && (
+                            <div>
+                              <Label htmlFor="debt_due_date">Дата погашения долга</Label>
+                              <Input
+                                id="debt_due_date"
+                                type="date"
+                                value={operatorCargoForm.debt_due_date}
+                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, debt_due_date: e.target.value})}
+                                required
+                                min={new Date().toISOString().split('T')[0]}
+                              />
+                            </div>
+                          )}
+
                           {/* Кнопки действий */}
                           <div className="flex flex-col gap-4">
                             {/* Кнопки печати */}
