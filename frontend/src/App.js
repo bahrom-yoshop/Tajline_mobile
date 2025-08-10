@@ -4318,11 +4318,16 @@ function App() {
   const updateCargoItem = (index, field, value) => {
     const newItems = [...operatorCargoForm.cargo_items];
     newItems[index] = { ...newItems[index], [field]: value };
-    setOperatorCargoForm({
-      ...operatorCargoForm,
+    
+    setOperatorCargoForm(prev => ({
+      ...prev,
       cargo_items: newItems
-    });
-    calculateTotalsWithIndividualPrices(newItems);
+    }));
+    
+    // Debounce пересчет итогов только для числовых полей
+    if (field === 'weight' || field === 'price_per_kg') {
+      setTimeout(() => calculateTotalsWithIndividualPrices(newItems), 100);
+    }
   };
 
   const calculateTotalsWithIndividualPrices = (cargoItems = operatorCargoForm.cargo_items) => {
