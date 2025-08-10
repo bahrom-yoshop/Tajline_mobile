@@ -25369,6 +25369,356 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_enhanced_operator_dashboard_analytics(self):
+        """Test улучшенный endpoint /api/operator/dashboard/analytics с детальной аналитикой по назначениям грузов"""
+        print("\n📊 ENHANCED OPERATOR DASHBOARD ANALYTICS TESTING")
+        print("   🎯 Testing improved /api/operator/dashboard/analytics endpoint with cargo destinations logic")
+        
+        all_success = True
+        
+        # Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРА СКЛАДА
+        print("\n   🔐 Test 1: WAREHOUSE OPERATOR AUTHENTICATION...")
+        
+        # Login as warehouse operator (+79777888999/warehouse123)
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            print(f"   📞 Phone: {operator_user.get('phone')}")
+            
+            # Store operator token for further tests
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+            
+            # Verify role is correct
+            if operator_role == 'warehouse_operator':
+                print("   ✅ Operator role correctly set to 'warehouse_operator'")
+            else:
+                print(f"   ❌ Operator role incorrect: expected 'warehouse_operator', got '{operator_role}'")
+                all_success = False
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+            return False
+        
+        # Test 2: ДОСТУПНОСТЬ ENDPOINT'А
+        print("\n   📡 Test 2: ENDPOINT ACCESSIBILITY...")
+        
+        success, analytics_response = self.run_test(
+            "Get Operator Dashboard Analytics",
+            "GET",
+            "/api/operator/dashboard/analytics",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if not success:
+            print("   ❌ Operator cannot access dashboard analytics endpoint")
+            all_success = False
+            return False
+        
+        print("   ✅ Operator can access dashboard analytics endpoint")
+        
+        # Test 3: СТРУКТУРА ОТВЕТА
+        print("\n   📋 Test 3: RESPONSE STRUCTURE VERIFICATION...")
+        
+        if analytics_response and isinstance(analytics_response, dict):
+            print("   ✅ Response is a valid dictionary")
+            
+            # Check required top-level fields
+            required_fields = [
+                'operator_info',
+                'summary_stats',
+                'clients_stats',
+                'cargo_by_destinations'
+            ]
+            
+            missing_fields = []
+            for field in required_fields:
+                if field not in analytics_response:
+                    missing_fields.append(field)
+                else:
+                    field_value = analytics_response[field]
+                    print(f"   ✅ {field}: {type(field_value).__name__}")
+            
+            if missing_fields:
+                print(f"   ❌ Missing required fields: {missing_fields}")
+                all_success = False
+            else:
+                print("   ✅ All required top-level fields present")
+        else:
+            print("   ❌ Response is not a valid dictionary")
+            all_success = False
+            return False
+        
+        # Test 4: OPERATOR INFO VERIFICATION
+        print("\n   👤 Test 4: OPERATOR INFO VERIFICATION...")
+        
+        operator_info = analytics_response.get('operator_info', {})
+        if isinstance(operator_info, dict):
+            required_operator_fields = [
+                'operator_name',
+                'operator_phone', 
+                'assigned_warehouses_count',
+                'total_operators_on_my_warehouses',
+                'total_operators_assignments'
+            ]
+            
+            operator_missing = [field for field in required_operator_fields if field not in operator_info]
+            
+            if not operator_missing:
+                print("   ✅ Operator info has all required fields")
+                print(f"   👤 Operator: {operator_info.get('operator_name')}")
+                print(f"   📞 Phone: {operator_info.get('operator_phone')}")
+                print(f"   🏭 Assigned warehouses: {operator_info.get('assigned_warehouses_count')}")
+                print(f"   👥 Total operators on my warehouses: {operator_info.get('total_operators_on_my_warehouses')}")
+                print(f"   📋 Total operator assignments: {operator_info.get('total_operators_assignments')}")
+                
+                # Verify data types
+                if isinstance(operator_info.get('total_operators_on_my_warehouses'), int):
+                    print("   ✅ total_operators_on_my_warehouses is integer")
+                else:
+                    print(f"   ❌ total_operators_on_my_warehouses wrong type: {type(operator_info.get('total_operators_on_my_warehouses'))}")
+                    all_success = False
+                    
+                if isinstance(operator_info.get('total_operators_assignments'), int):
+                    print("   ✅ total_operators_assignments is integer")
+                else:
+                    print(f"   ❌ total_operators_assignments wrong type: {type(operator_info.get('total_operators_assignments'))}")
+                    all_success = False
+            else:
+                print(f"   ❌ Operator info missing fields: {operator_missing}")
+                all_success = False
+        else:
+            print(f"   ❌ operator_info is not a dict: {type(operator_info)}")
+            all_success = False
+        
+        # Test 5: CARGO BY DESTINATIONS VERIFICATION (MAIN FOCUS)
+        print("\n   🎯 Test 5: CARGO BY DESTINATIONS VERIFICATION (MAIN FOCUS)...")
+        
+        cargo_by_destinations = analytics_response.get('cargo_by_destinations', {})
+        if isinstance(cargo_by_destinations, dict):
+            destinations_count = len(cargo_by_destinations)
+            print(f"   📊 Found {destinations_count} destinations in cargo_by_destinations")
+            
+            if destinations_count > 0:
+                print("   ✅ cargo_by_destinations contains data (not empty)")
+                
+                # Expected destinations
+                expected_destinations = ['Москва', 'Душанбе', 'Худжанд', 'Кулоб', 'Курган-Тюбе']
+                
+                print("   🔍 Checking for expected destinations...")
+                found_destinations = []
+                
+                for destination_key, destination_data in cargo_by_destinations.items():
+                    print(f"   📍 Destination: {destination_key}")
+                    
+                    # Check if destination is in expected list
+                    destination_found = False
+                    for expected in expected_destinations:
+                        if expected.lower() in destination_key.lower():
+                            found_destinations.append(expected)
+                            destination_found = True
+                            break
+                    
+                    if destination_found:
+                        print(f"   ✅ {destination_key} matches expected destination")
+                    else:
+                        print(f"   ⚠️  {destination_key} is not in expected destinations list")
+                    
+                    # Verify destination data structure
+                    if isinstance(destination_data, dict):
+                        required_dest_fields = ['cargo_count', 'total_weight', 'total_value']
+                        dest_missing = [field for field in required_dest_fields if field not in destination_data]
+                        
+                        if not dest_missing:
+                            cargo_count = destination_data.get('cargo_count', 0)
+                            total_weight = destination_data.get('total_weight', 0)
+                            total_value = destination_data.get('total_value', 0)
+                            
+                            print(f"   ✅ {destination_key}: {cargo_count} cargo, {total_weight} kg, {total_value} руб")
+                            
+                            # Verify data types
+                            if isinstance(cargo_count, int) and cargo_count >= 0:
+                                print(f"   ✅ cargo_count valid: {cargo_count}")
+                            else:
+                                print(f"   ❌ cargo_count invalid: {cargo_count} ({type(cargo_count)})")
+                                all_success = False
+                            
+                            if isinstance(total_weight, (int, float)) and total_weight >= 0:
+                                print(f"   ✅ total_weight valid: {total_weight}")
+                            else:
+                                print(f"   ❌ total_weight invalid: {total_weight} ({type(total_weight)})")
+                                all_success = False
+                            
+                            if isinstance(total_value, (int, float)) and total_value >= 0:
+                                print(f"   ✅ total_value valid: {total_value}")
+                            else:
+                                print(f"   ❌ total_value invalid: {total_value} ({type(total_value)})")
+                                all_success = False
+                        else:
+                            print(f"   ❌ Destination {destination_key} missing fields: {dest_missing}")
+                            all_success = False
+                    else:
+                        print(f"   ❌ Destination {destination_key} data is not a dict: {type(destination_data)}")
+                        all_success = False
+                
+                # Summary of found destinations
+                print(f"\n   📊 DESTINATIONS SUMMARY:")
+                print(f"   🎯 Expected destinations: {expected_destinations}")
+                print(f"   ✅ Found destinations: {found_destinations}")
+                
+                if len(found_destinations) > 0:
+                    print(f"   ✅ Destination determination logic working: {len(found_destinations)}/{len(expected_destinations)} expected destinations found")
+                else:
+                    print("   ❌ No expected destinations found - destination logic may need improvement")
+                    all_success = False
+            else:
+                print("   ❌ cargo_by_destinations is empty - no destination data found")
+                print("   🔍 This was the main issue in previous testing")
+                all_success = False
+        else:
+            print(f"   ❌ cargo_by_destinations is not a dict: {type(cargo_by_destinations)}")
+            all_success = False
+        
+        # Test 6: CARGO VALUE CALCULATION CORRECTNESS
+        print("\n   💰 Test 6: CARGO VALUE CALCULATION CORRECTNESS...")
+        
+        if cargo_by_destinations and isinstance(cargo_by_destinations, dict):
+            total_calculated_value = 0
+            total_calculated_weight = 0
+            total_calculated_count = 0
+            
+            for destination_key, destination_data in cargo_by_destinations.items():
+                if isinstance(destination_data, dict):
+                    cargo_count = destination_data.get('cargo_count', 0)
+                    total_weight = destination_data.get('total_weight', 0)
+                    total_value = destination_data.get('total_value', 0)
+                    
+                    total_calculated_count += cargo_count
+                    total_calculated_weight += total_weight
+                    total_calculated_value += total_value
+                    
+                    # Check if values are reasonable
+                    if cargo_count > 0:
+                        avg_weight_per_cargo = total_weight / cargo_count
+                        avg_value_per_cargo = total_value / cargo_count
+                        
+                        print(f"   📊 {destination_key}: avg {avg_weight_per_cargo:.1f} kg/cargo, avg {avg_value_per_cargo:.1f} руб/cargo")
+                        
+                        # Reasonable ranges check
+                        if 0.1 <= avg_weight_per_cargo <= 1000:  # 0.1kg to 1000kg per cargo
+                            print(f"   ✅ Average weight per cargo reasonable: {avg_weight_per_cargo:.1f} kg")
+                        else:
+                            print(f"   ⚠️  Average weight per cargo unusual: {avg_weight_per_cargo:.1f} kg")
+                        
+                        if 10 <= avg_value_per_cargo <= 1000000:  # 10 руб to 1M руб per cargo
+                            print(f"   ✅ Average value per cargo reasonable: {avg_value_per_cargo:.1f} руб")
+                        else:
+                            print(f"   ⚠️  Average value per cargo unusual: {avg_value_per_cargo:.1f} руб")
+            
+            print(f"\n   📊 TOTALS ACROSS ALL DESTINATIONS:")
+            print(f"   📦 Total cargo count: {total_calculated_count}")
+            print(f"   ⚖️  Total weight: {total_calculated_weight} kg")
+            print(f"   💰 Total value: {total_calculated_value} руб")
+            
+            if total_calculated_count > 0:
+                print("   ✅ Cargo value calculations appear to be working")
+            else:
+                print("   ❌ No cargo found in destinations - calculations cannot be verified")
+                all_success = False
+        
+        # Test 7: DATA ISOLATION (OPERATOR SEES ONLY THEIR WAREHOUSES' CARGO)
+        print("\n   🔒 Test 7: DATA ISOLATION VERIFICATION...")
+        
+        summary_stats = analytics_response.get('summary_stats', {})
+        if isinstance(summary_stats, dict):
+            operator_cargo_count = summary_stats.get('total_cargo_on_my_warehouses', 0)
+            print(f"   🏭 Operator sees {operator_cargo_count} cargo on their warehouses")
+            
+            # Compare with admin to verify isolation
+            if 'admin' not in self.tokens:
+                admin_login_data = {
+                    "phone": "+79999888777",
+                    "password": "admin123"
+                }
+                
+                success, admin_login_response = self.run_test(
+                    "Admin Login for Comparison",
+                    "POST",
+                    "/api/auth/login",
+                    200,
+                    admin_login_data
+                )
+                
+                if success and 'access_token' in admin_login_response:
+                    self.tokens['admin'] = admin_login_response['access_token']
+                    self.users['admin'] = admin_login_response.get('user', {})
+            
+            if 'admin' in self.tokens:
+                success, admin_analytics = self.run_test(
+                    "Admin Dashboard Analytics for Comparison",
+                    "GET",
+                    "/api/admin/dashboard/analytics",
+                    200,
+                    token=self.tokens['admin']
+                )
+                
+                if success and isinstance(admin_analytics, dict):
+                    admin_cargo_stats = admin_analytics.get('cargo_stats', {})
+                    admin_total_cargo = admin_cargo_stats.get('total_cargo', 0)
+                    
+                    print(f"   👑 Admin sees {admin_total_cargo} total cargo")
+                    print(f"   🏭 Operator sees {operator_cargo_count} cargo on their warehouses")
+                    
+                    if operator_cargo_count <= admin_total_cargo:
+                        print("   ✅ Data isolation working - operator sees same or fewer cargo than admin")
+                    else:
+                        print("   ❌ Data isolation broken - operator sees more cargo than admin")
+                        all_success = False
+                else:
+                    print("   ❌ Could not get admin analytics for comparison")
+        
+        # SUMMARY
+        print("\n   📊 ENHANCED OPERATOR DASHBOARD ANALYTICS SUMMARY:")
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Enhanced operator dashboard analytics working!")
+            print("   ✅ Warehouse operator authentication successful")
+            print("   ✅ Dashboard analytics endpoint accessible")
+            print("   ✅ Response structure correct")
+            print("   ✅ Operator info fields present and valid")
+            print("   ✅ cargo_by_destinations contains data (not empty)")
+            print("   ✅ Destination determination logic working")
+            print("   ✅ Cargo value calculations correct")
+            print("   ✅ Data isolation working properly")
+        else:
+            print("   ❌ SOME TESTS FAILED - Enhanced operator dashboard analytics needs attention")
+            print("   🔍 Check the specific failed tests above for details")
+            if not cargo_by_destinations or len(cargo_by_destinations) == 0:
+                print("   ⚠️  MAIN ISSUE: cargo_by_destinations is empty - destination logic needs improvement")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
