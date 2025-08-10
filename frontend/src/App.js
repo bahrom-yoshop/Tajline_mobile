@@ -16567,6 +16567,206 @@ function App() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* QR код созданного груза */}
+      <Dialog open={showCreatedCargoQRModal} onOpenChange={setShowCreatedCargoQRModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <QrCode className="mr-2 h-5 w-5" />
+              QR код груза готов!
+            </DialogTitle>
+            <DialogDescription>
+              Груз успешно создан. Используйте QR код для всех операций с грузом.
+            </DialogDescription>
+          </DialogHeader>
+          {createdCargoQR && (
+            <div className="space-y-4">
+              <div className="text-center">
+                <img 
+                  src={createdCargoQR.qr_code} 
+                  alt={`QR код груза ${createdCargoQR.cargo_number}`}
+                  className="mx-auto max-w-[200px] border rounded-lg"
+                />
+                <p className="mt-2 font-bold text-lg">{createdCargoQR.cargo_number}</p>
+                <p className="text-sm text-green-600">{createdCargoQR.message}</p>
+              </div>
+              
+              <div className="bg-gray-50 p-3 rounded-lg text-sm space-y-1">
+                <div><strong>Отправитель:</strong> {createdCargoQR.cargo_info?.sender_name}</div>
+                <div><strong>Получатель:</strong> {createdCargoQR.cargo_info?.recipient_name}</div>
+                <div><strong>Груз:</strong> {createdCargoQR.cargo_info?.cargo_name}</div>
+                <div><strong>Вес:</strong> {createdCargoQR.cargo_info?.weight} кг</div>
+                <div><strong>Оплата:</strong> {getPaymentMethodText(createdCargoQR.cargo_info?.payment_method)}</div>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button 
+                  className="flex-1" 
+                  onClick={() => {
+                    const printWindow = window.open('', '_blank');
+                    const printContent = `
+                      <html>
+                        <head>
+                          <title>QR код груза ${createdCargoQR.cargo_number}</title>
+                          <style>
+                            body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }
+                            .qr-container { border: 2px solid #333; padding: 20px; max-width: 400px; margin: 0 auto; }
+                            .qr-code img { width: 200px; height: 200px; margin: 10px 0; }
+                            .info { text-align: left; margin-top: 15px; line-height: 1.4; }
+                          </style>
+                        </head>
+                        <body>
+                          <div class="qr-container">
+                            <h2>ГРУЗ TAJLINE.TJ</h2>
+                            <div class="qr-code">
+                              <img src="${createdCargoQR.qr_code}" alt="QR код груза" />
+                            </div>
+                            <div class="info">
+                              <div><strong>Номер груза:</strong> ${createdCargoQR.cargo_number}</div>
+                              <div><strong>Отправитель:</strong> ${createdCargoQR.cargo_info?.sender_name}</div>
+                              <div><strong>Получатель:</strong> ${createdCargoQR.cargo_info?.recipient_name}</div>
+                              <div><strong>Груз:</strong> ${createdCargoQR.cargo_info?.cargo_name}</div>
+                              <div><strong>Вес:</strong> ${createdCargoQR.cargo_info?.weight} кг</div>
+                            </div>
+                            <div style="margin-top: 15px; font-size: 12px;">
+                              Сканируйте для операций с грузом
+                            </div>
+                          </div>
+                        </body>
+                      </html>
+                    `;
+                    printWindow.document.write(printContent);
+                    printWindow.document.close();
+                    printWindow.print();
+                  }}
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Печать QR кода
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowCreatedCargoQRModal(false)}
+                >
+                  Закрыть
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Сканированный груз */}
+      <Dialog open={showScannedCargoModal} onOpenChange={setShowScannedCargoModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Package className="mr-2 h-5 w-5" />
+              Информация о грузе
+            </DialogTitle>
+            <DialogDescription>
+              Результат сканирования QR кода
+            </DialogDescription>
+          </DialogHeader>
+          {scannedCargoInfo && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-bold text-lg mb-2">{scannedCargoInfo.cargo_number}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p><strong>Груз:</strong> {scannedCargoInfo.cargo_name}</p>
+                    <p><strong>Вес:</strong> {scannedCargoInfo.weight} кг</p>
+                    <p><strong>Стоимость:</strong> {scannedCargoInfo.declared_value} ₽</p>
+                  </div>
+                  <div>
+                    <p><strong>Отправитель:</strong> {scannedCargoInfo.sender_name}</p>
+                    <p><strong>Получатель:</strong> {scannedCargoInfo.recipient_name}</p>
+                    <p><strong>Телефон:</strong> {scannedCargoInfo.recipient_phone}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="font-medium">Статус груза</p>
+                  <p className="text-blue-600">{getStatusText(scannedCargoInfo.status)}</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="font-medium">Обработка</p>
+                  <p className="text-green-600">{getProcessingStatusText(scannedCargoInfo.processing_status)}</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="font-medium">Оплата</p>
+                  <p className="text-orange-600">{getPaymentStatusText(scannedCargoInfo.payment_status)}</p>
+                </div>
+              </div>
+              
+              {(scannedCargoInfo.block_number || scannedCargoInfo.warehouse_name) && (
+                <div className="bg-green-50 p-3 rounded-lg">
+                  <p className="font-medium mb-1">Местоположение</p>
+                  <p className="text-sm">
+                    {scannedCargoInfo.warehouse_name}
+                    {scannedCargoInfo.block_number && `, Блок ${scannedCargoInfo.block_number}`}
+                    {scannedCargoInfo.shelf_number && `, Полка ${scannedCargoInfo.shelf_number}`}
+                    {scannedCargoInfo.cell_number && `, Ячейка ${scannedCargoInfo.cell_number}`}
+                  </p>
+                </div>
+              )}
+              
+              {scannedCargoInfo.available_operations && scannedCargoInfo.available_operations.length > 0 && (
+                <div>
+                  <p className="font-medium mb-2">Доступные операции:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {scannedCargoInfo.available_operations.map((operation, index) => (
+                      <Button 
+                        key={index}
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleCargoOperation(operation, scannedCargoInfo)}
+                      >
+                        {getOperationText(operation)}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex justify-end">
+                <Button onClick={() => setShowScannedCargoModal(false)}>
+                  Закрыть
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* QR сканер */}
+      <Dialog open={showQRScannerModal} onOpenChange={setShowQRScannerModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Camera className="mr-2 h-5 w-5" />
+              Сканирование QR кода груза
+            </DialogTitle>
+            <DialogDescription>
+              Наведите камеру на QR код груза для получения информации
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-black rounded-lg overflow-hidden" style={{aspectRatio: '1/1'}}>
+              <div id="qr-reader" style={{width: '100%', height: '100%'}}></div>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={stopCargoQRScanner}
+              className="w-full"
+            >
+              Остановить сканирование
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
