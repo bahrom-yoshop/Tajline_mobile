@@ -1276,19 +1276,6 @@ function App() {
       setOperatorAnalyticsLoading(false);
     }
   };
-    if (user?.role !== 'warehouse_operator') return;
-    
-    setOperatorAnalyticsLoading(true);
-    try {
-      const response = await apiCall('/api/operator/dashboard/analytics', 'GET');
-      setOperatorDashboardAnalytics(response);
-    } catch (error) {
-      console.error('Error fetching operator dashboard analytics:', error);
-      showAlert('Ошибка загрузки аналитики дашборда оператора', 'error');
-    } finally {
-      setOperatorAnalyticsLoading(false);
-    }
-  };
 
   // Функция управления ролями
   const handleRoleChange = async () => {
