@@ -8641,15 +8641,23 @@ function App() {
                           <div>
                             <Label htmlFor="route">Маршрут доставки</Label>
                             <Select 
+                              key="route-select"
                               value={operatorCargoForm.route} 
-                              onValueChange={(value) => setOperatorCargoForm({...operatorCargoForm, route: value, warehouse_id: ''})}
+                              onValueChange={(value) => {
+                                setOperatorCargoForm(prev => ({
+                                  ...prev, 
+                                  route: value, 
+                                  warehouse_id: ''
+                                }));
+                                fetchWarehousesByRoute(value);
+                              }}
                             >
-                              <SelectTrigger>
+                              <SelectTrigger key="route-trigger">
                                 <SelectValue placeholder="Выберите маршрут" />
                               </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem key="moscow_to_tajikistan_2" value="moscow_to_tajikistan">Москва → Таджикистан</SelectItem>
-                                <SelectItem key="tajikistan_to_moscow_2" value="tajikistan_to_moscow">Таджикистан → Москва</SelectItem>
+                              <SelectContent key="route-content">
+                                <SelectItem key="route-moscow-to-tajikistan" value="moscow_to_tajikistan">Москва → Таджикистан</SelectItem>
+                                <SelectItem key="route-tajikistan-to-moscow" value="tajikistan_to_moscow">Таджикистан → Москва</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
