@@ -137,6 +137,18 @@
 user_problem_statement: "Протестировать исправления в форме приема заявок и новые endpoints для штрихкодов/накладных: 1) Протестировать исправленный endpoint /api/operator/cargo/accept с улучшенной JSON обработкой, 2) Протестировать новый endpoint /api/cargo/batch/{cargo_numbers}/qr-codes для генерации штрихкодов, 3) Протестировать новый endpoint /api/cargo/invoice/{cargo_numbers} для генерации накладных, 4) Проверить авторизацию оператора (+79777888999/warehouse123), 5) Проверить что ошибка 'Selected warehouse is not assigned to this operator' исправлена, 6) Проверить что нет ошибок 'Unexpected end of JSON input'. Сосредоточиться на функциональности приема груза и новых функциях генерации документов."
 
 backend:
+  - task: "QR Code System Comprehensive Testing"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "🎉 QR CODE SYSTEM COMPREHENSIVE TESTING COMPLETED SUCCESSFULLY! All QR code functionality working perfectly: 1) ✅ AUTOMATIC QR CODE GENERATION: QR codes automatically generated during cargo creation with correct base64 PNG format and display messages containing cargo numbers, 2) ✅ QR CODE SCANNING ENDPOINT: Fixed critical issue where scanning function was looking for 'ГРУЗ TAJLINE.TJ' and 'Номер:' format but QR generation was using 'ГРУЗ №{cargo_number}' format. Updated scanning logic to match actual QR format. /api/cargo/scan-qr now working perfectly with 200 status, returning complete cargo information and available operations, 3) ✅ ENHANCED QR GENERATION ENDPOINTS: Both /api/cargo/generate-application-qr/{cargo_number} and /api/cargo/batch/{cargo_numbers}/qr-codes working correctly with proper response structure and base64 PNG QR codes, 4) ✅ COMPLETE QR WORKFLOW: End-to-end workflow tested successfully - cargo creation → QR generation → QR scanning → batch QR generation all working seamlessly, 5) ✅ AVAILABLE OPERATIONS: System correctly determines available operations based on user role (operators get: view_details, print_label, generate_qr, track_history, place_in_warehouse). SUCCESS RATE: 100% (9/9 tests passed). QR code system fully functional and ready for production use."
+
   - task: "React DOM Fixes Backend Support"
     implemented: true
     working: false
