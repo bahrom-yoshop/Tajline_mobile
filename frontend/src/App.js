@@ -574,13 +574,31 @@ function App() {
       
       if (cameras && cameras.length > 0) {
         setCameraPermission(true);
-        // Предпочтительно задняя камера для мобильных устройств
-        const backCamera = cameras.find(camera => 
-          camera.label.toLowerCase().includes('back') || 
-          camera.label.toLowerCase().includes('rear') ||
-          camera.label.toLowerCase().includes('environment')
-        );
-        setSelectedCamera(backCamera ? backCamera.id : cameras[0].id);
+        
+        // Улучшенная логика выбора задней камеры
+        console.log('Available cameras:', cameras.map(c => ({ id: c.id, label: c.label })));
+        
+        let backCamera = cameras.find(camera => {
+          const label = camera.label.toLowerCase();
+          return label.includes('back') || 
+                 label.includes('rear') ||
+                 label.includes('environment') ||
+                 label.includes('0') || // Часто задняя камера имеет индекс 0
+                 label.includes('facing back');
+        });
+
+        // Если не найдена задняя камера по названию, берем последнюю (часто это задняя)
+        if (!backCamera && cameras.length > 1) {
+          backCamera = cameras[cameras.length - 1];
+        }
+
+        // Если все еще не найдена, берем первую
+        if (!backCamera) {
+          backCamera = cameras[0];
+        }
+
+        console.log('Selected camera for QR scanning:', backCamera.label);
+        setSelectedCamera(backCamera.id);
         return true;
       } else {
         setCameraPermission(false);
