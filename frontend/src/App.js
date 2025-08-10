@@ -3317,11 +3317,11 @@ function App() {
                 ${cargoItems.map((item, index) => `
                   <tr>
                     <td>${index + 1}</td>
-                    <td class="item-name">${item.name}</td>
-                    <td>${item.quantity}</td>
-                    <td>${item.unit}</td>
-                    <td>${item.price.toFixed(2)}</td>
-                    <td>${item.total.toFixed(2)}</td>
+                    <td class="item-name">${item.name || 'Не указано'}</td>
+                    <td>${item.quantity || 1}</td>
+                    <td>${item.unit || 'шт'}</td>
+                    <td>${(parseFloat(item.price) || 0).toFixed(2)}</td>
+                    <td>${(parseFloat(item.total) || 0).toFixed(2)}</td>
                   </tr>
                 `).join('')}
                 <tr class="total-row">
