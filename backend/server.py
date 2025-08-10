@@ -7189,12 +7189,36 @@ async def get_operator_dashboard_analytics(
         total_unpaid_cargo = sum(wd["financial"]["unpaid_cargo"] for wd in warehouses_details)
         total_debt_amount = sum(wd["financial"]["debt_amount"] for wd in warehouses_details)
         
+        # Общая статистика операторов по всем складам
+        all_operators_assigned = set()
+        total_operators_assignments = 0
+        for wd in warehouses_details:
+            total_operators_assignments += wd["operators_info"]["assigned_operators_count"]
+            for operator in wd["operators_info"]["operators_list"]:
+                all_operators_assigned.add(operator["operator_id"])
+        
+        # Общая статистика грузов по назначениям
+        combined_cargo_destinations = {}
+        for wd in warehouses_details:
+            for destination, dest_data in wd["cargo_destinations"].items():
+                if destination not in combined_cargo_destinations:
+                    combined_cargo_destinations[destination] = {
+                        'cargo_count': 0,
+                        'total_weight': 0,
+                        'total_value': 0
+                    }
+                combined_cargo_destinations[destination]['cargo_count'] += dest_data['cargo_count']
+                combined_cargo_destinations[destination]['total_weight'] += dest_data['total_weight']
+                combined_cargo_destinations[destination]['total_value'] += dest_data['total_value']
+        
         # Возвращаем детальную аналитику только по складам оператора
         analytics = {
             "operator_info": {
                 "operator_name": current_user.full_name,
                 "operator_phone": current_user.phone,
-                "assigned_warehouses_count": len(operator_warehouse_ids)
+                "assigned_warehouses_count": len(operator_warehouse_ids),
+                "total_operators_on_my_warehouses": len(all_operators_assigned),
+                "total_operators_assignments": total_operators_assignments
             },
             "warehouses_details": warehouses_details,
             "summary_stats": {
@@ -7206,10 +7230,13 @@ async def get_operator_dashboard_analytics(
                 "total_cells": total_cells,
                 "average_occupancy_rate": round((total_occupied_cells / total_cells * 100) if total_cells > 0 else 0, 1)
             },
+            "cargo_by_destinations": combined_cargo_destinations,
             "cargo_by_status": cargo_by_status_total,
             "clients_stats": {
                 "unique_senders": len(all_senders),
-                "unique_recipients": len(all_recipients)
+                "unique_recipients": len(all_recipients),
+                "total_senders_across_warehouses": sum(wd["clients"]["unique_senders"] for wd in warehouses_details),
+                "total_recipients_across_warehouses": sum(wd["clients"]["unique_recipients"] for wd in warehouses_details)
             },
             "financial_stats": {
                 "paid_cargo": total_paid_cargo,
