@@ -7581,11 +7581,11 @@ function App() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setQrScannerModal(true)}
-                        title="Сканировать QR код"
+                        onClick={startCargoQRScanner}
+                        title="Сканировать QR код груза"
                       >
                         <Camera className="h-4 w-4 mr-2" />
-                        QR сканер
+                        Сканировать QR
                       </Button>
                       
                       <div className="text-sm text-gray-600">
