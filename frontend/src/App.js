@@ -4361,6 +4361,27 @@ function App() {
   const handleAcceptCargo = async (e) => {
     e.preventDefault();
     try {
+      // Проверяем и устанавливаем warehouse_id
+      let selectedWarehouseId = operatorCargoForm.warehouse_id;
+      
+      // Если не выбран склад, выбираем автоматически первый доступный
+      if (!selectedWarehouseId && operatorWarehouses.length > 0) {
+        selectedWarehouseId = operatorWarehouses[0].id;
+        console.log('Auto-selected warehouse:', selectedWarehouseId);
+      }
+      
+      // Проверяем что выбранный склад принадлежит оператору
+      if (selectedWarehouseId && !operatorWarehouses.find(w => w.id === selectedWarehouseId)) {
+        // Если выбранный склад не принадлежит оператору, выбираем первый доступный
+        selectedWarehouseId = operatorWarehouses.length > 0 ? operatorWarehouses[0].id : null;
+        console.log('Corrected warehouse selection:', selectedWarehouseId);
+      }
+      
+      if (!selectedWarehouseId) {
+        showAlert('Ошибка: Не удалось определить склад для размещения груза. Обратитесь к администратору.', 'error');
+        return;
+      }
+      
       let requestData;
       
       if (operatorCargoForm.use_multi_cargo) {
@@ -4378,8 +4399,8 @@ function App() {
             weight: parseFloat(item.weight),
             price_per_kg: parseFloat(item.price_per_kg)
           })),
-          // НОВЫЕ ПОЛЯ ОПЛАТЫ
-          warehouse_id: operatorCargoForm.warehouse_id || (operatorWarehouses.length === 1 ? operatorWarehouses[0].id : null),
+          // ИСПРАВЛЕННОЕ ПОЛЕ СКЛАДА
+          warehouse_id: selectedWarehouseId,
           payment_method: operatorCargoForm.payment_method,
           payment_amount: operatorCargoForm.payment_amount ? parseFloat(operatorCargoForm.payment_amount) : null,
           debt_due_date: operatorCargoForm.debt_due_date || null
@@ -4391,15 +4412,17 @@ function App() {
           weight: parseFloat(operatorCargoForm.weight),
           declared_value: parseFloat(operatorCargoForm.declared_value || operatorCargoForm.price_per_kg),
           price_per_kg: parseFloat(operatorCargoForm.declared_value || operatorCargoForm.price_per_kg),
-          // НОВЫЕ ПОЛЯ ОПЛАТЫ
-          warehouse_id: operatorCargoForm.warehouse_id || (operatorWarehouses.length === 1 ? operatorWarehouses[0].id : null),
+          // ИСПРАВЛЕННОЕ ПОЛЕ СКЛАДА
+          warehouse_id: selectedWarehouseId,
           payment_method: operatorCargoForm.payment_method,
           payment_amount: operatorCargoForm.payment_amount ? parseFloat(operatorCargoForm.payment_amount) : null,
           debt_due_date: operatorCargoForm.debt_due_date || null
         };
       }
       
-      await apiCall('/api/operator/cargo/accept', 'POST', requestData);
+      console.log('Sending cargo data:', requestData);
+      const response = await apiCall('/api/operator/cargo/accept', 'POST', requestData);
+      console.log('Cargo acceptance response:', response);
       
       // Сообщение зависит от способа оплаты
       const paymentMessages = {
