@@ -4575,6 +4575,24 @@ function App() {
       
       showAlert(paymentMessages[operatorCargoForm.payment_method] || 'Груз успешно принят!', 'success');
       
+      // НОВОЕ: Показываем QR код созданного груза
+      if (response && response.qr_code) {
+        setCreatedCargoQR({
+          cargo_number: response.cargo_number,
+          qr_code: response.qr_code,
+          cargo_info: {
+            sender_name: response.sender_full_name,
+            recipient_name: response.recipient_full_name,
+            weight: response.weight,
+            cargo_name: response.cargo_name,
+            declared_value: response.declared_value,
+            payment_method: response.payment_method
+          },
+          message: response.qr_display_message || `QR код для груза ${response.cargo_number} готов`
+        });
+        setShowCreatedCargoQRModal(true);
+      }
+      
       // Сброс формы
       const warehouseId = operatorWarehouses.length === 1 ? operatorWarehouses[0].id : '';
       setOperatorCargoForm({
