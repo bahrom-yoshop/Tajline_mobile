@@ -16991,13 +16991,26 @@ function App() {
             <div className="bg-black rounded-lg overflow-hidden" style={{aspectRatio: '1/1'}}>
               <div id="qr-reader-modal" style={{width: '100%', height: '100%'}}></div>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={stopCargoQRScanner}
-              className="w-full"
-            >
-              Остановить сканирование
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  // Переключаем камеру
+                  switchModalCamera();
+                }}
+                className="flex-1"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Переключить камеру
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={stopCargoQRScanner}
+                className="flex-1"
+              >
+                Остановить сканирование
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
