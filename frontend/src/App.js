@@ -1453,10 +1453,23 @@ function App() {
           // Инициализируем камеру
           const cameras = await Html5Qrcode.getCameras();
           if (cameras && cameras.length > 0) {
+            // Сохраняем список камер для переключения
+            setModalCameras(cameras);
+            
             qrCodeModalInstance = new Html5Qrcode("qr-reader-modal");
             
-            // Выбираем лучшую камеру (предпочтение задней)
-            const selectedCamera = getBestCamera(cameras);
+            // Выбираем камеру по индексу, либо лучшую при первом запуске
+            let selectedCamera;
+            if (modalCameraIndex < cameras.length) {
+              selectedCamera = cameras[modalCameraIndex];
+            } else {
+              // При первом запуске выбираем лучшую камеру
+              selectedCamera = getBestCamera(cameras);
+              const selectedIndex = cameras.findIndex(c => c.id === selectedCamera.id);
+              setModalCameraIndex(selectedIndex >= 0 ? selectedIndex : 0);
+            }
+            
+            console.log(`Using camera: ${selectedCamera.label} (index: ${modalCameraIndex})`);
             
             const config = {
               fps: 10,
@@ -1470,7 +1483,7 @@ function App() {
             };
 
             await qrCodeModalInstance.start(
-              selectedCamera.id, // Используем выбранную заднюю камеру
+              selectedCamera.id, // Используем выбранную камеру
               config,
               async (decodedText, decodedResult) => {
                 console.log('Cargo QR Code scanned:', decodedText);
