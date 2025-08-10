@@ -1282,6 +1282,117 @@ function App() {
     }
   };
 
+  // QR Codes and Invoice functions - simplified version for now
+  const generateBatchQRCodes = async (numbers) => {
+    try {
+      const response = await apiCall(`/api/cargo/batch/${encodeURIComponent(numbers)}/qr-codes`);
+      return response;
+    } catch (error) {
+      console.error('Error generating QR codes:', error);
+      throw error;
+    }
+  };
+
+  const generateCargoInvoice = async (numbers) => {
+    try {
+      const response = await apiCall(`/api/cargo/invoice/${encodeURIComponent(numbers)}`);
+      return response;
+    } catch (error) {
+      console.error('Error generating invoice:', error);
+      throw error;
+    }
+  };
+
+  // Generate QR code for application number
+  const generateApplicationQR = async (cargoNumber) => {
+    if (!cargoNumber.trim()) {
+      showAlert('Введите номер заявки', 'error');
+      return;
+    }
+
+    setApplicationQRLoading(true);
+    try {
+      const response = await apiCall(`/api/cargo/generate-application-qr/${encodeURIComponent(cargoNumber)}`);
+      setApplicationQRCode(response);
+      setShowApplicationQRModal(true);
+      showAlert('QR код заявки сгенерирован успешно!', 'success');
+    } catch (error) {
+      console.error('Error generating application QR:', error);
+      showAlert(`Ошибка генерации QR кода: ${error.message}`, 'error');
+    } finally {
+      setApplicationQRLoading(false);
+    }
+  };
+
+  const printApplicationQR = () => {
+    if (!applicationQRCode) return;
+
+    const printWindow = window.open('', '_blank');
+    const printContent = `
+      <html>
+        <head>
+          <title>QR код заявки ${applicationQRCode.cargo_number}</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 20px; 
+              text-align: center; 
+              line-height: 1.6; 
+            }
+            .qr-container { 
+              border: 2px solid #333; 
+              padding: 20px; 
+              margin: 20px auto; 
+              max-width: 400px; 
+              border-radius: 10px; 
+            }
+            .qr-code { 
+              margin: 15px 0; 
+            }
+            .cargo-info { 
+              margin: 15px 0; 
+              text-align: left; 
+            }
+            .cargo-info div { 
+              margin: 5px 0; 
+            }
+            .header { 
+              font-size: 18px; 
+              font-weight: bold; 
+              margin-bottom: 15px; 
+            }
+            @media print {
+              .qr-container { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="qr-container">
+            <div class="header">ЗАЯВКА TAJLINE.TJ</div>
+            <div class="qr-code">
+              <img src="${applicationQRCode.qr_code}" alt="QR код заявки" style="width: 200px; height: 200px;" />
+            </div>
+            <div class="cargo-info">
+              <div><strong>Номер заявки:</strong> ${applicationQRCode.cargo_number}</div>
+              <div><strong>Наименование:</strong> ${applicationQRCode.cargo_info.cargo_name}</div>
+              <div><strong>Вес:</strong> ${applicationQRCode.cargo_info.weight} кг</div>
+              <div><strong>Отправитель:</strong> ${applicationQRCode.cargo_info.sender_name}</div>
+              <div><strong>Получатель:</strong> ${applicationQRCode.cargo_info.recipient_name}</div>
+              <div><strong>Дата создания:</strong> ${applicationQRCode.cargo_info.created_at}</div>
+            </div>
+            <div style="margin-top: 20px; font-size: 12px; color: #666;">
+              Отсканируйте для получения информации о заявке
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   // Функция управления ролями
   const handleRoleChange = async () => {
     if (!selectedUserForRole || !newRole) return;
