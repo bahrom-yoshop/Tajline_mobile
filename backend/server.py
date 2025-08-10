@@ -3564,19 +3564,20 @@ async def accept_new_cargo(
     }
     
     # Генерируем QR код для груза
-    cargo["qr_code"] = generate_cargo_qr_code(cargo)
+    cargo_qr_code = generate_cargo_qr_code(cargo)
+    cargo["qr_code"] = cargo_qr_code
     
     db.operator_cargo.insert_one(cargo)
     
-    # НОВАЯ ЛОГИКА: Создание записи долга если оплата в долг
+    # ОБНОВЛЕНО: Создание записи о долге, если требуется
     if cargo_data.payment_method == PaymentMethod.CREDIT:
         debt_record = {
-            "id": str(uuid.uuid4()),
+            "id": f"DEBT-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{current_user.id[:8]}",
             "cargo_id": cargo_id,
             "cargo_number": cargo_number,
             "debtor_name": cargo_data.sender_full_name,
             "debtor_phone": cargo_data.sender_phone,
-            "debt_amount": total_cost,
+            "amount": total_cost,
             "payment_amount": cargo_data.payment_amount or 0.0,
             "remaining_amount": total_cost - (cargo_data.payment_amount or 0.0),
             "debt_due_date": cargo_data.debt_due_date,
@@ -3611,7 +3612,12 @@ async def accept_new_cargo(
         cargo_id
     )
     
-    return CargoWithLocation(**cargo)
+    # УЛУЧШЕННЫЙ ОТВЕТ: Возвращаем груз с QR кодом
+    response_data = CargoWithLocation(**cargo).dict()
+    response_data["qr_code"] = cargo_qr_code
+    response_data["qr_display_message"] = f"QR код для груза {cargo_number} готов"
+    
+    return response_data
 
 @app.post("/api/operator/cargo/place")
 async def place_cargo_in_warehouse(
