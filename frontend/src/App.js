@@ -1385,6 +1385,26 @@ function App() {
     setShowQRScannerModal(false);
   };
 
+  // Switch camera for modal QR scanner
+  const switchModalCamera = async () => {
+    try {
+      const cameras = await Html5Qrcode.getCameras();
+      if (cameras && cameras.length > 1) {
+        // Перезапускаем сканер с переключением камеры
+        setScannerActive(false);
+        setTimeout(() => {
+          setScannerActive(true);
+        }, 500);
+        showAlert('Переключение камеры...', 'info');
+      } else {
+        showAlert('Доступна только одна камера', 'warning');
+      }
+    } catch (error) {
+      console.error('Error switching camera:', error);
+      showAlert('Ошибка переключения камеры', 'error');
+    }
+  };
+
   // useEffect for QR scanner modal
   useEffect(() => {
     let qrCodeModalInstance = null;
