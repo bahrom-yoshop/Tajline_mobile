@@ -7742,6 +7742,81 @@ function App() {
                               </CardContent>
                             </Card>
                           </div>
+
+                          {/* Информация об операторах на складах */}
+                          <Card key="operators-summary">
+                            <CardHeader>
+                              <CardTitle className="flex items-center">
+                                <UserCheck className="mr-2 h-5 w-5" />
+                                Операторы на моих складах
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-3">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-gray-600">👥 Всего операторов</span>
+                                  <span className="font-semibold">{operatorDashboardAnalytics.operator_info?.total_operators_on_my_warehouses || 0}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-gray-600">📋 Общее кол-во назначений</span>
+                                  <span className="font-semibold">{operatorDashboardAnalytics.operator_info?.total_operators_assignments || 0}</span>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          {/* Грузы по назначениям */}
+                          {operatorDashboardAnalytics.cargo_by_destinations && Object.keys(operatorDashboardAnalytics.cargo_by_destinations).length > 0 && (
+                            <Card key="cargo-destinations">
+                              <CardHeader>
+                                <CardTitle className="flex items-center">
+                                  <MapPin className="mr-2 h-5 w-5" />
+                                  Грузы, ожидающие отправки по направлениям
+                                </CardTitle>
+                                <CardDescription>
+                                  Детальная разбивка грузов по пунктам назначения
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="space-y-4">
+                                  {Object.entries(operatorDashboardAnalytics.cargo_by_destinations).map(([destination, data]) => (
+                                    <div key={destination} className="border rounded-lg p-4">
+                                      <div className="flex justify-between items-center mb-3">
+                                        <h4 className="font-semibold text-lg">
+                                          {destination === 'Москва' && '🇷🇺 Москва'}
+                                          {destination === 'Душанбе' && '🇹🇯 Душанбе'}
+                                          {destination === 'Худжанд' && '🇹🇯 Худжанд'}
+                                          {destination === 'Кулоб' && '🇹🇯 Кулоб'}
+                                          {destination === 'Курган-Тюбе' && '🇹🇯 Курган-Тюбе'}
+                                          {!['Москва', 'Душанбе', 'Худжанд', 'Кулоб', 'Курган-Тюбе'].includes(destination) && `📍 ${destination}`}
+                                        </h4>
+                                      </div>
+                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="text-center">
+                                          <div className="text-2xl font-bold text-blue-600">
+                                            {data.cargo_count || 0}
+                                          </div>
+                                          <div className="text-sm text-gray-600">грузов</div>
+                                        </div>
+                                        <div className="text-center">
+                                          <div className="text-2xl font-bold text-indigo-600">
+                                            {(data.total_weight || 0).toLocaleString()}
+                                          </div>
+                                          <div className="text-sm text-gray-600">кг</div>
+                                        </div>
+                                        <div className="text-center">
+                                          <div className="text-2xl font-bold text-emerald-600">
+                                            {(data.total_value || 0).toLocaleString()}
+                                          </div>
+                                          <div className="text-sm text-gray-600">₽</div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )}
                         </div>
                       ) : (
                         <Card key="loading-analytics">
