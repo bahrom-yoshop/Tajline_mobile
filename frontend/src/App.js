@@ -1393,39 +1393,6 @@ function App() {
     printWindow.print();
   };
 
-  // Simplified print invoice function
-  const printCargoInvoice = () => {
-    if (!generatedInvoice) return;
-    
-    const printWindow = window.open('', '_blank');
-    const printContent = `
-      <html>
-        <head>
-          <title>Накладная ${generatedInvoice.invoice_number}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .summary { margin-top: 20px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>Накладная № ${generatedInvoice.invoice_number}</h1>
-          </div>
-          <div class="summary">
-            <p><strong>Всего грузов:</strong> ${generatedInvoice.summary.total_items}</p>
-            <p><strong>Общий вес:</strong> ${generatedInvoice.summary.total_weight} кг</p>
-            <p><strong>Общая стоимость:</strong> ${generatedInvoice.summary.total_value} ₽</p>
-          </div>
-        </body>
-      </html>
-    `;
-    
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.print();
-  };
-
   // Функция управления ролями
   const handleRoleChange = async () => {
     if (!selectedUserForRole || !newRole) return;
