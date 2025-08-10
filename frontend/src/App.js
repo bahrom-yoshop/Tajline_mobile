@@ -8618,8 +8618,8 @@ function App() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="moscow_to_tajikistan">Москва → Таджикистан</SelectItem>
-                                <SelectItem value="tajikistan_to_moscow">Таджикистан → Москва</SelectItem>
+                                <SelectItem key="moscow_to_tajikistan" value="moscow_to_tajikistan">Москва → Таджикистан</SelectItem>
+                                <SelectItem key="tajikistan_to_moscow" value="tajikistan_to_moscow">Таджикистан → Москва</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
