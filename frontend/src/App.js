@@ -16868,7 +16868,7 @@ function App() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="bg-black rounded-lg overflow-hidden" style={{aspectRatio: '1/1'}}>
-              <div id="qr-reader" style={{width: '100%', height: '100%'}}></div>
+              <div id="qr-reader-modal" style={{width: '100%', height: '100%'}}></div>
             </div>
             <Button 
               variant="outline" 
