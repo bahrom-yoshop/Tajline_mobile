@@ -1436,6 +1436,119 @@ function App() {
     printWindow.print();
   };
 
+  const getPaymentMethodText = (method) => {
+    const methods = {
+      'not_paid': 'Не оплачено',
+      'cash': 'Наличные',
+      'card_transfer': 'Перевод на карту',
+      'cash_on_delivery': 'При получении',
+      'credit': 'В долг'
+    };
+    return methods[method] || method;
+  };
+
+  const getStatusText = (status) => {
+    const statuses = {
+      'accepted': 'Принят',
+      'placed_in_warehouse': 'На складе',
+      'on_transport': 'На транспорте',
+      'in_transit': 'В пути',
+      'ready_for_delivery': 'Готов к выдаче',
+      'delivered': 'Доставлен'
+    };
+    return statuses[status] || status;
+  };
+
+  const getProcessingStatusText = (status) => {
+    const statuses = {
+      'payment_pending': 'Ожидает оплаты',
+      'paid': 'Оплачен',
+      'placed': 'Размещен',
+      'ready_for_pickup': 'Готов к выдаче'
+    };
+    return statuses[status] || status;
+  };
+
+  const getPaymentStatusText = (status) => {
+    const statuses = {
+      'pending': 'Ожидается',
+      'paid': 'Оплачен',
+      'unpaid': 'Не оплачен',
+      'partial': 'Частично'
+    };
+    return statuses[status] || status;
+  };
+
+  const getOperationText = (operation) => {
+    const operations = {
+      'view_details': 'Подробности',
+      'edit_cargo': 'Редактировать',
+      'print_label': 'Печать этикетки',
+      'generate_qr': 'QR код',
+      'track_history': 'История',
+      'accept_payment': 'Принять оплату',
+      'place_in_warehouse': 'Разместить',
+      'move_cargo': 'Переместить',
+      'prepare_delivery': 'Подготовить выдачу',
+      'deliver_cargo': 'Выдать груз',
+      'make_payment': 'Оплатить',
+      'print_receipt': 'Квитанция'
+    };
+    return operations[operation] || operation;
+  };
+
+  const handleCargoOperation = (operation, cargoInfo) => {
+    switch (operation) {
+      case 'view_details':
+        // Показать подробную информацию
+        showAlert(`Подробности груза ${cargoInfo.cargo_number}`, 'info');
+        break;
+      case 'print_label':
+        // Печать этикетки
+        printCargoLabel(cargoInfo);
+        break;
+      case 'generate_qr':
+        // Генерация QR кода
+        generateApplicationQR(cargoInfo.cargo_number);
+        break;
+      default:
+        showAlert(`Операция "${getOperationText(operation)}" будет реализована`, 'info');
+    }
+  };
+
+  const printCargoLabel = (cargoInfo) => {
+    const printWindow = window.open('', '_blank');
+    const printContent = `
+      <html>
+        <head>
+          <title>Этикетка груза ${cargoInfo.cargo_number}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 10px; }
+            .label { border: 2px solid #000; padding: 10px; max-width: 300px; }
+            .header { text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 10px; }
+            .info { font-size: 12px; line-height: 1.3; }
+          </style>
+        </head>
+        <body>
+          <div class="label">
+            <div class="header">TAJLINE.TJ</div>
+            <div class="info">
+              <div><strong>Номер:</strong> ${cargoInfo.cargo_number}</div>
+              <div><strong>Груз:</strong> ${cargoInfo.cargo_name}</div>
+              <div><strong>Вес:</strong> ${cargoInfo.weight} кг</div>
+              <div><strong>От:</strong> ${cargoInfo.sender_name}</div>
+              <div><strong>Кому:</strong> ${cargoInfo.recipient_name}</div>
+              <div><strong>Тел:</strong> ${cargoInfo.recipient_phone}</div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   // Функция управления ролями
   const handleRoleChange = async () => {
     if (!selectedUserForRole || !newRole) return;
