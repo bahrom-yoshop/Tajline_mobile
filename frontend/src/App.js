@@ -8613,13 +8613,22 @@ function App() {
 
                           <div>
                             <Label htmlFor="route">Маршрут</Label>
-                            <Select value={operatorCargoForm.route} onValueChange={(value) => setOperatorCargoForm({...operatorCargoForm, route: value})}>
-                              <SelectTrigger>
-                                <SelectValue />
+                            <Select 
+                              key="old-route-select"
+                              value={operatorCargoForm.route} 
+                              onValueChange={(value) => {
+                                setOperatorCargoForm(prev => ({
+                                  ...prev, 
+                                  route: value
+                                }));
+                              }}
+                            >
+                              <SelectTrigger key="old-route-trigger">
+                                <SelectValue placeholder="Выберите маршрут" />
                               </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem key="moscow_to_tajikistan" value="moscow_to_tajikistan">Москва → Таджикистан</SelectItem>
-                                <SelectItem key="tajikistan_to_moscow" value="tajikistan_to_moscow">Таджикистан → Москва</SelectItem>
+                              <SelectContent key="old-route-content">
+                                <SelectItem key="old-moscow-to-tajikistan" value="moscow_to_tajikistan">Москва → Таджикистан</SelectItem>
+                                <SelectItem key="old-tajikistan-to-moscow" value="tajikistan_to_moscow">Таджикистан → Москва</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
