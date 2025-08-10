@@ -1460,11 +1460,10 @@ async def get_cargo_qr_code(
     cargo_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Получить QR код для груза"""
-    # Ищем груз в обеих коллекциях
-    cargo = db.cargo.find_one({"id": cargo_id})
+    """Получить QR код для конкретного груза"""
+    cargo = db.cargo.find_one({"id": cargo_id}, {"_id": 0})
     if not cargo:
-        cargo = db.operator_cargo.find_one({"id": cargo_id})
+        cargo = db.operator_cargo.find_one({"id": cargo_id}, {"_id": 0})
     
     if not cargo:
         raise HTTPException(status_code=404, detail="Cargo not found")
@@ -1480,6 +1479,158 @@ async def get_cargo_qr_code(
         "cargo_number": cargo.get("cargo_number"),
         "qr_code": qr_code_data
     }
+
+@app.get("/api/cargo/batch/{cargo_numbers}/qr-codes")
+async def get_batch_cargo_qr_codes(
+    cargo_numbers: str,  # comma-separated cargo numbers
+    current_user: User = Depends(get_current_user)
+):
+    """Получить QR коды для группы грузов по номерам (для печати накладных)"""
+    try:
+        cargo_numbers_list = [num.strip() for num in cargo_numbers.split(',') if num.strip()]
+        
+        if not cargo_numbers_list:
+            raise HTTPException(status_code=400, detail="No cargo numbers provided")
+        
+        cargo_qr_codes = []
+        
+        for cargo_number in cargo_numbers_list:
+            # Поиск груза в обеих коллекциях
+            cargo = db.cargo.find_one({"cargo_number": cargo_number}, {"_id": 0})
+            if not cargo:
+                cargo = db.operator_cargo.find_one({"cargo_number": cargo_number}, {"_id": 0})
+            
+            if cargo:
+                # Проверка доступа
+                if current_user.role == UserRole.USER and cargo.get("sender_id") != current_user.id:
+                    continue  # Пропускаем недоступные грузы
+                
+                qr_code_data = generate_cargo_qr_code(cargo)
+                cargo_qr_codes.append({
+                    "cargo_id": cargo.get("id"),
+                    "cargo_number": cargo.get("cargo_number"),
+                    "cargo_name": cargo.get("cargo_name", cargo.get("description", "Груз")),
+                    "weight": cargo.get("weight", 0),
+                    "sender_name": cargo.get("sender_full_name", "Не указан"),
+                    "recipient_name": cargo.get("recipient_full_name", "Не указан"),
+                    "qr_code": qr_code_data
+                })
+        
+        return {
+            "requested_count": len(cargo_numbers_list),
+            "found_count": len(cargo_qr_codes),
+            "cargo_qr_codes": cargo_qr_codes
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating batch QR codes: {str(e)}")
+
+@app.get("/api/cargo/invoice/{cargo_numbers}")
+async def generate_cargo_invoice(
+    cargo_numbers: str,  # comma-separated cargo numbers
+    current_user: User = Depends(get_current_user)
+):
+    """Генерировать накладную для группы грузов"""
+    try:
+        cargo_numbers_list = [num.strip() for num in cargo_numbers.split(',') if num.strip()]
+        
+        if not cargo_numbers_list:
+            raise HTTPException(status_code=400, detail="No cargo numbers provided")
+        
+        invoice_cargo = []
+        total_weight = 0
+        total_value = 0
+        sender_info = None
+        recipient_info = None
+        
+        for cargo_number in cargo_numbers_list:
+            # Поиск груза в обеих коллекциях
+            cargo = db.cargo.find_one({"cargo_number": cargo_number}, {"_id": 0})
+            if not cargo:
+                cargo = db.operator_cargo.find_one({"cargo_number": cargo_number}, {"_id": 0})
+            
+            if cargo:
+                # Проверка доступа
+                if current_user.role == UserRole.USER and cargo.get("sender_id") != current_user.id:
+                    continue  # Пропускаем недоступные грузы
+                
+                # Получаем информацию о грузе
+                cargo_weight = cargo.get("weight", 0)
+                cargo_value = 0
+                
+                if cargo.get('declared_value'):
+                    try:
+                        cargo_value = float(cargo.get('declared_value', 0))
+                    except (ValueError, TypeError):
+                        cargo_value = 0
+                elif cargo.get('total_cost'):
+                    try:
+                        cargo_value = float(cargo.get('total_cost', 0))
+                    except (ValueError, TypeError):
+                        cargo_value = 0
+                
+                total_weight += cargo_weight if isinstance(cargo_weight, (int, float)) else 0
+                total_value += cargo_value
+                
+                # Сохраняем информацию об отправителе и получателе (используем первый груз)
+                if not sender_info:
+                    sender_info = {
+                        "name": cargo.get("sender_full_name", "Не указан"),
+                        "phone": cargo.get("sender_phone", "Не указан"),
+                        "address": cargo.get("sender_address", "Не указан")
+                    }
+                
+                if not recipient_info:
+                    recipient_info = {
+                        "name": cargo.get("recipient_full_name", "Не указан"),
+                        "phone": cargo.get("recipient_phone", "Не указан"),
+                        "address": cargo.get("recipient_address", "Не указан")
+                    }
+                
+                invoice_cargo.append({
+                    "cargo_number": cargo.get("cargo_number"),
+                    "cargo_name": cargo.get("cargo_name", cargo.get("description", "Груз")),
+                    "weight": cargo_weight,
+                    "declared_value": cargo_value,
+                    "status": cargo.get("status", "unknown"),
+                    "payment_method": cargo.get("payment_method", "not_paid"),
+                    "warehouse_name": cargo.get("warehouse_name", "Не указан")
+                })
+        
+        if not invoice_cargo:
+            raise HTTPException(status_code=404, detail="No accessible cargo found")
+        
+        # Генерируем накладную
+        from datetime import datetime
+        invoice_date = datetime.now().strftime("%d.%m.%Y %H:%M")
+        invoice_number = f"INV-{datetime.now().strftime('%Y%m%d')}-{len(invoice_cargo)}"
+        
+        invoice_data = {
+            "invoice_number": invoice_number,
+            "invoice_date": invoice_date,
+            "operator_name": current_user.full_name,
+            "operator_phone": current_user.phone,
+            "sender_info": sender_info,
+            "recipient_info": recipient_info,
+            "cargo_list": invoice_cargo,
+            "summary": {
+                "total_items": len(invoice_cargo),
+                "total_weight": round(total_weight, 2),
+                "total_value": round(total_value, 2)
+            }
+        }
+        
+        return invoice_data
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating invoice: {str(e)}")
+
+@app.get("/api/cargo/{cargo_id}/qr-code-old")
+async def get_cargo_qr_code_old(
+    cargo_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить QR код для конкретного груза (старая версия для совместимости)"""
 
 @app.get("/api/warehouse/{warehouse_id}/cell-qr/{block}/{shelf}/{cell}")
 async def get_warehouse_cell_qr_code(
