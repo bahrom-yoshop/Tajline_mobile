@@ -8458,7 +8458,7 @@ function App() {
                                 </h3>
                                 
                                 {operatorCargoForm.cargo_items.map((item, index) => (
-                                  <div key={`cargo-item-${index}-${item.cargo_name || 'empty'}`} className="mb-4 p-4 bg-white rounded border">
+                                  <div key={`cargo-item-${index}`} className="mb-4 p-4 bg-white rounded border">
                                     <div className="flex items-center justify-between mb-2">
                                       <span className="font-medium text-sm text-gray-600">
                                         Груз #{index + 1}
@@ -8479,8 +8479,16 @@ function App() {
                                       <div>
                                         <Label>Название груза</Label>
                                         <Input
-                                          value={item.cargo_name}
-                                          onChange={(e) => updateCargoItem(index, 'cargo_name', e.target.value)}
+                                          key={`cargo-name-${index}`}
+                                          value={item.cargo_name || ''}
+                                          onChange={(e) => {
+                                            const newItems = [...operatorCargoForm.cargo_items];
+                                            newItems[index] = { ...newItems[index], cargo_name: e.target.value };
+                                            setOperatorCargoForm(prev => ({
+                                              ...prev,
+                                              cargo_items: newItems
+                                            }));
+                                          }}
                                           placeholder="Документы, одежда, электроника"
                                           required
                                         />
