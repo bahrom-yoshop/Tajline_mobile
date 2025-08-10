@@ -214,6 +214,16 @@ function App() {
   const [showApplicationQRModal, setShowApplicationQRModal] = useState(false);
   const [applicationQRLoading, setApplicationQRLoading] = useState(false);
   
+  // Cargo creation QR code states
+  const [createdCargoQR, setCreatedCargoQR] = useState(null);
+  const [showCreatedCargoQRModal, setShowCreatedCargoQRModal] = useState(false);
+  
+  // QR Scanner states
+  const [showQRScannerModal, setShowQRScannerModal] = useState(false);
+  const [scannerActive, setScannerActive] = useState(false);
+  const [scannedCargoInfo, setScannedCargoInfo] = useState(null);
+  const [showScannedCargoModal, setShowScannedCargoModal] = useState(false);
+  
   // Role management states
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedUserForRole, setSelectedUserForRole] = useState(null);
