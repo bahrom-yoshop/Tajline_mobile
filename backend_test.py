@@ -918,6 +918,392 @@ class CargoTransportAPITester:
         
         return all_success
 
+    def test_qr_code_system_comprehensive(self):
+        """Test comprehensive QR code system for TAJLINE.TJ including automatic generation and scanning"""
+        print("\n📱 QR CODE SYSTEM COMPREHENSIVE TESTING")
+        print("   🎯 Testing improved QR code system: automatic generation, scanning, and operations")
+        
+        all_success = True
+        
+        # Test 1: OPERATOR AUTHENTICATION
+        print("\n   🔐 Test 1: OPERATOR AUTHENTICATION...")
+        
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+            return False
+        
+        # Test 2: AUTOMATIC QR CODE GENERATION DURING CARGO CREATION
+        print("\n   📦 Test 2: AUTOMATIC QR CODE GENERATION DURING CARGO CREATION...")
+        
+        cargo_data = {
+            "sender_full_name": "Иван Петров",
+            "sender_phone": "+79991234567",
+            "recipient_full_name": "Ахмад Рахимов",
+            "recipient_phone": "+992987654321",
+            "recipient_address": "Душанбе, ул. Рудаки, 15",
+            "weight": 12.5,
+            "cargo_name": "Электроника и компьютерная техника",
+            "declared_value": 25000.0,
+            "description": "Ноутбук, планшет, аксессуары",
+            "route": "moscow_dushanbe",
+            "payment_method": "cash",
+            "payment_amount": 25000.0
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create Cargo with Automatic QR Generation",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            cargo_data,
+            operator_token
+        )
+        all_success &= success
+        
+        created_cargo_number = None
+        if success and 'cargo_number' in cargo_response:
+            created_cargo_number = cargo_response['cargo_number']
+            qr_code = cargo_response.get('qr_code')
+            qr_display_message = cargo_response.get('qr_display_message')
+            
+            print(f"   ✅ Cargo created: {created_cargo_number}")
+            
+            # Check if QR code was automatically generated
+            if qr_code:
+                print("   ✅ QR code automatically generated during cargo creation")
+                if qr_code.startswith('data:image/png;base64,'):
+                    print("   ✅ QR code format correct (base64 PNG)")
+                else:
+                    print(f"   ❌ QR code format incorrect: {qr_code[:50]}...")
+                    all_success = False
+            else:
+                print("   ❌ QR code not generated during cargo creation")
+                all_success = False
+            
+            # Check QR display message
+            if qr_display_message:
+                print(f"   ✅ QR display message present: {qr_display_message}")
+                if created_cargo_number in qr_display_message:
+                    print("   ✅ QR display message contains cargo number")
+                else:
+                    print("   ❌ QR display message doesn't contain cargo number")
+                    all_success = False
+            else:
+                print("   ❌ QR display message not present")
+                all_success = False
+        else:
+            print("   ❌ Failed to create cargo")
+            all_success = False
+            return False
+        
+        # Test 3: QR CODE SCANNING ENDPOINT
+        print("\n   📱 Test 3: QR CODE SCANNING ENDPOINT...")
+        
+        # Create QR data that would be scanned
+        qr_scan_data = {
+            "qr_text": f"""ГРУЗ №{created_cargo_number}
+Наименование: Электроника и компьютерная техника
+Вес: 12.5 кг
+Отправитель: Иван Петров
+Тел. отправителя: +79991234567
+Получатель: Ахмад Рахимов
+Тел. получателя: +992987654321
+Город получения: Душанбе, ул. Рудаки, 15"""
+        }
+        
+        success, scan_response = self.run_test(
+            "Scan QR Code",
+            "POST",
+            "/api/cargo/scan-qr",
+            200,
+            qr_scan_data,
+            operator_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ QR code scanning endpoint working")
+            
+            # Verify response structure
+            if scan_response.get('success'):
+                print("   ✅ Scan successful")
+                
+                cargo_info = scan_response.get('cargo', {})
+                if cargo_info:
+                    print("   ✅ Cargo information returned")
+                    
+                    # Check required fields
+                    required_fields = ['cargo_id', 'cargo_number', 'cargo_name', 'weight', 'sender_name', 'recipient_name', 'available_operations']
+                    missing_fields = [field for field in required_fields if field not in cargo_info]
+                    
+                    if not missing_fields:
+                        print("   ✅ All required cargo fields present")
+                        
+                        # Verify cargo number matches
+                        if cargo_info.get('cargo_number') == created_cargo_number:
+                            print("   ✅ Scanned cargo number matches created cargo")
+                        else:
+                            print(f"   ❌ Cargo number mismatch: expected {created_cargo_number}, got {cargo_info.get('cargo_number')}")
+                            all_success = False
+                        
+                        # Check available operations
+                        available_operations = cargo_info.get('available_operations', [])
+                        if available_operations:
+                            print(f"   ✅ Available operations returned: {len(available_operations)} operations")
+                            print(f"   📋 Operations: {', '.join(available_operations)}")
+                        else:
+                            print("   ❌ No available operations returned")
+                            all_success = False
+                    else:
+                        print(f"   ❌ Missing required fields: {missing_fields}")
+                        all_success = False
+                else:
+                    print("   ❌ No cargo information in scan response")
+                    all_success = False
+            else:
+                print("   ❌ Scan not successful")
+                all_success = False
+        else:
+            print("   ❌ QR code scanning endpoint failed")
+            all_success = False
+        
+        # Test 4: ENHANCED QR GENERATION ENDPOINTS
+        print("\n   🔧 Test 4: ENHANCED QR GENERATION ENDPOINTS...")
+        
+        # Test 4.1: Application QR generation
+        print("\n   📋 Test 4.1: Application QR Generation...")
+        
+        success, app_qr_response = self.run_test(
+            "Generate Application QR Code",
+            "POST",
+            f"/api/cargo/generate-application-qr/{created_cargo_number}",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Application QR generation working")
+            
+            # Check response structure
+            required_fields = ['cargo_number', 'qr_code', 'qr_text', 'cargo_info']
+            missing_fields = [field for field in required_fields if field not in app_qr_response]
+            
+            if not missing_fields:
+                print("   ✅ Application QR response has all required fields")
+                
+                # Verify QR code format
+                qr_code = app_qr_response.get('qr_code')
+                if qr_code and qr_code.startswith('data:image/png;base64,'):
+                    print("   ✅ Application QR code format correct")
+                else:
+                    print("   ❌ Application QR code format incorrect")
+                    all_success = False
+            else:
+                print(f"   ❌ Application QR response missing fields: {missing_fields}")
+                all_success = False
+        else:
+            print("   ❌ Application QR generation failed")
+            all_success = False
+        
+        # Test 4.2: Batch QR codes generation
+        print("\n   📦 Test 4.2: Batch QR Codes Generation...")
+        
+        success, batch_qr_response = self.run_test(
+            "Generate Batch QR Codes",
+            "GET",
+            f"/api/cargo/batch/{created_cargo_number}/qr-codes",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Batch QR codes generation working")
+            
+            # Check response structure
+            required_fields = ['requested_count', 'found_count', 'cargo_qr_codes']
+            missing_fields = [field for field in required_fields if field not in batch_qr_response]
+            
+            if not missing_fields:
+                print("   ✅ Batch QR response has all required fields")
+                
+                requested_count = batch_qr_response.get('requested_count', 0)
+                found_count = batch_qr_response.get('found_count', 0)
+                cargo_qr_codes = batch_qr_response.get('cargo_qr_codes', [])
+                
+                print(f"   📊 Requested: {requested_count}, Found: {found_count}")
+                
+                if found_count > 0 and len(cargo_qr_codes) == found_count:
+                    print("   ✅ Batch QR codes count matches")
+                    
+                    # Check first QR code structure
+                    if cargo_qr_codes:
+                        first_qr = cargo_qr_codes[0]
+                        qr_required_fields = ['cargo_id', 'cargo_number', 'cargo_name', 'weight', 'sender_name', 'recipient_name', 'qr_code']
+                        qr_missing = [field for field in qr_required_fields if field not in first_qr]
+                        
+                        if not qr_missing:
+                            print("   ✅ Batch QR code items have all required fields")
+                            
+                            # Verify QR code format
+                            qr_code = first_qr.get('qr_code')
+                            if qr_code and qr_code.startswith('data:image/png;base64,'):
+                                print("   ✅ Batch QR code format correct")
+                            else:
+                                print("   ❌ Batch QR code format incorrect")
+                                all_success = False
+                        else:
+                            print(f"   ❌ Batch QR code items missing fields: {qr_missing}")
+                            all_success = False
+                else:
+                    print(f"   ❌ Batch QR codes count mismatch: expected {found_count}, got {len(cargo_qr_codes)}")
+                    all_success = False
+            else:
+                print(f"   ❌ Batch QR response missing fields: {missing_fields}")
+                all_success = False
+        else:
+            print("   ❌ Batch QR codes generation failed")
+            all_success = False
+        
+        # Test 5: COMPLETE WORKFLOW TESTING
+        print("\n   🔄 Test 5: COMPLETE QR WORKFLOW TESTING...")
+        
+        # Create another cargo to test complete workflow
+        workflow_cargo_data = {
+            "sender_full_name": "Мария Сидорова",
+            "sender_phone": "+79995555555",
+            "recipient_full_name": "Фарход Назаров",
+            "recipient_phone": "+992911111111",
+            "recipient_address": "Худжанд, ул. Ленина, 25",
+            "weight": 8.0,
+            "cargo_name": "Одежда и обувь",
+            "declared_value": 15000.0,
+            "description": "Зимняя одежда, обувь",
+            "route": "moscow_khujand",
+            "payment_method": "card_transfer",
+            "payment_amount": 15000.0
+        }
+        
+        success, workflow_cargo_response = self.run_test(
+            "Create Cargo for Workflow Test",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            workflow_cargo_data,
+            operator_token
+        )
+        all_success &= success
+        
+        if success:
+            workflow_cargo_number = workflow_cargo_response.get('cargo_number')
+            print(f"   ✅ Workflow cargo created: {workflow_cargo_number}")
+            
+            # Step 1: Generate QR code
+            success, _ = self.run_test(
+                "Workflow Step 1: Generate QR",
+                "POST",
+                f"/api/cargo/generate-application-qr/{workflow_cargo_number}",
+                200,
+                token=operator_token
+            )
+            
+            if success:
+                print("   ✅ Workflow Step 1: QR generation successful")
+                
+                # Step 2: Scan QR code
+                workflow_qr_data = {
+                    "qr_text": f"""ГРУЗ №{workflow_cargo_number}
+Наименование: Одежда и обувь
+Вес: 8.0 кг
+Отправитель: Мария Сидорова
+Тел. отправителя: +79995555555
+Получатель: Фарход Назаров
+Тел. получателя: +992911111111
+Город получения: Худжанд, ул. Ленина, 25"""
+                }
+                
+                success, workflow_scan_response = self.run_test(
+                    "Workflow Step 2: Scan QR",
+                    "POST",
+                    "/api/cargo/scan-qr",
+                    200,
+                    workflow_qr_data,
+                    operator_token
+                )
+                
+                if success:
+                    print("   ✅ Workflow Step 2: QR scanning successful")
+                    
+                    # Step 3: Generate batch QR codes
+                    success, _ = self.run_test(
+                        "Workflow Step 3: Batch QR Generation",
+                        "GET",
+                        f"/api/cargo/batch/{workflow_cargo_number}/qr-codes",
+                        200,
+                        token=operator_token
+                    )
+                    
+                    if success:
+                        print("   ✅ Workflow Step 3: Batch QR generation successful")
+                        print("   🎉 Complete QR workflow successful!")
+                    else:
+                        print("   ❌ Workflow Step 3: Batch QR generation failed")
+                        all_success = False
+                else:
+                    print("   ❌ Workflow Step 2: QR scanning failed")
+                    all_success = False
+            else:
+                print("   ❌ Workflow Step 1: QR generation failed")
+                all_success = False
+        else:
+            print("   ❌ Failed to create workflow cargo")
+            all_success = False
+        
+        # SUMMARY
+        print("\n   📊 QR CODE SYSTEM COMPREHENSIVE TESTING SUMMARY:")
+        if all_success:
+            print("   🎉 ALL QR CODE TESTS PASSED - QR system fully functional!")
+            print("   ✅ Operator authentication successful")
+            print("   ✅ Automatic QR code generation during cargo creation")
+            print("   ✅ QR code scanning endpoint working")
+            print("   ✅ Enhanced QR generation endpoints functional")
+            print("   ✅ Batch QR codes generation working")
+            print("   ✅ Complete QR workflow successful")
+            print("   ✅ QR code format and structure correct")
+        else:
+            print("   ❌ SOME QR CODE TESTS FAILED - System needs attention")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
     def test_warehouse_cargo_with_clients_endpoint(self):
         """Test новый endpoint /api/warehouse/{warehouse_id}/cargo-with-clients для цветового кодирования грузов по отправителям/получателям"""
         print("\n🎨 WAREHOUSE CARGO WITH CLIENTS COLOR CODING ENDPOINT TESTING")
