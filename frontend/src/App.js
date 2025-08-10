@@ -8695,11 +8695,11 @@ function App() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="not_paid">Не оплачено</SelectItem>
-                                <SelectItem value="cash">Оплата наличными</SelectItem>
-                                <SelectItem value="card_transfer">Перевод на карту</SelectItem>
-                                <SelectItem value="cash_on_delivery">Оплата при получении</SelectItem>
-                                <SelectItem value="credit">Оплата в долг</SelectItem>
+                                <SelectItem key="not_paid" value="not_paid">Не оплачено</SelectItem>
+                                <SelectItem key="cash" value="cash">Оплата наличными</SelectItem>
+                                <SelectItem key="card_transfer" value="card_transfer">Перевод на карту</SelectItem>
+                                <SelectItem key="cash_on_delivery" value="cash_on_delivery">Оплата при получении</SelectItem>
+                                <SelectItem key="credit" value="credit">Оплата в долг</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
