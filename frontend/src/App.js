@@ -1392,14 +1392,19 @@ function App() {
   // Switch camera for modal QR scanner
   const switchModalCamera = async () => {
     try {
-      const cameras = await Html5Qrcode.getCameras();
-      if (cameras && cameras.length > 1) {
-        // Перезапускаем сканер с переключением камеры
+      if (modalCameras.length > 1) {
+        // Переключаем на следующую камеру
+        const nextIndex = (modalCameraIndex + 1) % modalCameras.length;
+        setModalCameraIndex(nextIndex);
+        
+        // Перезапускаем сканер с новой камерой
         setScannerActive(false);
         setTimeout(() => {
           setScannerActive(true);
         }, 500);
-        showAlert('Переключение камеры...', 'info');
+        
+        const cameraName = modalCameras[nextIndex]?.label || 'Неизвестная камера';
+        showAlert(`Переключено на: ${cameraName}`, 'info');
       } else {
         showAlert('Доступна только одна камера', 'warning');
       }
