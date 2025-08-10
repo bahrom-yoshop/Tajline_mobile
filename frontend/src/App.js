@@ -816,7 +816,27 @@ function App() {
       }
 
       const response = await fetch(url, config);
-      const result = await response.json();
+      
+      // Проверяем есть ли контент для парсинга
+      const contentType = response.headers.get('content-type');
+      let result = {};
+      
+      if (contentType && contentType.includes('application/json')) {
+        const responseText = await response.text();
+        if (responseText.trim()) {
+          try {
+            result = JSON.parse(responseText);
+          } catch (jsonError) {
+            console.error('JSON parsing error:', jsonError);
+            console.error('Response text:', responseText);
+            result = { error: 'Invalid JSON response', rawResponse: responseText };
+          }
+        }
+      } else {
+        // Если не JSON, читаем как текст
+        const responseText = await response.text();
+        result = { message: responseText || 'Empty response' };
+      }
 
       if (!response.ok) {
         // Обработка 401 ошибки (unauthorized) - токен истек или невалиден
