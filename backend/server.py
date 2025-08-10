@@ -1077,7 +1077,7 @@ ID склада: {warehouse_data.get('id', '')}"""
         print(f"Error generating QR code for warehouse cell: {e}")
         return ""
 
-def get_warehouses_by_route(route: str) -> list:
+def get_warehouses_by_route_for_notifications(route: str) -> list:
     """Определить склады по маршруту для отправки уведомлений"""
     route_lower = route.lower()
     warehouse_cities = []
