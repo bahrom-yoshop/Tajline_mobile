@@ -1367,6 +1367,80 @@ function App() {
     setShowQRScannerModal(false);
   };
 
+  // useEffect for QR scanner modal
+  useEffect(() => {
+    let qrCodeModalInstance = null;
+
+    const initializeModalQRScanner = async () => {
+      if (showQRScannerModal && scannerMode === 'cargo-qr-search' && scannerActive) {
+        try {
+          // Проверяем существование элемента
+          const modalElement = document.getElementById('qr-reader-modal');
+          if (!modalElement) {
+            console.log('QR reader modal element not found, waiting...');
+            return;
+          }
+
+          // Инициализируем камеру
+          const cameras = await Html5Qrcode.getCameras();
+          if (cameras && cameras.length > 0) {
+            qrCodeModalInstance = new Html5Qrcode("qr-reader-modal");
+            
+            const config = {
+              fps: 10,
+              qrbox: { width: 200, height: 200 },
+              aspectRatio: 1.0,
+              disableFlip: false,
+            };
+
+            await qrCodeModalInstance.start(
+              cameras[0].id, // Используем первую доступную камеру
+              config,
+              async (decodedText, decodedResult) => {
+                console.log('Cargo QR Code scanned:', decodedText);
+                
+                // Останавливаем сканер
+                if (qrCodeModalInstance) {
+                  await qrCodeModalInstance.stop();
+                  qrCodeModalInstance = null;
+                }
+                
+                // Обрабатываем отсканированный QR код
+                await scanCargoQRCode(decodedText);
+                
+                // Закрываем модальное окно
+                stopCargoQRScanner();
+              },
+              (errorMessage) => {
+                // Обрабатываем ошибки сканирования (не логируем, так как это нормально)
+              }
+            );
+          }
+        } catch (error) {
+          console.error('Error starting modal QR scanner:', error);
+          setScannerError(`Ошибка запуска сканера: ${error.message}`);
+        }
+      }
+    };
+
+    // Добавляем небольшую задержку для рендеринга модального окна
+    if (showQRScannerModal && scannerMode === 'cargo-qr-search' && scannerActive) {
+      setTimeout(initializeModalQRScanner, 500);
+    }
+
+    // Cleanup функция
+    return async () => {
+      if (qrCodeModalInstance) {
+        try {
+          await qrCodeModalInstance.stop();
+          qrCodeModalInstance = null;
+        } catch (error) {
+          console.error('Error stopping modal QR scanner:', error);
+        }
+      }
+    };
+  }, [showQRScannerModal, scannerMode, scannerActive]);
+
   const printApplicationQR = () => {
     if (!applicationQRCode) return;
 
