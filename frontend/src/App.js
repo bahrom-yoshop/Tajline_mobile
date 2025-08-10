@@ -1381,7 +1381,7 @@ function App() {
     printWindow.print();
   };
 
-  const printInvoice = () => {
+  const printCargoInvoice = () => {
     if (!generatedInvoice) return;
 
     const printWindow = window.open('', '_blank');
