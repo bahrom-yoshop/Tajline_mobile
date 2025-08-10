@@ -353,13 +353,16 @@ backend:
     implemented: true
     working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: false
           agent: "main"
           comment: "Завершено улучшение endpoint /api/operator/dashboard/analytics для детальной аналитики оператора согласно запросу пользователя. Endpoint уже содержал все необходимые данные: количество операторов на складах (total_operators_on_my_warehouses, total_operators_assignments), детальную разбивку грузов по назначениям (cargo_by_destinations) с показателями количества, веса и стоимости по каждому направлению. Данные изолированы только для складов конкретного оператора. Требуется тестирование endpoint для подтверждения корректности возвращаемых данных."
+        - working: false
+          agent: "testing"
+          comment: "❌ ENHANCED OPERATOR DASHBOARD ANALYTICS TESTING FAILED. Протестирован улучшенный endpoint /api/operator/dashboard/analytics для детальной аналитики оператора. РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ: 1) ✅ АВТОРИЗАЦИЯ ОПЕРАТОРА: Успешная авторизация оператора склада (+79777888999/warehouse123) с корректной ролью 'warehouse_operator', 2) ✅ ДОСТУПНОСТЬ ENDPOINT: Endpoint /api/operator/dashboard/analytics доступен для операторов (200 OK), 3) ✅ СТРУКТУРА operator_info: Все требуемые поля присутствуют - operator_name, operator_phone, assigned_warehouses_count, total_operators_on_my_warehouses (2), total_operators_assignments (2) с корректными типами данных, 4) ❌ СТРУКТУРА cargo_by_destinations: Поле cargo_by_destinations присутствует как пустой dict (0 destinations). Ожидаемые направления (Москва, Душанбе, Худжанд) не найдены, 5) ✅ ИЗОЛЯЦИЯ ДАННЫХ: Данные корректно изолированы - аналитика показывает только склады оператора (1 склад), 6) ✅ ТИПЫ ДАННЫХ: Все поля summary_stats и clients_stats имеют корректные типы данных, 7) ❌ КОНТРОЛЬ ДОСТУПА: Тест доступа администратора к operator endpoint вернул 500 Internal Server Error вместо ожидаемого 403 Forbidden. КРИТИЧЕСКИЕ ПРОБЛЕМЫ: cargo_by_destinations пустой (нет данных по направлениям), ошибка контроля доступа для администраторов. Endpoint частично работает, но требует исправления для полной функциональности."
 
 frontend:
   - task: "Admin Login Fix and Main Endpoints Testing"
