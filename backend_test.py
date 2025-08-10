@@ -26183,6 +26183,308 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_react_dom_fixes_backend_support(self):
+        """Test backend support for React DOM fixes in TAJLINE.TJ cargo acceptance form"""
+        print("\n🔧 REACT DOM FIXES BACKEND SUPPORT TESTING")
+        print("   🎯 Testing backend support for React DOM fixes: payment method selection and cargo name field")
+        
+        all_success = True
+        
+        # Test 1: АУТЕНТИФИКАЦИЯ ОПЕРАТОРА СКЛАДА
+        print("\n   🔐 Test 1: WAREHOUSE OPERATOR AUTHENTICATION...")
+        
+        # Login as warehouse operator (+79777888999/warehouse123)
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            print(f"   📞 Phone: {operator_user.get('phone')}")
+            
+            # Store operator token for further tests
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+            return False
+        
+        # Test 2: ТЕСТИРОВАНИЕ ВСЕХ СПОСОБОВ ОПЛАТЫ (React DOM Fix)
+        print("\n   💳 Test 2: PAYMENT METHOD SELECTION BACKEND SUPPORT...")
+        
+        # Test all payment methods to ensure backend properly handles them
+        payment_methods = [
+            {
+                "method": "not_paid",
+                "name": "Не оплачено",
+                "expected_status": "payment_pending"
+            },
+            {
+                "method": "cash",
+                "name": "Оплата наличными",
+                "payment_amount": 1500.0,
+                "expected_status": "paid"
+            },
+            {
+                "method": "card_transfer", 
+                "name": "Перевод на карту",
+                "payment_amount": 2000.0,
+                "expected_status": "paid"
+            },
+            {
+                "method": "cash_on_delivery",
+                "name": "Оплата при получении", 
+                "expected_status": "paid"
+            },
+            {
+                "method": "credit",
+                "name": "Оплата в долг",
+                "debt_due_date": "2025-07-15",
+                "expected_status": "paid"
+            }
+        ]
+        
+        payment_success_count = 0
+        
+        for i, payment_test in enumerate(payment_methods, 1):
+            print(f"\n   💰 Test 2.{i}: {payment_test['name']} Backend Processing...")
+            
+            # Create cargo with specific payment method
+            cargo_data = {
+                "sender_full_name": f"Тест Отправитель React {i}",
+                "sender_phone": f"+7999888777{i}",
+                "recipient_full_name": f"Тест Получатель React {i}",
+                "recipient_phone": f"+992999888777{i}",
+                "recipient_address": f"Душанбе, ул. React DOM, {i}",
+                "weight": 12.5,
+                "cargo_name": f"Тестовый груз React DOM {payment_test['name']}",
+                "declared_value": 1200.0,
+                "description": f"Тест React DOM fix для {payment_test['name']}",
+                "route": "moscow_dushanbe",
+                "payment_method": payment_test["method"]
+            }
+            
+            # Add payment-specific fields
+            if "payment_amount" in payment_test:
+                cargo_data["payment_amount"] = payment_test["payment_amount"]
+            if "debt_due_date" in payment_test:
+                cargo_data["debt_due_date"] = payment_test["debt_due_date"]
+            
+            success, cargo_response = self.run_test(
+                f"Create Cargo with {payment_test['name']}",
+                "POST",
+                "/api/operator/cargo/accept",
+                200,
+                cargo_data,
+                operator_token
+            )
+            
+            if success and 'id' in cargo_response:
+                cargo_number = cargo_response.get('cargo_number')
+                processing_status = cargo_response.get('processing_status')
+                payment_method = cargo_response.get('payment_method')
+                
+                print(f"   ✅ Cargo created: {cargo_number}")
+                print(f"   💳 Payment method: {payment_method}")
+                print(f"   📊 Processing status: {processing_status}")
+                
+                # Verify processing status logic
+                expected_status = payment_test["expected_status"]
+                if processing_status == expected_status:
+                    print(f"   ✅ Processing status correct: {processing_status}")
+                    payment_success_count += 1
+                else:
+                    print(f"   ❌ Processing status incorrect: expected {expected_status}, got {processing_status}")
+                    all_success = False
+            else:
+                print(f"   ❌ Failed to create cargo with {payment_test['name']}")
+                all_success = False
+        
+        print(f"\n   📊 Payment Methods Test Summary: {payment_success_count}/{len(payment_methods)} successful")
+        
+        # Test 3: ТЕСТИРОВАНИЕ ПОДДЕРЖКИ МНОЖЕСТВЕННЫХ ГРУЗОВ С ИНДИВИДУАЛЬНЫМИ НАЗВАНИЯМИ
+        print("\n   📦 Test 3: MULTIPLE CARGO NAMES BACKEND SUPPORT...")
+        
+        # Test cargo with multiple items having different names (React DOM fix for cargo name field)
+        multi_cargo_data = {
+            "sender_full_name": "Тест Отправитель Мульти",
+            "sender_phone": "+79998887771",
+            "recipient_full_name": "Тест Получатель Мульти",
+            "recipient_phone": "+99299888777",
+            "recipient_address": "Душанбе, ул. Мульти Груз, 1",
+            "description": "Тест множественных грузов с разными названиями",
+            "route": "moscow_dushanbe",
+            "payment_method": "cash",
+            "payment_amount": 3000.0,
+            "cargo_items": [
+                {
+                    "cargo_name": "Электроника и компьютерная техника",
+                    "weight": 5.5,
+                    "price_per_kg": 120.0
+                },
+                {
+                    "cargo_name": "Документы и личные вещи",
+                    "weight": 2.0,
+                    "price_per_kg": 80.0
+                },
+                {
+                    "cargo_name": "Одежда и текстиль",
+                    "weight": 8.0,
+                    "price_per_kg": 100.0
+                }
+            ]
+        }
+        
+        success, multi_cargo_response = self.run_test(
+            "Create Multi-Cargo with Individual Names",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            multi_cargo_data,
+            operator_token
+        )
+        all_success &= success
+        
+        if success and 'id' in multi_cargo_response:
+            cargo_number = multi_cargo_response.get('cargo_number')
+            total_weight = multi_cargo_response.get('total_weight', 0)
+            total_cost = multi_cargo_response.get('total_cost', 0)
+            
+            print(f"   ✅ Multi-cargo created: {cargo_number}")
+            print(f"   ⚖️  Total weight: {total_weight} kg")
+            print(f"   💰 Total cost: {total_cost} руб")
+            
+            # Verify calculations
+            expected_weight = 5.5 + 2.0 + 8.0  # 15.5 kg
+            expected_cost = (5.5 * 120.0) + (2.0 * 80.0) + (8.0 * 100.0)  # 1620 руб
+            
+            if abs(total_weight - expected_weight) < 0.1:
+                print(f"   ✅ Weight calculation correct: {total_weight} kg")
+            else:
+                print(f"   ❌ Weight calculation incorrect: expected {expected_weight}, got {total_weight}")
+                all_success = False
+            
+            if abs(total_cost - expected_cost) < 0.1:
+                print(f"   ✅ Cost calculation correct: {total_cost} руб")
+            else:
+                print(f"   ❌ Cost calculation incorrect: expected {expected_cost}, got {total_cost}")
+                all_success = False
+        else:
+            print("   ❌ Failed to create multi-cargo")
+            all_success = False
+        
+        # Test 4: ТЕСТИРОВАНИЕ JSON ОБРАБОТКИ (Исправление ошибок JSON)
+        print("\n   🔧 Test 4: JSON PROCESSING IMPROVEMENTS...")
+        
+        # Test with special characters and Unicode (potential JSON issues)
+        special_cargo_data = {
+            "sender_full_name": "Тест Отправитель Спецсимволы",
+            "sender_phone": "+79998887772",
+            "recipient_full_name": "Тест Получатель «Кавычки»",
+            "recipient_phone": "+99299888778",
+            "recipient_address": "Душанбе, ул. Спецсимволы & Кавычки, д. 1/2",
+            "weight": 10.0,
+            "cargo_name": "Груз с спецсимволами: «кавычки», &амперсанд, №номер",
+            "declared_value": 1500.0,
+            "description": "Тест JSON обработки со спецсимволами: «», &, №, %, @, #",
+            "route": "moscow_dushanbe",
+            "payment_method": "card_transfer",
+            "payment_amount": 1500.0
+        }
+        
+        success, special_cargo_response = self.run_test(
+            "Create Cargo with Special Characters (JSON Fix)",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            special_cargo_data,
+            operator_token
+        )
+        all_success &= success
+        
+        if success and 'id' in special_cargo_response:
+            cargo_number = special_cargo_response.get('cargo_number')
+            cargo_name = special_cargo_response.get('cargo_name', '')
+            
+            print(f"   ✅ Special characters cargo created: {cargo_number}")
+            print(f"   📝 Cargo name preserved: {cargo_name}")
+            
+            # Verify special characters are preserved
+            if "«кавычки»" in cargo_name and "&амперсанд" in cargo_name:
+                print("   ✅ Special characters correctly preserved in JSON")
+            else:
+                print("   ❌ Special characters not preserved correctly")
+                all_success = False
+        else:
+            print("   ❌ Failed to create cargo with special characters")
+            all_success = False
+        
+        # Test 5: ТЕСТИРОВАНИЕ ДОСТУПНОСТИ ENDPOINT'ОВ ДЛЯ ОПЕРАТОРОВ
+        print("\n   🔗 Test 5: OPERATOR ENDPOINTS ACCESSIBILITY...")
+        
+        # Test key endpoints that support the frontend functionality
+        operator_endpoints = [
+            ("/api/operator/warehouses", "Operator Warehouses"),
+            ("/api/operator/cargo/list", "Operator Cargo List"),
+            ("/api/operator/cargo/available-for-placement", "Available Cargo for Placement"),
+            ("/api/warehouses/by-route/moscow_to_tajikistan", "Route-based Warehouses")
+        ]
+        
+        endpoint_success_count = 0
+        
+        for endpoint, description in operator_endpoints:
+            success, response = self.run_test(
+                description,
+                "GET",
+                endpoint,
+                200,
+                token=operator_token
+            )
+            
+            if success:
+                endpoint_success_count += 1
+                print(f"   ✅ {description} accessible")
+            else:
+                print(f"   ❌ {description} not accessible")
+                all_success = False
+        
+        print(f"\n   📊 Operator Endpoints Test Summary: {endpoint_success_count}/{len(operator_endpoints)} accessible")
+        
+        # SUMMARY
+        print("\n   📊 REACT DOM FIXES BACKEND SUPPORT SUMMARY:")
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Backend fully supports React DOM fixes!")
+            print("   ✅ Warehouse operator authentication working")
+            print("   ✅ All payment methods backend processing working")
+            print("   ✅ Multiple cargo names backend support working")
+            print("   ✅ JSON processing improvements working (no 'Unexpected end of JSON input')")
+            print("   ✅ Special characters handling working")
+            print("   ✅ All operator endpoints accessible")
+            print("   ✅ Backend ready for React DOM fixes in frontend")
+        else:
+            print("   ❌ SOME TESTS FAILED - Backend support for React DOM fixes needs attention")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
