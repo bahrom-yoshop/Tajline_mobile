@@ -1494,11 +1494,11 @@ async def scan_cargo_qr_code(
         
         # Извлекаем номер груза из QR кода
         cargo_number = None
-        if "ГРУЗ TAJLINE.TJ" in qr_text:
+        if "ГРУЗ №" in qr_text:
             lines = qr_text.split('\n')
             for line in lines:
-                if line.startswith('Номер:'):
-                    cargo_number = line.replace('Номер:', '').strip()
+                if line.startswith('ГРУЗ №'):
+                    cargo_number = line.replace('ГРУЗ №', '').strip()
                     break
         
         if not cargo_number:
