@@ -1480,7 +1480,158 @@ async def get_cargo_qr_code(
         "qr_code": qr_code_data
     }
 
-@app.get("/api/cargo/generate-application-qr/{cargo_number}")
+@app.post("/api/cargo/scan-qr")
+async def scan_cargo_qr_code(
+    qr_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Сканирование QR кода для поиска груза и выполнения операций"""
+    try:
+        qr_text = qr_data.get("qr_text", "").strip()
+        
+        if not qr_text:
+            raise HTTPException(status_code=400, detail="QR code text is required")
+        
+        # Извлекаем номер груза из QR кода
+        cargo_number = None
+        if "ГРУЗ TAJLINE.TJ" in qr_text:
+            lines = qr_text.split('\n')
+            for line in lines:
+                if line.startswith('Номер:'):
+                    cargo_number = line.replace('Номер:', '').strip()
+                    break
+        
+        if not cargo_number:
+            raise HTTPException(status_code=400, detail="Invalid cargo QR code format")
+        
+        # Ищем груз в обеих коллекциях
+        cargo = db.cargo.find_one({"cargo_number": cargo_number}, {"_id": 0})
+        if not cargo:
+            cargo = db.operator_cargo.find_one({"cargo_number": cargo_number}, {"_id": 0})
+        
+        if not cargo:
+            raise HTTPException(status_code=404, detail=f"Cargo with number {cargo_number} not found")
+        
+        # Проверяем права доступа
+        if current_user.role == UserRole.USER and cargo.get("sender_id") != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied to this cargo")
+        
+        # Дополнительная информация для операций
+        cargo_info = {
+            "cargo_id": cargo.get("id"),
+            "cargo_number": cargo.get("cargo_number"),
+            "cargo_name": cargo.get("cargo_name", cargo.get("description", "Груз")),
+            "weight": cargo.get("weight", 0),
+            "declared_value": cargo.get("declared_value", 0),
+            "sender_name": cargo.get("sender_full_name", "Не указан"),
+            "recipient_name": cargo.get("recipient_full_name", "Не указан"),
+            "recipient_phone": cargo.get("recipient_phone", "Не указан"),
+            "status": cargo.get("status", "unknown"),
+            "processing_status": cargo.get("processing_status", "unknown"),
+            "payment_status": cargo.get("payment_status", "unknown"),
+            "payment_method": cargo.get("payment_method", "not_paid"),
+            "warehouse_name": cargo.get("warehouse_name", "Не указан"),
+            "warehouse_location": cargo.get("warehouse_location"),
+            "created_at": cargo.get("created_at"),
+            "created_by_operator": cargo.get("created_by_operator", "Не указан"),
+            
+            # Информация о размещении
+            "block_number": cargo.get("block_number"),
+            "shelf_number": cargo.get("shelf_number"), 
+            "cell_number": cargo.get("cell_number"),
+            "placed_by_operator": cargo.get("placed_by_operator"),
+            
+            # Доступные операции в зависимости от статуса
+            "available_operations": get_available_operations(cargo, current_user)
+        }
+        
+        return {
+            "success": True,
+            "message": f"Груз {cargo_number} найден успешно",
+            "cargo": cargo_info,
+            "scan_timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error scanning QR code: {str(e)}")
+
+def get_available_operations(cargo: dict, current_user: User) -> list:
+    """Определить доступные операции для груза в зависимости от статуса и роли пользователя"""
+    operations = []
+    
+    cargo_status = cargo.get("status", "unknown")
+    processing_status = cargo.get("processing_status", "unknown")
+    payment_status = cargo.get("payment_status", "unknown")
+    user_role = current_user.role
+    
+    # Операции для админа
+    if user_role == UserRole.ADMIN:
+        operations.extend([
+            "view_details",  # Просмотр деталей
+            "edit_cargo",    # Редактирование
+            "print_label",   # Печать этикетки
+            "generate_qr",   # Генерация QR
+            "track_history"  # История операций
+        ])
+        
+        if payment_status != "paid":
+            operations.append("accept_payment")  # Прием оплаты
+        
+        if cargo_status == "accepted":
+            operations.append("place_in_warehouse")  # Размещение на склад
+        
+        if cargo_status == "placed_in_warehouse":
+            operations.extend([
+                "move_cargo",     # Перемещение
+                "prepare_delivery" # Подготовка к выдаче
+            ])
+        
+        if cargo_status == "ready_for_delivery":
+            operations.append("deliver_cargo")  # Выдача груза
+    
+    # Операции для оператора склада
+    elif user_role == UserRole.WAREHOUSE_OPERATOR:
+        operations.extend([
+            "view_details",
+            "print_label",
+            "generate_qr",
+            "track_history"
+        ])
+        
+        # Проверяем привязку к складу оператора
+        operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+        cargo_warehouse_id = cargo.get("target_warehouse_id") or cargo.get("warehouse_id")
+        
+        if cargo_warehouse_id in operator_warehouse_ids:
+            if payment_status != "paid":
+                operations.append("accept_payment")
+            
+            if cargo_status == "accepted":
+                operations.append("place_in_warehouse")
+            
+            if cargo_status == "placed_in_warehouse":
+                operations.extend([
+                    "move_cargo",
+                    "prepare_delivery"
+                ])
+            
+            if cargo_status == "ready_for_delivery":
+                operations.append("deliver_cargo")
+    
+    # Операции для пользователя (клиента)
+    elif user_role == UserRole.USER:
+        operations.extend([
+            "view_details",
+            "track_history",
+            "print_receipt"  # Квитанция для клиента
+        ])
+        
+        if payment_status != "paid":
+            operations.append("make_payment")  # Оплата клиентом
+    
+    return operations
+
+@app.post("/api/cargo/generate-application-qr/{cargo_number}")
 async def generate_application_qr_code(
     cargo_number: str,
     current_user: User = Depends(get_current_user)
