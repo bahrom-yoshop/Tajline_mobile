@@ -26494,6 +26494,8 @@ ID склада: {target_warehouse_id}"""
         # Run test suites in order - prioritizing CURRENT REVIEW REQUEST
         test_suites = [
             ("Health Check", self.test_health_check),
+            # 🔧 PRIORITY TEST: REACT DOM FIXES BACKEND SUPPORT (Current Review Request)
+            ("🔧 REACT DOM FIXES BACKEND SUPPORT", self.test_react_dom_fixes_backend_support),
             # 🎯 PRIORITY TEST: CARGO ACCEPTANCE FIXES AND NEW ENDPOINTS (Current Review Request)
             ("🎯 CARGO ACCEPTANCE FIXES AND NEW ENDPOINTS", self.test_cargo_acceptance_fixes_and_new_endpoints),
             # 🔧 CRITICAL: ADMIN LOGIN FIX AND MAIN ENDPOINTS (Current Review Request)
