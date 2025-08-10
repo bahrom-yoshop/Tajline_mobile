@@ -200,6 +200,15 @@ function App() {
   const [operatorDashboardAnalytics, setOperatorDashboardAnalytics] = useState(null);
   const [operatorAnalyticsLoading, setOperatorAnalyticsLoading] = useState(false);
   
+  // QR codes and invoice states
+  const [cargoNumbers, setCargoNumbers] = useState('');
+  const [generatedQRCodes, setGeneratedQRCodes] = useState([]);
+  const [generatedInvoice, setGeneratedInvoice] = useState(null);
+  const [qrCodeLoading, setQrCodeLoading] = useState(false);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [showQRCodesModal, setShowQRCodesModal] = useState(false);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  
   // Role management states
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedUserForRole, setSelectedUserForRole] = useState(null);
