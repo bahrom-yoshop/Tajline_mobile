@@ -6799,12 +6799,12 @@ function App() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Все статусы</SelectItem>
-                          <SelectItem value="accepted">Принят</SelectItem>
-                          <SelectItem value="placed_in_warehouse">На складе</SelectItem>
-                          <SelectItem value="on_transport">На транспорте</SelectItem>
-                          <SelectItem value="in_transit">В пути</SelectItem>
-                          <SelectItem value="delivered">Доставлен</SelectItem>
+                          <SelectItem key="all" value="all">Все статусы</SelectItem>
+                          <SelectItem key="accepted" value="accepted">Принят</SelectItem>
+                          <SelectItem key="placed_in_warehouse" value="placed_in_warehouse">На складе</SelectItem>
+                          <SelectItem key="on_transport" value="on_transport">На транспорте</SelectItem>
+                          <SelectItem key="in_transit" value="in_transit">В пути</SelectItem>
+                          <SelectItem key="delivered" value="delivered">Доставлен</SelectItem>
                         </SelectContent>
                       </Select>
                       <Button 
