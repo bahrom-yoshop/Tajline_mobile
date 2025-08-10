@@ -8658,10 +8658,16 @@ function App() {
                           <div>
                             <Label htmlFor="warehouse_id">Склад назначения</Label>
                             <Select 
+                              key="warehouse-select"
                               value={operatorCargoForm.warehouse_id} 
-                              onValueChange={(value) => setOperatorCargoForm({...operatorCargoForm, warehouse_id: value})}
+                              onValueChange={(value) => {
+                                setOperatorCargoForm(prev => ({
+                                  ...prev, 
+                                  warehouse_id: value
+                                }));
+                              }}
                             >
-                              <SelectTrigger>
+                              <SelectTrigger key="warehouse-trigger">
                                 <SelectValue placeholder={
                                   !operatorCargoForm.route 
                                     ? "Сначала выберите маршрут" 
@@ -8670,9 +8676,9 @@ function App() {
                                       : "Выберите склад назначения"
                                 } />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent key="warehouse-content">
                                 {routeWarehouses.map((warehouse) => (
-                                  <SelectItem key={warehouse.id} value={warehouse.id}>
+                                  <SelectItem key={`warehouse-${warehouse.id}`} value={warehouse.id}>
                                     {warehouse.name} - {warehouse.location}
                                   </SelectItem>
                                 ))}
