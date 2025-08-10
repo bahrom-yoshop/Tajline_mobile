@@ -1528,7 +1528,7 @@ function App() {
         }
       }
     };
-  }, [showQRScannerModal, scannerMode, scannerActive]);
+  }, [showQRScannerModal, scannerMode, scannerActive, modalCameraIndex]);
 
   const printApplicationQR = () => {
     if (!applicationQRCode) return;
