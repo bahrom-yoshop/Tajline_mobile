@@ -1137,7 +1137,7 @@ def create_notification(user_id, message, related_id=None):
 def create_route_based_notifications(message: str, route: str, related_id: str = None):
     """НОВАЯ ФУНКЦИЯ: Создание уведомлений по маршруту"""
     # Определяем склады по маршруту
-    target_warehouse_ids = get_warehouses_by_route(route)
+    target_warehouse_ids = get_warehouses_by_route_for_notifications(route)
     
     if not target_warehouse_ids:
         # Если маршрут не определен, отправляем всем админам
