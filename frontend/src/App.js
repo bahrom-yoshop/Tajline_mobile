@@ -7922,6 +7922,85 @@ function App() {
                         >
                           {dashboardLoading ? 'Загрузка...' : 'Обновить данные'}
                         </Button>
+                        
+                        {/* Новые функции для операторов и админов */}
+                        {(user?.role === 'admin' || user?.role === 'warehouse_operator') && (
+                          <div className="flex gap-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline">
+                                  <QrCode className="mr-2 h-4 w-4" />
+                                  Штрихкоды
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl">
+                                <DialogHeader>
+                                  <DialogTitle>Генерация штрихкодов для грузов</DialogTitle>
+                                  <DialogDescription>
+                                    Введите номера грузов через запятую для генерации QR-кодов
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div>
+                                    <Label htmlFor="cargo-numbers">Номера грузов</Label>
+                                    <Textarea
+                                      id="cargo-numbers"
+                                      placeholder="CRG-001, CRG-002, CRG-003..."
+                                      className="min-h-20"
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button className="flex-1">
+                                      <QrCode className="mr-2 h-4 w-4" />
+                                      Генерировать штрихкоды
+                                    </Button>
+                                    <Button variant="outline" className="flex-1">
+                                      <Printer className="mr-2 h-4 w-4" />
+                                      Печать штрихкодов
+                                    </Button>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline">
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  Накладная
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-4xl">
+                                <DialogHeader>
+                                  <DialogTitle>Генерация накладной</DialogTitle>
+                                  <DialogDescription>
+                                    Создание накладной для группы грузов
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div>
+                                    <Label htmlFor="invoice-cargo-numbers">Номера грузов для накладной</Label>
+                                    <Textarea
+                                      id="invoice-cargo-numbers"
+                                      placeholder="CRG-001, CRG-002, CRG-003..."
+                                      className="min-h-20"
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button className="flex-1">
+                                      <FileText className="mr-2 h-4 w-4" />
+                                      Сгенерировать накладную
+                                    </Button>
+                                    <Button variant="outline" className="flex-1">
+                                      <Printer className="mr-2 h-4 w-4" />
+                                      Печать накладной
+                                    </Button>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        )}
                       </div>
                       
                       {personalDashboardData && (
