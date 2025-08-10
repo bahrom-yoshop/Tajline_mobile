@@ -25719,6 +25719,470 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_cargo_acceptance_fixes_and_new_endpoints(self):
+        """Test исправления в форме приема заявок и новые endpoints для штрихкодов/накладных"""
+        print("\n📋 CARGO ACCEPTANCE FIXES AND NEW ENDPOINTS TESTING")
+        print("   🎯 Testing fixed /api/operator/cargo/accept endpoint and new QR/invoice endpoints")
+        
+        all_success = True
+        
+        # Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРА СКЛАДА
+        print("\n   🔐 Test 1: WAREHOUSE OPERATOR AUTHENTICATION...")
+        
+        # Login as warehouse operator (+79777888999/warehouse123)
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login (+79777888999/warehouse123)",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            print(f"   📞 Phone: {operator_user.get('phone')}")
+            
+            # Verify role is warehouse_operator
+            if operator_role == 'warehouse_operator':
+                print("   ✅ Operator role correctly set to 'warehouse_operator'")
+            else:
+                print(f"   ❌ Operator role incorrect: expected 'warehouse_operator', got '{operator_role}'")
+                all_success = False
+            
+            # Store operator token for further tests
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+            return False
+        
+        # Test 2: ИСПРАВЛЕННЫЙ ENDPOINT /api/operator/cargo/accept С УЛУЧШЕННОЙ JSON ОБРАБОТКОЙ
+        print("\n   📦 Test 2: FIXED CARGO ACCEPTANCE ENDPOINT WITH IMPROVED JSON PROCESSING...")
+        
+        # Test cargo acceptance with realistic data
+        cargo_data = {
+            "sender_full_name": "Иван Петрович Сидоров",
+            "sender_phone": "+79161234567",
+            "recipient_full_name": "Ахмад Рахимович Назаров",
+            "recipient_phone": "+992987654321",
+            "recipient_address": "г. Душанбе, ул. Рудаки, д. 15, кв. 25",
+            "weight": 12.5,
+            "cargo_name": "Электроника и бытовая техника",
+            "declared_value": 25000.0,
+            "description": "Телевизор Samsung 43 дюйма, микроволновая печь LG",
+            "route": "moscow_to_tajikistan",
+            "payment_method": "cash",
+            "payment_amount": 3500.0
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create Cargo with Improved JSON Processing",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            cargo_data,
+            operator_token
+        )
+        all_success &= success
+        
+        created_cargo_number = None
+        if success and 'cargo_number' in cargo_response:
+            created_cargo_number = cargo_response.get('cargo_number')
+            cargo_id = cargo_response.get('id')
+            processing_status = cargo_response.get('processing_status')
+            payment_method = cargo_response.get('payment_method')
+            
+            print(f"   ✅ Cargo created successfully: {created_cargo_number}")
+            print(f"   💳 Payment method: {payment_method}")
+            print(f"   📊 Processing status: {processing_status}")
+            print(f"   🆔 Cargo ID: {cargo_id}")
+            
+            # Verify no JSON parsing errors
+            if isinstance(cargo_response, dict):
+                print("   ✅ Response is valid JSON - no 'Unexpected end of JSON input' errors")
+            else:
+                print("   ❌ Response is not valid JSON")
+                all_success = False
+        else:
+            print("   ❌ Failed to create cargo - JSON processing may have issues")
+            all_success = False
+        
+        # Test 3: ПРОВЕРКА ИСПРАВЛЕНИЯ ОШИБКИ "Selected warehouse is not assigned to this operator"
+        print("\n   🏭 Test 3: WAREHOUSE ASSIGNMENT ERROR FIX...")
+        
+        # Get operator warehouses to verify assignment
+        success, warehouses_response = self.run_test(
+            "Get Operator Warehouses",
+            "GET",
+            "/api/operator/warehouses",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success and warehouses_response:
+            warehouse_count = len(warehouses_response) if isinstance(warehouses_response, list) else 0
+            print(f"   ✅ Operator has access to {warehouse_count} warehouses")
+            
+            if warehouse_count > 0:
+                assigned_warehouse = warehouses_response[0]
+                warehouse_id = assigned_warehouse.get('id')
+                warehouse_name = assigned_warehouse.get('name')
+                print(f"   🏭 Assigned warehouse: {warehouse_name} (ID: {warehouse_id})")
+                
+                # Test cargo acceptance with specific warehouse
+                cargo_with_warehouse = {
+                    "sender_full_name": "Мария Александровна Козлова",
+                    "sender_phone": "+79167891234",
+                    "recipient_full_name": "Фарход Джамшедович Усманов",
+                    "recipient_phone": "+992901234567",
+                    "recipient_address": "г. Худжанд, ул. Ленина, д. 8, кв. 12",
+                    "weight": 8.0,
+                    "cargo_name": "Одежда и обувь",
+                    "declared_value": 15000.0,
+                    "description": "Зимняя куртка, ботинки, шарф",
+                    "route": "moscow_to_tajikistan",
+                    "warehouse_id": warehouse_id,
+                    "payment_method": "card_transfer",
+                    "payment_amount": 2200.0
+                }
+                
+                success, warehouse_cargo_response = self.run_test(
+                    "Create Cargo with Specific Warehouse Assignment",
+                    "POST",
+                    "/api/operator/cargo/accept",
+                    200,
+                    cargo_with_warehouse,
+                    operator_token
+                )
+                all_success &= success
+                
+                if success:
+                    print("   ✅ Warehouse assignment error fixed - cargo accepted with specific warehouse")
+                    warehouse_cargo_number = warehouse_cargo_response.get('cargo_number')
+                    if warehouse_cargo_number:
+                        print(f"   📦 Cargo with warehouse assignment: {warehouse_cargo_number}")
+                else:
+                    print("   ❌ Warehouse assignment error still exists")
+                    all_success = False
+            else:
+                print("   ❌ Operator has no assigned warehouses")
+                all_success = False
+        else:
+            print("   ❌ Failed to get operator warehouses")
+            all_success = False
+        
+        # Test 4: НОВЫЙ ENDPOINT /api/cargo/batch/{cargo_numbers}/qr-codes ДЛЯ ГЕНЕРАЦИИ ШТРИХКОДОВ
+        print("\n   📱 Test 4: NEW QR CODES BATCH GENERATION ENDPOINT...")
+        
+        if created_cargo_number:
+            # Test QR code generation for the created cargo
+            success, qr_response = self.run_test(
+                "Generate QR Codes for Cargo Batch",
+                "GET",
+                f"/api/cargo/batch/{created_cargo_number}/qr-codes",
+                200,
+                token=operator_token
+            )
+            all_success &= success
+            
+            if success and isinstance(qr_response, dict):
+                requested_count = qr_response.get('requested_count', 0)
+                found_count = qr_response.get('found_count', 0)
+                cargo_qr_codes = qr_response.get('cargo_qr_codes', [])
+                
+                print(f"   ✅ QR codes endpoint working: {found_count}/{requested_count} cargo found")
+                
+                if cargo_qr_codes and len(cargo_qr_codes) > 0:
+                    sample_qr = cargo_qr_codes[0]
+                    qr_cargo_number = sample_qr.get('cargo_number')
+                    qr_code_data = sample_qr.get('qr_code')
+                    
+                    print(f"   📱 QR code generated for: {qr_cargo_number}")
+                    
+                    # Verify QR code data format
+                    if qr_code_data and qr_code_data.startswith('data:image/png;base64,'):
+                        print("   ✅ QR code data format correct (base64 PNG)")
+                    else:
+                        print("   ❌ QR code data format incorrect")
+                        all_success = False
+                    
+                    # Verify required fields in QR response
+                    required_qr_fields = ['cargo_id', 'cargo_number', 'cargo_name', 'weight', 'sender_name', 'recipient_name', 'qr_code']
+                    missing_qr_fields = [field for field in required_qr_fields if field not in sample_qr]
+                    
+                    if not missing_qr_fields:
+                        print("   ✅ QR response contains all required fields")
+                    else:
+                        print(f"   ❌ QR response missing fields: {missing_qr_fields}")
+                        all_success = False
+                else:
+                    print("   ❌ No QR codes generated")
+                    all_success = False
+            else:
+                print("   ❌ QR codes endpoint failed or returned invalid response")
+                all_success = False
+        else:
+            print("   ⚠️  No cargo number available for QR code testing")
+        
+        # Test 5: НОВЫЙ ENDPOINT /api/cargo/invoice/{cargo_numbers} ДЛЯ ГЕНЕРАЦИИ НАКЛАДНЫХ
+        print("\n   📄 Test 5: NEW INVOICE GENERATION ENDPOINT...")
+        
+        if created_cargo_number:
+            # Test invoice generation for the created cargo
+            success, invoice_response = self.run_test(
+                "Generate Invoice for Cargo",
+                "GET",
+                f"/api/cargo/invoice/{created_cargo_number}",
+                200,
+                token=operator_token
+            )
+            all_success &= success
+            
+            if success and isinstance(invoice_response, dict):
+                invoice_number = invoice_response.get('invoice_number')
+                invoice_date = invoice_response.get('invoice_date')
+                operator_name = invoice_response.get('operator_name')
+                sender_info = invoice_response.get('sender_info', {})
+                recipient_info = invoice_response.get('recipient_info', {})
+                cargo_list = invoice_response.get('cargo_list', [])
+                summary = invoice_response.get('summary', {})
+                
+                print(f"   ✅ Invoice generated: {invoice_number}")
+                print(f"   📅 Invoice date: {invoice_date}")
+                print(f"   👤 Operator: {operator_name}")
+                
+                # Verify sender info
+                if sender_info and 'name' in sender_info:
+                    print(f"   📤 Sender: {sender_info['name']} ({sender_info.get('phone', 'No phone')})")
+                else:
+                    print("   ❌ Sender info missing or incomplete")
+                    all_success = False
+                
+                # Verify recipient info
+                if recipient_info and 'name' in recipient_info:
+                    print(f"   📥 Recipient: {recipient_info['name']} ({recipient_info.get('phone', 'No phone')})")
+                else:
+                    print("   ❌ Recipient info missing or incomplete")
+                    all_success = False
+                
+                # Verify cargo list
+                if cargo_list and len(cargo_list) > 0:
+                    print(f"   📦 Cargo items in invoice: {len(cargo_list)}")
+                    sample_cargo = cargo_list[0]
+                    print(f"   📦 Sample cargo: {sample_cargo.get('cargo_number')} - {sample_cargo.get('cargo_name')}")
+                else:
+                    print("   ❌ No cargo items in invoice")
+                    all_success = False
+                
+                # Verify summary
+                if summary:
+                    total_items = summary.get('total_items', 0)
+                    total_weight = summary.get('total_weight', 0)
+                    total_value = summary.get('total_value', 0)
+                    
+                    print(f"   📊 Invoice summary: {total_items} items, {total_weight} kg, {total_value} руб")
+                    
+                    if total_items > 0 and total_weight > 0:
+                        print("   ✅ Invoice summary calculations correct")
+                    else:
+                        print("   ❌ Invoice summary calculations incorrect")
+                        all_success = False
+                else:
+                    print("   ❌ Invoice summary missing")
+                    all_success = False
+            else:
+                print("   ❌ Invoice endpoint failed or returned invalid response")
+                all_success = False
+        else:
+            print("   ⚠️  No cargo number available for invoice testing")
+        
+        # Test 6: ПРОВЕРКА ОТСУТСТВИЯ ОШИБОК "Unexpected end of JSON input"
+        print("\n   🔍 Test 6: JSON INPUT ERROR VERIFICATION...")
+        
+        # Test multiple cargo acceptance requests to verify JSON stability
+        json_test_cases = [
+            {
+                "name": "Standard Cargo",
+                "data": {
+                    "sender_full_name": "Тест Отправитель 1",
+                    "sender_phone": "+79161111111",
+                    "recipient_full_name": "Тест Получатель 1",
+                    "recipient_phone": "+992911111111",
+                    "recipient_address": "Тестовый адрес 1",
+                    "weight": 5.0,
+                    "cargo_name": "Тестовый груз 1",
+                    "declared_value": 5000.0,
+                    "description": "Тест JSON обработки 1",
+                    "route": "moscow_to_tajikistan",
+                    "payment_method": "not_paid"
+                }
+            },
+            {
+                "name": "Cargo with Special Characters",
+                "data": {
+                    "sender_full_name": "Тест \"Кавычки\" & Символы",
+                    "sender_phone": "+79162222222",
+                    "recipient_full_name": "Получатель с символами: @#$%",
+                    "recipient_phone": "+992922222222",
+                    "recipient_address": "Адрес с символами: {}[]()!",
+                    "weight": 7.5,
+                    "cargo_name": "Груз с символами: <>?/\\",
+                    "declared_value": 7500.0,
+                    "description": "Тест специальных символов в JSON",
+                    "route": "moscow_to_tajikistan",
+                    "payment_method": "cash_on_delivery"
+                }
+            },
+            {
+                "name": "Cargo with Unicode",
+                "data": {
+                    "sender_full_name": "Тест Юникод 测试 тест",
+                    "sender_phone": "+79163333333",
+                    "recipient_full_name": "Получатель 收件人 получатель",
+                    "recipient_phone": "+992933333333",
+                    "recipient_address": "Адрес 地址 адрес",
+                    "weight": 10.0,
+                    "cargo_name": "Груз 货物 груз",
+                    "declared_value": 10000.0,
+                    "description": "Тест Unicode символов в JSON",
+                    "route": "moscow_to_tajikistan",
+                    "payment_method": "credit",
+                    "debt_due_date": "2025-12-31"
+                }
+            }
+        ]
+        
+        json_errors_found = 0
+        for i, test_case in enumerate(json_test_cases, 1):
+            print(f"\n   🧪 JSON Test {i}: {test_case['name']}...")
+            
+            success, response = self.run_test(
+                f"JSON Processing Test - {test_case['name']}",
+                "POST",
+                "/api/operator/cargo/accept",
+                200,
+                test_case['data'],
+                operator_token
+            )
+            
+            if success:
+                # Check if response is valid JSON
+                if isinstance(response, dict):
+                    print(f"   ✅ JSON processing successful for {test_case['name']}")
+                else:
+                    print(f"   ❌ Invalid JSON response for {test_case['name']}")
+                    json_errors_found += 1
+                    all_success = False
+            else:
+                print(f"   ❌ Request failed for {test_case['name']} - possible JSON parsing error")
+                json_errors_found += 1
+                all_success = False
+        
+        if json_errors_found == 0:
+            print("   ✅ No 'Unexpected end of JSON input' errors found - JSON processing fixed!")
+        else:
+            print(f"   ❌ Found {json_errors_found} JSON processing errors")
+            all_success = False
+        
+        # Test 7: КОМПЛЕКСНЫЙ ТЕСТ WORKFLOW ПРИЕМА ГРУЗА
+        print("\n   🔄 Test 7: COMPLETE CARGO ACCEPTANCE WORKFLOW...")
+        
+        # Test complete workflow: accept cargo -> generate QR -> generate invoice
+        workflow_cargo = {
+            "sender_full_name": "Workflow Test Sender",
+            "sender_phone": "+79164444444",
+            "recipient_full_name": "Workflow Test Recipient",
+            "recipient_phone": "+992944444444",
+            "recipient_address": "Workflow Test Address",
+            "weight": 15.0,
+            "cargo_name": "Workflow Test Cargo",
+            "declared_value": 20000.0,
+            "description": "Complete workflow test",
+            "route": "moscow_to_tajikistan",
+            "payment_method": "card_transfer",
+            "payment_amount": 4000.0
+        }
+        
+        # Step 1: Accept cargo
+        success, workflow_response = self.run_test(
+            "Workflow Step 1: Accept Cargo",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            workflow_cargo,
+            operator_token
+        )
+        
+        if success:
+            workflow_cargo_number = workflow_response.get('cargo_number')
+            print(f"   ✅ Workflow Step 1 completed: {workflow_cargo_number}")
+            
+            # Step 2: Generate QR code
+            success, workflow_qr = self.run_test(
+                "Workflow Step 2: Generate QR Code",
+                "GET",
+                f"/api/cargo/batch/{workflow_cargo_number}/qr-codes",
+                200,
+                token=operator_token
+            )
+            
+            if success:
+                print("   ✅ Workflow Step 2 completed: QR code generated")
+                
+                # Step 3: Generate invoice
+                success, workflow_invoice = self.run_test(
+                    "Workflow Step 3: Generate Invoice",
+                    "GET",
+                    f"/api/cargo/invoice/{workflow_cargo_number}",
+                    200,
+                    token=operator_token
+                )
+                
+                if success:
+                    print("   ✅ Workflow Step 3 completed: Invoice generated")
+                    print("   🎉 Complete cargo acceptance workflow successful!")
+                else:
+                    print("   ❌ Workflow Step 3 failed: Invoice generation")
+                    all_success = False
+            else:
+                print("   ❌ Workflow Step 2 failed: QR code generation")
+                all_success = False
+        else:
+            print("   ❌ Workflow Step 1 failed: Cargo acceptance")
+            all_success = False
+        
+        # SUMMARY
+        print("\n   📊 CARGO ACCEPTANCE FIXES AND NEW ENDPOINTS SUMMARY:")
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Cargo acceptance fixes and new endpoints working perfectly!")
+            print("   ✅ Operator authorization working (+79777888999/warehouse123)")
+            print("   ✅ Fixed /api/operator/cargo/accept endpoint with improved JSON processing")
+            print("   ✅ 'Selected warehouse is not assigned to this operator' error fixed")
+            print("   ✅ No 'Unexpected end of JSON input' errors found")
+            print("   ✅ New /api/cargo/batch/{cargo_numbers}/qr-codes endpoint working")
+            print("   ✅ New /api/cargo/invoice/{cargo_numbers} endpoint working")
+            print("   ✅ Complete cargo acceptance workflow functional")
+        else:
+            print("   ❌ SOME TESTS FAILED - Cargo acceptance fixes need attention")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
