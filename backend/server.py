@@ -3986,13 +3986,26 @@ async def get_available_cargo_for_placement(
             ]
         }
 
-        # Подсчитываем общее количество
-        total_count = db.cargo.count_documents(placement_query)
+        # Подсчитываем общее количество в обеих коллекциях
+        total_count_cargo = db.cargo.count_documents(placement_query)
+        total_count_operator_cargo = db.operator_cargo.count_documents(placement_query)
+        total_count = total_count_cargo + total_count_operator_cargo
         
-        # Получаем грузы с пагинацией
+        # Получаем грузы из обеих коллекций
         skip = (pagination.page - 1) * pagination.per_page
-        cargo_cursor = db.cargo.find(placement_query).skip(skip).limit(pagination.per_page).sort("created_at", -1)
-        cargo_list = list(cargo_cursor)
+        
+        # Получаем из основной коллекции cargo
+        cargo_list_main = list(db.cargo.find(placement_query).skip(skip).limit(pagination.per_page).sort("created_at", -1))
+        
+        # Получаем из коллекции operator_cargo (если еще нужны грузы для заполнения страницы)
+        remaining_limit = pagination.per_page - len(cargo_list_main)
+        cargo_list_operator = []
+        if remaining_limit > 0:
+            operator_skip = max(0, skip - total_count_cargo)
+            cargo_list_operator = list(db.operator_cargo.find(placement_query).skip(operator_skip).limit(remaining_limit).sort("created_at", -1))
+        
+        # Объединяем списки
+        cargo_list = cargo_list_main + cargo_list_operator
         
         # Обрабатываем данные и добавляем информацию об операторах и складах
         normalized_cargo = []
