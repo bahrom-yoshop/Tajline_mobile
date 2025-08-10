@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 class FocusedJWTTester:
-    def __init__(self, base_url="https://c630d0ac-ac32-4c6b-95b6-f2db40d1b683.preview.emergentagent.com"):
+    def __init__(self, base_url="https://53b1d69e-cfcb-4a47-8737-8d1d83582d4a.preview.emergentagent.com"):
         self.base_url = base_url
         self.admin_token = None
         self.user_token = None
