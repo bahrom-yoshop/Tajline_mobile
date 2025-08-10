@@ -209,6 +209,11 @@ function App() {
   const [showQRCodesModal, setShowQRCodesModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   
+  // Application QR code states
+  const [applicationQRCode, setApplicationQRCode] = useState(null);
+  const [showApplicationQRModal, setShowApplicationQRModal] = useState(false);
+  const [applicationQRLoading, setApplicationQRLoading] = useState(false);
+  
   // Role management states
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedUserForRole, setSelectedUserForRole] = useState(null);
