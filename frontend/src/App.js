@@ -1334,6 +1334,40 @@ function App() {
     }
   };
 
+  // Scan QR code to find cargo
+  const scanCargoQRCode = async (qrText) => {
+    try {
+      const response = await apiCall('/api/cargo/scan-qr', 'POST', { qr_text: qrText });
+      
+      if (response && response.success) {
+        setScannedCargoInfo(response.cargo);
+        setShowScannedCargoModal(true);
+        showAlert(`Груз найден: ${response.cargo.cargo_number}`, 'success');
+        return response.cargo;
+      }
+    } catch (error) {
+      console.error('Error scanning cargo QR:', error);
+      showAlert(`Ошибка сканирования QR кода: ${error.message}`, 'error');
+      return null;
+    }
+  };
+
+  // Start QR scanner for cargo search
+  const startCargoQRScanner = () => {
+    setScannerMode('cargo-qr-search');
+    setScannerActive(true);
+    setScannerError(null);
+    setShowQRScannerModal(true);
+  };
+
+  // Stop QR scanner
+  const stopCargoQRScanner = () => {
+    setScannerMode('none');
+    setScannerActive(false);
+    setScannerError(null);
+    setShowQRScannerModal(false);
+  };
+
   const printApplicationQR = () => {
     if (!applicationQRCode) return;
 
