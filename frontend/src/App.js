@@ -218,6 +218,10 @@ function App() {
   const [createdCargoQR, setCreatedCargoQR] = useState(null);
   const [showCreatedCargoQRModal, setShowCreatedCargoQRModal] = useState(false);
   
+  // Modal QR scanner state
+  const [modalCameraIndex, setModalCameraIndex] = useState(0);
+  const [modalCameras, setModalCameras] = useState([]);
+  
   // QR Scanner states
   const [showQRScannerModal, setShowQRScannerModal] = useState(false);
   const [scannerActive, setScannerActive] = useState(false);
