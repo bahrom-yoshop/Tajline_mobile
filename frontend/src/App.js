@@ -1263,6 +1263,231 @@ function App() {
 
   // Функция загрузки аналитики дашборда оператора
   const fetchOperatorDashboardAnalytics = async () => {
+    if (!user || user.role !== 'warehouse_operator') return;
+    
+    setOperatorAnalyticsLoading(true);
+    try {
+      const response = await apiCall('/api/operator/dashboard/analytics');
+      setOperatorDashboardAnalytics(response);
+    } catch (error) {
+      console.error('Error fetching operator dashboard analytics:', error);
+      showAlert(`Ошибка загрузки аналитики: ${error.message}`, 'error');
+    } finally {
+      setOperatorAnalyticsLoading(false);
+    }
+  };
+
+  // QR Codes and Invoice functions
+  const generateBatchQRCodes = async () => {
+    if (!cargoNumbers.trim()) {
+      showAlert('Введите номера грузов через запятую', 'error');
+      return;
+    }
+
+    setQrCodeLoading(true);
+    try {
+      const response = await apiCall(`/api/cargo/batch/${encodeURIComponent(cargoNumbers)}/qr-codes`);
+      setGeneratedQRCodes(response.cargo_qr_codes || []);
+      setShowQRCodesModal(true);
+      
+      if (response.found_count === 0) {
+        showAlert('Грузы с указанными номерами не найдены', 'warning');
+      } else if (response.found_count < response.requested_count) {
+        showAlert(`Найдено ${response.found_count} из ${response.requested_count} грузов`, 'warning');
+      } else {
+        showAlert(`Сгенерированы штрихкоды для ${response.found_count} грузов`, 'success');
+      }
+    } catch (error) {
+      console.error('Error generating QR codes:', error);
+      showAlert(`Ошибка генерации штрихкодов: ${error.message}`, 'error');
+    } finally {
+      setQrCodeLoading(false);
+    }
+  };
+
+  const generateInvoice = async () => {
+    if (!cargoNumbers.trim()) {
+      showAlert('Введите номера грузов через запятую', 'error');
+      return;
+    }
+
+    setInvoiceLoading(true);
+    try {
+      const response = await apiCall(`/api/cargo/invoice/${encodeURIComponent(cargoNumbers)}`);
+      setGeneratedInvoice(response);
+      setShowInvoiceModal(true);
+      showAlert(`Накладная сгенерирована для ${response.summary.total_items} грузов`, 'success');
+    } catch (error) {
+      console.error('Error generating invoice:', error);
+      showAlert(`Ошибка генерации накладной: ${error.message}`, 'error');
+    } finally {
+      setInvoiceLoading(false);
+    }
+  };
+
+  const printQRCodes = () => {
+    const printWindow = window.open('', '_blank');
+    let printContent = `
+      <html>
+        <head>
+          <title>Штрихкоды грузов</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .qr-code-item { 
+              page-break-inside: avoid; 
+              margin-bottom: 20px; 
+              padding: 15px; 
+              border: 1px solid #ddd; 
+              border-radius: 8px;
+              display: inline-block;
+              width: 300px;
+              margin-right: 20px;
+            }
+            .qr-code-item img { max-width: 150px; height: auto; margin: 10px 0; }
+            .cargo-info { font-size: 12px; line-height: 1.4; }
+            .cargo-number { font-weight: bold; font-size: 14px; margin-bottom: 5px; }
+            @media print {
+              .qr-code-item { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Штрихкоды грузов</h1>
+          <p>Дата: ${new Date().toLocaleDateString('ru-RU')}</p>
+    `;
+
+    generatedQRCodes.forEach(cargo => {
+      printContent += `
+        <div class="qr-code-item">
+          <div class="cargo-number">Груз №${cargo.cargo_number}</div>
+          <img src="${cargo.qr_code}" alt="QR код груза ${cargo.cargo_number}" />
+          <div class="cargo-info">
+            <div>Наименование: ${cargo.cargo_name}</div>
+            <div>Вес: ${cargo.weight} кг</div>
+            <div>Отправитель: ${cargo.sender_name}</div>
+            <div>Получатель: ${cargo.recipient_name}</div>
+          </div>
+        </div>
+      `;
+    });
+
+    printContent += `
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  const printInvoice = () => {
+    if (!generatedInvoice) return;
+
+    const printWindow = window.open('', '_blank');
+    const printContent = `
+      <html>
+        <head>
+          <title>Накладная ${generatedInvoice.invoice_number}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.4; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .invoice-info { margin-bottom: 20px; }
+            .parties { display: flex; justify-content: space-between; margin-bottom: 20px; }
+            .party { width: 45%; }
+            .cargo-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .cargo-table th, .cargo-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            .cargo-table th { background-color: #f5f5f5; font-weight: bold; }
+            .summary { margin-top: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 5px; }
+            .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>НАКЛАДНАЯ № ${generatedInvoice.invoice_number}</h1>
+            <p>Дата: ${generatedInvoice.invoice_date}</p>
+          </div>
+          
+          <div class="invoice-info">
+            <h3>Информация об операторе</h3>
+            <p><strong>Оператор:</strong> ${generatedInvoice.operator_name}</p>
+            <p><strong>Телефон:</strong> ${generatedInvoice.operator_phone}</p>
+          </div>
+
+          <div class="parties">
+            <div class="party">
+              <h3>Отправитель</h3>
+              <p><strong>ФИО:</strong> ${generatedInvoice.sender_info.name}</p>
+              <p><strong>Телефон:</strong> ${generatedInvoice.sender_info.phone}</p>
+              <p><strong>Адрес:</strong> ${generatedInvoice.sender_info.address}</p>
+            </div>
+            <div class="party">
+              <h3>Получатель</h3>
+              <p><strong>ФИО:</strong> ${generatedInvoice.recipient_info.name}</p>
+              <p><strong>Телефон:</strong> ${generatedInvoice.recipient_info.phone}</p>
+              <p><strong>Адрес:</strong> ${generatedInvoice.recipient_info.address}</p>
+            </div>
+          </div>
+
+          <h3>Список грузов</h3>
+          <table class="cargo-table">
+            <thead>
+              <tr>
+                <th>№</th>
+                <th>Номер груза</th>
+                <th>Наименование</th>
+                <th>Вес (кг)</th>
+                <th>Стоимость (₽)</th>
+                <th>Способ оплаты</th>
+                <th>Склад</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${generatedInvoice.cargo_list.map((cargo, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${cargo.cargo_number}</td>
+                  <td>${cargo.cargo_name}</td>
+                  <td>${cargo.weight}</td>
+                  <td>${cargo.declared_value.toLocaleString()}</td>
+                  <td>${getPaymentMethodText(cargo.payment_method)}</td>
+                  <td>${cargo.warehouse_name}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="summary">
+            <h3>Итого</h3>
+            <p><strong>Всего грузов:</strong> ${generatedInvoice.summary.total_items}</p>
+            <p><strong>Общий вес:</strong> ${generatedInvoice.summary.total_weight} кг</p>
+            <p><strong>Общая стоимость:</strong> ${generatedInvoice.summary.total_value.toLocaleString()} ₽</p>
+          </div>
+
+          <div class="footer">
+            <p>Накладная сгенерирована автоматически системой TAJLINE.TJ</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  const getPaymentMethodText = (method) => {
+    const methods = {
+      'not_paid': 'Не оплачено',
+      'cash': 'Наличные',
+      'card_transfer': 'Перевод на карту',
+      'cash_on_delivery': 'При получении',
+      'credit': 'В долг'
+    };
+    return methods[method] || method;
+  };
+
+  const fetchOperatorDashboardAnalyticsOld = async () => {
     if (user?.role !== 'warehouse_operator') return;
     
     setOperatorAnalyticsLoading(true);
