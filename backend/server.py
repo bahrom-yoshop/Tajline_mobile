@@ -1480,8 +1480,115 @@ async def get_cargo_qr_code(
         "qr_code": qr_code_data
     }
 
+@app.get("/api/cargo/generate-application-qr/{cargo_number}")
+async def generate_application_qr_code(
+    cargo_number: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Генерировать QR код для номера заявки/груза"""
+    try:
+        # Поиск груза в обеих коллекциях
+        cargo = db.cargo.find_one({"cargo_number": cargo_number}, {"_id": 0})
+        if not cargo:
+            cargo = db.operator_cargo.find_one({"cargo_number": cargo_number}, {"_id": 0})
+        
+        if not cargo:
+            raise HTTPException(status_code=404, detail="Cargo not found")
+        
+        # Проверка доступа
+        if current_user.role == UserRole.USER and cargo.get("sender_id") != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Создаем простой QR код с номером заявки
+        import qrcode
+        from io import BytesIO
+        import base64
+        
+        # Данные для QR кода заявки
+        qr_data = f"ЗАЯВКА TAJLINE.TJ\nНомер: {cargo_number}\nДата: {cargo.get('created_at', 'Не указана')}\nОтправитель: {cargo.get('sender_full_name', 'Не указан')}"
+        
+        # Генерируем QR код
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        
+        # Создаем изображение
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Конвертируем в base64
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        img_str = base64.b64encode(buffer.getvalue()).decode()
+        qr_code_data = f"data:image/png;base64,{img_str}"
+        
+        return {
+            "cargo_number": cargo_number,
+            "qr_code": qr_code_data,
+            "qr_text": qr_data,
+            "cargo_info": {
+                "cargo_name": cargo.get("cargo_name", "Груз"),
+                "weight": cargo.get("weight", 0),
+                "sender_name": cargo.get("sender_full_name", "Не указан"),
+                "recipient_name": cargo.get("recipient_full_name", "Не указан"),
+                "created_at": cargo.get("created_at", "Не указана")
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating application QR code: {str(e)}")
+
 @app.get("/api/cargo/batch/{cargo_numbers}/qr-codes")
 async def get_batch_cargo_qr_codes(
+    cargo_numbers: str,  # comma-separated cargo numbers
+    current_user: User = Depends(get_current_user)
+):
+    """Получить QR коды для группы грузов по номерам (для печати накладных)"""
+    try:
+        cargo_numbers_list = [num.strip() for num in cargo_numbers.split(',') if num.strip()]
+        
+        if not cargo_numbers_list:
+            raise HTTPException(status_code=400, detail="No cargo numbers provided")
+        
+        cargo_qr_codes = []
+        
+        for cargo_number in cargo_numbers_list:
+            # Поиск груза в обеих коллекциях
+            cargo = db.cargo.find_one({"cargo_number": cargo_number}, {"_id": 0})
+            if not cargo:
+                cargo = db.operator_cargo.find_one({"cargo_number": cargo_number}, {"_id": 0})
+            
+            if cargo:
+                # Проверка доступа
+                if current_user.role == UserRole.USER and cargo.get("sender_id") != current_user.id:
+                    continue  # Пропускаем недоступные грузы
+                
+                qr_code_data = generate_cargo_qr_code(cargo)
+                cargo_qr_codes.append({
+                    "cargo_id": cargo.get("id"),
+                    "cargo_number": cargo.get("cargo_number"),
+                    "cargo_name": cargo.get("cargo_name", cargo.get("description", "Груз")),
+                    "weight": cargo.get("weight", 0),
+                    "sender_name": cargo.get("sender_full_name", "Не указан"),
+                    "recipient_name": cargo.get("recipient_full_name", "Не указан"),
+                    "qr_code": qr_code_data
+                })
+        
+        return {
+            "requested_count": len(cargo_numbers_list),
+            "found_count": len(cargo_qr_codes),
+            "cargo_qr_codes": cargo_qr_codes
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating batch QR codes: {str(e)}")
+
+@app.get("/api/cargo/batch/{cargo_numbers}/qr-codes-old")
+async def get_batch_cargo_qr_codes_old(
     cargo_numbers: str,  # comma-separated cargo numbers
     current_user: User = Depends(get_current_user)
 ):
