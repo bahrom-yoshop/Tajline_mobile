@@ -4013,8 +4013,10 @@ async def get_available_cargo_for_placement(
             # Сериализуем данные
             cargo_data = serialize_mongo_document(cargo)
             
-            # Получаем информацию о создателе
+            # Получаем информацию о создателе/принимающем операторе
             creator_id = cargo.get('created_by') or cargo.get('sender_id')
+            accepting_operator_id = cargo.get('created_by_operator_id') or cargo.get('accepting_operator_id')
+            
             if creator_id:
                 creator = db.users.find_one({"id": creator_id})
                 if creator:
@@ -4023,6 +4025,32 @@ async def get_available_cargo_for_placement(
                 else:
                     cargo_data['creator_name'] = 'Неизвестно'
                     cargo_data['creator_phone'] = 'Не указан'
+            
+            # Информация о принимающем операторе
+            if accepting_operator_id:
+                accepting_operator = db.users.find_one({"id": accepting_operator_id})
+                if accepting_operator:
+                    cargo_data['accepting_operator'] = accepting_operator.get('full_name', 'Неизвестно')
+                    cargo_data['accepting_operator_phone'] = accepting_operator.get('phone', 'Не указан')
+                else:
+                    cargo_data['accepting_operator'] = 'Неизвестно'
+                    cargo_data['accepting_operator_phone'] = 'Не указан'
+            else:
+                # Пытаемся найти по имени оператора в строковом поле
+                operator_name = cargo.get('created_by_operator') or cargo.get('accepting_operator')
+                cargo_data['accepting_operator'] = operator_name if operator_name else 'Неизвестно'
+                cargo_data['accepting_operator_phone'] = 'Не указан'
+            
+            # Добавляем информацию о маршруте и исходном складе
+            cargo_data['route'] = cargo.get('route', 'Не указан')
+            cargo_data['source_warehouse'] = cargo.get('source_warehouse_name', 'Не указан')
+            cargo_data['payment_status'] = cargo.get('payment_status', 'unknown')
+            cargo_data['payment_method'] = cargo.get('payment_method', 'not_specified')
+            
+            # История операций с грузом
+            cargo_data['created_at'] = cargo.get('created_at')
+            cargo_data['updated_at'] = cargo.get('updated_at')
+            cargo_data['last_status_change'] = cargo.get('last_status_change')
             
             # Получаем информацию о складе назначения
             warehouse_id = cargo.get('warehouse_id')
