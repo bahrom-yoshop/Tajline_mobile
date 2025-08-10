@@ -8691,23 +8691,32 @@ function App() {
                           <div>
                             <Label htmlFor="payment_method">Способ оплаты</Label>
                             <Select 
+                              key="payment-method-select"
                               value={operatorCargoForm.payment_method} 
-                              onValueChange={(value) => setOperatorCargoForm({
-                                ...operatorCargoForm, 
-                                payment_method: value,
-                                payment_amount: value === 'cash' || value === 'card_transfer' ? operatorCargoForm.payment_amount : '',
-                                debt_due_date: value === 'credit' ? operatorCargoForm.debt_due_date : ''
-                              })}
+                              onValueChange={(value) => {
+                                const newForm = { ...operatorCargoForm };
+                                newForm.payment_method = value;
+                                
+                                // Сброс зависимых полей
+                                if (value !== 'cash' && value !== 'card_transfer') {
+                                  newForm.payment_amount = '';
+                                }
+                                if (value !== 'credit') {
+                                  newForm.debt_due_date = '';
+                                }
+                                
+                                setOperatorCargoForm(newForm);
+                              }}
                             >
-                              <SelectTrigger>
-                                <SelectValue />
+                              <SelectTrigger key="payment-method-trigger">
+                                <SelectValue placeholder="Выберите способ оплаты" />
                               </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem key="not_paid" value="not_paid">Не оплачено</SelectItem>
-                                <SelectItem key="cash" value="cash">Оплата наличными</SelectItem>
-                                <SelectItem key="card_transfer" value="card_transfer">Перевод на карту</SelectItem>
-                                <SelectItem key="cash_on_delivery" value="cash_on_delivery">Оплата при получении</SelectItem>
-                                <SelectItem key="credit" value="credit">Оплата в долг</SelectItem>
+                              <SelectContent key="payment-method-content">
+                                <SelectItem key="payment-not_paid" value="not_paid">Не оплачено</SelectItem>
+                                <SelectItem key="payment-cash" value="cash">Оплата наличными</SelectItem>
+                                <SelectItem key="payment-card_transfer" value="card_transfer">Перевод на карту</SelectItem>
+                                <SelectItem key="payment-cash_on_delivery" value="cash_on_delivery">Оплата при получении</SelectItem>
+                                <SelectItem key="payment-credit" value="credit">Оплата в долг</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
