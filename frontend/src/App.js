@@ -7991,6 +7991,141 @@ function App() {
                             </Card>
                           )}
                         </div>
+
+                        {/* Секция генерации документов для операторов и админов */}
+                        {(user?.role === 'admin' || user?.role === 'warehouse_operator') && (
+                          <div className="mt-8">
+                            <h3 className="text-lg font-semibold mb-4 text-gray-700">🏷️ Генерация документов</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              
+                              {/* QR код заявки */}
+                              <Card>
+                                <CardHeader>
+                                  <CardTitle className="flex items-center text-sm">
+                                    <QrCode className="mr-2 h-4 w-4" />
+                                    QR код заявки
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                  <div>
+                                    <Label htmlFor="application-qr-input" className="text-xs">Номер заявки</Label>
+                                    <Input
+                                      id="application-qr-input"
+                                      placeholder="CRG-001, CRG-002..."
+                                      className="text-sm"
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button 
+                                      size="sm" 
+                                      className="flex-1"
+                                      onClick={() => {
+                                        const input = document.getElementById('application-qr-input');
+                                        if (input && input.value) {
+                                          const numbers = input.value.split(',').map(n => n.trim());
+                                          generateApplicationQR(numbers[0]); // Берем первый номер
+                                        }
+                                      }}
+                                      disabled={applicationQRLoading}
+                                    >
+                                      {applicationQRLoading ? 'Генерируем...' : 'Создать QR'}
+                                    </Button>
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      onClick={printApplicationQR}
+                                      disabled={!applicationQRCode}
+                                    >
+                                      <Printer className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+
+                              {/* Штрихкоды грузов */}
+                              <Card>
+                                <CardHeader>
+                                  <CardTitle className="flex items-center text-sm">
+                                    <BarChart className="mr-2 h-4 w-4" />
+                                    Штрихкоды грузов
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                  <div>
+                                    <Label htmlFor="batch-qr-input" className="text-xs">Номера грузов</Label>
+                                    <Textarea
+                                      id="batch-qr-input"
+                                      placeholder="CRG-001, CRG-002, CRG-003..."
+                                      className="min-h-16 text-sm"
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button 
+                                      size="sm" 
+                                      className="flex-1"
+                                      onClick={async () => {
+                                        const input = document.getElementById('batch-qr-input');
+                                        if (input && input.value) {
+                                          try {
+                                            const result = await generateBatchQRCodes(input.value);
+                                            showAlert(`Сгенерированы штрихкоды для ${result.found_count} грузов`, 'success');
+                                          } catch (error) {
+                                            showAlert(`Ошибка: ${error.message}`, 'error');
+                                          }
+                                        }
+                                      }}
+                                      disabled={qrCodeLoading}
+                                    >
+                                      {qrCodeLoading ? 'Генерируем...' : 'Создать коды'}
+                                    </Button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+
+                              {/* Накладная */}
+                              <Card>
+                                <CardHeader>
+                                  <CardTitle className="flex items-center text-sm">
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    Печать накладной
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                  <div>
+                                    <Label htmlFor="invoice-input" className="text-xs">Номера грузов</Label>
+                                    <Textarea
+                                      id="invoice-input"
+                                      placeholder="CRG-001, CRG-002, CRG-003..."
+                                      className="min-h-16 text-sm"
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button 
+                                      size="sm" 
+                                      className="flex-1"
+                                      onClick={async () => {
+                                        const input = document.getElementById('invoice-input');
+                                        if (input && input.value) {
+                                          try {
+                                            const result = await generateCargoInvoice(input.value);
+                                            setGeneratedInvoice(result);
+                                            printCargoInvoice();
+                                            showAlert(`Накладная создана для ${result.summary.total_items} грузов`, 'success');
+                                          } catch (error) {
+                                            showAlert(`Ошибка: ${error.message}`, 'error');
+                                          }
+                                        }
+                                      }}
+                                      disabled={invoiceLoading}
+                                    >
+                                      {invoiceLoading ? 'Создаем...' : 'Создать накладную'}
+                                    </Button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </div>
+                          </div>
+                        )}
                       ) : (
                         <Card key="loading-analytics">
                           <CardContent className="p-6">
