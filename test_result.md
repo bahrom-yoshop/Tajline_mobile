@@ -290,13 +290,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "QR Code System Comprehensive Testing"
-    - "Fixed /api/operator/cargo/accept endpoint with improved JSON processing"
-    - "New QR codes batch generation endpoint /api/cargo/batch/{cargo_numbers}/qr-codes"
-    - "New invoice generation endpoint /api/cargo/invoice/{cargo_numbers}"
-    - "Operator authentication and role verification (+79777888999/warehouse123)"
-    - "Warehouse assignment error fix for operators"
-    - "Complete cargo acceptance workflow testing"
+    - "QR Scanner Camera Selection Improvements Testing"
   stuck_tasks: 
     - "React DOM Fixes Backend Support"
   test_all: false
