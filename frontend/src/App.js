@@ -1371,6 +1371,28 @@ function App() {
   useEffect(() => {
     let qrCodeModalInstance = null;
 
+    // Функция для выбора лучшей камеры (предпочтение задней камере)
+    const getBestCamera = (cameras) => {
+      if (!cameras || cameras.length === 0) return null;
+
+      // Ищем заднюю камеру (environment-facing)
+      const backCamera = cameras.find(camera => 
+        camera.label.toLowerCase().includes('back') ||
+        camera.label.toLowerCase().includes('rear') ||
+        camera.label.toLowerCase().includes('environment') ||
+        camera.label.toLowerCase().includes('0') // Часто задняя камера имеет индекс 0 в названии
+      );
+
+      if (backCamera) {
+        console.log('Selected back camera:', backCamera.label);
+        return backCamera;
+      }
+
+      // Если задняя не найдена, используем последнюю (часто это задняя)
+      console.log('Back camera not found, using camera:', cameras[cameras.length - 1].label);
+      return cameras[cameras.length - 1];
+    };
+
     const initializeModalQRScanner = async () => {
       if (showQRScannerModal && scannerMode === 'cargo-qr-search' && scannerActive) {
         try {
@@ -1386,15 +1408,22 @@ function App() {
           if (cameras && cameras.length > 0) {
             qrCodeModalInstance = new Html5Qrcode("qr-reader-modal");
             
+            // Выбираем лучшую камеру (предпочтение задней)
+            const selectedCamera = getBestCamera(cameras);
+            
             const config = {
               fps: 10,
               qrbox: { width: 200, height: 200 },
               aspectRatio: 1.0,
               disableFlip: false,
+              // Дополнительные настройки для лучшего сканирования
+              videoConstraints: {
+                facingMode: "environment" // Принудительно задняя камера
+              }
             };
 
             await qrCodeModalInstance.start(
-              cameras[0].id, // Используем первую доступную камеру
+              selectedCamera.id, // Используем выбранную заднюю камеру
               config,
               async (decodedText, decodedResult) => {
                 console.log('Cargo QR Code scanned:', decodedText);
