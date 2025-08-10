@@ -6982,12 +6982,26 @@ async def get_operator_dashboard_analytics(
         warehouses_details = []
         all_cargo_operator = []
         
+        # Получаем информацию о других операторах для статистики
+        all_operators = list(db.users.find({"role": "warehouse_operator"}, {"_id": 0}))
+        
         for warehouse_id in operator_warehouse_ids:
             # Информация о складе
             warehouse = db.warehouses.find_one({"id": warehouse_id}, {"_id": 0})
             if not warehouse:
                 continue
                 
+            # Все операторы привязанные к этому складу
+            warehouse_operators = []
+            for operator in all_operators:
+                operator_warehouses = get_operator_warehouse_ids(operator['id'])
+                if warehouse_id in operator_warehouses:
+                    warehouse_operators.append({
+                        "operator_id": operator['id'],
+                        "operator_name": operator.get('full_name', 'Не указано'),
+                        "operator_phone": operator.get('phone', 'Не указано')
+                    })
+            
             # Грузы в этом складе
             warehouse_cargo_query = {"warehouse_id": warehouse_id}
             user_cargo = list(db.cargo.find(warehouse_cargo_query, {"_id": 0}))
@@ -7013,6 +7027,59 @@ async def get_operator_dashboard_analytics(
                         cargo_value = 0
                 total_value_warehouse += cargo_value
             
+            # Клиенты склада - отправители и получатели
+            warehouse_senders = set()
+            warehouse_recipients = set()
+            
+            for cargo in warehouse_cargo:
+                if cargo.get('sender_phone'):
+                    warehouse_senders.add(cargo.get('sender_phone'))
+                if cargo.get('recipient_phone'):
+                    warehouse_recipients.add(cargo.get('recipient_phone'))
+            
+            # Анализ грузов для отправки в другие склады/города
+            cargo_for_destinations = {}
+            
+            for cargo in warehouse_cargo:
+                # Определяем пункт назначения груза
+                destination = None
+                
+                # Проверяем поля назначения груза
+                if cargo.get('destination_warehouse_id'):
+                    dest_warehouse = db.warehouses.find_one({"id": cargo.get('destination_warehouse_id')}, {"_id": 0})
+                    if dest_warehouse:
+                        destination = dest_warehouse.get('name', 'Неизвестный склад')
+                elif cargo.get('destination_city'):
+                    destination = cargo.get('destination_city')
+                elif cargo.get('recipient_address'):
+                    # Пытаемся извлечь город из адреса получателя
+                    address = cargo.get('recipient_address', '').lower()
+                    if 'москв' in address or 'moscow' in address:
+                        destination = 'Москва'
+                    elif 'душанбе' in address or 'dushanbe' in address:
+                        destination = 'Душанбе'
+                    elif 'худжанд' in address or 'khujand' in address:
+                        destination = 'Худжанд'
+                    else:
+                        destination = 'Другой город'
+                else:
+                    # По умолчанию считаем что груз остается на том же складе
+                    destination = 'Текущий склад'
+                
+                # Группируем грузы по назначению
+                if destination not in cargo_for_destinations:
+                    cargo_for_destinations[destination] = {
+                        'cargo_count': 0,
+                        'total_weight': 0,
+                        'total_value': 0,
+                        'cargo_numbers': []
+                    }
+                
+                cargo_for_destinations[destination]['cargo_count'] += 1
+                cargo_for_destinations[destination]['total_weight'] += cargo.get('weight', 0) if isinstance(cargo.get('weight', 0), (int, float)) else 0
+                cargo_for_destinations[destination]['total_value'] += cargo_value
+                cargo_for_destinations[destination]['cargo_numbers'].append(cargo.get('cargo_number', 'Не указан'))
+            
             # Вместимость склада
             blocks_count = warehouse.get('blocks_count', 0)
             shelves_per_block = warehouse.get('shelves_per_block', 0)  
@@ -7033,16 +7100,6 @@ async def get_operator_dashboard_analytics(
                 if combined_status not in cargo_by_status_warehouse:
                     cargo_by_status_warehouse[combined_status] = 0
                 cargo_by_status_warehouse[combined_status] += 1
-            
-            # Клиенты склада
-            warehouse_senders = set()
-            warehouse_recipients = set()
-            
-            for cargo in warehouse_cargo:
-                if cargo.get('sender_phone'):
-                    warehouse_senders.add(cargo.get('sender_phone'))
-                if cargo.get('recipient_phone'):
-                    warehouse_recipients.add(cargo.get('recipient_phone'))
             
             # Финансовая статистика склада
             paid_cargo_warehouse = 0
@@ -7075,6 +7132,10 @@ async def get_operator_dashboard_analytics(
                     "cells_per_shelf": cells_per_shelf,
                     "total_cells": total_cells_warehouse
                 },
+                "operators_info": {
+                    "assigned_operators_count": len(warehouse_operators),
+                    "operators_list": warehouse_operators
+                },
                 "cargo_stats": {
                     "total_cargo": len(warehouse_cargo),
                     "total_weight_kg": round(total_weight_warehouse, 2),
@@ -7083,10 +7144,13 @@ async def get_operator_dashboard_analytics(
                     "free_cells": free_cells_warehouse,
                     "occupancy_rate": round((occupied_cells_warehouse / total_cells_warehouse * 100) if total_cells_warehouse > 0 else 0, 1)
                 },
+                "cargo_destinations": cargo_for_destinations,
                 "cargo_by_status": cargo_by_status_warehouse,
                 "clients": {
                     "unique_senders": len(warehouse_senders),
-                    "unique_recipients": len(warehouse_recipients)
+                    "unique_recipients": len(warehouse_recipients),
+                    "senders_list": list(warehouse_senders)[:10],  # Показываем первые 10
+                    "recipients_list": list(warehouse_recipients)[:10]  # Показываем первые 10
                 },
                 "financial": {
                     "paid_cargo": paid_cargo_warehouse,
