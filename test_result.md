@@ -137,6 +137,18 @@
 user_problem_statement: "Протестировать исправления в форме приема заявок и новые endpoints для штрихкодов/накладных: 1) Протестировать исправленный endpoint /api/operator/cargo/accept с улучшенной JSON обработкой, 2) Протестировать новый endpoint /api/cargo/batch/{cargo_numbers}/qr-codes для генерации штрихкодов, 3) Протестировать новый endpoint /api/cargo/invoice/{cargo_numbers} для генерации накладных, 4) Проверить авторизацию оператора (+79777888999/warehouse123), 5) Проверить что ошибка 'Selected warehouse is not assigned to this operator' исправлена, 6) Проверить что нет ошибок 'Unexpected end of JSON input'. Сосредоточиться на функциональности приема груза и новых функциях генерации документов."
 
 backend:
+  - task: "React DOM Fixes Backend Support"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "CRITICAL ISSUE: Multi-cargo weight and cost calculations failing. Expected weight: 15.5kg, got: 0kg. Expected cost: 1620.0 руб, got: 0 руб. Backend not properly processing cargo_items array for multiple cargo types. Payment method selection working correctly for all 5 payment types. JSON processing with special characters working. All operator endpoints accessible."
+
   - task: "Fixed /api/operator/cargo/accept endpoint with improved JSON processing"
     implemented: true
     working: true
