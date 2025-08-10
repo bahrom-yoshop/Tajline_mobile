@@ -505,8 +505,7 @@ function App() {
   const [profileSourceUser, setProfileSourceUser] = useState(null);
 
   // Состояния для сканирования штрих-кодов и QR-кодов при размещении
-  const [scannerMode, setScannerMode] = useState('none'); // 'none', 'cargo-barcode', 'cell-qr'
-  const [scannerActive, setScannerActive] = useState(false);
+  const [scannerMode, setScannerMode] = useState('none'); // 'none', 'cargo-barcode', 'cell-qr', 'cargo-qr-search'
   const [scannedCargoData, setScannedCargoData] = useState(null);
   const [scannedCellData, setScannedCellData] = useState(null);
   const [placementInProgress, setPlacementInProgress] = useState(false);
