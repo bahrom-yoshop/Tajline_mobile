@@ -18349,50 +18349,49 @@ function App() {
                   {/* Retry camera button */}
                   <Button 
                     onClick={async () => {
-                      console.log('🔄 Пользователь нажал кнопку повтора камеры...');
-                      showAlert('🔄 Проверка камеры...', 'info');
+                      console.log('🔄 Пользователь запросил повтор камеры...');
                       
-                      // First reset scanner state completely
+                      // Reset scanner state silently
                       setScannerActive(false);
                       
-                      // Stop any existing scanner safely
+                      // Stop any existing scanner
                       if (html5QrCodePlacement) {
-                        console.log('🛑 Остановка сканера перед повтором...');
+                        console.log('🛑 Тихая остановка сканера...');
                         try {
-                          await safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Retry Stop");
+                          await safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Silent Retry Stop");
                           setHtml5QrCodePlacement(null);
                         } catch (error) {
                           console.warn('⚠️ Предупреждение при остановке:', error);
                         }
                       }
                       
-                      // Wait for UI stabilization
-                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      // Wait briefly for UI stabilization
+                      await new Promise(resolve => setTimeout(resolve, 500));
                       
-                      // Check camera availability 
-                      console.log('🔍 Повторная проверка камеры...');
+                      // Check camera availability silently
+                      console.log('🔍 Тихая проверка камеры...');
                       const cameraAvailable = await checkCameraAvailability();
                       
                       if (cameraAvailable) {
-                        console.log('✅ Камера найдена при повторе!');
-                        showAlert('✅ Камера найдена! Запуск сканера...', 'success');
+                        console.log('✅ Камера найдена при повторе - запуск сканера');
+                        // Only show success message if camera actually works
+                        showAlert('📹 Камера активирована!', 'success');
                         
-                        // Wait for modal to be fully ready
-                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        // Wait for modal stability
+                        await new Promise(resolve => setTimeout(resolve, 1500));
                         
-                        // ONLY try to start scanner if camera is confirmed available
                         try {
                           await startQRScannerForPlacement();
-                          console.log('✅ Сканер запущен успешно после повтора');
+                          console.log('✅ Сканер запущен после повтора');
                         } catch (error) {
-                          console.error('❌ Неожиданная ошибка при запуске сканера:', error);
-                          // Instead of showing technical error, show simple message
-                          showAlert('📱 Камера временно недоступна. Используйте ручной ввод для размещения.', 'info');
+                          console.error('❌ Ошибка запуска сканера при повторе:', error);
+                          // Don't show error - just stay in manual mode
+                          console.log('📝 Остается в ручном режиме');
                         }
                       } else {
-                        console.log('📵 Камера не найдена при повторе');
-                        // Show simple, clear message without confusing technical details
-                        showAlert('📵 Камера не найдена. Продолжите с ручным вводом данных.', 'info');
+                        console.log('📵 Камера по-прежнему недоступна - остаемся в ручном режиме');
+                        // Don't show any alert - just keep manual input visible
+                        // User can see manual input is still there, no need for notification
                       }
                     }}
                     size="sm"
