@@ -1943,7 +1943,7 @@ async def add_warehouse_block(
     current_user: User = Depends(get_current_user)
 ):
     """Добавить новый блок к складу"""
-    if current_user.role not in [UserRole.ADMIN]:
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Нет прав для изменения структуры склада"
