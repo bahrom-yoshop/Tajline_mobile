@@ -695,6 +695,34 @@ function App() {
   // Complete isolation of Html5Qrcode from React DOM to prevent removeChild errors
   const [qrScannerContainer, setQrScannerContainer] = useState(null);
   
+  // Мобильные операции состояния
+  // Поиск груза
+  const [searchScannerActive, setSearchScannerActive] = useState(false);
+  const [searchResult, setSearchResult] = useState(null);
+  
+  // Генерация QR кодов
+  const [qrCargoNumber, setQrCargoNumber] = useState('');
+  const [qrCellCode, setQrCellCode] = useState('');
+  const [generatedCargoQR, setGeneratedCargoQR] = useState(null);
+  const [generatedCellQR, setGeneratedCellQR] = useState(null);
+  
+  // Мобильное размещение
+  const [mobilePlacementStep, setMobilePlacementStep] = useState('start'); // 'start', 'scan-cargo', 'scan-cell', 'confirm'
+  const [scannedCargo, setScannedCargo] = useState(null);
+  const [scannedCell, setScannedCell] = useState(null);
+  
+  // Мобильный приём груза
+  const [receiveStep, setReceiveStep] = useState('start'); // 'start', 'scan-cargo', 'scan-new-cell', 'confirm'
+  const [receivedCargo, setReceivedCargo] = useState(null);
+  const [newCell, setNewCell] = useState(null);
+
+  // Refs для мобильных QR сканеров
+  const searchQrReaderRef = useRef(null);
+  const mobilePlacementQrReaderRef = useRef(null);
+  const mobileCellQrReaderRef = useRef(null);
+  const receiveCargoQrReaderRef = useRef(null);
+  const receiveNewCellQrReaderRef = useRef(null);
+  
   // Create isolated container for QR scanner to avoid React conflicts
   const createIsolatedQrContainer = () => {
     if (qrContainerRef.current && !qrContainerRef.current.innerHTML.includes('qr-reader-placement-isolated')) {
