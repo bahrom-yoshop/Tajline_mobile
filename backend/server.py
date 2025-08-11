@@ -1609,6 +1609,48 @@ def get_available_operations(cargo: dict, current_user: User) -> list:
     
     return operations
 
+@app.post("/api/cargo/generate-qr-by-number")
+async def generate_qr_by_cargo_number(
+    request_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Генерировать QR код по номеру груза"""
+    try:
+        cargo_number = request_data.get("cargo_number", "").strip()
+        
+        if not cargo_number:
+            raise HTTPException(status_code=400, detail="Cargo number is required")
+        
+        # Проверяем существование груза
+        cargo = db.cargo.find_one({"cargo_number": cargo_number})
+        if not cargo:
+            cargo = db.operator_cargo.find_one({"cargo_number": cargo_number})
+        
+        if not cargo:
+            raise HTTPException(status_code=404, detail=f"Cargo with number {cargo_number} not found")
+        
+        # Проверяем права доступа
+        if current_user.role == UserRole.USER and cargo.get("sender_id") != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied to this cargo")
+        
+        # Генерируем QR код
+        qr_code_data = generate_cargo_qr_code(cargo)
+        
+        if not qr_code_data:
+            raise HTTPException(status_code=500, detail="Failed to generate QR code")
+        
+        return {
+            "success": True,
+            "cargo_number": cargo_number,
+            "cargo_name": cargo.get("cargo_name", "Груз"),
+            "qr_code": qr_code_data
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating QR code: {str(e)}")
+
 @app.post("/api/cargo/generate-application-qr/{cargo_number}")
 async def generate_application_qr_code(
     cargo_number: str,
