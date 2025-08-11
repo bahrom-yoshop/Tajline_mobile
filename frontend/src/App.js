@@ -1993,29 +1993,32 @@ function App() {
     }
   };
 
-  // New function: QR Scanner for placement - improved with better error handling and debugging
+  // New function: QR Scanner for placement - Enhanced mobile support with robust error handling
   const startQRScannerForPlacement = async () => {
     try {
-      console.log('Initializing placement QR scanner...');
+      console.log('🎬 Инициализация QR сканера для размещения...');
       
       // Stop any existing scanner first
       if (html5QrCodePlacement) {
-        console.log('Stopping existing placement scanner...');
+        console.log('⏹️ Остановка существующего сканера размещения...');
         await safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Placement Scanner");
         setHtml5QrCodePlacement(null);
       }
 
-      // Check DOM element existence with multiple attempts
+      // Enhanced DOM element detection with mobile-optimized timing
       let placementElement = null;
       let attempts = 0;
-      const maxAttempts = 10;
+      const maxAttempts = 15; // Increased for mobile devices
       
+      console.log('🔍 Поиск DOM элемента сканера...');
       while (!placementElement && attempts < maxAttempts) {
         placementElement = document.getElementById("qr-reader-placement");
         if (!placementElement) {
-          console.log(`Placement QR reader element not found, attempt ${attempts + 1}/${maxAttempts}`);
-          await new Promise(resolve => setTimeout(resolve, 200));
+          console.log(`⏳ Элемент сканера не найден, попытка ${attempts + 1}/${maxAttempts}`);
+          await new Promise(resolve => setTimeout(resolve, 300)); // Longer delay for mobile
           attempts++;
+        } else {
+          console.log(`✅ DOM элемент найден на попытке ${attempts + 1}`);
         }
       }
       
@@ -2023,51 +2026,104 @@ function App() {
         throw new Error(`DOM element 'qr-reader-placement' not found after ${maxAttempts} attempts`);
       }
       
-      console.log('Placement element found, getting cameras...');
+      // Ensure element is visible and properly sized for mobile
+      const rect = placementElement.getBoundingClientRect();
+      console.log('📐 Размеры элемента сканера:', {
+        width: rect.width,
+        height: rect.height,
+        visible: rect.width > 0 && rect.height > 0
+      });
+      
+      if (rect.width === 0 || rect.height === 0) {
+        console.warn('⚠️ Элемент сканера имеет нулевые размеры, ожидание...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
 
-      // Get available cameras
-      const cameras = await Html5Qrcode.getCameras();
-      console.log(`Found ${cameras.length} cameras:`, cameras.map(c => c.label));
+      console.log('🎥 Получение списка камер...');
+
+      // Get available cameras with retry for mobile stability
+      let cameras = [];
+      let cameraAttempts = 0;
+      const maxCameraAttempts = 3;
+      
+      while (cameras.length === 0 && cameraAttempts < maxCameraAttempts) {
+        try {
+          cameraAttempts++;
+          cameras = await Html5Qrcode.getCameras();
+          console.log(`🔄 Попытка ${cameraAttempts}: найдено камер: ${cameras.length}`);
+          
+          if (cameras.length === 0 && cameraAttempts < maxCameraAttempts) {
+            console.log('⏳ Камеры не найдены, повторная попытка через 1 секунду...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        } catch (error) {
+          console.error(`❌ Ошибка получения камер (попытка ${cameraAttempts}):`, error);
+          if (cameraAttempts < maxCameraAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      }
       
       if (!cameras || cameras.length === 0) {
-        throw new Error('Камеры не обнаружены на устройстве');
+        throw new Error('Камеры не обнаружены на устройстве после всех попыток');
       }
+
+      // Enhanced camera logging for debugging
+      cameras.forEach((camera, index) => {
+        console.log(`📹 Камера ${index + 1}: "${camera.label || 'Без названия'}" (ID: ${camera.id})`);
+      });
 
       // Save cameras for switching
       setAvailablePlacementCameras(cameras);
 
-      // Select camera (use saved index or find best camera)
+      // Enhanced camera selection with mobile priorities
       let selectedCamera;
+      
       if (currentPlacementCameraIndex < cameras.length) {
         selectedCamera = cameras[currentPlacementCameraIndex];
+        console.log(`🎯 Используется сохраненная камера: индекс ${currentPlacementCameraIndex}`);
       } else {
-        // Find best camera (prefer back camera)
-        const rearCamera = cameras.find(camera => 
-          camera.label.toLowerCase().includes('back') ||
-          camera.label.toLowerCase().includes('rear') ||
-          camera.label.toLowerCase().includes('environment')
-        );
+        // Find best camera with mobile-specific preferences
+        console.log('🔍 Поиск оптимальной камеры для мобильного устройства...');
         
-        selectedCamera = rearCamera || cameras[cameras.length - 1];
+        // Try to find back/environment camera first
+        const backCamera = cameras.find(camera => {
+          const label = camera.label.toLowerCase();
+          return label.includes('back') || 
+                 label.includes('rear') || 
+                 label.includes('environment') ||
+                 label.includes('задн') ||
+                 label.includes('осн');
+        });
+        
+        if (backCamera) {
+          selectedCamera = backCamera;
+          console.log('📱 Найдена задняя камера:', backCamera.label);
+        } else {
+          // Fallback to last camera (often back camera on mobile)
+          selectedCamera = cameras[cameras.length - 1];
+          console.log('📱 Используется последняя камера:', selectedCamera.label);
+        }
+        
         const selectedIndex = cameras.findIndex(c => c.id === selectedCamera.id);
         setCurrentPlacementCameraIndex(selectedIndex >= 0 ? selectedIndex : 0);
       }
       
-      console.log(`Selected camera: ${selectedCamera.label} (index: ${currentPlacementCameraIndex})`);
+      console.log(`🎬 Выбрана камера: "${selectedCamera.label}" (индекс: ${currentPlacementCameraIndex})`);
 
-      // Initialize QR code scanner
-      console.log('Creating Html5Qrcode instance...');
+      // Initialize QR code scanner with enhanced error handling
+      console.log('🏗️ Создание экземпляра Html5Qrcode...');
       const qrCodeInstance = new Html5Qrcode("qr-reader-placement");
       setHtml5QrCodePlacement(qrCodeInstance);
 
-      // Start scanning with improved config for mobile
+      // Enhanced configuration optimized for mobile QR scanning
       const config = {
-        fps: 15,
+        fps: 20, // Increased FPS for better responsiveness
         qrbox: function(viewfinderWidth, viewfinderHeight) {
-          // Make QR box larger and responsive
-          const minEdgePercentage = 0.7; // 70% of the smaller dimension
-          const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-          const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
+          // Mobile-optimized QR box sizing
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const qrboxSize = Math.floor(minEdge * 0.8); // Increased to 80% for better detection
+          console.log(`📐 QR box размер: ${qrboxSize}x${qrboxSize} (viewport: ${viewfinderWidth}x${viewfinderHeight})`);
           return {
             width: qrboxSize,
             height: qrboxSize
@@ -2075,60 +2131,87 @@ function App() {
         },
         aspectRatio: 1.0,
         disableFlip: false,
-        // Enhanced video constraints for better scanning
+        // Enhanced video constraints optimized for mobile QR scanning
         videoConstraints: {
-          facingMode: "environment", // Use back camera
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          facingMode: "environment", // Force back camera
+          width: { 
+            ideal: 1920, // High resolution for better QR detection
+            max: 1920,
+            min: 640 
+          },
+          height: { 
+            ideal: 1080,
+            max: 1080,
+            min: 480 
+          },
+          frameRate: { 
+            ideal: 30,
+            min: 15 
+          }
         },
-        // Additional configurations for better performance
+        // Mobile-specific experimental features
         experimentalFeatures: {
           useBarCodeDetectorIfSupported: true
-        }
+        },
+        // Enhanced support for various QR code formats
+        supportedScanTypes: [
+          Html5QrcodeScanType.SCAN_TYPE_CAMERA
+        ]
       };
 
-      console.log('Starting QR scanner with enhanced config:', config);
+      console.log('🚀 Запуск QR сканера с улучшенной конфигурацией...');
+      console.log('⚙️ Конфигурация:', {
+        fps: config.fps,
+        facingMode: config.videoConstraints.facingMode,
+        resolution: `${config.videoConstraints.width.ideal}x${config.videoConstraints.height.ideal}`
+      });
+      
       await qrCodeInstance.start(
         selectedCamera.id,
         config,
         (decodedText, decodedResult) => {
-          console.log('QR Code scanned in placement:', decodedText);
+          console.log('🎯 QR код успешно отсканирован:', decodedText);
           handlePlacementQRScan(decodedText);
         },
         (errorMessage) => {
           // Suppress frequent scanning errors but log important ones
           if (!errorMessage.includes('No QR code found') && 
               !errorMessage.includes('NotFoundException') &&
-              !errorMessage.includes('No MultiFormat Readers')) {
-            console.debug('QR scan error:', errorMessage);
+              !errorMessage.includes('No MultiFormat Readers') &&
+              !errorMessage.includes('QR code parse error')) {
+            console.debug('🔍 QR scan error:', errorMessage);
           }
         }
       );
       
       setScannerActive(true);
-      console.log('Placement QR scanner started successfully');
-      showAlert('Камера активирована. Наведите на QR код груза.', 'success');
+      console.log('✅ QR сканер размещения успешно запущен');
+      showAlert('📹 Камера готова! Наведите на QR код груза.', 'success');
       
     } catch (error) {
-      console.error('Error starting placement QR scanner:', error);
+      console.error('💥 Ошибка запуска QR сканера размещения:', error);
       setScannerActive(false);
       
-      // Don't reset placement completely - allow manual input
-      // setPlacementActive(false);
-      // setPlacementStep('idle');
-      
-      // Provide user-friendly error messages
+      // Enhanced user-friendly error messages for mobile
       let userMessage = 'Не удалось запустить камеру';
       
       if (error.message.includes('Camera') || error.message.includes('камер')) {
-        userMessage = 'Камера недоступна. Используйте ручной ввод данных ниже.';
+        userMessage = '📵 Камера недоступна. Проверьте разрешения и попробуйте снова.';
       } else if (error.message.includes('DOM element')) {
-        userMessage = 'Ошибка интерфейса. Закройте и откройте модальное окно заново.';
+        userMessage = '🔄 Ошибка загрузки интерфейса. Закройте и откройте окно заново.';
+      } else if (error.message.includes('Permission')) {
+        userMessage = '🔐 Разрешите доступ к камере в настройках браузера.';
+      } else if (error.name === 'NotAllowedError') {
+        userMessage = '🚫 Доступ к камере запрещен. Разрешите в настройках браузера.';
+      } else if (error.name === 'NotFoundError') {
+        userMessage = '📵 Камера не найдена на устройстве.';
+      } else if (error.name === 'NotReadableError') {
+        userMessage = '🔒 Камера занята другим приложением.';
       } else if (error.message) {
-        userMessage = error.message;
+        userMessage = `❌ ${error.message}`;
       }
       
-      showAlert(userMessage, 'warning');
+      showAlert(`${userMessage} Используйте ручной ввод ниже.`, 'warning');
     }
   };
 
