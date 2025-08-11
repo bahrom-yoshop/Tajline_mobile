@@ -7843,7 +7843,6 @@ function App() {
                       </div>
                     </CardContent>
                   </Card>
-                )}
 
                 {/* Action Buttons */}
                 <div className="flex justify-center space-x-4">
