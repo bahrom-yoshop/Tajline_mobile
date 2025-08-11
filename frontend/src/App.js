@@ -1099,6 +1099,16 @@ function App() {
     await startCameraScanner();
   };
 
+  const startMobileReceive = async () => {
+    setReceiveStep('scan-cargo');
+    setReceivedCargo(null);
+    setNewCell(null);
+    setScannerMode('cargo-barcode');
+    setScannerActive(true);
+    setScannerError(null);
+    await startCameraScanner();
+  };
+
   // Функции генерации QR кодов
   const generateCargoQR = async () => {
     if (!qrCargoNumber.trim()) {
