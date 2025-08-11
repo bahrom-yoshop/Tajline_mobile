@@ -18713,22 +18713,24 @@ function App() {
             </div>
 
             {/* Camera Scanner - Mobile Adapted Full screen mode */}
-            {placementActive && scannerActive && (
-              <div className="space-y-2">
-                {/* Mobile-optimized scanner container */}
-                <div className="relative bg-black rounded-lg overflow-hidden">
-                  <div 
-                    id="qr-reader-placement" 
-                    className="w-full"
-                    style={{
-                      width: '100%',
-                      height: 'min(70vh, 400px)', // Responsive height for mobile
-                      minHeight: '250px', // Smaller minimum for mobile
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center'
-                    }}
-                  />
+            <div 
+              className="space-y-2" 
+              style={{ display: placementActive && scannerActive ? 'block' : 'none' }}
+            >
+              {/* Mobile-optimized scanner container */}
+              <div className="relative bg-black rounded-lg overflow-hidden">
+                <div 
+                  id="qr-reader-placement" 
+                  className="w-full"
+                  style={{
+                    width: '100%',
+                    height: 'min(70vh, 400px)', // Responsive height for mobile
+                    minHeight: '250px', // Smaller minimum for mobile
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                  }}
+                />
                   
                   {/* Mobile-optimized overlay instructions */}
                   <div className="absolute top-2 left-2 right-2 z-10">
