@@ -7618,12 +7618,11 @@ function App() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {/* Camera Scanner for full screen - React-safe with ref */}
+                      {/* Isolated Camera Scanner Container to prevent React conflicts */}
                       <div className="relative">
                         <div className="bg-black rounded-lg p-4 mb-4">
                           <div 
-                            ref={placementQrReaderRef}
-                            id="qr-reader-placement"
+                            ref={qrContainerRef}
                             className="w-full min-h-[400px] flex items-center justify-center"
                             style={{ 
                               display: 'block', 
@@ -7635,16 +7634,16 @@ function App() {
                             {!scannerActive && (
                               <div className="text-white text-center p-8">
                                 <Camera className="mx-auto h-16 w-16 mb-4 text-gray-400" />
-                                <p className="text-lg font-medium mb-2">Готов к запуску камеры</p>
+                                <p className="text-lg font-medium mb-2">Изолированная камера готова</p>
                                 <p className="text-sm text-gray-300">
-                                  Нажмите кнопку ниже для активации сканера
+                                  Нажмите кнопку ниже для запуска изолированного сканера
                                 </p>
                               </div>
                             )}
                           </div>
                         </div>
                         
-                        {/* Camera Controls - show even when scanner inactive */}
+                        {/* Camera Controls - isolated from React lifecycle */}
                         <div className="flex justify-center space-x-4 mb-4">
                           {availablePlacementCameras.length > 1 && scannerActive && (
                             <Button 
@@ -7659,13 +7658,8 @@ function App() {
                           
                           {scannerActive && (
                             <Button 
-                              onClick={() => {
-                                if (html5QrCodePlacementRef.current) {
-                                  safeStopQrScanner(html5QrCodePlacementRef.current, "qr-reader-placement", "User Stop");
-                                  html5QrCodePlacementRef.current = null;
-                                  setHtml5QrCodePlacement(null);
-                                }
-                                setScannerActive(false);
+                              onClick={async () => {
+                                await completeQrCleanup("User Stop");
                               }}
                               variant="outline"
                               size="sm"
