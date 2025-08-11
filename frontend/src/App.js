@@ -215,6 +215,13 @@ function App() {
   const [generatedSingleQR, setGeneratedSingleQR] = useState(null);
   const [qrGenerateLoading, setQrGenerateLoading] = useState(false);
   
+  // Bulk QR Generation states
+  const [showBulkQRModal, setBulkQRModal] = useState(false);
+  const [selectedSender, setSelectedSender] = useState(null);
+  const [senderCargos, setSenderCargos] = useState([]);
+  const [bulkQRResults, setBulkQRResults] = useState([]);
+  const [bulkQRLoading, setBulkQRLoading] = useState(false);
+  
   // New Cargo Placement Modal states  
   const [showCargoPlacementModal, setShowCargoPlacementModal] = useState(false);
   const [placementActive, setPlacementActive] = useState(false);
