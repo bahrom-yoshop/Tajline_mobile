@@ -7586,7 +7586,7 @@ function App() {
                             id="qr-reader-placement"
                             className="w-full min-h-[400px] flex items-center justify-center"
                             style={{ 
-                              display: 'block', // Always visible for mobile cameras
+                              display: 'block', 
                               minHeight: '400px', 
                               backgroundColor: '#000000',
                               borderRadius: '8px' 
@@ -7635,6 +7635,8 @@ function App() {
                           )}
                         </div>
                       </div>
+
+                      {!scannerActive && (
                         <div className="space-y-4">
                           {/* Camera unavailable message with enhanced mobile retry */}
                           {placementActive && (
