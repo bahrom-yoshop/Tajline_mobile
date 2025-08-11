@@ -803,6 +803,45 @@ function App() {
     }, 5000);
   };
 
+  // Enhanced QR Scanner lifecycle management to prevent React removeChild errors
+  useEffect(() => {
+    // Cleanup function to prevent React removeChild errors when component unmounts
+    return () => {
+      console.log('🧹 Component cleanup: Stopping all QR scanners...');
+      
+      // Cleanup placement scanner
+      if (html5QrCodePlacementRef.current) {
+        safeStopQrScanner(html5QrCodePlacementRef.current, "qr-reader-placement", "Component Cleanup - Placement");
+        html5QrCodePlacementRef.current = null;
+      }
+      
+      // Cleanup other scanners if they exist
+      if (html5QrCode) {
+        safeStopQrScanner(html5QrCode, "qr-reader", "Component Cleanup - Main");
+      }
+      
+      if (html5QrCodeModal) {
+        safeStopQrScanner(html5QrCodeModal, "qr-reader-modal", "Component Cleanup - Modal");
+      }
+      
+      console.log('✅ Component cleanup completed');
+    };
+  }, []); // Empty dependency array - only run on mount/unmount
+
+  // Enhanced page navigation cleanup to prevent DOM conflicts
+  useEffect(() => {
+    if (currentPage !== 'cargo-placement') {
+      // Clean up placement scanner when leaving placement page
+      if (html5QrCodePlacementRef.current) {
+        console.log('🔄 Page change: Cleaning up placement scanner...');
+        safeStopQrScanner(html5QrCodePlacementRef.current, "qr-reader-placement", "Page Navigation");
+        html5QrCodePlacementRef.current = null;
+        setHtml5QrCodePlacement(null);
+        setScannerActive(false);
+      }
+    }
+  }, [currentPage]);
+
   // Функции для работы с камерой и сканированием
   const initializeCamera = async () => {
     try {
