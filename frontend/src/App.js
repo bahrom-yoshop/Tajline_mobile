@@ -9644,7 +9644,24 @@ function App() {
                                     <TableCell className="font-medium">{item.cargo_number}</TableCell>
                                     <TableCell>
                                       <div>
-                                        <div className="font-medium">{item.sender_full_name}</div>
+                                        <div className="font-medium flex items-center justify-between">
+                                          <span>{item.sender_full_name}</span>
+                                          {/* Кнопка генерации QR для всех грузов отправителя */}
+                                          {(user?.role === 'admin' || user?.role === 'warehouse_operator') && (
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() => generateBulkQRForSender({
+                                                sender_full_name: item.sender_full_name,
+                                                sender_phone: item.sender_phone
+                                              })}
+                                              className="ml-2 text-blue-600 hover:bg-blue-50 p-1 h-auto"
+                                              title="Создать QR коды для всех грузов этого отправителя"
+                                            >
+                                              <QrCode className="h-3 w-3" />
+                                            </Button>
+                                          )}
+                                        </div>
                                         <div className="text-sm text-gray-500">{item.sender_phone}</div>
                                       </div>
                                     </TableCell>
