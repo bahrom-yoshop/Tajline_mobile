@@ -751,13 +751,12 @@ function App() {
       if (isolatedContainer) {
         console.log(`🔧 ${context}: Очистка изолированного контейнера...`);
         
-        // Remove all Html5Qrcode elements safely
+        // Remove all Html5Qrcode elements safely without React DOM conflicts
         const qrElements = isolatedContainer.querySelectorAll('video, canvas, div[id*="html5"], img[id*="qr"]');
         qrElements.forEach(element => {
           try {
-            if (element.parentNode) {
-              element.parentNode.removeChild(element);
-            }
+            // Use React-safe removal method
+            element.remove();
           } catch (removeError) {
             console.debug(`Debug: Элемент уже удален`);
           }
