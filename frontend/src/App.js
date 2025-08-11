@@ -2139,50 +2139,51 @@ function App() {
     }
   };
 
-  // Enhanced QR Scanner for mobile devices with robust initialization
+  // Enhanced QR Scanner for mobile devices with React-safe DOM management
   const startQRScannerForPlacement = async () => {
     try {
       console.log('📱 Запуск мобильного QR сканера для размещения...');
       
-      // Stop any existing scanner first
-      if (html5QrCodePlacement) {
-        console.log('⏹️ Остановка существующего мобильного сканера...');
-        await safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Mobile Placement Scanner");
+      // Stop any existing scanner first using ref
+      if (html5QrCodePlacementRef.current) {
+        console.log('⏹️ Остановка существующего мобильного сканера через ref...');
+        await safeStopQrScanner(html5QrCodePlacementRef.current, "qr-reader-placement", "Mobile Placement Scanner Replace");
+        html5QrCodePlacementRef.current = null;
         setHtml5QrCodePlacement(null);
       }
 
-      // Enhanced mobile DOM element detection with multiple retries
+      // Enhanced mobile DOM element detection with React-safe access
       let placementElement = null;
       let attempts = 0;
-      const maxAttempts = 20; // Increased for mobile devices
+      const maxAttempts = 20;
       
       console.log('🔍 Поиск DOM элемента для мобильного сканера...');
       while (!placementElement && attempts < maxAttempts) {
-        placementElement = document.getElementById("qr-reader-placement");
+        // Use ref for more stable access
+        if (placementQrReaderRef.current) {
+          placementElement = placementQrReaderRef.current;
+          console.log(`✅ DOM элемент найден через ref на попытке ${attempts + 1}`);
+        } else {
+          placementElement = document.getElementById("qr-reader-placement");
+          if (placementElement) {
+            // Store in ref for future access
+            placementQrReaderRef.current = placementElement;
+            console.log(`✅ DOM элемент найден на попытке ${attempts + 1}`);
+          }
+        }
+        
         if (!placementElement) {
           console.log(`⏳ Элемент не найден, попытка ${attempts + 1}/${maxAttempts}`);
-          await new Promise(resolve => setTimeout(resolve, 500)); // Longer delay for mobile
+          await new Promise(resolve => setTimeout(resolve, 500));
           attempts++;
-        } else {
-          console.log(`✅ DOM элемент найден на попытке ${attempts + 1}`);
-          
-          // Force element to be visible and properly sized
-          placementElement.style.display = 'block';
-          placementElement.style.width = '100%';
-          placementElement.style.minHeight = '400px';
-          placementElement.style.backgroundColor = '#000';
-          
-          // Additional mobile-specific styling
-          placementElement.style.position = 'relative';
-          placementElement.style.overflow = 'hidden';
         }
       }
       
       if (!placementElement) {
-        throw new Error(`Mobile DOM element 'qr-reader-placement' not found after ${maxAttempts} attempts`);
+        throw new Error(`React-safe mobile DOM element 'qr-reader-placement' not found after ${maxAttempts} attempts`);
       }
       
-      // Ensure element is properly positioned for mobile
+      // Ensure element is properly positioned for mobile with React-safe styles
       const rect = placementElement.getBoundingClientRect();
       console.log('📐 Мобильный элемент сканера:', {
         width: rect.width,
@@ -2192,12 +2193,17 @@ function App() {
         visible: rect.width > 0 && rect.height > 0
       });
       
-      // Force repaint for mobile browsers
-      placementElement.style.display = 'none';
-      placementElement.offsetHeight; // trigger reflow
-      placementElement.style.display = 'block';
+      // React-safe element preparation
+      Object.assign(placementElement.style, {
+        display: 'block',
+        minHeight: '400px',
+        backgroundColor: '#000000',
+        borderRadius: '8px',
+        position: 'relative',
+        overflow: 'hidden'
+      });
       
-      // Wait for mobile layout to stabilize
+      // Wait for mobile layout to stabilize with React
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       console.log('🎥 Получение камер для мобильного устройства...');
@@ -2240,107 +2246,46 @@ function App() {
       // Save cameras for mobile switching
       setAvailablePlacementCameras(cameras);
 
-      // Enhanced mobile camera selection with priority for back camera
-      let selectedCamera;
-      
-      if (currentPlacementCameraIndex < cameras.length) {
-        selectedCamera = cameras[currentPlacementCameraIndex];
-        console.log(`🎯 Используется сохраненная мобильная камера: индекс ${currentPlacementCameraIndex}`);
-      } else {
-        // Mobile-optimized camera selection
-        console.log('🔍 Поиск оптимальной камеры для мобильного QR сканирования...');
-        
-        // Try to find back/environment camera with various naming patterns
-        const backCameraPatterns = [
-          'back', 'rear', 'environment', 'main', 'задн', 'осн',
-          'camera2', 'широкоугольная', 'основная', '0'
-        ];
-        
-        let backCamera = null;
-        for (const pattern of backCameraPatterns) {
-          backCamera = cameras.find(camera => {
-            const label = (camera.label || '').toLowerCase();
-            return label.includes(pattern);
-          });
-          if (backCamera) {
-            console.log(`📱 Найдена задняя камера по паттерну "${pattern}": ${backCamera.label}`);
-            break;
-          }
-        }
-        
-        if (backCamera) {
-          selectedCamera = backCamera;
-        } else {
-          // Fallback: use last camera (often back camera on mobile)
-          selectedCamera = cameras[cameras.length - 1];
-          console.log('📱 Используется последняя камера как fallback:', selectedCamera.label);
-        }
-        
-        const selectedIndex = cameras.findIndex(c => c.id === selectedCamera.id);
-        setCurrentPlacementCameraIndex(selectedIndex >= 0 ? selectedIndex : 0);
-      }
+      // Enhanced mobile camera selection
+      let selectedCamera = cameras[currentPlacementCameraIndex] || cameras[cameras.length - 1];
       
       console.log(`🎬 Выбрана мобильная камера: "${selectedCamera.label}" (индекс: ${currentPlacementCameraIndex})`);
 
-      // Initialize mobile-optimized Html5Qrcode instance
-      console.log('🏗️ Создание мобильного Html5Qrcode экземпляра...');
+      // Initialize mobile-optimized Html5Qrcode instance with React-safe management
+      console.log('🏗️ Создание React-safe мобильного Html5Qrcode экземпляра...');
       const qrCodeInstance = new Html5Qrcode("qr-reader-placement");
+      
+      // Store in both state and ref for React-safe access
+      html5QrCodePlacementRef.current = qrCodeInstance;
       setHtml5QrCodePlacement(qrCodeInstance);
 
-      // Mobile-optimized configuration with enhanced settings
+      // Mobile-optimized configuration
       const mobileConfig = {
-        fps: 15, // Balanced for mobile performance
+        fps: 15,
         qrbox: function(viewfinderWidth, viewfinderHeight) {
-          // Mobile-optimized QR box sizing with device-specific adjustments
           const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
           const isMobile = window.innerWidth <= 768;
-          const boxRatio = isMobile ? 0.85 : 0.7; // Larger box on mobile
+          const boxRatio = isMobile ? 0.85 : 0.7;
           const qrboxSize = Math.floor(minEdge * boxRatio);
           
           console.log(`📐 Мобильный QR box: ${qrboxSize}x${qrboxSize} (viewport: ${viewfinderWidth}x${viewfinderHeight})`);
-          return {
-            width: qrboxSize,
-            height: qrboxSize
-          };
+          return { width: qrboxSize, height: qrboxSize };
         },
         aspectRatio: 1.0,
         disableFlip: false,
-        // Enhanced mobile video constraints
         videoConstraints: {
-          facingMode: "environment", // Force back camera
-          width: { 
-            ideal: window.innerWidth > 768 ? 1920 : 1280, // Adaptive resolution
-            max: 1920,
-            min: 640 
-          },
-          height: { 
-            ideal: window.innerWidth > 768 ? 1080 : 720,
-            max: 1080,
-            min: 480 
-          },
-          frameRate: { 
-            ideal: 20,
-            min: 10 
-          }
+          facingMode: "environment",
+          width: { ideal: window.innerWidth > 768 ? 1920 : 1280, max: 1920, min: 640 },
+          height: { ideal: window.innerWidth > 768 ? 1080 : 720, max: 1080, min: 480 },
+          frameRate: { ideal: 20, min: 10 }
         },
-        // Mobile-specific experimental features
-        experimentalFeatures: {
-          useBarCodeDetectorIfSupported: true
-        },
-        // Enhanced mobile scanning settings
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
         rememberLastUsedCamera: true,
-        // Additional mobile optimization
-        showTorchButtonIfSupported: true, // Flashlight for dark environments
-        showZoomSliderIfSupported: false // Disable zoom to avoid confusion
+        showTorchButtonIfSupported: true,
+        showZoomSliderIfSupported: false
       };
 
-      console.log('🚀 Запуск мобильного QR сканера с оптимизированной конфигурацией...');
-      console.log('⚙️ Мобильная конфигурация:', {
-        fps: mobileConfig.fps,
-        facingMode: mobileConfig.videoConstraints.facingMode,
-        resolution: `${mobileConfig.videoConstraints.width.ideal}x${mobileConfig.videoConstraints.height.ideal}`,
-        torch: mobileConfig.showTorchButtonIfSupported
-      });
+      console.log('🚀 Запуск React-safe мобильного QR сканера...');
       
       await qrCodeInstance.start(
         selectedCamera.id,
@@ -2362,7 +2307,7 @@ function App() {
       );
       
       setScannerActive(true);
-      console.log('✅ Мобильный QR сканер размещения успешно запущен');
+      console.log('✅ React-safe мобильный QR сканер размещения успешно запущен');
       showAlert('📱 Мобильная камера готова! Наведите на QR код груза.', 'success');
       
       // Additional mobile user guidance
@@ -2373,24 +2318,20 @@ function App() {
       }
       
     } catch (error) {
-      console.error('💥 Критическая ошибка мобильного QR сканера:', error);
+      console.error('💥 Критическая ошибка React-safe мобильного QR сканера:', error);
       setScannerActive(false);
+      
+      // Clear refs on error to prevent React conflicts
+      html5QrCodePlacementRef.current = null;
+      setHtml5QrCodePlacement(null);
       
       // Enhanced mobile-specific error messages
       let userMessage = 'Не удалось запустить мобильную камеру';
       
       if (error.message.includes('Camera') || error.message.includes('камер')) {
         userMessage = '📵 Мобильная камера недоступна. Попробуйте:\n• Разрешить доступ к камере\n• Закрыть другие приложения камеры\n• Перезагрузить браузер';
-      } else if (error.message.includes('Mobile DOM element')) {
+      } else if (error.message.includes('React-safe mobile DOM element')) {
         userMessage = '🔄 Ошибка загрузки мобильного интерфейса. Обновите страницу.';
-      } else if (error.message.includes('Permission')) {
-        userMessage = '🔐 Разрешите доступ к камере:\n• Нажмите "Разрешить" в браузере\n• Проверьте настройки сайта';
-      } else if (error.name === 'NotAllowedError') {
-        userMessage = '🚫 Доступ к мобильной камере запрещен. Разрешите в настройках.';
-      } else if (error.name === 'NotFoundError') {
-        userMessage = '📵 Камера не найдена на мобильном устройстве.';
-      } else if (error.name === 'NotReadableError') {
-        userMessage = '🔒 Мобильная камера занята другим приложением.';
       }
       
       showAlert(`${userMessage}\n\nИспользуйте ручной ввод ниже.`, 'warning');
