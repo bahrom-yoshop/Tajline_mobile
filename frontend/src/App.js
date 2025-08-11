@@ -1724,7 +1724,8 @@ function App() {
       
       // Check if getUserMedia is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera API не поддерживается этим браузером');
+        console.log('Camera API not supported');
+        return false;
       }
       
       // Request camera permission
@@ -1739,26 +1740,18 @@ function App() {
       console.log(`Found ${cameras.length} cameras`);
       
       if (!cameras || cameras.length === 0) {
-        throw new Error('Камеры не найдены на устройстве');
+        console.log('No cameras found');
+        return false;
       }
       
+      console.log('Camera availability check passed');
       return true;
       
     } catch (error) {
-      console.error('Camera availability check failed:', error);
+      console.log('Camera availability check failed:', error.name, error.message);
       
-      let userMessage = 'Проблема с доступом к камере';
-      if (error.name === 'NotAllowedError') {
-        userMessage = 'Доступ к камере запрещен. Разрешите доступ в настройках браузера и обновите страницу.';
-      } else if (error.name === 'NotFoundError') {
-        userMessage = 'Камера не найдена. Используйте устройство с камерой или введите данные вручную ниже.';
-      } else if (error.name === 'NotSupportedError') {
-        userMessage = 'Ваш браузер не поддерживает доступ к камере. Используйте ручной ввод данных ниже.';
-      } else if (error.message) {
-        userMessage = error.message;
-      }
-      
-      showAlert(userMessage, 'warning');
+      // Don't show error alerts here - just return false
+      // The calling function will handle the UI appropriately
       return false;
     }
   };
