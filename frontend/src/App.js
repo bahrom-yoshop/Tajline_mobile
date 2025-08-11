@@ -10668,7 +10668,7 @@ function App() {
                           </div>
                         )}
 
-                        {placementStep === 'scan-cell' && (
+                        {mobilePlacementStep === 'scan-cell' && (
                           <div className="space-y-4">
                             <div className="text-center">
                               <h3 className="font-semibold text-purple-600">Шаг 2: Сканирование ячейки</h3>
