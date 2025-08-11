@@ -27886,6 +27886,381 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_enhanced_cargo_placement_system_with_camera(self):
+        """Test enhanced cargo placement system with camera endpoints according to review request"""
+        print("\n📷 ENHANCED CARGO PLACEMENT SYSTEM WITH CAMERA TESTING")
+        print("   🎯 Testing улучшенную систему размещения груза с камерой")
+        
+        all_success = True
+        
+        # Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРА СКЛАДА (+79777888999/warehouse123)
+        print("\n   🔐 Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРА СКЛАДА (+79777888999/warehouse123)...")
+        
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Authentication",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+            return False
+        
+        # Test 2: СТАТИСТИКА РАЗМЕЩЕНИЯ (GET /api/operator/placement-statistics)
+        print("\n   📊 Test 2: СТАТИСТИКА РАЗМЕЩЕНИЯ...")
+        
+        success, placement_stats = self.run_test(
+            "Get Placement Statistics",
+            "GET",
+            "/api/operator/placement-statistics",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Placement statistics endpoint working")
+            
+            # Verify response structure
+            required_fields = ['operator_name', 'today_placements', 'session_placements', 'recent_placements']
+            missing_fields = [field for field in required_fields if field not in placement_stats]
+            
+            if not missing_fields:
+                print("   ✅ Placement statistics structure correct")
+                print(f"   👤 Operator: {placement_stats.get('operator_name')}")
+                print(f"   📅 Today placements: {placement_stats.get('today_placements')}")
+                print(f"   🔄 Session placements: {placement_stats.get('session_placements')}")
+                
+                # Verify data types
+                if isinstance(placement_stats.get('today_placements'), int) and isinstance(placement_stats.get('session_placements'), int):
+                    print("   ✅ Placement statistics data types correct")
+                else:
+                    print("   ❌ Placement statistics data types incorrect")
+                    all_success = False
+            else:
+                print(f"   ❌ Missing required fields in placement statistics: {missing_fields}")
+                all_success = False
+        else:
+            print("   ❌ Placement statistics endpoint failed")
+            all_success = False
+        
+        # Test 3: ПОЛУЧИТЬ СПИСОК СКЛАДОВ ДЛЯ ВЫБОРА WAREHOUSE_ID
+        print("\n   🏭 Test 3: ПОЛУЧИТЬ СПИСОК СКЛАДОВ...")
+        
+        success, warehouses_list = self.run_test(
+            "Get Warehouses List",
+            "GET",
+            "/api/warehouses",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        test_warehouse_id = None
+        if success and warehouses_list:
+            warehouse_count = len(warehouses_list) if isinstance(warehouses_list, list) else 0
+            print(f"   ✅ Found {warehouse_count} warehouses")
+            
+            if warehouse_count > 0:
+                # Select first warehouse for testing
+                test_warehouse = warehouses_list[0]
+                test_warehouse_id = test_warehouse.get('id')
+                test_warehouse_name = test_warehouse.get('name')
+                print(f"   🏭 Selected test warehouse: {test_warehouse_name} (ID: {test_warehouse_id})")
+            else:
+                print("   ⚠️  No warehouses available for testing")
+        else:
+            print("   ❌ Failed to get warehouses list")
+            all_success = False
+        
+        # Test 4: ДОСТУПНЫЕ ЯЧЕЙКИ СКЛАДА (GET /api/warehouses/{warehouse_id}/available-cells/{block}/{shelf})
+        print("\n   📦 Test 4: ДОСТУПНЫЕ ЯЧЕЙКИ СКЛАДА...")
+        
+        if test_warehouse_id:
+            # Test with block 1, shelf 1
+            test_block = 1
+            test_shelf = 1
+            
+            success, available_cells = self.run_test(
+                f"Get Available Cells (Block {test_block}, Shelf {test_shelf})",
+                "GET",
+                f"/api/warehouses/{test_warehouse_id}/available-cells/{test_block}/{test_shelf}",
+                200,
+                token=operator_token
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Available cells endpoint working")
+                
+                if isinstance(available_cells, list):
+                    cell_count = len(available_cells)
+                    print(f"   📦 Found {cell_count} available cells")
+                    
+                    if cell_count > 0:
+                        # Check cell structure
+                        sample_cell = available_cells[0]
+                        cell_required_fields = ['cell_number', 'is_occupied', 'location_code']
+                        cell_missing = [field for field in cell_required_fields if field not in sample_cell]
+                        
+                        if not cell_missing:
+                            print("   ✅ Cell structure correct")
+                            print(f"   📍 Sample cell: {sample_cell.get('location_code')} (occupied: {sample_cell.get('is_occupied')})")
+                        else:
+                            print(f"   ❌ Cell structure missing fields: {cell_missing}")
+                            all_success = False
+                    else:
+                        print("   ⚠️  No available cells found")
+                elif isinstance(available_cells, dict) and 'cells' in available_cells:
+                    cells_list = available_cells['cells']
+                    cell_count = len(cells_list)
+                    print(f"   📦 Found {cell_count} available cells in response")
+                else:
+                    print("   ❌ Unexpected available cells response format")
+                    all_success = False
+            else:
+                print("   ❌ Available cells endpoint failed")
+                all_success = False
+        else:
+            print("   ❌ No warehouse ID available for testing available cells")
+            all_success = False
+        
+        # Test 5: СОЗДАТЬ ТЕСТОВЫЙ ГРУЗ ДЛЯ QR СКАНИРОВАНИЯ
+        print("\n   📦 Test 5: СОЗДАТЬ ТЕСТОВЫЙ ГРУЗ ДЛЯ QR СКАНИРОВАНИЯ...")
+        
+        cargo_data = {
+            "sender_full_name": "Тест Отправитель Камера",
+            "sender_phone": "+79991234567",
+            "recipient_full_name": "Тест Получатель Камера",
+            "recipient_phone": "+992987654321",
+            "recipient_address": "Душанбе, ул. Камерная, 1",
+            "weight": 7.5,
+            "cargo_name": "Тестовый груз для камеры",
+            "declared_value": 2500.0,
+            "description": "Тест системы размещения с камерой",
+            "route": "moscow_dushanbe",
+            "payment_method": "cash",
+            "payment_amount": 2500.0
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create Test Cargo for Camera Placement",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            cargo_data,
+            operator_token
+        )
+        all_success &= success
+        
+        test_cargo_number = None
+        if success and 'cargo_number' in cargo_response:
+            test_cargo_number = cargo_response['cargo_number']
+            print(f"   ✅ Test cargo created: {test_cargo_number}")
+        else:
+            print("   ❌ Failed to create test cargo")
+            all_success = False
+            return False
+        
+        # Test 6: QR СКАНИРОВАНИЕ ДЛЯ РАЗМЕЩЕНИЯ (POST /api/cargo/scan-qr)
+        print("\n   📱 Test 6: QR СКАНИРОВАНИЕ ДЛЯ РАЗМЕЩЕНИЯ...")
+        
+        # Test QR scanning with cargo number (simplified format)
+        qr_scan_data = {
+            "qr_text": test_cargo_number  # Simplified QR format - just cargo number
+        }
+        
+        success, scan_response = self.run_test(
+            "QR Scan for Cargo Placement",
+            "POST",
+            "/api/cargo/scan-qr",
+            200,
+            qr_scan_data,
+            operator_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ QR scanning for placement working")
+            
+            # Verify scan response
+            if scan_response.get('success'):
+                print("   ✅ QR scan successful")
+                
+                cargo_info = scan_response.get('cargo', {})
+                if cargo_info and cargo_info.get('cargo_number') == test_cargo_number:
+                    print("   ✅ Correct cargo found by QR scanning")
+                    
+                    # Check available operations for placement
+                    operations = cargo_info.get('available_operations', [])
+                    if 'place_in_warehouse' in operations:
+                        print("   ✅ 'place_in_warehouse' operation available")
+                    else:
+                        print("   ⚠️  'place_in_warehouse' operation not available")
+                        print(f"   📋 Available operations: {operations}")
+                else:
+                    print("   ❌ Incorrect cargo returned from QR scan")
+                    all_success = False
+            else:
+                print("   ❌ QR scan not successful")
+                all_success = False
+        else:
+            print("   ❌ QR scanning endpoint failed")
+            all_success = False
+        
+        # Test 7: РАЗМЕЩЕНИЕ ГРУЗА В ЯЧЕЙКЕ (POST /api/cargo/place-in-cell)
+        print("\n   🎯 Test 7: РАЗМЕЩЕНИЕ ГРУЗА В ЯЧЕЙКЕ...")
+        
+        if test_warehouse_id and test_cargo_number:
+            # Create cell code in expected format: СКЛАД_ID-Б_номер-П_номер-Я_номер
+            test_cell_code = f"{test_warehouse_id}-Б1-П1-Я1"
+            
+            placement_data = {
+                "cargo_number": test_cargo_number,
+                "cell_code": test_cell_code
+            }
+            
+            success, placement_response = self.run_test(
+                "Place Cargo in Cell",
+                "POST",
+                "/api/cargo/place-in-cell",
+                200,
+                placement_data,
+                operator_token
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Cargo placement in cell working")
+                
+                # Verify placement response
+                if placement_response.get('success'):
+                    print("   ✅ Cargo placement successful")
+                    
+                    placement_info = placement_response.get('placement', {})
+                    if placement_info:
+                        placed_cargo = placement_info.get('cargo_number')
+                        placed_location = placement_info.get('location')
+                        
+                        if placed_cargo == test_cargo_number:
+                            print(f"   ✅ Cargo {placed_cargo} placed successfully")
+                            print(f"   📍 Location: {placed_location}")
+                        else:
+                            print("   ❌ Placement cargo number mismatch")
+                            all_success = False
+                    else:
+                        print("   ❌ No placement info in response")
+                        all_success = False
+                else:
+                    print("   ❌ Cargo placement not successful")
+                    all_success = False
+            else:
+                print("   ❌ Cargo placement endpoint failed")
+                # This might fail due to UUID parsing issues mentioned in the code
+                print("   ⚠️  Note: UUID warehouse ID parsing might require special handling")
+        else:
+            print("   ❌ Missing warehouse ID or cargo number for placement test")
+            all_success = False
+        
+        # Test 8: ПОЛУЧЕНИЕ ГРУЗОВ ГОТОВЫХ К РАЗМЕЩЕНИЮ (GET /api/operator/cargo/available-for-placement)
+        print("\n   📋 Test 8: ПОЛУЧЕНИЕ ГРУЗОВ ГОТОВЫХ К РАЗМЕЩЕНИЮ...")
+        
+        success, available_cargo = self.run_test(
+            "Get Cargo Available for Placement",
+            "GET",
+            "/api/operator/cargo/available-for-placement",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Available cargo for placement endpoint working")
+            
+            # Check response structure
+            if isinstance(available_cargo, dict):
+                items = available_cargo.get('items', [])
+                total_count = available_cargo.get('total_count', 0)
+                
+                print(f"   📦 Found {len(items)} cargo items available for placement")
+                print(f"   📊 Total count: {total_count}")
+                
+                # Verify only paid cargo is available
+                if items:
+                    paid_count = 0
+                    for cargo in items:
+                        processing_status = cargo.get('processing_status')
+                        if processing_status in ['paid', 'invoice_printed']:
+                            paid_count += 1
+                    
+                    if paid_count == len(items):
+                        print("   ✅ Only paid cargo available for placement")
+                    else:
+                        print(f"   ❌ Found unpaid cargo in placement list: {len(items) - paid_count} unpaid items")
+                        all_success = False
+                    
+                    # Check required fields in cargo items
+                    if items:
+                        sample_cargo = items[0]
+                        required_fields = ['cargo_number', 'processing_status', 'id', 'weight', 'sender_full_name', 'recipient_full_name', 'recipient_phone']
+                        missing_fields = [field for field in required_fields if field not in sample_cargo]
+                        
+                        if not missing_fields:
+                            print("   ✅ Cargo items have all required fields")
+                        else:
+                            print(f"   ❌ Cargo items missing fields: {missing_fields}")
+                            all_success = False
+                else:
+                    print("   ⚠️  No cargo items available for placement")
+            elif isinstance(available_cargo, list):
+                print(f"   📦 Found {len(available_cargo)} cargo items available for placement (list format)")
+            else:
+                print("   ❌ Unexpected response format for available cargo")
+                all_success = False
+        else:
+            print("   ❌ Available cargo for placement endpoint failed")
+            all_success = False
+        
+        # SUMMARY
+        print("\n   📊 ENHANCED CARGO PLACEMENT SYSTEM WITH CAMERA SUMMARY:")
+        
+        if all_success:
+            print("   🎉 ALL ENHANCED CARGO PLACEMENT TESTS PASSED!")
+            print("   ✅ Авторизация оператора склада (+79777888999/warehouse123) успешна")
+            print("   ✅ Статистика размещения (GET /api/operator/placement-statistics) работает")
+            print("   ✅ Доступные ячейки склада (GET /api/warehouses/{warehouse_id}/available-cells/{block}/{shelf}) работают")
+            print("   ✅ QR сканирование для размещения (POST /api/cargo/scan-qr) работает")
+            print("   ✅ Размещение груза в ячейке (POST /api/cargo/place-in-cell) работает")
+            print("   ✅ Получение грузов готовых к размещению (GET /api/operator/cargo/available-for-placement) работает")
+            print("   ✅ Все endpoints используются в улучшенном frontend для размещения груза")
+            print("   ✅ Тестирование выполнено под учетной записью оператора склада")
+        else:
+            print("   ❌ SOME ENHANCED CARGO PLACEMENT TESTS FAILED")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
