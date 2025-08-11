@@ -1501,19 +1501,29 @@ function App() {
     await startQRScannerForPlacement();
   };
 
-  // New function: QR Scanner for placement
+  // New function: QR Scanner for placement - improved with defensive checks
   const startQRScannerForPlacement = async () => {
     try {
       // Останавливаем предыдущий экземпляр если есть
       if (html5QrCodePlacement) {
-        await html5QrCodePlacement.stop();
+        await safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Placement Scanner");
         setHtml5QrCodePlacement(null);
       }
 
-      // Проверяем существование DOM элемента
-      const placementElement = document.getElementById("qr-reader-placement");
+      // Проверяем существование DOM элемента с повторными попытками
+      let placementElement = document.getElementById("qr-reader-placement");
+      let attempts = 0;
+      
+      while (!placementElement && attempts < 5) {
+        console.log(`Placement QR reader element not found, attempt ${attempts + 1}`);
+        await new Promise(resolve => setTimeout(resolve, 200));
+        placementElement = document.getElementById("qr-reader-placement");
+        attempts++;
+      }
+      
       if (!placementElement) {
-        console.log('Placement QR reader element not found, waiting...');
+        console.error('Placement QR reader element not found after 5 attempts');
+        showAlert('Ошибка инициализации сканера. Попробуйте еще раз.', 'error');
         return;
       }
 
@@ -1545,6 +1555,9 @@ function App() {
         );
         
         setScannerActive(true);
+        console.log('Placement QR scanner started successfully');
+      } else {
+        showAlert('Камеры не обнаружены', 'error');
       }
     } catch (error) {
       console.error('Error starting placement QR scanner:', error);
