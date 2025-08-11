@@ -1924,10 +1924,10 @@ function App() {
     }
   };
 
-  // New function: Start placement process - improved error handling  
+  // New function: Start placement process - Enhanced mobile support  
   const startCargoPlacement = async () => {
     try {
-      console.log('Starting cargo placement process...');
+      console.log('🚀 Запуск процесса размещения груза...');
       
       setPlacementActive(true);
       setPlacementStep('scan-cargo');
@@ -1936,27 +1936,58 @@ function App() {
       await fetchPlacementStatistics();
       await getAvailableWarehouseCells();
       
-      // Try to check camera availability, but continue even if it fails
+      // Show loading indicator for mobile users
+      showAlert('⏳ Инициализация камеры...', 'info');
+      
+      // Check camera availability with enhanced mobile support
+      console.log('📱 Проверка камеры для мобильного устройства...');
       const cameraAvailable = await checkCameraAvailability();
       
       if (cameraAvailable) {
         // Camera is available, proceed with QR scanner
-        showAlert('Камера активирована для сканирования', 'success');
+        console.log('✅ Камера доступна, запуск сканера...');
+        showAlert('📹 Камера активирована! Наведите на QR код груза.', 'success');
         
-        // Wait a bit for modal to fully render
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Extended wait for modal to fully render on mobile
+        console.log('⏳ Ожидание полной загрузки интерфейса...');
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
-        // Then start QR scanner
-        await startQRScannerForPlacement();
+        // Then start QR scanner with retry mechanism
+        let scannerStarted = false;
+        let attempts = 0;
+        const maxAttempts = 3;
+        
+        while (!scannerStarted && attempts < maxAttempts) {
+          try {
+            attempts++;
+            console.log(`🔄 Попытка запуска сканера ${attempts}/${maxAttempts}...`);
+            await startQRScannerForPlacement();
+            scannerStarted = true;
+            console.log('✅ Сканер успешно запущен');
+          } catch (error) {
+            console.warn(`⚠️ Попытка ${attempts} не удалась:`, error.message);
+            if (attempts < maxAttempts) {
+              console.log('⏳ Ожидание перед следующей попыткой...');
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
+        }
+        
+        if (!scannerStarted) {
+          console.error('❌ Не удалось запустить сканер после всех попыток');
+          throw new Error('Не удалось запустить камеру после нескольких попыток');
+        }
+        
       } else {
         // Camera not available, show manual input mode
-        showAlert('Камера недоступна. Используйте ручной ввод данных ниже.', 'warning');
+        console.log('📝 Камера недоступна, переход к ручному режиму');
+        showAlert('📝 Камера недоступна. Используйте ручной ввод данных ниже.', 'warning');
         setScannerActive(false); // Ensure scanner is marked as inactive
       }
       
     } catch (error) {
-      console.error('Error starting cargo placement:', error);
-      showAlert(`Ошибка запуска размещения: ${error.message}`, 'error');
+      console.error('💥 Ошибка запуска размещения груза:', error);
+      showAlert(`❌ Ошибка: ${error.message}. Используйте ручной ввод.`, 'error');
       // Don't reset placement active - allow manual input to work
       setScannerActive(false);
     }
