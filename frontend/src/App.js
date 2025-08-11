@@ -9802,17 +9802,6 @@ function App() {
                                 <Package className="mr-2 h-4 w-4" />
                                 Размещение груза
                               </Button>
-                              
-                              {!scannerActive && !placementInProgress && (
-                                <Button 
-                                  onClick={startCargoScanner}
-                                  className="bg-gray-600 hover:bg-gray-700"
-                                  size="sm"
-                                >
-                                  <Camera className="mr-2 h-4 w-4" />
-                                  Старый сканер
-                                </Button>
-                              )}
                             </div>
                           </CardTitle>
                           <CardDescription>
