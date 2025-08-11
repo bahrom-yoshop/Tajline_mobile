@@ -18076,49 +18076,51 @@ function App() {
               </div>
             )}
 
-            {/* Alternative manual input - always show when camera fails or for convenience */}
-            <div className="p-4 border rounded-lg bg-blue-50">
-              <h5 className="font-medium text-blue-800 mb-2 flex items-center">
-                <Edit className="mr-2 h-4 w-4" />
-                Ручной ввод данных
-              </h5>
-              <p className="text-sm text-blue-700 mb-3">
-                {!scannerActive ? 
-                  'Камера недоступна. Введите данные вручную:' : 
-                  'Альтернативно можете ввести данные вручную:'}
-              </p>
-              <div className="space-y-3">
-                <div>
-                  <Label htmlFor="manual-cargo" className="text-sm font-medium">Номер груза</Label>
-                  <Input
-                    id="manual-cargo"
-                    placeholder="Например: TEMP-123456"
-                    value={manualCargoNumber}
-                    onChange={(e) => setManualCargoNumber(e.target.value)}
-                    className="text-sm"
-                  />
+            {/* Manual input - always available when placement is active */}
+            {placementActive && (
+              <div className="p-4 border rounded-lg bg-blue-50">
+                <h5 className="font-medium text-blue-800 mb-2 flex items-center">
+                  <Edit className="mr-2 h-4 w-4" />
+                  Ручной ввод данных
+                </h5>
+                <p className="text-sm text-blue-700 mb-3">
+                  {!scannerActive ? 
+                    'Введите данные для размещения груза:' : 
+                    'Альтернативно можете ввести данные вручную:'}
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="manual-cargo" className="text-sm font-medium">Номер груза</Label>
+                    <Input
+                      id="manual-cargo"
+                      placeholder="Например: TEMP-123456"
+                      value={manualCargoNumber}
+                      onChange={(e) => setManualCargoNumber(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="manual-cell" className="text-sm font-medium">Код ячейки</Label>
+                    <Input
+                      id="manual-cell"
+                      placeholder="Например: W001-Б1-П1-Я1"
+                      value={manualCellCode}
+                      onChange={(e) => setManualCellCode(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleManualPlacement}
+                    disabled={!manualCargoNumber.trim() || !manualCellCode.trim()}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    size="sm"
+                  >
+                    <Package className="mr-2 h-4 w-4" />
+                    Разместить вручную
+                  </Button>
                 </div>
-                <div>
-                  <Label htmlFor="manual-cell" className="text-sm font-medium">Код ячейки</Label>
-                  <Input
-                    id="manual-cell"
-                    placeholder="Например: W001-Б1-П1-Я1"
-                    value={manualCellCode}
-                    onChange={(e) => setManualCellCode(e.target.value)}
-                    className="text-sm"
-                  />
-                </div>
-                <Button 
-                  onClick={handleManualPlacement}
-                  disabled={!manualCargoNumber.trim() || !manualCellCode.trim()}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                  size="sm"
-                >
-                  <Package className="mr-2 h-4 w-4" />
-                  Разместить вручную
-                </Button>
               </div>
-            </div>
+            )}
 
             {/* Statistics */}
             {placementStatistics && (
