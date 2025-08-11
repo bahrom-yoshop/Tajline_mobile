@@ -7591,7 +7591,6 @@ function App() {
                 </div>
 
                 {/* Current Step Content */}
-                <>
                 <Card 
                   className={`mb-6 ${placementStep === 'scan-cargo' ? 'react-visible' : 'react-hidden'}`}
                 >
