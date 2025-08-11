@@ -10067,6 +10067,456 @@ function App() {
                 </div>
               )}
 
+              {/* Мобильные операции */}
+              {activeSection === 'operations' && (
+                <div className="space-y-6">
+                  {/* Поиск груза */}
+                  {activeTab === 'operations-search' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Search className="mr-2 h-5 w-5" />
+                          Поиск груза по QR коду
+                        </CardTitle>
+                        <CardDescription>Сканируйте QR код груза для получения полной информации</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {/* Кнопка запуска камеры */}
+                          <div className="text-center">
+                            <Button 
+                              onClick={() => startCargoSearch()}
+                              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                              size="lg"
+                            >
+                              <Camera className="mr-2 h-5 w-5" />
+                              Начать сканирование груза
+                            </Button>
+                          </div>
+
+                          {/* QR сканер контейнер */}
+                          <div 
+                            id="qr-reader-search" 
+                            className={`w-full bg-black rounded-lg ${searchScannerActive ? 'react-visible' : 'react-hidden'}`}
+                            style={{
+                              height: 'min(60vh, 400px)',
+                              minHeight: '300px'
+                            }}
+                          />
+
+                          {/* Результаты поиска */}
+                          {searchResult && (
+                            <Card className="mt-4">
+                              <CardHeader>
+                                <CardTitle className="text-lg text-green-600">
+                                  Информация о грузе
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <Label className="font-semibold">Номер груза</Label>
+                                    <p>{searchResult.cargo_number}</p>
+                                  </div>
+                                  <div>
+                                    <Label className="font-semibold">Статус</Label>
+                                    <Badge className={
+                                      searchResult.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                      searchResult.status === 'in_transit' ? 'bg-blue-100 text-blue-800' :
+                                      'bg-yellow-100 text-yellow-800'
+                                    }>
+                                      {searchResult.status === 'delivered' ? 'Доставлен' :
+                                       searchResult.status === 'in_transit' ? 'В пути' :
+                                       'Принят'}
+                                    </Badge>
+                                  </div>
+                                  <div>
+                                    <Label className="font-semibold">Отправитель</Label>
+                                    <p>{searchResult.sender_full_name}</p>
+                                    <p className="text-sm text-gray-600">{searchResult.sender_phone}</p>
+                                  </div>
+                                  <div>
+                                    <Label className="font-semibold">Получатель</Label>
+                                    <p>{searchResult.recipient_full_name}</p>
+                                    <p className="text-sm text-gray-600">{searchResult.recipient_phone}</p>
+                                  </div>
+                                  <div>
+                                    <Label className="font-semibold">Статус оплаты</Label>
+                                    <Badge className={
+                                      searchResult.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
+                                      'bg-red-100 text-red-800'
+                                    }>
+                                      {searchResult.payment_status === 'paid' ? 'Оплачено' : 'Не оплачено'}
+                                    </Badge>
+                                  </div>
+                                  <div>
+                                    <Label className="font-semibold">Местонахождение</Label>
+                                    <p>{searchResult.current_location || 'Не указано'}</p>
+                                  </div>
+                                </div>
+
+                                {/* История груза */}
+                                {searchResult.history && searchResult.history.length > 0 && (
+                                  <div className="mt-4">
+                                    <Label className="font-semibold">История груза</Label>
+                                    <div className="mt-2 space-y-2">
+                                      {searchResult.history.map((item, index) => (
+                                        <div key={index} className="flex items-center text-sm bg-gray-50 p-2 rounded">
+                                          <Clock className="mr-2 h-4 w-4 text-gray-500" />
+                                          <span className="text-gray-600">{item.date}</span>
+                                          <span className="ml-2">{item.action}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Генерация QR кодов */}
+                  {activeTab === 'operations-qr-generate' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <QrCode className="mr-2 h-5 w-5" />
+                          Генерация QR кодов
+                        </CardTitle>
+                        <CardDescription>Создание QR кодов для грузов и ячеек</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Генерация QR кода для груза */}
+                          <div className="space-y-4">
+                            <h3 className="font-semibold">QR код для груза</h3>
+                            <div>
+                              <Label htmlFor="cargo-number-qr">Номер груза</Label>
+                              <Input
+                                id="cargo-number-qr"
+                                placeholder="Введите номер груза"
+                                value={qrCargoNumber}
+                                onChange={(e) => setQrCargoNumber(e.target.value)}
+                              />
+                            </div>
+                            <Button 
+                              onClick={() => generateCargoQR()}
+                              className="w-full bg-green-600 hover:bg-green-700"
+                              disabled={!qrCargoNumber.trim()}
+                            >
+                              <QrCode className="mr-2 h-4 w-4" />
+                              Генерировать QR код груза
+                            </Button>
+                          </div>
+
+                          {/* Генерация QR кода для ячейки */}
+                          <div className="space-y-4">
+                            <h3 className="font-semibold">QR код для ячейки</h3>
+                            <div>
+                              <Label htmlFor="cell-code-qr">Код ячейки</Label>
+                              <Input
+                                id="cell-code-qr"
+                                placeholder="Например: W001-Б1-П1-Я1"
+                                value={qrCellCode}
+                                onChange={(e) => setQrCellCode(e.target.value)}
+                              />
+                            </div>
+                            <Button 
+                              onClick={() => generateCellQR()}
+                              className="w-full bg-purple-600 hover:bg-purple-700"
+                              disabled={!qrCellCode.trim()}
+                            >
+                              <QrCode className="mr-2 h-4 w-4" />
+                              Генерировать QR код ячейки
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Показ сгенерированных QR кодов */}
+                        {(generatedCargoQR || generatedCellQR) && (
+                          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {generatedCargoQR && (
+                              <div className="text-center space-y-2">
+                                <h4 className="font-semibold">QR код груза</h4>
+                                <div className="bg-white p-4 rounded border inline-block">
+                                  <img src={generatedCargoQR} alt="QR код груза" className="w-48 h-48" />
+                                </div>
+                                <Button 
+                                  onClick={() => printQR(generatedCargoQR, `Груз: ${qrCargoNumber}`)}
+                                  variant="outline"
+                                  size="sm"
+                                >
+                                  <Printer className="mr-2 h-4 w-4" />
+                                  Печать
+                                </Button>
+                              </div>
+                            )}
+
+                            {generatedCellQR && (
+                              <div className="text-center space-y-2">
+                                <h4 className="font-semibold">QR код ячейки</h4>
+                                <div className="bg-white p-4 rounded border inline-block">
+                                  <img src={generatedCellQR} alt="QR код ячейки" className="w-48 h-48" />
+                                </div>
+                                <Button 
+                                  onClick={() => printQR(generatedCellQR, `Ячейка: ${qrCellCode}`)}
+                                  variant="outline" 
+                                  size="sm"
+                                >
+                                  <Printer className="mr-2 h-4 w-4" />
+                                  Печать
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Размещение груза */}
+                  {activeTab === 'operations-placement' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Target className="mr-2 h-5 w-5" />
+                          Размещение груза
+                        </CardTitle>
+                        <CardDescription>Сканирование QR кода груза и ячейки для размещения</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {placementStep === 'start' && (
+                          <div className="text-center space-y-4">
+                            <p className="text-gray-600">Начните процесс размещения груза</p>
+                            <Button 
+                              onClick={() => startMobilePlacement()}
+                              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                              size="lg"
+                            >
+                              <Camera className="mr-2 h-5 w-5" />
+                              Начать размещение
+                            </Button>
+                          </div>
+                        )}
+
+                        {placementStep === 'scan-cargo' && (
+                          <div className="space-y-4">
+                            <div className="text-center">
+                              <h3 className="font-semibold text-blue-600">Шаг 1: Сканирование груза</h3>
+                              <p className="text-sm text-gray-600">Наведите камеру на QR код груза</p>
+                            </div>
+                            
+                            <div 
+                              id="qr-reader-mobile-placement" 
+                              className="w-full bg-black rounded-lg"
+                              style={{
+                                height: 'min(60vh, 400px)',
+                                minHeight: '300px'
+                              }}
+                            />
+
+                            {scannedCargo && (
+                              <div className="p-3 bg-green-50 border border-green-200 rounded">
+                                <p className="text-sm text-green-800">
+                                  ✓ Груз отсканирован: {scannedCargo.cargo_number}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {placementStep === 'scan-cell' && (
+                          <div className="space-y-4">
+                            <div className="text-center">
+                              <h3 className="font-semibold text-purple-600">Шаг 2: Сканирование ячейки</h3>
+                              <p className="text-sm text-gray-600">Наведите камеру на QR код свободной ячейки</p>
+                            </div>
+                            
+                            <div 
+                              id="qr-reader-cell-mobile" 
+                              className="w-full bg-black rounded-lg"
+                              style={{
+                                height: 'min(60vh, 400px)',
+                                minHeight: '300px'
+                              }}
+                            />
+
+                            {scannedCargo && (
+                              <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                                <p className="text-sm text-blue-800">
+                                  Груз для размещения: {scannedCargo.cargo_number}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {placementStep === 'confirm' && (
+                          <div className="space-y-4">
+                            <div className="text-center">
+                              <h3 className="font-semibold text-green-600">Подтверждение размещения</h3>
+                            </div>
+                            
+                            <div className="bg-gray-50 p-4 rounded space-y-2">
+                              <div className="flex justify-between">
+                                <span>Груз:</span>
+                                <span className="font-medium">{scannedCargo?.cargo_number}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Ячейка:</span>
+                                <span className="font-medium">{scannedCell?.cell_code}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex space-x-2">
+                              <Button 
+                                onClick={() => confirmMobilePlacement()}
+                                className="flex-1 bg-green-600 hover:bg-green-700"
+                              >
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Подтвердить размещение
+                              </Button>
+                              <Button 
+                                onClick={() => resetMobilePlacement()}
+                                variant="outline"
+                                className="flex-1"
+                              >
+                                <X className="mr-2 h-4 w-4" />
+                                Отменить
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Приём груза */}
+                  {activeTab === 'operations-receive' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Package className="mr-2 h-5 w-5" />
+                          Приём груза на новый склад
+                        </CardTitle>
+                        <CardDescription>Сканирование груза и ячейки для обновления местоположения</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {receiveStep === 'start' && (
+                          <div className="text-center space-y-4">
+                            <p className="text-gray-600">Начните процесс приёма груза на новый склад</p>
+                            <Button 
+                              onClick={() => startMobileReceive()}
+                              className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                              size="lg"
+                            >
+                              <Camera className="mr-2 h-5 w-5" />
+                              Начать приём груза
+                            </Button>
+                          </div>
+                        )}
+
+                        {receiveStep === 'scan-cargo' && (
+                          <div className="space-y-4">
+                            <div className="text-center">
+                              <h3 className="font-semibold text-orange-600">Шаг 1: Сканирование груза</h3>
+                              <p className="text-sm text-gray-600">Наведите камеру на QR код груза для приёма</p>
+                            </div>
+                            
+                            <div 
+                              id="qr-reader-receive-cargo" 
+                              className="w-full bg-black rounded-lg"
+                              style={{
+                                height: 'min(60vh, 400px)',
+                                minHeight: '300px'
+                              }}
+                            />
+
+                            {receivedCargo && (
+                              <div className="p-3 bg-orange-50 border border-orange-200 rounded">
+                                <p className="text-sm text-orange-800">
+                                  ✓ Груз для приёма: {receivedCargo.cargo_number}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {receiveStep === 'scan-new-cell' && (
+                          <div className="space-y-4">
+                            <div className="text-center">
+                              <h3 className="font-semibold text-green-600">Шаг 2: Сканирование новой ячейки</h3>
+                              <p className="text-sm text-gray-600">Наведите камеру на QR код ячейки нового склада</p>
+                            </div>
+                            
+                            <div 
+                              id="qr-reader-new-cell" 
+                              className="w-full bg-black rounded-lg"
+                              style={{
+                                height: 'min(60vh, 400px)',
+                                minHeight: '300px'
+                              }}
+                            />
+
+                            {receivedCargo && (
+                              <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                                <p className="text-sm text-blue-800">
+                                  Груз для размещения: {receivedCargo.cargo_number}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {receiveStep === 'confirm' && (
+                          <div className="space-y-4">
+                            <div className="text-center">
+                              <h3 className="font-semibold text-green-600">Подтверждение приёма</h3>
+                            </div>
+                            
+                            <div className="bg-gray-50 p-4 rounded space-y-2">
+                              <div className="flex justify-between">
+                                <span>Груз:</span>
+                                <span className="font-medium">{receivedCargo?.cargo_number}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Новая ячейка:</span>
+                                <span className="font-medium">{newCell?.cell_code}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Новый склад:</span>
+                                <span className="font-medium">{newCell?.warehouse_name}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex space-x-2">
+                              <Button 
+                                onClick={() => confirmMobileReceive()}
+                                className="flex-1 bg-green-600 hover:bg-green-700"
+                              >
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Подтвердить приём
+                              </Button>
+                              <Button 
+                                onClick={() => resetMobileReceive()}
+                                variant="outline"
+                                className="flex-1"
+                              >
+                                <X className="mr-2 h-4 w-4" />
+                                Отменить
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+
               {/* Управление грузами */}
               {activeSection === 'cargo-management' && (
                 <div className="space-y-6">
