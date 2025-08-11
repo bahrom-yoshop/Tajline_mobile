@@ -18031,16 +18031,14 @@ function App() {
                   )}
 
                   {/* Camera switch button */}
-                  {scannerActive && (
+                  {scannerActive && availablePlacementCameras.length > 1 && (
                     <div className="absolute top-4 right-4 z-10">
                       <Button
-                        onClick={() => {
-                          // Add camera switching functionality
-                          showAlert('Смена камеры будет добавлена в следующей версии', 'info');
-                        }}
+                        onClick={switchPlacementCamera}
                         size="sm"
                         variant="outline"
                         className="bg-black bg-opacity-70 text-white border-gray-600 hover:bg-gray-800"
+                        title={`Переключить камеру (${currentPlacementCameraIndex + 1}/${availablePlacementCameras.length})`}
                       >
                         <RefreshCw className="h-4 w-4" />
                       </Button>
