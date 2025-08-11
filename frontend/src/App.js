@@ -7657,8 +7657,9 @@ function App() {
                         </div>
                       </div>
 
-                      {!scannerActive && (
-                        <div className="space-y-4">
+                      <div 
+                        className={`space-y-4 ${!scannerActive ? 'react-visible' : 'react-hidden'}`}
+                      >
                           {/* Camera unavailable message with enhanced mobile retry */}
                           {placementActive && (
                             <div className="space-y-3">
