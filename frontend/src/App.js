@@ -1821,105 +1821,144 @@ function App() {
     }
   };
 
-  // New function: Check camera availability before starting placement - Enhanced for mobile
+  // Enhanced camera availability check for mobile devices
   const checkCameraAvailability = async () => {
     try {
-      console.log('🔍 Проверка доступности камеры для мобильных устройств...');
+      console.log('🔍 Улучшенная проверка камеры для мобильных устройств...');
       
-      // Check if getUserMedia is supported
+      // Check basic support
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        console.log('❌ Camera API не поддерживается браузером');
+        console.log('❌ MediaDevices API не поддерживается');
         return false;
       }
       
-      // Enhanced mobile-first camera constraints
-      const constraints = {
-        video: {
-          facingMode: { 
-            ideal: "environment", // Try back camera first
-            exact: undefined // Allow fallback to front camera
-          },
-          width: { 
-            ideal: 1920, // Higher resolution for better QR detection
-            max: 1920,
-            min: 640 
-          },
-          height: { 
-            ideal: 1080,
-            max: 1080, 
-            min: 480 
-          },
-          frameRate: { ideal: 30, min: 10 } // Better frame rate for mobile
+      // Mobile-specific camera constraints with multiple fallbacks
+      const mobileConstraints = [
+        // Primary: Back camera with high quality
+        {
+          video: {
+            facingMode: { exact: "environment" },
+            width: { ideal: 1920, max: 1920, min: 640 },
+            height: { ideal: 1080, max: 1080, min: 480 },
+            frameRate: { ideal: 30, min: 15 }
+          }
+        },
+        // Fallback 1: Back camera with relaxed constraints
+        {
+          video: {
+            facingMode: "environment",
+            width: { ideal: 1280, min: 640 },
+            height: { ideal: 720, min: 480 }
+          }
+        },
+        // Fallback 2: Any camera with basic constraints
+        {
+          video: {
+            width: { ideal: 1280, min: 640 },
+            height: { ideal: 720, min: 480 }
+          }
+        },
+        // Fallback 3: Minimal constraints
+        {
+          video: true
         }
-      };
+      ];
       
-      console.log('🔐 Запрос разрешения камеры...');
+      console.log('🔐 Тестирование камеры с различными constraints...');
       
-      // Request camera permission with extended timeout for mobile
-      const stream = await Promise.race([
-        navigator.mediaDevices.getUserMedia(constraints),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Camera timeout')), 10000) // 10 second timeout
-        )
-      ]);
+      let stream = null;
+      let constraintsUsed = null;
       
-      console.log('✅ Разрешение камеры получено для мобильного устройства');
+      // Try each constraint set until one works
+      for (let i = 0; i < mobileConstraints.length; i++) {
+        try {
+          console.log(`🔄 Попытка ${i + 1}/${mobileConstraints.length}...`);
+          
+          stream = await Promise.race([
+            navigator.mediaDevices.getUserMedia(mobileConstraints[i]),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Timeout')), 15000) // 15 second timeout for mobile
+            )
+          ]);
+          
+          constraintsUsed = mobileConstraints[i];
+          console.log(`✅ Успех с constraints ${i + 1}`);
+          break;
+          
+        } catch (error) {
+          console.log(`❌ Попытка ${i + 1} неудачна: ${error.name} - ${error.message}`);
+          if (i === mobileConstraints.length - 1) {
+            throw error; // Last attempt failed
+          }
+        }
+      }
       
-      // Get video track info for debugging
+      if (!stream) {
+        throw new Error('Все попытки получить камеру неудачны');
+      }
+      
+      // Get detailed camera info
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack) {
+        const capabilities = videoTrack.getCapabilities?.() || {};
         const settings = videoTrack.getSettings();
-        console.log('📹 Настройки камеры:', {
+        console.log('📹 Информация о камере:', {
+          label: videoTrack.label,
+          facingMode: settings.facingMode || 'unknown',
           width: settings.width,
           height: settings.height,
-          facingMode: settings.facingMode,
-          frameRate: settings.frameRate
+          frameRate: settings.frameRate,
+          capabilities: Object.keys(capabilities)
         });
       }
       
-      // Stop the test stream immediately
+      // Stop test stream
       stream.getTracks().forEach(track => {
         track.stop();
-        console.log('⏹️ Тестовый поток камеры остановлен');
+        console.log('⏹️ Тестовый поток остановлен');
       });
       
-      // Additional delay for mobile camera stabilization
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Additional mobile stability wait
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Check available cameras with better error handling
-      console.log('🎥 Получение списка доступных камер...');
-      const cameras = await Html5Qrcode.getCameras();
-      
-      console.log(`📱 Найдено камер: ${cameras.length}`);
-      cameras.forEach((camera, index) => {
-        console.log(`  Камера ${index + 1}: ${camera.label || 'Без названия'} (ID: ${camera.id})`);
-      });
-      
-      if (!cameras || cameras.length === 0) {
-        console.log('❌ Камеры не найдены на мобильном устройстве');
+      // Verify Html5Qrcode can detect cameras
+      try {
+        console.log('🎥 Проверка Html5Qrcode совместимости...');
+        const cameras = await Html5Qrcode.getCameras();
+        console.log(`📱 Html5Qrcode нашел камер: ${cameras.length}`);
+        
+        if (cameras.length === 0) {
+          console.log('⚠️ Html5Qrcode не нашел камеры, но getUserMedia работает');
+          return false;
+        }
+        
+        cameras.forEach((camera, index) => {
+          console.log(`  📷 Камера ${index + 1}: "${camera.label || 'Без названия'}" (${camera.id})`);
+        });
+        
+        return true;
+        
+      } catch (qrError) {
+        console.error('❌ Html5Qrcode ошибка:', qrError);
         return false;
       }
       
-      console.log('✅ Проверка доступности камеры пройдена успешно');
-      return true;
-      
     } catch (error) {
-      console.error('❌ Ошибка проверки доступности камеры:', error.name, error.message);
+      console.error('💥 Критическая ошибка проверки камеры:', error.name, error.message);
       
-      // Enhanced error handling for different mobile scenarios
+      // Enhanced mobile error handling with user instructions
       if (error.name === 'NotAllowedError') {
-        console.log('🚫 Разрешение камеры отклонено пользователем - требуется разрешить доступ');
-        showAlert('Разрешите доступ к камере в настройках браузера для сканирования QR кодов', 'warning');
+        console.log('🚫 ИНСТРУКЦИЯ: Разрешите доступ к камере');
+        showAlert('📱 Разрешите доступ к камере в браузере:\n1. Нажмите на иконку замка/камеры в адресной строке\n2. Выберите "Разрешить" для камеры\n3. Обновите страницу', 'warning');
       } else if (error.name === 'NotFoundError') {
-        console.log('📵 Камера не найдена на устройстве');
+        console.log('📵 Камера не обнаружена на устройстве');
+        showAlert('📵 Камера не найдена. Проверьте:\n1. Камера не используется другим приложением\n2. Физический доступ к камере открыт\n3. Перезагрузите браузер', 'info');
       } else if (error.name === 'NotReadableError') {
-        console.log('🔒 Камера уже используется другим приложением');
-        showAlert('Камера используется другим приложением. Закройте другие приложения камеры.', 'warning');
-      } else if (error.message === 'Camera timeout') {
-        console.log('⏱️ Превышено время ожидания инициализации камеры');
-        showAlert('Превышено время ожидания инициализации камеры', 'warning');
-      } else {
-        console.log('❓ Неизвестная ошибка камеры:', error.message);
+        console.log('🔒 Камера заблокирована системой или другим приложением');
+        showAlert('🔒 Камера занята. Закройте другие приложения камеры и попробуйте снова.', 'warning');
+      } else if (error.message === 'Timeout') {
+        console.log('⏱️ Превышен timeout инициализации камеры');
+        showAlert('⏱️ Камера слишком долго инициализируется. Попробуйте:\n1. Перезагрузить страницу\n2. Использовать другой браузер\n3. Перезагрузить устройство', 'info');
       }
       
       return false;
