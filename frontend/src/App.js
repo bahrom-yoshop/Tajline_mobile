@@ -17957,28 +17957,49 @@ function App() {
               </div>
             )}
 
-            {/* Alternative manual input if camera fails */}
-            {placementActive && !scannerActive && (
-              <div className="p-4 border rounded-lg bg-yellow-50">
-                <h5 className="font-medium text-yellow-800 mb-2">Альтернативный ввод</h5>
-                <p className="text-sm text-yellow-700 mb-3">
-                  Если камера не работает, введите данные вручную:
-                </p>
-                <div className="space-y-2">
+            {/* Alternative manual input - always show when camera fails or for convenience */}
+            <div className="p-4 border rounded-lg bg-blue-50">
+              <h5 className="font-medium text-blue-800 mb-2 flex items-center">
+                <Edit className="mr-2 h-4 w-4" />
+                Ручной ввод данных
+              </h5>
+              <p className="text-sm text-blue-700 mb-3">
+                {!scannerActive ? 
+                  'Камера недоступна. Введите данные вручную:' : 
+                  'Альтернативно можете ввести данные вручную:'}
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="manual-cargo" className="text-sm font-medium">Номер груза</Label>
                   <Input
-                    placeholder="Номер груза (например: TEMP-123456)"
+                    id="manual-cargo"
+                    placeholder="Например: TEMP-123456"
+                    value={manualCargoNumber}
+                    onChange={(e) => setManualCargoNumber(e.target.value)}
                     className="text-sm"
                   />
-                  <Input
-                    placeholder="Код ячейки (например: W001-Б1-П1-Я1)"
-                    className="text-sm"
-                  />
-                  <Button size="sm" className="w-full">
-                    Разместить вручную
-                  </Button>
                 </div>
+                <div>
+                  <Label htmlFor="manual-cell" className="text-sm font-medium">Код ячейки</Label>
+                  <Input
+                    id="manual-cell"
+                    placeholder="Например: W001-Б1-П1-Я1"
+                    value={manualCellCode}
+                    onChange={(e) => setManualCellCode(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+                <Button 
+                  onClick={handleManualPlacement}
+                  disabled={!manualCargoNumber.trim() || !manualCellCode.trim()}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  size="sm"
+                >
+                  <Package className="mr-2 h-4 w-4" />
+                  Разместить вручную
+                </Button>
               </div>
-            )}
+            </div>
 
             {/* Statistics */}
             {placementStatistics && (
