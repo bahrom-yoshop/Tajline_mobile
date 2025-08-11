@@ -1880,8 +1880,9 @@ function App() {
       setPlacementActive(true);
       setPlacementStep('scan-cargo');
       
-      // First fetch statistics
+      // First fetch statistics and available cells
       await fetchPlacementStatistics();
+      await getAvailableWarehouseCells();
       
       // Try to check camera availability, but continue even if it fails
       const cameraAvailable = await checkCameraAvailability();
