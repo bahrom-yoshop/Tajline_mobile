@@ -264,6 +264,10 @@ function App() {
   const [manualCargoNumber, setManualCargoNumber] = useState('');
   const [manualCellCode, setManualCellCode] = useState('');
   
+  // Camera management states
+  const [availablePlacementCameras, setAvailablePlacementCameras] = useState([]);
+  const [currentPlacementCameraIndex, setCurrentPlacementCameraIndex] = useState(0);
+  
   // Application QR code states
   const [applicationQRCode, setApplicationQRCode] = useState(null);
   const [showApplicationQRModal, setShowApplicationQRModal] = useState(false);
