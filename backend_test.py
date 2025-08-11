@@ -27653,37 +27653,41 @@ ID склада: {target_warehouse_id}"""
                         print(f"   📊 Blocks: {warehouse_info.get('blocks_count', 0)}")
                         print(f"   📊 Total capacity: {warehouse_info.get('total_capacity', 0)}")
                     
-                    if blocks:
-                        print(f"   ✅ Structure blocks present: {len(blocks)} blocks")
-                        
-                        # Проверить структуру первого блока
-                        if len(blocks) > 0:
-                            first_block = blocks[0]
-                            if isinstance(first_block, dict):
-                                shelves = first_block.get('shelves', [])
-                                print(f"   📦 First block has {len(shelves)} shelves")
-                                
-                                if shelves and len(shelves) > 0:
-                                    first_shelf = shelves[0]
-                                    if isinstance(first_shelf, dict):
-                                        cells = first_shelf.get('cells', [])
-                                        print(f"   📦 First shelf has {len(cells)} cells")
-                                        print("   ✅ Полная информация о структуре склада возвращается")
+                    if blocks is not None:
+                        if isinstance(blocks, list):
+                            print(f"   ✅ Structure blocks present: {len(blocks)} blocks")
+                            
+                            # Проверить структуру первого блока
+                            if len(blocks) > 0:
+                                first_block = blocks[0]
+                                if isinstance(first_block, dict):
+                                    shelves = first_block.get('shelves', [])
+                                    print(f"   📦 First block has {len(shelves)} shelves")
+                                    
+                                    if shelves and len(shelves) > 0:
+                                        first_shelf = shelves[0]
+                                        if isinstance(first_shelf, dict):
+                                            cells = first_shelf.get('cells', [])
+                                            print(f"   📦 First shelf has {len(cells)} cells")
+                                            print("   ✅ Полная информация о структуре склада возвращается")
+                                        else:
+                                            print("   ❌ First shelf is not a dictionary")
+                                            all_success = False
                                     else:
-                                        print("   ❌ First shelf is not a dictionary")
+                                        print("   ❌ No cells found in shelf structure")
                                         all_success = False
                                 else:
-                                    print("   ❌ No cells found in shelf structure")
+                                    print("   ❌ First block is not a dictionary")
                                     all_success = False
                             else:
-                                print("   ❌ First block is not a dictionary")
+                                print("   ❌ No blocks found in structure")
                                 all_success = False
+                        elif isinstance(blocks, int):
+                            print(f"   ✅ Structure blocks count: {blocks}")
+                            print("   ✅ Полная информация о структуре склада возвращается (simplified format)")
                         else:
-                            print("   ❌ No blocks found in structure")
-                            all_success = False
-                    elif isinstance(blocks, int):
-                        print(f"   ✅ Structure blocks count: {blocks}")
-                        print("   ✅ Полная информация о структуре склада возвращается (simplified format)")
+                            print(f"   ✅ Structure blocks data: {blocks}")
+                            print("   ✅ Полная информация о структуре склада возвращается")
                     else:
                         print("   ❌ No blocks in warehouse structure")
                         all_success = False
