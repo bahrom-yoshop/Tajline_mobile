@@ -869,13 +869,12 @@ function App() {
           // Force cleanup the DOM element to avoid React conflicts
           const element = document.getElementById(elementId);
           if (element) {
-            // Remove all Html5Qrcode added children safely
+            // Remove all Html5Qrcode added children safely without React DOM conflicts
             const children = element.querySelectorAll('video, canvas, div[id*="qr-"]');
             children.forEach(child => {
               try {
-                if (child.parentNode === element) {
-                  element.removeChild(child);
-                }
+                // Use React-safe removal method
+                child.remove();
               } catch (childError) {
                 console.debug(`Debug: Child removal handled:`, childError);
               }
