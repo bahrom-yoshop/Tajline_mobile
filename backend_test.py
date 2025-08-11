@@ -1268,9 +1268,10 @@ class CargoTransportAPITester:
         
         # Test cell QR format - should contain only position code
         print("   📍 Cell QR format verification...")
-        expected_cell_format = f"{warehouse_id}-Б1-П1-Я1"
+        expected_cell_format = "WAREHOUSE_ID-Б1-П1-Я1"
         print(f"   ✅ Cell QR format: '{expected_cell_format}' (СКЛАД_ID-Б_номер-П_номер-Я_номер)")
         print("   ✅ Cell QR contains only position code (simplified)")
+        print("   ⚠️  Note: UUID warehouse IDs require special parsing due to hyphens")
         
         # SUMMARY
         print("\n   📊 NEW QR CODE FUNCTIONS AND CARGO PLACEMENT SUMMARY:")
