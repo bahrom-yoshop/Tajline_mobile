@@ -18683,19 +18683,20 @@ function App() {
                 </div>
               )}
               
-              {placementStep === 'scan-cargo' && (
-                <div className="text-center">
-                  <h4 className="font-medium text-blue-600 mb-2">Шаг 1: Сканирование груза</h4>
-                  <p className="text-sm text-gray-600">Наведите камеру на QR код груза</p>
-                  {scannedCargoForPlacement && (
-                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
-                      <p className="text-sm text-green-800">
-                        ✓ Груз найден: {scannedCargoForPlacement.cargo_number}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+              <div 
+                className="text-center" 
+                style={{ display: placementStep === 'scan-cargo' ? 'block' : 'none' }}
+              >
+                <h4 className="font-medium text-blue-600 mb-2">Шаг 1: Сканирование груза</h4>
+                <p className="text-sm text-gray-600">Наведите камеру на QR код груза</p>
+                {scannedCargoForPlacement && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
+                    <p className="text-sm text-green-800">
+                      ✓ Груз найден: {scannedCargoForPlacement.cargo_number}
+                    </p>
+                  </div>
+                )}
+              </div>
               
               {placementStep === 'scan-cell' && (
                 <div className="text-center">
