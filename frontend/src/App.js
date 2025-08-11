@@ -7816,7 +7816,6 @@ function App() {
                       )}
                     </CardContent>
                   </Card>
-                )}
 
                 {/* Placement Statistics */}
                 {placementStatistics && (
