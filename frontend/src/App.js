@@ -731,41 +731,67 @@ function App() {
   const [selectAllOperators, setSelectAllOperators] = useState(false); // Выбрать всех операторов
   const [selectAllTransports, setSelectAllTransports] = useState(false); // Выбрать все транспорты
 
-  // Универсальная функция для безопасной остановки Html5Qrcode
-  const safeStopQrScanner = async (qrCodeInstance, elementId, instanceName = 'scanner') => {
-    if (!qrCodeInstance) return true;
+  // Enhanced QR Scanner cleanup to prevent React removeChild errors
+  const safeStopQrScanner = async (qrCodeInstance, elementId, context = "Unknown") => {
+    if (!qrCodeInstance) {
+      console.log(`⚠️ ${context}: QR scanner instance is null, no cleanup needed`);
+      return;
+    }
     
     try {
-      // Проверяем существование DOM элемента
-      const domElement = document.getElementById(elementId);
-      if (!domElement) {
-        console.warn(`${instanceName}: DOM element ${elementId} not found, skipping stop`);
-        return true;
-      }
+      console.log(`🛑 ${context}: Safely stopping QR scanner...`);
       
-      // Проверяем состояние сканера
+      // Check if scanner is actually running
       const state = qrCodeInstance.getState();
-      if (state === 2) { // SCANNING state
-        console.log(`${instanceName}: Stopping active scanner`);
+      console.log(`📊 ${context}: Scanner state before stop: ${state}`);
+      
+      if (state === Html5QrcodeScannerState.SCANNING) {
+        console.log(`⏹️ ${context}: Scanner is running, stopping...`);
         await qrCodeInstance.stop();
+        console.log(`✅ ${context}: Scanner stopped successfully`);
+      } else {
+        console.log(`ℹ️ ${context}: Scanner not running (state: ${state}), no stop needed`);
       }
       
-      // Очищаем сканер
-      await qrCodeInstance.clear();
-      console.log(`${instanceName}: Successfully stopped and cleared`);
-      return true;
+      // Clear the scanner instance to avoid React conflicts
+      setTimeout(() => {
+        try {
+          if (qrCodeInstance) {
+            qrCodeInstance.clear();
+            console.log(`🧹 ${context}: Scanner cleared successfully`);
+          }
+        } catch (clearError) {
+          console.warn(`⚠️ ${context}: Error during clear (non-critical):`, clearError);
+        }
+      }, 100);
       
     } catch (error) {
-      console.error(`${instanceName}: Error during safe stop:`, error);
-      // Попытаемся принудительно очистить
-      try {
-        if (qrCodeInstance.clear) {
-          await qrCodeInstance.clear();
+      // Enhanced error handling for React conflicts
+      console.warn(`⚠️ ${context}: Safe cleanup error:`, error);
+      
+      if (error.message.includes('removeChild') || error.message.includes('Node')) {
+        console.log(`🔧 ${context}: React DOM conflict detected, forcing cleanup`);
+        try {
+          // Force cleanup the DOM element to avoid React conflicts
+          const element = document.getElementById(elementId);
+          if (element) {
+            // Remove all Html5Qrcode added children safely
+            const children = element.querySelectorAll('video, canvas, div[id*="qr-"]');
+            children.forEach(child => {
+              try {
+                if (child.parentNode === element) {
+                  element.removeChild(child);
+                }
+              } catch (childError) {
+                console.debug(`Debug: Child removal handled:`, childError);
+              }
+            });
+            console.log(`🔧 ${context}: Forced DOM cleanup completed`);
+          }
+        } catch (forceError) {
+          console.debug(`Debug: Force cleanup handled:`, forceError);
         }
-      } catch (clearError) {
-        console.error(`${instanceName}: Error during force clear:`, clearError);
       }
-      return false;
     }
   };
 
