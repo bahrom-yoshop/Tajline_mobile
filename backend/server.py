@@ -1788,6 +1788,65 @@ async def place_cargo_in_cell(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error placing cargo: {str(e)}")
 
+@app.get("/api/operator/placement-statistics")
+async def get_placement_statistics(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить статистику размещения грузов для оператора"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для просмотра статистики размещения"
+        )
+    
+    try:
+        from datetime import datetime, timedelta
+        today = datetime.utcnow().date()
+        today_start = datetime.combine(today, datetime.min.time())
+        today_end = datetime.combine(today, datetime.max.time())
+        
+        # Статистика за сегодня для текущего оператора
+        today_placements = db.warehouse_cells.count_documents({
+            "placed_by": current_user.id,
+            "placed_at": {"$gte": today_start, "$lte": today_end}
+        })
+        
+        # Общая статистика за текущую сессию работы (последние 8 часов)
+        session_start = datetime.utcnow() - timedelta(hours=8)
+        session_placements = db.warehouse_cells.count_documents({
+            "placed_by": current_user.id,
+            "placed_at": {"$gte": session_start}
+        })
+        
+        # Последние размещенные грузы
+        recent_placements = list(db.warehouse_cells.find(
+            {
+                "placed_by": current_user.id,
+                "placed_at": {"$gte": session_start}
+            },
+            {
+                "cargo_number": 1,
+                "cargo_name": 1,
+                "warehouse_name": 1,
+                "location_code": 1,
+                "block": 1,
+                "shelf": 1,
+                "cell": 1,
+                "placed_at": 1,
+                "_id": 0
+            }
+        ).sort("placed_at", -1).limit(10))
+        
+        return {
+            "operator_name": current_user.full_name,
+            "today_placements": today_placements,
+            "session_placements": session_placements,
+            "recent_placements": recent_placements
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving placement statistics: {str(e)}")
+
 @app.post("/api/cargo/generate-application-qr/{cargo_number}")
 async def generate_application_qr_code(
     cargo_number: str,
