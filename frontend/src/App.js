@@ -9779,17 +9779,41 @@ function App() {
                           <CardTitle className="flex items-center justify-between">
                             <div className="flex items-center">
                               <Grid3X3 className="mr-2 h-5 w-5" />
-                              Ожидает размещение
+                              Размещение груза
                             </div>
-                            {!scannerActive && !placementInProgress && (
+                            <div className="flex space-x-2">
+                              {/* Кнопка генерации QR кода */}
                               <Button 
-                                onClick={startCargoScanner}
-                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => setShowQRGenerateModal(true)}
+                                variant="outline"
+                                size="sm"
+                                className="text-blue-600 border-blue-300 hover:bg-blue-50"
                               >
-                                <Camera className="mr-2 h-4 w-4" />
-                                Начать сканирование
+                                <QrCode className="mr-2 h-4 w-4" />
+                                Генерировать QR
                               </Button>
-                            )}
+                              
+                              {/* Кнопка размещения груза */}
+                              <Button 
+                                onClick={() => setShowCargoPlacementModal(true)}
+                                className="bg-green-600 hover:bg-green-700"
+                                size="sm"
+                              >
+                                <Package className="mr-2 h-4 w-4" />
+                                Размещение груза
+                              </Button>
+                              
+                              {!scannerActive && !placementInProgress && (
+                                <Button 
+                                  onClick={startCargoScanner}
+                                  className="bg-gray-600 hover:bg-gray-700"
+                                  size="sm"
+                                >
+                                  <Camera className="mr-2 h-4 w-4" />
+                                  Старый сканер
+                                </Button>
+                              )}
+                            </div>
                           </CardTitle>
                           <CardDescription>
                             Оплаченные грузы, готовые к размещению на складе. Используйте сканер для быстрого размещения.
