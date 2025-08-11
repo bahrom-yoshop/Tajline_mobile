@@ -1195,6 +1195,51 @@ function App() {
     }
   };
 
+  // Функция печати QR кода
+  const printQR = (qrCodeData, title) => {
+    if (!qrCodeData) {
+      showAlert('QR код не найден', 'error');
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Печать QR кода - ${title}</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              text-align: center; 
+              padding: 20px; 
+            }
+            .qr-container { 
+              margin: 20px auto; 
+              max-width: 300px; 
+            }
+            .qr-title { 
+              font-size: 18px; 
+              font-weight: bold; 
+              margin-bottom: 10px; 
+            }
+            img { 
+              max-width: 100%; 
+              height: auto; 
+            }
+          </style>
+        </head>
+        <body>
+          <div class="qr-container">
+            <div class="qr-title">${title}</div>
+            <img src="${qrCodeData}" alt="QR Code" />
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   const handleBarcodeScan = async (scannedData) => {
     try {
       if (scannerMode === 'cargo-barcode') {
