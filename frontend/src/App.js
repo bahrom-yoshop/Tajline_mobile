@@ -17844,23 +17844,61 @@ function App() {
             </div>
 
             {/* Camera Scanner */}
-            {placementActive && scannerActive && (
+            {placementActive && (
               <div className="space-y-3">
+                {/* Debug information */}
+                <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
+                  <div>Статус: {scannerActive ? 'Камера активна' : 'Инициализация...'}</div>
+                  <div>Шаг: {placementStep}</div>
+                  <div>DOM элемент: {document.getElementById("qr-reader-placement") ? 'Найден' : 'Не найден'}</div>
+                </div>
+
                 <div className="bg-black rounded-lg overflow-hidden">
                   <div 
                     id="qr-reader-placement" 
                     className="w-full"
                     style={{
                       width: '100%',
-                      height: '300px'
+                      height: '300px',
+                      minHeight: '300px'
                     }}
                   />
                 </div>
-                <p className="text-sm text-gray-500 text-center">
-                  {placementStep === 'scan-cargo' ? 
-                    'Наведите камеру на QR код груза' : 
-                    'Наведите камеру на QR код ячейки'}
+                
+                {scannerActive ? (
+                  <p className="text-sm text-green-600 text-center font-medium">
+                    ✅ Камера активна - {placementStep === 'scan-cargo' ? 
+                      'Наведите на QR код груза' : 
+                      'Наведите на QR код ячейки'}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center">
+                    🔄 Инициализация камеры...
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Alternative manual input if camera fails */}
+            {placementActive && !scannerActive && (
+              <div className="p-4 border rounded-lg bg-yellow-50">
+                <h5 className="font-medium text-yellow-800 mb-2">Альтернативный ввод</h5>
+                <p className="text-sm text-yellow-700 mb-3">
+                  Если камера не работает, введите данные вручную:
                 </p>
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Номер груза (например: TEMP-123456)"
+                    className="text-sm"
+                  />
+                  <Input
+                    placeholder="Код ячейки (например: W001-Б1-П1-Я1)"
+                    className="text-sm"
+                  />
+                  <Button size="sm" className="w-full">
+                    Разместить вручную
+                  </Button>
+                </div>
               </div>
             )}
 
