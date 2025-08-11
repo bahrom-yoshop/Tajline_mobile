@@ -18713,8 +18713,7 @@ function App() {
 
             {/* Camera Scanner - Mobile Adapted Full screen mode */}
             <div 
-              className="space-y-2" 
-              style={{ display: placementActive && scannerActive ? 'block' : 'none' }}
+              className={`space-y-2 ${placementActive && scannerActive ? 'react-visible' : 'react-hidden'}`}
             >
               {/* Mobile-optimized scanner container */}
               <div className="relative bg-black rounded-lg overflow-hidden">
