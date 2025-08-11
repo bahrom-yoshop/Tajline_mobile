@@ -190,11 +190,11 @@ backend:
 
   - task: "React DOM removeChild Error Fix in Payment Method Selection"
     implemented: true
-    working: true
+    working: false
     file: "/app/frontend/src/App.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         - working: true
           agent: "testing"
@@ -205,6 +205,9 @@ backend:
         - working: true
           agent: "testing"
           comment: "🎉 LIVE UI ТЕСТИРОВАНИЕ ЗАВЕРШЕНО УСПЕШНО! Проведено полное live тестирование выпадающих списков способов оплаты с реальным взаимодействием пользователя. РЕЗУЛЬТАТЫ: Все 5 способов оплаты работают идеально - 'Не оплачено', 'Оплата наличными', 'Перевод на карту', 'Оплата при получении', 'Оплата в долг' выбираются без React DOM ошибок. Множественные клики и переключения между опциями не вызывают removeChild/commitDeletionEffects ошибок. Консоль браузера полностью чистая от React DOM ошибок. Исправления key props работают корректно в production среде. SUCCESS RATE: 100% - React DOM removeChild исправления полностью функциональны!"
+        - working: false
+          agent: "user"
+          comment: "❌ ПРОБЛЕМА НЕ РЕШЕНА! Пользователь сообщает о продолжающихся ошибках removeChild при нажатии кнопки 'Принудительный запуск' камеры: 'Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node'. Обнаружены дополнительные вызовы removeChild в функциях completeQrCleanup (строка 759) и createIsolatedQrContainer (строка 714), которые не были исправлены."
 
   - task: "React DOM Character Throwing Fix in Cargo Name Field"
     implemented: true
