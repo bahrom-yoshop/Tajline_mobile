@@ -7732,10 +7732,10 @@ function App() {
                 </div>
               </div>
             </div>
-          ) : (
+          ) : 
           
-          {/* Новая главная страница для клиентов с личным кабинетом (Функция 1) */}
-          {user?.role === 'user' ? (
+          /* Main content for different user roles */
+          user?.role === 'user' ? (
             <div className="space-y-6">
               {/* Client Dashboard Header */}
               <div className="flex items-center justify-between">
