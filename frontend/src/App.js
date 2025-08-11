@@ -18789,7 +18789,6 @@ function App() {
                   </p>
                 </div>
               </div>
-            )}
 
             {/* Camera unavailable message with retry option */}
             {placementActive && !scannerActive && (
