@@ -17300,7 +17300,7 @@ function App() {
               Генерация QR кода
             </DialogTitle>
             <DialogDescription>
-              Введите номер груза для генерации QR кода
+              Введите номер груза для проверки и генерации QR кода
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
