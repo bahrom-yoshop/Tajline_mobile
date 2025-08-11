@@ -18026,15 +18026,15 @@ function App() {
         </DialogContent>
       </Dialog>
 
-      {/* New Cargo Placement Modal */}
+      {/* New Cargo Placement Modal - Mobile Adapted */}
       <Dialog open={showCargoPlacementModal} onOpenChange={setShowCargoPlacementModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center">
+        <DialogContent className="w-full max-w-[95vw] max-h-[95vh] p-3 sm:p-6 overflow-y-auto">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="flex items-center text-lg">
               <Package className="mr-2 h-5 w-5" />
               Размещение груза
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               Сканируйте QR коды грузов и ячеек для автоматического размещения
             </DialogDescription>
           </DialogHeader>
