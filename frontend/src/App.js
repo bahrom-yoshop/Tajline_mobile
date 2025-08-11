@@ -1719,14 +1719,16 @@ function App() {
       
       let userMessage = 'Проблема с доступом к камере';
       if (error.name === 'NotAllowedError') {
-        userMessage = 'Доступ к камере запрещен. Разрешите доступ в настройках браузера.';
+        userMessage = 'Доступ к камере запрещен. Разрешите доступ в настройках браузера и обновите страницу.';
       } else if (error.name === 'NotFoundError') {
-        userMessage = 'Камера не найдена на устройстве.';
+        userMessage = 'Камера не найдена. Используйте устройство с камерой или введите данные вручную ниже.';
+      } else if (error.name === 'NotSupportedError') {
+        userMessage = 'Ваш браузер не поддерживает доступ к камере. Используйте ручной ввод данных ниже.';
       } else if (error.message) {
         userMessage = error.message;
       }
       
-      showAlert(userMessage, 'error');
+      showAlert(userMessage, 'warning');
       return false;
     }
   };
