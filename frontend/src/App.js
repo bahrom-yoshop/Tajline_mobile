@@ -7579,29 +7579,45 @@ function App() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {/* Camera Scanner for full screen */}
-                      {scannerActive ? (
-                        <div className="relative">
-                          <div className="bg-black rounded-lg p-4 mb-4">
-                            <div 
-                              id="qr-reader-placement"
-                              className="w-full min-h-[400px] flex items-center justify-center"
-                            ></div>
-                          </div>
-                          
-                          {/* Camera Controls */}
-                          <div className="flex justify-center space-x-4 mb-4">
-                            {availablePlacementCameras.length > 1 && (
-                              <Button 
-                                onClick={switchPlacementCamera}
-                                variant="outline"
-                                size="sm"
-                              >
-                                <Camera className="mr-2 h-4 w-4" />
-                                Переключить камеру
-                              </Button>
+                      {/* Camera Scanner for full screen - ALWAYS show element for mobile compatibility */}
+                      <div className="relative">
+                        <div className="bg-black rounded-lg p-4 mb-4">
+                          <div 
+                            id="qr-reader-placement"
+                            className="w-full min-h-[400px] flex items-center justify-center"
+                            style={{ 
+                              display: 'block', // Always visible for mobile cameras
+                              minHeight: '400px', 
+                              backgroundColor: '#000000',
+                              borderRadius: '8px' 
+                            }}
+                          >
+                            {!scannerActive && (
+                              <div className="text-white text-center p-8">
+                                <Camera className="mx-auto h-16 w-16 mb-4 text-gray-400" />
+                                <p className="text-lg font-medium mb-2">Готов к запуску камеры</p>
+                                <p className="text-sm text-gray-300">
+                                  Нажмите кнопку ниже для активации сканера
+                                </p>
+                              </div>
                             )}
-                            
+                          </div>
+                        </div>
+                        
+                        {/* Camera Controls - show even when scanner inactive */}
+                        <div className="flex justify-center space-x-4 mb-4">
+                          {availablePlacementCameras.length > 1 && scannerActive && (
+                            <Button 
+                              onClick={switchPlacementCamera}
+                              variant="outline"
+                              size="sm"
+                            >
+                              <Camera className="mr-2 h-4 w-4" />
+                              Переключить камеру
+                            </Button>
+                          )}
+                          
+                          {scannerActive && (
                             <Button 
                               onClick={() => {
                                 if (html5QrCodePlacement) {
@@ -7616,9 +7632,9 @@ function App() {
                               <X className="mr-2 h-4 w-4" />
                               Остановить камеру
                             </Button>
-                          </div>
+                          )}
                         </div>
-                      ) : (
+                      </div>
                         <div className="space-y-4">
                           {/* Camera unavailable message with enhanced mobile retry */}
                           {placementActive && (
