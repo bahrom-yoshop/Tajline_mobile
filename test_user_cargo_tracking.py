@@ -7,7 +7,7 @@ import requests
 import json
 
 def test_user_cargo_tracking():
-    base_url = "https://c182a1e5-70e4-455b-99bb-e1e596329f32.preview.emergentagent.com"
+    base_url = "https://dcce08c9-1953-409c-ae03-37c7d486edfb.preview.emergentagent.com"
     
     # Login as regular user
     user_login = {

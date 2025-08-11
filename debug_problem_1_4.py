@@ -6,7 +6,7 @@ Debug script for Problem 1.4 to understand warehouse assignment logic
 import requests
 import json
 
-base_url = "https://c182a1e5-70e4-455b-99bb-e1e596329f32.preview.emergentagent.com"
+base_url = "https://dcce08c9-1953-409c-ae03-37c7d486edfb.preview.emergentagent.com"
 
 # Login as admin
 admin_login = {
