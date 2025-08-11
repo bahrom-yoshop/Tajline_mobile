@@ -18718,6 +18718,7 @@ function App() {
               {/* Mobile-optimized scanner container */}
               <div className="relative bg-black rounded-lg overflow-hidden">
                 <div 
+                  key="qr-reader-placement-container"
                   id="qr-reader-placement" 
                   className="w-full"
                   style={{
