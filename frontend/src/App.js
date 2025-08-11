@@ -10642,7 +10642,7 @@ function App() {
                           </div>
                         )}
 
-                        {placementStep === 'scan-cargo' && (
+                        {mobilePlacementStep === 'scan-cargo' && (
                           <div className="space-y-4">
                             <div className="text-center">
                               <h3 className="font-semibold text-blue-600">Шаг 1: Сканирование груза</h3>
