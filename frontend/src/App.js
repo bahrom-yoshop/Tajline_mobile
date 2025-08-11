@@ -9944,6 +9944,18 @@ function App() {
                                           </Button>
                                           
                                           <Button
+                                            onClick={() => {
+                                              setQrGenerateCargoNumber(item.cargo_number);
+                                              setShowQRGenerateModal(true);
+                                            }}
+                                            variant="outline"
+                                            className="flex items-center text-blue-600 border-blue-300 hover:bg-blue-50"
+                                          >
+                                            <QrCode className="mr-2 h-4 w-4" />
+                                            QR код
+                                          </Button>
+                                          
+                                          <Button
                                             onClick={() => openEnhancedPlacementModal(item)}
                                             className="bg-green-600 hover:bg-green-700 text-white flex items-center"
                                           >
