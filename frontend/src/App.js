@@ -898,42 +898,29 @@ function App() {
     }, 5000);
   };
 
-  // Enhanced QR Scanner lifecycle management to prevent React removeChild errors
+  // Enhanced QR Scanner lifecycle management with complete isolation
   useEffect(() => {
     // Cleanup function to prevent React removeChild errors when component unmounts
     return () => {
-      console.log('🧹 Component cleanup: Stopping all QR scanners...');
+      console.log('🧹 Component cleanup: Полная изолированная очистка QR сканеров...');
       
-      // Cleanup placement scanner
-      if (html5QrCodePlacementRef.current) {
-        safeStopQrScanner(html5QrCodePlacementRef.current, "qr-reader-placement", "Component Cleanup - Placement");
-        html5QrCodePlacementRef.current = null;
-      }
+      // Use isolated cleanup method
+      completeQrCleanup("Component Cleanup").catch(error => {
+        console.error('Ошибка при очистке компонента:', error);
+      });
       
-      // Cleanup other scanners if they exist
-      if (html5QrCode) {
-        safeStopQrScanner(html5QrCode, "qr-reader", "Component Cleanup - Main");
-      }
-      
-      if (html5QrCodeModal) {
-        safeStopQrScanner(html5QrCodeModal, "qr-reader-modal", "Component Cleanup - Modal");
-      }
-      
-      console.log('✅ Component cleanup completed');
+      console.log('✅ Component cleanup завершен');
     };
   }, []); // Empty dependency array - only run on mount/unmount
 
-  // Enhanced page navigation cleanup to prevent DOM conflicts
+  // Enhanced page navigation cleanup with isolation
   useEffect(() => {
     if (currentPage !== 'cargo-placement') {
       // Clean up placement scanner when leaving placement page
-      if (html5QrCodePlacementRef.current) {
-        console.log('🔄 Page change: Cleaning up placement scanner...');
-        safeStopQrScanner(html5QrCodePlacementRef.current, "qr-reader-placement", "Page Navigation");
-        html5QrCodePlacementRef.current = null;
-        setHtml5QrCodePlacement(null);
-        setScannerActive(false);
-      }
+      console.log('🔄 Page change: Изолированная очистка сканера размещения...');
+      completeQrCleanup("Page Navigation").catch(error => {
+        console.error('Ошибка при очистке при навигации:', error);
+      });
     }
   }, [currentPage]);
 
