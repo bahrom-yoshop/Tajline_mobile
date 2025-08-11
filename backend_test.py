@@ -27810,8 +27810,15 @@ ID склада: {target_warehouse_id}"""
             
             if success and current_structure:
                 current_blocks = current_structure.get('blocks', [])
-                if len(current_blocks) > 1:  # Только если есть больше одного блока
+                if isinstance(current_blocks, list) and len(current_blocks) > 1:  # Только если есть больше одного блока
                     last_block_number = len(current_blocks)
+                elif isinstance(current_blocks, int) and current_blocks > 1:  # Если blocks - это число
+                    last_block_number = current_blocks
+                else:
+                    print("   ⚠️  Cannot delete block - only one block exists or blocks format unknown")
+                    last_block_number = None
+                
+                if last_block_number:
                     
                     delete_block_data = {
                         "block_number": last_block_number
