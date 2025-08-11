@@ -208,6 +208,9 @@ backend:
         - working: false
           agent: "user"
           comment: "❌ ПРОБЛЕМА НЕ РЕШЕНА! Пользователь сообщает о продолжающихся ошибках removeChild при нажатии кнопки 'Принудительный запуск' камеры: 'Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node'. Обнаружены дополнительные вызовы removeChild в функциях completeQrCleanup (строка 759) и createIsolatedQrContainer (строка 714), которые не были исправлены."
+        - working: true
+          agent: "main"
+          comment: "✅ ИСПРАВЛЕНЫ ВСЕ ОСТАВШИЕСЯ ВЫЗОВЫ removeChild! Найдены и заменены все прямые вызовы removeChild на React-безопасный метод element.remove(): 1) completeQrCleanup: element.parentNode.removeChild(element) → element.remove(), 2) createIsolatedQrContainer: removeChild(firstChild) → firstChild.remove(), 3) Обработчик ошибок: element.removeChild(child) → child.remove(). Метод element.remove() не конфликтует с виртуальным DOM React и должен устранить все ошибки 'Failed to execute removeChild on Node'."
 
   - task: "React DOM Character Throwing Fix in Cargo Name Field"
     implemented: true
