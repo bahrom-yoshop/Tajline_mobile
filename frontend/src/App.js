@@ -1687,12 +1687,29 @@ function App() {
     }
   };
 
-  // New function: Start placement process
+  // New function: Start placement process - improved error handling
   const startCargoPlacement = async () => {
-    setPlacementActive(true);
-    setPlacementStep('scan-cargo');
-    await fetchPlacementStatistics();
-    await startQRScannerForPlacement();
+    try {
+      console.log('Starting cargo placement process...');
+      
+      setPlacementActive(true);
+      setPlacementStep('scan-cargo');
+      
+      // First fetch statistics
+      await fetchPlacementStatistics();
+      
+      // Wait a bit for modal to fully render
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Then start QR scanner
+      await startQRScannerForPlacement();
+      
+    } catch (error) {
+      console.error('Error starting cargo placement:', error);
+      showAlert(`Ошибка запуска размещения: ${error.message}`, 'error');
+      setPlacementActive(false);
+      setPlacementStep('idle');
+    }
   };
 
   // New function: QR Scanner for placement - improved with defensive checks
