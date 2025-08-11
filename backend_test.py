@@ -918,10 +918,10 @@ class CargoTransportAPITester:
         
         return all_success
 
-    def test_new_qr_code_functions_and_cargo_placement(self):
-        """Test new QR code functions and cargo placement according to review request"""
-        print("\n📱 NEW QR CODE FUNCTIONS AND CARGO PLACEMENT TESTING")
-        print("   🎯 Testing new QR code improvements and cargo placement system")
+    def test_improved_qr_code_system_with_cargo_existence_verification(self):
+        """Test improved QR code generation system with cargo existence verification according to review request"""
+        print("\n📱 IMPROVED QR CODE SYSTEM WITH CARGO EXISTENCE VERIFICATION TESTING")
+        print("   🎯 Testing улучшенную систему генерации QR кодов с проверкой существования груза")
         
         all_success = True
         
