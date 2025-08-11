@@ -18052,6 +18052,8 @@ function App() {
                   setShowCargoPlacementModal(false);
                   setPlacementStep('idle');
                   setScannedCargoForPlacement(null);
+                  setManualCargoNumber('');
+                  setManualCellCode('');
                 }}
               >
                 Закрыть
