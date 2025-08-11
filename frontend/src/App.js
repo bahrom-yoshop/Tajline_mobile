@@ -1823,18 +1823,7 @@ function App() {
         throw new Error(`DOM element 'qr-reader-placement' not found after ${maxAttempts} attempts`);
       }
       
-      console.log('Placement element found, checking camera access...');
-      
-      // Check camera permissions first
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        console.log('Camera permission granted');
-        // Stop the test stream
-        stream.getTracks().forEach(track => track.stop());
-      } catch (permissionError) {
-        console.error('Camera permission error:', permissionError);
-        throw new Error('Нет доступа к камере. Разрешите доступ к камере в браузере.');
-      }
+      console.log('Placement element found, getting cameras...');
 
       // Get available cameras
       const cameras = await Html5Qrcode.getCameras();
@@ -1923,23 +1912,23 @@ function App() {
     } catch (error) {
       console.error('Error starting placement QR scanner:', error);
       setScannerActive(false);
-      setPlacementActive(false);
-      setPlacementStep('idle');
+      
+      // Don't reset placement completely - allow manual input
+      // setPlacementActive(false);
+      // setPlacementStep('idle');
       
       // Provide user-friendly error messages
-      let userMessage = 'Ошибка инициализации сканера';
+      let userMessage = 'Не удалось запустить камеру';
       
-      if (error.message.includes('Camera')) {
-        userMessage = 'Ошибка доступа к камере. Разрешите доступ к камере и попробуйте снова.';
+      if (error.message.includes('Camera') || error.message.includes('камер')) {
+        userMessage = 'Камера недоступна. Используйте ручной ввод данных ниже.';
       } else if (error.message.includes('DOM element')) {
         userMessage = 'Ошибка интерфейса. Закройте и откройте модальное окно заново.';
-      } else if (error.message.includes('камеры не обнаружены')) {
-        userMessage = 'Камера не найдена на устройстве.';
       } else if (error.message) {
         userMessage = error.message;
       }
       
-      showAlert(userMessage, 'error');
+      showAlert(userMessage, 'warning');
     }
   };
 
