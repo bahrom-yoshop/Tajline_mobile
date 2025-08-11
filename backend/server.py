@@ -1476,13 +1476,8 @@ async def scan_cargo_qr_code(
             raise HTTPException(status_code=400, detail="QR code text is required")
         
         # Извлекаем номер груза из QR кода
-        cargo_number = None
-        if "ГРУЗ №" in qr_text:
-            lines = qr_text.split('\n')
-            for line in lines:
-                if line.startswith('ГРУЗ №'):
-                    cargo_number = line.replace('ГРУЗ №', '').strip()
-                    break
+        # Новый формат: QR код содержит только номер груза
+        cargo_number = qr_text.strip()
         
         if not cargo_number:
             raise HTTPException(status_code=400, detail="Invalid cargo QR code format")
