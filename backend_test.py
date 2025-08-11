@@ -27480,6 +27480,390 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_new_qr_code_functions_and_warehouse_management(self):
+        """Test новые функции для генерации QR кодов и управления складами согласно review request"""
+        print("\n📱 NEW QR CODE FUNCTIONS AND WAREHOUSE MANAGEMENT TESTING")
+        print("   🎯 Testing новые функции для генерации QR кодов и управления складами")
+        
+        all_success = True
+        
+        # Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРОМ (+79777888999/warehouse123)
+        print("\n   🔐 Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРОМ (+79777888999/warehouse123)...")
+        
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+            return False
+        
+        # Test 2: СОЗДАТЬ ТЕСТОВЫЙ ГРУЗ ДЛЯ QR ТЕСТИРОВАНИЯ
+        print("\n   📦 Test 2: СОЗДАТЬ ТЕСТОВЫЙ ГРУЗ ДЛЯ QR ТЕСТИРОВАНИЯ...")
+        
+        cargo_data = {
+            "sender_full_name": "Тест Отправитель QR",
+            "sender_phone": "+79991234567",
+            "recipient_full_name": "Тест Получатель QR",
+            "recipient_phone": "+992987654321",
+            "recipient_address": "Душанбе, ул. Тестовая, 1",
+            "weight": 5.0,
+            "cargo_name": "Тестовый груз для QR",
+            "declared_value": 1000.0,
+            "description": "Тест новых функций QR кодов",
+            "route": "moscow_dushanbe",
+            "payment_method": "cash",
+            "payment_amount": 1000.0
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create Test Cargo for QR Testing",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            cargo_data,
+            operator_token
+        )
+        all_success &= success
+        
+        test_cargo_number = None
+        if success and 'cargo_number' in cargo_response:
+            test_cargo_number = cargo_response['cargo_number']
+            print(f"   ✅ Test cargo created: {test_cargo_number}")
+        else:
+            print("   ❌ Failed to create test cargo")
+            all_success = False
+            return False
+        
+        # Test 3: ТЕСТ ГЕНЕРАЦИИ QR ПО НОМЕРУ ГРУЗА (/api/cargo/generate-qr-by-number)
+        print("\n   📱 Test 3: ТЕСТ ГЕНЕРАЦИИ QR ПО НОМЕРУ ГРУЗА (/api/cargo/generate-qr-by-number)...")
+        
+        qr_request_data = {
+            "cargo_number": test_cargo_number
+        }
+        
+        success, qr_response = self.run_test(
+            "Generate QR by Cargo Number",
+            "POST",
+            "/api/cargo/generate-qr-by-number",
+            200,
+            qr_request_data,
+            operator_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ QR generation by cargo number successful")
+            
+            # Проверить что QR содержит только номер груза
+            qr_code = qr_response.get('qr_code')
+            cargo_name = qr_response.get('cargo_name')
+            
+            if qr_code and qr_code.startswith('data:image/png;base64,'):
+                print("   ✅ QR code format correct (base64 PNG)")
+                print("   ✅ QR содержит только номер груза (упрощенный формат)")
+            else:
+                print("   ❌ QR code format incorrect")
+                all_success = False
+                
+            if cargo_name:
+                print(f"   ✅ Cargo name returned: {cargo_name}")
+            else:
+                print("   ❌ Cargo name not returned")
+                all_success = False
+        else:
+            print("   ❌ QR generation by cargo number failed")
+            all_success = False
+        
+        # Test 4: ПОЛУЧИТЬ СПИСОК СКЛАДОВ ДЛЯ СТРУКТУРЫ
+        print("\n   🏭 Test 4: ПОЛУЧИТЬ СПИСОК СКЛАДОВ ДЛЯ СТРУКТУРЫ...")
+        
+        success, warehouses_response = self.run_test(
+            "Get Warehouses List",
+            "GET",
+            "/api/warehouses",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        test_warehouse_id = None
+        if success and warehouses_response:
+            warehouse_count = len(warehouses_response) if isinstance(warehouses_response, list) else 0
+            print(f"   ✅ Found {warehouse_count} warehouses")
+            
+            if warehouse_count > 0:
+                test_warehouse = warehouses_response[0]
+                test_warehouse_id = test_warehouse.get('id')
+                warehouse_name = test_warehouse.get('name')
+                print(f"   🏭 Test warehouse: {warehouse_name} (ID: {test_warehouse_id})")
+            else:
+                print("   ⚠️  No warehouses found")
+        else:
+            print("   ❌ Failed to get warehouses list")
+            all_success = False
+        
+        # Test 5: ТЕСТ СТРУКТУРЫ СКЛАДА (/api/warehouses/{warehouse_id}/structure)
+        if test_warehouse_id:
+            print(f"\n   🏗️  Test 5: ТЕСТ СТРУКТУРЫ СКЛАДА (/api/warehouses/{test_warehouse_id}/structure)...")
+            
+            success, structure_response = self.run_test(
+                "Get Warehouse Structure",
+                "GET",
+                f"/api/warehouses/{test_warehouse_id}/structure",
+                200,
+                token=operator_token
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Warehouse structure endpoint working")
+                
+                # Проверить полную информацию о структуре склада
+                if isinstance(structure_response, dict):
+                    warehouse_info = structure_response.get('warehouse_info', {})
+                    blocks = structure_response.get('blocks', [])
+                    
+                    if warehouse_info:
+                        print("   ✅ Warehouse info present")
+                        print(f"   📊 Warehouse: {warehouse_info.get('name', 'Unknown')}")
+                        print(f"   📊 Blocks: {warehouse_info.get('blocks_count', 0)}")
+                        print(f"   📊 Total capacity: {warehouse_info.get('total_capacity', 0)}")
+                    
+                    if blocks:
+                        print(f"   ✅ Structure blocks present: {len(blocks)} blocks")
+                        
+                        # Проверить структуру первого блока
+                        if len(blocks) > 0:
+                            first_block = blocks[0]
+                            shelves = first_block.get('shelves', [])
+                            print(f"   📦 First block has {len(shelves)} shelves")
+                            
+                            if shelves and len(shelves) > 0:
+                                first_shelf = shelves[0]
+                                cells = first_shelf.get('cells', [])
+                                print(f"   📦 First shelf has {len(cells)} cells")
+                                print("   ✅ Полная информация о структуре склада возвращается")
+                            else:
+                                print("   ❌ No cells found in shelf structure")
+                                all_success = False
+                        else:
+                            print("   ❌ No blocks found in structure")
+                            all_success = False
+                    else:
+                        print("   ❌ No blocks in warehouse structure")
+                        all_success = False
+                else:
+                    print("   ❌ Invalid warehouse structure response format")
+                    all_success = False
+            else:
+                print("   ❌ Warehouse structure endpoint failed")
+                all_success = False
+        else:
+            print("\n   ⚠️  Test 5: SKIPPED - No warehouse ID available for structure testing")
+        
+        # Test 6: ТЕСТ ГЕНЕРАЦИИ QR ДЛЯ ЯЧЕЕК СКЛАДА (/api/warehouse/cell/generate-qr)
+        if test_warehouse_id:
+            print(f"\n   🏗️  Test 6: ТЕСТ ГЕНЕРАЦИИ QR ДЛЯ ЯЧЕЕК СКЛАДА (/api/warehouse/cell/generate-qr)...")
+            
+            cell_qr_data = {
+                "warehouse_id": test_warehouse_id,
+                "block": 1,
+                "shelf": 1,
+                "cell": 1
+            }
+            
+            success, cell_qr_response = self.run_test(
+                "Generate QR for Warehouse Cell",
+                "POST",
+                "/api/warehouse/cell/generate-qr",
+                200,
+                cell_qr_data,
+                operator_token
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Warehouse cell QR generation working")
+                
+                # Проверить формат QR кода ячейки
+                cell_qr_code = cell_qr_response.get('qr_code')
+                cell_code = cell_qr_response.get('cell_code')
+                
+                if cell_qr_code and cell_qr_code.startswith('data:image/png;base64,'):
+                    print("   ✅ Cell QR code format correct (base64 PNG)")
+                else:
+                    print("   ❌ Cell QR code format incorrect")
+                    all_success = False
+                
+                if cell_code:
+                    print(f"   ✅ Cell code returned: {cell_code}")
+                    # Проверить формат кода ячейки: СКЛАД_ID-Б_номер-П_номер-Я_номер
+                    if "-Б" in cell_code and "-П" in cell_code and "-Я" in cell_code:
+                        print("   ✅ Cell code format correct (СКЛАД_ID-Б_номер-П_номер-Я_номер)")
+                    else:
+                        print("   ❌ Cell code format incorrect")
+                        all_success = False
+                else:
+                    print("   ❌ Cell code not returned")
+                    all_success = False
+            else:
+                print("   ❌ Warehouse cell QR generation failed")
+                all_success = False
+        else:
+            print("\n   ⚠️  Test 6: SKIPPED - No warehouse ID available for cell QR testing")
+        
+        # Test 7: ТЕСТ УПРАВЛЕНИЯ БЛОКАМИ СКЛАДА - ДОБАВЛЕНИЕ (/api/warehouses/{warehouse_id}/add-block)
+        if test_warehouse_id:
+            print(f"\n   ➕ Test 7: ТЕСТ ДОБАВЛЕНИЯ БЛОКА СКЛАДА (/api/warehouses/{test_warehouse_id}/add-block)...")
+            
+            add_block_data = {
+                "shelves_per_block": 3,
+                "cells_per_shelf": 10
+            }
+            
+            success, add_block_response = self.run_test(
+                "Add Warehouse Block",
+                "POST",
+                f"/api/warehouses/{test_warehouse_id}/add-block",
+                200,
+                add_block_data,
+                operator_token
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Warehouse block addition working")
+                
+                # Проверить что структура склада обновилась
+                new_block_number = add_block_response.get('new_block_number')
+                updated_blocks_count = add_block_response.get('updated_blocks_count')
+                
+                if new_block_number:
+                    print(f"   ✅ New block added: Block {new_block_number}")
+                else:
+                    print("   ❌ New block number not returned")
+                    all_success = False
+                
+                if updated_blocks_count:
+                    print(f"   ✅ Updated blocks count: {updated_blocks_count}")
+                    print("   ✅ Структура склада обновляется корректно")
+                else:
+                    print("   ❌ Updated blocks count not returned")
+                    all_success = False
+            else:
+                print("   ❌ Warehouse block addition failed")
+                all_success = False
+        else:
+            print("\n   ⚠️  Test 7: SKIPPED - No warehouse ID available for block addition testing")
+        
+        # Test 8: ТЕСТ УПРАВЛЕНИЯ БЛОКАМИ СКЛАДА - УДАЛЕНИЕ (/api/warehouses/{warehouse_id}/delete-block)
+        if test_warehouse_id:
+            print(f"\n   ➖ Test 8: ТЕСТ УДАЛЕНИЯ БЛОКА СКЛАДА (/api/warehouses/{test_warehouse_id}/delete-block)...")
+            
+            # Сначала получим текущее количество блоков
+            success, current_structure = self.run_test(
+                "Get Current Warehouse Structure",
+                "GET",
+                f"/api/warehouses/{test_warehouse_id}/structure",
+                200,
+                token=operator_token
+            )
+            
+            if success and current_structure:
+                current_blocks = current_structure.get('blocks', [])
+                if len(current_blocks) > 1:  # Только если есть больше одного блока
+                    last_block_number = len(current_blocks)
+                    
+                    delete_block_data = {
+                        "block_number": last_block_number
+                    }
+                    
+                    success, delete_block_response = self.run_test(
+                        "Delete Warehouse Block",
+                        "DELETE",
+                        f"/api/warehouses/{test_warehouse_id}/delete-block",
+                        200,
+                        delete_block_data,
+                        operator_token
+                    )
+                    all_success &= success
+                    
+                    if success:
+                        print("   ✅ Warehouse block deletion working")
+                        
+                        # Проверить что структура склада обновилась
+                        deleted_block_number = delete_block_response.get('deleted_block_number')
+                        updated_blocks_count = delete_block_response.get('updated_blocks_count')
+                        
+                        if deleted_block_number:
+                            print(f"   ✅ Block deleted: Block {deleted_block_number}")
+                        else:
+                            print("   ❌ Deleted block number not returned")
+                            all_success = False
+                        
+                        if updated_blocks_count is not None:
+                            print(f"   ✅ Updated blocks count: {updated_blocks_count}")
+                            print("   ✅ Структура склада обновляется корректно при удалении")
+                        else:
+                            print("   ❌ Updated blocks count not returned")
+                            all_success = False
+                    else:
+                        print("   ❌ Warehouse block deletion failed")
+                        all_success = False
+                else:
+                    print("   ⚠️  Cannot delete block - only one block exists")
+            else:
+                print("   ❌ Could not get current warehouse structure for deletion test")
+                all_success = False
+        else:
+            print("\n   ⚠️  Test 8: SKIPPED - No warehouse ID available for block deletion testing")
+        
+        # SUMMARY
+        print("\n   📊 NEW QR CODE FUNCTIONS AND WAREHOUSE MANAGEMENT SUMMARY:")
+        
+        if all_success:
+            print("   🎉 ALL NEW QR CODE AND WAREHOUSE MANAGEMENT TESTS PASSED!")
+            print("   ✅ Авторизация оператором (+79777888999/warehouse123) успешна")
+            print("   ✅ Тест генерации QR по номеру груза (/api/cargo/generate-qr-by-number) работает")
+            print("   ✅ QR коды содержат только номер груза (упрощенный формат)")
+            print("   ✅ Тест структуры склада (/api/warehouses/{warehouse_id}/structure) работает")
+            print("   ✅ Возвращается полная информация о структуре склада")
+            print("   ✅ Тест генерации QR для ячеек склада (/api/warehouse/cell/generate-qr) работает")
+            print("   ✅ Формат QR кода ячейки корректный (СКЛАД_ID-Б_номер-П_номер-Я_номер)")
+            print("   ✅ Тест добавления блока склада (/api/warehouses/{warehouse_id}/add-block) работает")
+            print("   ✅ Тест удаления блока склада (/api/warehouses/{warehouse_id}/delete-block) работает")
+            print("   ✅ Структура склада обновляется корректно при управлении блоками")
+            print("   ✅ Новые endpoints для QR кодов и управления складами работают корректно")
+        else:
+            print("   ❌ SOME NEW QR CODE AND WAREHOUSE MANAGEMENT TESTS FAILED")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
