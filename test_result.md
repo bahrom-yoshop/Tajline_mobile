@@ -314,7 +314,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Accepting Operator Info Endpoint Enhancement"
+    - "New QR Code Functions and Cargo Placement Testing"
   stuck_tasks: 
     - "React DOM Fixes Backend Support"
   test_all: false
