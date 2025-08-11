@@ -1935,11 +1935,8 @@ function App() {
     setPlacementActive(false);
     setPlacementStep('idle');
     setScannerActive(false);
-    setPlacementManualCargoNumber('');
-    setPlacementManualCellCode('');
-    setManualCargoNumberError('');
-    setManualCellCodeError('');
-    setManualCargoDetails(null);
+    setManualCargoNumber('');
+    setManualCellCode('');
     
     // Initialize placement page
     setTimeout(async () => {
