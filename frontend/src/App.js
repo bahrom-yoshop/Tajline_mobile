@@ -18335,15 +18335,42 @@ function App() {
               </div>
             )}
 
-            {/* Camera unavailable message - Mobile optimized */}
+            {/* Camera unavailable message with retry option */}
             {placementActive && !scannerActive && (
-              <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                <div className="text-yellow-800 font-medium mb-2 text-sm">
-                  📱 Камера недоступна
+              <div className="space-y-2">
+                <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                  <div className="text-yellow-800 font-medium mb-2 text-sm">
+                    📱 Камера недоступна
+                  </div>
+                  <p className="text-xs text-yellow-700 mb-3">
+                    Используйте ручной ввод данных ниже для размещения груза
+                  </p>
+                  
+                  {/* Retry camera button */}
+                  <Button 
+                    onClick={async () => {
+                      console.log('🔄 Повторная попытка инициализации камеры по запросу пользователя...');
+                      showAlert('🔄 Повторная попытка активации камеры...', 'info');
+                      
+                      // Wait a moment for UI feedback
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      
+                      const cameraAvailable = await checkCameraAvailability();
+                      if (cameraAvailable) {
+                        showAlert('✅ Камера найдена! Запуск сканера...', 'success');
+                        await startQRScannerForPlacement();
+                      } else {
+                        showAlert('📵 Камера по-прежнему недоступна. Продолжите с ручным вводом.', 'warning');
+                      }
+                    }}
+                    size="sm"
+                    variant="outline"
+                    className="text-xs bg-white text-blue-600 border-blue-300 hover:bg-blue-50"
+                  >
+                    <RefreshCw className="mr-1 h-3 w-3" />
+                    Попробовать снова
+                  </Button>
                 </div>
-                <p className="text-xs text-yellow-700">
-                  Используйте ручной ввод данных ниже для размещения груза
-                </p>
               </div>
             )}
 
