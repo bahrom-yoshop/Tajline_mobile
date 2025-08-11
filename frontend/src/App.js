@@ -17904,15 +17904,15 @@ function App() {
         </DialogContent>
       </Dialog>
 
-      {/* New QR Generation Modal */}
+      {/* New QR Generation Modal - Mobile Adapted */}
       <Dialog open={showQRGenerateModal} onOpenChange={setShowQRGenerateModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center">
+        <DialogContent className="w-full max-w-[95vw] max-h-[95vh] p-3 sm:p-6 overflow-y-auto">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="flex items-center text-lg">
               <QrCode className="mr-2 h-5 w-5" />
               Генерация QR кода
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               Введите номер груза для проверки и генерации QR кода
             </DialogDescription>
           </DialogHeader>
