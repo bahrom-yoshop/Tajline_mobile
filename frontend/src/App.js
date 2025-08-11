@@ -1368,7 +1368,7 @@ function App() {
     }
   };
 
-  // New function: Generate QR by cargo number
+  // New function: Generate QR by cargo number with validation
   const generateQRByCargoNumber = async () => {
     if (!qrGenerateCargoNumber.trim()) {
       showAlert('Введите номер груза', 'error');
@@ -1377,8 +1377,19 @@ function App() {
 
     setQrGenerateLoading(true);
     try {
+      // First, check if cargo exists by trying to scan it
+      const checkResponse = await apiCall('/api/qr/scan', 'POST', {
+        qr_text: qrGenerateCargoNumber.trim()
+      });
+      
+      if (!checkResponse || checkResponse.type !== 'cargo') {
+        showAlert(`Груз с номером "${qrGenerateCargoNumber}" не существует в системе`, 'error');
+        return;
+      }
+      
+      // If cargo exists, generate QR code
       const response = await apiCall('/api/cargo/generate-qr-by-number', 'POST', {
-        cargo_number: qrGenerateCargoNumber
+        cargo_number: qrGenerateCargoNumber.trim()
       });
       
       if (response && response.success) {
@@ -1387,7 +1398,17 @@ function App() {
       }
     } catch (error) {
       console.error('Error generating QR by number:', error);
-      showAlert(`Ошибка создания QR кода: ${error.message}`, 'error');
+      
+      // Check if error is about cargo not found
+      if (error.message && (
+          error.message.includes('not found') || 
+          error.message.includes('не найден') || 
+          error.message.includes('404')
+        )) {
+        showAlert(`Груз с номером "${qrGenerateCargoNumber}" не существует в системе`, 'error');
+      } else {
+        showAlert(`Ошибка создания QR кода: ${error.message}`, 'error');
+      }
     } finally {
       setQrGenerateLoading(false);
     }
