@@ -18793,8 +18793,10 @@ function App() {
               </div>
 
             {/* Camera unavailable message with retry option */}
-            {placementActive && !scannerActive && (
-              <div className="space-y-2">
+            <div 
+              className="space-y-2" 
+              style={{ display: placementActive && !scannerActive ? 'block' : 'none' }}
+            >
                 <div className="text-center p-3 bg-yellow-50 rounded-lg">
                   <div className="text-yellow-800 font-medium mb-2 text-sm">
                     📱 Камера недоступна
