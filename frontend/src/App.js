@@ -7164,7 +7164,7 @@ function App() {
           <div className="flex items-center justify-between mb-8">
             {sidebarOpen && (
               <h2 className="text-xl font-bold">Панель управления</h2>
-            </div>
+            )}
             <Button
               variant="ghost"
               size="sm"
