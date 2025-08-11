@@ -1240,6 +1240,27 @@ function App() {
     printWindow.print();
   };
 
+  // Функции сброса мобильных операций
+  const resetMobilePlacement = async () => {
+    setMobilePlacementStep('start');
+    setScannedCargo(null);
+    setScannedCell(null);
+    await stopScanner();
+  };
+
+  const resetCargoReceive = async () => {
+    setReceiveStep('start');
+    setReceivedCargo(null);
+    setNewCell(null);
+    await stopScanner();
+  };
+
+  const resetCargoSearch = async () => {
+    setSearchScannerActive(false);
+    setSearchResult(null);
+    await stopScanner();
+  };
+
   const handleBarcodeScan = async (scannedData) => {
     try {
       if (scannerMode === 'cargo-barcode') {
