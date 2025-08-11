@@ -302,7 +302,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "QR Scanner Camera Selection Improvements Testing"
+    - "Accepting Operator Info Endpoint Enhancement"
   stuck_tasks: 
     - "React DOM Fixes Backend Support"
   test_all: false
