@@ -17876,7 +17876,7 @@ function App() {
 
       {/* New Cargo Placement Modal */}
       <Dialog open={showCargoPlacementModal} onOpenChange={setShowCargoPlacementModal}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Package className="mr-2 h-5 w-5" />
