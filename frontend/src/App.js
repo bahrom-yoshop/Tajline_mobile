@@ -685,10 +685,14 @@ function App() {
   const scannerRef = useRef(null);
   const modalScannerRef = useRef(null);  // Ref для модального сканера
   
-  // Complete isolation of Html5Qrcode from React DOM to prevent removeChild errors
-  const [qrScannerContainer, setQrScannerContainer] = useState(null);
+  // Enhanced refs for React-safe QR scanner isolation
+  const placementQrReaderRef = useRef(null);
+  const html5QrCodePlacementRef = useRef(null);
   const qrContainerRef = useRef(null);
   const isInitializingRef = useRef(false);
+
+  // Complete isolation of Html5Qrcode from React DOM to prevent removeChild errors
+  const [qrScannerContainer, setQrScannerContainer] = useState(null);
   
   // Create isolated container for QR scanner to avoid React conflicts
   const createIsolatedQrContainer = () => {
