@@ -105,6 +105,28 @@ function App() {
     }
   };
 
+  // New function: Manual cargo placement
+  const handleManualPlacement = async () => {
+    if (!manualCargoNumber.trim() || !manualCellCode.trim()) {
+      showAlert('Введите номер груза и код ячейки', 'error');
+      return;
+    }
+
+    try {
+      const success = await placeCargoInCell(manualCargoNumber.trim(), manualCellCode.trim());
+      
+      if (success) {
+        showAlert('Груз успешно размещен вручную!', 'success');
+        setManualCargoNumber('');
+        setManualCellCode('');
+        await fetchPlacementStatistics();
+      }
+    } catch (error) {
+      console.error('Error in manual placement:', error);
+      showAlert(`Ошибка размещения: ${error.message}`, 'error');
+    }
+  };
+
   // Обработчик изменения маршрута с автоматическим обновлением стоимости
   const handleRouteChange = (newRoute) => {
     const defaultValue = getDefaultDeclaredValue(newRoute);
