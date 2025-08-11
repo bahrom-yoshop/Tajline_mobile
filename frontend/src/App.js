@@ -1712,67 +1712,120 @@ function App() {
     }
   };
 
-  // New function: QR Scanner for placement - improved with defensive checks
+  // New function: QR Scanner for placement - improved with better error handling and debugging
   const startQRScannerForPlacement = async () => {
     try {
-      // Останавливаем предыдущий экземпляр если есть
+      console.log('Initializing placement QR scanner...');
+      
+      // Stop any existing scanner first
       if (html5QrCodePlacement) {
+        console.log('Stopping existing placement scanner...');
         await safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Placement Scanner");
         setHtml5QrCodePlacement(null);
       }
 
-      // Проверяем существование DOM элемента с повторными попытками
-      let placementElement = document.getElementById("qr-reader-placement");
+      // Check DOM element existence with multiple attempts
+      let placementElement = null;
       let attempts = 0;
+      const maxAttempts = 10;
       
-      while (!placementElement && attempts < 5) {
-        console.log(`Placement QR reader element not found, attempt ${attempts + 1}`);
-        await new Promise(resolve => setTimeout(resolve, 200));
+      while (!placementElement && attempts < maxAttempts) {
         placementElement = document.getElementById("qr-reader-placement");
-        attempts++;
+        if (!placementElement) {
+          console.log(`Placement QR reader element not found, attempt ${attempts + 1}/${maxAttempts}`);
+          await new Promise(resolve => setTimeout(resolve, 200));
+          attempts++;
+        }
       }
       
       if (!placementElement) {
-        console.error('Placement QR reader element not found after 5 attempts');
-        showAlert('Ошибка инициализации сканера. Попробуйте еще раз.', 'error');
-        return;
+        throw new Error(`DOM element 'qr-reader-placement' not found after ${maxAttempts} attempts`);
+      }
+      
+      console.log('Placement element found, checking camera access...');
+      
+      // Check camera permissions first
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        console.log('Camera permission granted');
+        // Stop the test stream
+        stream.getTracks().forEach(track => track.stop());
+      } catch (permissionError) {
+        console.error('Camera permission error:', permissionError);
+        throw new Error('Нет доступа к камере. Разрешите доступ к камере в браузере.');
       }
 
+      // Get available cameras
+      const cameras = await Html5Qrcode.getCameras();
+      console.log(`Found ${cameras.length} cameras:`, cameras.map(c => c.label));
+      
+      if (!cameras || cameras.length === 0) {
+        throw new Error('Камеры не обнаружены на устройстве');
+      }
+
+      // Select best camera (prefer back camera)
+      const rearCamera = cameras.find(camera => 
+        camera.label.toLowerCase().includes('back') ||
+        camera.label.toLowerCase().includes('rear') ||
+        camera.label.toLowerCase().includes('environment')
+      );
+      
+      const selectedCamera = rearCamera || cameras[cameras.length - 1];
+      console.log(`Selected camera: ${selectedCamera.label}`);
+
+      // Initialize QR code scanner
+      console.log('Creating Html5Qrcode instance...');
       const qrCodeInstance = new Html5Qrcode("qr-reader-placement");
       setHtml5QrCodePlacement(qrCodeInstance);
 
-      const cameras = await Html5Qrcode.getCameras();
-      if (cameras && cameras.length) {
-        const rearCamera = cameras.find(camera => 
-          camera.label.toLowerCase().includes('back') ||
-          camera.label.toLowerCase().includes('rear') ||
-          camera.label.toLowerCase().includes('environment')
-        );
-        
-        const selectedCamera = rearCamera || cameras[cameras.length - 1];
+      // Start scanning with proper config
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        disableFlip: false
+      };
 
-        await qrCodeInstance.start(
-          selectedCamera.id,
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 }
-          },
-          (decodedText, decodedResult) => {
-            handlePlacementQRScan(decodedText);
-          },
-          (errorMessage) => {
-            // console.log(`QR Code scanner error: ${errorMessage}`);
+      console.log('Starting QR scanner with config:', config);
+      await qrCodeInstance.start(
+        selectedCamera.id,
+        config,
+        (decodedText, decodedResult) => {
+          console.log('QR Code scanned in placement:', decodedText);
+          handlePlacementQRScan(decodedText);
+        },
+        (errorMessage) => {
+          // Suppress frequent scanning errors
+          if (!errorMessage.includes('No QR code found')) {
+            console.debug('QR scan error:', errorMessage);
           }
-        );
-        
-        setScannerActive(true);
-        console.log('Placement QR scanner started successfully');
-      } else {
-        showAlert('Камеры не обнаружены', 'error');
-      }
+        }
+      );
+      
+      setScannerActive(true);
+      console.log('Placement QR scanner started successfully');
+      showAlert('Камера активирована. Наведите на QR код груза.', 'success');
+      
     } catch (error) {
       console.error('Error starting placement QR scanner:', error);
-      showAlert('Ошибка запуска сканера камеры', 'error');
+      setScannerActive(false);
+      setPlacementActive(false);
+      setPlacementStep('idle');
+      
+      // Provide user-friendly error messages
+      let userMessage = 'Ошибка инициализации сканера';
+      
+      if (error.message.includes('Camera')) {
+        userMessage = 'Ошибка доступа к камере. Разрешите доступ к камере и попробуйте снова.';
+      } else if (error.message.includes('DOM element')) {
+        userMessage = 'Ошибка интерфейса. Закройте и откройте модальное окно заново.';
+      } else if (error.message.includes('камеры не обнаружены')) {
+        userMessage = 'Камера не найдена на устройстве.';
+      } else if (error.message) {
+        userMessage = error.message;
+      }
+      
+      showAlert(userMessage, 'error');
     }
   };
 
