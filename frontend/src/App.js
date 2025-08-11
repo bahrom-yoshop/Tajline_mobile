@@ -18094,40 +18094,31 @@ function App() {
               )}
             </div>
 
-            {/* Camera Scanner - Full screen mode */}
+            {/* Camera Scanner - Mobile Adapted Full screen mode */}
             {placementActive && scannerActive && (
-              <div className="space-y-3">
-                {/* Debug information */}
-                {process.env.NODE_ENV === 'development' && (
-                  <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
-                    <div>Статус: {scannerActive ? 'Камера активна' : 'Инициализация...'}</div>
-                    <div>Шаг: {placementStep}</div>
-                    <div>DOM элемент: {document.getElementById("qr-reader-placement") ? 'Найден' : 'Не найден'}</div>
-                  </div>
-                )}
-
-                {/* Full screen scanner container */}
+              <div className="space-y-2">
+                {/* Mobile-optimized scanner container */}
                 <div className="relative bg-black rounded-lg overflow-hidden">
                   <div 
                     id="qr-reader-placement" 
                     className="w-full"
                     style={{
                       width: '100%',
-                      height: '60vh', // Use 60% of viewport height for better mobile experience
-                      minHeight: '400px', // Minimum height for desktop
+                      height: 'min(70vh, 400px)', // Responsive height for mobile
+                      minHeight: '250px', // Smaller minimum for mobile
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center'
                     }}
                   />
                   
-                  {/* Overlay instructions */}
-                  <div className="absolute top-4 left-4 right-4 z-10">
-                    <div className="bg-black bg-opacity-70 text-white p-3 rounded-lg text-center">
-                      <div className="text-sm font-medium">
+                  {/* Mobile-optimized overlay instructions */}
+                  <div className="absolute top-2 left-2 right-2 z-10">
+                    <div className="bg-black bg-opacity-80 text-white p-2 rounded text-center">
+                      <div className="text-xs sm:text-sm font-medium">
                         {placementStep === 'scan-cargo' ? 
                           '📦 Отсканируйте QR код груза' : 
-                          '🏠 Отсканируйте QR код ячейки склада'}
+                          '🏠 Отсканируйте QR код ячейки'}
                       </div>
                       <div className="text-xs text-gray-300 mt-1">
                         Наведите камеру на QR код
@@ -18135,23 +18126,22 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Camera switch button */}
-                  {availablePlacementCameras.length > 1 && (
-                    <div className="absolute top-4 right-4 z-10">
+                  {/* Mobile-optimized camera controls */}
+                  <div className="absolute top-2 right-2 z-10 flex flex-col space-y-1">
+                    {/* Camera switch button */}
+                    {availablePlacementCameras.length > 1 && (
                       <Button
                         onClick={switchPlacementCamera}
                         size="sm"
                         variant="outline"
-                        className="bg-black bg-opacity-70 text-white border-gray-600 hover:bg-gray-800"
+                        className="bg-black bg-opacity-70 text-white border-gray-600 hover:bg-gray-800 h-8 w-8 p-0"
                         title={`Переключить камеру (${currentPlacementCameraIndex + 1}/${availablePlacementCameras.length})`}
                       >
-                        <RefreshCw className="h-4 w-4" />
+                        <RefreshCw className="h-3 w-3" />
                       </Button>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Full screen toggle button */}
-                  <div className="absolute bottom-4 right-4 z-10">
+                    {/* Full screen toggle button */}
                     <Button
                       onClick={() => {
                         const element = document.getElementById("qr-reader-placement");
@@ -18165,15 +18155,15 @@ function App() {
                       }}
                       size="sm"
                       variant="outline"
-                      className="bg-black bg-opacity-70 text-white border-gray-600 hover:bg-gray-800"
+                      className="bg-black bg-opacity-70 text-white border-gray-600 hover:bg-gray-800 h-8 w-8 p-0"
                     >
-                      <Maximize className="h-4 w-4" />
+                      <Maximize className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>
                 
                 <div className="text-center">
-                  <p className="text-sm text-green-600 font-medium flex items-center justify-center">
+                  <p className="text-xs sm:text-sm text-green-600 font-medium flex items-center justify-center">
                     <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
                     Камера активна - наведите на QR код
                   </p>
@@ -18181,13 +18171,13 @@ function App() {
               </div>
             )}
 
-            {/* Camera unavailable message */}
+            {/* Camera unavailable message - Mobile optimized */}
             {placementActive && !scannerActive && (
-              <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                <div className="text-yellow-800 font-medium mb-2">
+              <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                <div className="text-yellow-800 font-medium mb-2 text-sm">
                   📱 Камера недоступна
                 </div>
-                <p className="text-sm text-yellow-700">
+                <p className="text-xs text-yellow-700">
                   Используйте ручной ввод данных ниже для размещения груза
                 </p>
               </div>
