@@ -1027,18 +1027,14 @@ def generate_cargo_qr_code(cargo_data: dict) -> str:
         return ""
 
 def generate_warehouse_cell_qr_code(warehouse_data: dict, block: int, shelf: int, cell: int) -> str:
-    """Генерировать QR код для ячейки склада"""
+    """Генерировать QR код для ячейки склада - только позицию ячейки"""
     try:
-        cell_location = f"{warehouse_data.get('name', 'Склад')}-Б{block}-П{shelf}-Я{cell}"
+        # Генерируем простой формат: СКЛАД_ID-Б_номер_блока-П_номер_полки-Я_номер_ячейки
+        warehouse_id = warehouse_data.get('id', 'UNK')
+        cell_code = f"{warehouse_id}-Б{block}-П{shelf}-Я{cell}"
         
-        qr_data = f"""ЯЧЕЙКА СКЛАДА
-Местоположение: {cell_location}
-Склад: {warehouse_data.get('name', 'Неизвестный склад')}
-Адрес склада: {warehouse_data.get('location', 'Не указан')}
-Блок: {block}
-Полка: {shelf}
-Ячейка: {cell}
-ID склада: {warehouse_data.get('id', '')}"""
+        # QR код содержит только код ячейки
+        qr_data = cell_code
         
         # Генерируем QR код
         qr = qrcode.QRCode(
