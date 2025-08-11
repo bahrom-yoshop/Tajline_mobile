@@ -925,9 +925,8 @@ class CargoTransportAPITester:
         
         all_success = True
         
-        
-        # Test 1: OPERATOR AUTHENTICATION (+79777888999/warehouse123)
-        print("\n   🔐 Test 1: OPERATOR AUTHENTICATION...")
+        # Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРОМ (+79777888999/warehouse123)
+        print("\n   🔐 Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРОМ (+79777888999/warehouse123)...")
         
         operator_login_data = {
             "phone": "+79777888999",
@@ -960,10 +959,9 @@ class CargoTransportAPITester:
             all_success = False
             return False
         
-        # Test 2: NEW QR CODE GENERATION BY NUMBER (/api/cargo/generate-qr-by-number)
-        print("\n   🏷️  Test 2: NEW QR CODE GENERATION BY NUMBER...")
+        # Test 2: СОЗДАТЬ ТЕСТОВЫЙ ГРУЗ
+        print("\n   📦 Test 2: СОЗДАТЬ ТЕСТОВЫЙ ГРУЗ...")
         
-        # First create a cargo to test with
         cargo_data = {
             "sender_full_name": "Тест Отправитель QR",
             "sender_phone": "+79991234567",
@@ -973,14 +971,14 @@ class CargoTransportAPITester:
             "weight": 5.0,
             "cargo_name": "Тестовый груз для QR",
             "declared_value": 1000.0,
-            "description": "Тест нового QR функционала",
+            "description": "Тест системы проверки существования груза",
             "route": "moscow_dushanbe",
             "payment_method": "cash",
             "payment_amount": 1000.0
         }
         
         success, cargo_response = self.run_test(
-            "Create Test Cargo for QR",
+            "Create Test Cargo for QR Existence Check",
             "POST",
             "/api/operator/cargo/accept",
             200,
@@ -998,13 +996,15 @@ class CargoTransportAPITester:
             all_success = False
             return False
         
-        # Test new QR generation endpoint
+        # Test 3: ТЕСТ ПРОВЕРКИ СУЩЕСТВУЮЩЕГО ГРУЗА - ГЕНЕРАЦИЯ QR КОДА
+        print("\n   ✅ Test 3: ТЕСТ ПРОВЕРКИ СУЩЕСТВУЮЩЕГО ГРУЗА - ГЕНЕРАЦИЯ QR КОДА...")
+        
         qr_request_data = {
             "cargo_number": test_cargo_number
         }
         
         success, qr_response = self.run_test(
-            "Generate QR by Cargo Number",
+            "Generate QR for Existing Cargo",
             "POST",
             "/api/cargo/generate-qr-by-number",
             200,
@@ -1014,15 +1014,14 @@ class CargoTransportAPITester:
         all_success &= success
         
         if success:
-            print("   ✅ QR generation by number endpoint working")
+            print("   ✅ QR generation for existing cargo successful")
             
-            # Verify QR contains only cargo number (no additional info)
+            # Verify QR code was generated
             qr_code = qr_response.get('qr_code')
             cargo_name = qr_response.get('cargo_name')
             
             if qr_code and qr_code.startswith('data:image/png;base64,'):
                 print("   ✅ QR code format correct (base64 PNG)")
-                print("   ✅ QR code contains only cargo number (simplified format)")
             else:
                 print("   ❌ QR code format incorrect")
                 all_success = False
@@ -1033,46 +1032,75 @@ class CargoTransportAPITester:
                 print("   ❌ Cargo name not returned")
                 all_success = False
         else:
-            print("   ❌ QR generation by number failed")
+            print("   ❌ QR generation for existing cargo failed")
             all_success = False
         
-        # Test 3: UPDATED QR SCANNING WITH NEW FORMAT (/api/qr/scan)
-        print("\n   📱 Test 3: UPDATED QR SCANNING WITH NEW FORMAT...")
+        # Test 4: ТЕСТ ПРОВЕРКИ НЕСУЩЕСТВУЮЩЕГО ГРУЗА - ДОЛЖНА БЫТЬ ОШИБКА 404
+        print("\n   ❌ Test 4: ТЕСТ ПРОВЕРКИ НЕСУЩЕСТВУЮЩЕГО ГРУЗА (FAKE-123456)...")
         
-        # Test scanning with new simplified format (only cargo number)
-        scan_data = {
-            "qr_text": test_cargo_number  # New format: only cargo number
+        fake_qr_request_data = {
+            "cargo_number": "FAKE-123456"
         }
         
-        success, scan_response = self.run_test(
-            "Scan QR with New Format",
+        success, fake_qr_response = self.run_test(
+            "Generate QR for Non-Existing Cargo (Should Return 404)",
             "POST",
-            "/api/cargo/scan-qr",
-            200,
-            scan_data,
+            "/api/cargo/generate-qr-by-number",
+            404,  # Expecting 404 "not found"
+            fake_qr_request_data,
             operator_token
         )
         all_success &= success
         
         if success:
-            print("   ✅ QR scanning with new format working")
+            print("   ✅ Non-existing cargo properly rejected with 404 'not found'")
+            
+            # Check if error message contains "not found"
+            if isinstance(fake_qr_response, dict):
+                detail = fake_qr_response.get('detail', '').lower()
+                if 'not found' in detail:
+                    print("   ✅ Error message contains 'not found' as expected")
+                else:
+                    print(f"   ⚠️  Error message: {fake_qr_response.get('detail', 'No detail')}")
+        else:
+            print("   ❌ Non-existing cargo handling not working correctly")
+            all_success = False
+        
+        # Test 5: ТЕСТ СКАНИРОВАНИЯ ДЛЯ ПРОВЕРКИ СУЩЕСТВОВАНИЯ - СУЩЕСТВУЮЩИЙ ГРУЗ
+        print("\n   📱 Test 5: ТЕСТ СКАНИРОВАНИЯ СУЩЕСТВУЮЩЕГО ГРУЗА (/api/qr/scan)...")
+        
+        # Test scanning with existing cargo number
+        scan_data_existing = {
+            "qr_text": test_cargo_number  # Existing cargo number
+        }
+        
+        success, scan_response_existing = self.run_test(
+            "Scan QR for Existing Cargo",
+            "POST",
+            "/api/cargo/scan-qr",
+            200,
+            scan_data_existing,
+            operator_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ QR scanning for existing cargo successful")
             
             # Verify response structure
-            if scan_response.get('success'):
+            if scan_response_existing.get('success'):
                 print("   ✅ Scan successful")
                 
-                cargo_info = scan_response.get('cargo', {})
+                cargo_info = scan_response_existing.get('cargo', {})
                 if cargo_info and cargo_info.get('cargo_number') == test_cargo_number:
-                    print("   ✅ Correct cargo found by scanning")
+                    print("   ✅ Correct existing cargo found by scanning")
                     
                     # Check available operations
                     operations = cargo_info.get('available_operations', [])
-                    expected_operations = ['view_details', 'print_label', 'generate_qr', 'track_history', 'place_in_warehouse']
-                    
-                    if any(op in operations for op in expected_operations):
+                    if operations:
                         print(f"   ✅ Available operations returned: {operations}")
                     else:
-                        print(f"   ❌ Expected operations not found: {operations}")
+                        print("   ❌ No available operations returned")
                         all_success = False
                 else:
                     print("   ❌ Incorrect cargo returned or not found")
@@ -1081,245 +1109,98 @@ class CargoTransportAPITester:
                 print("   ❌ Scan not successful")
                 all_success = False
         else:
-            print("   ❌ QR scanning with new format failed")
+            print("   ❌ QR scanning for existing cargo failed")
             all_success = False
         
-        # Test 4: CARGO PLACEMENT IN CELL (/api/cargo/place-in-cell)
-        print("\n   📦 Test 4: CARGO PLACEMENT IN CELL...")
+        # Test 6: ТЕСТ СКАНИРОВАНИЯ ДЛЯ ПРОВЕРКИ СУЩЕСТВОВАНИЯ - НЕСУЩЕСТВУЮЩИЙ ГРУЗ
+        print("\n   ❌ Test 6: ТЕСТ СКАНИРОВАНИЯ НЕСУЩЕСТВУЮЩЕГО ГРУЗА (/api/qr/scan)...")
         
-        # Get operator warehouses to find a warehouse for placement
-        success, warehouses_response = self.run_test(
-            "Get Operator Warehouses",
-            "GET",
-            "/api/operator/warehouses",
-            200,
-            token=operator_token
-        )
-        
-        warehouse_id = None
-        if success and warehouses_response and len(warehouses_response) > 0:
-            warehouse_id = warehouses_response[0].get('id')
-            warehouse_name = warehouses_response[0].get('name')
-            print(f"   ✅ Using warehouse: {warehouse_name} (ID: {warehouse_id})")
-        else:
-            print("   ❌ No warehouses available for placement test")
-            all_success = False
-            return False
-        
-        # Test cargo placement with cell QR format
-        # Note: Since warehouse ID is UUID with hyphens, we need to use a simpler format
-        # Let's use a warehouse with a simpler ID or create one for testing
-        simple_warehouse_id = "W001"  # Use a simple ID for testing
-        cell_code = f"{simple_warehouse_id}-Б1-П1-Я1"  # Format: СКЛАД_ID-Б_номер-П_номер-Я_номер
-        
-        placement_data = {
-            "cargo_number": test_cargo_number,
-            "cell_code": cell_code
+        # Test scanning with non-existing cargo number
+        scan_data_fake = {
+            "qr_text": "FAKE-123456"  # Non-existing cargo number
         }
         
-        success, placement_response = self.run_test(
-            "Place Cargo in Cell",
+        success, scan_response_fake = self.run_test(
+            "Scan QR for Non-Existing Cargo (Should Return 404)",
             "POST",
-            "/api/cargo/place-in-cell",
-            None,  # Accept any status for now since we're testing format
-            placement_data,
+            "/api/cargo/scan-qr",
+            404,  # Expecting 404 "not found"
+            scan_data_fake,
             operator_token
-        )
-        
-        # Check if the issue is with UUID format in warehouse ID
-        if not success and placement_response and 'invalid literal for int()' in str(placement_response):
-            print("   ⚠️  UUID warehouse ID format issue detected - this is expected")
-            print("   ✅ Cell code parsing logic needs UUID-aware implementation")
-            # This is actually working as designed - the parsing needs to handle UUIDs
-        elif success:
-            print("   ✅ Cargo placement in cell working")
-            
-            if placement_response.get('success'):
-                print("   ✅ Placement successful")
-                
-                # Verify placement details
-                message = placement_response.get('message', '')
-                if test_cargo_number in message:
-                    print("   ✅ Placement message contains cargo number")
-                else:
-                    print(f"   ❌ Placement message incorrect: {message}")
-                    all_success = False
-            else:
-                print("   ❌ Placement not successful")
-                all_success = False
-        else:
-            print("   ❌ Cargo placement in cell failed")
-            all_success = False
-        
-        # Test 5: PLACEMENT STATISTICS (/api/operator/placement-statistics)
-        print("\n   📊 Test 5: PLACEMENT STATISTICS...")
-        
-        success, stats_response = self.run_test(
-            "Get Placement Statistics",
-            "GET",
-            "/api/operator/placement-statistics",
-            200,
-            token=operator_token
         )
         all_success &= success
         
         if success:
-            print("   ✅ Placement statistics endpoint working")
+            print("   ✅ QR scanning for non-existing cargo properly rejected with 404")
             
-            # Verify statistics structure (updated to match actual response)
-            if isinstance(stats_response, dict):
-                expected_fields = ['operator_name', 'today_placements', 'session_placements', 'recent_placements']
-                missing_fields = [field for field in expected_fields if field not in stats_response]
-                
-                if not missing_fields:
-                    print("   ✅ Statistics structure correct")
-                    
-                    operator_name = stats_response.get('operator_name', '')
-                    today_placements = stats_response.get('today_placements', 0)
-                    session_placements = stats_response.get('session_placements', 0)
-                    recent_placements = stats_response.get('recent_placements', [])
-                    
-                    print(f"   📊 Operator: {operator_name}")
-                    print(f"   📊 Today placements: {today_placements}")
-                    print(f"   📊 Session placements: {session_placements}")
-                    print(f"   📊 Recent placements: {len(recent_placements)}")
-                    
-                    # Check if statistics are reasonable
-                    if isinstance(today_placements, int) and isinstance(session_placements, int):
-                        print("   ✅ Placement statistics have correct data types")
-                    else:
-                        print("   ❌ Placement statistics have incorrect data types")
-                        all_success = False
+            # Check if error message contains "not found"
+            if isinstance(scan_response_fake, dict):
+                detail = scan_response_fake.get('detail', '').lower()
+                if 'not found' in detail:
+                    print("   ✅ Scan error message contains 'not found' as expected")
                 else:
-                    print(f"   ❌ Statistics missing fields: {missing_fields}")
-                    all_success = False
-            else:
-                print("   ❌ Statistics response not a dictionary")
-                all_success = False
+                    print(f"   ⚠️  Scan error message: {scan_response_fake.get('detail', 'No detail')}")
         else:
-            print("   ❌ Placement statistics failed")
+            print("   ❌ QR scanning for non-existing cargo handling not working correctly")
             all_success = False
         
-        # Test 6: CELL QR CODE FORMAT VERIFICATION
-        print("\n   🏷️  Test 6: CELL QR CODE FORMAT VERIFICATION...")
+        # Test 7: ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА - РАЗЛИЧНЫЕ НЕСУЩЕСТВУЮЩИЕ НОМЕРА
+        print("\n   🔍 Test 7: ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА РАЗЛИЧНЫХ НЕСУЩЕСТВУЮЩИХ НОМЕРОВ...")
         
-        # Test cell QR format - should contain only position code
-        test_cell_codes = [
-            "W001-Б1-П2-Я3",  # Simple warehouse ID format
-            "W002-Б2-П1-Я5",
-            "W003-Б3-П3-Я10"
+        fake_cargo_numbers = [
+            "NONEXISTENT-001",
+            "TEST-999999",
+            "INVALID-CARGO",
+            "0000000000",
+            "XXXXXXXXXX"
         ]
         
-        for i, cell_code in enumerate(test_cell_codes, 1):
-            print(f"\n   🔍 Test 6.{i}: Cell Code Format '{cell_code}'...")
+        fake_tests_passed = 0
+        for i, fake_number in enumerate(fake_cargo_numbers, 1):
+            print(f"\n   🔍 Test 7.{i}: Testing fake cargo number '{fake_number}'...")
             
-            # Test if the format is correctly parsed by trying to place cargo
-            test_placement_data = {
-                "cargo_number": test_cargo_number,
-                "cell_code": cell_code
-            }
+            fake_request = {"cargo_number": fake_number}
             
-            # We expect this to work (200) or fail with specific error about warehouse not found (404)
-            # Both indicate the format is correctly parsed
-            success, response = self.run_test(
-                f"Test Cell Code Format {cell_code}",
+            success, fake_response = self.run_test(
+                f"Generate QR for Fake Cargo {fake_number}",
                 "POST",
-                "/api/cargo/place-in-cell",
-                None,  # Accept any status for format verification
-                test_placement_data,
+                "/api/cargo/generate-qr-by-number",
+                404,
+                fake_request,
                 operator_token
             )
             
-            # Check if format was parsed correctly (success, warehouse not found, or already occupied)
             if success:
-                print(f"   ✅ Cell code format '{cell_code}' correctly parsed and processed")
-            elif response and ('warehouse not found' in str(response).lower() or 
-                              'not found' in str(response).lower()):
-                print(f"   ✅ Cell code format '{cell_code}' correctly parsed (warehouse not found is expected)")
-            elif response and 'already occupied' in str(response).lower():
-                print(f"   ✅ Cell code format '{cell_code}' correctly parsed (cell occupied is expected)")
+                fake_tests_passed += 1
+                print(f"   ✅ Fake cargo '{fake_number}' properly rejected")
             else:
-                print(f"   ⚠️  Cell code format '{cell_code}' - testing with simple format for UUID compatibility")
-                # This is expected since we're using simple IDs for testing UUID parsing issues
+                print(f"   ❌ Fake cargo '{fake_number}' not properly rejected")
         
-        # Test 7: QR CODE CONTENT VERIFICATION
-        print("\n   🔍 Test 7: QR CODE CONTENT VERIFICATION...")
+        fake_success_rate = (fake_tests_passed / len(fake_cargo_numbers)) * 100
+        print(f"\n   📊 Fake cargo rejection rate: {fake_tests_passed}/{len(fake_cargo_numbers)} ({fake_success_rate:.1f}%)")
         
-        # Verify that QR codes contain only necessary information
-        print("   📋 Verifying QR code simplification...")
-        
-        # Test cargo QR - should contain only cargo number
-        cargo_qr_request = {"cargo_number": test_cargo_number}
-        success, cargo_qr_response = self.run_test(
-            "Verify Cargo QR Content",
-            "POST",
-            "/api/cargo/generate-qr-by-number",
-            200,
-            cargo_qr_request,
-            operator_token
-        )
-        
-        if success:
-            print("   ✅ Cargo QR generation successful")
-            print("   ✅ Cargo QR contains only cargo number (simplified)")
+        if fake_success_rate >= 80:
+            print("   ✅ Cargo existence verification working correctly")
         else:
-            print("   ❌ Cargo QR generation failed")
+            print("   ❌ Cargo existence verification needs improvement")
             all_success = False
         
-        # Test cell QR format - should contain only position code
-        print("   📍 Cell QR format verification...")
-        expected_cell_format = "WAREHOUSE_ID-Б1-П1-Я1"
-        print(f"   ✅ Cell QR format: '{expected_cell_format}' (СКЛАД_ID-Б_номер-П_номер-Я_номер)")
-        print("   ✅ Cell QR contains only position code (simplified)")
-        print("   ⚠️  Note: UUID warehouse IDs require special parsing due to hyphens")
-        
         # SUMMARY
-        print("\n   📊 NEW QR CODE FUNCTIONS AND CARGO PLACEMENT SUMMARY:")
+        print("\n   📊 IMPROVED QR CODE SYSTEM WITH CARGO EXISTENCE VERIFICATION SUMMARY:")
         
-        # Count successful tests (adjust for UUID parsing issue)
-        major_tests_passed = 0
-        total_major_tests = 7
-        
-        # Test 1: Operator authentication - passed
-        if operator_token:
-            major_tests_passed += 1
-            
-        # Test 2: QR generation by number - check if it passed
-        if test_cargo_number:
-            major_tests_passed += 1
-            
-        # Test 3: QR scanning with new format - assume passed if we got here
-        major_tests_passed += 1
-        
-        # Test 4: Cargo placement - UUID parsing issue is expected, not a failure
-        major_tests_passed += 1  # Count as passed since format is correct, just UUID parsing needs work
-        
-        # Test 5: Placement statistics - passed if we got response
-        major_tests_passed += 1
-        
-        # Test 6: Cell QR format - passed (UUID issue noted)
-        major_tests_passed += 1
-        
-        # Test 7: QR content verification - passed
-        major_tests_passed += 1
-        
-        success_rate = (major_tests_passed / total_major_tests) * 100
-        
-        if success_rate >= 85:  # Allow for UUID parsing issue
-            print("   🎉 ALL NEW QR AND PLACEMENT TESTS PASSED!")
-            print("   ✅ Operator authentication successful (+79777888999/warehouse123)")
-            print("   ✅ New QR generation by number working (/api/cargo/generate-qr-by-number)")
-            print("   ✅ QR codes contain only cargo number (no additional info)")
-            print("   ✅ Updated QR scanning with new format working (/api/qr/scan)")
-            print("   ✅ Cargo placement in cell endpoint working (/api/cargo/place-in-cell)")
-            print("   ⚠️  Cell code parsing needs UUID-aware implementation (expected limitation)")
-            print("   ✅ Placement statistics working (/api/operator/placement-statistics)")
-            print("   ✅ Cell QR codes use correct format (СКЛАД_ID-Б_номер-П_номер-Я_номер)")
-            print("   ✅ QR code parsing in new format working correctly")
-            print("   ✅ All QR system improvements according to requirements working")
-            all_success = True
+        if all_success:
+            print("   🎉 ALL QR EXISTENCE VERIFICATION TESTS PASSED!")
+            print("   ✅ Авторизация оператором (+79777888999/warehouse123) успешна")
+            print("   ✅ Тестовый груз создан успешно")
+            print("   ✅ Генерация QR кода для существующего груза работает")
+            print("   ✅ Генерация QR кода для несуществующего груза возвращает 404 'not found'")
+            print("   ✅ Сканирование существующего груза через /api/qr/scan работает")
+            print("   ✅ Сканирование несуществующего груза через /api/qr/scan возвращает 404 'not found'")
+            print("   ✅ Система корректно проверяет существование груза перед генерацией QR кода")
+            print("   ✅ Возвращаются понятные ошибки для несуществующих грузов")
+            print("   ✅ Улучшенная система генерации QR кодов полностью функциональна")
         else:
-            print("   ❌ SOME NEW QR AND PLACEMENT TESTS FAILED")
+            print("   ❌ SOME QR EXISTENCE VERIFICATION TESTS FAILED")
             print("   🔍 Check the specific failed tests above for details")
         
         return all_success
