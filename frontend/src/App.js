@@ -1728,30 +1728,44 @@ function App() {
         return false;
       }
       
-      // Request camera permission
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      console.log('Camera permission granted');
+      // Enhanced camera request for mobile devices
+      const constraints = {
+        video: {
+          facingMode: { ideal: "environment" }, // Prefer back camera
+          width: { ideal: 1280, min: 640 },
+          height: { ideal: 720, min: 480 }
+        }
+      };
+      
+      // Request camera permission with mobile-friendly constraints
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log('Camera permission granted for mobile');
       
       // Stop the test stream
       stream.getTracks().forEach(track => track.stop());
       
-      // Check available cameras
+      // Check available cameras with mobile detection
       const cameras = await Html5Qrcode.getCameras();
-      console.log(`Found ${cameras.length} cameras`);
+      console.log(`Found ${cameras.length} cameras for mobile device`);
       
       if (!cameras || cameras.length === 0) {
-        console.log('No cameras found');
+        console.log('No cameras found on mobile device');
         return false;
       }
       
-      console.log('Camera availability check passed');
+      console.log('Mobile camera availability check passed');
       return true;
       
     } catch (error) {
-      console.log('Camera availability check failed:', error.name, error.message);
+      console.log('Mobile camera availability check failed:', error.name, error.message);
       
-      // Don't show error alerts here - just return false
-      // The calling function will handle the UI appropriately
+      // Special handling for mobile-specific errors
+      if (error.name === 'NotAllowedError') {
+        console.log('Camera permission denied on mobile - user needs to allow');
+      } else if (error.name === 'NotFoundError') {
+        console.log('No camera found on mobile device');
+      }
+      
       return false;
     }
   };
