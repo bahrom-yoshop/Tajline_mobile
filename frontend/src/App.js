@@ -1883,7 +1883,7 @@ function App() {
         }
       };
 
-      console.log('Starting QR scanner with config:', config);
+      console.log('Starting QR scanner with enhanced config:', config);
       await qrCodeInstance.start(
         selectedCamera.id,
         config,
@@ -1892,8 +1892,10 @@ function App() {
           handlePlacementQRScan(decodedText);
         },
         (errorMessage) => {
-          // Suppress frequent scanning errors
-          if (!errorMessage.includes('No QR code found')) {
+          // Suppress frequent scanning errors but log important ones
+          if (!errorMessage.includes('No QR code found') && 
+              !errorMessage.includes('NotFoundException') &&
+              !errorMessage.includes('No MultiFormat Readers')) {
             console.debug('QR scan error:', errorMessage);
           }
         }
