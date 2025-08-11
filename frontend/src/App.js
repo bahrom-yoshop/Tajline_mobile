@@ -10628,7 +10628,7 @@ function App() {
                         <CardDescription>Сканирование QR кода груза и ячейки для размещения</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        {placementStep === 'start' && (
+                        {mobilePlacementStep === 'start' && (
                           <div className="text-center space-y-4">
                             <p className="text-gray-600">Начните процесс размещения груза</p>
                             <Button 
