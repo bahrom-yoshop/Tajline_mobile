@@ -4026,20 +4026,72 @@ async def get_available_cargo_for_placement(
                     cargo_data['creator_name'] = 'Неизвестно'
                     cargo_data['creator_phone'] = 'Не указан'
             
-            # Информация о принимающем операторе
+            # Информация о принимающем операторе - расширенные данные
+            accepting_operator_info = None
             if accepting_operator_id:
                 accepting_operator = db.users.find_one({"id": accepting_operator_id})
                 if accepting_operator:
+                    accepting_operator_info = {
+                        'operator_id': accepting_operator['id'],
+                        'operator_name': accepting_operator.get('full_name', 'Неизвестно'),
+                        'operator_phone': accepting_operator.get('phone', 'Не указан'),
+                        'user_number': accepting_operator.get('user_number', 'N/A'),
+                        'role': accepting_operator.get('role', 'unknown')
+                    }
                     cargo_data['accepting_operator'] = accepting_operator.get('full_name', 'Неизвестно')
                     cargo_data['accepting_operator_phone'] = accepting_operator.get('phone', 'Не указан')
                 else:
                     cargo_data['accepting_operator'] = 'Неизвестно'
                     cargo_data['accepting_operator_phone'] = 'Не указан'
+                    accepting_operator_info = {
+                        'operator_id': accepting_operator_id,
+                        'operator_name': 'Неизвестно',
+                        'operator_phone': 'Не указан',
+                        'user_number': 'N/A',
+                        'role': 'unknown'
+                    }
             else:
-                # Пытаемся найти по имени оператора в строковом поле
-                operator_name = cargo.get('created_by_operator') or cargo.get('accepting_operator')
-                cargo_data['accepting_operator'] = operator_name if operator_name else 'Неизвестно'
-                cargo_data['accepting_operator_phone'] = 'Не указан'
+                # Пытаемся найти по created_by в операторе
+                creator_id = cargo.get('created_by')
+                if creator_id:
+                    accepting_operator = db.users.find_one({"id": creator_id})
+                    if accepting_operator and accepting_operator.get('role') in ['warehouse_operator', 'admin']:
+                        accepting_operator_info = {
+                            'operator_id': accepting_operator['id'],
+                            'operator_name': accepting_operator.get('full_name', 'Неизвестно'),
+                            'operator_phone': accepting_operator.get('phone', 'Не указан'),
+                            'user_number': accepting_operator.get('user_number', 'N/A'),
+                            'role': accepting_operator.get('role', 'unknown')
+                        }
+                        cargo_data['accepting_operator'] = accepting_operator.get('full_name', 'Неизвестно')
+                        cargo_data['accepting_operator_phone'] = accepting_operator.get('phone', 'Не указан')
+                    else:
+                        # Пытаемся найти по имени оператора в строковом поле
+                        operator_name = cargo.get('created_by_operator') or cargo.get('accepting_operator')
+                        cargo_data['accepting_operator'] = operator_name if operator_name else 'Неизвестно'
+                        cargo_data['accepting_operator_phone'] = 'Не указан'
+                        accepting_operator_info = {
+                            'operator_id': creator_id if creator_id else 'unknown',
+                            'operator_name': operator_name if operator_name else 'Неизвестно',
+                            'operator_phone': 'Не указан',
+                            'user_number': 'N/A',
+                            'role': 'unknown'
+                        }
+                else:
+                    # Пытаемся найти по имени оператора в строковом поле
+                    operator_name = cargo.get('created_by_operator') or cargo.get('accepting_operator')
+                    cargo_data['accepting_operator'] = operator_name if operator_name else 'Неизвестно'
+                    cargo_data['accepting_operator_phone'] = 'Не указан'
+                    accepting_operator_info = {
+                        'operator_id': 'unknown',
+                        'operator_name': operator_name if operator_name else 'Неизвестно',
+                        'operator_phone': 'Не указан',
+                        'user_number': 'N/A',
+                        'role': 'unknown'
+                    }
+            
+            # Добавляем полную информацию об операторе в отдельное поле
+            cargo_data['accepting_operator_info'] = accepting_operator_info
             
             # Добавляем информацию о маршруте и исходном складе
             cargo_data['route'] = cargo.get('route', 'Не указан')
