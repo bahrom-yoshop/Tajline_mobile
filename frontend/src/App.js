@@ -9660,13 +9660,13 @@ function App() {
                                           size="sm"
                                           variant="outline"
                                           onClick={() => {
-                                            // Показать QR код груза
-                                            showAlert('QR код для груза ' + item.cargo_number, 'info');
+                                            setQrGenerateCargoNumber(item.cargo_number);
+                                            setShowQRGenerateModal(true);
                                           }}
-                                          className="flex items-center text-xs px-2 py-1"
+                                          className="flex items-center text-xs px-2 py-1 text-blue-600 border-blue-300 hover:bg-blue-50"
                                         >
                                           <QrCode className="mr-1 h-3 w-3" />
-                                          QR
+                                          QR код
                                         </Button>
                                         
                                         {/* Кнопка быстрого размещения для оплаченных грузов */}
