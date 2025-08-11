@@ -1798,7 +1798,7 @@ function App() {
     // Очистка при размонтировании или изменении зависимостей
     return () => {
       if (modalScannerRef.current) {
-        modalScannerRef.current.stop().catch(console.error);
+        safeStopQrScanner(modalScannerRef.current, "qr-reader-modal", "Modal Scanner").catch(console.error);
         modalScannerRef.current = null;
       }
     };
