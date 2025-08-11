@@ -11192,7 +11192,10 @@ function App() {
                                       <FileText className="mr-2 h-4 w-4" />
                                       Отчет по складу
                                     </Button>
-                                    <Button variant="outline">
+                                    <Button 
+                                      variant="outline"
+                                      onClick={() => openWarehouseManagement(warehouse)}
+                                    >
                                       <Settings className="mr-2 h-4 w-4" />
                                       Управление ячейками
                                     </Button>
