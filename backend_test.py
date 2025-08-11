@@ -26871,6 +26871,369 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_accepting_operator_info_endpoint(self):
+        """Test обновленный endpoint /api/operator/cargo/available-for-placement для добавления информации о принимающем операторе"""
+        print("\n🎯 ACCEPTING OPERATOR INFO ENDPOINT TESTING")
+        print("   📋 Testing updated endpoint /api/operator/cargo/available-for-placement for accepting operator information")
+        
+        all_success = True
+        
+        # Test 1: АВТОРИЗАЦИЯ ПОД ОПЕРАТОРОМ СКЛАДА
+        print("\n   🔐 Test 1: WAREHOUSE OPERATOR AUTHENTICATION...")
+        
+        # Login as warehouse operator (+79777888999/warehouse123)
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        operator_user = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            operator_phone = operator_user.get('phone')
+            operator_user_number = operator_user.get('user_number')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            print(f"   📞 Phone: {operator_phone}")
+            print(f"   🔢 User Number: {operator_user_number}")
+            
+            # Store operator token for further tests
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+            return False
+        
+        # Test 2: ТЕСТИРОВАНИЕ GET /api/operator/cargo/available-for-placement
+        print("\n   📦 Test 2: GET AVAILABLE CARGO FOR PLACEMENT...")
+        
+        success, available_cargo_response = self.run_test(
+            "Get Available Cargo for Placement",
+            "GET",
+            "/api/operator/cargo/available-for-placement",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if not success:
+            print("   ❌ Failed to get available cargo for placement")
+            all_success = False
+            return False
+        
+        print("   ✅ Successfully retrieved available cargo for placement")
+        
+        # Test 3: ПРОВЕРКА СТРУКТУРЫ ОТВЕТА
+        print("\n   📋 Test 3: RESPONSE STRUCTURE VERIFICATION...")
+        
+        if available_cargo_response and isinstance(available_cargo_response, dict):
+            print("   ✅ Response is a valid dictionary")
+            
+            # Check pagination structure
+            pagination_fields = ['items', 'pagination']
+            missing_pagination = [field for field in pagination_fields if field not in available_cargo_response]
+            
+            if not missing_pagination:
+                print("   ✅ Pagination structure present")
+                
+                # Check pagination details
+                pagination = available_cargo_response.get('pagination', {})
+                pagination_required = ['total_count', 'page', 'per_page', 'total_pages', 'has_next', 'has_prev', 'next_page', 'prev_page']
+                pagination_missing = [field for field in pagination_required if field not in pagination]
+                
+                if not pagination_missing:
+                    print("   ✅ All pagination fields present")
+                    total_count = pagination.get('total_count', 0)
+                    page = pagination.get('page', 1)
+                    per_page = pagination.get('per_page', 25)
+                    print(f"   📊 Total cargo: {total_count}, Page: {page}, Per page: {per_page}")
+                else:
+                    print(f"   ❌ Missing pagination fields: {pagination_missing}")
+                    all_success = False
+            else:
+                print(f"   ❌ Missing pagination structure: {missing_pagination}")
+                all_success = False
+            
+            # Get cargo items
+            cargo_items = available_cargo_response.get('items', [])
+            cargo_count = len(cargo_items)
+            print(f"   📦 Found {cargo_count} cargo items available for placement")
+            
+        else:
+            print("   ❌ Invalid response structure")
+            all_success = False
+            return False
+        
+        # Test 4: ПРОВЕРКА НОВЫХ ПОЛЕЙ О ПРИНИМАЮЩЕМ ОПЕРАТОРЕ
+        print("\n   👤 Test 4: ACCEPTING OPERATOR FIELDS VERIFICATION...")
+        
+        if cargo_count > 0:
+            # Test with first cargo item
+            sample_cargo = cargo_items[0]
+            cargo_number = sample_cargo.get('cargo_number', 'Unknown')
+            print(f"   📦 Testing with cargo: {cargo_number}")
+            
+            # Test 4.1: Check accepting_operator field
+            print("\n   📝 Test 4.1: accepting_operator field...")
+            accepting_operator = sample_cargo.get('accepting_operator')
+            if accepting_operator is not None:
+                print(f"   ✅ accepting_operator present: {accepting_operator}")
+                if accepting_operator != 'Неизвестно':
+                    print("   ✅ accepting_operator has valid value")
+                else:
+                    print("   ⚠️  accepting_operator is 'Неизвестно' (may be expected)")
+            else:
+                print("   ❌ accepting_operator field missing")
+                all_success = False
+            
+            # Test 4.2: Check accepting_operator_phone field
+            print("\n   📞 Test 4.2: accepting_operator_phone field...")
+            accepting_operator_phone = sample_cargo.get('accepting_operator_phone')
+            if accepting_operator_phone is not None:
+                print(f"   ✅ accepting_operator_phone present: {accepting_operator_phone}")
+                if accepting_operator_phone != 'Не указан':
+                    print("   ✅ accepting_operator_phone has valid value")
+                else:
+                    print("   ⚠️  accepting_operator_phone is 'Не указан' (may be expected)")
+            else:
+                print("   ❌ accepting_operator_phone field missing")
+                all_success = False
+            
+            # Test 4.3: Check accepting_operator_info object
+            print("\n   📋 Test 4.3: accepting_operator_info object...")
+            accepting_operator_info = sample_cargo.get('accepting_operator_info')
+            if accepting_operator_info is not None and isinstance(accepting_operator_info, dict):
+                print("   ✅ accepting_operator_info object present")
+                
+                # Check required fields in accepting_operator_info
+                required_info_fields = ['operator_id', 'operator_name', 'operator_phone', 'user_number', 'role']
+                missing_info_fields = [field for field in required_info_fields if field not in accepting_operator_info]
+                
+                if not missing_info_fields:
+                    print("   ✅ All required fields in accepting_operator_info present")
+                    
+                    # Display the operator info
+                    operator_id = accepting_operator_info.get('operator_id')
+                    operator_name = accepting_operator_info.get('operator_name')
+                    operator_phone = accepting_operator_info.get('operator_phone')
+                    user_number = accepting_operator_info.get('user_number')
+                    role = accepting_operator_info.get('role')
+                    
+                    print(f"   👤 Operator ID: {operator_id}")
+                    print(f"   👤 Operator Name: {operator_name}")
+                    print(f"   📞 Operator Phone: {operator_phone}")
+                    print(f"   🔢 User Number: {user_number}")
+                    print(f"   👑 Role: {role}")
+                    
+                    # Verify data types
+                    if isinstance(operator_id, str) and operator_id:
+                        print("   ✅ operator_id is valid string")
+                    else:
+                        print(f"   ❌ operator_id invalid: {operator_id}")
+                        all_success = False
+                    
+                    if isinstance(operator_name, str) and operator_name:
+                        print("   ✅ operator_name is valid string")
+                    else:
+                        print(f"   ❌ operator_name invalid: {operator_name}")
+                        all_success = False
+                    
+                    if isinstance(operator_phone, str) and operator_phone:
+                        print("   ✅ operator_phone is valid string")
+                    else:
+                        print(f"   ❌ operator_phone invalid: {operator_phone}")
+                        all_success = False
+                    
+                    if isinstance(user_number, str) and user_number:
+                        print("   ✅ user_number is valid string")
+                    else:
+                        print(f"   ❌ user_number invalid: {user_number}")
+                        all_success = False
+                    
+                    if isinstance(role, str) and role:
+                        print("   ✅ role is valid string")
+                    else:
+                        print(f"   ❌ role invalid: {role}")
+                        all_success = False
+                        
+                else:
+                    print(f"   ❌ Missing fields in accepting_operator_info: {missing_info_fields}")
+                    all_success = False
+            else:
+                print("   ❌ accepting_operator_info object missing or invalid")
+                all_success = False
+        else:
+            print("   ⚠️  No cargo items available for testing operator fields")
+            print("   ℹ️  This may be expected if no cargo is ready for placement")
+        
+        # Test 5: ПРОВЕРКА ЛОГИКИ ОПРЕДЕЛЕНИЯ ПРИНИМАЮЩЕГО ОПЕРАТОРА
+        print("\n   🔍 Test 5: ACCEPTING OPERATOR LOGIC VERIFICATION...")
+        
+        if cargo_count > 0:
+            # Check multiple cargo items to verify logic consistency
+            operator_logic_test_count = min(3, cargo_count)  # Test up to 3 items
+            
+            for i in range(operator_logic_test_count):
+                cargo_item = cargo_items[i]
+                cargo_number = cargo_item.get('cargo_number', f'Item_{i}')
+                
+                print(f"\n   📦 Testing logic for cargo {cargo_number}...")
+                
+                # Check if operator info is consistent
+                accepting_operator = cargo_item.get('accepting_operator')
+                accepting_operator_phone = cargo_item.get('accepting_operator_phone')
+                accepting_operator_info = cargo_item.get('accepting_operator_info', {})
+                
+                info_operator_name = accepting_operator_info.get('operator_name')
+                info_operator_phone = accepting_operator_info.get('operator_phone')
+                
+                # Verify consistency between fields
+                if accepting_operator == info_operator_name:
+                    print(f"   ✅ Operator name consistent: {accepting_operator}")
+                else:
+                    print(f"   ❌ Operator name inconsistent: {accepting_operator} vs {info_operator_name}")
+                    all_success = False
+                
+                if accepting_operator_phone == info_operator_phone:
+                    print(f"   ✅ Operator phone consistent: {accepting_operator_phone}")
+                else:
+                    print(f"   ❌ Operator phone inconsistent: {accepting_operator_phone} vs {info_operator_phone}")
+                    all_success = False
+                
+                # Check if operator info makes sense
+                operator_id = accepting_operator_info.get('operator_id')
+                role = accepting_operator_info.get('role')
+                
+                if operator_id and operator_id != 'unknown':
+                    print(f"   ✅ Valid operator ID found: {operator_id}")
+                    
+                    if role in ['warehouse_operator', 'admin']:
+                        print(f"   ✅ Valid operator role: {role}")
+                    else:
+                        print(f"   ⚠️  Unexpected operator role: {role}")
+                else:
+                    print(f"   ⚠️  No valid operator ID found: {operator_id}")
+        
+        # Test 6: ПРОВЕРКА ВОЗВРАТА ГРУЗОВ ГОТОВЫХ К РАЗМЕЩЕНИЮ
+        print("\n   🎯 Test 6: CARGO READY FOR PLACEMENT VERIFICATION...")
+        
+        if cargo_count > 0:
+            ready_for_placement_count = 0
+            paid_cargo_count = 0
+            
+            for cargo_item in cargo_items:
+                # Check if cargo is marked as ready for placement
+                ready_for_placement = cargo_item.get('ready_for_placement')
+                placement_status = cargo_item.get('placement_status')
+                processing_status = cargo_item.get('processing_status')
+                
+                if ready_for_placement:
+                    ready_for_placement_count += 1
+                
+                if processing_status == 'paid':
+                    paid_cargo_count += 1
+                
+                # Verify cargo is actually ready for placement
+                warehouse_location = cargo_item.get('warehouse_location')
+                block_number = cargo_item.get('block_number')
+                shelf_number = cargo_item.get('shelf_number')
+                cell_number = cargo_item.get('cell_number')
+                
+                # Should not have warehouse location set yet
+                if not warehouse_location or warehouse_location in ['', None]:
+                    # Good - not placed yet
+                    pass
+                else:
+                    print(f"   ⚠️  Cargo {cargo_item.get('cargo_number')} already has warehouse_location: {warehouse_location}")
+                
+                # Should not have placement coordinates yet
+                if not any([block_number, shelf_number, cell_number]):
+                    # Good - not placed yet
+                    pass
+                else:
+                    print(f"   ⚠️  Cargo {cargo_item.get('cargo_number')} already has placement coordinates")
+            
+            print(f"   📊 Ready for placement: {ready_for_placement_count}/{cargo_count}")
+            print(f"   💰 Paid cargo: {paid_cargo_count}/{cargo_count}")
+            
+            if ready_for_placement_count == cargo_count:
+                print("   ✅ All cargo marked as ready for placement")
+            else:
+                print(f"   ❌ Not all cargo marked as ready: {ready_for_placement_count}/{cargo_count}")
+                all_success = False
+            
+            if paid_cargo_count == cargo_count:
+                print("   ✅ All cargo is paid (correct for placement)")
+            else:
+                print(f"   ❌ Not all cargo is paid: {paid_cargo_count}/{cargo_count}")
+                all_success = False
+        
+        # Test 7: ПРОВЕРКА ПОЛНОЙ ИНФОРМАЦИИ О ТОМ, КТО ПРИНЯЛ ГРУЗ
+        print("\n   📋 Test 7: COMPLETE ACCEPTING OPERATOR INFORMATION...")
+        
+        if cargo_count > 0:
+            complete_info_count = 0
+            
+            for cargo_item in cargo_items:
+                cargo_number = cargo_item.get('cargo_number', 'Unknown')
+                accepting_operator_info = cargo_item.get('accepting_operator_info', {})
+                
+                # Check if we have complete information
+                required_fields = ['operator_id', 'operator_name', 'operator_phone', 'user_number', 'role']
+                complete_fields = 0
+                
+                for field in required_fields:
+                    value = accepting_operator_info.get(field)
+                    if value and value not in ['Неизвестно', 'Не указан', 'N/A', 'unknown', '']:
+                        complete_fields += 1
+                
+                if complete_fields >= 4:  # At least 4 out of 5 fields should be complete
+                    complete_info_count += 1
+                    print(f"   ✅ Complete info for {cargo_number}: {complete_fields}/5 fields")
+                else:
+                    print(f"   ⚠️  Incomplete info for {cargo_number}: {complete_fields}/5 fields")
+            
+            completion_rate = (complete_info_count / cargo_count * 100) if cargo_count > 0 else 0
+            print(f"   📊 Complete operator info rate: {complete_info_count}/{cargo_count} ({completion_rate:.1f}%)")
+            
+            if completion_rate >= 80:  # At least 80% should have complete info
+                print("   ✅ Good completion rate for operator information")
+            else:
+                print("   ⚠️  Low completion rate for operator information")
+        
+        # SUMMARY
+        print("\n   📊 ACCEPTING OPERATOR INFO ENDPOINT TESTING SUMMARY:")
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Accepting operator info endpoint working perfectly!")
+            print("   ✅ Warehouse operator authentication successful")
+            print("   ✅ GET /api/operator/cargo/available-for-placement accessible")
+            print("   ✅ Response structure correct with pagination")
+            print("   ✅ accepting_operator field present")
+            print("   ✅ accepting_operator_phone field present")
+            print("   ✅ accepting_operator_info object with all required fields")
+            print("   ✅ Operator information logic working correctly")
+            print("   ✅ Cargo ready for placement with full operator info")
+        else:
+            print("   ❌ SOME TESTS FAILED - Accepting operator info endpoint needs attention")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
