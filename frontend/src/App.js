@@ -1819,53 +1819,105 @@ function App() {
     }
   };
 
-  // New function: Check camera availability before starting placement
+  // New function: Check camera availability before starting placement - Enhanced for mobile
   const checkCameraAvailability = async () => {
     try {
-      console.log('Checking camera availability...');
+      console.log('🔍 Проверка доступности камеры для мобильных устройств...');
       
       // Check if getUserMedia is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        console.log('Camera API not supported');
+        console.log('❌ Camera API не поддерживается браузером');
         return false;
       }
       
-      // Enhanced camera request for mobile devices
+      // Enhanced mobile-first camera constraints
       const constraints = {
         video: {
-          facingMode: { ideal: "environment" }, // Prefer back camera
-          width: { ideal: 1280, min: 640 },
-          height: { ideal: 720, min: 480 }
+          facingMode: { 
+            ideal: "environment", // Try back camera first
+            exact: undefined // Allow fallback to front camera
+          },
+          width: { 
+            ideal: 1920, // Higher resolution for better QR detection
+            max: 1920,
+            min: 640 
+          },
+          height: { 
+            ideal: 1080,
+            max: 1080, 
+            min: 480 
+          },
+          frameRate: { ideal: 30, min: 10 } // Better frame rate for mobile
         }
       };
       
-      // Request camera permission with mobile-friendly constraints
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log('Camera permission granted for mobile');
+      console.log('🔐 Запрос разрешения камеры...');
       
-      // Stop the test stream
-      stream.getTracks().forEach(track => track.stop());
+      // Request camera permission with extended timeout for mobile
+      const stream = await Promise.race([
+        navigator.mediaDevices.getUserMedia(constraints),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Camera timeout')), 10000) // 10 second timeout
+        )
+      ]);
       
-      // Check available cameras with mobile detection
+      console.log('✅ Разрешение камеры получено для мобильного устройства');
+      
+      // Get video track info for debugging
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        const settings = videoTrack.getSettings();
+        console.log('📹 Настройки камеры:', {
+          width: settings.width,
+          height: settings.height,
+          facingMode: settings.facingMode,
+          frameRate: settings.frameRate
+        });
+      }
+      
+      // Stop the test stream immediately
+      stream.getTracks().forEach(track => {
+        track.stop();
+        console.log('⏹️ Тестовый поток камеры остановлен');
+      });
+      
+      // Additional delay for mobile camera stabilization
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Check available cameras with better error handling
+      console.log('🎥 Получение списка доступных камер...');
       const cameras = await Html5Qrcode.getCameras();
-      console.log(`Found ${cameras.length} cameras for mobile device`);
+      
+      console.log(`📱 Найдено камер: ${cameras.length}`);
+      cameras.forEach((camera, index) => {
+        console.log(`  Камера ${index + 1}: ${camera.label || 'Без названия'} (ID: ${camera.id})`);
+      });
       
       if (!cameras || cameras.length === 0) {
-        console.log('No cameras found on mobile device');
+        console.log('❌ Камеры не найдены на мобильном устройстве');
         return false;
       }
       
-      console.log('Mobile camera availability check passed');
+      console.log('✅ Проверка доступности камеры пройдена успешно');
       return true;
       
     } catch (error) {
-      console.log('Mobile camera availability check failed:', error.name, error.message);
+      console.error('❌ Ошибка проверки доступности камеры:', error.name, error.message);
       
-      // Special handling for mobile-specific errors
+      // Enhanced error handling for different mobile scenarios
       if (error.name === 'NotAllowedError') {
-        console.log('Camera permission denied on mobile - user needs to allow');
+        console.log('🚫 Разрешение камеры отклонено пользователем - требуется разрешить доступ');
+        showAlert('Разрешите доступ к камере в настройках браузера для сканирования QR кодов', 'warning');
       } else if (error.name === 'NotFoundError') {
-        console.log('No camera found on mobile device');
+        console.log('📵 Камера не найдена на устройстве');
+      } else if (error.name === 'NotReadableError') {
+        console.log('🔒 Камера уже используется другим приложением');
+        showAlert('Камера используется другим приложением. Закройте другие приложения камеры.', 'warning');
+      } else if (error.message === 'Camera timeout') {
+        console.log('⏱️ Превышено время ожидания инициализации камеры');
+        showAlert('Превышено время ожидания инициализации камеры', 'warning');
+      } else {
+        console.log('❓ Неизвестная ошибка камеры:', error.message);
       }
       
       return false;
