@@ -7818,10 +7818,10 @@ function App() {
                     </CardContent>
                   </Card>
 
-                {/* Placement Statistics */}
-                <Card 
-                  className={`mb-6 ${placementStatistics ? 'react-visible' : 'react-hidden'}`}
-                >
+                  {/* Placement Statistics */}
+                  <Card 
+                    className={`mb-6 ${placementStatistics ? 'react-visible' : 'react-hidden'}`}
+                  >
                     <CardHeader>
                       <CardTitle className="flex items-center">
                         <BarChart3 className="mr-2 h-5 w-5" />
