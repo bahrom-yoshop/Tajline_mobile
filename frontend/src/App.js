@@ -10694,7 +10694,7 @@ function App() {
                           </div>
                         )}
 
-                        {placementStep === 'confirm' && (
+                        {mobilePlacementStep === 'confirm' && (
                           <div className="space-y-4">
                             <div className="text-center">
                               <h3 className="font-semibold text-green-600">Подтверждение размещения</h3>
