@@ -7668,9 +7668,10 @@ function App() {
                                       console.log('🔄 Обычная попытка повтора камеры...');
                                       setScannerActive(false);
                                       
-                                      if (html5QrCodePlacement) {
+                                      if (html5QrCodePlacementRef.current) {
                                         try {
-                                          await safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Normal Retry");
+                                          await safeStopQrScanner(html5QrCodePlacementRef.current, "qr-reader-placement", "Normal Retry");
+                                          html5QrCodePlacementRef.current = null;
                                           setHtml5QrCodePlacement(null);
                                         } catch (error) {
                                           console.warn('⚠️ Предупреждение при остановке:', error);
