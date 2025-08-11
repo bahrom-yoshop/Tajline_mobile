@@ -1344,6 +1344,72 @@ function App() {
           setScannerError('Неверный формат QR-кода ячейки');
           showAlert('Неверный формат QR-кода ячейки. Попробуйте еще раз.', 'error');
         }
+      } else if (scannerMode === 'cargo-qr-search') {
+        // Режим поиска груза
+        const cargoNumber = extractCargoNumber(scannedData);
+        const cargoInfo = await getCargoByNumber(cargoNumber);
+        
+        if (cargoInfo) {
+          setSearchResult(cargoInfo);
+          setSearchScannerActive(false);
+          setScannerActive(false);
+          showAlert(`Груз ${cargoInfo.cargo_number} найден!`, 'success');
+        } else {
+          setScannerError('Груз не найден');
+          showAlert('Груз не найден в системе', 'error');
+        }
+      } else if (scannerMode === 'mobile-placement-cargo') {
+        // Мобильное размещение - сканирование груза
+        const cargoNumber = extractCargoNumber(scannedData);
+        const cargoInfo = await getCargoByNumber(cargoNumber);
+        
+        if (cargoInfo) {
+          setScannedCargo(cargoInfo);
+          setMobilePlacementStep('scan-cell');
+          setScannerMode('mobile-placement-cell');
+          showAlert(`Груз ${cargoInfo.cargo_number} отсканирован. Теперь отсканируйте ячейку.`, 'success');
+        } else {
+          setScannerError('Груз не найден');
+          showAlert('Груз не найден в системе', 'error');
+        }
+      } else if (scannerMode === 'mobile-placement-cell') {
+        // Мобильное размещение - сканирование ячейки
+        const cellData = parseCellQRCode(scannedData);
+        if (cellData) {
+          setScannedCell(cellData);
+          setMobilePlacementStep('confirm');
+          setScannerActive(false);
+          showAlert('Ячейка отсканирована. Подтвердите размещение.', 'success');
+        } else {
+          setScannerError('Неверный формат QR-кода ячейки');
+          showAlert('Неверный формат QR-кода ячейки. Попробуйте еще раз.', 'error');
+        }
+      } else if (scannerMode === 'mobile-receive-cargo') {
+        // Мобильный приём - сканирование груза
+        const cargoNumber = extractCargoNumber(scannedData);
+        const cargoInfo = await getCargoByNumber(cargoNumber);
+        
+        if (cargoInfo) {
+          setReceivedCargo(cargoInfo);
+          setReceiveStep('scan-new-cell');
+          setScannerMode('mobile-receive-cell');
+          showAlert(`Груз ${cargoInfo.cargo_number} готов к приёму. Отсканируйте новую ячейку.`, 'success');
+        } else {
+          setScannerError('Груз не найден');
+          showAlert('Груз не найден в системе', 'error');
+        }
+      } else if (scannerMode === 'mobile-receive-cell') {
+        // Мобильный приём - сканирование новой ячейки
+        const cellData = parseCellQRCode(scannedData);
+        if (cellData) {
+          setNewCell(cellData);
+          setReceiveStep('confirm');
+          setScannerActive(false);
+          showAlert('Новая ячейка отсканирована. Подтвердите приём груза.', 'success');
+        } else {
+          setScannerError('Неверный формат QR-кода ячейки');
+          showAlert('Неверный формат QR-кода ячейки. Попробуйте еще раз.', 'error');
+        }
       }
     } catch (error) {
       console.error('Barcode scan error:', error);
