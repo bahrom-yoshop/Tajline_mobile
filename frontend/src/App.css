@@ -48,6 +48,15 @@ body {
 /* Стили для QR-сканера */
 #qr-reader {
   background: #000;
+
+/* React-safe visibility classes to prevent DOM conflicts */
+.react-visible {
+  display: block !important;
+}
+
+.react-hidden {
+  display: none !important;
+}
   border-radius: 8px;
   position: relative;
 }
