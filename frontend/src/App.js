@@ -17309,11 +17309,21 @@ function App() {
               <Input
                 id="cargo-number-input"
                 type="text"
-                placeholder="Введите номер груза"
+                placeholder="Введите номер груза (например: TEMP-123456)"
                 value={qrGenerateCargoNumber}
-                onChange={(e) => setQrGenerateCargoNumber(e.target.value)}
+                onChange={(e) => {
+                  setQrGenerateCargoNumber(e.target.value);
+                  // Clear previous QR when user changes input
+                  if (generatedSingleQR) {
+                    setGeneratedSingleQR(null);
+                  }
+                }}
                 disabled={qrGenerateLoading}
+                className="mt-1"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Система проверит существование груза перед генерацией QR кода
+              </p>
             </div>
             
             {generatedSingleQR && (
