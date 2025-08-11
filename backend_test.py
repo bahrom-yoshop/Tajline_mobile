@@ -27489,8 +27489,8 @@ ID склада: {target_warehouse_id}"""
         # Run test suites in order - prioritizing CURRENT REVIEW REQUEST
         test_suites = [
             ("Health Check", self.test_health_check),
-            # 📱 PRIORITY TEST: NEW QR CODE FUNCTIONS AND CARGO PLACEMENT (Current Review Request - HIGH PRIORITY)
-            ("📱 NEW QR CODE FUNCTIONS AND CARGO PLACEMENT", self.test_new_qr_code_functions_and_cargo_placement),
+            # 📱 PRIORITY TEST: IMPROVED QR CODE SYSTEM WITH CARGO EXISTENCE VERIFICATION (Current Review Request - HIGH PRIORITY)
+            ("📱 IMPROVED QR CODE SYSTEM WITH CARGO EXISTENCE VERIFICATION", self.test_improved_qr_code_system_with_cargo_existence_verification),
             # 🔧 PRIORITY TEST: REACT DOM FIXES BACKEND SUPPORT (Current Review Request)
             ("🔧 REACT DOM FIXES BACKEND SUPPORT", self.test_react_dom_fixes_backend_support),
             # 🎯 PRIORITY TEST: CARGO ACCEPTANCE FIXES AND NEW ENDPOINTS (Current Review Request)
