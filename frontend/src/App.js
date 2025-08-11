@@ -1069,6 +1069,36 @@ function App() {
     await stopCameraScanner();
   };
 
+  // Мобильные функции
+  const startCargoSearch = async () => {
+    setSearchScannerActive(true);
+    setSearchResult(null);
+    setScannerMode('cargo-qr-search');
+    setScannerActive(true);
+    setScannerError(null);
+    await startCameraScanner();
+  };
+
+  const startMobilePlacement = async () => {
+    setMobilePlacementStep('scan-cargo');
+    setScannedCargo(null);
+    setScannedCell(null);
+    setScannerMode('cargo-barcode');
+    setScannerActive(true);
+    setScannerError(null);
+    await startCameraScanner();
+  };
+
+  const startCargoReceive = async () => {
+    setReceiveStep('scan-cargo');
+    setReceivedCargo(null);
+    setNewCell(null);
+    setScannerMode('cargo-barcode');
+    setScannerActive(true);
+    setScannerError(null);
+    await startCameraScanner();
+  };
+
   const handleBarcodeScan = async (scannedData) => {
     try {
       if (scannerMode === 'cargo-barcode') {
