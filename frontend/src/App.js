@@ -1099,6 +1099,102 @@ function App() {
     await startCameraScanner();
   };
 
+  // Функции генерации QR кодов
+  const generateCargoQR = async () => {
+    if (!qrCargoNumber.trim()) {
+      showAlert('Введите номер груза', 'error');
+      return;
+    }
+
+    try {
+      const response = await apiCall('/api/cargo/generate-qr', 'POST', {
+        cargo_number: qrCargoNumber.trim()
+      });
+      
+      if (response && response.qr_code) {
+        setGeneratedCargoQR(response.qr_code);
+        showAlert('QR код груза создан успешно!', 'success');
+      }
+    } catch (error) {
+      console.error('Error generating cargo QR:', error);
+      showAlert(`Ошибка создания QR кода: ${error.message}`, 'error');
+    }
+  };
+
+  const generateCellQR = async () => {
+    if (!qrCellCode.trim()) {
+      showAlert('Введите код ячейки', 'error');
+      return;
+    }
+
+    try {
+      const response = await apiCall('/api/warehouse/cell/generate-qr', 'POST', {
+        cell_code: qrCellCode.trim()
+      });
+      
+      if (response && response.qr_code) {
+        setGeneratedCellQR(response.qr_code);
+        showAlert('QR код ячейки создан успешно!', 'success');
+      }
+    } catch (error) {
+      console.error('Error generating cell QR:', error);
+      showAlert(`Ошибка создания QR кода: ${error.message}`, 'error');
+    }
+  };
+
+  // Функции подтверждения мобильных операций
+  const confirmMobilePlacement = async () => {
+    if (!scannedCargo || !scannedCell) {
+      showAlert('Недостаточно данных для размещения', 'error');
+      return;
+    }
+
+    try {
+      await handlePlaceCargo(
+        scannedCargo.id,
+        scannedCell.warehouse_id,
+        scannedCell.block_number,
+        scannedCell.shelf_number,
+        scannedCell.cell_number
+      );
+      
+      showAlert('Груз успешно размещен!', 'success');
+      setMobilePlacementStep('start');
+      setScannedCargo(null);
+      setScannedCell(null);
+      await stopScanner();
+    } catch (error) {
+      console.error('Error confirming placement:', error);
+      showAlert(`Ошибка размещения: ${error.message}`, 'error');
+    }
+  };
+
+  const confirmCargoReceive = async () => {
+    if (!receivedCargo || !newCell) {
+      showAlert('Недостаточно данных для приёма груза', 'error');
+      return;
+    }
+
+    try {
+      await handlePlaceCargo(
+        receivedCargo.id,
+        newCell.warehouse_id,
+        newCell.block_number,
+        newCell.shelf_number,
+        newCell.cell_number
+      );
+      
+      showAlert('Груз успешно принят и размещен!', 'success');
+      setReceiveStep('start');
+      setReceivedCargo(null);
+      setNewCell(null);
+      await stopScanner();
+    } catch (error) {
+      console.error('Error confirming receive:', error);
+      showAlert(`Ошибка приёма груза: ${error.message}`, 'error');
+    }
+  };
+
   const handleBarcodeScan = async (scannedData) => {
     try {
       if (scannerMode === 'cargo-barcode') {
