@@ -18355,12 +18355,24 @@ function App() {
                       // Wait a moment for UI feedback
                       await new Promise(resolve => setTimeout(resolve, 1000));
                       
+                      // Check camera availability first
                       const cameraAvailable = await checkCameraAvailability();
                       if (cameraAvailable) {
+                        console.log('✅ Камера доступна, запуск сканера для retry...');
                         showAlert('✅ Камера найдена! Запуск сканера...', 'success');
-                        await startQRScannerForPlacement();
+                        
+                        // Give extra time for modal to stabilize after retry
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+                        
+                        try {
+                          await startQRScannerForPlacement();
+                        } catch (error) {
+                          console.error('❌ Ошибка при retry запуске сканера:', error);
+                          showAlert('❌ Не удалось запустить камеру. Используйте ручной ввод ниже.', 'warning');
+                        }
                       } else {
-                        showAlert('📵 Камера по-прежнему недоступна. Продолжите с ручным вводом.', 'warning');
+                        console.log('📵 Камера по-прежнему недоступна после retry');
+                        showAlert('📵 Камера по-прежнему недоступна. Продолжите с ручным вводом ниже.', 'warning');
                       }
                     }}
                     size="sm"
