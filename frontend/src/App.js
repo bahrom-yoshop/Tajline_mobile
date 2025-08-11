@@ -1730,6 +1730,9 @@ function App() {
       return false;
     }
   };
+
+  // New function: Start placement process - improved error handling  
+  const startCargoPlacement = async () => {
     try {
       console.log('Starting cargo placement process...');
       
