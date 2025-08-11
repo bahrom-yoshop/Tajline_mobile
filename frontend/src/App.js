@@ -7592,8 +7592,7 @@ function App() {
 
                 {/* Current Step Content */}
                 <Card 
-                  className="mb-6" 
-                  style={{ display: placementStep === 'scan-cargo' ? 'block' : 'none' }}
+                  className={`mb-6 ${placementStep === 'scan-cargo' ? 'react-visible' : 'react-hidden'}`}
                 >
                   <CardHeader>
                     <CardTitle className="flex items-center">
