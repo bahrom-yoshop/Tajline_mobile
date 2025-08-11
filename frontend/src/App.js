@@ -17978,14 +17978,16 @@ function App() {
             </div>
 
             {/* Camera Scanner - Full screen mode */}
-            {placementActive && (
+            {placementActive && scannerActive && (
               <div className="space-y-3">
                 {/* Debug information */}
-                <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
-                  <div>Статус: {scannerActive ? 'Камера активна' : 'Инициализация...'}</div>
-                  <div>Шаг: {placementStep}</div>
-                  <div>DOM элемент: {document.getElementById("qr-reader-placement") ? 'Найден' : 'Не найден'}</div>
-                </div>
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
+                    <div>Статус: {scannerActive ? 'Камера активна' : 'Инициализация...'}</div>
+                    <div>Шаг: {placementStep}</div>
+                    <div>DOM элемент: {document.getElementById("qr-reader-placement") ? 'Найден' : 'Не найден'}</div>
+                  </div>
+                )}
 
                 {/* Full screen scanner container */}
                 <div className="relative bg-black rounded-lg overflow-hidden">
@@ -18003,23 +18005,21 @@ function App() {
                   />
                   
                   {/* Overlay instructions */}
-                  {scannerActive && (
-                    <div className="absolute top-4 left-4 right-4 z-10">
-                      <div className="bg-black bg-opacity-70 text-white p-3 rounded-lg text-center">
-                        <div className="text-sm font-medium">
-                          {placementStep === 'scan-cargo' ? 
-                            '📦 Отсканируйте QR код груза' : 
-                            '🏠 Отсканируйте QR код ячейки склада'}
-                        </div>
-                        <div className="text-xs text-gray-300 mt-1">
-                          Наведите камеру на QR код
-                        </div>
+                  <div className="absolute top-4 left-4 right-4 z-10">
+                    <div className="bg-black bg-opacity-70 text-white p-3 rounded-lg text-center">
+                      <div className="text-sm font-medium">
+                        {placementStep === 'scan-cargo' ? 
+                          '📦 Отсканируйте QR код груза' : 
+                          '🏠 Отсканируйте QR код ячейки склада'}
+                      </div>
+                      <div className="text-xs text-gray-300 mt-1">
+                        Наведите камеру на QR код
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   {/* Camera switch button */}
-                  {scannerActive && availablePlacementCameras.length > 1 && (
+                  {availablePlacementCameras.length > 1 && (
                     <div className="absolute top-4 right-4 z-10">
                       <Button
                         onClick={switchPlacementCamera}
@@ -18055,18 +18055,24 @@ function App() {
                   </div>
                 </div>
                 
-                {scannerActive ? (
-                  <div className="text-center">
-                    <p className="text-sm text-green-600 font-medium flex items-center justify-center">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                      Камера активна - наведите на QR код
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 text-center">
-                    🔄 Инициализация камеры...
+                <div className="text-center">
+                  <p className="text-sm text-green-600 font-medium flex items-center justify-center">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                    Камера активна - наведите на QR код
                   </p>
-                )}
+                </div>
+              </div>
+            )}
+
+            {/* Camera unavailable message */}
+            {placementActive && !scannerActive && (
+              <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                <div className="text-yellow-800 font-medium mb-2">
+                  📱 Камера недоступна
+                </div>
+                <p className="text-sm text-yellow-700">
+                  Используйте ручной ввод данных ниже для размещения груза
+                </p>
               </div>
             )}
 
