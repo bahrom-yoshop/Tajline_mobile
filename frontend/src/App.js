@@ -1205,6 +1205,32 @@ function App() {
     }
   };
 
+  const confirmMobileReceive = async () => {
+    if (!receivedCargo || !newCell) {
+      showAlert('Недостаточно данных для приёма груза', 'error');
+      return;
+    }
+
+    try {
+      await handlePlaceCargo(
+        receivedCargo.id,
+        newCell.warehouse_id,
+        newCell.block_number,
+        newCell.shelf_number,
+        newCell.cell_number
+      );
+      
+      showAlert('Груз успешно принят и размещен!', 'success');
+      setReceiveStep('start');
+      setReceivedCargo(null);
+      setNewCell(null);
+      await stopScanner();
+    } catch (error) {
+      console.error('Error confirming mobile receive:', error);
+      showAlert(`Ошибка приёма груза: ${error.message}`, 'error');
+    }
+  };
+
   // Функция печати QR кода
   const printQR = (qrCodeData, title) => {
     if (!qrCodeData) {
