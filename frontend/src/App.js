@@ -710,13 +710,8 @@ function App() {
 
   const stopCameraScanner = async () => {
     if (html5QrCode) {
-      try {
-        await html5QrCode.stop();
-        html5QrCode.clear();
-        setHtml5QrCode(null);
-      } catch (error) {
-        console.error('Camera stop error:', error);
-      }
+      await safeStopQrScanner(html5QrCode, "qr-reader", "Main Scanner");
+      setHtml5QrCode(null);
     }
   };
 
