@@ -1736,6 +1736,12 @@ function App() {
     try {
       console.log('Starting cargo placement process...');
       
+      // First check camera availability
+      const cameraAvailable = await checkCameraAvailability();
+      if (!cameraAvailable) {
+        return; // Error message already shown by checkCameraAvailability
+      }
+      
       setPlacementActive(true);
       setPlacementStep('scan-cargo');
       
