@@ -2234,199 +2234,133 @@ function App() {
     }
   };
 
-  // Enhanced QR Scanner for mobile devices with React-safe DOM management
+  // Completely isolated QR Scanner to prevent React removeChild conflicts
   const startQRScannerForPlacement = async () => {
     try {
-      console.log('📱 Запуск мобильного QR сканера для размещения...');
+      console.log('🔧 Запуск изолированного QR сканера для мобильных устройств...');
       
-      // Stop any existing scanner first using ref
-      if (html5QrCodePlacementRef.current) {
-        console.log('⏹️ Остановка существующего мобильного сканера через ref...');
-        await safeStopQrScanner(html5QrCodePlacementRef.current, "qr-reader-placement", "Mobile Placement Scanner Replace");
-        html5QrCodePlacementRef.current = null;
-        setHtml5QrCodePlacement(null);
-      }
-
-      // Enhanced mobile DOM element detection with React-safe access
-      let placementElement = null;
-      let attempts = 0;
-      const maxAttempts = 20;
-      
-      console.log('🔍 Поиск DOM элемента для мобильного сканера...');
-      while (!placementElement && attempts < maxAttempts) {
-        // Use ref for more stable access
-        if (placementQrReaderRef.current) {
-          placementElement = placementQrReaderRef.current;
-          console.log(`✅ DOM элемент найден через ref на попытке ${attempts + 1}`);
-        } else {
-          placementElement = document.getElementById("qr-reader-placement");
-          if (placementElement) {
-            // Store in ref for future access
-            placementQrReaderRef.current = placementElement;
-            console.log(`✅ DOM элемент найден на попытке ${attempts + 1}`);
-          }
-        }
-        
-        if (!placementElement) {
-          console.log(`⏳ Элемент не найден, попытка ${attempts + 1}/${maxAttempts}`);
-          await new Promise(resolve => setTimeout(resolve, 500));
-          attempts++;
-        }
+      // Prevent multiple simultaneous initializations
+      if (isInitializingRef.current) {
+        console.log('⚠️ Сканер уже инициализируется, пропуск...');
+        return;
       }
       
-      if (!placementElement) {
-        throw new Error(`React-safe mobile DOM element 'qr-reader-placement' not found after ${maxAttempts} attempts`);
-      }
+      isInitializingRef.current = true;
       
-      // Ensure element is properly positioned for mobile with React-safe styles
-      const rect = placementElement.getBoundingClientRect();
-      console.log('📐 Мобильный элемент сканера:', {
-        width: rect.width,
-        height: rect.height,
-        top: rect.top,
-        left: rect.left,
-        visible: rect.width > 0 && rect.height > 0
-      });
+      // Complete cleanup first using isolated method
+      await completeQrCleanup("Isolated Scanner Start");
       
-      // React-safe element preparation
-      Object.assign(placementElement.style, {
-        display: 'block',
-        minHeight: '400px',
-        backgroundColor: '#000000',
-        borderRadius: '8px',
-        position: 'relative',
-        overflow: 'hidden'
-      });
+      // Create isolated container to avoid React conflicts
+      const isolatedElementId = createIsolatedQrContainer();
       
-      // Wait for mobile layout to stabilize with React
+      // Wait for isolated container to be ready
       await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Verify isolated element exists
+      const isolatedElement = document.getElementById(isolatedElementId);
+      if (!isolatedElement) {
+        throw new Error('Изолированный контейнер не создан');
+      }
+      
+      console.log('✅ Изолированный контейнер готов для QR сканера');
 
-      console.log('🎥 Получение камер для мобильного устройства...');
-
-      // Get available cameras with enhanced mobile retry
+      // Get cameras with enhanced retry
       let cameras = [];
       let cameraAttempts = 0;
-      const maxCameraAttempts = 5;
+      const maxCameraAttempts = 3;
       
       while (cameras.length === 0 && cameraAttempts < maxCameraAttempts) {
         try {
           cameraAttempts++;
-          console.log(`🔄 Попытка получения камер ${cameraAttempts}/${maxCameraAttempts}...`);
-          
+          console.log(`🎥 Получение камер (попытка ${cameraAttempts}/${maxCameraAttempts})...`);
           cameras = await Html5Qrcode.getCameras();
-          console.log(`📱 Попытка ${cameraAttempts}: найдено камер: ${cameras.length}`);
           
           if (cameras.length === 0 && cameraAttempts < maxCameraAttempts) {
-            console.log('⏳ Камеры не найдены, ожидание 2 секунды...');
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise(resolve => setTimeout(resolve, 1500));
           }
         } catch (error) {
           console.error(`❌ Ошибка получения камер (попытка ${cameraAttempts}):`, error);
           if (cameraAttempts < maxCameraAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise(resolve => setTimeout(resolve, 1500));
           }
         }
       }
       
       if (!cameras || cameras.length === 0) {
-        throw new Error('Камеры не обнаружены на мобильном устройстве после всех попыток');
+        throw new Error('Камеры не найдены для изолированного сканера');
       }
 
-      // Enhanced mobile camera logging
-      console.log('📹 Доступные мобильные камеры:');
-      cameras.forEach((camera, index) => {
-        console.log(`  📷 ${index + 1}: "${camera.label || 'Камера без названия'}" (ID: ${camera.id})`);
-      });
-
-      // Save cameras for mobile switching
+      console.log(`📹 Найдено камер для изолированного сканера: ${cameras.length}`);
       setAvailablePlacementCameras(cameras);
 
-      // Enhanced mobile camera selection
+      // Select best camera
       let selectedCamera = cameras[currentPlacementCameraIndex] || cameras[cameras.length - 1];
-      
-      console.log(`🎬 Выбрана мобильная камера: "${selectedCamera.label}" (индекс: ${currentPlacementCameraIndex})`);
+      console.log(`🎬 Выбрана изолированная камера: "${selectedCamera.label}"`);
 
-      // Initialize mobile-optimized Html5Qrcode instance with React-safe management
-      console.log('🏗️ Создание React-safe мобильного Html5Qrcode экземпляра...');
-      const qrCodeInstance = new Html5Qrcode("qr-reader-placement");
+      // Initialize Html5Qrcode with isolated element
+      console.log('🚀 Создание изолированного Html5Qrcode экземпляра...');
+      const qrCodeInstance = new Html5Qrcode(isolatedElementId);
       
-      // Store in both state and ref for React-safe access
+      // Store instance in ref for safe cleanup
       html5QrCodePlacementRef.current = qrCodeInstance;
       setHtml5QrCodePlacement(qrCodeInstance);
 
       // Mobile-optimized configuration
-      const mobileConfig = {
+      const isolatedConfig = {
         fps: 15,
         qrbox: function(viewfinderWidth, viewfinderHeight) {
           const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          const isMobile = window.innerWidth <= 768;
-          const boxRatio = isMobile ? 0.85 : 0.7;
-          const qrboxSize = Math.floor(minEdge * boxRatio);
-          
-          console.log(`📐 Мобильный QR box: ${qrboxSize}x${qrboxSize} (viewport: ${viewfinderWidth}x${viewfinderHeight})`);
-          return { width: qrboxSize, height: qrboxSize };
+          const boxSize = Math.floor(minEdge * 0.8);
+          console.log(`📐 Изолированный QR box: ${boxSize}x${boxSize}`);
+          return { width: boxSize, height: boxSize };
         },
         aspectRatio: 1.0,
         disableFlip: false,
         videoConstraints: {
           facingMode: "environment",
-          width: { ideal: window.innerWidth > 768 ? 1920 : 1280, max: 1920, min: 640 },
-          height: { ideal: window.innerWidth > 768 ? 1080 : 720, max: 1080, min: 480 },
+          width: { ideal: 1280, max: 1920, min: 640 },
+          height: { ideal: 720, max: 1080, min: 480 },
           frameRate: { ideal: 20, min: 10 }
         },
         experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-        rememberLastUsedCamera: true,
-        showTorchButtonIfSupported: true,
-        showZoomSliderIfSupported: false
+        rememberLastUsedCamera: true
       };
 
-      console.log('🚀 Запуск React-safe мобильного QR сканера...');
+      console.log('🎯 Запуск изолированного сканера с защитой от React конфликтов...');
       
       await qrCodeInstance.start(
         selectedCamera.id,
-        mobileConfig,
+        isolatedConfig,
         (decodedText, decodedResult) => {
-          console.log('🎯 Мобильный QR код успешно отсканирован:', decodedText);
+          console.log('📱 QR код отсканирован изолированным сканером:', decodedText);
           handlePlacementQRScan(decodedText);
         },
         (errorMessage) => {
-          // Suppress frequent mobile scanning errors
           if (!errorMessage.includes('No QR code found') && 
-              !errorMessage.includes('NotFoundException') &&
-              !errorMessage.includes('No MultiFormat Readers') &&
-              !errorMessage.includes('QR code parse error') &&
-              !errorMessage.includes('zxing')) {
-            console.debug('🔍 Мобильное сканирование:', errorMessage);
+              !errorMessage.includes('NotFoundException')) {
+            console.debug('🔍 Изолированное сканирование:', errorMessage);
           }
         }
       );
       
       setScannerActive(true);
-      console.log('✅ React-safe мобильный QR сканер размещения успешно запущен');
-      showAlert('📱 Мобильная камера готова! Наведите на QR код груза.', 'success');
+      isInitializingRef.current = false;
       
-      // Additional mobile user guidance
-      if (window.innerWidth <= 768) {
-        setTimeout(() => {
-          showAlert('💡 Совет: Держите телефон стабильно и убедитесь в хорошем освещении', 'info');
-        }, 3000);
-      }
+      console.log('✅ Изолированный QR сканер успешно запущен без React конфликтов');
+      showAlert('📱 Изолированная камера готова! Наведите на QR код.', 'success');
       
     } catch (error) {
-      console.error('💥 Критическая ошибка React-safe мобильного QR сканера:', error);
-      setScannerActive(false);
+      console.error('💥 Критическая ошибка изолированного QR сканера:', error);
       
-      // Clear refs on error to prevent React conflicts
-      html5QrCodePlacementRef.current = null;
-      setHtml5QrCodePlacement(null);
+      // Complete cleanup on error
+      await completeQrCleanup("Isolated Scanner Error");
       
-      // Enhanced mobile-specific error messages
-      let userMessage = 'Не удалось запустить мобильную камеру';
+      let userMessage = '📵 Не удалось запустить изолированную камеру';
       
-      if (error.message.includes('Camera') || error.message.includes('камер')) {
-        userMessage = '📵 Мобильная камера недоступна. Попробуйте:\n• Разрешить доступ к камере\n• Закрыть другие приложения камеры\n• Перезагрузить браузер';
-      } else if (error.message.includes('React-safe mobile DOM element')) {
-        userMessage = '🔄 Ошибка загрузки мобильного интерфейса. Обновите страницу.';
+      if (error.message.includes('Камеры не найдены')) {
+        userMessage = '📵 Камеры не обнаружены. Проверьте подключение камеры.';
+      } else if (error.message.includes('Изолированный контейнер')) {
+        userMessage = '🔄 Ошибка создания изолированного интерфейса. Попробуйте обновить страницу.';
       }
       
       showAlert(`${userMessage}\n\nИспользуйте ручной ввод ниже.`, 'warning');
