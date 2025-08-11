@@ -1530,6 +1530,9 @@ async def scan_cargo_qr_code(
             "scan_timestamp": datetime.utcnow().isoformat()
         }
         
+    except HTTPException:
+        # Re-raise HTTP exceptions (400, 403, 404) without modification
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error scanning QR code: {str(e)}")
 
