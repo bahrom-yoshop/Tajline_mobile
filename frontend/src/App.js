@@ -209,6 +209,19 @@ function App() {
   const [showQRCodesModal, setShowQRCodesModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   
+  // New QR Generation Modal states
+  const [showQRGenerateModal, setShowQRGenerateModal] = useState(false);
+  const [qrGenerateCargoNumber, setQrGenerateCargoNumber] = useState('');
+  const [generatedSingleQR, setGeneratedSingleQR] = useState(null);
+  const [qrGenerateLoading, setQrGenerateLoading] = useState(false);
+  
+  // New Cargo Placement Modal states  
+  const [showCargoPlacementModal, setShowCargoPlacementModal] = useState(false);
+  const [placementActive, setPlacementActive] = useState(false);
+  const [placementStep, setPlacementStep] = useState('idle'); // 'idle', 'scan-cargo', 'scan-cell'
+  const [scannedCargoForPlacement, setScannedCargoForPlacement] = useState(null);
+  const [placementStatistics, setPlacementStatistics] = useState(null);
+  
   // Application QR code states
   const [applicationQRCode, setApplicationQRCode] = useState(null);
   const [showApplicationQRModal, setShowApplicationQRModal] = useState(false);
