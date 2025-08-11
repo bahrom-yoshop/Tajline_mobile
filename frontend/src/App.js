@@ -7072,6 +7072,18 @@ function App() {
         ]
       },
       {
+        id: 'operations',
+        label: 'Операции',
+        icon: <Target className="w-5 h-5" />,
+        section: 'operations',
+        subsections: [
+          { id: 'operations-search', label: 'Поиск груза' },
+          { id: 'operations-qr-generate', label: 'Генерация QR кодов' },
+          { id: 'operations-placement', label: 'Размещение' },
+          { id: 'operations-receive', label: 'Приём груза' }
+        ]
+      },
+      {
         id: 'cargo-management',
         label: 'Грузы',
         icon: <Package className="w-5 h-5" />,
