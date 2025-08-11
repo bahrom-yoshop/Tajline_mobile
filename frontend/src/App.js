@@ -1709,9 +1709,9 @@ function App() {
     const initializeModalQRScanner = async () => {
       if (showQRScannerModal && scannerMode === 'cargo-qr-search' && scannerActive) {
         try {
-          // Останавливаем предыдущий экземпляр
+          // Останавливаем предыдущий экземпляр безопасно
           if (modalScannerRef.current) {
-            await modalScannerRef.current.stop();
+            await safeStopQrScanner(modalScannerRef.current, "qr-reader-modal", "Modal Scanner");
             modalScannerRef.current = null;
           }
 
