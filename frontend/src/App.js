@@ -238,6 +238,10 @@ function App() {
   const [cellQRResults, setCellQRResults] = useState([]);
   const [cellQRLoading, setCellQRLoading] = useState(false);
   
+  // Manual placement states
+  const [manualCargoNumber, setManualCargoNumber] = useState('');
+  const [manualCellCode, setManualCellCode] = useState('');
+  
   // Application QR code states
   const [applicationQRCode, setApplicationQRCode] = useState(null);
   const [showApplicationQRModal, setShowApplicationQRModal] = useState(false);
