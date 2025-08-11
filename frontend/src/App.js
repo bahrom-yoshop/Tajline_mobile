@@ -1508,7 +1508,11 @@ function App() {
   // New function: Handle QR scan during placement
   const handlePlacementQRScan = async (scannedData) => {
     try {
-      await html5QrCode.stop();
+      // Останавливаем сканер размещения
+      if (html5QrCodePlacement) {
+        await html5QrCodePlacement.stop();
+        setHtml5QrCodePlacement(null);
+      }
       setScannerActive(false);
 
       if (placementStep === 'scan-cargo') {
