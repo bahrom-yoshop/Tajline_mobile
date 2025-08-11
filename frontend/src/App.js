@@ -577,7 +577,43 @@ function App() {
   const [selectAllOperators, setSelectAllOperators] = useState(false); // Выбрать всех операторов
   const [selectAllTransports, setSelectAllTransports] = useState(false); // Выбрать все транспорты
 
-  const showAlert = (message, type = 'info') => {
+  // Универсальная функция для безопасной остановки Html5Qrcode
+  const safeStopQrScanner = async (qrCodeInstance, elementId, instanceName = 'scanner') => {
+    if (!qrCodeInstance) return true;
+    
+    try {
+      // Проверяем существование DOM элемента
+      const domElement = document.getElementById(elementId);
+      if (!domElement) {
+        console.warn(`${instanceName}: DOM element ${elementId} not found, skipping stop`);
+        return true;
+      }
+      
+      // Проверяем состояние сканера
+      const state = qrCodeInstance.getState();
+      if (state === 2) { // SCANNING state
+        console.log(`${instanceName}: Stopping active scanner`);
+        await qrCodeInstance.stop();
+      }
+      
+      // Очищаем сканер
+      await qrCodeInstance.clear();
+      console.log(`${instanceName}: Successfully stopped and cleared`);
+      return true;
+      
+    } catch (error) {
+      console.error(`${instanceName}: Error during safe stop:`, error);
+      // Попытаемся принудительно очистить
+      try {
+        if (qrCodeInstance.clear) {
+          await qrCodeInstance.clear();
+        }
+      } catch (clearError) {
+        console.error(`${instanceName}: Error during force clear:`, clearError);
+      }
+      return false;
+    }
+  };
     const id = Date.now();
     setAlerts(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
