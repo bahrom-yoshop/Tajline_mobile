@@ -19040,7 +19040,6 @@ function App() {
                 Закрыть
               </Button>
             </div>
-          </div>
         </DialogContent>
       </Dialog>
 
