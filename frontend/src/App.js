@@ -229,6 +229,15 @@ function App() {
   const [scannedCargoForPlacement, setScannedCargoForPlacement] = useState(null);
   const [placementStatistics, setPlacementStatistics] = useState(null);
   
+  // Warehouse Management Modal states
+  const [showWarehouseManagementModal, setShowWarehouseManagementModal] = useState(false);
+  const [selectedWarehouseForManagement, setSelectedWarehouseForManagement] = useState(null);
+  const [warehouseStructure, setWarehouseStructure] = useState(null);
+  const [warehouseManagementLoading, setWarehouseManagementLoading] = useState(false);
+  const [selectedCells, setSelectedCells] = useState([]);
+  const [cellQRResults, setCellQRResults] = useState([]);
+  const [cellQRLoading, setCellQRLoading] = useState(false);
+  
   // Application QR code states
   const [applicationQRCode, setApplicationQRCode] = useState(null);
   const [showApplicationQRModal, setShowApplicationQRModal] = useState(false);
