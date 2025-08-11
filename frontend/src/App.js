@@ -18683,8 +18683,7 @@ function App() {
               )}
               
               <div 
-                className="text-center" 
-                style={{ display: placementStep === 'scan-cargo' ? 'block' : 'none' }}
+                className={`text-center ${placementStep === 'scan-cargo' ? 'react-visible' : 'react-hidden'}`}
               >
                 <h4 className="font-medium text-blue-600 mb-2">Шаг 1: Сканирование груза</h4>
                 <p className="text-sm text-gray-600">Наведите камеру на QR код груза</p>
