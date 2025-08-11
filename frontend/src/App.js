@@ -2154,9 +2154,7 @@ function App() {
           useBarCodeDetectorIfSupported: true
         },
         // Enhanced support for various QR code formats
-        supportedScanTypes: [
-          Html5QrcodeScanType.SCAN_TYPE_CAMERA
-        ]
+        rememberLastUsedCamera: true
       };
 
       console.log('🚀 Запуск QR сканера с улучшенной конфигурацией...');
