@@ -1640,10 +1640,8 @@ function App() {
     }
   };
 
-  // useEffect for QR scanner modal
+  // useEffect for QR scanner modal - improved with useRef
   useEffect(() => {
-    let qrCodeModalInstance = null;
-
     // Функция для выбора лучшей камеры (предпочтение задней камере)
     const getBestCamera = (cameras) => {
       if (!cameras || cameras.length === 0) return null;
@@ -1669,6 +1667,12 @@ function App() {
     const initializeModalQRScanner = async () => {
       if (showQRScannerModal && scannerMode === 'cargo-qr-search' && scannerActive) {
         try {
+          // Останавливаем предыдущий экземпляр
+          if (modalScannerRef.current) {
+            await modalScannerRef.current.stop();
+            modalScannerRef.current = null;
+          }
+
           // Проверяем существование элемента
           const modalElement = document.getElementById('qr-reader-modal');
           if (!modalElement) {
@@ -1682,7 +1686,7 @@ function App() {
             // Сохраняем список камер для переключения
             setModalCameras(cameras);
             
-            qrCodeModalInstance = new Html5Qrcode("qr-reader-modal");
+            modalScannerRef.current = new Html5Qrcode("qr-reader-modal");
             
             // Выбираем камеру по индексу, либо лучшую при первом запуске
             let selectedCamera;
@@ -1708,16 +1712,16 @@ function App() {
               }
             };
 
-            await qrCodeModalInstance.start(
+            await modalScannerRef.current.start(
               selectedCamera.id, // Используем выбранную камеру
               config,
               async (decodedText, decodedResult) => {
                 console.log('Cargo QR Code scanned:', decodedText);
                 
                 // Останавливаем сканер
-                if (qrCodeModalInstance) {
-                  await qrCodeModalInstance.stop();
-                  qrCodeModalInstance = null;
+                if (modalScannerRef.current) {
+                  await modalScannerRef.current.stop();
+                  modalScannerRef.current = null;
                 }
                 
                 // Обрабатываем отсканированный QR код
@@ -1727,31 +1731,33 @@ function App() {
                 stopCargoQRScanner();
               },
               (errorMessage) => {
-                // Обрабатываем ошибки сканирования (не логируем, так как это нормально)
+                // Игнорируем постоянные ошибки сканирования для уменьшения логов
+                console.debug('Modal QR scan error:', errorMessage);
               }
             );
+            
+            console.log('Modal QR scanner initialized successfully');
+          } else {
+            console.error('No cameras available for modal QR scanner');
+            setScannerError('Камеры не обнаружены');
           }
         } catch (error) {
-          console.error('Error starting modal QR scanner:', error);
-          setScannerError(`Ошибка запуска сканера: ${error.message}`);
+          console.error('Modal QR scanner initialization error:', error);
+          setScannerError('Не удалось инициализировать сканер');
         }
       }
     };
 
-    // Добавляем небольшую задержку для рендеринга модального окна
     if (showQRScannerModal && scannerMode === 'cargo-qr-search' && scannerActive) {
+      // Добавляем небольшую задержку для корректной инициализации DOM
       setTimeout(initializeModalQRScanner, 500);
     }
 
-    // Cleanup функция
-    return async () => {
-      if (qrCodeModalInstance) {
-        try {
-          await qrCodeModalInstance.stop();
-          qrCodeModalInstance = null;
-        } catch (error) {
-          console.error('Error stopping modal QR scanner:', error);
-        }
+    // Очистка при размонтировании или изменении зависимостей
+    return () => {
+      if (modalScannerRef.current) {
+        modalScannerRef.current.stop().catch(console.error);
+        modalScannerRef.current = null;
       }
     };
   }, [showQRScannerModal, scannerMode, scannerActive, modalCameraIndex]);
