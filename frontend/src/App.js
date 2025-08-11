@@ -1687,8 +1687,49 @@ function App() {
     }
   };
 
-  // New function: Start placement process - improved error handling
-  const startCargoPlacement = async () => {
+  // New function: Check camera availability before starting placement
+  const checkCameraAvailability = async () => {
+    try {
+      console.log('Checking camera availability...');
+      
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API не поддерживается этим браузером');
+      }
+      
+      // Request camera permission
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      console.log('Camera permission granted');
+      
+      // Stop the test stream
+      stream.getTracks().forEach(track => track.stop());
+      
+      // Check available cameras
+      const cameras = await Html5Qrcode.getCameras();
+      console.log(`Found ${cameras.length} cameras`);
+      
+      if (!cameras || cameras.length === 0) {
+        throw new Error('Камеры не найдены на устройстве');
+      }
+      
+      return true;
+      
+    } catch (error) {
+      console.error('Camera availability check failed:', error);
+      
+      let userMessage = 'Проблема с доступом к камере';
+      if (error.name === 'NotAllowedError') {
+        userMessage = 'Доступ к камере запрещен. Разрешите доступ в настройках браузера.';
+      } else if (error.name === 'NotFoundError') {
+        userMessage = 'Камера не найдена на устройстве.';
+      } else if (error.message) {
+        userMessage = error.message;
+      }
+      
+      showAlert(userMessage, 'error');
+      return false;
+    }
+  };
     try {
       console.log('Starting cargo placement process...');
       
