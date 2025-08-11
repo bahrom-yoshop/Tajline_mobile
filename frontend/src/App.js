@@ -1555,9 +1555,9 @@ function App() {
   // New function: Handle QR scan during placement
   const handlePlacementQRScan = async (scannedData) => {
     try {
-      // Останавливаем сканер размещения
+      // Останавливаем сканер размещения безопасно
       if (html5QrCodePlacement) {
-        await html5QrCodePlacement.stop();
+        await safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Placement Scanner");
         setHtml5QrCodePlacement(null);
       }
       setScannerActive(false);
