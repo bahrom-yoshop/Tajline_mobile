@@ -18349,29 +18349,46 @@ function App() {
                   {/* Retry camera button */}
                   <Button 
                     onClick={async () => {
-                      console.log('🔄 Повторная попытка инициализации камеры по запросу пользователя...');
+                      console.log('🔄 Пользователь нажал "Попробовать снова"...');
                       showAlert('🔄 Повторная попытка активации камеры...', 'info');
                       
-                      // Wait a moment for UI feedback
-                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      // Reset scanner state first
+                      setScannerActive(false);
                       
-                      // Check camera availability first
+                      // Stop any existing scanner
+                      if (html5QrCodePlacement) {
+                        console.log('🛑 Остановка существующего сканера перед retry...');
+                        try {
+                          await safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Placement Scanner (Retry)");
+                          setHtml5QrCodePlacement(null);
+                        } catch (error) {
+                          console.warn('⚠️ Предупреждение при остановке сканера для retry:', error);
+                        }
+                      }
+                      
+                      // Wait for UI to stabilize
+                      await new Promise(resolve => setTimeout(resolve, 1500));
+                      
+                      // Check camera availability
+                      console.log('🔍 Повторная проверка доступности камеры...');
                       const cameraAvailable = await checkCameraAvailability();
+                      
                       if (cameraAvailable) {
-                        console.log('✅ Камера доступна, запуск сканера для retry...');
+                        console.log('✅ Камера доступна при retry, запуск сканера...');
                         showAlert('✅ Камера найдена! Запуск сканера...', 'success');
                         
-                        // Give extra time for modal to stabilize after retry
-                        await new Promise(resolve => setTimeout(resolve, 1500));
+                        // Extra time for DOM to be ready
+                        await new Promise(resolve => setTimeout(resolve, 1000));
                         
                         try {
                           await startQRScannerForPlacement();
+                          console.log('✅ Сканер успешно запущен после retry');
                         } catch (error) {
                           console.error('❌ Ошибка при retry запуске сканера:', error);
-                          showAlert('❌ Не удалось запустить камеру. Используйте ручной ввод ниже.', 'warning');
+                          showAlert('⚠️ Повторная попытка неуспешна. Используйте ручной ввод ниже.', 'warning');
                         }
                       } else {
-                        console.log('📵 Камера по-прежнему недоступна после retry');
+                        console.log('📵 Камера недоступна при retry');
                         showAlert('📵 Камера по-прежнему недоступна. Продолжите с ручным вводом ниже.', 'warning');
                       }
                     }}
