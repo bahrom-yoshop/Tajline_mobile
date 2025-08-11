@@ -7620,72 +7620,99 @@ function App() {
                         </div>
                       ) : (
                         <div className="space-y-4">
-                          {/* Camera unavailable message with retry */}
+                          {/* Camera unavailable message with enhanced mobile retry */}
                           {placementActive && (
-                            <div className="space-y-2">
-                              <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                            <div className="space-y-3">
+                              <div className="text-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                                 <div className="text-yellow-800 font-medium mb-2">
                                   📱 Камера недоступна
                                 </div>
-                                <p className="text-sm text-yellow-700 mb-3">
-                                  Используйте ручной ввод данных ниже для размещения груза
+                                <p className="text-sm text-yellow-700 mb-4">
+                                  Для сканирования QR кодов на мобильном устройстве попробуйте:
                                 </p>
                                 
-                                {/* Retry camera button */}
-                                <Button 
-                                  onClick={async () => {
-                                    console.log('🔄 Пользователь запросил повтор камеры...');
-                                    
-                                    // Reset scanner state silently
-                                    setScannerActive(false);
-                                    
-                                    // Stop any existing scanner
-                                    if (html5QrCodePlacement) {
-                                      console.log('🛑 Тихая остановка сканера...');
-                                      try {
-                                        await safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Silent Retry Stop");
-                                        setHtml5QrCodePlacement(null);
-                                      } catch (error) {
-                                        console.warn('⚠️ Предупреждение при остановке:', error);
+                                {/* Mobile-specific camera retry buttons */}
+                                <div className="space-y-2">
+                                  <Button 
+                                    onClick={async () => {
+                                      console.log('🔄 Обычная попытка повтора камеры...');
+                                      setScannerActive(false);
+                                      
+                                      if (html5QrCodePlacement) {
+                                        try {
+                                          await safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Normal Retry");
+                                          setHtml5QrCodePlacement(null);
+                                        } catch (error) {
+                                          console.warn('⚠️ Предупреждение при остановке:', error);
+                                        }
                                       }
-                                    }
-                                    
-                                    // Wait briefly for UI stabilization
-                                    await new Promise(resolve => setTimeout(resolve, 500));
-                                    
-                                    // Check camera availability silently
-                                    console.log('🔍 Тихая проверка камеры...');
-                                    const cameraAvailable = await checkCameraAvailability();
-                                    
-                                    if (cameraAvailable) {
-                                      console.log('✅ Камера найдена при повторе - запуск сканера');
-                                      // Only show success message if camera actually works
-                                      showAlert('📹 Камера активирована!', 'success');
                                       
-                                      // Wait for modal stability
-                                      await new Promise(resolve => setTimeout(resolve, 1500));
+                                      await new Promise(resolve => setTimeout(resolve, 1000));
                                       
+                                      const cameraAvailable = await checkCameraAvailability();
+                                      if (cameraAvailable) {
+                                        showAlert('✅ Камера найдена! Запуск...', 'success');
+                                        await new Promise(resolve => setTimeout(resolve, 2000));
+                                        try {
+                                          await startQRScannerForPlacement();
+                                        } catch (error) {
+                                          console.error('❌ Ошибка запуска после обычного retry:', error);
+                                        }
+                                      }
+                                    }}
+                                    size="sm"
+                                    variant="outline"
+                                    className="w-full text-xs bg-white text-blue-600 border-blue-300 hover:bg-blue-50"
+                                  >
+                                    <RefreshCw className="mr-1 h-3 w-3" />
+                                    Попробовать снова
+                                  </Button>
+                                  
+                                  <Button 
+                                    onClick={async () => {
+                                      console.log('🔧 Принудительная попытка запуска мобильной камеры...');
+                                      showAlert('🔧 Принудительный запуск камеры...', 'info');
+                                      
+                                      // Force stop everything first
+                                      setScannerActive(false);
+                                      if (html5QrCodePlacement) {
+                                        try {
+                                          await safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Force Retry");
+                                          setHtml5QrCodePlacement(null);
+                                        } catch (error) {
+                                          console.warn('⚠️ Предупреждение при принудительной остановке:', error);
+                                        }
+                                      }
+                                      
+                                      // Wait longer for mobile
+                                      await new Promise(resolve => setTimeout(resolve, 3000));
+                                      
+                                      // Try direct scanner start without availability check
                                       try {
+                                        console.log('🚀 Прямой запуск мобильного сканера...');
                                         await startQRScannerForPlacement();
-                                        console.log('✅ Сканер запущен после повтора');
+                                        showAlert('🎉 Принудительный запуск успешен!', 'success');
                                       } catch (error) {
-                                        console.error('❌ Ошибка запуска сканера при повторе:', error);
-                                        // Don't show error - just stay in manual mode
-                                        console.log('📝 Остается в ручном режиме');
+                                        console.error('❌ Принудительный запуск не удался:', error);
+                                        showAlert('❌ Принудительный запуск не удался. Используйте ручной ввод.', 'error');
                                       }
-                                    } else {
-                                      console.log('📵 Камера по-прежнему недоступна - остаемся в ручном режиме');
-                                      // Don't show any alert - just keep manual input visible
-                                      // User can see manual input is still there, no need for notification
-                                    }
-                                  }}
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-xs bg-white text-blue-600 border-blue-300 hover:bg-blue-50"
-                                >
-                                  <RefreshCw className="mr-1 h-3 w-3" />
-                                  Попробовать снова
-                                </Button>
+                                    }}
+                                    size="sm"
+                                    variant="default"
+                                    className="w-full text-xs bg-green-600 text-white hover:bg-green-700"
+                                  >
+                                    <Camera className="mr-1 h-3 w-3" />
+                                    Принудительный запуск
+                                  </Button>
+                                </div>
+                                
+                                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+                                  💡 <strong>Инструкция для телефона:</strong>
+                                  <br />• Нажмите "Разрешить" при запросе камеры
+                                  <br />• Закройте другие приложения камеры
+                                  <br />• Попробуйте обновить страницу (F5)
+                                  <br />• Используйте Chrome или Safari
+                                </div>
                               </div>
                             </div>
                           )}
