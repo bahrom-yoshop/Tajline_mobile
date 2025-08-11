@@ -991,29 +991,16 @@ def generate_user_number() -> str:
         return f"USR{random.randint(1, 999999):06d}"
 
 def generate_cargo_qr_code(cargo_data: dict) -> str:
-    """Генерировать QR код для груза с базовой информацией"""
+    """Генерировать QR код для груза только с номером груза"""
     try:
-        # Формируем данные для QR кода согласно требованиям пользователя
-        qr_data = {
-            "cargo_number": cargo_data.get("cargo_number", ""),
-            "cargo_name": cargo_data.get("cargo_name", cargo_data.get("description", "Груз")),
-            "weight": f"{cargo_data.get('weight', 0)} кг",
-            "sender": cargo_data.get("sender_full_name", "Не указан"),
-            "sender_phone": cargo_data.get("sender_phone", "Не указан"),
-            "recipient": cargo_data.get("recipient_full_name", cargo_data.get("recipient_name", "Не указан")),
-            "recipient_phone": cargo_data.get("recipient_phone", "Не указан"),
-            "city": cargo_data.get("recipient_address", "Не указан")
-        }
+        # Получаем только номер груза
+        cargo_number = cargo_data.get("cargo_number", "")
         
-        # Создаем текстовые данные для QR кода
-        qr_text = f"""ГРУЗ №{qr_data['cargo_number']}
-Наименование: {qr_data['cargo_name']}
-Вес: {qr_data['weight']}
-Отправитель: {qr_data['sender']}
-Тел. отправителя: {qr_data['sender_phone']}
-Получатель: {qr_data['recipient']}
-Тел. получателя: {qr_data['recipient_phone']}
-Город получения: {qr_data['city']}"""
+        if not cargo_number:
+            raise ValueError("Cargo number is required for QR code generation")
+        
+        # QR код содержит только номер груза
+        qr_text = cargo_number
         
         # Генерируем QR код
         qr = qrcode.QRCode(
