@@ -137,6 +137,18 @@
 user_problem_statement: "Протестировать новые функции для генерации QR кодов и управления складами: 1) Авторизация оператором (+79777888999/warehouse123), 2) Тест генерации QR по номеру груза (/api/cargo/generate-qr-by-number), 3) Тест структуры склада (/api/warehouses/{warehouse_id}/structure), 4) Тест генерации QR для ячеек склада (/api/warehouse/cell/generate-qr), 5) Тест управления блоками склада (/api/warehouses/{warehouse_id}/add-block и /api/warehouses/{warehouse_id}/delete-block). Убедиться что новые endpoints для QR кодов и управления складами работают корректно для операторов и администраторов."
 
 backend:
+  - task: "Enhanced Cargo Placement System with Camera"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ ENHANCED CARGO PLACEMENT SYSTEM WITH CAMERA TESTING PARTIALLY FAILED. DETAILED RESULTS: 1) ✅ АВТОРИЗАЦИЯ ОПЕРАТОРА СКЛАДА: Успешная авторизация (+79777888999/warehouse123) с корректной ролью 'warehouse_operator' и пользователем 'Оператор Складской Обновленный', 2) ✅ СТАТИСТИКА РАЗМЕЩЕНИЯ: GET /api/operator/placement-statistics работает корректно, возвращает структуру с полями operator_name, today_placements, session_placements, recent_placements, типы данных корректные, 3) ✅ ПОЛУЧЕНИЕ СПИСКА СКЛАДОВ: GET /api/warehouses возвращает 9 складов, выбран тестовый склад 'Склад №2 Худжанд', 4) ❌ ДОСТУПНЫЕ ЯЧЕЙКИ СКЛАДА: GET /api/warehouses/{warehouse_id}/available-cells/{block}/{shelf} работает (200 OK), но возвращает неожиданный формат ответа, 5) ✅ СОЗДАНИЕ ТЕСТОВОГО ГРУЗА: Успешно создан тестовый груз 2501264449 для QR тестирования, 6) ✅ QR СКАНИРОВАНИЕ ДЛЯ РАЗМЕЩЕНИЯ: POST /api/cargo/scan-qr работает корректно с упрощенным форматом QR (только номер груза), успешно находит груз, возвращает доступные операции включая 'place_in_warehouse', 7) ❌ РАЗМЕЩЕНИЕ ГРУЗА В ЯЧЕЙКЕ: POST /api/cargo/place-in-cell возвращает 400 'Invalid cell code format: invalid literal for int() with base 10: 'e72'' - проблема с парсингом UUID warehouse ID (содержат дефисы), требует UUID-aware реализации парсинга, 8) ✅ ПОЛУЧЕНИЕ ГРУЗОВ ГОТОВЫХ К РАЗМЕЩЕНИЮ: GET /api/operator/cargo/available-for-placement работает корректно, возвращает структуру пагинации с 25 грузами, только оплаченные грузы доступны для размещения, все требуемые поля присутствуют. КРИТИЧЕСКИЕ ПРОБЛЕМЫ: UUID warehouse ID парсинг в cell code формате требует специальной обработки дефисов, формат доступных ячеек неожиданный. SUCCESS RATE: 75% (6/8 тестов пройдены). Основные endpoints для размещения груза с камерой работают, но требуется исправление парсинга UUID и формата ответа ячеек."
+
   - task: "New QR Code Functions and Warehouse Management"
     implemented: true
     working: false
