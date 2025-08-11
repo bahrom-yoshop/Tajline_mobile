@@ -7742,6 +7742,7 @@ function App() {
                           </div>
 
                           {/* Manual Input Section */}
+                          {placementActive && (
                           <div className="bg-white border rounded-lg p-4">
                             <h3 className="font-medium mb-4 flex items-center">
                               <Edit3 className="mr-2 h-4 w-4" />
