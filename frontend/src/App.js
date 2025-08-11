@@ -1845,15 +1845,27 @@ function App() {
         throw new Error('Камеры не обнаружены на устройстве');
       }
 
-      // Select best camera (prefer back camera)
-      const rearCamera = cameras.find(camera => 
-        camera.label.toLowerCase().includes('back') ||
-        camera.label.toLowerCase().includes('rear') ||
-        camera.label.toLowerCase().includes('environment')
-      );
+      // Save cameras for switching
+      setAvailablePlacementCameras(cameras);
+
+      // Select camera (use saved index or find best camera)
+      let selectedCamera;
+      if (currentPlacementCameraIndex < cameras.length) {
+        selectedCamera = cameras[currentPlacementCameraIndex];
+      } else {
+        // Find best camera (prefer back camera)
+        const rearCamera = cameras.find(camera => 
+          camera.label.toLowerCase().includes('back') ||
+          camera.label.toLowerCase().includes('rear') ||
+          camera.label.toLowerCase().includes('environment')
+        );
+        
+        selectedCamera = rearCamera || cameras[cameras.length - 1];
+        const selectedIndex = cameras.findIndex(c => c.id === selectedCamera.id);
+        setCurrentPlacementCameraIndex(selectedIndex >= 0 ? selectedIndex : 0);
+      }
       
-      const selectedCamera = rearCamera || cameras[cameras.length - 1];
-      console.log(`Selected camera: ${selectedCamera.label}`);
+      console.log(`Selected camera: ${selectedCamera.label} (index: ${currentPlacementCameraIndex})`);
 
       // Initialize QR code scanner
       console.log('Creating Html5Qrcode instance...');
