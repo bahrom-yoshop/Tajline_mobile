@@ -7738,7 +7738,7 @@ function App() {
                                 </div>
                               </div>
                             </div>
-                          )}
+                          </div>
 
                           {/* Manual Input Section */}
                           <div className="bg-white border rounded-lg p-4">
