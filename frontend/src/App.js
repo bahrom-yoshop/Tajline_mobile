@@ -7740,7 +7740,6 @@ function App() {
                                 </div>
                               </div>
                             </div>
-                          </div>
 
                           {/* Manual Input Section */}
                           {placementActive && (
@@ -7815,8 +7814,8 @@ function App() {
                               </Button>
                             </div>
                           </div>
-                        </div>
-                      )}
+                          )}
+                      </div>
                     </CardContent>
                   </Card>
 
