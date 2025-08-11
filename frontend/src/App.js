@@ -7688,29 +7688,19 @@ function App() {
                                 <div className="space-y-2">
                                   <Button 
                                     onClick={async () => {
-                                      console.log('🔄 Обычная попытка повтора камеры...');
-                                      setScannerActive(false);
-                                      
-                                      if (html5QrCodePlacementRef.current) {
-                                        try {
-                                          await safeStopQrScanner(html5QrCodePlacementRef.current, "qr-reader-placement", "Normal Retry");
-                                          html5QrCodePlacementRef.current = null;
-                                          setHtml5QrCodePlacement(null);
-                                        } catch (error) {
-                                          console.warn('⚠️ Предупреждение при остановке:', error);
-                                        }
-                                      }
+                                      console.log('🔄 Обычная попытка с изолированной очисткой...');
+                                      await completeQrCleanup("Normal Retry");
                                       
                                       await new Promise(resolve => setTimeout(resolve, 1000));
                                       
                                       const cameraAvailable = await checkCameraAvailability();
                                       if (cameraAvailable) {
-                                        showAlert('✅ Камера найдена! Запуск...', 'success');
+                                        showAlert('✅ Камера найдена! Запуск изолированного сканера...', 'success');
                                         await new Promise(resolve => setTimeout(resolve, 2000));
                                         try {
                                           await startQRScannerForPlacement();
                                         } catch (error) {
-                                          console.error('❌ Ошибка запуска после обычного retry:', error);
+                                          console.error('❌ Ошибка запуска изолированного сканера:', error);
                                         }
                                       }
                                     }}
