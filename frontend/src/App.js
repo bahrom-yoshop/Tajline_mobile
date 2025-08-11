@@ -17940,7 +17940,7 @@ function App() {
               )}
             </div>
 
-            {/* Camera Scanner */}
+            {/* Camera Scanner - Full screen mode */}
             {placementActive && (
               <div className="space-y-3">
                 {/* Debug information */}
@@ -17950,24 +17950,83 @@ function App() {
                   <div>DOM элемент: {document.getElementById("qr-reader-placement") ? 'Найден' : 'Не найден'}</div>
                 </div>
 
-                <div className="bg-black rounded-lg overflow-hidden">
+                {/* Full screen scanner container */}
+                <div className="relative bg-black rounded-lg overflow-hidden">
                   <div 
                     id="qr-reader-placement" 
                     className="w-full"
                     style={{
                       width: '100%',
-                      height: '300px',
-                      minHeight: '300px'
+                      height: '60vh', // Use 60% of viewport height for better mobile experience
+                      minHeight: '400px', // Minimum height for desktop
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center'
                     }}
                   />
+                  
+                  {/* Overlay instructions */}
+                  {scannerActive && (
+                    <div className="absolute top-4 left-4 right-4 z-10">
+                      <div className="bg-black bg-opacity-70 text-white p-3 rounded-lg text-center">
+                        <div className="text-sm font-medium">
+                          {placementStep === 'scan-cargo' ? 
+                            '📦 Отсканируйте QR код груза' : 
+                            '🏠 Отсканируйте QR код ячейки склада'}
+                        </div>
+                        <div className="text-xs text-gray-300 mt-1">
+                          Наведите камеру на QR код
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Camera switch button */}
+                  {scannerActive && (
+                    <div className="absolute top-4 right-4 z-10">
+                      <Button
+                        onClick={() => {
+                          // Add camera switching functionality
+                          showAlert('Смена камеры будет добавлена в следующей версии', 'info');
+                        }}
+                        size="sm"
+                        variant="outline"
+                        className="bg-black bg-opacity-70 text-white border-gray-600 hover:bg-gray-800"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Full screen toggle button */}
+                  <div className="absolute bottom-4 right-4 z-10">
+                    <Button
+                      onClick={() => {
+                        const element = document.getElementById("qr-reader-placement");
+                        if (element) {
+                          if (document.fullscreenElement) {
+                            document.exitFullscreen();
+                          } else {
+                            element.parentElement.requestFullscreen();
+                          }
+                        }
+                      }}
+                      size="sm"
+                      variant="outline"
+                      className="bg-black bg-opacity-70 text-white border-gray-600 hover:bg-gray-800"
+                    >
+                      <Maximize className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 
                 {scannerActive ? (
-                  <p className="text-sm text-green-600 text-center font-medium">
-                    ✅ Камера активна - {placementStep === 'scan-cargo' ? 
-                      'Наведите на QR код груза' : 
-                      'Наведите на QR код ячейки'}
-                  </p>
+                  <div className="text-center">
+                    <p className="text-sm text-green-600 font-medium flex items-center justify-center">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                      Камера активна - наведите на QR код
+                    </p>
+                  </div>
                 ) : (
                   <p className="text-sm text-gray-500 text-center">
                     🔄 Инициализация камеры...
