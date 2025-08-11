@@ -7661,8 +7661,9 @@ function App() {
                         className={`space-y-4 ${!scannerActive ? 'react-visible' : 'react-hidden'}`}
                       >
                           {/* Camera unavailable message with enhanced mobile retry */}
-                          {placementActive && (
-                            <div className="space-y-3">
+                          <div 
+                            className={`space-y-3 ${placementActive ? 'react-visible' : 'react-hidden'}`}
+                          >
                               <div className="text-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                                 <div className="text-yellow-800 font-medium mb-2">
                                   📱 Камера недоступна
