@@ -18983,25 +18983,25 @@ function App() {
             )}
 
             {/* Statistics */}
-            {placementStatistics && (
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <h5 className="font-medium text-gray-700 mb-2">Статистика размещения</h5>
-                <div className="grid grid-cols-3 gap-2 text-sm">
-                  <div className="text-center">
-                    <div className="font-medium text-blue-600">{placementStatistics.today_placements}</div>
-                    <div className="text-gray-500">Сегодня</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-medium text-green-600">{placementStatistics.session_placements}</div>
-                    <div className="text-gray-500">За сессию</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-medium text-gray-600">{placementStatistics.recent_placements?.length || 0}</div>
-                    <div className="text-gray-500">Недавних</div>
-                  </div>
+            <div 
+              className={`bg-gray-50 p-3 rounded-lg ${placementStatistics ? 'react-visible' : 'react-hidden'}`}
+            >
+              <h5 className="font-medium text-gray-700 mb-2">Статистика размещения</h5>
+              <div className="grid grid-cols-3 gap-2 text-sm">
+                <div className="text-center">
+                  <div className="font-medium text-blue-600">{placementStatistics?.today_placements || 0}</div>
+                  <div className="text-gray-500">Сегодня</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium text-green-600">{placementStatistics?.session_placements || 0}</div>
+                  <div className="text-gray-500">За сессию</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium text-orange-600">{placementStatistics?.recent_placements || 0}</div>
+                  <div className="text-gray-500">Недавних</div>
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Action Buttons */}
             <div className="flex gap-2">
