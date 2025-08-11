@@ -7714,32 +7714,23 @@ function App() {
                                   
                                   <Button 
                                     onClick={async () => {
-                                      console.log('🔧 Принудительная попытка запуска мобильной камеры...');
-                                      showAlert('🔧 Принудительный запуск камеры...', 'info');
+                                      console.log('🔧 ИЗОЛИРОВАННЫЙ принудительный запуск мобильной камеры...');
+                                      showAlert('🔧 Изолированный принудительный запуск...', 'info');
                                       
-                                      // Force stop everything first using ref
-                                      setScannerActive(false);
-                                      if (html5QrCodePlacementRef.current) {
-                                        try {
-                                          await safeStopQrScanner(html5QrCodePlacementRef.current, "qr-reader-placement", "Force Retry");
-                                          html5QrCodePlacementRef.current = null;
-                                          setHtml5QrCodePlacement(null);
-                                        } catch (error) {
-                                          console.warn('⚠️ Предупреждение при принудительной остановке:', error);
-                                        }
-                                      }
+                                      // Complete isolation cleanup first
+                                      await completeQrCleanup("Force Isolated Retry");
                                       
-                                      // Wait longer for mobile
+                                      // Wait longer for complete cleanup
                                       await new Promise(resolve => setTimeout(resolve, 3000));
                                       
-                                      // Try direct scanner start without availability check
+                                      // Direct isolated scanner start without availability check
                                       try {
-                                        console.log('🚀 Прямой запуск мобильного сканера...');
+                                        console.log('🚀 Принудительный запуск изолированного сканера...');
                                         await startQRScannerForPlacement();
-                                        showAlert('🎉 Принудительный запуск успешен!', 'success');
+                                        showAlert('🎉 Изолированный принудительный запуск успешен!', 'success');
                                       } catch (error) {
-                                        console.error('❌ Принудительный запуск не удался:', error);
-                                        showAlert('❌ Принудительный запуск не удался. Используйте ручной ввод.', 'error');
+                                        console.error('❌ Изолированный принудительный запуск не удался:', error);
+                                        showAlert('❌ Изолированный принудительный запуск не удался. Используйте ручной ввод.', 'error');
                                       }
                                     }}
                                     size="sm"
