@@ -614,6 +614,8 @@ function App() {
       return false;
     }
   };
+
+  const showAlert = (message, type = 'info') => {
     const id = Date.now();
     setAlerts(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
