@@ -1950,12 +1950,58 @@ async def scan_qr_code(
     if not qr_text:
         raise HTTPException(status_code=400, detail="QR code data is empty")
     
-    # Определяем тип QR кода
-    if "ГРУЗ №" in qr_text:
-        # QR код груза
+    # Определяем тип QR кода по содержимому
+    if "-Б" in qr_text and "-П" in qr_text and "-Я" in qr_text:
+        # QR код ячейки склада: СКЛАД_ID-Б_номер-П_номер-Я_номер
         try:
-            # Извлекаем номер груза
-            cargo_number = qr_text.split("ГРУЗ №")[1].split("\n")[0].strip()
+            # Разбираем код ячейки
+            parts = qr_text.split("-")
+            if len(parts) < 4:
+                raise HTTPException(status_code=400, detail="Invalid cell QR code format")
+            
+            warehouse_id = parts[0]
+            block = int(parts[1][1:])  # Убираем "Б"
+            shelf = int(parts[2][1:])  # Убираем "П" 
+            cell = int(parts[3][1:])   # Убираем "Я"
+            
+            # Найти склад
+            warehouse = db.warehouses.find_one({"id": warehouse_id})
+            if not warehouse:
+                raise HTTPException(status_code=404, detail="Warehouse not found")
+            
+            # Проверка доступа
+            if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+                raise HTTPException(status_code=403, detail="Access denied")
+            
+            # Проверяем, есть ли груз в этой ячейке
+            location_code = f"{block}-{shelf}-{cell}"
+            warehouse_cell = db.warehouse_cells.find_one({
+                "warehouse_id": warehouse_id,
+                "location_code": location_code
+            })
+            
+            return {
+                "type": "warehouse_cell",
+                "warehouse_id": warehouse_id,
+                "warehouse_name": warehouse.get("name", "Неизвестный склад"),
+                "block": block,
+                "shelf": shelf,
+                "cell": cell,
+                "location_code": location_code,
+                "is_occupied": warehouse_cell is not None,
+                "cargo_id": warehouse_cell.get("cargo_id") if warehouse_cell else None,
+                "cargo_number": warehouse_cell.get("cargo_number") if warehouse_cell else None
+            }
+            
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid cell QR code format - invalid numbers")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail="Invalid cell QR code format")
+    
+    else:
+        # Предполагаем, что это QR код груза (только номер)
+        try:
+            cargo_number = qr_text.strip()
             
             # Ищем груз
             cargo = db.cargo.find_one({"cargo_number": cargo_number})
@@ -1983,71 +2029,6 @@ async def scan_qr_code(
             
         except Exception as e:
             raise HTTPException(status_code=400, detail="Invalid cargo QR code format")
-    
-    elif "ЯЧЕЙКА СКЛАДА" in qr_text:
-        # QR код ячейки склада
-        try:
-            # Извлекаем данные ячейки
-            lines = qr_text.split("\n")
-            location_line = [line for line in lines if "Местоположение:" in line][0]
-            location = location_line.split("Местоположение: ")[1].strip()
-            
-            # Извлекаем warehouse_id
-            warehouse_id_line = [line for line in lines if "ID склада:" in line][0]
-            warehouse_id = warehouse_id_line.split("ID склада: ")[1].strip()
-            
-            # Найти склад
-            warehouse = db.warehouses.find_one({"id": warehouse_id})
-            if not warehouse:
-                raise HTTPException(status_code=404, detail="Warehouse not found")
-            
-            # Проверка доступа
-            if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
-                raise HTTPException(status_code=403, detail="Access denied")
-            
-            # Извлекаем блок, полку, ячейку из локации
-            parts = location.split("-")
-            if len(parts) >= 3:
-                block = int(parts[1][1:])  # Убираем "Б"
-                shelf = int(parts[2][1:])  # Убираем "П" 
-                cell = int(parts[3][1:])   # Убираем "Я"
-                
-                # Проверяем, есть ли груз в этой ячейке
-                location_code = f"{block}-{shelf}-{cell}"
-                warehouse_cell = db.warehouse_cells.find_one({
-                    "warehouse_id": warehouse_id,
-                    "location_code": location_code
-                })
-                
-                cell_cargo = None
-                if warehouse_cell and warehouse_cell.get("is_occupied"):
-                    cargo_id = warehouse_cell.get("cargo_id")
-                    cell_cargo = db.cargo.find_one({"id": cargo_id})
-                    if not cell_cargo:
-                        cell_cargo = db.operator_cargo.find_one({"id": cargo_id})
-                
-                return {
-                    "type": "warehouse_cell",
-                    "warehouse_id": warehouse_id,
-                    "warehouse_name": warehouse.get("name"),
-                    "location": location,
-                    "block": block,
-                    "shelf": shelf,
-                    "cell": cell,
-                    "is_occupied": warehouse_cell.get("is_occupied", False) if warehouse_cell else False,
-                    "cargo": {
-                        "cargo_number": cell_cargo.get("cargo_number"),
-                        "cargo_name": cell_cargo.get("cargo_name", "Груз"),
-                        "weight": cell_cargo.get("weight"),
-                        "status": cell_cargo.get("status")
-                    } if cell_cargo else None
-                }
-            
-        except Exception as e:
-            raise HTTPException(status_code=400, detail="Invalid warehouse cell QR code format")
-    
-    else:
-        raise HTTPException(status_code=400, detail="Unknown QR code format")
 
 @app.get("/api/operator/cargo/list")
 async def get_operator_cargo_list(
