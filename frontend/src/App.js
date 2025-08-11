@@ -840,12 +840,25 @@ function App() {
     await stopCameraScanner();
   };
 
-  // Очистка камеры при размонтировании компонента
+  // Очистка всех камер при размонтировании компонента
   useEffect(() => {
     return () => {
-      stopCameraScanner();
+      // Очищаем основной сканер
+      if (html5QrCode) {
+        html5QrCode.stop().catch(console.error);
+      }
+      
+      // Очищаем сканер размещения
+      if (html5QrCodePlacement) {
+        html5QrCodePlacement.stop().catch(console.error);
+      }
+      
+      // Очищаем модальный сканер
+      if (modalScannerRef.current) {
+        modalScannerRef.current.stop().catch(console.error);
+      }
     };
-  }, [html5QrCode]);
+  }, [html5QrCode, html5QrCodePlacement]);
 
   const simulateBarcodeScan = (testData) => {
     // Функция для тестирования без реальной камеры
