@@ -7591,18 +7591,20 @@ function App() {
                 </div>
 
                 {/* Current Step Content */}
-                {placementStep === 'scan-cargo' && (
-                  <Card className="mb-6">
-                    <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <QrCode className="mr-2 h-5 w-5" />
-                        Шаг 1: Сканирование груза
-                      </CardTitle>
-                      <CardDescription>
-                        Наведите камеру на QR код груза для автоматического размещения
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
+                <Card 
+                  className="mb-6" 
+                  style={{ display: placementStep === 'scan-cargo' ? 'block' : 'none' }}
+                >
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <QrCode className="mr-2 h-5 w-5" />
+                      Шаг 1: Сканирование груза
+                    </CardTitle>
+                    <CardDescription>
+                      Наведите камеру на QR код груза для автоматического размещения
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
                       {/* Isolated Camera Scanner Container to prevent React conflicts */}
                       <div className="relative">
                         <div className="bg-black rounded-lg p-4 mb-4">
