@@ -7704,11 +7704,12 @@ function App() {
                                       console.log('🔧 Принудительная попытка запуска мобильной камеры...');
                                       showAlert('🔧 Принудительный запуск камеры...', 'info');
                                       
-                                      // Force stop everything first
+                                      // Force stop everything first using ref
                                       setScannerActive(false);
-                                      if (html5QrCodePlacement) {
+                                      if (html5QrCodePlacementRef.current) {
                                         try {
-                                          await safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Force Retry");
+                                          await safeStopQrScanner(html5QrCodePlacementRef.current, "qr-reader-placement", "Force Retry");
+                                          html5QrCodePlacementRef.current = null;
                                           setHtml5QrCodePlacement(null);
                                         } catch (error) {
                                           console.warn('⚠️ Предупреждение при принудительной остановке:', error);
