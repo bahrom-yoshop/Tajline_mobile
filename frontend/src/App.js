@@ -1856,12 +1856,31 @@ function App() {
       const qrCodeInstance = new Html5Qrcode("qr-reader-placement");
       setHtml5QrCodePlacement(qrCodeInstance);
 
-      // Start scanning with proper config
+      // Start scanning with improved config for mobile
       const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
+        fps: 15,
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+          // Make QR box larger and responsive
+          const minEdgePercentage = 0.7; // 70% of the smaller dimension
+          const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+          const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
+          return {
+            width: qrboxSize,
+            height: qrboxSize
+          };
+        },
         aspectRatio: 1.0,
-        disableFlip: false
+        disableFlip: false,
+        // Enhanced video constraints for better scanning
+        videoConstraints: {
+          facingMode: "environment", // Use back camera
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        // Additional configurations for better performance
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true
+        }
       };
 
       console.log('Starting QR scanner with config:', config);
