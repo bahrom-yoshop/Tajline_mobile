@@ -1304,6 +1304,17 @@ function App() {
     await stopScanner();
   };
 
+  // Функция для получения информации о грузе по номеру
+  const getCargoByNumber = async (cargoNumber) => {
+    try {
+      const response = await apiCall(`/api/cargo/by-number/${cargoNumber}`, 'GET');
+      return response;
+    } catch (error) {
+      console.error('Error getting cargo by number:', error);
+      return null;
+    }
+  };
+
   const handleBarcodeScan = async (scannedData) => {
     try {
       if (scannerMode === 'cargo-barcode') {
