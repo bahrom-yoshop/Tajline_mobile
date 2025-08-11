@@ -889,6 +889,125 @@ function App() {
     await stopCameraScanner();
   };
 
+  // New functions for warehouse management
+  const openWarehouseManagement = async (warehouse) => {
+    try {
+      setSelectedWarehouseForManagement(warehouse);
+      setWarehouseManagementLoading(true);
+      setShowWarehouseManagementModal(true);
+      
+      // Fetch detailed warehouse structure
+      const response = await apiCall(`/api/warehouses/${warehouse.id}/structure`);
+      setWarehouseStructure(response);
+      
+    } catch (error) {
+      console.error('Error loading warehouse structure:', error);
+      showAlert(`Ошибка загрузки структуры склада: ${error.message}`, 'error');
+    } finally {
+      setWarehouseManagementLoading(false);
+    }
+  };
+
+  // Generate QR codes for selected cells
+  const generateCellQRCodes = async (selectedCells = null) => {
+    if (!selectedWarehouseForManagement || !warehouseStructure) return;
+    
+    setCellQRLoading(true);
+    try {
+      const cellsToProcess = selectedCells || getAllCells();
+      const qrResults = [];
+      
+      for (const cell of cellsToProcess) {
+        try {
+          const response = await apiCall('/api/warehouse/cell/generate-qr', 'POST', {
+            warehouse_id: selectedWarehouseForManagement.id,
+            block: cell.block,
+            shelf: cell.shelf,
+            cell: cell.cell
+          });
+          
+          if (response && response.success) {
+            qrResults.push({
+              location: `Б${cell.block}-П${cell.shelf}-Я${cell.cell}`,
+              qr_code: response.qr_code,
+              success: true
+            });
+          } else {
+            qrResults.push({
+              location: `Б${cell.block}-П${cell.shelf}-Я${cell.cell}`,
+              success: false,
+              error: 'Не удалось создать QR код'
+            });
+          }
+        } catch (error) {
+          qrResults.push({
+            location: `Б${cell.block}-П${cell.shelf}-Я${cell.cell}`,
+            success: false,
+            error: error.message
+          });
+        }
+      }
+      
+      setCellQRResults(qrResults);
+      showAlert(`Создано QR кодов для ячеек: ${qrResults.filter(r => r.success).length}/${qrResults.length}`, 'success');
+      
+    } catch (error) {
+      console.error('Error generating cell QR codes:', error);
+      showAlert(`Ошибка создания QR кодов: ${error.message}`, 'error');
+    } finally {
+      setCellQRLoading(false);
+    }
+  };
+
+  // Get all cells from warehouse structure
+  const getAllCells = () => {
+    if (!warehouseStructure) return [];
+    
+    const allCells = [];
+    for (let block = 1; block <= warehouseStructure.blocks; block++) {
+      for (let shelf = 1; shelf <= warehouseStructure.shelves_per_block; shelf++) {
+        for (let cell = 1; cell <= warehouseStructure.cells_per_shelf; cell++) {
+          allCells.push({ block, shelf, cell });
+        }
+      }
+    }
+    return allCells;
+  };
+
+  // Add new block to warehouse
+  const addWarehouseBlock = async () => {
+    try {
+      const response = await apiCall(`/api/warehouses/${selectedWarehouseForManagement.id}/add-block`, 'POST');
+      
+      if (response && response.success) {
+        showAlert('Блок успешно добавлен', 'success');
+        // Refresh warehouse structure
+        openWarehouseManagement(selectedWarehouseForManagement);
+      }
+    } catch (error) {
+      console.error('Error adding block:', error);
+      showAlert(`Ошибка добавления блока: ${error.message}`, 'error');
+    }
+  };
+
+  // Delete warehouse block
+  const deleteWarehouseBlock = async (blockNumber) => {
+    try {
+      const response = await apiCall(`/api/warehouses/${selectedWarehouseForManagement.id}/delete-block`, 'POST', {
+        block_number: blockNumber
+      });
+      
+      if (response && response.success) {
+        showAlert('Блок успешно удален', 'success');
+        // Refresh warehouse structure
+        openWarehouseManagement(selectedWarehouseForManagement);
+      }
+    } catch (error) {
+      console.error('Error deleting block:', error);
+      showAlert(`Ошибка удаления блока: ${error.message}`, 'error');
+    }
+  };
+
   // Очистка всех камер при размонтировании компонента - улучшенная версия
   useEffect(() => {
     return () => {
