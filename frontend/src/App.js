@@ -684,6 +684,10 @@ function App() {
   const [html5QrCodeModal, setHtml5QrCodeModal] = useState(null);  // Модальный сканер
   const scannerRef = useRef(null);
   const modalScannerRef = useRef(null);  // Ref для модального сканера
+  
+  // Refs for stable DOM elements to avoid React removeChild errors
+  const placementQrReaderRef = useRef(null);
+  const html5QrCodePlacementRef = useRef(null);
   const [cameraPermission, setCameraPermission] = useState(null);
   const [camerasAvailable, setCamerasAvailable] = useState([]);
   const [selectedCamera, setSelectedCamera] = useState(null);
