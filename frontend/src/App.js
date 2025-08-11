@@ -685,9 +685,100 @@ function App() {
   const scannerRef = useRef(null);
   const modalScannerRef = useRef(null);  // Ref для модального сканера
   
-  // Refs for stable DOM elements to avoid React removeChild errors
-  const placementQrReaderRef = useRef(null);
-  const html5QrCodePlacementRef = useRef(null);
+  // Complete isolation of Html5Qrcode from React DOM to prevent removeChild errors
+  const [qrScannerContainer, setQrScannerContainer] = useState(null);
+  const qrContainerRef = useRef(null);
+  const isInitializingRef = useRef(false);
+  
+  // Create isolated container for QR scanner to avoid React conflicts
+  const createIsolatedQrContainer = () => {
+    if (qrContainerRef.current && !qrContainerRef.current.innerHTML.includes('qr-reader-placement-isolated')) {
+      // Create completely isolated container
+      const isolatedDiv = document.createElement('div');
+      isolatedDiv.id = 'qr-reader-placement-isolated';
+      isolatedDiv.style.cssText = `
+        width: 100%;
+        min-height: 400px;
+        background-color: #000000;
+        border-radius: 8px;
+        position: relative;
+        overflow: hidden;
+      `;
+      
+      // Clear any existing content safely
+      while (qrContainerRef.current.firstChild) {
+        qrContainerRef.current.removeChild(qrContainerRef.current.firstChild);
+      }
+      
+      qrContainerRef.current.appendChild(isolatedDiv);
+      console.log('🔧 Создан изолированный контейнер для QR сканера');
+      return 'qr-reader-placement-isolated';
+    }
+    return 'qr-reader-placement-isolated';
+  };
+
+  // Enhanced cleanup with complete DOM isolation
+  const completeQrCleanup = async (context = "Unknown") => {
+    try {
+      console.log(`🧹 ${context}: Полная изоляционная очистка QR сканера...`);
+      
+      // Stop scanner instance first
+      if (html5QrCodePlacementRef.current) {
+        try {
+          const state = html5QrCodePlacementRef.current.getState();
+          if (state === Html5QrcodeScannerState.SCANNING) {
+            console.log(`⏹️ ${context}: Остановка активного сканера...`);
+            await html5QrCodePlacementRef.current.stop();
+          }
+          
+          // Clear scanner instance
+          await html5QrCodePlacementRef.current.clear();
+          console.log(`✅ ${context}: Сканер очищен`);
+        } catch (error) {
+          console.warn(`⚠️ ${context}: Ошибка при очистке сканера:`, error.message);
+        }
+        
+        html5QrCodePlacementRef.current = null;
+        setHtml5QrCodePlacement(null);
+      }
+      
+      // Force cleanup isolated container
+      const isolatedContainer = document.getElementById('qr-reader-placement-isolated');
+      if (isolatedContainer) {
+        console.log(`🔧 ${context}: Очистка изолированного контейнера...`);
+        
+        // Remove all Html5Qrcode elements safely
+        const qrElements = isolatedContainer.querySelectorAll('video, canvas, div[id*="html5"], img[id*="qr"]');
+        qrElements.forEach(element => {
+          try {
+            if (element.parentNode) {
+              element.parentNode.removeChild(element);
+            }
+          } catch (removeError) {
+            console.debug(`Debug: Элемент уже удален`);
+          }
+        });
+        
+        // Clear container content
+        isolatedContainer.innerHTML = '';
+        console.log(`✅ ${context}: Изолированный контейнер очищен`);
+      }
+      
+      // Reset states
+      setScannerActive(false);
+      isInitializingRef.current = false;
+      
+      console.log(`✅ ${context}: Полная очистка завершена`);
+      
+    } catch (error) {
+      console.error(`💥 ${context}: Критическая ошибка при полной очистке:`, error);
+      // Force reset everything
+      html5QrCodePlacementRef.current = null;
+      setHtml5QrCodePlacement(null);
+      setScannerActive(false);
+      isInitializingRef.current = false;
+    }
+  };
   const [cameraPermission, setCameraPermission] = useState(null);
   const [camerasAvailable, setCamerasAvailable] = useState([]);
   const [selectedCamera, setSelectedCamera] = useState(null);
