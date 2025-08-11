@@ -528,8 +528,10 @@ function App() {
   const [placementInProgress, setPlacementInProgress] = useState(false);
   const [scannerError, setScannerError] = useState(null);
   
-  // Состояния для камеры
-  const [html5QrCode, setHtml5QrCode] = useState(null);
+  // Состояния для камеры - разделены для каждого сканера
+  const [html5QrCode, setHtml5QrCode] = useState(null);  // Основной сканер
+  const [html5QrCodePlacement, setHtml5QrCodePlacement] = useState(null);  // Сканер размещения
+  const [html5QrCodeModal, setHtml5QrCodeModal] = useState(null);  // Модальный сканер
   const scannerRef = useRef(null);
   const [cameraPermission, setCameraPermission] = useState(null);
   const [camerasAvailable, setCamerasAvailable] = useState([]);
