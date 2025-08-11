@@ -18363,15 +18363,15 @@ function App() {
         </DialogContent>
       </Dialog>
 
-      {/* Bulk QR Generation Modal for Sender */}
+      {/* Bulk QR Generation Modal for Sender - Mobile Adapted */}
       <Dialog open={showBulkQRModal} onOpenChange={setBulkQRModal}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center">
+        <DialogContent className="w-full max-w-[95vw] max-h-[95vh] p-3 sm:p-6 overflow-y-auto">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="flex items-center text-lg">
               <QrCode className="mr-2 h-5 w-5" />
               QR коды для отправителя
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               Генерация QR кодов для всех грузов отправителя: {selectedSender?.sender_full_name}
             </DialogDescription>
           </DialogHeader>
