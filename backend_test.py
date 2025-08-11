@@ -27299,6 +27299,8 @@ ID склада: {target_warehouse_id}"""
             ("🎯 SESSION MANAGEMENT IMPROVEMENTS", self.test_session_management_improvements_new),
             # 🎯 PRIMARY FOCUS: ENHANCED ADMIN PANEL WITH ADVANCED USER MANAGEMENT (Review Request)
             ("🎯 ENHANCED ADMIN PANEL WITH ADVANCED USER MANAGEMENT", self.test_enhanced_admin_panel_with_advanced_user_management),
+            # 🎯 PRIMARY FOCUS: ACCEPTING OPERATOR INFO ENDPOINT (Current Review Request)
+            ("🎯 ACCEPTING OPERATOR INFO ENDPOINT", self.test_accepting_operator_info_endpoint),
             # 🎯 PRIMARY FOCUS: WAREHOUSE OPERATOR ROLE VERIFICATION (Review Request)
             ("🎯 WAREHOUSE OPERATOR ROLE VERIFICATION", self.test_warehouse_operator_role_verification),
             # 🎯 PRIMARY FOCUS: ADMIN PANEL ENHANCEMENTS (Review Request)
