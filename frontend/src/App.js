@@ -1083,7 +1083,7 @@ function App() {
     setMobilePlacementStep('scan-cargo');
     setScannedCargo(null);
     setScannedCell(null);
-    setScannerMode('cargo-barcode');
+    setScannerMode('mobile-placement-cargo');
     setScannerActive(true);
     setScannerError(null);
     await startCameraScanner();
@@ -1093,7 +1093,7 @@ function App() {
     setReceiveStep('scan-cargo');
     setReceivedCargo(null);
     setNewCell(null);
-    setScannerMode('cargo-barcode');
+    setScannerMode('mobile-receive-cargo');
     setScannerActive(true);
     setScannerError(null);
     await startCameraScanner();
@@ -1103,7 +1103,7 @@ function App() {
     setReceiveStep('scan-cargo');
     setReceivedCargo(null);
     setNewCell(null);
-    setScannerMode('cargo-barcode');
+    setScannerMode('mobile-receive-cargo');
     setScannerActive(true);
     setScannerError(null);
     await startCameraScanner();
