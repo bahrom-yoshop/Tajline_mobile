@@ -7832,15 +7832,15 @@ function App() {
                     <CardContent>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="text-center p-3 bg-blue-50 rounded-lg">
-                          <div className="text-2xl font-bold text-blue-600">{placementStatistics.today_placements}</div>
+                          <div className="text-2xl font-bold text-blue-600">{placementStatistics?.today_placements || 0}</div>
                           <div className="text-sm text-gray-600">Сегодня</div>
                         </div>
                         <div className="text-center p-3 bg-green-50 rounded-lg">
-                          <div className="text-2xl font-bold text-green-600">{placementStatistics.session_placements}</div>
+                          <div className="text-2xl font-bold text-green-600">{placementStatistics?.session_placements || 0}</div>
                           <div className="text-sm text-gray-600">За сессию</div>
                         </div>
                         <div className="text-center p-3 bg-orange-50 rounded-lg">
-                          <div className="text-2xl font-bold text-orange-600">{placementStatistics.recent_placements}</div>
+                          <div className="text-2xl font-bold text-orange-600">{placementStatistics?.recent_placements || 0}</div>
                           <div className="text-sm text-gray-600">Недавних</div>
                         </div>
                       </div>
