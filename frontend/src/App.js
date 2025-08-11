@@ -18698,19 +18698,20 @@ function App() {
                 )}
               </div>
               
-              {placementStep === 'scan-cell' && (
-                <div className="text-center">
-                  <h4 className="font-medium text-blue-600 mb-2">Шаг 2: Сканирование ячейки</h4>
-                  <p className="text-sm text-gray-600">Наведите камеру на QR код свободной ячейки</p>
-                  {scannedCargoForPlacement && (
-                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
-                      <p className="text-sm text-blue-800">
-                        Груз для размещения: {scannedCargoForPlacement.cargo_number}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+              <div 
+                className="text-center" 
+                style={{ display: placementStep === 'scan-cell' ? 'block' : 'none' }}
+              >
+                <h4 className="font-medium text-blue-600 mb-2">Шаг 2: Сканирование ячейки</h4>
+                <p className="text-sm text-gray-600">Наведите камеру на QR код свободной ячейки</p>
+                {scannedCargoForPlacement && (
+                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                    <p className="text-sm text-blue-800">
+                      Груз для размещения: {scannedCargoForPlacement.cargo_number}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Camera Scanner - Mobile Adapted Full screen mode */}
