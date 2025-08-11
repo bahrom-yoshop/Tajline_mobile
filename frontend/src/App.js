@@ -1368,6 +1368,181 @@ function App() {
     }
   };
 
+  // New function: Generate QR by cargo number
+  const generateQRByCargoNumber = async () => {
+    if (!qrGenerateCargoNumber.trim()) {
+      showAlert('Введите номер груза', 'error');
+      return;
+    }
+
+    setQrGenerateLoading(true);
+    try {
+      const response = await apiCall('/api/cargo/generate-qr-by-number', 'POST', {
+        cargo_number: qrGenerateCargoNumber
+      });
+      
+      if (response && response.success) {
+        setGeneratedSingleQR(response);
+        showAlert(`QR код создан для груза ${response.cargo_number}`, 'success');
+      }
+    } catch (error) {
+      console.error('Error generating QR by number:', error);
+      showAlert(`Ошибка создания QR кода: ${error.message}`, 'error');
+    } finally {
+      setQrGenerateLoading(false);
+    }
+  };
+
+  // New function: Place cargo in cell
+  const placeCargoInCell = async (cargoNumber, cellCode) => {
+    try {
+      const response = await apiCall('/api/cargo/place-in-cell', 'POST', {
+        cargo_number: cargoNumber,
+        cell_code: cellCode
+      });
+      
+      if (response && response.success) {
+        showAlert(`Груз ${cargoNumber} успешно размещен в ячейке`, 'success');
+        await fetchPlacementStatistics(); // Update statistics
+        return true;
+      }
+    } catch (error) {
+      console.error('Error placing cargo in cell:', error);
+      showAlert(`Ошибка размещения груза: ${error.message}`, 'error');
+      return false;
+    }
+  };
+
+  // New function: Get placement statistics
+  const fetchPlacementStatistics = async () => {
+    try {
+      const response = await apiCall('/api/operator/placement-statistics');
+      setPlacementStatistics(response);
+    } catch (error) {
+      console.error('Error fetching placement statistics:', error);
+    }
+  };
+
+  // New function: Start placement process
+  const startCargoPlacement = async () => {
+    setPlacementActive(true);
+    setPlacementStep('scan-cargo');
+    await fetchPlacementStatistics();
+    await startQRScannerForPlacement();
+  };
+
+  // New function: QR Scanner for placement
+  const startQRScannerForPlacement = async () => {
+    try {
+      if (html5QrCode) {
+        await html5QrCode.stop();
+      }
+
+      const qrCodeInstance = new Html5Qrcode("qr-reader-placement");
+      setHtml5QrCode(qrCodeInstance);
+
+      const cameras = await Html5Qrcode.getCameras();
+      if (cameras && cameras.length) {
+        const rearCamera = cameras.find(camera => 
+          camera.label.toLowerCase().includes('back') ||
+          camera.label.toLowerCase().includes('rear') ||
+          camera.label.toLowerCase().includes('environment')
+        );
+        
+        const selectedCamera = rearCamera || cameras[cameras.length - 1];
+
+        await qrCodeInstance.start(
+          selectedCamera.id,
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 }
+          },
+          (decodedText, decodedResult) => {
+            handlePlacementQRScan(decodedText);
+          },
+          (errorMessage) => {
+            // console.log(`QR Code scanner error: ${errorMessage}`);
+          }
+        );
+        
+        setScannerActive(true);
+      }
+    } catch (error) {
+      console.error('Error starting placement QR scanner:', error);
+      showAlert('Ошибка запуска сканера камеры', 'error');
+    }
+  };
+
+  // New function: Handle QR scan during placement
+  const handlePlacementQRScan = async (scannedData) => {
+    try {
+      await html5QrCode.stop();
+      setScannerActive(false);
+
+      if (placementStep === 'scan-cargo') {
+        // Scanned cargo QR code
+        const response = await apiCall('/api/qr/scan', 'POST', { qr_text: scannedData });
+        
+        if (response && response.type === 'cargo') {
+          setScannedCargoForPlacement(response);
+          setPlacementStep('scan-cell');
+          showAlert(`Груз найден: ${response.cargo_number}. Теперь отсканируйте ячейку.`, 'success');
+          setTimeout(() => startQRScannerForPlacement(), 1000);
+        } else {
+          showAlert('Отсканированный код не является кодом груза', 'error');
+        }
+        
+      } else if (placementStep === 'scan-cell') {
+        // Scanned cell QR code
+        const response = await apiCall('/api/qr/scan', 'POST', { qr_text: scannedData });
+        
+        if (response && response.type === 'warehouse_cell') {
+          if (response.is_occupied) {
+            showAlert(`Ячейка занята грузом ${response.cargo_number}`, 'error');
+            setTimeout(() => startQRScannerForPlacement(), 1000);
+          } else {
+            // Place cargo in cell
+            const success = await placeCargoInCell(
+              scannedCargoForPlacement.cargo_number,
+              scannedData
+            );
+            
+            if (success) {
+              // Reset to scan next cargo
+              setScannedCargoForPlacement(null);
+              setPlacementStep('scan-cargo');
+              showAlert('Груз размещен! Можете сканировать следующий груз.', 'success');
+              setTimeout(() => startQRScannerForPlacement(), 1000);
+            }
+          }
+        } else {
+          showAlert('Отсканированный код не является кодом ячейки', 'error');
+          setTimeout(() => startQRScannerForPlacement(), 1000);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling placement QR scan:', error);
+      showAlert(`Ошибка сканирования: ${error.message}`, 'error');
+      setTimeout(() => startQRScannerForPlacement(), 1000);
+    }
+  };
+
+  // New function: Stop placement process
+  const stopCargoPlacement = async () => {
+    try {
+      if (html5QrCode && scannerActive) {
+        await html5QrCode.stop();
+      }
+    } catch (error) {
+      console.error('Error stopping placement scanner:', error);
+    }
+    
+    setPlacementActive(false);
+    setPlacementStep('idle');
+    setScannedCargoForPlacement(null);
+    setScannerActive(false);
+  };
+
   // Scan QR code to find cargo
   const scanCargoQRCode = async (qrText) => {
     try {
