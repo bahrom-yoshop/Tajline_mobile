@@ -1291,6 +1291,13 @@ function App() {
     await stopScanner();
   };
 
+  const resetMobileReceive = async () => {
+    setReceiveStep('start');
+    setReceivedCargo(null);
+    setNewCell(null);
+    await stopScanner();
+  };
+
   const resetCargoSearch = async () => {
     setSearchScannerActive(false);
     setSearchResult(null);
