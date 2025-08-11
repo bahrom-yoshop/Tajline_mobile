@@ -2126,10 +2126,10 @@ function App() {
     setManualCargoNumber('');
     setManualCellCode('');
     
-    // Initialize placement page
+    // Initialize placement page with longer delay for React rendering completion
     setTimeout(async () => {
       await startCargoPlacement();
-    }, 500);
+    }, 1500);
   };
 
   // Close cargo placement page
