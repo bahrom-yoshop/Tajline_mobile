@@ -1850,6 +1850,205 @@ async def get_placement_statistics(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving placement statistics: {str(e)}")
 
+@app.get("/api/warehouses/{warehouse_id}/structure")
+async def get_warehouse_structure(
+    warehouse_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить детальную структуру склада"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для просмотра структуры склада"
+        )
+    
+    try:
+        # Получаем склад
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        
+        # Получаем все ячейки склада
+        warehouse_cells = list(db.warehouse_cells.find(
+            {"warehouse_id": warehouse_id},
+            {"_id": 0}
+        ))
+        
+        # Создаем структуру склада
+        structure = {
+            "warehouse_id": warehouse_id,
+            "warehouse_name": warehouse.get("name"),
+            "blocks": warehouse.get("blocks", 3),
+            "shelves_per_block": warehouse.get("shelves_per_block", 5), 
+            "cells_per_shelf": warehouse.get("cells_per_shelf", 10),
+            "total_cells": warehouse.get("blocks", 3) * warehouse.get("shelves_per_block", 5) * warehouse.get("cells_per_shelf", 10),
+            "occupied_cells": len(warehouse_cells),
+            "free_cells": (warehouse.get("blocks", 3) * warehouse.get("shelves_per_block", 5) * warehouse.get("cells_per_shelf", 10)) - len(warehouse_cells),
+            "cells": warehouse_cells
+        }
+        
+        return structure
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving warehouse structure: {str(e)}")
+
+@app.post("/api/warehouse/cell/generate-qr")
+async def generate_warehouse_cell_qr(
+    cell_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Генерировать QR код для ячейки склада"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для генерации QR кода"
+        )
+    
+    try:
+        warehouse_id = cell_data.get("warehouse_id")
+        block = cell_data.get("block")
+        shelf = cell_data.get("shelf") 
+        cell = cell_data.get("cell")
+        
+        if not all([warehouse_id, block, shelf, cell]):
+            raise HTTPException(status_code=400, detail="Missing required cell data")
+        
+        # Получаем склад
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        
+        # Генерируем QR код
+        qr_code_data = generate_warehouse_cell_qr_code(warehouse, block, shelf, cell)
+        
+        if not qr_code_data:
+            raise HTTPException(status_code=500, detail="Failed to generate QR code")
+        
+        return {
+            "success": True,
+            "warehouse_id": warehouse_id,
+            "location": f"Блок {block}, Полка {shelf}, Ячейка {cell}",
+            "cell_code": f"{warehouse_id}-Б{block}-П{shelf}-Я{cell}",
+            "qr_code": qr_code_data
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating cell QR code: {str(e)}")
+
+@app.post("/api/warehouses/{warehouse_id}/add-block")
+async def add_warehouse_block(
+    warehouse_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Добавить новый блок к складу"""
+    if current_user.role not in [UserRole.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для изменения структуры склада"
+        )
+    
+    try:
+        # Получаем склад
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        
+        current_blocks = warehouse.get("blocks", 3)
+        new_blocks_count = current_blocks + 1
+        
+        # Обновляем количество блоков
+        db.warehouses.update_one(
+            {"id": warehouse_id},
+            {
+                "$set": {
+                    "blocks": new_blocks_count,
+                    "updated_at": datetime.utcnow(),
+                    "updated_by": current_user.id
+                }
+            }
+        )
+        
+        return {
+            "success": True,
+            "message": f"Блок добавлен. Теперь блоков: {new_blocks_count}",
+            "new_blocks_count": new_blocks_count
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error adding block: {str(e)}")
+
+@app.post("/api/warehouses/{warehouse_id}/delete-block")
+async def delete_warehouse_block(
+    warehouse_id: str,
+    block_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Удалить блок склада"""
+    if current_user.role not in [UserRole.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для изменения структуры склада"
+        )
+    
+    try:
+        block_number = block_data.get("block_number")
+        if not block_number:
+            raise HTTPException(status_code=400, detail="Block number is required")
+        
+        # Получаем склад
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        
+        # Проверяем, есть ли груз в ячейках этого блока
+        occupied_cells = db.warehouse_cells.find({
+            "warehouse_id": warehouse_id,
+            "block": block_number,
+            "is_occupied": True
+        })
+        
+        if list(occupied_cells):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Нельзя удалить блок {block_number}: в нем есть размещенный груз"
+            )
+        
+        # Удаляем все ячейки блока
+        db.warehouse_cells.delete_many({
+            "warehouse_id": warehouse_id,
+            "block": block_number
+        })
+        
+        current_blocks = warehouse.get("blocks", 3)
+        if current_blocks > 1:
+            new_blocks_count = current_blocks - 1
+            # Обновляем количество блоков
+            db.warehouses.update_one(
+                {"id": warehouse_id},
+                {
+                    "$set": {
+                        "blocks": new_blocks_count,
+                        "updated_at": datetime.utcnow(),
+                        "updated_by": current_user.id
+                    }
+                }
+            )
+        else:
+            new_blocks_count = current_blocks
+        
+        return {
+            "success": True,
+            "message": f"Блок {block_number} удален. Блоков осталось: {new_blocks_count}",
+            "new_blocks_count": new_blocks_count
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting block: {str(e)}")
+
 @app.post("/api/cargo/generate-application-qr/{cargo_number}")
 async def generate_application_qr_code(
     cargo_number: str,
