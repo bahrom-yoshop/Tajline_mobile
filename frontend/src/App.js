@@ -17268,6 +17268,267 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* New QR Generation Modal */}
+      <Dialog open={showQRGenerateModal} onOpenChange={setShowQRGenerateModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <QrCode className="mr-2 h-5 w-5" />
+              Генерация QR кода
+            </DialogTitle>
+            <DialogDescription>
+              Введите номер груза для генерации QR кода
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="cargo-number-input">Номер груза</Label>
+              <Input
+                id="cargo-number-input"
+                type="text"
+                placeholder="Введите номер груза"
+                value={qrGenerateCargoNumber}
+                onChange={(e) => setQrGenerateCargoNumber(e.target.value)}
+                disabled={qrGenerateLoading}
+              />
+            </div>
+            
+            {generatedSingleQR && (
+              <div className="space-y-3">
+                <div className="text-center">
+                  <p className="text-sm font-medium text-green-600 mb-2">
+                    QR код для груза: {generatedSingleQR.cargo_number}
+                  </p>
+                  <div className="bg-white p-4 rounded-lg border inline-block">
+                    <img 
+                      src={generatedSingleQR.qr_code} 
+                      alt={`QR код ${generatedSingleQR.cargo_number}`}
+                      className="w-48 h-48 mx-auto"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = generatedSingleQR.qr_code;
+                      link.download = `qr-${generatedSingleQR.cargo_number}.png`;
+                      link.click();
+                    }}
+                    className="flex-1"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Скачать
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const printWindow = window.open('', '_blank');
+                      printWindow.document.write(`
+                        <html>
+                          <head><title>QR код ${generatedSingleQR.cargo_number}</title></head>
+                          <body style="text-align: center; padding: 20px;">
+                            <h2>QR код груза: ${generatedSingleQR.cargo_number}</h2>
+                            <img src="${generatedSingleQR.qr_code}" style="width: 300px; height: 300px;" />
+                            <p>Груз: ${generatedSingleQR.cargo_name}</p>
+                          </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.print();
+                    }}
+                    className="flex-1"
+                  >
+                    <Printer className="mr-2 h-4 w-4" />
+                    Печать
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex gap-2">
+              <Button 
+                onClick={generateQRByCargoNumber}
+                disabled={!qrGenerateCargoNumber.trim() || qrGenerateLoading}
+                className="flex-1"
+              >
+                {qrGenerateLoading ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Генерация...
+                  </>
+                ) : (
+                  <>
+                    <QrCode className="mr-2 h-4 w-4" />
+                    Создать QR код
+                  </>
+                )}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowQRGenerateModal(false);
+                  setQrGenerateCargoNumber('');
+                  setGeneratedSingleQR(null);
+                }}
+              >
+                Закрыть
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Cargo Placement Modal */}
+      <Dialog open={showCargoPlacementModal} onOpenChange={setShowCargoPlacementModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Package className="mr-2 h-5 w-5" />
+              Размещение груза
+            </DialogTitle>
+            <DialogDescription>
+              Сканируйте QR коды грузов и ячеек для автоматического размещения
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Placement Steps Indicator */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className={`flex items-center space-x-2 ${placementStep === 'scan-cargo' ? 'text-blue-600 font-medium' : 'text-gray-500'}`}>
+                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${placementStep === 'scan-cargo' ? 'border-blue-600 bg-blue-100' : 'border-gray-300'}`}>
+                  1
+                </div>
+                <span className="text-sm">Сканировать груз</span>
+              </div>
+              <div className={`flex items-center space-x-2 ${placementStep === 'scan-cell' ? 'text-blue-600 font-medium' : 'text-gray-500'}`}>
+                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${placementStep === 'scan-cell' ? 'border-blue-600 bg-blue-100' : 'border-gray-300'}`}>
+                  2
+                </div>
+                <span className="text-sm">Сканировать ячейку</span>
+              </div>
+            </div>
+
+            {/* Current Step Information */}
+            <div className="p-4 border rounded-lg">
+              {placementStep === 'idle' && (
+                <div className="text-center">
+                  <h4 className="font-medium text-gray-700 mb-2">Готов к размещению</h4>
+                  <p className="text-sm text-gray-500">Нажмите "Начать размещение" для запуска процесса</p>
+                </div>
+              )}
+              
+              {placementStep === 'scan-cargo' && (
+                <div className="text-center">
+                  <h4 className="font-medium text-blue-600 mb-2">Шаг 1: Сканирование груза</h4>
+                  <p className="text-sm text-gray-600">Наведите камеру на QR код груза</p>
+                  {scannedCargoForPlacement && (
+                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
+                      <p className="text-sm text-green-800">
+                        ✓ Груз найден: {scannedCargoForPlacement.cargo_number}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {placementStep === 'scan-cell' && (
+                <div className="text-center">
+                  <h4 className="font-medium text-blue-600 mb-2">Шаг 2: Сканирование ячейки</h4>
+                  <p className="text-sm text-gray-600">Наведите камеру на QR код свободной ячейки</p>
+                  {scannedCargoForPlacement && (
+                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                      <p className="text-sm text-blue-800">
+                        Груз для размещения: {scannedCargoForPlacement.cargo_number}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Camera Scanner */}
+            {placementActive && scannerActive && (
+              <div className="space-y-3">
+                <div className="bg-black rounded-lg overflow-hidden">
+                  <div 
+                    id="qr-reader-placement" 
+                    className="w-full"
+                    style={{
+                      width: '100%',
+                      height: '300px'
+                    }}
+                  />
+                </div>
+                <p className="text-sm text-gray-500 text-center">
+                  {placementStep === 'scan-cargo' ? 
+                    'Наведите камеру на QR код груза' : 
+                    'Наведите камеру на QR код ячейки'}
+                </p>
+              </div>
+            )}
+
+            {/* Statistics */}
+            {placementStatistics && (
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <h5 className="font-medium text-gray-700 mb-2">Статистика размещения</h5>
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div className="text-center">
+                    <div className="font-medium text-blue-600">{placementStatistics.today_placements}</div>
+                    <div className="text-gray-500">Сегодня</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium text-green-600">{placementStatistics.session_placements}</div>
+                    <div className="text-gray-500">За сессию</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium text-gray-600">{placementStatistics.recent_placements?.length || 0}</div>
+                    <div className="text-gray-500">Недавних</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              {!placementActive && (
+                <Button 
+                  onClick={startCargoPlacement}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  <Camera className="mr-2 h-4 w-4" />
+                  Начать размещение
+                </Button>
+              )}
+              
+              {placementActive && (
+                <Button 
+                  onClick={stopCargoPlacement}
+                  variant="outline"
+                  className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Остановить размещение
+                </Button>
+              )}
+              
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  stopCargoPlacement();
+                  setShowCargoPlacementModal(false);
+                  setPlacementStep('idle');
+                  setScannedCargoForPlacement(null);
+                }}
+              >
+                Закрыть
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
