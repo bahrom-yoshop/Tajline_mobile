@@ -7847,7 +7847,6 @@ function App() {
                       </div>
                     </CardContent>
                   </Card>
-                </>
 
                 {/* Action Buttons */}
                 <div className="flex justify-center space-x-4">
@@ -7860,6 +7859,7 @@ function App() {
                     Завершить размещение
                   </Button>
                 </div>
+                </>
               </div>
             </div>
           ) : 
