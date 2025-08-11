@@ -18518,15 +18518,15 @@ function App() {
         </DialogContent>
       </Dialog>
 
-      {/* Warehouse Management Modal */}
+      {/* Warehouse Management Modal - Mobile Adapted */}
       <Dialog open={showWarehouseManagementModal} onOpenChange={setShowWarehouseManagementModal}>
-        <DialogContent className="max-w-6xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center">
+        <DialogContent className="w-full max-w-[95vw] max-h-[95vh] p-3 sm:p-6 overflow-y-auto">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="flex items-center text-lg">
               <Settings className="mr-2 h-5 w-5" />
               Управление складом: {selectedWarehouseForManagement?.name}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               Управление структурой склада, генерация QR кодов для ячеек
             </DialogDescription>
           </DialogHeader>
