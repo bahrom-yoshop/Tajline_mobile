@@ -18790,8 +18790,7 @@ function App() {
 
             {/* Camera unavailable message with retry option */}
             <div 
-              className="space-y-2" 
-              style={{ display: placementActive && !scannerActive ? 'block' : 'none' }}
+              className={`space-y-2 ${placementActive && !scannerActive ? 'react-visible' : 'react-hidden'}`}
             >
                 <div className="text-center p-3 bg-yellow-50 rounded-lg">
                   <div className="text-yellow-800 font-medium mb-2 text-sm">
