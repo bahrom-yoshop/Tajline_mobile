@@ -1760,9 +1760,9 @@ function App() {
               async (decodedText, decodedResult) => {
                 console.log('Cargo QR Code scanned:', decodedText);
                 
-                // Останавливаем сканер
+                // Останавливаем сканер безопасно
                 if (modalScannerRef.current) {
-                  await modalScannerRef.current.stop();
+                  await safeStopQrScanner(modalScannerRef.current, "qr-reader-modal", "Modal Scanner");
                   modalScannerRef.current = null;
                 }
                 
