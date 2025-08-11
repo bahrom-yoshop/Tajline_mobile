@@ -1651,6 +1651,143 @@ async def generate_qr_by_cargo_number(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating QR code: {str(e)}")
 
+@app.post("/api/cargo/place-in-cell")
+async def place_cargo_in_cell(
+    placement_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Разместить груз в ячейку склада по QR кодам"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для размещения груза"
+        )
+    
+    try:
+        cargo_number = placement_data.get("cargo_number", "").strip()
+        cell_code = placement_data.get("cell_code", "").strip()
+        
+        if not cargo_number or not cell_code:
+            raise HTTPException(status_code=400, detail="Cargo number and cell code are required")
+        
+        # Проверяем формат cell_code: СКЛАД_ID-Б_номер-П_номер-Я_номер
+        if "-Б" not in cell_code or "-П" not in cell_code or "-Я" not in cell_code:
+            raise HTTPException(status_code=400, detail="Invalid cell code format")
+        
+        # Разбираем код ячейки
+        parts = cell_code.split("-")
+        if len(parts) < 4:
+            raise HTTPException(status_code=400, detail="Invalid cell code format")
+        
+        warehouse_id = parts[0]
+        block = int(parts[1][1:])  # Убираем "Б"
+        shelf = int(parts[2][1:])  # Убираем "П" 
+        cell = int(parts[3][1:])   # Убираем "Я"
+        
+        # Проверяем существование склада
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        
+        # Ищем груз
+        cargo = db.cargo.find_one({"cargo_number": cargo_number})
+        if not cargo:
+            cargo = db.operator_cargo.find_one({"cargo_number": cargo_number})
+        
+        if not cargo:
+            raise HTTPException(status_code=404, detail=f"Cargo {cargo_number} not found")
+        
+        # Проверяем статус груза (должен быть оплачен)
+        if cargo.get("processing_status") != "paid":
+            raise HTTPException(status_code=400, detail="Cargo must be paid before placement")
+        
+        # Проверяем, свободна ли ячейка
+        location_code = f"{block}-{shelf}-{cell}"
+        existing_cell = db.warehouse_cells.find_one({
+            "warehouse_id": warehouse_id,
+            "location_code": location_code,
+            "is_occupied": True
+        })
+        
+        if existing_cell:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Cell is already occupied by cargo {existing_cell.get('cargo_number', 'unknown')}"
+            )
+        
+        # Размещаем груз в ячейку
+        cell_data = {
+            "warehouse_id": warehouse_id,
+            "warehouse_name": warehouse.get("name", "Неизвестный склад"),
+            "location_code": location_code,
+            "block": block,
+            "shelf": shelf,
+            "cell": cell,
+            "cargo_id": cargo.get("id"),
+            "cargo_number": cargo_number,
+            "cargo_name": cargo.get("cargo_name", "Груз"),
+            "cargo_weight": cargo.get("weight", 0),
+            "placed_at": datetime.utcnow(),
+            "placed_by": current_user.id,
+            "placed_by_name": current_user.full_name,
+            "is_occupied": True
+        }
+        
+        # Обновляем или вставляем данные о ячейке
+        db.warehouse_cells.update_one(
+            {
+                "warehouse_id": warehouse_id,
+                "location_code": location_code
+            },
+            {"$set": cell_data},
+            upsert=True
+        )
+        
+        # Обновляем статус груза
+        update_data = {
+            "status": "placed_in_warehouse",
+            "processing_status": "placed",
+            "warehouse_location": f"Блок {block}, Полка {shelf}, Ячейка {cell}",
+            "warehouse_id": warehouse_id,
+            "warehouse_name": warehouse.get("name"),
+            "block_number": block,
+            "shelf_number": shelf,
+            "cell_number": cell,
+            "placement_date": datetime.utcnow(),
+            "placed_by": current_user.id,
+            "placed_by_name": current_user.full_name,
+            "updated_at": datetime.utcnow()
+        }
+        
+        # Обновляем груз в соответствующей коллекции
+        cargo_updated = db.cargo.update_one(
+            {"cargo_number": cargo_number},
+            {"$set": update_data}
+        )
+        
+        if cargo_updated.matched_count == 0:
+            db.operator_cargo.update_one(
+                {"cargo_number": cargo_number},
+                {"$set": update_data}
+            )
+        
+        return {
+            "success": True,
+            "message": "Cargo successfully placed in warehouse cell",
+            "cargo_number": cargo_number,
+            "warehouse_name": warehouse.get("name"),
+            "location": f"Блок {block}, Полка {shelf}, Ячейка {cell}",
+            "cell_code": cell_code,
+            "placed_by": current_user.full_name
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid cell code format: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error placing cargo: {str(e)}")
+
 @app.post("/api/cargo/generate-application-qr/{cargo_number}")
 async def generate_application_qr_code(
     cargo_number: str,
