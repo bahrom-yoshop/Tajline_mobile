@@ -1470,6 +1470,65 @@ function App() {
     }
   };
 
+  // New function: Generate QR codes for all cargo from same sender
+  const generateBulkQRForSender = async (senderData) => {
+    try {
+      setBulkQRModal(true);
+      setSelectedSender(senderData);
+      setBulkQRLoading(true);
+      
+      // Find all cargo for this sender
+      const senderCargoList = operatorCargo.filter(cargo => 
+        cargo.sender_phone === senderData.sender_phone || 
+        cargo.sender_full_name === senderData.sender_full_name
+      );
+      
+      setSenderCargos(senderCargoList);
+      
+      // Generate QR codes for each cargo
+      const qrResults = [];
+      for (const cargo of senderCargoList) {
+        try {
+          const response = await apiCall('/api/cargo/generate-qr-by-number', 'POST', {
+            cargo_number: cargo.cargo_number
+          });
+          
+          if (response && response.success) {
+            qrResults.push({
+              cargo_number: cargo.cargo_number,
+              cargo_name: cargo.cargo_name,
+              qr_code: response.qr_code,
+              success: true
+            });
+          } else {
+            qrResults.push({
+              cargo_number: cargo.cargo_number,
+              cargo_name: cargo.cargo_name,
+              success: false,
+              error: 'Не удалось создать QR код'
+            });
+          }
+        } catch (error) {
+          qrResults.push({
+            cargo_number: cargo.cargo_number,
+            cargo_name: cargo.cargo_name,
+            success: false,
+            error: error.message
+          });
+        }
+      }
+      
+      setBulkQRResults(qrResults);
+      showAlert(`Создано QR кодов: ${qrResults.filter(r => r.success).length}/${qrResults.length}`, 'success');
+      
+    } catch (error) {
+      console.error('Error generating bulk QR codes:', error);
+      showAlert(`Ошибка создания QR кодов: ${error.message}`, 'error');
+    } finally {
+      setBulkQRLoading(false);
+    }
+  };
+
   // New function: Place cargo in cell
   const placeCargoInCell = async (cargoNumber, cellCode) => {
     try {
