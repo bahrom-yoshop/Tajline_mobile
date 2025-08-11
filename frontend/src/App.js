@@ -709,9 +709,9 @@ function App() {
         overflow: hidden;
       `;
       
-      // Clear any existing content safely
+      // Clear any existing content safely without React DOM conflicts
       while (qrContainerRef.current.firstChild) {
-        qrContainerRef.current.removeChild(qrContainerRef.current.firstChild);
+        qrContainerRef.current.firstChild.remove();
       }
       
       qrContainerRef.current.appendChild(isolatedDiv);
