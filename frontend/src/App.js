@@ -17853,6 +17853,414 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk QR Generation Modal for Sender */}
+      <Dialog open={showBulkQRModal} onOpenChange={setBulkQRModal}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <QrCode className="mr-2 h-5 w-5" />
+              QR коды для отправителя
+            </DialogTitle>
+            <DialogDescription>
+              Генерация QR кодов для всех грузов отправителя: {selectedSender?.sender_full_name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Information about sender and cargo count */}
+            {selectedSender && (
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="font-medium text-blue-800">Отправитель: {selectedSender.sender_full_name}</p>
+                    <p className="text-sm text-blue-600">Телефон: {selectedSender.sender_phone}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-blue-800">Количество грузов: {senderCargos.length}</p>
+                    <p className="text-sm text-blue-600">
+                      Создано QR кодов: {bulkQRResults.filter(r => r.success).length}/{bulkQRResults.length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Loading state */}
+            {bulkQRLoading && (
+              <div className="text-center py-4">
+                <RefreshCw className="animate-spin h-8 w-8 mx-auto text-blue-600" />
+                <p className="mt-2 text-gray-600">Генерация QR кодов...</p>
+              </div>
+            )}
+
+            {/* Results grid */}
+            {bulkQRResults.length > 0 && (
+              <div className="space-y-4">
+                <h4 className="font-medium">Результаты генерации:</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+                  {bulkQRResults.map((result, index) => (
+                    <div 
+                      key={index} 
+                      className={`p-3 border rounded-lg ${result.success ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-medium text-sm">{result.cargo_number}</p>
+                          <p className="text-xs text-gray-600">{result.cargo_name}</p>
+                          {!result.success && (
+                            <p className="text-xs text-red-600 mt-1">{result.error}</p>
+                          )}
+                        </div>
+                        {result.success ? (
+                          <div className="flex flex-col items-end space-y-1">
+                            <img 
+                              src={result.qr_code} 
+                              alt={`QR ${result.cargo_number}`}
+                              className="w-16 h-16"
+                            />
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = result.qr_code;
+                                link.download = `qr-${result.cargo_number}.png`;
+                                link.click();
+                              }}
+                              className="text-xs p-1 h-auto"
+                            >
+                              <Download className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-500" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bulk actions */}
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button
+                    onClick={() => {
+                      const successfulResults = bulkQRResults.filter(r => r.success);
+                      successfulResults.forEach(result => {
+                        const link = document.createElement('a');
+                        link.href = result.qr_code;
+                        link.download = `qr-${result.cargo_number}.png`;
+                        link.click();
+                      });
+                    }}
+                    disabled={bulkQRResults.filter(r => r.success).length === 0}
+                    className="flex-1"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Скачать все успешные ({bulkQRResults.filter(r => r.success).length})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const printWindow = window.open('', '_blank');
+                      const successfulResults = bulkQRResults.filter(r => r.success);
+                      const qrHtml = successfulResults.map(result => `
+                        <div style="margin: 20px; text-align: center; page-break-inside: avoid;">
+                          <h3>Груз: ${result.cargo_number}</h3>
+                          <p>${result.cargo_name}</p>
+                          <img src="${result.qr_code}" style="width: 200px; height: 200px;" />
+                        </div>
+                      `).join('');
+                      
+                      printWindow.document.write(`
+                        <html>
+                          <head><title>QR коды для отправителя: ${selectedSender?.sender_full_name}</title></head>
+                          <body>${qrHtml}</body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.print();
+                    }}
+                    disabled={bulkQRResults.filter(r => r.success).length === 0}
+                    className="flex-1"
+                  >
+                    <Printer className="mr-2 h-4 w-4" />
+                    Печать всех
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Close button */}
+            <div className="flex justify-end pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setBulkQRModal(false);
+                  setSelectedSender(null);
+                  setSenderCargos([]);
+                  setBulkQRResults([]);
+                }}
+              >
+                Закрыть
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Warehouse Management Modal */}
+      <Dialog open={showWarehouseManagementModal} onOpenChange={setShowWarehouseManagementModal}>
+        <DialogContent className="max-w-6xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Settings className="mr-2 h-5 w-5" />
+              Управление складом: {selectedWarehouseForManagement?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Управление структурой склада, генерация QR кодов для ячеек
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {warehouseManagementLoading ? (
+              <div className="text-center py-8">
+                <RefreshCw className="animate-spin h-8 w-8 mx-auto text-blue-600" />
+                <p className="mt-2 text-gray-600">Загрузка структуры склада...</p>
+              </div>
+            ) : warehouseStructure ? (
+              <>
+                {/* Warehouse Statistics */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">{warehouseStructure.blocks}</div>
+                    <div className="text-sm text-blue-600">Блоков</div>
+                  </div>
+                  <div className="p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">{warehouseStructure.total_cells}</div>
+                    <div className="text-sm text-green-600">Всего ячеек</div>
+                  </div>
+                  <div className="p-4 bg-orange-50 rounded-lg">
+                    <div className="text-2xl font-bold text-orange-600">{warehouseStructure.occupied_cells}</div>
+                    <div className="text-sm text-orange-600">Занято</div>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <div className="text-2xl font-bold text-gray-600">{warehouseStructure.free_cells}</div>
+                    <div className="text-sm text-gray-600">Свободно</div>
+                  </div>
+                </div>
+
+                {/* Management Actions */}
+                <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-lg">
+                  <Button
+                    onClick={() => generateCellQRCodes()}
+                    disabled={cellQRLoading}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {cellQRLoading ? (
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <QrCode className="mr-2 h-4 w-4" />
+                    )}
+                    Создать QR для всех ячеек
+                  </Button>
+                  
+                  <Button
+                    onClick={addWarehouseBlock}
+                    variant="outline"
+                    className="text-green-600 border-green-300 hover:bg-green-50"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Добавить блок
+                  </Button>
+  
+                  <Button
+                    onClick={() => {
+                      const blockToDelete = prompt(`Введите номер блока для удаления (1-${warehouseStructure.blocks}):`);
+                      if (blockToDelete && !isNaN(blockToDelete)) {
+                        const blockNum = parseInt(blockToDelete);
+                        if (blockNum >= 1 && blockNum <= warehouseStructure.blocks) {
+                          if (confirm(`Вы уверены что хотите удалить блок ${blockNum}? Это действие нельзя отменить.`)) {
+                            deleteWarehouseBlock(blockNum);
+                          }
+                        } else {
+                          showAlert('Неверный номер блока', 'error');
+                        }
+                      }
+                    }}
+                    variant="outline"
+                    className="text-red-600 border-red-300 hover:bg-red-50"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Удалить блок
+                  </Button>
+                </div>
+
+                {/* QR Generation Results */}
+                {cellQRResults.length > 0 && (
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Результаты генерации QR кодов:</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-64 overflow-y-auto p-4 border rounded-lg">
+                      {cellQRResults.map((result, index) => (
+                        <div 
+                          key={index} 
+                          className={`p-2 border rounded text-center ${result.success ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}
+                        >
+                          <div className="text-xs font-medium mb-1">{result.location}</div>
+                          {result.success ? (
+                            <div className="space-y-1">
+                              <img 
+                                src={result.qr_code} 
+                                alt={`QR ${result.location}`}
+                                className="w-12 h-12 mx-auto"
+                              />
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  const link = document.createElement('a');
+                                  link.href = result.qr_code;
+                                  link.download = `cell-${result.location}.png`;
+                                  link.click();
+                                }}
+                                className="text-xs p-1 h-auto"
+                              >
+                                <Download className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="space-y-1">
+                              <XCircle className="h-6 w-6 mx-auto text-red-500" />
+                              <p className="text-xs text-red-600">{result.error}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Bulk actions for cells */}
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => {
+                          const successfulResults = cellQRResults.filter(r => r.success);
+                          successfulResults.forEach(result => {
+                            const link = document.createElement('a');
+                            link.href = result.qr_code;
+                            link.download = `cell-${result.location}.png`;
+                            link.click();
+                          });
+                        }}
+                        disabled={cellQRResults.filter(r => r.success).length === 0}
+                        variant="outline"
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Скачать все QR ({cellQRResults.filter(r => r.success).length})
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const printWindow = window.open('', '_blank');
+                          const successfulResults = cellQRResults.filter(r => r.success);
+                          const qrHtml = successfulResults.map(result => `
+                            <div style="margin: 10px; text-align: center; display: inline-block; page-break-inside: avoid;">
+                              <h4>${warehouseStructure.warehouse_name}</h4>
+                              <p>Ячейка: ${result.location}</p>
+                              <img src="${result.qr_code}" style="width: 150px; height: 150px;" />
+                            </div>
+                          `).join('');
+                          
+                          printWindow.document.write(`
+                            <html>
+                              <head><title>QR коды ячеек склада: ${warehouseStructure.warehouse_name}</title></head>
+                              <body style="display: flex; flex-wrap: wrap;">${qrHtml}</body>
+                            </html>
+                          `);
+                          printWindow.document.close();
+                          printWindow.print();
+                        }}
+                        disabled={cellQRResults.filter(r => r.success).length === 0}
+                      >
+                        <Printer className="mr-2 h-4 w-4" />
+                        Печать всех QR
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Warehouse Structure Visualization */}
+                <div className="space-y-4">
+                  <h4 className="font-medium">Структура склада:</h4>
+                  <div className="text-sm text-gray-600">
+                    Блоков: {warehouseStructure.blocks} | 
+                    Полок на блок: {warehouseStructure.shelves_per_block} | 
+                    Ячеек на полку: {warehouseStructure.cells_per_shelf}
+                  </div>
+                  
+                  <div className="p-4 border rounded-lg bg-gray-50">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {Array.from({length: warehouseStructure.blocks}, (_, blockIndex) => (
+                        <div key={blockIndex} className="border rounded p-3 bg-white">
+                          <h5 className="font-medium mb-2">Блок {blockIndex + 1}</h5>
+                          <div className="text-xs text-gray-600 mb-2">
+                            Полок: {warehouseStructure.shelves_per_block} | 
+                            Ячеек: {warehouseStructure.shelves_per_block * warehouseStructure.cells_per_shelf}
+                          </div>
+                          <div className="grid grid-cols-5 gap-1">
+                            {Array.from({length: Math.min(warehouseStructure.shelves_per_block * warehouseStructure.cells_per_shelf, 20)}, (_, cellIndex) => {
+                              const shelf = Math.floor(cellIndex / warehouseStructure.cells_per_shelf) + 1;
+                              const cell = (cellIndex % warehouseStructure.cells_per_shelf) + 1;
+                              const isOccupied = warehouseStructure.cells.some(c => 
+                                c.block === (blockIndex + 1) && c.shelf === shelf && c.cell === cell && c.is_occupied
+                              );
+                              
+                              return (
+                                <div 
+                                  key={cellIndex}
+                                  className={`w-4 h-4 border text-xs flex items-center justify-center ${
+                                    isOccupied ? 'bg-red-200 border-red-400' : 'bg-green-200 border-green-400'
+                                  }`}
+                                  title={`Блок ${blockIndex + 1}, Полка ${shelf}, Ячейка ${cell} - ${isOccupied ? 'Занята' : 'Свободна'}`}
+                                >
+                                  {isOccupied ? '●' : '○'}
+                                </div>
+                              );
+                            })}
+                            {warehouseStructure.shelves_per_block * warehouseStructure.cells_per_shelf > 20 && (
+                              <div className="text-xs text-gray-500 col-span-5">
+                                ... ещё {warehouseStructure.shelves_per_block * warehouseStructure.cells_per_shelf - 20} ячеек
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                Не удалось загрузить структуру склада
+              </div>
+            )}
+
+            {/* Close button */}
+            <div className="flex justify-end pt-4 border-t">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowWarehouseManagementModal(false);
+                  setSelectedWarehouseForManagement(null);
+                  setWarehouseStructure(null);
+                  setSelectedCells([]);
+                  setCellQRResults([]);
+                }}
+              >
+                Закрыть
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
