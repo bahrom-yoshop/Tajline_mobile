@@ -873,22 +873,22 @@ function App() {
     await stopCameraScanner();
   };
 
-  // Очистка всех камер при размонтировании компонента
+  // Очистка всех камер при размонтировании компонента - улучшенная версия
   useEffect(() => {
     return () => {
       // Очищаем основной сканер
       if (html5QrCode) {
-        html5QrCode.stop().catch(console.error);
+        safeStopQrScanner(html5QrCode, "qr-reader", "Main Scanner").catch(console.error);
       }
       
       // Очищаем сканер размещения
       if (html5QrCodePlacement) {
-        html5QrCodePlacement.stop().catch(console.error);
+        safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Placement Scanner").catch(console.error);
       }
       
       // Очищаем модальный сканер
       if (modalScannerRef.current) {
-        modalScannerRef.current.stop().catch(console.error);
+        safeStopQrScanner(modalScannerRef.current, "qr-reader-modal", "Modal Scanner").catch(console.error);
       }
     };
   }, [html5QrCode, html5QrCodePlacement]);
