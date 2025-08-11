@@ -7589,10 +7589,11 @@ function App() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {/* Camera Scanner for full screen - ALWAYS show element for mobile compatibility */}
+                      {/* Camera Scanner for full screen - React-safe with ref */}
                       <div className="relative">
                         <div className="bg-black rounded-lg p-4 mb-4">
                           <div 
+                            ref={placementQrReaderRef}
                             id="qr-reader-placement"
                             className="w-full min-h-[400px] flex items-center justify-center"
                             style={{ 
@@ -7630,8 +7631,9 @@ function App() {
                           {scannerActive && (
                             <Button 
                               onClick={() => {
-                                if (html5QrCodePlacement) {
-                                  safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "User Stop");
+                                if (html5QrCodePlacementRef.current) {
+                                  safeStopQrScanner(html5QrCodePlacementRef.current, "qr-reader-placement", "User Stop");
+                                  html5QrCodePlacementRef.current = null;
                                   setHtml5QrCodePlacement(null);
                                 }
                                 setScannerActive(false);
