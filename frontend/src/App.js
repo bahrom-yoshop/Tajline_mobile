@@ -10626,9 +10626,9 @@ function App() {
                                 Генерировать QR
                               </Button>
                               
-                              {/* Кнопка размещения груза */}
+                              {/* Кнопка размещения груза - открывает страницу */}
                               <Button 
-                                onClick={() => setShowCargoPlacementModal(true)}
+                                onClick={openCargoPlacementPage}
                                 className="bg-green-600 hover:bg-green-700"
                                 size="sm"
                               >
