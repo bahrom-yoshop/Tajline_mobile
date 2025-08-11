@@ -918,10 +918,10 @@ class CargoTransportAPITester:
         
         return all_success
 
-    def test_qr_code_system_comprehensive(self):
-        """Test comprehensive QR code system for TAJLINE.TJ including automatic generation and scanning"""
-        print("\n📱 QR CODE SYSTEM COMPREHENSIVE TESTING")
-        print("   🎯 Testing improved QR code system: automatic generation, scanning, and operations")
+    def test_new_qr_code_functions_and_cargo_placement(self):
+        """Test new QR code functions and cargo placement according to review request"""
+        print("\n📱 NEW QR CODE FUNCTIONS AND CARGO PLACEMENT TESTING")
+        print("   🎯 Testing new QR code improvements and cargo placement system")
         
         all_success = True
         
