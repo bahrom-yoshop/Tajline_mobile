@@ -1926,7 +1926,46 @@ function App() {
     }
   };
 
-  // New function: Start placement process - Enhanced mobile support  
+  // Open cargo placement page
+  const openCargoPlacementPage = () => {
+    console.log('🚀 Открытие страницы размещения груза...');
+    setCurrentPage('cargo-placement');
+    
+    // Reset placement state when opening page
+    setPlacementActive(false);
+    setPlacementStep('idle');
+    setScannerActive(false);
+    setPlacementManualCargoNumber('');
+    setPlacementManualCellCode('');
+    setManualCargoNumberError('');
+    setManualCellCodeError('');
+    setManualCargoDetails(null);
+    
+    // Initialize placement page
+    setTimeout(async () => {
+      await startCargoPlacement();
+    }, 500);
+  };
+
+  // Close cargo placement page
+  const closeCargoPlacementPage = () => {
+    console.log('🔙 Закрытие страницы размещения груза...');
+    
+    // Stop any active scanners
+    if (html5QrCodePlacement) {
+      safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Page Close");
+      setHtml5QrCodePlacement(null);
+    }
+    
+    // Reset all placement states
+    setPlacementActive(false);
+    setPlacementStep('idle');
+    setScannerActive(false);
+    setShowCargoPlacementModal(false);
+    
+    // Return to main page
+    setCurrentPage('main');
+  };  
   const startCargoPlacement = async () => {
     try {
       console.log('🚀 Запуск процесса размещения груза...');
