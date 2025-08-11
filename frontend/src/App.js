@@ -1566,8 +1566,9 @@ function App() {
   // New function: Stop placement process
   const stopCargoPlacement = async () => {
     try {
-      if (html5QrCode && scannerActive) {
-        await html5QrCode.stop();
+      if (html5QrCodePlacement && scannerActive) {
+        await html5QrCodePlacement.stop();
+        setHtml5QrCodePlacement(null);
       }
     } catch (error) {
       console.error('Error stopping placement scanner:', error);
