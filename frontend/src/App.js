@@ -2003,6 +2003,37 @@ function App() {
     setScannerActive(false);
   };
 
+  // New function: Switch camera for placement scanner
+  const switchPlacementCamera = async () => {
+    if (availablePlacementCameras.length <= 1) {
+      showAlert('На устройстве найдена только одна камера', 'info');
+      return;
+    }
+
+    try {
+      // Stop current scanner
+      if (html5QrCodePlacement) {
+        await safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Placement Scanner");
+        setHtml5QrCodePlacement(null);
+      }
+
+      // Switch to next camera
+      const nextCameraIndex = (currentPlacementCameraIndex + 1) % availablePlacementCameras.length;
+      setCurrentPlacementCameraIndex(nextCameraIndex);
+      
+      // Restart scanner with new camera
+      setTimeout(() => {
+        startQRScannerForPlacement();
+      }, 500);
+
+      showAlert(`Переключение на камеру: ${availablePlacementCameras[nextCameraIndex]?.label || 'Неизвестная'}`, 'info');
+
+    } catch (error) {
+      console.error('Error switching camera:', error);
+      showAlert('Ошибка переключения камеры', 'error');
+    }
+  };
+
   // Scan QR code to find cargo
   const scanCargoQRCode = async (qrText) => {
     try {
