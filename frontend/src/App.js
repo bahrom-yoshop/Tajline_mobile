@@ -18193,29 +18193,65 @@ function App() {
               </div>
             )}
 
-            {/* Manual input - always available when placement is active */}
+            {/* Manual input - Mobile adapted with validation */}
             {placementActive && (
-              <div className="p-4 border rounded-lg bg-blue-50">
-                <h5 className="font-medium text-blue-800 mb-2 flex items-center">
+              <div className="p-3 sm:p-4 border rounded-lg bg-blue-50">
+                <h5 className="font-medium text-blue-800 mb-2 flex items-center text-sm sm:text-base">
                   <Edit className="mr-2 h-4 w-4" />
                   Ручной ввод данных
                 </h5>
-                <p className="text-sm text-blue-700 mb-3">
+                <p className="text-xs sm:text-sm text-blue-700 mb-3">
                   {!scannerActive ? 
                     'Введите данные для размещения груза:' : 
                     'Альтернативно можете ввести данные вручную:'}
                 </p>
                 <div className="space-y-3">
+                  {/* Cargo Number Input with Validation */}
                   <div>
                     <Label htmlFor="manual-cargo" className="text-sm font-medium">Номер груза</Label>
                     <Input
                       id="manual-cargo"
                       placeholder="Например: TEMP-123456"
                       value={manualCargoNumber}
-                      onChange={(e) => setManualCargoNumber(e.target.value)}
-                      className="text-sm"
+                      onChange={(e) => {
+                        setManualCargoNumber(e.target.value);
+                        // Debounced validation
+                        clearTimeout(window.cargoValidationTimeout);
+                        window.cargoValidationTimeout = setTimeout(() => {
+                          validateCargoNumber(e.target.value);
+                        }, 500);
+                      }}
+                      className={`text-sm ${cargoValidation.isValid ? 'border-green-500' : ''}`}
                     />
+                    
+                    {/* Cargo Validation Results */}
+                    {cargoValidation.isLoading && (
+                      <div className="flex items-center mt-1 text-xs text-gray-600">
+                        <RefreshCw className="animate-spin h-3 w-3 mr-1" />
+                        Проверка груза...
+                      </div>
+                    )}
+                    
+                    {cargoValidation.isValid && cargoValidation.cargoInfo && (
+                      <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs">
+                        <div className="font-medium text-green-800">✓ Груз найден:</div>
+                        <div className="text-green-700">
+                          <div><strong>Название:</strong> {cargoValidation.cargoInfo.cargo_name}</div>
+                          <div><strong>Вес:</strong> {cargoValidation.cargoInfo.weight} кг</div>
+                          <div><strong>От:</strong> {cargoValidation.cargoInfo.sender}</div>
+                          <div><strong>Для:</strong> {cargoValidation.cargoInfo.recipient}</div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {!cargoValidation.isValid && manualCargoNumber.trim() && !cargoValidation.isLoading && (
+                      <div className="mt-1 text-xs text-red-600">
+                        ❌ Груз с таким номером не найден
+                      </div>
+                    )}
                   </div>
+
+                  {/* Cell Code Input with Available Cells */}
                   <div>
                     <Label htmlFor="manual-cell" className="text-sm font-medium">Код ячейки</Label>
                     <Input
@@ -18225,11 +18261,47 @@ function App() {
                       onChange={(e) => setManualCellCode(e.target.value)}
                       className="text-sm"
                     />
+                    
+                    {/* Available Cells Display */}
+                    {cellValidation.isLoading && (
+                      <div className="flex items-center mt-1 text-xs text-gray-600">
+                        <RefreshCw className="animate-spin h-3 w-3 mr-1" />
+                        Загрузка свободных ячеек...
+                      </div>
+                    )}
+                    
+                    {cellValidation.availableCells.length > 0 && (
+                      <div className="mt-2">
+                        <div className="text-xs font-medium text-gray-700 mb-1">
+                          Свободные ячейки ({cellValidation.selectedWarehouse?.name}):
+                        </div>
+                        <div className="max-h-32 overflow-y-auto">
+                          <div className="grid grid-cols-1 gap-1">
+                            {cellValidation.availableCells.slice(0, 10).map((cell, index) => (
+                              <button
+                                key={index}
+                                onClick={() => setManualCellCode(cell.code)}
+                                className="text-left p-2 text-xs bg-gray-50 hover:bg-gray-100 border rounded"
+                              >
+                                <div className="font-medium">{cell.code}</div>
+                                <div className="text-gray-600">{cell.display}</div>
+                              </button>
+                            ))}
+                          </div>
+                          {cellValidation.availableCells.length > 10 && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              ... и еще {cellValidation.availableCells.length - 10} ячеек
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
+
                   <Button 
                     onClick={handleManualPlacement}
-                    disabled={!manualCargoNumber.trim() || !manualCellCode.trim()}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    disabled={!cargoValidation.isValid || !manualCellCode.trim()}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-sm"
                     size="sm"
                   >
                     <Package className="mr-2 h-4 w-4" />
