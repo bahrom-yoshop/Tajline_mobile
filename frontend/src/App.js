@@ -1457,12 +1457,21 @@ function App() {
   // New function: QR Scanner for placement
   const startQRScannerForPlacement = async () => {
     try {
-      if (html5QrCode) {
-        await html5QrCode.stop();
+      // Останавливаем предыдущий экземпляр если есть
+      if (html5QrCodePlacement) {
+        await html5QrCodePlacement.stop();
+        setHtml5QrCodePlacement(null);
+      }
+
+      // Проверяем существование DOM элемента
+      const placementElement = document.getElementById("qr-reader-placement");
+      if (!placementElement) {
+        console.log('Placement QR reader element not found, waiting...');
+        return;
       }
 
       const qrCodeInstance = new Html5Qrcode("qr-reader-placement");
-      setHtml5QrCode(qrCodeInstance);
+      setHtml5QrCodePlacement(qrCodeInstance);
 
       const cameras = await Html5Qrcode.getCameras();
       if (cameras && cameras.length) {
