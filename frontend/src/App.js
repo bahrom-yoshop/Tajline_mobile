@@ -105,6 +105,104 @@ function App() {
     }
   };
 
+  // New function: Validate cargo number
+  const validateCargoNumber = async (cargoNumber) => {
+    if (!cargoNumber.trim()) {
+      setCargoValidation({ isValid: false, cargoInfo: null, isLoading: false });
+      return;
+    }
+
+    setCargoValidation({ isValid: false, cargoInfo: null, isLoading: true });
+
+    try {
+      // Check if cargo exists by scanning QR endpoint
+      const response = await apiCall('/api/qr/scan', 'POST', {
+        qr_text: cargoNumber.trim()
+      });
+      
+      if (response && response.type === 'cargo') {
+        setCargoValidation({
+          isValid: true,
+          cargoInfo: {
+            cargo_number: response.cargo_number,
+            cargo_name: response.cargo_name,
+            weight: response.weight,
+            sender: response.sender,
+            recipient: response.recipient
+          },
+          isLoading: false
+        });
+      } else {
+        setCargoValidation({
+          isValid: false,
+          cargoInfo: null,
+          isLoading: false
+        });
+      }
+    } catch (error) {
+      console.error('Error validating cargo:', error);
+      setCargoValidation({
+        isValid: false,
+        cargoInfo: null,
+        isLoading: false
+      });
+    }
+  };
+
+  // New function: Get available warehouse cells
+  const getAvailableWarehouseCells = async () => {
+    setCellValidation({ availableCells: [], selectedWarehouse: null, isLoading: true });
+
+    try {
+      // Get user's assigned warehouses
+      const warehousesResponse = await apiCall('/api/warehouses');
+      
+      if (warehousesResponse && warehousesResponse.length > 0) {
+        const warehouse = warehousesResponse[0]; // Use first available warehouse
+        
+        // Get warehouse structure
+        const structureResponse = await apiCall(`/api/warehouses/${warehouse.id}/structure`);
+        
+        if (structureResponse) {
+          // Generate available cells (free cells only)
+          const availableCells = [];
+          
+          for (let block = 1; block <= structureResponse.blocks; block++) {
+            for (let shelf = 1; shelf <= structureResponse.shelves_per_block; shelf++) {
+              for (let cell = 1; cell <= structureResponse.cells_per_shelf; cell++) {
+                // Check if cell is occupied
+                const isOccupied = structureResponse.cells.some(c => 
+                  c.block === block && c.shelf === shelf && c.cell === cell && c.is_occupied
+                );
+                
+                if (!isOccupied) {
+                  availableCells.push({
+                    warehouse_id: warehouse.id,
+                    warehouse_name: warehouse.name,
+                    block: block,
+                    shelf: shelf,
+                    cell: cell,
+                    code: `${warehouse.id}-Б${block}-П${shelf}-Я${cell}`,
+                    display: `Блок ${block}, Полка ${shelf}, Ячейка ${cell}`
+                  });
+                }
+              }
+            }
+          }
+          
+          setCellValidation({
+            availableCells: availableCells.slice(0, 20), // Show first 20 available cells
+            selectedWarehouse: warehouse,
+            isLoading: false
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error getting available cells:', error);
+      setCellValidation({ availableCells: [], selectedWarehouse: null, isLoading: false });
+    }
+  };
+
   // New function: Manual cargo placement
   const handleManualPlacement = async () => {
     if (!manualCargoNumber.trim() || !manualCellCode.trim()) {
