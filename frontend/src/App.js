@@ -18862,7 +18862,7 @@ function App() {
                   </Button>
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Manual input - Mobile adapted with validation */}
             {placementActive && (
