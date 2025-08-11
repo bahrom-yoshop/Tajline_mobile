@@ -264,6 +264,10 @@ function App() {
   const [manualCargoNumber, setManualCargoNumber] = useState('');
   const [manualCellCode, setManualCellCode] = useState('');
   
+  // Validation states for manual input
+  const [cargoValidation, setCargoValidation] = useState({ isValid: false, cargoInfo: null, isLoading: false });
+  const [cellValidation, setCellValidation] = useState({ availableCells: [], selectedWarehouse: null, isLoading: false });
+  
   // Camera management states
   const [availablePlacementCameras, setAvailablePlacementCameras] = useState([]);
   const [currentPlacementCameraIndex, setCurrentPlacementCameraIndex] = useState(0);
