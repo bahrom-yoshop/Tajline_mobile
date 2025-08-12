@@ -10254,7 +10254,7 @@ function App() {
                                     <SelectValue placeholder="Любой" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="">Любой</SelectItem>
+                                    <SelectItem value="any">Любой</SelectItem>
                                     <SelectItem value="accepted">Принят</SelectItem>
                                     <SelectItem value="in_transit">В пути</SelectItem>
                                     <SelectItem value="delivered">Доставлен</SelectItem>
