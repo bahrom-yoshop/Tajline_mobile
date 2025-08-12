@@ -7485,7 +7485,7 @@ function App() {
       console.error('Send to courier error:', error);
       showAlert('Ошибка создания заявки для курьера: ' + error.message, 'error');
     } finally {
-      setCargoLoading(false);
+      setQrCodeLoading(false);
     }
   };
 
