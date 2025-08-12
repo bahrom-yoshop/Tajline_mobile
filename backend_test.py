@@ -30865,6 +30865,7 @@ ID склада: {target_warehouse_id}"""
         # Test 10: CREATE COURIER REQUEST (POST /api/operator/courier-requests/create)
         print("\n   📋 Test 10: CREATE COURIER REQUEST (POST /api/operator/courier-requests/create)...")
         
+        created_request_id = None
         if operator_token and created_cargo_id:
             courier_request_data = {
                 "cargo_id": created_cargo_id,
