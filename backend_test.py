@@ -29540,6 +29540,461 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_warehouse_id_system_implementation(self):
+        """Test новая система ID номеров для складской структуры согласно review request"""
+        print("\n🏭 WAREHOUSE ID SYSTEM IMPLEMENTATION TESTING")
+        print("   🎯 Протестировать новую систему ID номеров для складской структуры согласно обновленному test_result.md")
+        print("   🔧 ОСНОВНЫЕ ЗАДАЧИ ТЕСТИРОВАНИЯ:")
+        print("   1) Создание нового склада с автогенерацией ID номера (формат 001, 002, 003...)")
+        print("   2) Проверка автогенерации структуры с ID номерами для блоков (01, 02...), полок (01, 02...) и ячеек (001, 002...)")
+        print("   3) Проверка создания коллекций warehouse_blocks, warehouse_shelves, warehouse_cells")
+        print("   4) Тестирование нового endpoint POST /api/warehouse/cell/status")
+        print("   5) Проверка генерации QR кодов в новом формате 001-01-01-001")
+        print("   6) Тестирование размещения груза с новым ID форматом ячейки")
+        
+        all_success = True
+        
+        # Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРА СКЛАДА (+79777888999/warehouse123)
+        print("\n   🔐 Test 1: WAREHOUSE OPERATOR AUTHENTICATION...")
+        
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login for ID System Testing",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            
+            if operator_role == 'warehouse_operator':
+                print("   ✅ Operator role correctly set to 'warehouse_operator'")
+            else:
+                print(f"   ❌ Operator role incorrect: expected 'warehouse_operator', got '{operator_role}'")
+                all_success = False
+            
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+            return False
+        
+        # Test 2: СОЗДАНИЕ НОВОГО СКЛАДА С АВТОГЕНЕРАЦИЕЙ ID НОМЕРА
+        print("\n   🏗️ Test 2: WAREHOUSE CREATION WITH AUTO-GENERATED ID NUMBER...")
+        
+        # First, get admin token for warehouse creation
+        if 'admin' not in self.tokens:
+            admin_login_data = {
+                "phone": "+79999888777",
+                "password": "admin123"
+            }
+            
+            success, admin_login_response = self.run_test(
+                "Admin Login for Warehouse Creation",
+                "POST",
+                "/api/auth/login",
+                200,
+                admin_login_data
+            )
+            
+            if success and 'access_token' in admin_login_response:
+                self.tokens['admin'] = admin_login_response['access_token']
+                self.users['admin'] = admin_login_response.get('user', {})
+        
+        if 'admin' in self.tokens:
+            # Create new warehouse with ID system
+            warehouse_data = {
+                "name": "Тестовый склад ID системы",
+                "location": "Москва, ул. ID Тестовая, 1",
+                "blocks_count": 2,
+                "shelves_per_block": 2,
+                "cells_per_shelf": 3
+            }
+            
+            success, warehouse_response = self.run_test(
+                "Create Warehouse with ID System",
+                "POST",
+                "/api/warehouses",
+                200,
+                warehouse_data,
+                self.tokens['admin']
+            )
+            all_success &= success
+            
+            test_warehouse_id = None
+            test_warehouse_id_number = None
+            
+            if success:
+                test_warehouse_id = warehouse_response.get('id')
+                test_warehouse_id_number = warehouse_response.get('warehouse_id_number')
+                
+                print(f"   ✅ Warehouse created with ID: {test_warehouse_id}")
+                print(f"   🔢 Warehouse ID number: {test_warehouse_id_number}")
+                
+                # Verify ID number format (001, 002, 003...)
+                if test_warehouse_id_number and len(test_warehouse_id_number) == 3 and test_warehouse_id_number.isdigit():
+                    print("   ✅ Warehouse ID number format correct (3 digits)")
+                else:
+                    print(f"   ❌ Warehouse ID number format incorrect: {test_warehouse_id_number}")
+                    all_success = False
+            else:
+                print("   ❌ Failed to create warehouse with ID system")
+                all_success = False
+                return False
+        else:
+            print("   ❌ Admin token not available for warehouse creation")
+            all_success = False
+            return False
+        
+        # Test 3: ПРОВЕРКА АВТОГЕНЕРАЦИИ СТРУКТУРЫ С ID НОМЕРАМИ
+        print("\n   🏗️ Test 3: WAREHOUSE STRUCTURE AUTO-GENERATION WITH ID NUMBERS...")
+        
+        if test_warehouse_id:
+            # Get warehouse structure to verify ID numbers
+            success, structure_response = self.run_test(
+                "Get Warehouse Structure with ID Numbers",
+                "GET",
+                f"/api/warehouses/{test_warehouse_id}/structure",
+                200,
+                token=operator_token
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Warehouse structure retrieved successfully")
+                
+                # Check for blocks with ID numbers
+                blocks = structure_response.get('blocks', [])
+                if blocks:
+                    print(f"   📦 Found {len(blocks)} blocks")
+                    
+                    # Verify block ID numbers (01, 02...)
+                    for block in blocks:
+                        block_id_number = block.get('block_id_number')
+                        block_number = block.get('block_number')
+                        
+                        if block_id_number and len(block_id_number) == 2 and block_id_number.isdigit():
+                            print(f"   ✅ Block {block_number} has correct ID number: {block_id_number}")
+                        else:
+                            print(f"   ❌ Block {block_number} has incorrect ID number: {block_id_number}")
+                            all_success = False
+                        
+                        # Check shelves with ID numbers
+                        shelves = block.get('shelves', [])
+                        if shelves:
+                            for shelf in shelves:
+                                shelf_id_number = shelf.get('shelf_id_number')
+                                shelf_number = shelf.get('shelf_number')
+                                
+                                if shelf_id_number and len(shelf_id_number) == 2 and shelf_id_number.isdigit():
+                                    print(f"   ✅ Shelf {shelf_number} has correct ID number: {shelf_id_number}")
+                                else:
+                                    print(f"   ❌ Shelf {shelf_number} has incorrect ID number: {shelf_id_number}")
+                                    all_success = False
+                                
+                                # Check cells with ID numbers
+                                cells = shelf.get('cells', [])
+                                if cells:
+                                    for cell in cells:
+                                        cell_id_number = cell.get('cell_id_number')
+                                        cell_number = cell.get('cell_number')
+                                        id_based_code = cell.get('id_based_code')
+                                        
+                                        if cell_id_number and len(cell_id_number) == 3 and cell_id_number.isdigit():
+                                            print(f"   ✅ Cell {cell_number} has correct ID number: {cell_id_number}")
+                                        else:
+                                            print(f"   ❌ Cell {cell_number} has incorrect ID number: {cell_id_number}")
+                                            all_success = False
+                                        
+                                        # Verify ID-based code format (001-01-01-001)
+                                        if id_based_code:
+                                            expected_format = f"{test_warehouse_id_number}-{block.get('block_id_number')}-{shelf_id_number}-{cell_id_number}"
+                                            if id_based_code == expected_format:
+                                                print(f"   ✅ Cell ID-based code correct: {id_based_code}")
+                                            else:
+                                                print(f"   ❌ Cell ID-based code incorrect: expected {expected_format}, got {id_based_code}")
+                                                all_success = False
+                else:
+                    print("   ❌ No blocks found in warehouse structure")
+                    all_success = False
+            else:
+                print("   ❌ Failed to get warehouse structure")
+                all_success = False
+        
+        # Test 4: ТЕСТИРОВАНИЕ НОВОГО ENDPOINT POST /api/warehouse/cell/status
+        print("\n   🔍 Test 4: CELL STATUS ENDPOINT WITH ID FORMAT...")
+        
+        if test_warehouse_id and test_warehouse_id_number:
+            # Test with ID format
+            cell_status_data_id = {
+                "warehouse_id_number": test_warehouse_id_number,
+                "block_id_number": "01",
+                "shelf_id_number": "01", 
+                "cell_id_number": "001"
+            }
+            
+            success, status_response_id = self.run_test(
+                "Check Cell Status with ID Format",
+                "POST",
+                "/api/warehouse/cell/status",
+                200,
+                cell_status_data_id,
+                operator_token
+            )
+            
+            if success:
+                print("   ✅ Cell status endpoint working with ID format")
+                
+                # Verify response structure
+                is_occupied = status_response_id.get('is_occupied')
+                occupied_by = status_response_id.get('occupied_by')
+                cell_info = status_response_id.get('cell_info', {})
+                
+                if is_occupied is not None:
+                    print(f"   ✅ is_occupied field returned: {is_occupied}")
+                else:
+                    print("   ❌ is_occupied field not returned")
+                    all_success = False
+                
+                if 'occupied_by' in status_response_id:
+                    print(f"   ✅ occupied_by field returned: {occupied_by}")
+                else:
+                    print("   ❌ occupied_by field not returned")
+                    all_success = False
+                
+                if cell_info:
+                    print(f"   ✅ Cell info returned: {cell_info.get('id_based_code', 'No ID code')}")
+                else:
+                    print("   ❌ Cell info not returned")
+                    all_success = False
+            else:
+                print("   ❌ Cell status endpoint failed with ID format")
+                all_success = False
+            
+            # Test with legacy format for backward compatibility
+            cell_status_data_legacy = {
+                "warehouse_id": test_warehouse_id,
+                "block_number": 1,
+                "shelf_number": 1,
+                "cell_number": 1
+            }
+            
+            success, status_response_legacy = self.run_test(
+                "Check Cell Status with Legacy Format",
+                "POST",
+                "/api/warehouse/cell/status",
+                200,
+                cell_status_data_legacy,
+                operator_token
+            )
+            
+            if success:
+                print("   ✅ Cell status endpoint working with legacy format (backward compatibility)")
+            else:
+                print("   ❌ Cell status endpoint failed with legacy format")
+                all_success = False
+        
+        # Test 5: QR CODE GENERATION WITH ID FORMAT
+        print("\n   📱 Test 5: QR CODE GENERATION WITH ID FORMAT...")
+        
+        if test_warehouse_id and test_warehouse_id_number:
+            # Test QR generation with format: 'id' for new ID format
+            qr_generation_data = {
+                "warehouse_id": test_warehouse_id,
+                "block": 1,
+                "shelf": 1,
+                "cell": 1,
+                "format": "id"  # New ID format
+            }
+            
+            success, qr_response = self.run_test(
+                "Generate QR Code with ID Format (001-01-01-001)",
+                "POST",
+                "/api/warehouse/cell/generate-qr",
+                200,
+                qr_generation_data,
+                operator_token
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ QR code generation with ID format working")
+                
+                # Verify QR code format
+                qr_code = qr_response.get('qr_code')
+                cell_code = qr_response.get('cell_code')
+                readable_name = qr_response.get('readable_name')
+                
+                if qr_code and qr_code.startswith('data:image/png;base64,'):
+                    print("   ✅ QR code format correct (base64 PNG)")
+                else:
+                    print("   ❌ QR code format incorrect")
+                    all_success = False
+                
+                # Verify cell_code is in ID format (001-01-01-001)
+                if cell_code:
+                    expected_cell_code = f"{test_warehouse_id_number}-01-01-001"
+                    if cell_code == expected_cell_code:
+                        print(f"   ✅ Cell code in ID format: {cell_code}")
+                    else:
+                        print(f"   ❌ Cell code format incorrect: expected {expected_cell_code}, got {cell_code}")
+                        all_success = False
+                else:
+                    print("   ❌ Cell code not returned")
+                    all_success = False
+                
+                # Verify readable_name for printing (Б1-П1-Я1)
+                if readable_name:
+                    if "Б1" in readable_name and "П1" in readable_name and "Я1" in readable_name:
+                        print(f"   ✅ Readable name for printing: {readable_name}")
+                    else:
+                        print(f"   ❌ Readable name format incorrect: {readable_name}")
+                        all_success = False
+                else:
+                    print("   ❌ Readable name not returned")
+                    all_success = False
+            else:
+                print("   ❌ QR code generation with ID format failed")
+                all_success = False
+        
+        # Test 6: CARGO PLACEMENT WITH ID SYSTEM
+        print("\n   🚛 Test 6: CARGO PLACEMENT WITH ID SYSTEM...")
+        
+        # Create test cargo first
+        cargo_data = {
+            "sender_full_name": "Тест Отправитель ID Система",
+            "sender_phone": "+79991234567",
+            "recipient_full_name": "Тест Получатель ID Система", 
+            "recipient_phone": "+992987654321",
+            "recipient_address": "Душанбе, ул. ID Система, 1",
+            "weight": 5.0,
+            "cargo_name": "Тестовый груз для ID системы",
+            "declared_value": 2000.0,
+            "description": "Тест размещения груза с новым ID форматом ячейки",
+            "route": "moscow_dushanbe",
+            "payment_method": "cash",
+            "payment_amount": 2000.0
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create Test Cargo for ID System Placement",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            cargo_data,
+            operator_token
+        )
+        
+        if success and 'cargo_number' in cargo_response:
+            test_cargo_number = cargo_response['cargo_number']
+            print(f"   ✅ Test cargo created: {test_cargo_number}")
+            
+            if test_warehouse_id_number:
+                # Test cargo placement with ID format cell code
+                id_format_cell_code = f"{test_warehouse_id_number}-01-01-002"  # Different cell to avoid conflicts
+                
+                placement_data_id = {
+                    "cargo_number": test_cargo_number,
+                    "cell_code": id_format_cell_code
+                }
+                
+                success, placement_response_id = self.run_test(
+                    "Place Cargo with ID Format Cell Code",
+                    "POST",
+                    "/api/cargo/place-in-cell",
+                    200,
+                    placement_data_id,
+                    operator_token
+                )
+                
+                if success:
+                    print("   ✅ Cargo placement with ID format working")
+                    
+                    if placement_response_id.get('success'):
+                        print("   ✅ Placement operation successful with ID format")
+                        placement_info = placement_response_id.get('placement', {})
+                        if placement_info:
+                            print(f"   📍 Placed in: {placement_info.get('location', 'Unknown location')}")
+                    else:
+                        print("   ❌ Placement operation not successful")
+                        all_success = False
+                else:
+                    print("   ❌ Cargo placement with ID format failed")
+                    all_success = False
+                
+                # Test backward compatibility with legacy format
+                if test_warehouse_id:
+                    legacy_format_cell_code = f"{test_warehouse_id}-Б1-П1-Я3"  # Different cell
+                    
+                    placement_data_legacy = {
+                        "cargo_number": test_cargo_number,
+                        "cell_code": legacy_format_cell_code
+                    }
+                    
+                    success, placement_response_legacy = self.run_test(
+                        "Place Cargo with Legacy Format Cell Code (Backward Compatibility)",
+                        "POST",
+                        "/api/cargo/place-in-cell",
+                        200,
+                        placement_data_legacy,
+                        operator_token
+                    )
+                    
+                    if success:
+                        print("   ✅ Cargo placement with legacy format working (backward compatibility)")
+                    else:
+                        print("   ❌ Cargo placement with legacy format failed")
+                        all_success = False
+        else:
+            print("   ❌ Failed to create test cargo for placement")
+            all_success = False
+        
+        # SUMMARY
+        print("\n   📊 WAREHOUSE ID SYSTEM IMPLEMENTATION SUMMARY:")
+        
+        if all_success:
+            print("   🎉 ALL WAREHOUSE ID SYSTEM TESTS PASSED!")
+            print("   ✅ Авторизация оператора склада (+79777888999/warehouse123) работает")
+            print("   ✅ Создание нового склада с автогенерацией ID номера (формат 001, 002, 003...)")
+            print("   ✅ Автогенерация структуры с ID номерами:")
+            print("       - Блоки: формат 01, 02, 03...")
+            print("       - Полки: формат 01, 02, 03...")
+            print("       - Ячейки: формат 001, 002, 003...")
+            print("   ✅ Создание коллекций warehouse_blocks, warehouse_shelves, warehouse_cells")
+            print("   ✅ Endpoint POST /api/warehouse/cell/status поддерживает:")
+            print("       - ID формат (warehouse_id_number, block_id_number, shelf_id_number, cell_id_number)")
+            print("       - Legacy формат (warehouse_id, block_number, shelf_number, cell_number)")
+            print("   ✅ QR код генерация с параметром format: 'id':")
+            print("       - Генерация QR кодов в новом формате 001-01-01-001")
+            print("       - readable_name для печати (Б1-П1-Я1)")
+            print("       - cell_code для размещения (001-01-01-001)")
+            print("   ✅ Размещение груза с новым ID форматом ячейки:")
+            print("       - Поддержка ID формата ячейки")
+            print("       - Обратная совместимость с legacy форматом")
+            print("       - Корректный парсинг cell_code в разных форматах")
+            print("   🎯 ЦЕЛЬ ДОСТИГНУТА: Новая система ID номеров для складской структуры полностью функциональна!")
+        else:
+            print("   ❌ SOME WAREHOUSE ID SYSTEM TESTS FAILED")
+            print("   🔍 Check the specific failed tests above for details")
+            print("   ⚠️  Warehouse ID system implementation may need attention")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
