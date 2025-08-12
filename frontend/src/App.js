@@ -14255,6 +14255,112 @@ function App() {
                     </Card>
                   )}
 
+                  {/* НОВАЯ СЕКЦИЯ: Курьеры */}
+                  {activeTab === 'users-couriers' && (
+                    <div className="space-y-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <Truck className="mr-2 h-5 w-5" />
+                              Курьеры ({couriers.length})
+                            </div>
+                            <Button onClick={() => setCourierCreateModal(true)}>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Создать курьера
+                            </Button>
+                          </CardTitle>
+                          <CardDescription>Управление курьерами и службой доставки</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {couriers.length > 0 ? (
+                            <div className="space-y-4">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>ФИО</TableHead>
+                                    <TableHead>Телефон</TableHead>
+                                    <TableHead>Транспорт</TableHead>
+                                    <TableHead>Грузоподъемность</TableHead>
+                                    <TableHead>Склад</TableHead>
+                                    <TableHead>Статус</TableHead>
+                                    <TableHead>Действия</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {couriers.map((courier) => (
+                                    <TableRow key={courier.id}>
+                                      <TableCell className="font-medium">{courier.full_name}</TableCell>
+                                      <TableCell>{courier.phone}</TableCell>
+                                      <TableCell>
+                                        <div className="flex items-center">
+                                          <Truck className="mr-2 h-4 w-4" />
+                                          {courier.transport_type} {courier.transport_number}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>{courier.transport_capacity} кг</TableCell>
+                                      <TableCell>{courier.assigned_warehouse_name}</TableCell>
+                                      <TableCell>
+                                        <Badge variant={courier.is_active ? "default" : "secondary"}>
+                                          {courier.is_active ? 'Активен' : 'Неактивен'}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="flex space-x-2">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => handleViewCourierProfile(courier.id)}
+                                          >
+                                            <Eye className="h-4 w-4" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => handleEditCourier(courier)}
+                                          >
+                                            <Edit className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                              
+                              {/* Пагинация курьеров */}
+                              {couriersPagination && couriersPagination.total_pages > 1 && (
+                                <DataPagination 
+                                  currentPage={couriersPage}
+                                  totalPages={couriersPagination.total_pages}
+                                  totalItems={couriersPagination.total_count}
+                                  itemsPerPage={couriersPerPage}
+                                  onPageChange={(page) => {
+                                    setCouriersPage(page);
+                                    fetchCouriers(page, couriersPerPage);
+                                  }}
+                                  onItemsPerPageChange={(perPage) => {
+                                    setCouriersPerPage(perPage);
+                                    setCouriersPage(1);
+                                    fetchCouriers(1, perPage);
+                                  }}
+                                />
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8">
+                              <Truck className="mx-auto h-12 w-12 text-gray-400" />
+                              <h3 className="mt-4 text-sm font-medium text-gray-900">Курьеры не найдены</h3>
+                              <p className="mt-1 text-sm text-gray-500">
+                                Создайте первого курьера для начала работы службы доставки
+                              </p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+
                   {/* Создание оператора склада (Функция 2) */}
                   {activeTab === 'users-create-operator' && (
                     <Card>
