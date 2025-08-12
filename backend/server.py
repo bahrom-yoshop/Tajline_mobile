@@ -4636,7 +4636,18 @@ async def accept_new_cargo(
         "payment_method": cargo_data.payment_method.value,  # Способ оплаты
         "payment_amount": cargo_data.payment_amount,  # Сумма оплаты
         "debt_due_date": cargo_data.debt_due_date,  # Дата погашения долга
-        "price_per_kg": cargo_data.price_per_kg if cargo_data.cargo_items else None
+        "price_per_kg": cargo_data.price_per_kg if cargo_data.cargo_items else None,
+        # НОВЫЕ ПОЛЯ КУРЬЕРСКОЙ СЛУЖБЫ
+        "pickup_required": cargo_data.pickup_required,
+        "pickup_address": cargo_data.pickup_address,
+        "pickup_date": cargo_data.pickup_date,
+        "pickup_time_from": cargo_data.pickup_time_from,
+        "pickup_time_to": cargo_data.pickup_time_to,
+        "delivery_method": cargo_data.delivery_method.value,
+        "courier_fee": cargo_data.courier_fee,
+        "assigned_courier_id": None,
+        "assigned_courier_name": None,
+        "courier_request_status": "pending" if cargo_data.pickup_required else None
     }
     
     # Генерируем QR код для груза
