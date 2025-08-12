@@ -1251,19 +1251,19 @@ function App() {
       const html5QrCode = new Html5Qrcode(containerId);
       html5QrCodePlacementRef.current = html5QrCode;
       
-      // Enhanced camera configuration for mobile with strict environment mode
+      // Enhanced camera configuration for mobile with improved initialization
       const cameraConfig = {
         width: { ideal: 1280, min: 640 },
         height: { ideal: 720, min: 480 },
-        facingMode: { exact: "environment" }, // Принудительно задняя камера
+        facingMode: "environment", // Мягкий режим для лучшей совместимости
         aspectRatio: 1.777777778
       };
       
       const scannerConfig = {
-        fps: 5,
+        fps: 10, // Увеличили fps для лучшего сканирования
         qrbox: function(viewfinderWidth, viewfinderHeight) {
           const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          const boxSize = Math.floor(minEdge * 0.8);
+          const boxSize = Math.floor(minEdge * 0.7); // Уменьшили размер для лучшего сканирования
           return {
             width: boxSize,
             height: boxSize
@@ -1292,18 +1292,21 @@ function App() {
         
         console.log('✅ Мобильный QR сканер запущен с задней камерой');
         
-      } catch (cameraError) {
-        console.warn('⚠️ Не удалось запустить с принудительной задней камерой, пробуем обычный режим...', cameraError);
+        // Добавляем задержку для стабилизации камеры
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log('📷 Камера стабилизирована, готова к сканированию');
         
-        // Fallback: попробуем без принудительного facingMode
+      } catch (cameraError) {
+        console.warn('⚠️ Не удалось запустить с задней камерой, пробуем обычный режим...', cameraError);
+        
+        // Fallback: попробуем с первой доступной камерой
         const fallbackConfig = {
           width: { ideal: 1280, min: 640 },
-          height: { ideal: 720, min: 480 },
-          facingMode: "environment" // Мягкий режим
+          height: { ideal: 720, min: 480 }
         };
         
         await html5QrCode.start(
-          selectedCameraId,
+          cameras[0].id, // Используем первую доступную камеру
           fallbackConfig,
           (decodedText) => {
             console.log('📱 Мобильное сканирование (fallback):', decodedText);
@@ -1318,6 +1321,10 @@ function App() {
         );
         
         console.log('✅ Мобильный QR сканер запущен в fallback режиме');
+        
+        // Добавляем задержку для стабилизации
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log('📷 Камера стабилизирована (fallback), готова к сканированию');
       }
       isInitializingRef.current = false;
       
