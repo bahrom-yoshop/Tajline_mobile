@@ -1008,6 +1008,166 @@ def generate_user_number() -> str:
         import random
         return f"USR{random.randint(1, 999999):06d}"
 
+def generate_warehouse_id_number() -> str:
+    """Генерируем ID номер склада формата 001, 002, 003..."""
+    try:
+        # Ищем последний склад с ID номером для определения следующего номера
+        last_warehouse = db.warehouses.find_one(
+            {"warehouse_id_number": {"$regex": "^[0-9]{3}$"}},
+            sort=[("warehouse_id_number", -1)]
+        )
+        
+        if last_warehouse and "warehouse_id_number" in last_warehouse:
+            # Извлекаем числовую часть и увеличиваем на 1
+            last_number = int(last_warehouse["warehouse_id_number"])
+            next_number = last_number + 1
+        else:
+            # Начинаем с номера 1
+            next_number = 1
+        
+        # Формируем номер склада с 3 цифрами
+        warehouse_id_number = f"{next_number:03d}"
+        
+        # Проверяем уникальность номера
+        attempts = 0
+        while db.warehouses.find_one({"warehouse_id_number": warehouse_id_number}) and attempts < 100:
+            next_number += 1
+            warehouse_id_number = f"{next_number:03d}"
+            attempts += 1
+        
+        return warehouse_id_number
+        
+    except Exception as e:
+        # В случае ошибки, генерируем случайный номер
+        import random
+        return f"{random.randint(1, 999):03d}"
+
+def generate_block_id_number(warehouse_id_number: str) -> str:
+    """Генерируем ID номер блока формата 01, 02, 03... внутри склада"""
+    try:
+        # Ищем последний блок с ID номером в данном складе
+        last_block = db.warehouse_blocks.find_one(
+            {
+                "warehouse_id_number": warehouse_id_number,
+                "block_id_number": {"$regex": "^[0-9]{2}$"}
+            },
+            sort=[("block_id_number", -1)]
+        )
+        
+        if last_block and "block_id_number" in last_block:
+            # Извлекаем числовую часть и увеличиваем на 1
+            last_number = int(last_block["block_id_number"])
+            next_number = last_number + 1
+        else:
+            # Начинаем с номера 1
+            next_number = 1
+        
+        # Формируем номер блока с 2 цифрами
+        block_id_number = f"{next_number:02d}"
+        
+        # Проверяем уникальность номера в рамках склада
+        attempts = 0
+        while db.warehouse_blocks.find_one({
+            "warehouse_id_number": warehouse_id_number,
+            "block_id_number": block_id_number
+        }) and attempts < 100:
+            next_number += 1
+            block_id_number = f"{next_number:02d}"
+            attempts += 1
+        
+        return block_id_number
+        
+    except Exception as e:
+        # В случае ошибки, генерируем случайный номер
+        import random
+        return f"{random.randint(1, 99):02d}"
+
+def generate_shelf_id_number(warehouse_id_number: str, block_id_number: str) -> str:
+    """Генерируем ID номер полки формата 01, 02, 03... внутри блока"""
+    try:
+        # Ищем последнюю полку с ID номером в данном блоке
+        last_shelf = db.warehouse_shelves.find_one(
+            {
+                "warehouse_id_number": warehouse_id_number,
+                "block_id_number": block_id_number,
+                "shelf_id_number": {"$regex": "^[0-9]{2}$"}
+            },
+            sort=[("shelf_id_number", -1)]
+        )
+        
+        if last_shelf and "shelf_id_number" in last_shelf:
+            # Извлекаем числовую часть и увеличиваем на 1
+            last_number = int(last_shelf["shelf_id_number"])
+            next_number = last_number + 1
+        else:
+            # Начинаем с номера 1
+            next_number = 1
+        
+        # Формируем номер полки с 2 цифрами
+        shelf_id_number = f"{next_number:02d}"
+        
+        # Проверяем уникальность номера в рамках блока
+        attempts = 0
+        while db.warehouse_shelves.find_one({
+            "warehouse_id_number": warehouse_id_number,
+            "block_id_number": block_id_number,
+            "shelf_id_number": shelf_id_number
+        }) and attempts < 100:
+            next_number += 1
+            shelf_id_number = f"{next_number:02d}"
+            attempts += 1
+        
+        return shelf_id_number
+        
+    except Exception as e:
+        # В случае ошибки, генерируем случайный номер
+        import random
+        return f"{random.randint(1, 99):02d}"
+
+def generate_cell_id_number(warehouse_id_number: str, block_id_number: str, shelf_id_number: str) -> str:
+    """Генерируем ID номер ячейки формата 001, 002, 003... внутри полки"""
+    try:
+        # Ищем последнюю ячейку с ID номером в данной полке
+        last_cell = db.warehouse_cells.find_one(
+            {
+                "warehouse_id_number": warehouse_id_number,
+                "block_id_number": block_id_number,
+                "shelf_id_number": shelf_id_number,
+                "cell_id_number": {"$regex": "^[0-9]{3}$"}
+            },
+            sort=[("cell_id_number", -1)]
+        )
+        
+        if last_cell and "cell_id_number" in last_cell:
+            # Извлекаем числовую часть и увеличиваем на 1
+            last_number = int(last_cell["cell_id_number"])
+            next_number = last_number + 1
+        else:
+            # Начинаем с номера 1
+            next_number = 1
+        
+        # Формируем номер ячейки с 3 цифрами
+        cell_id_number = f"{next_number:03d}"
+        
+        # Проверяем уникальность номера в рамках полки
+        attempts = 0
+        while db.warehouse_cells.find_one({
+            "warehouse_id_number": warehouse_id_number,
+            "block_id_number": block_id_number,
+            "shelf_id_number": shelf_id_number,
+            "cell_id_number": cell_id_number
+        }) and attempts < 100:
+            next_number += 1
+            cell_id_number = f"{next_number:03d}"
+            attempts += 1
+        
+        return cell_id_number
+        
+    except Exception as e:
+        # В случае ошибки, генерируем случайный номер
+        import random
+        return f"{random.randint(1, 999):03d}"
+
 def generate_cargo_qr_code(cargo_data: dict) -> str:
     """Генерировать QR код для груза только с номером груза"""
     try:
