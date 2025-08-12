@@ -1204,12 +1204,24 @@ def generate_cargo_qr_code(cargo_data: dict) -> str:
         print(f"Error generating QR code for cargo: {e}")
         return ""
 
-def generate_warehouse_cell_qr_code(warehouse_data: dict, block: int, shelf: int, cell: int) -> str:
-    """Генерировать QR код для ячейки склада - только позицию ячейки"""
+def generate_warehouse_cell_qr_code(warehouse_data: dict, block: int, shelf: int, cell: int, use_id_format: bool = True) -> str:
+    """Генерировать QR код для ячейки склада - использовать либо ID номера, либо старый формат"""
     try:
-        # Генерируем простой формат: СКЛАД_ID-Б_номер_блока-П_номер_полки-Я_номер_ячейки
-        warehouse_id = warehouse_data.get('id', 'UNK')
-        cell_code = f"{warehouse_id}-Б{block}-П{shelf}-Я{cell}"
+        if use_id_format:
+            # Новый формат с ID номерами
+            warehouse_id_number = warehouse_data.get('warehouse_id_number', '001')
+            
+            # Формируем ID номера на основе позиций (как резервный вариант)
+            block_id = f"{block:02d}"
+            shelf_id = f"{shelf:02d}"  
+            cell_id = f"{cell:03d}"
+            
+            # QR код содержит ID номера: 001-01-01-001
+            cell_code = f"{warehouse_id_number}-{block_id}-{shelf_id}-{cell_id}"
+        else:
+            # Старый формат для совместимости
+            warehouse_id = warehouse_data.get('id', 'UNK')
+            cell_code = f"{warehouse_id}-Б{block}-П{shelf}-Я{cell}"
         
         # QR код содержит только код ячейки
         qr_data = cell_code
