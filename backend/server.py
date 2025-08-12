@@ -855,7 +855,7 @@ class CourierRequest(BaseModel):
     updated_at: datetime
 
 class CourierRequestUpdate(BaseModel):
-    request_status: str = Field(..., regex="^(pending|assigned|accepted|completed|cancelled)$")
+    request_status: str = Field(..., pattern="^(pending|assigned|accepted|completed|cancelled)$")
     courier_notes: Optional[str] = None
 
 class DeliveryCalculation(BaseModel):
