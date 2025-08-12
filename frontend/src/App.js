@@ -21018,6 +21018,201 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Single Cell QR Generation Modal */}
+      <Dialog open={showSingleCellQRModal} onOpenChange={(open) => {
+        setShowSingleCellQRModal(open);
+        if (!open) {
+          resetSingleCellForm();
+        }
+      }}>
+        <DialogContent className="w-full max-w-[600px] max-h-[90vh] p-4 overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-lg">
+              <QrCode className="mr-2 h-5 w-5" />
+              Генерация QR кода для отдельной ячейки
+            </DialogTitle>
+            <DialogDescription>
+              Создайте QR код для конкретной ячейки, указав блок, полку и номер ячейки
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Поля ввода адреса ячейки */}
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label className="text-sm font-medium">Блок</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="1"
+                  value={singleCellBlock}
+                  onChange={(e) => setSingleCellBlock(e.target.value.replace(/\D/g, ''))}
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">Только цифры</p>
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium">Полка</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="1"
+                  value={singleCellShelf}
+                  onChange={(e) => setSingleCellShelf(e.target.value.replace(/\D/g, ''))}
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">Только цифры</p>
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium">Ячейка</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="1"
+                  value={singleCellNumber}
+                  onChange={(e) => setSingleCellNumber(e.target.value.replace(/\D/g, ''))}
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">Только цифры</p>
+              </div>
+            </div>
+
+            {/* Предварительный просмотр адреса */}
+            {(singleCellBlock || singleCellShelf || singleCellNumber) && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                <div className="text-sm text-blue-800">
+                  <strong>Адрес ячейки:</strong> Б{singleCellBlock || '?'}-П{singleCellShelf || '?'}-Я{singleCellNumber || '?'}
+                </div>
+                <div className="text-xs text-blue-600 mt-1">
+                  QR код будет содержать именно этот адрес для сканирования
+                </div>
+              </div>
+            )}
+
+            {/* Кнопка генерации */}
+            <div className="flex gap-2">
+              <Button
+                onClick={generateSingleCellQR}
+                disabled={singleCellQRLoading || !singleCellBlock || !singleCellShelf || !singleCellNumber}
+                className="flex-1 bg-purple-600 hover:bg-purple-700"
+              >
+                {singleCellQRLoading ? (
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <QrCode className="mr-2 h-4 w-4" />
+                )}
+                Создать QR код
+              </Button>
+              
+              <Button
+                onClick={resetSingleCellForm}
+                variant="outline"
+              >
+                Очистить
+              </Button>
+            </div>
+
+            {/* Результат генерации */}
+            {singleCellQRResult && (
+              <div className="space-y-4">
+                {singleCellQRResult.success ? (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="text-center">
+                      <h4 className="font-medium text-green-800 mb-2">
+                        QR код для ячейки {singleCellQRResult.location}
+                      </h4>
+                      
+                      {singleCellQRResult.qr_code && (
+                        <div className="mb-4">
+                          <img 
+                            src={singleCellQRResult.qr_code} 
+                            alt={`QR код для ${singleCellQRResult.location}`}
+                            className="mx-auto border rounded"
+                            style={{ width: '200px', height: '200px' }}
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="text-sm text-green-700 mb-3">
+                        <div><strong>Данные QR кода:</strong> {singleCellQRResult.qr_data}</div>
+                        <div><strong>Местоположение:</strong> {singleCellQRResult.location}</div>
+                      </div>
+
+                      {/* Кнопка печати */}
+                      {singleCellQRResult.qr_code && (
+                        <Button
+                          onClick={() => {
+                            const printWindow = window.open('', '_blank');
+                            printWindow.document.write(`
+                              <html>
+                                <head>
+                                  <title>QR код ячейки ${singleCellQRResult.location}</title>
+                                  <style>
+                                    body { text-align: center; font-family: Arial, sans-serif; padding: 20px; }
+                                    .qr-container { margin: 20px 0; }
+                                    .location { font-size: 18px; font-weight: bold; margin: 10px 0; }
+                                    .data { font-size: 14px; color: #666; margin: 5px 0; }
+                                  </style>
+                                </head>
+                                <body>
+                                  <div class="qr-container">
+                                    <div class="location">${singleCellQRResult.location}</div>
+                                    <img src="${singleCellQRResult.qr_code}" style="width: 200px; height: 200px;" />
+                                    <div class="data">Данные: ${singleCellQRResult.qr_data}</div>
+                                  </div>
+                                </body>
+                              </html>
+                            `);
+                            printWindow.document.close();
+                            printWindow.print();
+                          }}
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <PrinterIcon className="mr-2 h-4 w-4" />
+                          Печать QR кода
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="text-center text-red-800">
+                      <h4 className="font-medium mb-2">Ошибка создания QR кода</h4>
+                      <p className="text-sm">{singleCellQRResult.error}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Инструкции */}
+            <div className="p-3 bg-gray-50 border border-gray-200 rounded">
+              <h5 className="text-sm font-medium text-gray-800 mb-2">Инструкция:</h5>
+              <ol className="text-xs text-gray-600 space-y-1">
+                <li>1. Введите номера блока, полки и ячейки (только цифры)</li>
+                <li>2. Проверьте предварительный просмотр адреса ячейки</li>
+                <li>3. Нажмите "Создать QR код" для генерации</li>
+                <li>4. Используйте кнопку "Печать QR кода" для печати</li>
+                <li>5. QR код содержит адрес в формате Б1-П1-Я1 для сканирования</li>
+              </ol>
+            </div>
+
+            {/* Кнопка закрытия */}
+            <div className="flex justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowSingleCellQRModal(false)}
+              >
+                Закрыть
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
