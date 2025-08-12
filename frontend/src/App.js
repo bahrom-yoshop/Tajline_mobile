@@ -119,13 +119,14 @@ function App() {
       setScannerError(null);
       
       // Сбрасываем состояния
-      setMobilePlacementStep('scan-cargo');
-      setReceiveStep('scan-cargo');
+      setMobilePlacementStep('start');
+      setReceiveStep('start');
       setScannedCargo(null);
       setScannedCell(null);
       setReceivedCargo(null);
       setNewCell(null);
       setSearchResult(null);
+      setPlacementInfoMessage('');
       
       // Останавливаем камеру
       await stopCameraScanner();
