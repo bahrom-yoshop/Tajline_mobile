@@ -2461,12 +2461,19 @@ function App() {
               if (!isLoggingOut && !isLoggingIn) {
                 handleLogout();
               }
-            }, 2000); // Увеличили задержку с 1s до 2s
+            }, 5000); // Увеличили задержку с 2s до 5s для стабильности
           } else {
-            console.log('Token still valid, 401 might be temporary - not logging out');
+            console.log('Token still valid, 401 might be temporary - retrying after delay');
+            // Если токен валиден, возможно это временная ошибка - повторяем запрос через 2 секунды
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Повторный запрос только один раз
+            if (retryCount === 0) {
+              console.log('Retrying API call after 401 with valid token');
+              return apiCall(url, method, data, providedToken, retryCount + 1);
+            }
           }
           
-          throw new Error('Session expired');
+          throw new Error('Unauthorized access');
         }
         
         // Правильная обработка detail - может быть строкой или массивом объектов
