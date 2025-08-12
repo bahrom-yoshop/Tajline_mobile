@@ -505,7 +505,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Mobile Operations Isolated Interface Error Fix"
+    - "External Scanner Integration for Cargo Placement"
   stuck_tasks: 
     - "React DOM Fixes Backend Support"
   test_all: false
