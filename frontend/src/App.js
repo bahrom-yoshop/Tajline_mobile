@@ -11089,8 +11089,9 @@ function App() {
                               id="qr-reader-placement" 
                               className="w-full bg-black rounded-lg"
                               style={{
-                                height: 'min(60vh, 400px)',
-                                minHeight: '300px'
+                                aspectRatio: '1',
+                                maxWidth: '400px',
+                                margin: '0 auto'
                               }}
                             />
 
