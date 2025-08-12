@@ -11250,6 +11250,51 @@ function App() {
                             </div>
                           </div>
                         )}
+
+                        {/* Панель статистики сессии размещения */}
+                        {(sessionPlacementCount > 0 || sessionPlacements.length > 0 || placementStatistics) && (
+                          <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
+                              <BarChart className="mr-2 h-4 w-4" />
+                              Статистика размещения
+                            </h4>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                              <div className="text-center">
+                                <div className="text-2xl font-bold text-blue-600">
+                                  {sessionPlacementCount}
+                                </div>
+                                <div className="text-sm text-gray-600">За эту сессию</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-2xl font-bold text-green-600">
+                                  {placementStatistics?.today_placements || 0}
+                                </div>
+                                <div className="text-sm text-gray-600">Сегодня размещено</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-2xl font-bold text-purple-600">
+                                  {placementStatistics?.session_placements || sessionPlacementCount}
+                                </div>
+                                <div className="text-sm text-gray-600">Общее за сессию</div>
+                              </div>
+                            </div>
+
+                            {/* Список размещенных грузов текущей сессии */}
+                            {sessionPlacements.length > 0 && (
+                              <div>
+                                <h5 className="font-medium text-gray-700 mb-2">Размещено в этой сессии:</h5>
+                                <div className="max-h-32 overflow-y-auto space-y-1">
+                                  {sessionPlacements.map((placement, index) => (
+                                    <div key={index} className="text-xs bg-white p-2 rounded border">
+                                      {placement}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   )}
