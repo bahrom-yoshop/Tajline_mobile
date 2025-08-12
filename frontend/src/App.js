@@ -11108,18 +11108,19 @@ function App() {
                             {/* Показываем контейнер камеры сначала */}
                             <div 
                               id="qr-reader-placement" 
-                              className="w-full bg-black rounded-lg"
+                              className="w-full bg-black rounded-lg camera-placeholder"
                               style={{
                                 height: 'min(60vh, 400px)',
                                 minHeight: '300px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: 'white',
-                                fontSize: '14px'
+                                color: '#a0aec0',
+                                fontSize: '14px',
+                                fontWeight: '500'
                               }}
                             >
-                              Камера будет активна здесь
+                              📷 Камера будет активна здесь
                             </div>
 
                             {/* Кнопка запуска приёма внизу */}
