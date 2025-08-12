@@ -130,17 +130,21 @@ function App() {
         block: parseInt(singleCellBlock),
         shelf: parseInt(singleCellShelf),
         cell: parseInt(singleCellNumber),
-        format: 'simple' // Новый параметр для простого формата
+        format: 'id' // Используем новый ID формат по умолчанию
       });
       
       if (response && response.success) {
         setSingleCellQRResult({
-          location: `Б${singleCellBlock}-П${singleCellShelf}-Я${singleCellNumber}`,
+          location: response.readable_name || `Б${singleCellBlock}-П${singleCellShelf}-Я${singleCellNumber}`,
+          readable_name: response.readable_name || `Б${singleCellBlock}-П${singleCellShelf}-Я${singleCellNumber}`,
+          cell_code: response.cell_code,
+          warehouse_id_number: response.warehouse_id_number,
+          format_type: response.format_type,
           qr_code: response.qr_code,
-          qr_data: response.qr_data || `Б${singleCellBlock}-П${singleCellShelf}-Я${singleCellNumber}`,
           success: true
         });
-        showAlert(`QR код для ячейки Б${singleCellBlock}-П${singleCellShelf}-Я${singleCellNumber} создан успешно!`, 'success');
+        console.log('✅ QR код создан:', response.cell_code, 'для печати:', response.readable_name);
+        showAlert(`QR код для ячейки ${response.readable_name || `Б${singleCellBlock}-П${singleCellShelf}-Я${singleCellNumber}`} создан успешно!`, 'success');
       } else {
         setSingleCellQRResult({
           location: `Б${singleCellBlock}-П${singleCellShelf}-Я${singleCellNumber}`,
