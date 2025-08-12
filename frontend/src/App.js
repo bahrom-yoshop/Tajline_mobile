@@ -8750,6 +8750,128 @@ function App() {
                 </div>
                 </>
               </div>
+
+            {/* UI для внешнего сканера */}
+            {externalScannerActive && (
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center">
+                  <Scan className="mr-2 h-5 w-5" />
+                  Размещение груза - Внешний сканер
+                </h3>
+                
+                {/* Статус сообщение */}
+                {scannerMessage && (
+                  <div className="mb-4 p-3 bg-white border border-blue-200 rounded">
+                    <p className="text-sm text-blue-800">{scannerMessage}</p>
+                  </div>
+                )}
+                
+                {/* Ошибки */}
+                {scannerError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+                    <p className="text-sm text-red-800">{scannerError}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Поле для груза */}
+                  <div>
+                    <Label className="text-sm font-medium text-blue-700">
+                      Шаг 1: Сканирование груза
+                      {externalScannerStep === 'cargo' && <span className="text-green-600 ml-2">← Текущий шаг</span>}
+                      {externalScannedCargo && <span className="text-green-600 ml-2">✓ Завершено</span>}
+                    </Label>
+                    <Input
+                      placeholder="Отсканируйте QR код груза здесь..."
+                      value={externalCargoInput}
+                      onChange={(e) => setExternalCargoInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && externalCargoInput.trim() && externalScannerStep === 'cargo') {
+                          handleExternalCargoScan(externalCargoInput.trim());
+                          setExternalCargoInput('');
+                        }
+                      }}
+                      disabled={externalScannerStep !== 'cargo'}
+                      className={`mt-1 ${externalScannerStep === 'cargo' ? 'bg-yellow-50 border-yellow-300' : 'bg-gray-100'}`}
+                      autoFocus={externalScannerStep === 'cargo'}
+                    />
+                    {externalScannedCargo && (
+                      <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
+                        <div className="font-medium text-green-800">
+                          Груз: {externalScannedCargo.cargo_number}
+                        </div>
+                        <div className="text-green-600">
+                          {externalScannedCargo.cargo_name || 'Груз готов к размещению'}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Поле для ячейки */}
+                  <div>
+                    <Label className="text-sm font-medium text-blue-700">
+                      Шаг 2: Сканирование ячейки
+                      {externalScannerStep === 'cell' && <span className="text-green-600 ml-2">← Текущий шаг</span>}
+                      {externalScannedCell && <span className="text-green-600 ml-2">✓ Завершено</span>}
+                    </Label>
+                    <Input
+                      placeholder="Отсканируйте QR код ячейки здесь..."
+                      value={externalCellInput}
+                      onChange={(e) => setExternalCellInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && externalCellInput.trim() && externalScannerStep === 'cell') {
+                          handleExternalCellScan(externalCellInput.trim());
+                          setExternalCellInput('');
+                        }
+                      }}
+                      disabled={externalScannerStep !== 'cell'}
+                      className={`mt-1 ${externalScannerStep === 'cell' ? 'bg-yellow-50 border-yellow-300' : 'bg-gray-100'}`}
+                      autoFocus={externalScannerStep === 'cell'}
+                    />
+                    {externalScannedCell && (
+                      <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
+                        <div className="font-medium text-green-800">
+                          Ячейка: Б{externalScannedCell.block_number}-П{externalScannedCell.shelf_number}-Я{externalScannedCell.cell_number}
+                        </div>
+                        <div className="text-green-600">
+                          Склад: {externalScannedCell.warehouse_id}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Инструкции */}
+                <div className="mt-4 p-3 bg-white border border-blue-200 rounded">
+                  <h4 className="text-sm font-medium text-blue-800 mb-2">Инструкция по использованию:</h4>
+                  <ol className="text-xs text-blue-700 space-y-1">
+                    <li>1. Убедитесь, что внешний сканер подключен к компьютеру</li>
+                    <li>2. Установите курсор в активное поле (подсвечено желтым)</li>
+                    <li>3. Отсканируйте QR код - данные автоматически появятся в поле</li>
+                    <li>4. Нажмите Enter или сканер автоматически отправит данные</li>
+                    <li>5. После успешного сканирования переходите к следующему шагу</li>
+                  </ol>
+                </div>
+
+                {/* Статистика */}
+                {placementStatistics && (
+                  <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className="text-lg font-bold text-blue-600">{placementStatistics.today_placements || 0}</div>
+                      <div className="text-xs text-gray-600">Сегодня</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold text-green-600">{placementStatistics.session_placements || 0}</div>
+                      <div className="text-xs text-gray-600">За сессию</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold text-orange-600">{placementStatistics.recent_placements || 0}</div>
+                      <div className="text-xs text-gray-600">Недавних</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             </div>
           ) : 
           
