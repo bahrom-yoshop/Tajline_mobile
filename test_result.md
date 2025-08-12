@@ -336,7 +336,17 @@ backend:
           comment: "✅ ПОЛНЫЙ WORKFLOW ПРИЕМА ГРУЗА РАБОТАЕТ ИДЕАЛЬНО! Тестирование подтвердило: 1) Успешное создание груза (груз 2501999751), 2) Генерация QR кода для созданного груза, 3) Генерация накладной для груза, 4) Все этапы workflow выполняются без ошибок, 5) End-to-end процесс от приема до документооборота функционален."
 
 frontend:
-  - task: "UX Improvements: Scanning Buttons Moved Below Camera Windows"
+  - task: "QR Scanning Fix and Close Button Addition for Mobile Operations"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "main"
+          comment: "ИСПРАВЛЕНИЯ ПО ЗАПРОСУ ПОЛЬЗОВАТЕЛЯ: 1) Исправлен endpoint в функции getCargoByNumber с неработающего '/api/cargo/by-number/' на существующий '/api/cargo/track/' в backend, 2) Добавлена функция stopMobileScanning для универсальной остановки всех видов мобильного сканирования с полной очисткой состояний, 3) Добавлены кнопки 'Закрыть сканирование' (красные кнопки с иконкой X) во всех 5 местах мобильных операций: Поиск груза, Размещение шаг 1, Размещение шаг 2, Приём груза шаг 1, Приём груза шаг 2. Кнопки появляются только при активном сканировании и вызывают stopMobileScanning. ТРЕБУЕТСЯ ТЕСТИРОВАНИЕ: проверить работает ли теперь поиск груза по QR коду и функционируют ли кнопки закрытия сканирования."
     implemented: true
     working: true
     file: "/app/frontend/src/App.js"
