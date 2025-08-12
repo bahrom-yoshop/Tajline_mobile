@@ -1377,25 +1377,72 @@ def generate_request_number() -> str:
     """Генерировать номер заявки"""
     return f"REQ{datetime.now().strftime('%Y%m%d')}{str(uuid.uuid4())[:8].upper()}"
 
-def generate_warehouse_structure(warehouse_id: str, blocks_count: int, shelves_per_block: int, cells_per_shelf: int):
-    """Generate warehouse structure with blocks, shelves and cells"""
+def generate_warehouse_structure(warehouse_id: str, warehouse_id_number: str, blocks_count: int, shelves_per_block: int, cells_per_shelf: int):
+    """Generate warehouse structure with blocks, shelves and cells using ID numbers"""
     cells = []
+    blocks = []
+    shelves = []
+    
     for block in range(1, blocks_count + 1):
+        # Генерируем ID номер блока
+        block_id_number = f"{block:02d}"
+        
+        # Создаем блок
+        block_data = {
+            "id": str(uuid.uuid4()),
+            "warehouse_id": warehouse_id,
+            "warehouse_id_number": warehouse_id_number,
+            "block_id_number": block_id_number,
+            "block_number": block,
+            "created_at": datetime.utcnow()
+        }
+        blocks.append(block_data)
+        
         for shelf in range(1, shelves_per_block + 1):
+            # Генерируем ID номер полки
+            shelf_id_number = f"{shelf:02d}"
+            
+            # Создаем полку
+            shelf_data = {
+                "id": str(uuid.uuid4()),
+                "warehouse_id": warehouse_id,
+                "warehouse_id_number": warehouse_id_number,
+                "block_id_number": block_id_number,
+                "shelf_id_number": shelf_id_number,
+                "block_number": block,
+                "shelf_number": shelf,
+                "created_at": datetime.utcnow()
+            }
+            shelves.append(shelf_data)
+            
             for cell in range(1, cells_per_shelf + 1):
+                # Генерируем ID номер ячейки
+                cell_id_number = f"{cell:03d}"
+                
                 cell_data = {
                     "id": str(uuid.uuid4()),
                     "warehouse_id": warehouse_id,
+                    "warehouse_id_number": warehouse_id_number,
+                    "block_id_number": block_id_number,
+                    "shelf_id_number": shelf_id_number,
+                    "cell_id_number": cell_id_number,
                     "block_number": block,
                     "shelf_number": shelf,
                     "cell_number": cell,
                     "is_occupied": False,
                     "cargo_id": None,
-                    "location_code": f"B{block}-S{shelf}-C{cell}"
+                    "location_code": f"B{block}-S{shelf}-C{cell}",
+                    "id_based_code": f"{warehouse_id_number}-{block_id_number}-{shelf_id_number}-{cell_id_number}",
+                    "readable_name": f"Б{block}-П{shelf}-Я{cell}",  # Сохраняем читаемое имя для печати
+                    "created_at": datetime.utcnow()
                 }
                 cells.append(cell_data)
     
-    # Bulk insert all cells
+    # Bulk insert all structures
+    if blocks:
+        db.warehouse_blocks.insert_many(blocks)
+    if shelves:
+        db.warehouse_shelves.insert_many(shelves)
     if cells:
         db.warehouse_cells.insert_many(cells)
     
