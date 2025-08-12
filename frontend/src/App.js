@@ -8499,6 +8499,7 @@ function App() {
           { id: 'users-regular', label: 'Пользователи' },
           { id: 'users-operators', label: 'Операторы склада' },
           { id: 'users-admins', label: 'Администраторы' },
+          { id: 'users-couriers', label: 'Курьеры' }, // НОВАЯ ПОДКАТЕГОРИЯ КУРЬЕРОВ
           { id: 'users-create-operator', label: 'Создать оператора' }, // Функция 2
           { id: 'users-operator-bindings', label: 'Привязка операторов' },
           { id: 'users-debtors', label: 'Список задолжников' }  // НОВАЯ ВКЛАДКА
