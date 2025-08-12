@@ -612,8 +612,25 @@ function App() {
     location: '',
     blocks_count: 1,
     shelves_per_block: 1,
-    cells_per_shelf: 10
+    cells_per_shelf: 10,
+    assigned_operator_id: '' // Новое поле для выбора оператора
   });
+  
+  // Новые состояния для улучшенного создания склада
+  const [showWarehouseCreationPage, setShowWarehouseCreationPage] = useState(false);
+  const [availableOperators, setAvailableOperators] = useState([]);
+  const [warehouseCreationStep, setWarehouseCreationStep] = useState('form'); // 'form', 'qr-generation'
+  const [generatingAllQRs, setGeneratingAllQRs] = useState(false);
+  const [allQRProgress, setAllQRProgress] = useState(0);
+  const [generatedQRs, setGeneratedQRs] = useState([]);
+  const [selectedCellQR, setSelectedCellQR] = useState({
+    block: '',
+    shelf: '',
+    cell: ''
+  });
+  const [selectedCellQRResult, setSelectedCellQRResult] = useState(null);
+  const [generatingSelectedCellQR, setGeneratingSelectedCellQR] = useState(false);
+  const [createdWarehouseInfo, setCreatedWarehouseInfo] = useState(null);
   const [operatorCargoForm, setOperatorCargoForm] = useState({
     sender_full_name: '',
     sender_phone: '',
