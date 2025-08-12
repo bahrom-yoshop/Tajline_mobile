@@ -1381,7 +1381,7 @@ class CargoTransportAPITester:
         success, warehouse_response = self.run_test(
             "Create Warehouse with ID System",
             "POST",
-            "/api/admin/warehouses/create",
+            "/api/warehouses/create",
             200,
             warehouse_data,
             admin_token
