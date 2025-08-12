@@ -1227,24 +1227,53 @@ function App() {
         aspectRatio: 1.0
       };
       
-      // Start scanning with enhanced error handling
-      await html5QrCode.start(
-        cameras[0].id,
-        cameraConfig,
-        (decodedText) => {
-          console.log('📱 Мобильное сканирование:', decodedText);
-          handleBarcodeScan(decodedText);
-        },
-        (error) => {
-          // Suppress frequent scanning errors
-          if (!error.includes('NotFoundException')) {
-            console.debug('Сканирование...', error);
-          }
-        },
-        scannerConfig
-      );
-      
-      console.log('✅ Мобильный QR сканер запущен успешно');
+      // Start scanning with enhanced error handling and selected camera
+      try {
+        await html5QrCode.start(
+          selectedCameraId, // Используем выбранную заднюю камеру
+          cameraConfig,
+          (decodedText) => {
+            console.log('📱 Мобильное сканирование:', decodedText);
+            handleBarcodeScan(decodedText);
+          },
+          (error) => {
+            // Suppress frequent scanning errors
+            if (!error.includes('NotFoundException')) {
+              console.debug('Сканирование...', error);
+            }
+          },
+          scannerConfig
+        );
+        
+        console.log('✅ Мобильный QR сканер запущен с задней камерой');
+        
+      } catch (cameraError) {
+        console.warn('⚠️ Не удалось запустить с принудительной задней камерой, пробуем обычный режим...', cameraError);
+        
+        // Fallback: попробуем без принудительного facingMode
+        const fallbackConfig = {
+          width: { ideal: 1280, min: 640 },
+          height: { ideal: 720, min: 480 },
+          facingMode: "environment" // Мягкий режим
+        };
+        
+        await html5QrCode.start(
+          selectedCameraId,
+          fallbackConfig,
+          (decodedText) => {
+            console.log('📱 Мобильное сканирование (fallback):', decodedText);
+            handleBarcodeScan(decodedText);
+          },
+          (error) => {
+            if (!error.includes('NotFoundException')) {
+              console.debug('Сканирование...', error);
+            }
+          },
+          scannerConfig
+        );
+        
+        console.log('✅ Мобильный QR сканер запущен в fallback режиме');
+      }
       isInitializingRef.current = false;
       
     } catch (error) {
