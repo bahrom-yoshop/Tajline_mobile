@@ -2685,16 +2685,16 @@ function App() {
         if (!user) {
           // Добавляем небольшую задержку, чтобы избежать race condition
           setTimeout(() => {
-            if (token && !isLoggingIn && !user) {
+            if (token && !isLoggingIn && !user && !isLoggingOut) {
               fetchUserData();
             }
-          }, 500);
+          }, 1000); // Увеличили задержку с 500ms до 1s
         }
       } else {
         // Токен истек, очищаем его
         console.log('Token expired on startup, clearing session');
         handleLogout();
-        showAlert('Ваша сессия истекла. Пожалуйста, войдите в систему снова.', 'warning');
+        showAlert('Ваша сессия истекла. Пожалуйasta, войдите в систему снова.', 'warning');
       }
     }
   }, [token]); // Убираем user из зависимостей чтобы избежать цикла
