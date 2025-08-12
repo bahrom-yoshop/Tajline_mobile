@@ -12747,11 +12747,27 @@ function App() {
                               </Button>
                             </div>
                             
-                            {/* Главная кнопка приема груза */}
-                            <Button type="submit" className="w-full" size="lg">
-                              <Plus className="mr-2 h-4 w-4" />
-                              Принять груз
-                            </Button>
+                            {/* Кнопки действий */}
+                            <div className="flex flex-col space-y-3">
+                              {/* Главная кнопка приема груза */}
+                              <Button type="submit" className="w-full" size="lg" variant="default">
+                                <Plus className="mr-2 h-4 w-4" />
+                                Принять груз
+                              </Button>
+                              
+                              {/* Кнопка для курьерского забора */}
+                              {operatorCargoForm.pickup_required && (
+                                <Button 
+                                  type="button"
+                                  onClick={() => handleSendToCourier()}
+                                  className="w-full bg-blue-600 hover:bg-blue-700" 
+                                  size="lg"
+                                >
+                                  <Truck className="mr-2 h-4 w-4" />
+                                  Отправить курьером
+                                </Button>
+                              )}
+                            </div>
                             
                             {/* Информация о статусе */}
                             <div className="text-sm text-gray-600 text-center bg-blue-50 p-3 rounded-lg">
