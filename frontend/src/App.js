@@ -10292,7 +10292,7 @@ function App() {
                                     <SelectValue placeholder="Любой" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="">Любой</SelectItem>
+                                    <SelectItem value="any">Любой</SelectItem>
                                     <SelectItem value="moscow_to_tajikistan">Москва → Таджикистан</SelectItem>
                                     <SelectItem value="tajikistan_to_moscow">Таджикистан → Москва</SelectItem>
                                   </SelectContent>
