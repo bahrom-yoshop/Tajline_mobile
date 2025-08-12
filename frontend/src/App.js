@@ -2308,13 +2308,15 @@ function App() {
     if (token && !isLoggingOut && !isLoggingIn) {
       // Проверяем валидность токена перед использованием
       if (isTokenValid(token)) {
-        // Попытка получить информацию о пользователе при загрузке
-        // Добавляем небольшую задержку, чтобы избежать race condition
-        setTimeout(() => {
-          if (token && !isLoggingIn) {
-            fetchUserData();
-          }
-        }, 500);
+        // Попытка получить информацию о пользователе при загрузке только если у нас нет пользователя
+        if (!user) {
+          // Добавляем небольшую задержку, чтобы избежать race condition
+          setTimeout(() => {
+            if (token && !isLoggingIn && !user) {
+              fetchUserData();
+            }
+          }, 500);
+        }
       } else {
         // Токен истек, очищаем его
         console.log('Token expired on startup, clearing session');
@@ -2322,45 +2324,25 @@ function App() {
         showAlert('Ваша сессия истекла. Пожалуйста, войдите в систему снова.', 'warning');
       }
     }
-  }, [token]);
-
-  // Основной useEffect для инициализации приложения при наличии токена
-  useEffect(() => {
-    const initializeApp = async () => {
-      console.log('Initializing app, token:', !!token);
-      
-      if (token && !isLoggingIn && !isLoggingOut && !user) {
-        console.log('Token found, fetching user data...');
-        try {
-          // Добавляем задержку для предотвращения race conditions
-          await new Promise(resolve => setTimeout(resolve, 500));
-          await fetchUserData();
-        } catch (error) {
-          console.error('Failed to initialize app with token:', error);
-          // Только удаляем токен, если это действительно проблема с токеном
-          if (error.message === 'Session expired') {
-            localStorage.removeItem('token');
-            setToken(null);
-          }
-        }
-      }
-    };
-
-    initializeApp();
-  }, [token, isLoggingIn, isLoggingOut, user]);
+  }, [token]); // Убираем user из зависимостей чтобы избежать цикла
 
   // Периодическая проверка валидности токена
   useEffect(() => {
+    let interval;
     if (token && user && !isLoggingOut && !isLoggingIn) {
-      const interval = setInterval(() => {
+      interval = setInterval(() => {
         if (!isTokenValid(token)) {
           console.log('Token expired during session, logging out');
           handleLogout();
         }
       }, 60000); // Проверяем каждую минуту
-
-      return () => clearInterval(interval);
     }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [token, user, isLoggingOut, isLoggingIn]);
 
   // НОВЫЙ USEEFFECT: Автоматический выбор склада если он один у оператора
