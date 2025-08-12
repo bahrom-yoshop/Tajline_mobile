@@ -7383,6 +7383,112 @@ function App() {
     }
   };
 
+  // НОВАЯ ФУНКЦИЯ: Отправка груза курьером
+  const handleSendToCourier = async () => {
+    if (!operatorCargoForm.pickup_required) {
+      showAlert('Необходимо включить опцию "Требуется забор груза"', 'error');
+      return;
+    }
+
+    // Валидация обязательных полей для курьерского забора
+    if (!operatorCargoForm.sender_full_name.trim()) {
+      showAlert('Заполните ФИО отправителя', 'error');
+      return;
+    }
+    
+    if (!operatorCargoForm.sender_phone.trim()) {
+      showAlert('Заполните контакт отправителя', 'error');
+      return;
+    }
+    
+    if (!operatorCargoForm.cargo_name.trim()) {
+      showAlert('Заполните наименование груза', 'error');
+      return;
+    }
+    
+    if (!operatorCargoForm.pickup_address.trim()) {
+      showAlert('Заполните адрес забора груза', 'error');
+      return;
+    }
+    
+    if (!operatorCargoForm.pickup_date) {
+      showAlert('Выберите дату забора', 'error');
+      return;
+    }
+    
+    if (!operatorCargoForm.pickup_time_from || !operatorCargoForm.pickup_time_to) {
+      showAlert('Укажите время забора (с и до)', 'error');
+      return;
+    }
+
+    try {
+      setCargoLoading(true);
+      
+      // Готовим данные для отправки курьером (упрощенная форма)
+      const courierCargoData = {
+        sender_full_name: operatorCargoForm.sender_full_name,
+        sender_phone: operatorCargoForm.sender_phone,
+        recipient_full_name: operatorCargoForm.recipient_full_name || "Не указан",
+        recipient_phone: operatorCargoForm.recipient_phone || "Не указан", 
+        recipient_address: operatorCargoForm.recipient_address || "Не указан",
+        weight: parseFloat(operatorCargoForm.weight) || 0,
+        cargo_name: operatorCargoForm.cargo_name,
+        declared_value: parseFloat(operatorCargoForm.declared_value) || 0,
+        description: operatorCargoForm.description || "Курьерский забор",
+        route: operatorCargoForm.route,
+        pickup_required: true,
+        pickup_address: operatorCargoForm.pickup_address,
+        pickup_date: operatorCargoForm.pickup_date,
+        pickup_time_from: operatorCargoForm.pickup_time_from,
+        pickup_time_to: operatorCargoForm.pickup_time_to,
+        delivery_method: operatorCargoForm.delivery_method,
+        courier_fee: parseFloat(operatorCargoForm.courier_fee) || 0
+      };
+
+      const response = await apiCall('/api/operator/cargo/create-for-courier', 'POST', courierCargoData);
+      
+      if (response) {
+        showAlert(`✅ Заявка для курьерского забора создана! Груз ${response.cargo_number}`, 'success');
+        
+        // Сбрасываем форму
+        setOperatorCargoForm({
+          sender_full_name: '',
+          sender_phone: '',
+          recipient_full_name: '',
+          recipient_phone: '',
+          recipient_address: '',
+          weight: '',
+          cargo_name: '',
+          declared_value: '',
+          description: '',
+          route: 'moscow_to_tajikistan',
+          cargo_items: [{ cargo_name: '', weight: '', price_per_kg: '' }],
+          price_per_kg: '',
+          use_multi_cargo: false,
+          warehouse_id: '',
+          payment_method: 'not_paid',
+          payment_amount: '',
+          debt_due_date: '',
+          pickup_required: false,
+          pickup_address: '',
+          pickup_date: '',
+          pickup_time_from: '',
+          pickup_time_to: '',
+          delivery_method: 'pickup',
+          courier_fee: ''
+        });
+        
+        // Обновляем списки
+        fetchOperatorCargo();
+      }
+    } catch (error) {
+      console.error('Send to courier error:', error);
+      showAlert('Ошибка создания заявки для курьера: ' + error.message, 'error');
+    } finally {
+      setCargoLoading(false);
+    }
+  };
+
   const handlePlaceCargo = async (cargoId, warehouseId, blockNumber, shelfNumber, cellNumber) => {
     try {
       const response = await apiCall('/api/operator/cargo/place', 'POST', {
