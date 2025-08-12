@@ -1121,6 +1121,120 @@ function App() {
     await startMobileQRScanner();
   };
 
+  // Специальная функция QR сканера для мобильных операций
+  const startMobileQRScanner = async () => {
+    try {
+      console.log('📱 Запуск мобильного QR сканера...');
+      
+      // Prevent multiple simultaneous initializations
+      if (isInitializingRef.current) {
+        console.log('⚠️ Сканер уже инициализируется, пропуск...');
+        return;
+      }
+      
+      isInitializingRef.current = true;
+      
+      // Complete cleanup first
+      await completeQrCleanup("Mobile Scanner Start");
+      
+      // Use existing container instead of creating isolated one
+      const containerId = 'qr-reader-placement';
+      const qrElement = document.getElementById(containerId);
+      
+      if (!qrElement) {
+        throw new Error('QR контейнер не найден');
+      }
+      
+      console.log('✅ QR контейнер найден для мобильного сканера');
+
+      // Get cameras with retry logic
+      let cameras = [];
+      let cameraAttempts = 0;
+      const maxCameraAttempts = 3;
+      
+      while (cameras.length === 0 && cameraAttempts < maxCameraAttempts) {
+        try {
+          cameraAttempts++;
+          console.log(`🎥 Получение камер для мобильного сканера (попытка ${cameraAttempts}/${maxCameraAttempts})...`);
+          cameras = await Html5Qrcode.getCameras();
+          
+          if (cameras.length === 0 && cameraAttempts < maxCameraAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        } catch (error) {
+          console.error(`❌ Ошибка получения камер (попытка ${cameraAttempts}):`, error);
+          if (cameraAttempts < maxCameraAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      }
+      
+      if (!cameras || cameras.length === 0) {
+        throw new Error('Камеры не найдены');
+      }
+      
+      console.log(`✅ Найдено камер: ${cameras.length}`);
+      
+      // Initialize Html5Qrcode
+      const html5QrCode = new Html5Qrcode(containerId);
+      html5QrCodePlacementRef.current = html5QrCode;
+      
+      // Enhanced camera configuration for mobile
+      const cameraConfig = {
+        width: { ideal: 1280, min: 640 },
+        height: { ideal: 720, min: 480 },
+        facingMode: "environment"
+      };
+      
+      const scannerConfig = {
+        fps: 5,
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const boxSize = Math.floor(minEdge * 0.8);
+          return {
+            width: boxSize,
+            height: boxSize
+          };
+        },
+        aspectRatio: 1.0
+      };
+      
+      // Start scanning with enhanced error handling
+      await html5QrCode.start(
+        cameras[0].id,
+        cameraConfig,
+        (decodedText) => {
+          console.log('📱 Мобильное сканирование:', decodedText);
+          handleBarcodeScan(decodedText);
+        },
+        (error) => {
+          // Suppress frequent scanning errors
+          if (!error.includes('NotFoundException')) {
+            console.debug('Сканирование...', error);
+          }
+        },
+        scannerConfig
+      );
+      
+      console.log('✅ Мобильный QR сканер запущен успешно');
+      isInitializingRef.current = false;
+      
+    } catch (error) {
+      console.error('❌ Ошибка запуска мобильного QR сканера:', error);
+      isInitializingRef.current = false;
+      
+      setScannerError('Ошибка запуска камеры');
+      showAlert(
+        'Не удалось запустить камеру. Проверьте разрешения или используйте ручной ввод.',
+        'error'
+      );
+      
+      // Fallback to manual input
+      setPlacementActive(false);
+      setScannerActive(false);
+    }
+  };
+
   // Функции генерации QR кодов
   const generateCargoQR = async () => {
     if (!qrCargoNumber.trim()) {
