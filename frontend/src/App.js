@@ -20544,7 +20544,7 @@ function App() {
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && externalCellInput.trim() && externalScannerStep === 'cell') {
                           handleExternalCellScan(externalCellInput.trim());
-                          setExternalCellInput('');
+                          // НЕ очищаем поле, чтобы пользователь видел отсканированные данные
                         }
                       }}
                       disabled={externalScannerStep !== 'cell'}
