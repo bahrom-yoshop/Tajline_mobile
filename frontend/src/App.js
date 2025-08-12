@@ -7575,8 +7575,11 @@ function App() {
       const decoded = JSON.parse(jsonPayload);
       const currentTime = Date.now() / 1000;
       
-      // Проверяем, не истек ли токен
-      return decoded.exp && decoded.exp > currentTime;
+      // Добавляем буферное время в 5 минут (300 секунд) перед истечением токена
+      const bufferTime = 300;
+      
+      // Проверяем, не истек ли токен (с учетом буферного времени)
+      return decoded.exp && decoded.exp > (currentTime + bufferTime);
     } catch (error) {
       console.error('Token validation error:', error);
       return false;
