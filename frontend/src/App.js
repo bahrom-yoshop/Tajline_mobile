@@ -22511,6 +22511,398 @@ function App() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* НОВЫЕ МОДАЛЬНЫЕ ОКНА ДЛЯ КУРЬЕРСКОЙ СЛУЖБЫ (ЭТАП 2) */}
+      
+      {/* Модальное окно создания курьера */}
+      <Dialog open={courierCreateModal} onOpenChange={setCourierCreateModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Truck className="mr-2 h-5 w-5" />
+              Создать курьера
+            </DialogTitle>
+            <DialogDescription>
+              Создание нового курьера для службы доставки
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleCreateCourier} className="space-y-4">
+            <div>
+              <Label htmlFor="courier-full-name">ФИО курьера *</Label>
+              <Input
+                id="courier-full-name"
+                value={courierCreateForm.full_name}
+                onChange={(e) => setCourierCreateForm({...courierCreateForm, full_name: e.target.value})}
+                placeholder="Иванов Иван Иванович"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="courier-phone">Телефон *</Label>
+              <Input
+                id="courier-phone"
+                type="tel"
+                value={courierCreateForm.phone}
+                onChange={(e) => setCourierCreateForm({...courierCreateForm, phone: e.target.value})}
+                placeholder="+79XXXXXXXXX"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="courier-password">Пароль *</Label>
+              <Input
+                id="courier-password"
+                type="password"
+                value={courierCreateForm.password}
+                onChange={(e) => setCourierCreateForm({...courierCreateForm, password: e.target.value})}
+                placeholder="Минимум 6 символов"
+                minLength={6}
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="courier-address">Адрес проживания *</Label>
+              <Input
+                id="courier-address"
+                value={courierCreateForm.address}
+                onChange={(e) => setCourierCreateForm({...courierCreateForm, address: e.target.value})}
+                placeholder="Москва, ул. Примерная, 10, кв. 5"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="courier-transport-type">Тип транспорта *</Label>
+              <select
+                id="courier-transport-type"
+                value={courierCreateForm.transport_type}
+                onChange={(e) => setCourierCreateForm({...courierCreateForm, transport_type: e.target.value})}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                required
+              >
+                <option value="car">Легковой автомобиль</option>
+                <option value="van">Фургон</option>
+                <option value="truck">Грузовик</option>
+                <option value="motorcycle">Мотоцикл</option>
+                <option value="bicycle">Велосипед</option>
+                <option value="on_foot">Пешком</option>
+              </select>
+            </div>
+            
+            <div>
+              <Label htmlFor="courier-transport-number">Номер транспорта *</Label>
+              <Input
+                id="courier-transport-number"
+                value={courierCreateForm.transport_number}
+                onChange={(e) => setCourierCreateForm({...courierCreateForm, transport_number: e.target.value})}
+                placeholder="А123БВ77 или номер велосипеда"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="courier-transport-capacity">Грузоподъемность (кг) *</Label>
+              <Input
+                id="courier-transport-capacity"
+                type="number"
+                min="1"
+                max="10000"
+                value={courierCreateForm.transport_capacity}
+                onChange={(e) => setCourierCreateForm({...courierCreateForm, transport_capacity: e.target.value})}
+                placeholder="Например: 500"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="courier-assigned-warehouse">Назначить на склад *</Label>
+              <Select 
+                value={courierCreateForm.assigned_warehouse_id} 
+                onValueChange={(value) => setCourierCreateForm({...courierCreateForm, assigned_warehouse_id: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите склад" />
+                </SelectTrigger>
+                <SelectContent>
+                  {warehouses.map((warehouse) => (
+                    <SelectItem key={warehouse.id} value={warehouse.id}>
+                      {warehouse.name} - {warehouse.location}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex space-x-3">
+              <Button type="submit" className="flex-1">
+                <Plus className="mr-2 h-4 w-4" />
+                Создать курьера
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setCourierCreateModal(false)}>
+                Отмена
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Модальное окно профиля курьера */}
+      <Dialog open={courierProfileModal} onOpenChange={setCourierProfileModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Truck className="mr-2 h-5 w-5" />
+              Профиль курьера
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedCourier && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Основная информация</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">ФИО</Label>
+                      <p className="text-sm">{selectedCourier.full_name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Телефон</Label>
+                      <p className="text-sm">{selectedCourier.phone}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Адрес</Label>
+                      <p className="text-sm">{selectedCourier.address}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Статус</Label>
+                      <Badge variant={selectedCourier.is_active ? "default" : "secondary"}>
+                        {selectedCourier.is_active ? 'Активен' : 'Неактивен'}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Транспорт</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Тип транспорта</Label>
+                      <p className="text-sm">{selectedCourier.transport_type}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Номер транспорта</Label>
+                      <p className="text-sm">{selectedCourier.transport_number}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Грузоподъемность</Label>
+                      <p className="text-sm">{selectedCourier.transport_capacity} кг</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Склад</Label>
+                      <p className="text-sm">{selectedCourier.assigned_warehouse_name}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Статистика курьера */}
+              {selectedCourier.statistics && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Статистика работы</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600">
+                          {selectedCourier.statistics.total_completed}
+                        </div>
+                        <div className="text-sm text-green-500">Выполненных заявок</div>
+                      </div>
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">
+                          {selectedCourier.statistics.total_assigned}
+                        </div>
+                        <div className="text-sm text-blue-500">Назначенных заявок</div>
+                      </div>
+                    </div>
+
+                    {/* Недавние заявки */}
+                    {selectedCourier.statistics.recent_requests && selectedCourier.statistics.recent_requests.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="font-semibold mb-2">Недавние заявки</h4>
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          {selectedCourier.statistics.recent_requests.slice(0, 5).map((request, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                              <div>
+                                <p className="text-sm font-medium">{request.sender_full_name}</p>
+                                <p className="text-xs text-gray-500">{request.cargo_name}</p>
+                              </div>
+                              <Badge variant="outline" className="text-xs">
+                                {request.request_status}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="flex space-x-3">
+                <Button onClick={() => handleEditCourier(selectedCourier)} className="flex-1">
+                  <Edit className="mr-2 h-4 w-4" />
+                  Редактировать
+                </Button>
+                <Button variant="outline" onClick={() => setCourierProfileModal(false)}>
+                  Закрыть
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Модальное окно редактирования курьера */}
+      <Dialog open={courierEditModal} onOpenChange={setCourierEditModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Edit className="mr-2 h-5 w-5" />
+              Редактировать курьера
+            </DialogTitle>
+          </DialogHeader>
+          
+          <form onSubmit={handleUpdateCourier} className="space-y-4">
+            <div>
+              <Label htmlFor="edit-courier-full-name">ФИО курьера *</Label>
+              <Input
+                id="edit-courier-full-name"
+                value={courierEditForm.full_name || ''}
+                onChange={(e) => setCourierEditForm({...courierEditForm, full_name: e.target.value})}
+                placeholder="Иванов Иван Иванович"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-courier-phone">Телефон *</Label>
+              <Input
+                id="edit-courier-phone"
+                type="tel"
+                value={courierEditForm.phone || ''}
+                onChange={(e) => setCourierEditForm({...courierEditForm, phone: e.target.value})}
+                placeholder="+79XXXXXXXXX"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-courier-address">Адрес проживания *</Label>
+              <Input
+                id="edit-courier-address"
+                value={courierEditForm.address || ''}
+                onChange={(e) => setCourierEditForm({...courierEditForm, address: e.target.value})}
+                placeholder="Москва, ул. Примерная, 10, кв. 5"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-courier-transport-type">Тип транспорта *</Label>
+              <select
+                id="edit-courier-transport-type"
+                value={courierEditForm.transport_type || 'car'}
+                onChange={(e) => setCourierEditForm({...courierEditForm, transport_type: e.target.value})}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                required
+              >
+                <option value="car">Легковой автомобиль</option>
+                <option value="van">Фургон</option>
+                <option value="truck">Грузовик</option>
+                <option value="motorcycle">Мотоцикл</option>
+                <option value="bicycle">Велосипед</option>
+                <option value="on_foot">Пешком</option>
+              </select>
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-courier-transport-number">Номер транспорта *</Label>
+              <Input
+                id="edit-courier-transport-number"
+                value={courierEditForm.transport_number || ''}
+                onChange={(e) => setCourierEditForm({...courierEditForm, transport_number: e.target.value})}
+                placeholder="А123БВ77"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-courier-transport-capacity">Грузоподъемность (кг) *</Label>
+              <Input
+                id="edit-courier-transport-capacity"
+                type="number"
+                min="1"
+                max="10000"
+                value={courierEditForm.transport_capacity || ''}
+                onChange={(e) => setCourierEditForm({...courierEditForm, transport_capacity: e.target.value})}
+                placeholder="500"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-courier-assigned-warehouse">Назначить на склад *</Label>
+              <Select 
+                value={courierEditForm.assigned_warehouse_id || ''} 
+                onValueChange={(value) => setCourierEditForm({...courierEditForm, assigned_warehouse_id: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите склад" />
+                </SelectTrigger>
+                <SelectContent>
+                  {warehouses.map((warehouse) => (
+                    <SelectItem key={warehouse.id} value={warehouse.id}>
+                      {warehouse.name} - {warehouse.location}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-courier-password">Новый пароль</Label>
+              <Input
+                id="edit-courier-password"
+                type="password"
+                value={courierEditForm.password === 'unchanged' ? '' : courierEditForm.password || ''}
+                onChange={(e) => setCourierEditForm({...courierEditForm, password: e.target.value})}
+                placeholder="Оставьте пустым, если не хотите менять"
+              />
+            </div>
+            
+            <div className="flex space-x-3">
+              <Button type="submit" className="flex-1">
+                <Save className="mr-2 h-4 w-4" />
+                Сохранить
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setCourierEditModal(false)}>
+                Отмена
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
