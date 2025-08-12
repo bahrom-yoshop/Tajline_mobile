@@ -30921,9 +30921,10 @@ ID склада: {target_warehouse_id}"""
         print("\n   🚚 Test 11: COURIER AUTHENTICATION FOR REQUEST MANAGEMENT...")
         
         if created_courier_user_id:
-            # Login as the created courier
+            # Login as the created courier - use the same phone number that was created
+            courier_phone = courier_data.get("phone", "+79991234567")
             courier_login_data = {
-                "phone": "+79991234567",  # Phone from courier creation
+                "phone": courier_phone,
                 "password": "courier123"
             }
             
