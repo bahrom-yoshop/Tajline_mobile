@@ -249,7 +249,17 @@ frontend:
           agent: "main"
           comment: "✅ КРИТИЧЕСКАЯ ОШИБКА SELECTITEM ИСПРАВЛЕНА! Полностью решена проблема 'A Select.Item must have a value prop that is not an empty string' в 4 компонентах: 1) Строка 10257: SelectItem для статуса груза заменено value='' на value='any', 2) Строка 10276: SelectItem для статуса оплаты заменено value='' на value='any', 3) Строка 10295: SelectItem для маршрута заменено value='' на value='any', 4) Строка 21576: SelectItem для назначения оператора заменено value='' на value='none'. ДОПОЛНИТЕЛЬНЫЕ ИСПРАВЛЕНИЯ: обновлена логика обработки фильтров в handleAdvancedSearch для преобразования 'any' значений обратно в пустые строки для API, обновлена логика создания склада для корректной обработки 'none' значения оператора, обновлены значения по умолчанию в searchFilters и warehouseForm. Страница загружается без критических ошибок, консоль чистая."
 
-  - task: "Session Management Stability Verification" 
+  - task: "Internal Server Error Fix - CargoStatus Enum Update"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ INTERNAL SERVER ERROR ИСПРАВЛЕНА! Решена проблема с enum CargoStatus - добавлен отсутствующий статус PLACED_IN_WAREHOUSE = 'placed_in_warehouse' в строке 145. Ошибка возникала при валидации Pydantic модели CargoWithLocation в endpoint /api/cashier/unpaid-cargo из-за несоответствия статуса груза в базе данных ('placed_in_warehouse') и допустимых значений enum. После добавления статуса backend запускается без ошибок, endpoint /api/cashier/unpaid-cargo возвращает данные корректно, /api/auth/me работает стабильно. Backend готов для полного тестирования входа." 
     implemented: true
     working: false
     file: "/app/frontend/src/App.js"
