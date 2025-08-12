@@ -5226,10 +5226,16 @@ function App() {
   const handleAdvancedSearch = async (query = searchQuery, filters = searchFilters) => {
     setSearchLoading(true);
     try {
+      // Convert "any" values back to empty strings for API
+      const processedFilters = { ...filters };
+      if (processedFilters.cargo_status === 'any') processedFilters.cargo_status = '';
+      if (processedFilters.payment_status === 'any') processedFilters.payment_status = '';
+      if (processedFilters.route === 'any') processedFilters.route = '';
+      
       const searchRequest = {
         query: query.trim(),
         search_type: searchType,
-        ...filters
+        ...processedFilters
       };
 
       const response = await apiCall('/api/search/advanced', 'POST', searchRequest);
