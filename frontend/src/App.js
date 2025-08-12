@@ -10967,6 +10967,20 @@ function App() {
                               }}
                             />
 
+                            {/* Кнопка переключения камеры для размещения */}
+                            {availableCameras.length > 1 && (
+                              <div className="text-center mt-2">
+                                <Button 
+                                  onClick={() => switchCamera()}
+                                  variant="outline"
+                                  size="sm"
+                                >
+                                  <RefreshCw className="mr-2 h-4 w-4" />
+                                  Переключить камеру
+                                </Button>
+                              </div>
+                            )}
+
                             {scannedCargo && (
                               <div className="p-3 bg-green-50 border border-green-200 rounded">
                                 <p className="text-sm text-green-800">
