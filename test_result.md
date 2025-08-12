@@ -392,7 +392,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "New QR Code Functions and Cargo Placement Testing"
+    - "Camera and Mobile Responsiveness Fixes for Operations Category"
   stuck_tasks: 
     - "React DOM Fixes Backend Support"
   test_all: false
