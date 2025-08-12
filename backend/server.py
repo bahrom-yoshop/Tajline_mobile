@@ -4017,11 +4017,15 @@ async def create_warehouse(
     
     warehouse_id = str(uuid.uuid4())
     
+    # Генерируем ID номер склада
+    warehouse_id_number = generate_warehouse_id_number()
+    
     # Рассчитываем общую вместимость
     total_capacity = warehouse_data.blocks_count * warehouse_data.shelves_per_block * warehouse_data.cells_per_shelf
     
     warehouse = {
         "id": warehouse_id,
+        "warehouse_id_number": warehouse_id_number,  # Новое поле
         "name": warehouse_data.name,
         "location": warehouse_data.location,
         "blocks_count": warehouse_data.blocks_count,
@@ -4036,9 +4040,10 @@ async def create_warehouse(
     # Создаем склад
     db.warehouses.insert_one(warehouse)
     
-    # Генерируем структуру склада (блоки, полки, ячейки)
+    # Генерируем структуру склада (блоки, полки, ячейки) с ID номерами
     cells_created = generate_warehouse_structure(
         warehouse_id,
+        warehouse_id_number,  # Передаем ID номер склада
         warehouse_data.blocks_count,
         warehouse_data.shelves_per_block,
         warehouse_data.cells_per_shelf
@@ -4047,11 +4052,23 @@ async def create_warehouse(
     # Создаем уведомление
     create_notification(
         current_user.id,
-        f"Создан новый склад '{warehouse_data.name}' с {cells_created} ячейками",
+        f"Создан новый склад '{warehouse_data.name}' (ID: {warehouse_id_number}) с {cells_created} ячейками",
         None
     )
     
-    return Warehouse(**warehouse)
+    return Warehouse(
+        id=warehouse_id,
+        warehouse_id_number=warehouse_id_number,
+        name=warehouse_data.name,
+        location=warehouse_data.location,
+        blocks_count=warehouse_data.blocks_count,
+        shelves_per_block=warehouse_data.shelves_per_block,
+        cells_per_shelf=warehouse_data.cells_per_shelf,
+        total_capacity=total_capacity,
+        created_by=current_user.id,
+        created_at=warehouse["created_at"],
+        is_active=True
+    )
 
 @app.get("/api/warehouses")
 async def get_warehouses(current_user: User = Depends(get_current_user)):
