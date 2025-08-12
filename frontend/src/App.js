@@ -442,9 +442,17 @@ function App() {
       
       const cellInfo = parseCellQRCode(cellData);
       if (cellInfo) {
+        // Формируем точные данные ячейки в формате Б?-П?-Я?
+        const cellDisplayFormat = `Б${cellInfo.block_number}-П${cellInfo.shelf_number}-Я${cellInfo.cell_number}`;
+        
+        // Вводим данные в поле для сканирования ячейки
+        setExternalCellInput(cellDisplayFormat);
+        
+        console.log('📍 Отсканированы данные ячейки:', cellDisplayFormat);
+        
         // Проверяем занятость ячейки перед размещением
         try {
-          console.log('🔍 Проверка занятости ячейки:', `Б${cellInfo.block_number}-П${cellInfo.shelf_number}-Я${cellInfo.cell_number}`);
+          console.log('🔍 Проверка занятости ячейки:', cellDisplayFormat);
           
           const cellStatusResponse = await apiCall(`/api/warehouse/cell/status`, 'POST', {
             warehouse_id: cellInfo.warehouse_id,
@@ -455,14 +463,15 @@ function App() {
 
           if (cellStatusResponse && cellStatusResponse.is_occupied) {
             // Ячейка занята - показываем предупреждение
-            setScannerError(`Ячейка Б${cellInfo.block_number}-П${cellInfo.shelf_number}-Я${cellInfo.cell_number} уже занята`);
-            showAlert(`⚠️ Ячейка Б${cellInfo.block_number}-П${cellInfo.shelf_number}-Я${cellInfo.cell_number} уже забронирована другими грузами: ${cellStatusResponse.occupied_by || 'Неизвестный груз'}`, 'warning');
+            setScannerError(`Ячейка ${cellDisplayFormat} уже занята`);
+            setScannerMessage(`⚠️ Ячейка ${cellDisplayFormat} уже забронирована другими грузами: ${cellStatusResponse.occupied_by || 'Неизвестный груз'}`);
+            showAlert(`⚠️ Ячейка ${cellDisplayFormat} уже забронирована другими грузами: ${cellStatusResponse.occupied_by || 'Неизвестный груз'}`, 'warning');
             return;
           }
 
           // Ячейка свободна - продолжаем размещение
           setExternalScannedCell(cellInfo);
-          setScannerMessage(`✅ Ячейка отсканирована: Б${cellInfo.block_number}-П${cellInfo.shelf_number}-Я${cellInfo.cell_number}. Ячейка свободна. Выполняем размещение...`);
+          setScannerMessage(`✅ Ячейка отсканирована: ${cellDisplayFormat}. Ячейка свободна. Выполняем размещение...`);
           
           // Автоматически выполняем размещение
           if (externalScannedCargo) {
@@ -473,7 +482,7 @@ function App() {
           console.warn('Не удалось проверить статус ячейки, продолжаем размещение:', statusError);
           // Если не удалось проверить статус ячейки, продолжаем размещение (fallback)
           setExternalScannedCell(cellInfo);
-          setScannerMessage(`✅ Ячейка отсканирована: Б${cellInfo.block_number}-П${cellInfo.shelf_number}-Я${cellInfo.cell_number}. Выполняем размещение...`);
+          setScannerMessage(`✅ Ячейка отсканирована: ${cellDisplayFormat}. Выполняем размещение...`);
           
           if (externalScannedCargo) {
             await performExternalScannerPlacement(externalScannedCargo, cellInfo);
@@ -481,11 +490,13 @@ function App() {
         }
       } else {
         setScannerError('Неверный формат QR-кода ячейки');
+        setScannerMessage('❌ Неверный формат QR-кода ячейки. Ожидается формат: Б1-П2-Я3');
         showAlert('Неверный формат QR-кода ячейки. Попробуйте еще раз.', 'error');
       }
     } catch (error) {
       console.error('Ошибка обработки сканирования ячейки:', error);
       setScannerError('Ошибка обработки данных ячейки');
+      setScannerMessage('❌ Ошибка обработки данных ячейки');
       showAlert('Ошибка обработки данных ячейки', 'error');
     }
   };
