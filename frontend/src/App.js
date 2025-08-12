@@ -12675,15 +12675,51 @@ function App() {
                                 Генерировать QR
                               </Button>
                               
-                              {/* Кнопка размещения груза - открывает страницу */}
-                              <Button 
-                                onClick={openCargoPlacementPage}
-                                className="bg-green-600 hover:bg-green-700"
-                                size="sm"
-                              >
-                                <Package className="mr-2 h-4 w-4" />
-                                Размещение груза
-                              </Button>
+                              {/* Кнопки размещения груза - камера и внешний сканер */}
+                              {!placementActive && !externalScannerActive && (
+                                <>
+                                  <Button 
+                                    onClick={openCargoPlacementPage}
+                                    className="bg-green-600 hover:bg-green-700"
+                                    size="sm"
+                                  >
+                                    <Camera className="mr-2 h-4 w-4" />
+                                    Размещение (Камера)
+                                  </Button>
+                                  <Button 
+                                    onClick={() => setShowCargoPlacementModal(true)}
+                                    className="bg-blue-600 hover:bg-blue-700"
+                                    size="sm"
+                                  >
+                                    <Scan className="mr-2 h-4 w-4" />
+                                    Размещение (Сканер)
+                                  </Button>
+                                </>
+                              )}
+                              
+                              {placementActive && (
+                                <Button 
+                                  onClick={stopCargoPlacement}
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-red-600 border-red-300 hover:bg-red-50"
+                                >
+                                  <X className="mr-2 h-4 w-4" />
+                                  Остановить размещение
+                                </Button>
+                              )}
+
+                              {externalScannerActive && (
+                                <Button 
+                                  onClick={stopExternalScannerPlacement}
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-red-600 border-red-300 hover:bg-red-50"
+                                >
+                                  <X className="mr-2 h-4 w-4" />
+                                  Остановить сканер
+                                </Button>
+                              )}
                             </div>
                           </CardTitle>
                           <CardDescription>
