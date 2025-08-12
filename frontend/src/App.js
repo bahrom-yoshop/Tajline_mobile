@@ -301,6 +301,138 @@ function App() {
     }
   };
 
+  // Функция для запуска размещения с внешним сканером
+  const startExternalScannerPlacement = async () => {
+    try {
+      console.log('🖥️ Запуск размещения груза с внешним сканером...');
+      
+      setExternalScannerActive(true);
+      setExternalScannerStep('cargo');
+      setExternalCargoInput('');
+      setExternalCellInput('');
+      setExternalScannedCargo(null);
+      setExternalScannedCell(null);
+      setScannerMode('external-scanner');
+      setScannerMessage('Отсканируйте QR код груза с помощью внешнего сканера');
+      
+      // Fetch statistics and available cells
+      await fetchPlacementStatistics();
+      await getAvailableWarehouseCells();
+      
+      showAlert('🖥️ Режим внешнего сканера активирован! Отсканируйте QR код груза.', 'info');
+      
+    } catch (error) {
+      console.error('Ошибка запуска внешнего сканера:', error);
+      showAlert('Ошибка при запуске внешнего сканера', 'error');
+    }
+  };
+
+  // Функция для остановки внешнего сканера
+  const stopExternalScannerPlacement = () => {
+    console.log('🛑 Остановка размещения с внешним сканером...');
+    
+    setExternalScannerActive(false);
+    setExternalScannerStep('cargo');
+    setExternalCargoInput('');
+    setExternalCellInput('');
+    setExternalScannedCargo(null);
+    setExternalScannedCell(null);
+    setScannerMode('none');
+    setScannerMessage('');
+    
+    showAlert('Размещение с внешним сканером остановлено', 'info');
+  };
+
+  // Функция обработки ввода от внешнего сканера для груза
+  const handleExternalCargoScan = async (cargoData) => {
+    try {
+      const cargoNumber = extractCargoNumber(cargoData);
+      console.log('🖥️ Сканирование груза внешним сканером:', cargoNumber);
+      
+      // Ищем груз в списке ожидающих размещение
+      const cargo = availableCargoForPlacement.find(item => 
+        item.cargo_number === cargoNumber || 
+        item.id === cargoNumber ||
+        cargoData.includes(cargoNumber)
+      );
+
+      if (cargo) {
+        setExternalScannedCargo(cargo);
+        setExternalScannerStep('cell');
+        setScannerMessage(`✅ Груз ${cargo.cargo_number} найден! Теперь отсканируйте QR код ячейки.`);
+        showAlert(`Груз ${cargo.cargo_number} найден! Отсканируйте ячейку.`, 'success');
+      } else {
+        setScannerError('Груз не найден в списке ожидающих размещение');
+        showAlert('Груз не найден в списке ожидающих размещение. Проверьте номер груза.', 'error');
+      }
+    } catch (error) {
+      console.error('Ошибка обработки сканирования груза:', error);
+      setScannerError('Ошибка обработки данных груза');
+      showAlert('Ошибка обработки данных груза', 'error');
+    }
+  };
+
+  // Функция обработки ввода от внешнего сканера для ячейки
+  const handleExternalCellScan = async (cellData) => {
+    try {
+      console.log('🖥️ Сканирование ячейки внешним сканером:', cellData);
+      
+      const cellInfo = parseCellQRCode(cellData);
+      if (cellInfo) {
+        setExternalScannedCell(cellInfo);
+        setScannerMessage(`✅ Ячейка отсканирована: Б${cellInfo.block_number}-П${cellInfo.shelf_number}-Я${cellInfo.cell_number}. Выполняем размещение...`);
+        
+        // Автоматически выполняем размещение
+        if (externalScannedCargo) {
+          await performExternalScannerPlacement(externalScannedCargo, cellInfo);
+        }
+      } else {
+        setScannerError('Неверный формат QR-кода ячейки');
+        showAlert('Неверный формат QR-кода ячейки. Попробуйте еще раз.', 'error');
+      }
+    } catch (error) {
+      console.error('Ошибка обработки сканирования ячейки:', error);
+      setScannerError('Ошибка обработки данных ячейки');
+      showAlert('Ошибка обработки данных ячейки', 'error');
+    }
+  };
+
+  // Функция выполнения размещения с внешним сканером
+  const performExternalScannerPlacement = async (cargo, cell) => {
+    try {
+      console.log('🖥️ Выполняем размещение груза:', cargo.cargo_number, 'в ячейку:', `Б${cell.block_number}-П${cell.shelf_number}-Я${cell.cell_number}`);
+      
+      // Выполняем размещение
+      await handlePlaceCargo(
+        cargo.id,
+        cell.warehouse_id,
+        cell.block_number,
+        cell.shelf_number,
+        cell.cell_number
+      );
+      
+      setExternalScannerStep('complete');
+      setScannerMessage(`🎉 Груз ${cargo.cargo_number} успешно размещен на Б${cell.block_number}-П${cell.shelf_number}-Я${cell.cell_number}!`);
+      
+      showAlert(`🎉 Груз ${cargo.cargo_number} размещен на Б${cell.block_number}-П${cell.shelf_number}-Я${cell.cell_number}!`, 'success');
+      
+      // Сбрасываем для следующего размещения через 3 секунды
+      setTimeout(() => {
+        setExternalScannerStep('cargo');
+        setExternalCargoInput('');
+        setExternalCellInput('');
+        setExternalScannedCargo(null);
+        setExternalScannedCell(null);
+        setScannerMessage('Готов к размещению следующего груза. Отсканируйте QR код груза.');
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Ошибка размещения с внешним сканером:', error);
+      setScannerError('Ошибка при размещении груза');
+      showAlert('Ошибка при размещении груза', 'error');
+    }
+  };
+
   // Обработчик изменения маршрута с автоматическим обновлением стоимости
   const handleRouteChange = (newRoute) => {
     const defaultValue = getDefaultDeclaredValue(newRoute);
