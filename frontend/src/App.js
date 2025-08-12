@@ -14489,7 +14489,7 @@ function App() {
                                 Удалить выбранные ({selectedWarehouses.length})
                               </Button>
                             )}
-                            <Button onClick={() => setActiveTab('warehouses-create')}>
+                            <Button onClick={openWarehouseCreationPage}>
                               <Plus className="mr-2 h-4 w-4" />
                               Создать склад
                             </Button>
