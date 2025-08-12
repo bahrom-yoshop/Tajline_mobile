@@ -12080,6 +12080,403 @@ async def fix_warehouse_operator_role(current_user: User = Depends(get_current_u
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка исправления роли: {str(e)}")
 
+# НОВЫЕ ENDPOINTS ДЛЯ КУРЬЕРСКОЙ СЛУЖБЫ (ЭТАП 1)
+
+@app.post("/api/admin/couriers/create")
+async def create_courier(
+    courier_data: CourierCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Создать нового курьера (админ или оператор)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Проверяем существование пользователя с таким телефоном
+    if db.users.find_one({"phone": courier_data.phone}):
+        raise HTTPException(status_code=400, detail="User with this phone already exists")
+    
+    # Проверяем что склад существует
+    warehouse = db.warehouses.find_one({"id": courier_data.assigned_warehouse_id})
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="Warehouse not found")
+    
+    try:
+        # Создаем пользователя с ролью курьер
+        user_id = str(uuid.uuid4())
+        user_number = generate_user_number()
+        courier_user = {
+            "id": user_id,
+            "user_number": user_number,
+            "full_name": courier_data.full_name,
+            "phone": courier_data.phone,
+            "password_hash": hash_password(courier_data.password),
+            "role": UserRole.COURIER.value,
+            "address": courier_data.address,
+            "is_active": True,
+            "token_version": 1,
+            "created_at": datetime.utcnow()
+        }
+        db.users.insert_one(courier_user)
+        
+        # Создаем профиль курьера
+        courier_id = str(uuid.uuid4())
+        courier_profile = {
+            "id": courier_id,
+            "user_id": user_id,
+            "full_name": courier_data.full_name,
+            "phone": courier_data.phone,
+            "address": courier_data.address,
+            "transport_type": courier_data.transport_type.value,
+            "transport_number": courier_data.transport_number,
+            "transport_capacity": courier_data.transport_capacity,
+            "assigned_warehouse_id": courier_data.assigned_warehouse_id,
+            "assigned_warehouse_name": warehouse["name"],
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "created_by": current_user.id
+        }
+        db.couriers.insert_one(courier_profile)
+        
+        # Создаем уведомление
+        create_notification(
+            user_id=current_user.id,
+            message=f"Курьер {courier_data.full_name} успешно создан и назначен на склад {warehouse['name']}",
+            related_id=courier_id
+        )
+        
+        return {
+            "message": "Courier created successfully",
+            "courier_id": courier_id,
+            "user_id": user_id,
+            "login_credentials": {
+                "phone": courier_data.phone,
+                "password": courier_data.password
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating courier: {str(e)}")
+
+@app.get("/api/admin/couriers/list")
+async def get_couriers_list(
+    current_user: User = Depends(get_current_user),
+    page: int = 1,
+    per_page: int = 25
+):
+    """Получить список всех курьеров (админ/оператор)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        # Для операторов - только курьеры их складов
+        if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+            operator_warehouses = get_operator_warehouse_ids(current_user.id)
+            if not operator_warehouses:
+                return create_pagination_response([], 0, page, per_page)
+            
+            couriers_query = {"assigned_warehouse_id": {"$in": operator_warehouses}}
+        else:
+            # Админы видят всех курьеров
+            couriers_query = {}
+        
+        # Получаем курьеров с пагинацией
+        total_count = db.couriers.count_documents(couriers_query)
+        skip = (page - 1) * per_page
+        
+        couriers = list(db.couriers.find(couriers_query, {"_id": 0})
+                       .sort("created_at", -1)
+                       .skip(skip)
+                       .limit(per_page))
+        
+        return create_pagination_response(couriers, total_count, page, per_page)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching couriers: {str(e)}")
+
+@app.get("/api/admin/couriers/{courier_id}")
+async def get_courier_profile(
+    courier_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить профиль курьера"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    courier = db.couriers.find_one({"id": courier_id}, {"_id": 0})
+    if not courier:
+        raise HTTPException(status_code=404, detail="Courier not found")
+    
+    # Получаем статистику курьера
+    courier_requests = list(db.courier_requests.find(
+        {"assigned_courier_id": courier_id}, {"_id": 0}
+    ).sort("created_at", -1).limit(10))
+    
+    total_completed = db.courier_requests.count_documents({
+        "assigned_courier_id": courier_id,
+        "request_status": "completed"
+    })
+    
+    total_assigned = db.courier_requests.count_documents({
+        "assigned_courier_id": courier_id,
+        "request_status": {"$in": ["assigned", "accepted"]}
+    })
+    
+    courier["statistics"] = {
+        "total_completed": total_completed,
+        "total_assigned": total_assigned,
+        "recent_requests": courier_requests
+    }
+    
+    return courier
+
+@app.put("/api/admin/couriers/{courier_id}")
+async def update_courier_profile(
+    courier_id: str,
+    courier_update: CourierCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Обновить профиль курьера"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    courier = db.couriers.find_one({"id": courier_id})
+    if not courier:
+        raise HTTPException(status_code=404, detail="Courier not found")
+    
+    # Проверяем новый склад
+    warehouse = db.warehouses.find_one({"id": courier_update.assigned_warehouse_id})
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="Warehouse not found")
+    
+    try:
+        # Обновляем профиль курьера
+        update_data = {
+            "full_name": courier_update.full_name,
+            "phone": courier_update.phone,
+            "address": courier_update.address,
+            "transport_type": courier_update.transport_type.value,
+            "transport_number": courier_update.transport_number,
+            "transport_capacity": courier_update.transport_capacity,
+            "assigned_warehouse_id": courier_update.assigned_warehouse_id,
+            "assigned_warehouse_name": warehouse["name"],
+            "updated_at": datetime.utcnow()
+        }
+        
+        db.couriers.update_one({"id": courier_id}, {"$set": update_data})
+        
+        # Обновляем пользователя
+        db.users.update_one(
+            {"id": courier["user_id"]}, 
+            {"$set": {
+                "full_name": courier_update.full_name,
+                "phone": courier_update.phone,
+                "address": courier_update.address,
+                "updated_at": datetime.utcnow()
+            }}
+        )
+        
+        return {"message": "Courier profile updated successfully"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating courier: {str(e)}")
+
+@app.post("/api/operator/courier-requests/create")
+async def create_courier_request_for_pickup(
+    cargo_id: str,
+    assigned_courier_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Создать заявку курьеру для забора груза (оператор)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Проверяем груз
+    cargo = db.operator_cargo.find_one({"id": cargo_id}, {"_id": 0})
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Проверяем что груз требует забор
+    if not cargo.get("pickup_required"):
+        raise HTTPException(status_code=400, detail="Cargo does not require pickup")
+    
+    # Проверяем курьера
+    courier = db.couriers.find_one({"id": assigned_courier_id}, {"_id": 0})
+    if not courier:
+        raise HTTPException(status_code=404, detail="Courier not found")
+    
+    try:
+        # Обновляем статус груза и назначаем курьера
+        db.operator_cargo.update_one(
+            {"id": cargo_id},
+            {"$set": {
+                "status": CargoStatus.ASSIGNED_TO_COURIER,
+                "assigned_courier_id": assigned_courier_id,
+                "assigned_courier_name": courier["full_name"],
+                "courier_request_status": "assigned",
+                "updated_at": datetime.utcnow()
+            }}
+        )
+        
+        # Обновляем существующую заявку курьера
+        db.courier_requests.update_one(
+            {"cargo_id": cargo_id},
+            {"$set": {
+                "assigned_courier_id": assigned_courier_id,
+                "assigned_courier_name": courier["full_name"],
+                "request_status": "assigned",
+                "updated_at": datetime.utcnow()
+            }}
+        )
+        
+        # Создаем уведомления
+        create_notification(
+            user_id=courier["user_id"],
+            message=f"Вам назначена новая заявка на забор груза {cargo['cargo_number']} от {cargo['sender_full_name']}",
+            related_id=cargo_id
+        )
+        
+        create_notification(
+            user_id=current_user.id,
+            message=f"Заявка на забор груза {cargo['cargo_number']} назначена курьеру {courier['full_name']}",
+            related_id=cargo_id
+        )
+        
+        return {
+            "message": "Courier request created and assigned successfully",
+            "cargo_number": cargo["cargo_number"],
+            "courier_name": courier["full_name"]
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating courier request: {str(e)}")
+
+# ENDPOINTS ДЛЯ КУРЬЕРА
+
+@app.get("/api/courier/requests/new")
+async def get_courier_new_requests(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить новые заявки для курьера"""
+    if current_user.role != UserRole.COURIER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Получаем профиль курьера
+    courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not courier:
+        raise HTTPException(status_code=404, detail="Courier profile not found")
+    
+    # Получаем назначенные и новые заявки
+    courier_requests = list(db.courier_requests.find({
+        "$or": [
+            {"assigned_courier_id": courier["id"], "request_status": "assigned"},
+            {"assigned_courier_id": None, "request_status": "pending"}
+        ]
+    }, {"_id": 0}).sort("created_at", -1))
+    
+    return {
+        "courier_info": courier,
+        "new_requests": courier_requests,
+        "total_count": len(courier_requests)
+    }
+
+@app.post("/api/courier/requests/{request_id}/accept")
+async def accept_courier_request(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Принять заявку курьером"""
+    if current_user.role != UserRole.COURIER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Получаем профиль курьера
+    courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not courier:
+        raise HTTPException(status_code=404, detail="Courier profile not found")
+    
+    # Получаем заявку
+    request = db.courier_requests.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    if request.get("assigned_courier_id") != courier["id"]:
+        raise HTTPException(status_code=403, detail="Request not assigned to you")
+    
+    try:
+        # Обновляем статус заявки
+        db.courier_requests.update_one(
+            {"id": request_id},
+            {"$set": {
+                "request_status": "accepted",
+                "updated_at": datetime.utcnow()
+            }}
+        )
+        
+        # Обновляем груз если есть
+        if request.get("cargo_id"):
+            db.operator_cargo.update_one(
+                {"id": request["cargo_id"]},
+                {"$set": {
+                    "courier_request_status": "accepted",
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+        
+        # Уведомляем оператора
+        create_notification(
+            user_id=request["created_by"],
+            message=f"Курьер {courier['full_name']} принял заявку на забор груза {request.get('cargo_name', 'N/A')}",
+            related_id=request_id
+        )
+        
+        return {"message": "Request accepted successfully"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error accepting request: {str(e)}")
+
+@app.get("/api/courier/requests/history")
+async def get_courier_requests_history(
+    current_user: User = Depends(get_current_user),
+    page: int = 1,
+    per_page: int = 20
+):
+    """Получить историю заявок курьера"""
+    if current_user.role != UserRole.COURIER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not courier:
+        raise HTTPException(status_code=404, detail="Courier profile not found")
+    
+    # Получаем историю заявок
+    total_count = db.courier_requests.count_documents({"assigned_courier_id": courier["id"]})
+    skip = (page - 1) * per_page
+    
+    requests_history = list(db.courier_requests.find(
+        {"assigned_courier_id": courier["id"]}, 
+        {"_id": 0}
+    ).sort("created_at", -1).skip(skip).limit(per_page))
+    
+    return create_pagination_response(requests_history, total_count, page, per_page)
+
+# ДОПОЛНИТЕЛЬНЫЕ ENDPOINTS ДЛЯ ПОДДЕРЖКИ
+
+@app.get("/api/admin/couriers/available/{warehouse_id}")
+async def get_available_couriers_for_warehouse(
+    warehouse_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить доступных курьеров для склада"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    couriers = list(db.couriers.find({
+        "assigned_warehouse_id": warehouse_id,
+        "is_active": True
+    }, {"_id": 0}))
+    
+    return {"couriers": couriers, "count": len(couriers)}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
