@@ -143,6 +143,9 @@ class CargoStatus(str, Enum):
     AWAITING_PLACEMENT = "awaiting_placement"  # Ожидает размещения
     IN_WAREHOUSE = "in_warehouse"
     PLACED_IN_WAREHOUSE = "placed_in_warehouse"  # Размещен на складе
+    PICKUP_REQUESTED = "pickup_requested"  # Заявка на забор груза
+    ASSIGNED_TO_COURIER = "assigned_to_courier"  # Назначен курьеру
+    PICKED_UP_BY_COURIER = "picked_up_by_courier"  # Забран курьером
     IN_TRANSIT = "in_transit"
     ARRIVED_DESTINATION = "arrived_destination"
     COMPLETED = "completed"
