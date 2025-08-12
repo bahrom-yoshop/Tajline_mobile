@@ -20553,11 +20553,11 @@ function App() {
                     />
                     {externalScannedCell && (
                       <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
-                        <div className="font-medium text-green-800">
-                          Ячейка: Б{externalScannedCell.block_number}-П{externalScannedCell.shelf_number}-Я{externalScannedCell.cell_number}
+                        <div className="font-medium text-green-800 text-center">
+                          ✅ Ячейка: Б{externalScannedCell.block_number}-П{externalScannedCell.shelf_number}-Я{externalScannedCell.cell_number}
                         </div>
-                        <div className="text-green-600">
-                          Склад: {externalScannedCell.warehouse_id}
+                        <div className="text-green-600 text-center text-xs mt-1">
+                          Данные ячейки успешно отсканированы
                         </div>
                       </div>
                     )}
