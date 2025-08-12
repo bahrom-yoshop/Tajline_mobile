@@ -63,11 +63,23 @@ body {
   background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
   border: 2px dashed #4a5568;
   transition: all 0.3s ease;
+  aspect-ratio: 1;
+  max-width: 400px;
+  margin: 0 auto;
 }
 
 .camera-placeholder:hover {
   border-color: #63b3ed;
   background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+}
+
+/* QR сканер контейнеры - квадратные */
+#qr-reader-placement {
+  aspect-ratio: 1 !important;
+  max-width: 400px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  border-radius: 12px !important;
 }
 
 /* Мобильная адаптивность для размера 412x914px */
@@ -82,10 +94,22 @@ body {
     margin-top: 16px !important;
   }
   
-  /* QR сканер контейнеры */
+  /* QR сканер контейнеры - квадратные на мобильных */
   #qr-reader-placement {
-    height: min(50vh, 300px) !important;
-    min-height: 250px !important;
+    aspect-ratio: 1 !important;
+    max-width: 320px !important;
+    width: 90vw !important;
+    margin: 0 auto !important;
+    border-radius: 8px !important;
+  }
+  
+  /* Плейсхолдер камеры для мобильных */
+  .camera-placeholder {
+    aspect-ratio: 1 !important;
+    max-width: 320px !important;
+    width: 90vw !important;
+    margin: 0 auto !important;
+    border-radius: 8px !important;
   }
   
   /* Кнопки */
