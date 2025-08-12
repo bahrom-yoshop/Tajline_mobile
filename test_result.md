@@ -2261,6 +2261,9 @@ frontend:
         - working: false
           agent: "main"
           comment: "❌ SESSION MANAGEMENT ISSUE - While login works correctly with valid credentials, there appears to be a frontend session persistence problem. Users can login successfully but the authentication state is not maintained consistently, causing frequent logouts or inability to maintain authenticated sessions for extended testing of cargo ordering system."
+        - working: false
+          agent: "testing"
+          comment: "❌ КРИТИЧЕСКАЯ ПРОБЛЕМА SESSION MANAGEMENT ПОДТВЕРЖДЕНА! Во время полного браузерного тестирования QR кодов обнаружена серьезная проблема с управлением сессиями: 1) ✅ АВТОРИЗАЦИЯ РАБОТАЕТ: Успешная авторизация оператора склада (+79777888999/warehouse123) с корректным отображением роли 'Оператор Складской Обновленный' (USR648400), 2) ❌ АВТОМАТИЧЕСКИЙ LOGOUT: Пользователь автоматически выходит из системы через 30-60 секунд после авторизации, возврат на страницу входа происходит без предупреждения, 3) ❌ НЕВОЗМОЖНОСТЬ ДЛИТЕЛЬНОГО ТЕСТИРОВАНИЯ: Из-за частых logout'ов невозможно провести полное тестирование workflow управления ячейками и QR генерации, 4) ❌ ПОТЕРЯ СОСТОЯНИЯ: При logout'е теряется весь прогресс навигации и открытые модальные окна, 5) ✅ ФУНКЦИОНАЛЬНОСТЬ ДОСТУПНА: Краткое тестирование показало, что QR функции доступны через раздел 'Операции', но требуют стабильной сессии для полного тестирования. КРИТИЧЕСКИЙ БЛОКЕР: Session management препятствует полноценному тестированию всех QR улучшений. Требуется исправление механизма поддержания сессий для операторов склада."
 
   - task: "Add notification dropdown menu"
     implemented: true
