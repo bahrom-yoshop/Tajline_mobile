@@ -746,11 +746,20 @@ function App() {
   const [profileSourceUser, setProfileSourceUser] = useState(null);
 
   // Состояния для сканирования штрих-кодов и QR-кодов при размещении
-  const [scannerMode, setScannerMode] = useState('none'); // 'none', 'cargo-barcode', 'cell-qr', 'cargo-qr-search'
+  const [scannerMode, setScannerMode] = useState('none'); // 'none', 'cargo-barcode', 'cell-qr', 'cargo-qr-search', 'external-scanner'
   const [scannedCargoData, setScannedCargoData] = useState(null);
   const [scannedCellData, setScannedCellData] = useState(null);
   const [placementInProgress, setPlacementInProgress] = useState(false);
   const [scannerError, setScannerError] = useState(null);
+  
+  // Состояния для внешнего сканера
+  const [externalScannerActive, setExternalScannerActive] = useState(false);
+  const [externalScannerStep, setExternalScannerStep] = useState('cargo'); // 'cargo', 'cell', 'complete'
+  const [externalCargoInput, setExternalCargoInput] = useState('');
+  const [externalCellInput, setExternalCellInput] = useState('');
+  const [externalScannedCargo, setExternalScannedCargo] = useState(null);
+  const [externalScannedCell, setExternalScannedCell] = useState(null);
+  const [scannerMessage, setScannerMessage] = useState('');
   
   // Состояния для камеры - разделены для каждого сканера
   const [html5QrCode, setHtml5QrCode] = useState(null);  // Основной сканер
