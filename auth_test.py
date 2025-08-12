@@ -11,7 +11,7 @@ from datetime import datetime
 import bcrypt
 
 class AuthenticationTester:
-    def __init__(self, base_url="https://dcce08c9-1953-409c-ae03-37c7d486edfb.preview.emergentagent.com"):
+    def __init__(self, base_url="https://qrscan-cargo.preview.emergentagent.com"):
         self.base_url = base_url
         self.test_users = []
         self.tests_run = 0
