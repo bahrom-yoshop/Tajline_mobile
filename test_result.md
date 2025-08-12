@@ -158,6 +158,18 @@
 user_problem_statement: "Исправить критическую ошибку SelectItem value='' и протестировать стабильность сессий в TAJLINE.TJ приложении. ОСНОВНЫЕ ЗАДАЧИ: 1) CRITICAL SELECTITEM ERROR FIX: Исправление ошибки 'A Select.Item must have a value prop that is not an empty string' в выпадающих списках, 2) SESSION STABILITY VERIFICATION: Тестирование исправлений нестабильности сессий в App.js, 3) WAREHOUSE CREATION COMPLETENESS: Завершение функциональности создания склада с генерацией QR кодов, 4) QR PRINTING FORMAT: Проверка отображения только 'Б?-П?-Я?' формата при печати QR кодов."
 
 backend:
+  - task: "Courier Service API Endpoints"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Новые API endpoints для курьерской службы добавлены: POST /api/admin/couriers/create, GET /api/admin/couriers/list, GET /api/admin/couriers/{courier_id}, PUT /api/admin/couriers/{courier_id}, GET /api/admin/couriers/available/{warehouse_id}, POST /api/operator/cargo/create-for-courier, POST /api/operator/courier-requests/create, GET /api/courier/requests/new, POST /api/courier/requests/{request_id}/accept, GET /api/courier/requests/history. Добавлены новые enum значения: CargoStatus (PICKUP_REQUESTED, ASSIGNED_TO_COURIER, PICKED_UP_BY_COURIER), DeliveryMethod (pickup, home_delivery), TransportType (car, van, truck, motorcycle, bicycle, on_foot), UserRole (courier). Требуется тестирование всех новых endpoints."
+
   - task: "Improved Warehouse Creation System with ID Numbers"
     implemented: true
     working: true
