@@ -613,7 +613,7 @@ function App() {
     blocks_count: 1,
     shelves_per_block: 1,
     cells_per_shelf: 10,
-    assigned_operator_id: '' // Новое поле для выбора оператора
+    assigned_operator_id: 'none' // Новое поле для выбора оператора
   });
   
   // Новые состояния для улучшенного создания склада
