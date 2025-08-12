@@ -153,7 +153,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Протестировать обновленную систему создания склада с новой улучшенной функциональностью согласно требованиям пользователя. ОСНОВНЫЕ ЗАДАЧИ ТЕСТИРОВАНИЯ: 1) IMPROVED WAREHOUSE CREATION SYSTEM: Тестирование нового API для создания склада с назначением оператора, 2) ID SYSTEM FUNCTIONALITY: Проверка автогенерации warehouse_id_number в формате 001, 002, 003..., 3) QR CODE GENERATION WITH IMPROVED FORMAT: Тестирование генерации QR кодов в ID формате (001-01-01-001), 4) CELL STATUS AND PLACEMENT: Тестирование endpoint POST /api/warehouse/cell/status с новыми параметрами, 5) OPERATOR WAREHOUSE BINDING: Создание привязки оператора к складу"
+user_problem_statement: "Исправить критическую ошибку SelectItem value='' и протестировать стабильность сессий в TAJLINE.TJ приложении. ОСНОВНЫЕ ЗАДАЧИ: 1) CRITICAL SELECTITEM ERROR FIX: Исправление ошибки 'A Select.Item must have a value prop that is not an empty string' в выпадающих списках, 2) SESSION STABILITY VERIFICATION: Тестирование исправлений нестабильности сессий в App.js, 3) WAREHOUSE CREATION COMPLETENESS: Завершение функциональности создания склада с генерацией QR кодов, 4) QR PRINTING FORMAT: Проверка отображения только 'Б?-П?-Я?' формата при печати QR кодов."
 
 backend:
   - task: "Improved Warehouse Creation System with ID Numbers"
