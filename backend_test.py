@@ -29549,6 +29549,8 @@ ID склада: {target_warehouse_id}"""
         # Run test suites in order - prioritizing CURRENT REVIEW REQUEST
         test_suites = [
             ("Health Check", self.test_health_check),
+            # 🎯 HIGHEST PRIORITY: QR CODE IMPROVEMENTS FOR WAREHOUSE CELLS (CURRENT REVIEW REQUEST)
+            ("🏭 QR CODE IMPROVEMENTS FOR WAREHOUSE CELLS", self.test_qr_code_improvements_for_warehouse_cells),
             # 🎯 HIGHEST PRIORITY: BACKEND STABILITY AFTER SESSION FIXES (CURRENT REVIEW REQUEST)
             ("🔧 BACKEND STABILITY AFTER SESSION FIXES", self.test_backend_stability_after_session_fixes),
             # 🎯 HIGH PRIORITY: BACKEND STABILITY AFTER SCANNING IMPROVEMENTS (PREVIOUS REVIEW REQUEST)
