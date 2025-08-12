@@ -137,6 +137,49 @@ function App() {
     }
   };
 
+  // Функция выполнения мобильного размещения с автоматической статистикой
+  const performMobilePlacement = async (cargo, cell) => {
+    try {
+      // Выполняем размещение
+      await handlePlaceCargo(
+        cargo.id,
+        cell.warehouse_id,
+        cell.block_number,
+        cell.shelf_number,
+        cell.cell_number
+      );
+      
+      // Формируем информацию о размещенном грузе
+      const placementInfo = `Груз: ${cargo.cargo_number} - Б${cell.block_number}-П${cell.shelf_number}-Я${cell.cell_number}`;
+      
+      // Добавляем в список размещений текущей сессии
+      setSessionPlacements(prev => [...prev, placementInfo]);
+      setSessionPlacementCount(prev => prev + 1);
+      
+      // Обновляем информационное сообщение с успехом
+      setPlacementInfoMessage(`🎉 Груз ${cargo.cargo_number} успешно размещен на Б${cell.block_number}-П${cell.shelf_number}-Я${cell.cell_number}! Приступите к следующему грузу.`);
+      
+      // Сбрасываем состояние для следующего размещения
+      setMobilePlacementStep('scan-cargo');
+      setScannerMode('mobile-placement-cargo');
+      setScannedCargo(null);
+      setScannedCell(null);
+      
+      // Показываем уведомление
+      showAlert(`Груз ${cargo.cargo_number} размещен! Готов к следующему.`, 'success');
+      
+      // Автоматически продолжаем сканирование для следующего груза
+      setTimeout(() => {
+        setPlacementInfoMessage('Отсканируйте QR код следующего груза для размещения.');
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Error in mobile placement:', error);
+      setPlacementInfoMessage(`❌ Ошибка размещения груза ${cargo.cargo_number}: ${error.message}`);
+      throw error;
+    }
+  };
+
   // New function: Validate cargo number
   const validateCargoNumber = async (cargoNumber) => {
     if (!cargoNumber.trim()) {
