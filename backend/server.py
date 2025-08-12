@@ -346,6 +346,7 @@ class WarehouseCreate(BaseModel):
 
 class Warehouse(BaseModel):
     id: str
+    warehouse_id_number: str  # Автогенерируемый ID номер склада (001, 002, 003...)
     name: str
     location: str
     blocks_count: int
@@ -359,18 +360,35 @@ class Warehouse(BaseModel):
 class WarehouseBlock(BaseModel):
     id: str
     warehouse_id: str
-    block_number: int
+    warehouse_id_number: str  # ID номер склада
+    block_id_number: str  # Автогенерируемый ID номер блока (01, 02, 03...)
+    block_number: int  # Номер блока (сохраняем для совместимости)
     shelves: List[dict]  # List of shelves with cells
+
+class WarehouseShelf(BaseModel):
+    id: str
+    warehouse_id: str
+    warehouse_id_number: str  # ID номер склада
+    block_id_number: str  # ID номер блока
+    shelf_id_number: str  # Автогенерируемый ID номер полки (01, 02, 03...)
+    block_number: int
+    shelf_number: int
+    cells: List[dict]  # List of cells
 
 class WarehouseCell(BaseModel):
     id: str
     warehouse_id: str
+    warehouse_id_number: str  # ID номер склада
+    block_id_number: str  # ID номер блока  
+    shelf_id_number: str  # ID номер полки
+    cell_id_number: str  # Автогенерируемый ID номер ячейки (001, 002, 003...)
     block_number: int
     shelf_number: int
     cell_number: int
     is_occupied: bool = False
     cargo_id: Optional[str] = None
     location_code: str  # Format: "B1-S2-C3" (Block 1, Shelf 2, Cell 3)
+    id_based_code: str  # Новый формат: "001-01-01-001" (Склад-Блок-Полка-Ячейка)
 
 # Модель для отдельного груза в заявке с индивидуальной ценой
 class CargoItem(BaseModel):
