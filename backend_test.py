@@ -29549,6 +29549,8 @@ ID склада: {target_warehouse_id}"""
         # Run test suites in order - prioritizing CURRENT REVIEW REQUEST
         test_suites = [
             ("Health Check", self.test_health_check),
+            # 🎯 HIGHEST PRIORITY: WAREHOUSE ID SYSTEM IMPLEMENTATION (CURRENT REVIEW REQUEST)
+            ("🏭 WAREHOUSE ID SYSTEM IMPLEMENTATION", self.test_warehouse_id_system_implementation),
             # 🎯 HIGHEST PRIORITY: QR CODE IMPROVEMENTS FOR WAREHOUSE CELLS (CURRENT REVIEW REQUEST)
             ("🏭 QR CODE IMPROVEMENTS FOR WAREHOUSE CELLS", self.test_qr_code_improvements_for_warehouse_cells),
             # 🎯 HIGHEST PRIORITY: BACKEND STABILITY AFTER SESSION FIXES (CURRENT REVIEW REQUEST)
