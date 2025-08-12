@@ -1704,6 +1704,10 @@ function App() {
           setScannedCargo(cargoInfo);
           setMobilePlacementStep('scan-cell');
           setScannerMode('mobile-placement-cell');
+          
+          // Обновляем информационное сообщение
+          setPlacementInfoMessage(`✅ Груз отсканирован: ${cargoInfo.cargo_number} - ${cargoInfo.cargo_name || 'Груз'}. Теперь отсканируйте QR код ячейки для размещения.`);
+          
           // Не останавливаем сканер, переходим к сканированию ячейки
           showAlert(`Груз ${cargoInfo.cargo_number} отсканирован. Теперь отсканируйте ячейку.`, 'success');
         } else {
@@ -1715,11 +1719,14 @@ function App() {
         const cellData = parseCellQRCode(scannedData);
         if (cellData) {
           setScannedCell(cellData);
-          setMobilePlacementStep('confirm');
-          setPlacementActive(false);
-          setScannerActive(false);
-          await completeQrCleanup("Cell Scanned");
-          showAlert('Ячейка отсканирована. Подтвердите размещение.', 'success');
+          
+          // Выполняем размещение автоматически
+          try {
+            await performMobilePlacement(scannedCargo, cellData);
+          } catch (error) {
+            console.error('Ошибка размещения:', error);
+            showAlert('Ошибка при размещении груза', 'error');
+          }
         } else {
           setScannerError('Неверный формат QR-кода ячейки');
           showAlert('Неверный формат QR-кода ячейки. Попробуйте еще раз.', 'error');
