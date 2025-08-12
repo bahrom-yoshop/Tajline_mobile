@@ -6932,7 +6932,7 @@ function App() {
       setCreatedWarehouseInfo(response);
       
       // Если выбран оператор, создаем привязку
-      if (warehouseForm.assigned_operator_id) {
+      if (warehouseForm.assigned_operator_id && warehouseForm.assigned_operator_id !== 'none') {
         try {
           await apiCall('/api/admin/operator-warehouse-binding/create', 'POST', {
             operator_id: warehouseForm.assigned_operator_id,
