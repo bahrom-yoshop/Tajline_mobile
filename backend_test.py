@@ -29629,7 +29629,7 @@ ID склада: {target_warehouse_id}"""
             success, warehouse_response = self.run_test(
                 "Create Warehouse with ID System",
                 "POST",
-                "/api/warehouses",
+                "/api/warehouses/create",
                 200,
                 warehouse_data,
                 self.tokens['admin']
