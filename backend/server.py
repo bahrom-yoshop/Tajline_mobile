@@ -2134,7 +2134,7 @@ async def generate_warehouse_cell_qr(
     cell_data: dict,
     current_user: User = Depends(get_current_user)
 ):
-    """Генерировать QR код для ячейки склада"""
+    """Генерировать QR код для ячейки склада с поддержкой ID формата"""
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -2146,6 +2146,7 @@ async def generate_warehouse_cell_qr(
         block = cell_data.get("block")
         shelf = cell_data.get("shelf") 
         cell = cell_data.get("cell")
+        format_type = cell_data.get("format", "id")  # "id" для новой системы, "legacy" для старой
         
         if not all([warehouse_id, block, shelf, cell]):
             raise HTTPException(status_code=400, detail="Missing required cell data")
@@ -2155,17 +2156,35 @@ async def generate_warehouse_cell_qr(
         if not warehouse:
             raise HTTPException(status_code=404, detail="Warehouse not found")
         
-        # Генерируем QR код
-        qr_code_data = generate_warehouse_cell_qr_code(warehouse, block, shelf, cell)
+        # Генерируем QR код в зависимости от формата
+        use_id_format = (format_type == "id")
+        qr_code_data = generate_warehouse_cell_qr_code(warehouse, block, shelf, cell, use_id_format)
         
         if not qr_code_data:
             raise HTTPException(status_code=500, detail="Failed to generate QR code")
         
+        # Формат ответа зависит от выбранного типа
+        if use_id_format:
+            # Новый формат с ID номерами
+            warehouse_id_number = warehouse.get("warehouse_id_number", f"{warehouse_id[:3]}")
+            block_id = f"{block:02d}"
+            shelf_id = f"{shelf:02d}"
+            cell_id = f"{cell:03d}"
+            cell_code = f"{warehouse_id_number}-{block_id}-{shelf_id}-{cell_id}"
+            readable_name = f"Б{block}-П{shelf}-Я{cell}"
+        else:
+            # Старый формат для совместимости
+            cell_code = f"{warehouse_id}-Б{block}-П{shelf}-Я{cell}"
+            readable_name = f"Б{block}-П{shelf}-Я{cell}"
+        
         return {
             "success": True,
             "warehouse_id": warehouse_id,
+            "warehouse_id_number": warehouse.get("warehouse_id_number"),
             "location": f"Блок {block}, Полка {shelf}, Ячейка {cell}",
-            "cell_code": f"{warehouse_id}-Б{block}-П{shelf}-Я{cell}",
+            "readable_name": readable_name,  # Для печати QR кода
+            "cell_code": cell_code,  # ID в QR коде
+            "format_type": format_type,
             "qr_code": qr_code_data
         }
         
