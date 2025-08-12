@@ -11138,6 +11138,20 @@ function App() {
                               </div>
                             )}
 
+                            {/* Кнопка закрытия сканирования для размещения */}
+                            {scannerActive && (
+                              <div className="text-center mt-3">
+                                <Button 
+                                  onClick={stopMobileScanning}
+                                  variant="destructive"
+                                  size="sm"
+                                >
+                                  <X className="mr-2 h-4 w-4" />
+                                  Закрыть сканирование
+                                </Button>
+                              </div>
+                            )}
+
                             {/* Информационная панель размещения */}
                             {placementInfoMessage && (
                               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
