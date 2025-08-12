@@ -108,6 +108,35 @@ function App() {
     }
   };
 
+  // Функция для остановки мобильного сканирования
+  const stopMobileScanning = async () => {
+    try {
+      // Останавливаем все активные сканеры
+      setSearchScannerActive(false);
+      setPlacementActive(false);
+      setScannerActive(false);
+      setScannerMode('none');
+      setScannerError(null);
+      
+      // Сбрасываем состояния
+      setMobilePlacementStep('scan-cargo');
+      setReceiveStep('scan-cargo');
+      setScannedCargo(null);
+      setScannedCell(null);
+      setReceivedCargo(null);
+      setNewCell(null);
+      setSearchResult(null);
+      
+      // Останавливаем камеру
+      await stopCameraScanner();
+      await completeQrCleanup("Mobile scanning stopped");
+      
+      showAlert('Сканирование остановлено', 'info');
+    } catch (error) {
+      console.error('Error stopping mobile scanning:', error);
+    }
+  };
+
   // New function: Validate cargo number
   const validateCargoNumber = async (cargoNumber) => {
     if (!cargoNumber.trim()) {
