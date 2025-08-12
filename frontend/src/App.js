@@ -10713,18 +10713,6 @@ function App() {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
-                          {/* Кнопка запуска камеры */}
-                          <div className="text-center">
-                            <Button 
-                              onClick={() => startCargoSearch()}
-                              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                              size="lg"
-                            >
-                              <Camera className="mr-2 h-5 w-5" />
-                              Начать сканирование груза
-                            </Button>
-                          </div>
-
                           {/* QR сканер контейнер */}
                           <div 
                             id="qr-reader-placement" 
@@ -10734,6 +10722,19 @@ function App() {
                               minHeight: '300px'
                             }}
                           />
+
+                          {/* Кнопка запуска сканирования внизу */}
+                          <div className="text-center">
+                            <Button 
+                              onClick={() => startCargoSearch()}
+                              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                              size="lg"
+                              disabled={searchScannerActive}
+                            >
+                              <Camera className="mr-2 h-5 w-5" />
+                              {searchScannerActive ? 'Сканирование активно...' : 'Начать сканирование груза'}
+                            </Button>
+                          </div>
 
                           {/* Кнопка переключения камеры */}
                           {searchScannerActive && availableCameras.length > 1 && (
