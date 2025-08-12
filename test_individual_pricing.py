@@ -8,7 +8,7 @@ import json
 
 class IndividualPricingTester:
     def __init__(self):
-        self.base_url = "https://qrscan-cargo.preview.emergentagent.com"
+        self.base_url = "https://qrscan-cargo-1.preview.emergentagent.com"
         self.admin_token = None
         
     def login_admin(self):
