@@ -1346,8 +1346,8 @@ class CargoTransportAPITester:
         
         available_operators = []
         if success:
-            if isinstance(operators_response, list):
-                available_operators = operators_response
+            if isinstance(operators_response, dict) and 'operators' in operators_response:
+                available_operators = operators_response['operators']
                 operator_count = len(available_operators)
                 print(f"   ✅ Found {operator_count} available operators")
                 
