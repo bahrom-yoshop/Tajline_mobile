@@ -6,7 +6,7 @@ Debug script for Problem 1.4 to understand warehouse assignment logic
 import requests
 import json
 
-base_url = "https://qrscan-cargo-1.preview.emergentagent.com"
+base_url = "https://tajline-logistics.preview.emergentagent.com"
 
 # Login as admin
 admin_login = {
