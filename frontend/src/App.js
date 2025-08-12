@@ -10273,7 +10273,7 @@ function App() {
                                     <SelectValue placeholder="Любая" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="">Любая</SelectItem>
+                                    <SelectItem value="any">Любая</SelectItem>
                                     <SelectItem value="pending">Ожидается</SelectItem>
                                     <SelectItem value="paid">Оплачен</SelectItem>
                                   </SelectContent>
