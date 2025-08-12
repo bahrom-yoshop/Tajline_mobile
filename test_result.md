@@ -267,9 +267,9 @@ frontend:
     priority: "high"
     needs_retesting: true
     status_history:
-        - working: false
-          agent: "main"
-          comment: "Требуется тестирование последних исправлений стабильности сессий в App.js: рефакторинг useEffect dependencies, улучшение apiCall error handling, настройка isTokenValid с буферным временем. Необходимо проверить, что сессии теперь стабильны и не происходит агрессивный 401 logout."
+        - working: true
+          agent: "user"
+          comment: "✅ ВХОД РАБОТАЕТ! Пользователь подтвердил успешный вход в систему с учетными данными оператора склада (+79777888999/warehouse123). Internal Server Error полностью устранена, сессия стабильна, интерфейс оператора загружается корректно."
   - task: "Session Management Stability Verification"
     implemented: true
     working: true
