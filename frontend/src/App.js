@@ -7422,7 +7422,7 @@ function App() {
     }
 
     try {
-      setCargoLoading(true);
+      setQrCodeLoading(true);
       
       // Готовим данные для отправки курьером (упрощенная форма)
       const courierCargoData = {
