@@ -929,6 +929,14 @@ function App() {
   const [lastScannedData, setLastScannedData] = useState('');
   const [lastScanTime, setLastScanTime] = useState(0);
   
+  // Состояния для генерации QR отдельных ячеек
+  const [showSingleCellQRModal, setShowSingleCellQRModal] = useState(false);
+  const [singleCellBlock, setSingleCellBlock] = useState('');
+  const [singleCellShelf, setSingleCellShelf] = useState('');
+  const [singleCellNumber, setSingleCellNumber] = useState('');
+  const [singleCellQRResult, setSingleCellQRResult] = useState(null);
+  const [singleCellQRLoading, setSingleCellQRLoading] = useState(false);
+  
   // Статистика сессии размещения
   const [sessionPlacements, setSessionPlacements] = useState([]);
   const [sessionPlacementCount, setSessionPlacementCount] = useState(0);
