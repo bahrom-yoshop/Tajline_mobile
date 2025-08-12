@@ -4737,6 +4737,122 @@ async def accept_new_cargo(
     
     return response_data
 
+@app.post("/api/operator/cargo/create-for-courier")
+async def create_cargo_for_courier_pickup(
+    cargo_data: OperatorCargoCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Создать груз только для курьерского забора (упрощенная форма)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Валидация для курьерского груза
+    if not cargo_data.pickup_required:
+        raise HTTPException(status_code=400, detail="Pickup is required for courier service")
+    
+    if not cargo_data.pickup_address or not cargo_data.pickup_date:
+        raise HTTPException(status_code=400, detail="Pickup address and date are required")
+    
+    try:
+        # Генерируем ID и номер груза
+        cargo_id = str(uuid.uuid4())
+        cargo_number = generate_cargo_number()
+        
+        # Определяем склад (для курьерского забора не так критично, но нужно)
+        target_warehouse_id = None
+        warehouse = None
+        
+        if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+            operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+            if operator_warehouse_ids:
+                target_warehouse_id = operator_warehouse_ids[0]
+                warehouse = db.warehouses.find_one({"id": target_warehouse_id})
+        
+        # Создаем документ груза (упрощенная версия для курьерского забора)
+        cargo = {
+            "id": cargo_id,
+            "cargo_number": cargo_number,
+            "sender_full_name": cargo_data.sender_full_name,
+            "sender_phone": cargo_data.sender_phone,
+            "recipient_full_name": cargo_data.recipient_full_name or "",
+            "recipient_phone": cargo_data.recipient_phone or "",
+            "recipient_address": cargo_data.recipient_address or "",
+            "weight": cargo_data.weight or 0.0,
+            "cargo_name": cargo_data.cargo_name or "",
+            "declared_value": cargo_data.declared_value or 0.0,
+            "description": cargo_data.description,
+            "route": cargo_data.route,
+            "status": CargoStatus.PICKUP_REQUESTED,  # Сразу в статус забора
+            "payment_status": "not_paid",
+            "processing_status": "courier_pickup",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "created_by": current_user.id,
+            "created_by_operator": current_user.full_name,
+            "target_warehouse_id": target_warehouse_id,
+            "target_warehouse_name": warehouse.get("name") if warehouse else None,
+            # Курьерские поля
+            "pickup_required": True,
+            "pickup_address": cargo_data.pickup_address,
+            "pickup_date": cargo_data.pickup_date,
+            "pickup_time_from": cargo_data.pickup_time_from,
+            "pickup_time_to": cargo_data.pickup_time_to,
+            "delivery_method": cargo_data.delivery_method.value,
+            "courier_fee": cargo_data.courier_fee,
+            "assigned_courier_id": None,
+            "assigned_courier_name": None,
+            "courier_request_status": "pending"
+        }
+        
+        # Генерируем QR код
+        cargo_qr_code = generate_cargo_qr_code(cargo)
+        cargo["qr_code"] = cargo_qr_code
+        
+        # Сохраняем груз
+        db.operator_cargo.insert_one(cargo)
+        
+        # Создаем курьерскую заявку
+        courier_request = {
+            "id": str(uuid.uuid4()),
+            "cargo_id": cargo_id,
+            "sender_full_name": cargo_data.sender_full_name,
+            "sender_phone": cargo_data.sender_phone,
+            "cargo_name": cargo_data.cargo_name or "",
+            "pickup_address": cargo_data.pickup_address,
+            "pickup_date": cargo_data.pickup_date,
+            "pickup_time_from": cargo_data.pickup_time_from,
+            "pickup_time_to": cargo_data.pickup_time_to,
+            "delivery_method": cargo_data.delivery_method.value,
+            "courier_fee": cargo_data.courier_fee,
+            "assigned_courier_id": None,
+            "assigned_courier_name": None,
+            "request_status": "pending",
+            "created_by": current_user.id,
+            "created_by_operator": current_user.full_name,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "courier_notes": None
+        }
+        db.courier_requests.insert_one(courier_request)
+        
+        # Уведомления курьерам и админам
+        create_notification(
+            user_id=current_user.id,
+            message=f"Создана заявка для курьерского забора груза {cargo_number} от {cargo_data.sender_full_name}",
+            related_id=cargo_id
+        )
+        
+        return {
+            "message": "Cargo created for courier pickup successfully",
+            "cargo_id": cargo_id,
+            "cargo_number": cargo_number,
+            "pickup_required": True,
+            "status": "pickup_requested"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating cargo for courier: {str(e)}")
+
 @app.post("/api/operator/cargo/place")
 async def place_cargo_in_warehouse(
     placement_data: CargoPlacement,
