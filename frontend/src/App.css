@@ -195,24 +195,7 @@ body {
   .space-y-6 > * + * {
     margin-top: 16px !important;
   }
-  
-  /* QR сканер контейнеры - квадратные на мобильных */
-  #qr-reader-placement {
-    aspect-ratio: 1 !important;
-    max-width: 320px !important;
-    width: 90vw !important;
-    margin: 0 auto !important;
-    border-radius: 8px !important;
-  }
-  
-  /* Плейсхолдер камеры для мобильных */
-  .camera-placeholder {
-    aspect-ratio: 1 !important;
-    max-width: 320px !important;
-    width: 90vw !important;
-    margin: 0 auto !important;
-    border-radius: 8px !important;
-  }
+}
   
   /* Кнопки */
   .w-full {
