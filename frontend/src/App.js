@@ -1303,6 +1303,81 @@ function App() {
     }
   };
 
+  // Функция переключения камер
+  const switchCamera = async () => {
+    if (!availableCameras || availableCameras.length <= 1) {
+      showAlert('Доступна только одна камера', 'info');
+      return;
+    }
+
+    try {
+      // Остановим текущий сканер
+      if (html5QrCodePlacementRef.current) {
+        await html5QrCodePlacementRef.current.stop();
+      }
+
+      // Переключаем на следующую камеру
+      const nextCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+      setCurrentCameraIndex(nextCameraIndex);
+
+      const nextCamera = availableCameras[nextCameraIndex];
+      console.log(`🔄 Переключение на камеру: ${nextCamera.label}`);
+
+      // Перезапускаем сканер с новой камерой
+      const containerId = 'qr-reader-placement';
+      const html5QrCode = new Html5Qrcode(containerId);
+      html5QrCodePlacementRef.current = html5QrCode;
+
+      // Конфигурация для переключенной камеры
+      const cameraConfig = {
+        width: { ideal: 1280, min: 640 },
+        height: { ideal: 720, min: 480 },
+        aspectRatio: 1.777777778
+      };
+
+      const scannerConfig = {
+        fps: 5,
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const boxSize = Math.floor(minEdge * 0.8);
+          return {
+            width: boxSize,
+            height: boxSize
+          };
+        },
+        aspectRatio: 1.0
+      };
+
+      await html5QrCode.start(
+        nextCamera.id,
+        cameraConfig,
+        (decodedText) => {
+          console.log('📱 Сканирование с переключенной камеры:', decodedText);
+          handleBarcodeScan(decodedText);
+        },
+        (error) => {
+          if (!error.includes('NotFoundException')) {
+            console.debug('Сканирование...', error);
+          }
+        },
+        scannerConfig
+      );
+
+      const cameraType = nextCamera.label && (
+        nextCamera.label.toLowerCase().includes('back') ||
+        nextCamera.label.toLowerCase().includes('rear') ||
+        nextCamera.label.toLowerCase().includes('environment')
+      ) ? 'задняя' : 'передняя';
+
+      showAlert(`Камера переключена на ${cameraType}`, 'success');
+      console.log(`✅ Переключение на ${cameraType} камеру завершено`);
+
+    } catch (error) {
+      console.error('❌ Ошибка переключения камеры:', error);
+      showAlert('Ошибка переключения камеры. Попробуйте еще раз.', 'error');
+    }
+  };
+
   // Функции генерации QR кодов
   const generateCargoQR = async () => {
     if (!qrCargoNumber.trim()) {
