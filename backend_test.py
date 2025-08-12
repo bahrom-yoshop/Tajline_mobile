@@ -1333,12 +1333,12 @@ class CargoTransportAPITester:
             return False
         
         # Test 2: GET AVAILABLE OPERATORS
-        print("\n   👥 Test 2: GET /api/admin/users/operators - получение списка доступных операторов...")
+        print("\n   👥 Test 2: GET /api/admin/operators - получение списка доступных операторов...")
         
         success, operators_response = self.run_test(
             "Get Available Operators for Warehouse Binding",
             "GET",
-            "/api/admin/users/operators",
+            "/api/admin/operators",
             200,
             token=admin_token
         )
