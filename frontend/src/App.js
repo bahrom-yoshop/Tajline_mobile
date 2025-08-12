@@ -2992,6 +2992,7 @@ function App() {
         fetchTransportsList(); // Обновлено для операторов
         fetchArrivedTransports();
         fetchOperatorWarehouses(); // Добавлено для операторов
+        fetchCouriers(1, 25); // НОВОЕ: Операторы тоже могут видеть курьеров своих складов
         fetchNewOrdersCount(); // Загрузка количества новых заказов для операторов
         fetchOperatorDashboardAnalytics(); // Загрузка аналитики дашборда оператора
       } else {
