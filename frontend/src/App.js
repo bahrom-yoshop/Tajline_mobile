@@ -650,7 +650,15 @@ function App() {
     warehouse_id: '',  // Выбранный склад
     payment_method: 'not_paid',  // Способ оплаты
     payment_amount: '',  // Сумма оплаты
-    debt_due_date: ''  // Дата погашения долга
+    debt_due_date: '',  // Дата погашения долга
+    // НОВЫЕ ПОЛЯ ДЛЯ КУРЬЕРСКОЙ СЛУЖБЫ
+    pickup_required: false,  // Требуется забор груза
+    pickup_address: '',  // Адрес забора груза
+    pickup_date: '',  // Дата забора (YYYY-MM-DD)
+    pickup_time_from: '',  // Время забора с (HH:MM)
+    pickup_time_to: '',  // Время забора до (HH:MM)
+    delivery_method: 'pickup',  // Способ получения груза (pickup/home_delivery)
+    courier_fee: ''  // Стоимость курьерских услуг
   });
   // Operator cargo management states
   const [operatorCargo, setOperatorCargo] = useState([]);
