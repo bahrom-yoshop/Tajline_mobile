@@ -20344,8 +20344,16 @@ function App() {
           </DialogHeader>
           
           <div className="space-y-4">
+            {/* Отладочная информация */}
+            <div className="p-2 bg-gray-100 rounded text-xs">
+              <div>Modal Open: {showCargoPlacementModal ? 'true' : 'false'}</div>
+              <div>External Scanner Active: {externalScannerActive ? 'true' : 'false'}</div>
+              <div>Scanner Step: {externalScannerStep}</div>
+              <div>Scanner Mode: {scannerMode}</div>
+            </div>
+
             {/* Старый контент модального окна заменен на UI внешнего сканера */}
-            {externalScannerActive && (
+            {externalScannerActive ? (
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 {/* Статус сообщение */}
                 {scannerMessage && (
@@ -20458,6 +20466,11 @@ function App() {
                     </div>
                   </div>
                 )}
+              </div>
+            ) : (
+              <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+                <div className="text-gray-600">Активация внешнего сканера...</div>
+                <div className="text-xs text-gray-500 mt-2">Если сканер не активируется автоматически, обновите страницу</div>
               </div>
             )}
 
