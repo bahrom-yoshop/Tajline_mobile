@@ -2975,6 +2975,7 @@ function App() {
         fetchTransports();
         fetchOperatorWarehouseBindings();
         fetchAllOperators(); // Функция 2 - загрузка операторов для админа
+        fetchCouriers(1, 25); // НОВОЕ: Загрузка курьеров для админа
         fetchNewOrdersCount(); // Загрузка количества новых заказов
         fetchPlacedCargo(); // Добавляем загрузку размещенных грузов для админа
         fetchDebtorsList(); // Загрузка списка задолжников
