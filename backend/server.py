@@ -444,6 +444,15 @@ class OperatorCargoCreate(BaseModel):
     payment_amount: Optional[float] = Field(None, gt=0, description="Сумма оплаты для наличных/карты")
     debt_due_date: Optional[str] = Field(None, description="Дата погашения долга (YYYY-MM-DD)")  # Для оплаты в долг
     
+    # НОВЫЕ ПОЛЯ ДЛЯ КУРЬЕРСКОЙ СЛУЖБЫ
+    pickup_required: bool = Field(default=False, description="Требуется забор груза")
+    pickup_address: Optional[str] = Field(None, max_length=200, description="Адрес забора груза")
+    pickup_date: Optional[str] = Field(None, description="Дата забора (YYYY-MM-DD)")
+    pickup_time_from: Optional[str] = Field(None, description="Время забора с (HH:MM)")
+    pickup_time_to: Optional[str] = Field(None, description="Время забора до (HH:MM)")
+    delivery_method: DeliveryMethod = Field(default=DeliveryMethod.PICKUP, description="Способ получения груза")
+    courier_fee: Optional[float] = Field(None, ge=0, description="Стоимость курьерских услуг")
+    
     # Computed fields
     @property
     def total_weight(self) -> float:
