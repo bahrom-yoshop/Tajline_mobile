@@ -270,7 +270,7 @@ frontend:
         - working: false
           agent: "main"
           comment: "Требуется тестирование последних исправлений стабильности сессий в App.js: рефакторинг useEffect dependencies, улучшение apiCall error handling, настройка isTokenValid с буферным временем. Необходимо проверить, что сессии теперь стабильны и не происходит агрессивный 401 logout."
-  - task: "QR Code Parsing System Update"
+  - task: "Session Management Stability Verification"
     implemented: true
     working: true
     file: "/app/frontend/src/App.js"
