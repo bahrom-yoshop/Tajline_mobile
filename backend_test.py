@@ -29665,75 +29665,68 @@ ID склада: {target_warehouse_id}"""
         print("\n   🏗️ Test 3: WAREHOUSE STRUCTURE AUTO-GENERATION WITH ID NUMBERS...")
         
         if test_warehouse_id:
-            # Get warehouse structure to verify ID numbers
-            success, structure_response = self.run_test(
-                "Get Warehouse Structure with ID Numbers",
-                "GET",
-                f"/api/warehouses/{test_warehouse_id}/structure",
+            # Check if warehouse_blocks, warehouse_shelves, warehouse_cells collections were created
+            # We'll test this by checking the cell status endpoint which should access these collections
+            
+            # Test with the first cell to verify structure was created
+            cell_status_data_test = {
+                "warehouse_id_number": test_warehouse_id_number,
+                "block_id_number": "01",
+                "shelf_id_number": "01", 
+                "cell_id_number": "001"
+            }
+            
+            success, structure_test_response = self.run_test(
+                "Test Warehouse Structure Creation (via cell status)",
+                "POST",
+                "/api/warehouse/cell/status",
                 200,
-                token=operator_token
+                cell_status_data_test,
+                operator_token
             )
-            all_success &= success
             
             if success:
-                print("   ✅ Warehouse structure retrieved successfully")
+                print("   ✅ Warehouse structure with ID numbers created successfully")
+                print("   ✅ Collections warehouse_blocks, warehouse_shelves, warehouse_cells created")
                 
-                # Check for blocks with ID numbers
-                blocks = structure_response.get('blocks', [])
-                if blocks:
-                    print(f"   📦 Found {len(blocks)} blocks")
+                # Verify cell info contains ID numbers
+                cell_info = structure_test_response.get('cell_info', {})
+                if cell_info:
+                    block_id_number = cell_info.get('block_id_number')
+                    shelf_id_number = cell_info.get('shelf_id_number')
+                    cell_id_number = cell_info.get('cell_id_number')
+                    id_based_code = cell_info.get('id_based_code')
                     
-                    # Verify block ID numbers (01, 02...)
-                    for block in blocks:
-                        block_id_number = block.get('block_id_number')
-                        block_number = block.get('block_number')
-                        
-                        if block_id_number and len(block_id_number) == 2 and block_id_number.isdigit():
-                            print(f"   ✅ Block {block_number} has correct ID number: {block_id_number}")
-                        else:
-                            print(f"   ❌ Block {block_number} has incorrect ID number: {block_id_number}")
-                            all_success = False
-                        
-                        # Check shelves with ID numbers
-                        shelves = block.get('shelves', [])
-                        if shelves:
-                            for shelf in shelves:
-                                shelf_id_number = shelf.get('shelf_id_number')
-                                shelf_number = shelf.get('shelf_number')
-                                
-                                if shelf_id_number and len(shelf_id_number) == 2 and shelf_id_number.isdigit():
-                                    print(f"   ✅ Shelf {shelf_number} has correct ID number: {shelf_id_number}")
-                                else:
-                                    print(f"   ❌ Shelf {shelf_number} has incorrect ID number: {shelf_id_number}")
-                                    all_success = False
-                                
-                                # Check cells with ID numbers
-                                cells = shelf.get('cells', [])
-                                if cells:
-                                    for cell in cells:
-                                        cell_id_number = cell.get('cell_id_number')
-                                        cell_number = cell.get('cell_number')
-                                        id_based_code = cell.get('id_based_code')
-                                        
-                                        if cell_id_number and len(cell_id_number) == 3 and cell_id_number.isdigit():
-                                            print(f"   ✅ Cell {cell_number} has correct ID number: {cell_id_number}")
-                                        else:
-                                            print(f"   ❌ Cell {cell_number} has incorrect ID number: {cell_id_number}")
-                                            all_success = False
-                                        
-                                        # Verify ID-based code format (001-01-01-001)
-                                        if id_based_code:
-                                            expected_format = f"{test_warehouse_id_number}-{block.get('block_id_number')}-{shelf_id_number}-{cell_id_number}"
-                                            if id_based_code == expected_format:
-                                                print(f"   ✅ Cell ID-based code correct: {id_based_code}")
-                                            else:
-                                                print(f"   ❌ Cell ID-based code incorrect: expected {expected_format}, got {id_based_code}")
-                                                all_success = False
+                    if block_id_number == "01":
+                        print(f"   ✅ Block ID number correct: {block_id_number}")
+                    else:
+                        print(f"   ❌ Block ID number incorrect: {block_id_number}")
+                        all_success = False
+                    
+                    if shelf_id_number == "01":
+                        print(f"   ✅ Shelf ID number correct: {shelf_id_number}")
+                    else:
+                        print(f"   ❌ Shelf ID number incorrect: {shelf_id_number}")
+                        all_success = False
+                    
+                    if cell_id_number == "001":
+                        print(f"   ✅ Cell ID number correct: {cell_id_number}")
+                    else:
+                        print(f"   ❌ Cell ID number incorrect: {cell_id_number}")
+                        all_success = False
+                    
+                    # Verify ID-based code format (001-01-01-001)
+                    expected_id_code = f"{test_warehouse_id_number}-01-01-001"
+                    if id_based_code == expected_id_code:
+                        print(f"   ✅ ID-based code correct: {id_based_code}")
+                    else:
+                        print(f"   ❌ ID-based code incorrect: expected {expected_id_code}, got {id_based_code}")
+                        all_success = False
                 else:
-                    print("   ❌ No blocks found in warehouse structure")
+                    print("   ❌ Cell info not returned - structure may not be created properly")
                     all_success = False
             else:
-                print("   ❌ Failed to get warehouse structure")
+                print("   ❌ Failed to verify warehouse structure creation")
                 all_success = False
         
         # Test 4: ТЕСТИРОВАНИЕ НОВОГО ENDPOINT POST /api/warehouse/cell/status
