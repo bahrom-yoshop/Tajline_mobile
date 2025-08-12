@@ -1169,6 +1169,7 @@ function App() {
     setScannedCargo(null);
     setScannedCell(null);
     setScannerMode('mobile-placement-cargo');
+    setPlacementInfoMessage('Отсканируйте QR код груза для размещения.');
     
     // Используем специальную функцию для мобильных операций
     setPlacementActive(true);
