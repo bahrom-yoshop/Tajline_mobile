@@ -1389,7 +1389,9 @@ function App() {
         if (cargoInfo) {
           setSearchResult(cargoInfo);
           setSearchScannerActive(false);
+          setPlacementActive(false);
           setScannerActive(false);
+          await completeQrCleanup("Cargo Search Complete");
           showAlert(`Груз ${cargoInfo.cargo_number} найден!`, 'success');
         } else {
           setScannerError('Груз не найден');
@@ -1404,6 +1406,7 @@ function App() {
           setScannedCargo(cargoInfo);
           setMobilePlacementStep('scan-cell');
           setScannerMode('mobile-placement-cell');
+          // Не останавливаем сканер, переходим к сканированию ячейки
           showAlert(`Груз ${cargoInfo.cargo_number} отсканирован. Теперь отсканируйте ячейку.`, 'success');
         } else {
           setScannerError('Груз не найден');
@@ -1415,7 +1418,9 @@ function App() {
         if (cellData) {
           setScannedCell(cellData);
           setMobilePlacementStep('confirm');
+          setPlacementActive(false);
           setScannerActive(false);
+          await completeQrCleanup("Cell Scanned");
           showAlert('Ячейка отсканирована. Подтвердите размещение.', 'success');
         } else {
           setScannerError('Неверный формат QR-кода ячейки');
@@ -1430,6 +1435,7 @@ function App() {
           setReceivedCargo(cargoInfo);
           setReceiveStep('scan-new-cell');
           setScannerMode('mobile-receive-cell');
+          // Не останавливаем сканер, переходим к сканированию новой ячейки
           showAlert(`Груз ${cargoInfo.cargo_number} готов к приёму. Отсканируйте новую ячейку.`, 'success');
         } else {
           setScannerError('Груз не найден');
@@ -1441,7 +1447,9 @@ function App() {
         if (cellData) {
           setNewCell(cellData);
           setReceiveStep('confirm');
+          setPlacementActive(false);
           setScannerActive(false);
+          await completeQrCleanup("New Cell Scanned");
           showAlert('Новая ячейка отсканирована. Подтвердите приём груза.', 'success');
         } else {
           setScannerError('Неверный формат QR-кода ячейки');
