@@ -2709,7 +2709,7 @@ function App() {
     }
   }, [showCargoPlacementModal]);
 
-  // Периодическая проверка валидности токена
+  // Периодическая проверка валидности токена - увеличим интервал
   useEffect(() => {
     let interval;
     if (token && user && !isLoggingOut && !isLoggingIn) {
@@ -2718,7 +2718,7 @@ function App() {
           console.log('Token expired during session, logging out');
           handleLogout();
         }
-      }, 60000); // Проверяем каждую минуту
+      }, 300000); // Проверяем каждые 5 минут вместо каждой минуты
     }
 
     return () => {
