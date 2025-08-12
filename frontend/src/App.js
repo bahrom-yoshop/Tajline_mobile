@@ -1780,7 +1780,10 @@ function App() {
         if (cellData) {
           setScannedCell(cellData);
           
-          // Выполняем размещение автоматически
+          // Обновляем информационное сообщение перед размещением
+          setPlacementInfoMessage(`📦 Ячейка отсканирована: Б${cellData.block_number}-П${cellData.shelf_number}-Я${cellData.cell_number}. Размещаем груз...`);
+          
+          // Выполняем размещение автоматически (уведомление будет показано в performMobilePlacement)
           try {
             await performMobilePlacement(scannedCargo, cellData);
           } catch (error) {
