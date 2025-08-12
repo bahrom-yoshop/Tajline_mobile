@@ -1184,7 +1184,9 @@ function App() {
       setMobilePlacementStep('start');
       setScannedCargo(null);
       setScannedCell(null);
-      await stopScanner();
+      setPlacementActive(false);
+      setScannerActive(false);
+      await completeQrCleanup("Mobile Placement Complete");
     } catch (error) {
       console.error('Error confirming placement:', error);
       showAlert(`Ошибка размещения: ${error.message}`, 'error');
@@ -1210,7 +1212,9 @@ function App() {
       setReceiveStep('start');
       setReceivedCargo(null);
       setNewCell(null);
-      await stopScanner();
+      setPlacementActive(false);
+      setScannerActive(false);
+      await completeQrCleanup("Cargo Receive Complete");
     } catch (error) {
       console.error('Error confirming receive:', error);
       showAlert(`Ошибка приёма груза: ${error.message}`, 'error');
@@ -1236,7 +1240,9 @@ function App() {
       setReceiveStep('start');
       setReceivedCargo(null);
       setNewCell(null);
-      await stopScanner();
+      setPlacementActive(false);
+      setScannerActive(false);
+      await completeQrCleanup("Mobile Receive Complete");
     } catch (error) {
       console.error('Error confirming mobile receive:', error);
       showAlert(`Ошибка приёма груза: ${error.message}`, 'error');
