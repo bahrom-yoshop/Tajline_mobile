@@ -312,9 +312,6 @@ body {
     width: 100% !important;
   }
 }
-  border-radius: 8px;
-  position: relative;
-}
 
 #qr-reader video {
   border-radius: 8px;
