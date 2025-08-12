@@ -740,6 +740,11 @@ function App() {
   const [scannedCargo, setScannedCargo] = useState(null);
   const [scannedCell, setScannedCell] = useState(null);
   
+  // Статистика сессии размещения
+  const [sessionPlacements, setSessionPlacements] = useState([]);
+  const [sessionPlacementCount, setSessionPlacementCount] = useState(0);
+  const [placementInfoMessage, setPlacementInfoMessage] = useState('');
+  
   // Мобильный приём груза
   const [receiveStep, setReceiveStep] = useState('start'); // 'start', 'scan-cargo', 'scan-new-cell', 'confirm'
   const [receivedCargo, setReceivedCargo] = useState(null);
