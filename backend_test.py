@@ -28890,6 +28890,289 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_backend_stability_after_session_fixes(self):
+        """Test backend stability after session fixes according to review request"""
+        print("\n🔧 BACKEND STABILITY AFTER SESSION FIXES TESTING")
+        print("   🎯 Быстрое тестирование стабильности backend после исправления проблемы сессий")
+        print("   📋 ПРОВЕРИТЬ: 1) Авторизация оператора склада +79777888999/warehouse123 работает")
+        print("   📋 ПРОВЕРИТЬ: 2) Токен генерируется и endpoint /api/auth/me возвращает данные пользователя")
+        print("   📋 ПРОВЕРИТЬ: 3) Endpoint /api/cargo/track/{cargo_number} работает для QR сканирования")
+        print("   📋 ПРОВЕРИТЬ: 4) Endpoint /api/operator/placement-statistics работает")
+        print("   📋 ПРОВЕРИТЬ: 5) Backend не вызывает преждевременных 401 ошибок")
+        
+        all_success = True
+        
+        # Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРА СКЛАДА (+79777888999/warehouse123)
+        print("\n   🔐 Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРА СКЛАДА (+79777888999/warehouse123)...")
+        
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Authentication",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            operator_phone = operator_user.get('phone')
+            user_number = operator_user.get('user_number')
+            
+            print(f"   ✅ Operator authentication successful!")
+            print(f"   👤 Name: {operator_name}")
+            print(f"   📞 Phone: {operator_phone}")
+            print(f"   👑 Role: {operator_role}")
+            print(f"   🆔 User Number: {user_number}")
+            print(f"   🔑 JWT Token generated: {operator_token[:50]}...")
+            
+            # Store operator token for further tests
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+            
+            # Verify role is correct
+            if operator_role == 'warehouse_operator':
+                print("   ✅ Operator role correctly set to 'warehouse_operator'")
+            else:
+                print(f"   ❌ Operator role incorrect: expected 'warehouse_operator', got '{operator_role}'")
+                all_success = False
+        else:
+            print("   ❌ Operator authentication failed - no access token received")
+            print(f"   📄 Response: {login_response}")
+            all_success = False
+            return False
+        
+        # Test 2: ТОКЕН ГЕНЕРИРУЕТСЯ И /api/auth/me ВОЗВРАЩАЕТ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ
+        print("\n   🔑 Test 2: ТОКЕН ГЕНЕРИРУЕТСЯ И /api/auth/me ВОЗВРАЩАЕТ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ...")
+        
+        success, me_response = self.run_test(
+            "Get Current User Info (/api/auth/me)",
+            "GET",
+            "/api/auth/me",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ /api/auth/me endpoint working - token valid!")
+            
+            # Verify user data is returned correctly
+            if isinstance(me_response, dict):
+                me_name = me_response.get('full_name')
+                me_role = me_response.get('role')
+                me_phone = me_response.get('phone')
+                me_user_number = me_response.get('user_number')
+                
+                print(f"   👤 User data returned: {me_name}")
+                print(f"   👑 Role: {me_role}")
+                print(f"   📞 Phone: {me_phone}")
+                print(f"   🆔 User Number: {me_user_number}")
+                
+                # Verify data consistency
+                if me_name == operator_name and me_role == operator_role and me_phone == operator_phone:
+                    print("   ✅ User data consistent between login and /api/auth/me")
+                else:
+                    print("   ❌ User data inconsistency detected")
+                    all_success = False
+            else:
+                print("   ❌ Invalid response format from /api/auth/me")
+                all_success = False
+        else:
+            print("   ❌ /api/auth/me endpoint failed - token may be invalid")
+            all_success = False
+        
+        # Test 3: ENDPOINT /api/cargo/track/{cargo_number} РАБОТАЕТ ДЛЯ QR СКАНИРОВАНИЯ
+        print("\n   📦 Test 3: ENDPOINT /api/cargo/track/{cargo_number} РАБОТАЕТ ДЛЯ QR СКАНИРОВАНИЯ...")
+        
+        # First create a test cargo to track
+        cargo_data = {
+            "sender_full_name": "Тест Отправитель Стабильность",
+            "sender_phone": "+79991234567",
+            "recipient_full_name": "Тест Получатель Стабильность",
+            "recipient_phone": "+992987654321",
+            "recipient_address": "Душанбе, ул. Стабильности, 1",
+            "weight": 3.0,
+            "cargo_name": "Тестовый груз для проверки стабильности",
+            "declared_value": 500.0,
+            "description": "Тест стабильности backend после исправления сессий",
+            "route": "moscow_dushanbe",
+            "payment_method": "cash",
+            "payment_amount": 500.0
+        }
+        
+        success, cargo_response = self.run_test(
+            "Create Test Cargo for Tracking",
+            "POST",
+            "/api/operator/cargo/accept",
+            200,
+            cargo_data,
+            operator_token
+        )
+        
+        test_cargo_number = None
+        if success and 'cargo_number' in cargo_response:
+            test_cargo_number = cargo_response['cargo_number']
+            print(f"   ✅ Test cargo created: {test_cargo_number}")
+        else:
+            print("   ❌ Failed to create test cargo for tracking")
+            # Use a fallback cargo number for testing
+            test_cargo_number = "2501000001"
+            print(f"   ⚠️  Using fallback cargo number: {test_cargo_number}")
+        
+        # Test the tracking endpoint
+        success, track_response = self.run_test(
+            f"Track Cargo by Number (/api/cargo/track/{test_cargo_number})",
+            "GET",
+            f"/api/cargo/track/{test_cargo_number}",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ /api/cargo/track/{cargo_number} endpoint working for QR scanning!")
+            
+            # Verify response contains required fields
+            if isinstance(track_response, dict):
+                cargo_number = track_response.get('cargo_number')
+                cargo_name = track_response.get('cargo_name')
+                weight = track_response.get('weight')
+                status = track_response.get('status')
+                
+                print(f"   📦 Cargo Number: {cargo_number}")
+                print(f"   📝 Cargo Name: {cargo_name}")
+                print(f"   ⚖️  Weight: {weight}")
+                print(f"   📊 Status: {status}")
+                
+                if cargo_number:
+                    print("   ✅ Cargo tracking data returned successfully")
+                else:
+                    print("   ❌ Incomplete cargo tracking data")
+                    all_success = False
+            else:
+                print("   ❌ Invalid response format from tracking endpoint")
+                all_success = False
+        else:
+            print("   ❌ /api/cargo/track/{cargo_number} endpoint failed")
+            all_success = False
+        
+        # Test 4: ENDPOINT /api/operator/placement-statistics РАБОТАЕТ
+        print("\n   📊 Test 4: ENDPOINT /api/operator/placement-statistics РАБОТАЕТ...")
+        
+        success, stats_response = self.run_test(
+            "Operator Placement Statistics",
+            "GET",
+            "/api/operator/placement-statistics",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ /api/operator/placement-statistics endpoint working!")
+            
+            # Verify statistics structure
+            if isinstance(stats_response, dict):
+                operator_name = stats_response.get('operator_name')
+                today_placements = stats_response.get('today_placements', 0)
+                session_placements = stats_response.get('session_placements', 0)
+                recent_placements = stats_response.get('recent_placements', [])
+                
+                print(f"   👤 Operator: {operator_name}")
+                print(f"   📅 Today placements: {today_placements}")
+                print(f"   🔄 Session placements: {session_placements}")
+                print(f"   📋 Recent placements count: {len(recent_placements) if isinstance(recent_placements, list) else 0}")
+                
+                if operator_name:
+                    print("   ✅ Placement statistics returned successfully")
+                else:
+                    print("   ❌ Incomplete placement statistics")
+                    all_success = False
+            else:
+                print("   ❌ Invalid response format from placement statistics")
+                all_success = False
+        else:
+            print("   ❌ /api/operator/placement-statistics endpoint failed")
+            all_success = False
+        
+        # Test 5: BACKEND НЕ ВЫЗЫВАЕТ ПРЕЖДЕВРЕМЕННЫХ 401 ОШИБОК
+        print("\n   🚫 Test 5: BACKEND НЕ ВЫЗЫВАЕТ ПРЕЖДЕВРЕМЕННЫХ 401 ОШИБОК...")
+        
+        # Test multiple endpoints with the same token to ensure no premature 401s
+        test_endpoints = [
+            ("/api/auth/me", "Current User Info"),
+            ("/api/operator/warehouses", "Operator Warehouses"),
+            ("/api/operator/cargo/list", "Operator Cargo List"),
+            ("/api/operator/placement-statistics", "Placement Statistics"),
+            ("/api/warehouses", "All Warehouses")
+        ]
+        
+        premature_401_count = 0
+        successful_requests = 0
+        
+        for endpoint, description in test_endpoints:
+            print(f"\n   🔍 Testing {description} ({endpoint})...")
+            
+            success, response = self.run_test(
+                f"No Premature 401 - {description}",
+                "GET",
+                endpoint,
+                200,
+                token=operator_token
+            )
+            
+            if success:
+                successful_requests += 1
+                print(f"   ✅ {description} - No 401 error")
+            else:
+                # Check if it was a 401 error
+                try:
+                    import requests
+                    url = f"{self.base_url}{endpoint}"
+                    headers = {'Authorization': f'Bearer {operator_token}', 'Content-Type': 'application/json'}
+                    response = requests.get(url, headers=headers)
+                    if response.status_code == 401:
+                        premature_401_count += 1
+                        print(f"   ❌ {description} - Premature 401 error detected!")
+                    else:
+                        print(f"   ⚠️  {description} - Non-401 error (status: {response.status_code})")
+                except:
+                    print(f"   ⚠️  {description} - Could not determine error type")
+        
+        if premature_401_count == 0:
+            print(f"   ✅ No premature 401 errors detected! ({successful_requests}/{len(test_endpoints)} endpoints successful)")
+        else:
+            print(f"   ❌ Found {premature_401_count} premature 401 errors out of {len(test_endpoints)} endpoints")
+            all_success = False
+        
+        # SUMMARY
+        print("\n   📊 BACKEND STABILITY AFTER SESSION FIXES SUMMARY:")
+        
+        if all_success:
+            print("   🎉 ALL BACKEND STABILITY TESTS PASSED!")
+            print("   ✅ 1) Авторизация оператора склада (+79777888999/warehouse123) работает")
+            print("   ✅ 2) Токен генерируется и /api/auth/me возвращает данные пользователя")
+            print("   ✅ 3) Endpoint /api/cargo/track/{cargo_number} работает для QR сканирования")
+            print("   ✅ 4) Endpoint /api/operator/placement-statistics работает")
+            print("   ✅ 5) Backend не вызывает преждевременных 401 ошибок")
+            print("   🎯 ЦЕЛЬ ДОСТИГНУТА: Backend стабилен для тестирования исправлений автоматического logout на frontend")
+        else:
+            print("   ❌ SOME BACKEND STABILITY TESTS FAILED")
+            print("   🔍 Check the specific failed tests above for details")
+            print("   ⚠️  Backend may not be stable enough for frontend logout fix testing")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
