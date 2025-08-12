@@ -20313,428 +20313,34 @@ function App() {
         </DialogContent>
       </Dialog>
 
-      {/* New Cargo Placement Modal - Mobile Adapted */}
-      <Dialog open={showCargoPlacementModal} onOpenChange={setShowCargoPlacementModal}>
+      {/* External Scanner Modal - Mobile Adapted */}
+      <Dialog open={showCargoPlacementModal} onOpenChange={(open) => {
+        setShowCargoPlacementModal(open);
+        if (open) {
+          // Автоматически запускаем внешний сканер при открытии модального окна
+          startExternalScannerPlacement();
+        } else {
+          // Останавливаем внешний сканер при закрытии модального окна
+          if (externalScannerActive) {
+            stopExternalScannerPlacement();
+          }
+        }
+      }}>
         <DialogContent className="w-full max-w-[95vw] max-h-[95vh] p-3 sm:p-6 overflow-y-auto">
           <DialogHeader className="pb-2">
             <DialogTitle className="flex items-center text-lg">
-              <Package className="mr-2 h-5 w-5" />
-              Размещение груза
+              <Scan className="mr-2 h-5 w-5" />
+              Размещение груза - Внешний сканер
             </DialogTitle>
             <DialogDescription className="text-sm">
-              Сканируйте QR коды грузов и ячеек для автоматического размещения
+              Используйте внешний сканер штрих-кодов/QR-кодов для размещения груза
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
-            {/* Placement Steps Indicator */}
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className={`flex items-center space-x-2 ${placementStep === 'scan-cargo' ? 'text-blue-600 font-medium' : 'text-gray-500'}`}>
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${placementStep === 'scan-cargo' ? 'border-blue-600 bg-blue-100' : 'border-gray-300'}`}>
-                  1
-                </div>
-                <span className="text-sm">Сканировать груз</span>
-              </div>
-              <div className={`flex items-center space-x-2 ${placementStep === 'scan-cell' ? 'text-blue-600 font-medium' : 'text-gray-500'}`}>
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${placementStep === 'scan-cell' ? 'border-blue-600 bg-blue-100' : 'border-gray-300'}`}>
-                  2
-                </div>
-                <span className="text-sm">Сканировать ячейку</span>
-              </div>
-            </div>
-
-            {/* Current Step Information */}
-            <div className="p-4 border rounded-lg">
-              {placementStep === 'idle' && (
-                <div className="text-center">
-                  <h4 className="font-medium text-gray-700 mb-2">Готов к размещению</h4>
-                  <p className="text-sm text-gray-500">Нажмите "Начать размещение" для запуска процесса</p>
-                </div>
-              )}
-              
-              <div 
-                className={`text-center ${placementStep === 'scan-cargo' ? 'react-visible' : 'react-hidden'}`}
-              >
-                <h4 className="font-medium text-blue-600 mb-2">Шаг 1: Сканирование груза</h4>
-                <p className="text-sm text-gray-600">Наведите камеру на QR код груза</p>
-                {scannedCargoForPlacement && (
-                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
-                    <p className="text-sm text-green-800">
-                      ✓ Груз найден: {scannedCargoForPlacement.cargo_number}
-                    </p>
-                  </div>
-                )}
-              </div>
-              
-              <div 
-                className={`text-center ${placementStep === 'scan-cell' ? 'react-visible' : 'react-hidden'}`}
-              >
-                <h4 className="font-medium text-blue-600 mb-2">Шаг 2: Сканирование ячейки</h4>
-                <p className="text-sm text-gray-600">Наведите камеру на QR код свободной ячейки</p>
-                {scannedCargoForPlacement && (
-                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
-                    <p className="text-sm text-blue-800">
-                      Груз для размещения: {scannedCargoForPlacement.cargo_number}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Camera Scanner - Mobile Adapted Full screen mode */}
-            <div 
-              className={`space-y-2 ${placementActive && scannerActive ? 'react-visible' : 'react-hidden'}`}
-            >
-              {/* Mobile-optimized scanner container */}
-              <div className="relative bg-black rounded-lg overflow-hidden">
-                <div 
-                  key="qr-reader-placement-container"
-                  id="qr-reader-placement" 
-                  className="w-full"
-                  style={{
-                    width: '100%',
-                    height: 'min(70vh, 400px)', // Responsive height for mobile
-                    minHeight: '250px', // Smaller minimum for mobile
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center'
-                  }}
-                />
-                  
-                  {/* Mobile-optimized overlay instructions */}
-                  <div className="absolute top-2 left-2 right-2 z-10">
-                    <div className="bg-black bg-opacity-80 text-white p-2 rounded text-center">
-                      <div className="text-xs sm:text-sm font-medium">
-                        {placementStep === 'scan-cargo' ? 
-                          '📦 Отсканируйте QR код груза' : 
-                          '🏠 Отсканируйте QR код ячейки'}
-                      </div>
-                      <div className="text-xs text-gray-300 mt-1">
-                        Наведите камеру на QR код
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Mobile-optimized camera controls */}
-                  <div className="absolute top-2 right-2 z-10 flex flex-col space-y-1">
-                    {/* Camera switch button */}
-                    {availablePlacementCameras.length > 1 && (
-                      <Button
-                        onClick={switchPlacementCamera}
-                        size="sm"
-                        variant="outline"
-                        className="bg-black bg-opacity-70 text-white border-gray-600 hover:bg-gray-800 h-8 w-8 p-0"
-                        title={`Переключить камеру (${currentPlacementCameraIndex + 1}/${availablePlacementCameras.length})`}
-                      >
-                        <RefreshCw className="h-3 w-3" />
-                      </Button>
-                    )}
-
-                    {/* Full screen toggle button */}
-                    <Button
-                      onClick={() => {
-                        const element = document.getElementById("qr-reader-placement");
-                        if (element) {
-                          if (document.fullscreenElement) {
-                            document.exitFullscreen();
-                          } else {
-                            element.parentElement.requestFullscreen();
-                          }
-                        }
-                      }}
-                      size="sm"
-                      variant="outline"
-                      className="bg-black bg-opacity-70 text-white border-gray-600 hover:bg-gray-800 h-8 w-8 p-0"
-                    >
-                      <Maximize className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="text-center">
-                  <p className="text-xs sm:text-sm text-green-600 font-medium flex items-center justify-center">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                    Камера активна - наведите на QR код
-                  </p>
-                </div>
-              </div>
-
-            {/* Camera unavailable message with retry option */}
-            <div 
-              className={`space-y-2 ${placementActive && !scannerActive ? 'react-visible' : 'react-hidden'}`}
-            >
-                <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                  <div className="text-yellow-800 font-medium mb-2 text-sm">
-                    📱 Камера недоступна
-                  </div>
-                  <p className="text-xs text-yellow-700 mb-3">
-                    Используйте ручной ввод данных ниже для размещения груза
-                  </p>
-                  
-                  {/* Retry camera button */}
-                  <Button 
-                    onClick={async () => {
-                      console.log('🔄 Пользователь запросил повтор камеры...');
-                      
-                      // Reset scanner state silently
-                      setScannerActive(false);
-                      
-                      // Stop any existing scanner
-                      if (html5QrCodePlacement) {
-                        console.log('🛑 Тихая остановка сканера...');
-                        try {
-                          await safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Silent Retry Stop");
-                          setHtml5QrCodePlacement(null);
-                        } catch (error) {
-                          console.warn('⚠️ Предупреждение при остановке:', error);
-                        }
-                      }
-                      
-                      // Wait briefly for UI stabilization
-                      await new Promise(resolve => setTimeout(resolve, 500));
-                      
-                      // Check camera availability silently
-                      console.log('🔍 Тихая проверка камеры...');
-                      const cameraAvailable = await checkCameraAvailability();
-                      
-                      if (cameraAvailable) {
-                        console.log('✅ Камера найдена при повторе - запуск сканера');
-                        // Only show success message if camera actually works
-                        showAlert('📹 Камера активирована!', 'success');
-                        
-                        // Wait for modal stability
-                        await new Promise(resolve => setTimeout(resolve, 1500));
-                        
-                        try {
-                          await startQRScannerForPlacement();
-                          console.log('✅ Сканер запущен после повтора');
-                        } catch (error) {
-                          console.error('❌ Ошибка запуска сканера при повторе:', error);
-                          // Don't show error - just stay in manual mode
-                          console.log('📝 Остается в ручном режиме');
-                        }
-                      } else {
-                        console.log('📵 Камера по-прежнему недоступна - остаемся в ручном режиме');
-                        // Don't show any alert - just keep manual input visible
-                        // User can see manual input is still there, no need for notification
-                      }
-                    }}
-                    size="sm"
-                    variant="outline"
-                    className="text-xs bg-white text-blue-600 border-blue-300 hover:bg-blue-50"
-                  >
-                    <RefreshCw className="mr-1 h-3 w-3" />
-                    Попробовать снова
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Manual input - Mobile adapted with validation */}
-            {placementActive && (
-              <div className="p-3 sm:p-4 border rounded-lg bg-blue-50">
-                <h5 className="font-medium text-blue-800 mb-2 flex items-center text-sm sm:text-base">
-                  <Edit className="mr-2 h-4 w-4" />
-                  Ручной ввод данных
-                </h5>
-                <p className="text-xs sm:text-sm text-blue-700 mb-3">
-                  {!scannerActive ? 
-                    'Введите данные для размещения груза:' : 
-                    'Альтернативно можете ввести данные вручную:'}
-                </p>
-                <div className="space-y-3">
-                  {/* Cargo Number Input with Validation */}
-                  <div>
-                    <Label htmlFor="manual-cargo" className="text-sm font-medium">Номер груза</Label>
-                    <Input
-                      id="manual-cargo"
-                      placeholder="Например: TEMP-123456"
-                      value={manualCargoNumber}
-                      onChange={(e) => {
-                        setManualCargoNumber(e.target.value);
-                        // Debounced validation
-                        clearTimeout(window.cargoValidationTimeout);
-                        window.cargoValidationTimeout = setTimeout(() => {
-                          validateCargoNumber(e.target.value);
-                        }, 500);
-                      }}
-                      className={`text-sm ${cargoValidation.isValid ? 'border-green-500' : ''}`}
-                    />
-                    
-                    {/* Cargo Validation Results */}
-                    {cargoValidation.isLoading && (
-                      <div className="flex items-center mt-1 text-xs text-gray-600">
-                        <RefreshCw className="animate-spin h-3 w-3 mr-1" />
-                        Проверка груза...
-                      </div>
-                    )}
-                    
-                    {cargoValidation.isValid && cargoValidation.cargoInfo && (
-                      <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs">
-                        <div className="font-medium text-green-800">✓ Груз найден:</div>
-                        <div className="text-green-700">
-                          <div><strong>Название:</strong> {cargoValidation.cargoInfo.cargo_name}</div>
-                          <div><strong>Вес:</strong> {cargoValidation.cargoInfo.weight} кг</div>
-                          <div><strong>От:</strong> {cargoValidation.cargoInfo.sender}</div>
-                          <div><strong>Для:</strong> {cargoValidation.cargoInfo.recipient}</div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {!cargoValidation.isValid && manualCargoNumber.trim() && !cargoValidation.isLoading && (
-                      <div className="mt-1 text-xs text-red-600">
-                        ❌ Груз с таким номером не найден
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Cell Code Input with Available Cells */}
-                  <div>
-                    <Label htmlFor="manual-cell" className="text-sm font-medium">Код ячейки</Label>
-                    <Input
-                      id="manual-cell"
-                      placeholder="Например: W001-Б1-П1-Я1"
-                      value={manualCellCode}
-                      onChange={(e) => setManualCellCode(e.target.value)}
-                      className="text-sm"
-                    />
-                    
-                    {/* Available Cells Display */}
-                    {cellValidation.isLoading && (
-                      <div className="flex items-center mt-1 text-xs text-gray-600">
-                        <RefreshCw className="animate-spin h-3 w-3 mr-1" />
-                        Загрузка свободных ячеек...
-                      </div>
-                    )}
-                    
-                    {cellValidation.availableCells.length > 0 && (
-                      <div className="mt-2">
-                        <div className="text-xs font-medium text-gray-700 mb-1">
-                          Свободные ячейки ({cellValidation.selectedWarehouse?.name}):
-                        </div>
-                        <div className="max-h-32 overflow-y-auto">
-                          <div className="grid grid-cols-1 gap-1">
-                            {cellValidation.availableCells.slice(0, 10).map((cell, index) => (
-                              <button
-                                key={index}
-                                onClick={() => setManualCellCode(cell.code)}
-                                className="text-left p-2 text-xs bg-gray-50 hover:bg-gray-100 border rounded"
-                              >
-                                <div className="font-medium">{cell.code}</div>
-                                <div className="text-gray-600">{cell.display}</div>
-                              </button>
-                            ))}
-                          </div>
-                          {cellValidation.availableCells.length > 10 && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              ... и еще {cellValidation.availableCells.length - 10} ячеек
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <Button 
-                    onClick={handleManualPlacement}
-                    disabled={!cargoValidation.isValid || !manualCellCode.trim()}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-sm"
-                    size="sm"
-                  >
-                    <Package className="mr-2 h-4 w-4" />
-                    Разместить вручную
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Statistics */}
-            <div 
-              className={`bg-gray-50 p-3 rounded-lg ${placementStatistics ? 'react-visible' : 'react-hidden'}`}
-            >
-              <h5 className="font-medium text-gray-700 mb-2">Статистика размещения</h5>
-              <div className="grid grid-cols-3 gap-2 text-sm">
-                <div className="text-center">
-                  <div className="font-medium text-blue-600">{placementStatistics?.today_placements || 0}</div>
-                  <div className="text-gray-500">Сегодня</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-medium text-green-600">{placementStatistics?.session_placements || 0}</div>
-                  <div className="text-gray-500">За сессию</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-medium text-orange-600">{placementStatistics?.recent_placements || 0}</div>
-                  <div className="text-gray-500">Недавних</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-2">
-              {!placementActive && !externalScannerActive && (
-                <>
-                  <Button 
-                    onClick={startCargoPlacement}
-                    className="flex-1 bg-green-600 hover:bg-green-700"
-                  >
-                    <Camera className="mr-2 h-4 w-4" />
-                    Размещение (Камера)
-                  </Button>
-                  <Button 
-                    onClick={startExternalScannerPlacement}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Scan className="mr-2 h-4 w-4" />
-                    Размещение (Сканер)
-                  </Button>
-                </>
-              )}
-              
-              {placementActive && (
-                <Button 
-                  onClick={stopCargoPlacement}
-                  variant="outline"
-                  className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Остановить размещение
-                </Button>
-              )}
-
-              {externalScannerActive && (
-                <Button 
-                  onClick={stopExternalScannerPlacement}
-                  variant="outline"
-                  className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Остановить сканер
-                </Button>
-              )}
-              
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  stopCargoPlacement();
-                  setShowCargoPlacementModal(false);
-                  setPlacementStep('idle');
-                  setScannedCargoForPlacement(null);
-                  setManualCargoNumber('');
-                  setManualCellCode('');
-                }}
-              >
-                Закрыть
-              </Button>
-            </div>
-
-            {/* UI для внешнего сканера */}
+            {/* Старый контент модального окна заменен на UI внешнего сканера */}
             {externalScannerActive && (
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center">
-                  <Scan className="mr-2 h-5 w-5" />
-                  Размещение груза - Внешний сканер
-                </h3>
-                
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 {/* Статус сообщение */}
                 {scannerMessage && (
                   <div className="mb-4 p-3 bg-white border border-blue-200 rounded">
@@ -20848,6 +20454,17 @@ function App() {
                 )}
               </div>
             )}
+
+            {/* Кнопка закрытия */}
+            <div className="flex justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowCargoPlacementModal(false)}
+              >
+                Закрыть
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
