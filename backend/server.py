@@ -142,6 +142,7 @@ class CargoStatus(str, Enum):
     INVOICE_PRINTED = "invoice_printed"  # Накладная напечатана
     AWAITING_PLACEMENT = "awaiting_placement"  # Ожидает размещения
     IN_WAREHOUSE = "in_warehouse"
+    PLACED_IN_WAREHOUSE = "placed_in_warehouse"  # Размещен на складе
     IN_TRANSIT = "in_transit"
     ARRIVED_DESTINATION = "arrived_destination"
     COMPLETED = "completed"
