@@ -21506,6 +21506,496 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* НОВАЯ СТРАНИЦА СОЗДАНИЯ СКЛАДА */}
+      <Dialog open={showWarehouseCreationPage} onOpenChange={setShowWarehouseCreationPage}>
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Plus className="mr-2 h-5 w-5" />
+              {warehouseCreationStep === 'form' ? 'Создание нового склада' : 'Генерация QR кодов для ячеек'}
+            </DialogTitle>
+            <DialogDescription>
+              {warehouseCreationStep === 'form' 
+                ? 'Заполните информацию о складе для создания с автогенерацией ID номеров'
+                : 'Создайте QR коды для всех ячеек или выбранной ячейки склада'
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          {warehouseCreationStep === 'form' ? (
+            // ШАГ 1: ФОРМА СОЗДАНИЯ СКЛАДА
+            <form onSubmit={handleCreateWarehouse} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Основная информация */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800">Основная информация</h3>
+                  
+                  <div>
+                    <Label htmlFor="warehouse_name">Название склада *</Label>
+                    <Input
+                      id="warehouse_name"
+                      value={warehouseForm.name}
+                      onChange={(e) => setWarehouseForm({...warehouseForm, name: e.target.value})}
+                      placeholder="Например: Склад Москва-1"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="warehouse_location">Адрес склада *</Label>
+                    <Input
+                      id="warehouse_location"
+                      value={warehouseForm.location}
+                      onChange={(e) => setWarehouseForm({...warehouseForm, location: e.target.value})}
+                      placeholder="Например: Москва, ул. Складская, 1"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="assigned_operator">Назначить оператора</Label>
+                    <Select 
+                      value={warehouseForm.assigned_operator_id} 
+                      onValueChange={(value) => setWarehouseForm({...warehouseForm, assigned_operator_id: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите оператора (необязательно)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Без назначения оператора</SelectItem>
+                        {availableOperators.map(operator => (
+                          <SelectItem key={operator.id} value={operator.id}>
+                            {operator.full_name} - {operator.phone}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Выберите оператора, который будет отвечать за этот склад
+                    </p>
+                  </div>
+                </div>
+
+                {/* Параметры структуры */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800">Структура склада</h3>
+                  
+                  <div>
+                    <Label htmlFor="blocks_count">Количество блоков (1-9) *</Label>
+                    <Select 
+                      value={warehouseForm.blocks_count.toString()} 
+                      onValueChange={(value) => setWarehouseForm({...warehouseForm, blocks_count: parseInt(value)})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1,2,3,4,5,6,7,8,9].map(num => (
+                          <SelectItem key={num} value={num.toString()}>
+                            {num} блок{num > 1 ? (num < 5 ? 'а' : 'ов') : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="shelves_per_block">Полок в каждом блоке (1-3) *</Label>
+                    <Select 
+                      value={warehouseForm.shelves_per_block.toString()} 
+                      onValueChange={(value) => setWarehouseForm({...warehouseForm, shelves_per_block: parseInt(value)})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 полка</SelectItem>
+                        <SelectItem value="2">2 полки</SelectItem>
+                        <SelectItem value="3">3 полки</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="cells_per_shelf">Ячеек на каждой полке (1-50) *</Label>
+                    <Input
+                      id="cells_per_shelf"
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={warehouseForm.cells_per_shelf || ''}
+                      onChange={(e) => setWarehouseForm({...warehouseForm, cells_per_shelf: parseInt(e.target.value) || 1})}
+                      required
+                    />
+                  </div>
+
+                  {/* Предварительный расчет */}
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h4 className="font-medium text-blue-800 mb-2">📊 Расчет вместимости склада:</h4>
+                    <div className="text-sm text-blue-700 space-y-1">
+                      <p>Блоков: <span className="font-semibold">{warehouseForm.blocks_count || 1}</span></p>
+                      <p>Полок в блоке: <span className="font-semibold">{warehouseForm.shelves_per_block || 1}</span></p>
+                      <p>Ячеек на полке: <span className="font-semibold">{warehouseForm.cells_per_shelf || 1}</span></p>
+                      <div className="border-t border-blue-300 pt-2 mt-2">
+                        <p className="font-bold text-blue-900">
+                          Общая вместимость: {(warehouseForm.blocks_count || 1) * (warehouseForm.shelves_per_block || 1) * (warehouseForm.cells_per_shelf || 1)} ячеек
+                        </p>
+                        <p className="text-xs text-blue-600 mt-1">
+                          Каждая ячейка получит уникальный ID номер в формате: 001-01-01-001
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Кнопки действий */}
+              <div className="flex justify-end space-x-2 pt-4 border-t">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={closeWarehouseCreationPage}
+                >
+                  Отмена
+                </Button>
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Создать склад
+                </Button>
+              </div>
+            </form>
+          ) : (
+            // ШАГ 2: ГЕНЕРАЦИЯ QR КОДОВ
+            <div className="space-y-6">
+              {/* Информация о созданном складе */}
+              {createdWarehouseInfo && (
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h3 className="text-lg font-semibold text-green-800 mb-2">
+                    ✅ Склад успешно создан!
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-green-700">
+                    <div>
+                      <p><strong>Название:</strong> {createdWarehouseInfo.name}</p>
+                      <p><strong>ID номер склада:</strong> {createdWarehouseInfo.warehouse_id_number}</p>
+                      <p><strong>Адрес:</strong> {createdWarehouseInfo.location}</p>
+                    </div>
+                    <div>
+                      <p><strong>Блоков:</strong> {createdWarehouseInfo.blocks_count}</p>
+                      <p><strong>Полок в блоке:</strong> {createdWarehouseInfo.shelves_per_block}</p>
+                      <p><strong>Ячеек на полке:</strong> {createdWarehouseInfo.cells_per_shelf}</p>
+                      <p><strong>Общая вместимость:</strong> {createdWarehouseInfo.total_capacity} ячеек</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Функции генерации QR кодов */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-800">Генерация QR кодов для ячеек</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Генерация всех QR кодов */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Grid3X3 className="mr-2 h-5 w-5" />
+                        Все ячейки склада
+                      </CardTitle>
+                      <CardDescription>
+                        Создать QR коды для всех {createdWarehouseInfo?.total_capacity || 0} ячеек склада
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {generatingAllQRs && (
+                        <div className="mb-4">
+                          <div className="flex justify-between text-sm text-gray-600 mb-1">
+                            <span>Генерация QR кодов...</span>
+                            <span>{Math.round(allQRProgress)}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                              style={{width: `${allQRProgress}%`}}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <Button
+                        onClick={generateAllCellQRs}
+                        disabled={generatingAllQRs || !createdWarehouseInfo}
+                        className="w-full"
+                      >
+                        {generatingAllQRs ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Генерация в процессе...
+                          </>
+                        ) : (
+                          <>
+                            <QrCode className="mr-2 h-4 w-4" />
+                            Создать все QR коды
+                          </>
+                        )}
+                      </Button>
+                      
+                      {generatedQRs.length > 0 && (
+                        <div className="mt-4 p-3 bg-gray-50 rounded">
+                          <p className="text-sm text-gray-600">
+                            Создано: {generatedQRs.filter(qr => qr.success).length} из {generatedQRs.length} QR кодов
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Генерация QR кода выбранной ячейки */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Edit className="mr-2 h-5 w-5" />
+                        Выбранная ячейка
+                      </CardTitle>
+                      <CardDescription>
+                        Создать QR код для конкретной ячейки склада
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <Label htmlFor="cell-block">Блок</Label>
+                          <Input
+                            id="cell-block"
+                            type="number"
+                            min="1"
+                            max={createdWarehouseInfo?.blocks_count || 9}
+                            placeholder="1"
+                            value={selectedCellQR.block}
+                            onChange={(e) => setSelectedCellQR({...selectedCellQR, block: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="cell-shelf">Полка</Label>
+                          <Input
+                            id="cell-shelf"
+                            type="number"
+                            min="1"
+                            max={createdWarehouseInfo?.shelves_per_block || 3}
+                            placeholder="1"
+                            value={selectedCellQR.shelf}
+                            onChange={(e) => setSelectedCellQR({...selectedCellQR, shelf: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="cell-cell">Ячейка</Label>
+                          <Input
+                            id="cell-cell"
+                            type="number"
+                            min="1"
+                            max={createdWarehouseInfo?.cells_per_shelf || 50}
+                            placeholder="1"
+                            value={selectedCellQR.cell}
+                            onChange={(e) => setSelectedCellQR({...selectedCellQR, cell: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      
+                      <Button
+                        onClick={generateSelectedCellQR}
+                        disabled={generatingSelectedCellQR || !createdWarehouseInfo}
+                        className="w-full"
+                      >
+                        {generatingSelectedCellQR ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Генерация...
+                          </>
+                        ) : (
+                          <>
+                            <QrCode className="mr-2 h-4 w-4" />
+                            Создать QR код
+                          </>
+                        )}
+                      </Button>
+
+                      {selectedCellQRResult && (
+                        <div className="mt-4">
+                          {selectedCellQRResult.success ? (
+                            <div className="text-center space-y-3">
+                              <p className="text-sm font-medium text-green-600">
+                                QR код для ячейки {selectedCellQRResult.readable_name}
+                              </p>
+                              <div className="bg-white p-3 rounded border inline-block">
+                                <img 
+                                  src={selectedCellQRResult.qr_code} 
+                                  alt={`QR код ${selectedCellQRResult.readable_name}`}
+                                  className="w-32 h-32"
+                                />
+                              </div>
+                              <div className="flex gap-2 justify-center">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    const link = document.createElement('a');
+                                    link.href = selectedCellQRResult.qr_code;
+                                    link.download = `qr-cell-${selectedCellQRResult.readable_name}.png`;
+                                    link.click();
+                                  }}
+                                >
+                                  <Download className="mr-1 h-3 w-3" />
+                                  Скачать
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    const printWindow = window.open('', '_blank');
+                                    printWindow.document.write(`
+                                      <html>
+                                        <head><title>QR код ячейки ${selectedCellQRResult.readable_name}</title></head>
+                                        <body style="text-align: center; padding: 20px;">
+                                          <h2>QR код ячейки</h2>
+                                          <h3>${selectedCellQRResult.readable_name}</h3>
+                                          <img src="${selectedCellQRResult.qr_code}" style="width: 200px; height: 200px;" />
+                                          <p>Склад: ${createdWarehouseInfo?.name || 'Не указан'}</p>
+                                          <p>ID склада: ${createdWarehouseInfo?.warehouse_id_number || 'Не указан'}</p>
+                                        </body>
+                                      </html>
+                                    `);
+                                    printWindow.document.close();
+                                    printWindow.print();
+                                  }}
+                                >
+                                  <Printer className="mr-1 h-3 w-3" />
+                                  Печать
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-3 bg-red-50 border border-red-200 rounded">
+                              <p className="text-sm text-red-600">
+                                Ошибка: {selectedCellQRResult.error}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Отображение созданных QR кодов */}
+              {generatedQRs.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold text-gray-800">Созданные QR коды</h3>
+                    <Button
+                      onClick={() => {
+                        // Печать всех QR кодов
+                        const printWindow = window.open('', '_blank');
+                        const qrContent = generatedQRs
+                          .filter(qr => qr.success)
+                          .map(qr => `
+                            <div style="page-break-inside: avoid; margin: 20px 0; text-align: center; border: 1px solid #ccc; padding: 15px;">
+                              <h3>${qr.readable_name}</h3>
+                              <img src="${qr.qr_code}" style="width: 150px; height: 150px;" />
+                              <p>Склад: ${createdWarehouseInfo?.name || 'Не указан'}</p>
+                            </div>
+                          `)
+                          .join('');
+                        
+                        printWindow.document.write(`
+                          <html>
+                            <head>
+                              <title>QR коды ячеек склада ${createdWarehouseInfo?.name}</title>
+                              <style>
+                                body { font-family: Arial, sans-serif; }
+                                @media print { div { page-break-inside: avoid; } }
+                              </style>
+                            </head>
+                            <body>
+                              <h1 style="text-align: center;">QR коды ячеек склада</h1>
+                              <h2 style="text-align: center;">${createdWarehouseInfo?.name}</h2>
+                              ${qrContent}
+                            </body>
+                          </html>
+                        `);
+                        printWindow.document.close();
+                        printWindow.print();
+                      }}
+                      className="bg-green-600 hover:bg-green-700"
+                      disabled={generatedQRs.filter(qr => qr.success).length === 0}
+                    >
+                      <Printer className="mr-2 h-4 w-4" />
+                      Печать всех QR кодов ({generatedQRs.filter(qr => qr.success).length})
+                    </Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {generatedQRs.slice(0, 24).map((qr, index) => (
+                      <div key={index} className={`p-3 rounded-lg border text-center ${
+                        qr.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                      }`}>
+                        {qr.success ? (
+                          <>
+                            <img 
+                              src={qr.qr_code} 
+                              alt={`QR код ${qr.readable_name}`}
+                              className="w-16 h-16 mx-auto mb-2"
+                            />
+                            <p className="text-xs font-medium text-green-800">
+                              {qr.readable_name}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-16 h-16 mx-auto mb-2 bg-red-200 flex items-center justify-center">
+                              <span className="text-red-600 text-xs">❌</span>
+                            </div>
+                            <p className="text-xs font-medium text-red-800">
+                              {qr.readable_name}
+                            </p>
+                            <p className="text-xs text-red-600">Ошибка</p>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {generatedQRs.length > 24 && (
+                    <p className="text-sm text-gray-500 text-center">
+                      И еще {generatedQRs.length - 24} QR кодов...
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Кнопки действий */}
+              <div className="flex justify-end space-x-2 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={closeWarehouseCreationPage}
+                >
+                  Закрыть
+                </Button>
+                <Button 
+                  onClick={() => {
+                    closeWarehouseCreationPage();
+                    setActiveTab('warehouses-list');
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Завершить создание склада
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
