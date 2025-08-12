@@ -20330,19 +20330,8 @@ function App() {
         </DialogContent>
       </Dialog>
 
-      {/* External Scanner Modal - Mobile Adapted */}
-      <Dialog open={showCargoPlacementModal} onOpenChange={(open) => {
-        setShowCargoPlacementModal(open);
-        if (open) {
-          // Автоматически запускаем внешний сканер при открытии модального окна
-          startExternalScannerPlacement();
-        } else {
-          // Останавливаем внешний сканер при закрытии модального окна
-          if (externalScannerActive) {
-            stopExternalScannerPlacement();
-          }
-        }
-      }}>
+      {/* External Scanner Modal - Simplified */}
+      <Dialog open={showCargoPlacementModal} onOpenChange={setShowCargoPlacementModal}>
         <DialogContent className="w-full max-w-[95vw] max-h-[95vh] p-3 sm:p-6 overflow-y-auto">
           <DialogHeader className="pb-2">
             <DialogTitle className="flex items-center text-lg">
