@@ -512,9 +512,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "External Scanner Integration for Cargo Placement"
-  stuck_tasks: 
-    - "React DOM Fixes Backend Support"
+    - "QR Code Improvements for Warehouse Cells"
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
