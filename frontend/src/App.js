@@ -11103,16 +11103,35 @@ function App() {
                       </CardHeader>
                       <CardContent className="space-y-4">
                         {receiveStep === 'start' && (
-                          <div className="text-center space-y-4">
-                            <p className="text-gray-600">Начните процесс приёма груза на новый склад</p>
-                            <Button 
-                              onClick={() => startMobileReceive()}
-                              className="w-full bg-orange-600 hover:bg-orange-700 text-white"
-                              size="lg"
+                          <div className="space-y-4">
+                            {/* Показываем контейнер камеры сначала */}
+                            <div 
+                              id="qr-reader-placement" 
+                              className="w-full bg-black rounded-lg"
+                              style={{
+                                height: 'min(60vh, 400px)',
+                                minHeight: '300px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'white',
+                                fontSize: '14px'
+                              }}
                             >
-                              <Camera className="mr-2 h-5 w-5" />
-                              Начать приём груза
-                            </Button>
+                              Камера будет активна здесь
+                            </div>
+
+                            {/* Кнопка запуска приёма внизу */}
+                            <div className="text-center">
+                              <Button 
+                                onClick={() => startMobileReceive()}
+                                className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                                size="lg"
+                              >
+                                <Camera className="mr-2 h-5 w-5" />
+                                Начать приём груза
+                              </Button>
+                            </div>
                           </div>
                         )}
 
