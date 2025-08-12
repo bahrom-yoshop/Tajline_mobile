@@ -10802,6 +10802,20 @@ function App() {
                             </div>
                           )}
 
+                          {/* Кнопка закрытия сканирования */}
+                          {searchScannerActive && (
+                            <div className="text-center mt-3">
+                              <Button 
+                                onClick={stopMobileScanning}
+                                variant="destructive"
+                                size="sm"
+                              >
+                                <X className="mr-2 h-4 w-4" />
+                                Закрыть сканирование
+                              </Button>
+                            </div>
+                          )}
+
                           {/* Результаты поиска */}
                           {searchResult && (
                             <Card className="mt-4">
