@@ -4677,6 +4677,37 @@ async def accept_new_cargo(
         }
         db.debts.insert_one(debt_record)
     
+    # НОВОЕ: Создание курьерской заявки, если требуется забор груза
+    if cargo_data.pickup_required:
+        courier_request = {
+            "id": str(uuid.uuid4()),
+            "cargo_id": cargo_id,
+            "sender_full_name": cargo_data.sender_full_name,
+            "sender_phone": cargo_data.sender_phone,
+            "cargo_name": combined_cargo_name,
+            "pickup_address": cargo_data.pickup_address,
+            "pickup_date": cargo_data.pickup_date,
+            "pickup_time_from": cargo_data.pickup_time_from,
+            "pickup_time_to": cargo_data.pickup_time_to,
+            "delivery_method": cargo_data.delivery_method.value,
+            "courier_fee": cargo_data.courier_fee,
+            "assigned_courier_id": None,
+            "assigned_courier_name": None,
+            "request_status": "pending",
+            "created_by": current_user.id,
+            "created_by_operator": current_user.full_name,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "courier_notes": None
+        }
+        db.courier_requests.insert_one(courier_request)
+        
+        # Обновляем статус груза
+        db.operator_cargo.update_one(
+            {"id": cargo_id},
+            {"$set": {"status": CargoStatus.PICKUP_REQUESTED, "courier_request_status": "pending"}}
+        )
+    
     # ОБНОВЛЕНО: Создание уведомлений по маршруту
     notification_message = f"Новый груз {cargo_number} от {cargo_data.sender_full_name}"
     if warehouse:
