@@ -1411,7 +1411,7 @@ class CargoTransportAPITester:
             all_success = False
         
         # Test 4: OPERATOR-WAREHOUSE BINDING CREATION
-        print("\n   🔗 Test 4: POST /api/admin/operator-warehouse-binding/create - привязка оператора к складу...")
+        print("\n   🔗 Test 4: POST /api/admin/operator-warehouse-binding - привязка оператора к складу...")
         
         if available_operators and created_warehouse_id:
             # Use first available operator for binding
@@ -1427,7 +1427,7 @@ class CargoTransportAPITester:
             success, binding_response = self.run_test(
                 "Create Operator-Warehouse Binding",
                 "POST",
-                "/api/admin/operator-warehouse-binding/create",
+                "/api/admin/operator-warehouse-binding",
                 200,
                 binding_data,
                 admin_token
