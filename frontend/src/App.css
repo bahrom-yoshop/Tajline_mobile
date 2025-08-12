@@ -58,6 +58,18 @@ body {
   display: none !important;
 }
 
+/* Стили плейсхолдера камеры */
+.camera-placeholder {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  border: 2px dashed #4a5568;
+  transition: all 0.3s ease;
+}
+
+.camera-placeholder:hover {
+  border-color: #63b3ed;
+  background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+}
+
 /* Мобильная адаптивность для размера 412x914px */
 @media screen and (max-width: 420px) and (min-height: 900px) {
   /* Основные контейнеры */
