@@ -20635,14 +20635,23 @@ function App() {
 
             {/* Action Buttons */}
             <div className="flex gap-2">
-              {!placementActive && (
-                <Button 
-                  onClick={startCargoPlacement}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
-                >
-                  <Camera className="mr-2 h-4 w-4" />
-                  Начать размещение
-                </Button>
+              {!placementActive && !externalScannerActive && (
+                <>
+                  <Button 
+                    onClick={startCargoPlacement}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    <Camera className="mr-2 h-4 w-4" />
+                    Размещение (Камера)
+                  </Button>
+                  <Button 
+                    onClick={startExternalScannerPlacement}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Scan className="mr-2 h-4 w-4" />
+                    Размещение (Сканер)
+                  </Button>
+                </>
               )}
               
               {placementActive && (
@@ -20653,6 +20662,17 @@ function App() {
                 >
                   <X className="mr-2 h-4 w-4" />
                   Остановить размещение
+                </Button>
+              )}
+
+              {externalScannerActive && (
+                <Button 
+                  onClick={stopExternalScannerPlacement}
+                  variant="outline"
+                  className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Остановить сканер
                 </Button>
               )}
               
