@@ -6906,23 +6906,237 @@ function App() {
   const handleCreateWarehouse = async (e) => {
     e.preventDefault();
     try {
-      await apiCall('/api/warehouses/create', 'POST', {
+      const response = await apiCall('/api/warehouses/create', 'POST', {
         ...warehouseForm,
         blocks_count: parseInt(warehouseForm.blocks_count),
         shelves_per_block: parseInt(warehouseForm.shelves_per_block),
         cells_per_shelf: parseInt(warehouseForm.cells_per_shelf)
       });
+      
       showAlert('Склад успешно создан!', 'success');
+      
+      // Сохраняем информацию о созданном складе для генерации QR кодов
+      setCreatedWarehouseInfo(response);
+      
+      // Если выбран оператор, создаем привязку
+      if (warehouseForm.assigned_operator_id) {
+        try {
+          await apiCall('/api/admin/operator-warehouse-binding/create', 'POST', {
+            operator_id: warehouseForm.assigned_operator_id,
+            warehouse_id: response.id
+          });
+          showAlert('Оператор успешно назначен на склад!', 'success');
+        } catch (bindingError) {
+          console.error('Operator binding error:', bindingError);
+          showAlert('Склад создан, но не удалось назначить оператора', 'warning');
+        }
+      }
+      
+      // Переходим к шагу генерации QR кодов
+      setWarehouseCreationStep('qr-generation');
+      
       setWarehouseForm({
         name: '',
         location: '',
         blocks_count: 1,
         shelves_per_block: 1,
-        cells_per_shelf: 10
+        cells_per_shelf: 10,
+        assigned_operator_id: ''
       });
       fetchWarehouses();
     } catch (error) {
       console.error('Create warehouse error:', error);
+      showAlert(`Ошибка создания склада: ${error.message}`, 'error');
+    }
+  };
+
+  // Функция для загрузки доступных операторов
+  const fetchAvailableOperators = async () => {
+    try {
+      const response = await apiCall('/api/admin/users/operators', 'GET');
+      setAvailableOperators(response || []);
+    } catch (error) {
+      console.error('Error fetching operators:', error);
+      setAvailableOperators([]);
+    }
+  };
+
+  // Функция для открытия страницы создания склада
+  const openWarehouseCreationPage = async () => {
+    setShowWarehouseCreationPage(true);
+    setWarehouseCreationStep('form');
+    setCreatedWarehouseInfo(null);
+    setGeneratedQRs([]);
+    await fetchAvailableOperators();
+  };
+
+  // Функция для закрытия страницы создания склада
+  const closeWarehouseCreationPage = () => {
+    setShowWarehouseCreationPage(false);
+    setWarehouseCreationStep('form');
+    setCreatedWarehouseInfo(null);
+    setGeneratedQRs([]);
+    setWarehouseForm({
+      name: '',
+      location: '',
+      blocks_count: 1,
+      shelves_per_block: 1,
+      cells_per_shelf: 10,
+      assigned_operator_id: ''
+    });
+  };
+
+  // Функция для генерации QR кодов для всех ячеек
+  const generateAllCellQRs = async () => {
+    if (!createdWarehouseInfo) {
+      showAlert('Информация о складе недоступна', 'error');
+      return;
+    }
+
+    setGeneratingAllQRs(true);
+    setAllQRProgress(0);
+    setGeneratedQRs([]);
+
+    const { blocks_count, shelves_per_block, cells_per_shelf } = createdWarehouseInfo;
+    const totalCells = blocks_count * shelves_per_block * cells_per_shelf;
+    let processedCells = 0;
+    const qrResults = [];
+
+    try {
+      for (let block = 1; block <= blocks_count; block++) {
+        for (let shelf = 1; shelf <= shelves_per_block; shelf++) {
+          for (let cell = 1; cell <= cells_per_shelf; cell++) {
+            try {
+              const qrResponse = await apiCall('/api/warehouse/cell/generate-qr', 'POST', {
+                warehouse_id: createdWarehouseInfo.id,
+                block: block,
+                shelf: shelf,
+                cell: cell,
+                format: 'id' // Используем ID формат
+              });
+
+              if (qrResponse && qrResponse.success) {
+                qrResults.push({
+                  block,
+                  shelf,
+                  cell,
+                  readable_name: qrResponse.readable_name || `Б${block}-П${shelf}-Я${cell}`,
+                  cell_code: qrResponse.cell_code,
+                  qr_code: qrResponse.qr_code,
+                  success: true
+                });
+              } else {
+                qrResults.push({
+                  block,
+                  shelf,
+                  cell,
+                  readable_name: `Б${block}-П${shelf}-Я${cell}`,
+                  success: false,
+                  error: 'Не удалось создать QR код'
+                });
+              }
+            } catch (error) {
+              console.error(`Error generating QR for cell ${block}-${shelf}-${cell}:`, error);
+              qrResults.push({
+                block,
+                shelf,
+                cell,
+                readable_name: `Б${block}-П${shelf}-Я${cell}`,
+                success: false,
+                error: error.message
+              });
+            }
+
+            processedCells++;
+            setAllQRProgress((processedCells / totalCells) * 100);
+          }
+        }
+      }
+
+      setGeneratedQRs(qrResults);
+      const successCount = qrResults.filter(qr => qr.success).length;
+      showAlert(`Генерация завершена! Успешно создано ${successCount} из ${totalCells} QR кодов`, successCount === totalCells ? 'success' : 'warning');
+
+    } catch (error) {
+      console.error('Error generating all QRs:', error);
+      showAlert(`Ошибка генерации QR кодов: ${error.message}`, 'error');
+    } finally {
+      setGeneratingAllQRs(false);
+    }
+  };
+
+  // Функция для генерации QR кода выбранной ячейки
+  const generateSelectedCellQR = async () => {
+    if (!createdWarehouseInfo) {
+      showAlert('Информация о складе недоступна', 'error');
+      return;
+    }
+
+    if (!selectedCellQR.block || !selectedCellQR.shelf || !selectedCellQR.cell) {
+      showAlert('Пожалуйста, заполните все поля (Блок, Полка, Ячейка)', 'error');
+      return;
+    }
+
+    // Проверяем что введены только цифры
+    if (!/^\d+$/.test(selectedCellQR.block) || !/^\d+$/.test(selectedCellQR.shelf) || !/^\d+$/.test(selectedCellQR.cell)) {
+      showAlert('Пожалуйста, вводите только цифры', 'error');
+      return;
+    }
+
+    const block = parseInt(selectedCellQR.block);
+    const shelf = parseInt(selectedCellQR.shelf);
+    const cell = parseInt(selectedCellQR.cell);
+
+    // Проверяем диапазоны
+    if (block < 1 || block > createdWarehouseInfo.blocks_count) {
+      showAlert(`Номер блока должен быть от 1 до ${createdWarehouseInfo.blocks_count}`, 'error');
+      return;
+    }
+    if (shelf < 1 || shelf > createdWarehouseInfo.shelves_per_block) {
+      showAlert(`Номер полки должен быть от 1 до ${createdWarehouseInfo.shelves_per_block}`, 'error');
+      return;
+    }
+    if (cell < 1 || cell > createdWarehouseInfo.cells_per_shelf) {
+      showAlert(`Номер ячейки должен быть от 1 до ${createdWarehouseInfo.cells_per_shelf}`, 'error');
+      return;
+    }
+
+    setGeneratingSelectedCellQR(true);
+    try {
+      const qrResponse = await apiCall('/api/warehouse/cell/generate-qr', 'POST', {
+        warehouse_id: createdWarehouseInfo.id,
+        block: block,
+        shelf: shelf,
+        cell: cell,
+        format: 'id' // Используем ID формат
+      });
+
+      if (qrResponse && qrResponse.success) {
+        setSelectedCellQRResult({
+          readable_name: qrResponse.readable_name || `Б${block}-П${shelf}-Я${cell}`,
+          cell_code: qrResponse.cell_code,
+          qr_code: qrResponse.qr_code,
+          success: true
+        });
+        showAlert(`QR код для ячейки ${qrResponse.readable_name || `Б${block}-П${shelf}-Я${cell}`} создан успешно!`, 'success');
+      } else {
+        setSelectedCellQRResult({
+          readable_name: `Б${block}-П${shelf}-Я${cell}`,
+          success: false,
+          error: 'Не удалось создать QR код'
+        });
+        showAlert('Ошибка создания QR кода', 'error');
+      }
+    } catch (error) {
+      console.error('Error generating selected cell QR:', error);
+      setSelectedCellQRResult({
+        readable_name: `Б${block}-П${shelf}-Я${cell}`,
+        success: false,
+        error: error.message
+      });
+      showAlert(`Ошибка создания QR кода: ${error.message}`, 'error');
+    } finally {
+      setGeneratingSelectedCellQR(false);
     }
   };
 
