@@ -2091,14 +2091,20 @@ function App() {
       if (!response.ok) {
         // Обработка 401 ошибки (unauthorized) - токен истек или невалиден
         if (response.status === 401 && !isLoggingOut && !isLoggingIn) {
-          console.log('Received 401 response, will logout after delay to prevent race conditions');
+          console.log('Received 401 response, checking if logout is needed');
           
-          // Добавляем небольшую задержку перед logout для предотвращения race conditions
-          setTimeout(() => {
-            if (!isLoggingOut && !isLoggingIn) {
-              handleLogout();
-            }
-          }, 1000);
+          // Проверяем, действительно ли токен истек перед logout
+          if (token && !isTokenValid(token)) {
+            console.log('Token expired, initiating logout after delay');
+            // Добавляем небольшую задержку перед logout для предотвращения race conditions
+            setTimeout(() => {
+              if (!isLoggingOut && !isLoggingIn) {
+                handleLogout();
+              }
+            }, 2000); // Увеличили задержку с 1s до 2s
+          } else {
+            console.log('Token still valid, 401 might be temporary - not logging out');
+          }
           
           throw new Error('Session expired');
         }
