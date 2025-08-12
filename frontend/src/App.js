@@ -716,6 +716,10 @@ function App() {
   const [receivedCargo, setReceivedCargo] = useState(null);
   const [newCell, setNewCell] = useState(null);
 
+  // Переключение камер
+  const [availableCameras, setAvailableCameras] = useState([]);
+  const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
+
   // Refs для мобильных QR сканеров
   const searchQrReaderRef = useRef(null);
   const mobilePlacementQrReaderRef = useRef(null);
