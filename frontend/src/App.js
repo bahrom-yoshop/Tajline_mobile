@@ -21573,7 +21573,7 @@ function App() {
                         <SelectValue placeholder="Выберите оператора (необязательно)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Без назначения оператора</SelectItem>
+                        <SelectItem value="none">Без назначения оператора</SelectItem>
                         {availableOperators.map(operator => (
                           <SelectItem key={operator.id} value={operator.id}>
                             {operator.full_name} - {operator.phone}
