@@ -10713,15 +10713,34 @@ function App() {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
-                          {/* QR сканер контейнер */}
-                          <div 
-                            id="qr-reader-placement" 
-                            className={`w-full bg-black rounded-lg ${searchScannerActive ? 'react-visible' : 'react-hidden'}`}
-                            style={{
-                              height: 'min(60vh, 400px)',
-                              minHeight: '300px'
-                            }}
-                          />
+                          {/* QR сканер контейнер с плейсхолдером */}
+                          <div className="relative">
+                            <div 
+                              id="qr-reader-placement" 
+                              className="w-full bg-black rounded-lg"
+                              style={{
+                                height: 'min(60vh, 400px)',
+                                minHeight: '300px'
+                              }}
+                            />
+                            
+                            {/* Плейсхолдер отображается когда камера не активна */}
+                            {!searchScannerActive && (
+                              <div 
+                                className="absolute inset-0 bg-black rounded-lg camera-placeholder"
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: '#a0aec0',
+                                  fontSize: '14px',
+                                  fontWeight: '500'
+                                }}
+                              >
+                                📷 Камера будет активна здесь
+                              </div>
+                            )}
+                          </div>
 
                           {/* Кнопка запуска сканирования внизу */}
                           <div className="text-center">
