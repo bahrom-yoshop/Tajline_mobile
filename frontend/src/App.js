@@ -1179,11 +1179,14 @@ function App() {
       
       console.log(`✅ Найдено камер: ${cameras.length}`);
       
+      // Сохраняем список доступных камер для переключения
+      setAvailableCameras(cameras);
+      
       // Выбор задней камеры приоритетно
-      let selectedCameraId = cameras[0].id; // fallback на первую камеру
+      let selectedCameraIndex = 0; // fallback на первую камеру
       
       // Поиск задней камеры по label
-      const backCamera = cameras.find(camera => 
+      const backCameraIndex = cameras.findIndex(camera => 
         camera.label && (
           camera.label.toLowerCase().includes('back') ||
           camera.label.toLowerCase().includes('rear') ||
@@ -1193,18 +1196,22 @@ function App() {
         )
       );
       
-      if (backCamera) {
-        selectedCameraId = backCamera.id;
-        console.log(`📷 Выбрана задняя камера: ${backCamera.label}`);
+      if (backCameraIndex !== -1) {
+        selectedCameraIndex = backCameraIndex;
+        console.log(`📷 Выбрана задняя камера: ${cameras[backCameraIndex].label}`);
       } else {
         // Если задняя камера не найдена по label, попробуем последнюю камеру (обычно задняя)
         if (cameras.length > 1) {
-          selectedCameraId = cameras[cameras.length - 1].id;
+          selectedCameraIndex = cameras.length - 1;
           console.log(`📷 Выбрана последняя камера (предположительно задняя): ${cameras[cameras.length - 1].label}`);
         } else {
           console.log(`📷 Используется первая доступная камера: ${cameras[0].label}`);
         }
       }
+      
+      // Устанавливаем индекс текущей камеры
+      setCurrentCameraIndex(selectedCameraIndex);
+      const selectedCameraId = cameras[selectedCameraIndex].id;
       
       // Initialize Html5Qrcode
       const html5QrCode = new Html5Qrcode(containerId);
