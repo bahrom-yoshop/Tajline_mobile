@@ -20813,6 +20813,14 @@ function App() {
                     )}
                     Создать QR для всех ячеек
                   </Button>
+
+                  <Button
+                    onClick={() => setShowSingleCellQRModal(true)}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    <QrCode className="mr-2 h-4 w-4" />
+                    Генерация QR для ячейки по штукам
+                  </Button>
                   
                   <Button
                     onClick={addWarehouseBlock}
