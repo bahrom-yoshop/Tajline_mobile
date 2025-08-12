@@ -2088,11 +2088,23 @@ function App() {
 
   const parseCellQRCode = (qrData) => {
     try {
-      // Ожидаем формат: warehouse_id:block_number:shelf_number:cell_number
-      // Или JSON формат: {"warehouse_id": "WH001", "block_number": 1, "shelf_number": 2, "cell_number": 5}
+      console.log('🔍 Парсинг QR кода ячейки:', qrData);
       
+      // Новый формат: Б1-П1-Я1 (приоритетный)
+      const simpleFormatMatch = qrData.match(/^Б(\d+)-П(\d+)-Я(\d+)$/);
+      if (simpleFormatMatch) {
+        console.log('✅ Найден простой формат QR кода:', simpleFormatMatch);
+        return {
+          warehouse_id: 'default', // Используем default для простого формата
+          block_number: parseInt(simpleFormatMatch[1]),
+          shelf_number: parseInt(simpleFormatMatch[2]),
+          cell_number: parseInt(simpleFormatMatch[3])
+        };
+      }
+
+      // JSON формат (старый)
       if (qrData.includes('{')) {
-        // JSON формат
+        console.log('🔍 Обработка JSON формата QR кода');
         const parsed = JSON.parse(qrData);
         return {
           warehouse_id: parsed.warehouse_id,
@@ -2100,18 +2112,21 @@ function App() {
           shelf_number: parseInt(parsed.shelf_number),
           cell_number: parseInt(parsed.cell_number)
         };
-      } else {
-        // Простой формат с разделителями
-        const parts = qrData.split(':');
-        if (parts.length === 4) {
-          return {
-            warehouse_id: parts[0],
-            block_number: parseInt(parts[1]),
-            shelf_number: parseInt(parts[2]),
-            cell_number: parseInt(parts[3])
-          };
-        }
+      } 
+      
+      // Формат с разделителями warehouse_id:block_number:shelf_number:cell_number (старый)
+      const parts = qrData.split(':');
+      if (parts.length === 4) {
+        console.log('🔍 Обработка формата с разделителями');
+        return {
+          warehouse_id: parts[0],
+          block_number: parseInt(parts[1]),
+          shelf_number: parseInt(parts[2]),
+          cell_number: parseInt(parts[3])
+        };
       }
+      
+      console.warn('❌ Неизвестный формат QR кода ячейки:', qrData);
       return null;
     } catch (error) {
       console.error('QR parsing error:', error);
