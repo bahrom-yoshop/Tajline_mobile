@@ -11078,10 +11078,13 @@ function App() {
                               id="qr-reader-placement" 
                               className="camera-placeholder w-full bg-black rounded-lg flex items-center justify-center"
                               style={{
-                                aspectRatio: '1',
-                                maxWidth: '400px',
+                                width: '300px',
+                                height: '300px',
+                                maxWidth: '300px',
+                                maxHeight: '300px',
+                                minWidth: '300px',
+                                minHeight: '300px',
                                 margin: '0 auto',
-                                minHeight: '250px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
