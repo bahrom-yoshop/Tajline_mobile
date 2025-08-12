@@ -835,6 +835,29 @@ class CargoOrderCreate(BaseModel):
     temperature_sensitive: bool = False
     special_instructions: Optional[str] = None
 
+class CourierRequest(BaseModel):
+    id: str
+    cargo_id: Optional[str] = None  # ID груза (если уже создан)
+    sender_full_name: str
+    sender_phone: str
+    cargo_name: str
+    pickup_address: str
+    pickup_date: str  # YYYY-MM-DD
+    pickup_time_from: str  # HH:MM
+    pickup_time_to: str  # HH:MM
+    delivery_method: DeliveryMethod
+    courier_fee: Optional[float] = None
+    assigned_courier_id: Optional[str] = None
+    assigned_courier_name: Optional[str] = None
+    request_status: str = "pending"  # pending, assigned, accepted, completed, cancelled
+    created_by: str  # ID оператора
+    created_at: datetime
+    updated_at: datetime
+
+class CourierRequestUpdate(BaseModel):
+    request_status: str = Field(..., regex="^(pending|assigned|accepted|completed|cancelled)$")
+    courier_notes: Optional[str] = None
+
 class DeliveryCalculation(BaseModel):
     base_cost: float
     weight_cost: float
