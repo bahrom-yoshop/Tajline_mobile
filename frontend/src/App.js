@@ -11297,6 +11297,20 @@ function App() {
                               </div>
                             )}
 
+                            {/* Кнопка закрытия сканирования для новой ячейки */}
+                            {scannerActive && (
+                              <div className="text-center mt-3">
+                                <Button 
+                                  onClick={stopMobileScanning}
+                                  variant="destructive"
+                                  size="sm"
+                                >
+                                  <X className="mr-2 h-4 w-4" />
+                                  Закрыть сканирование
+                                </Button>
+                              </div>
+                            )}
+
                             {receivedCargo && (
                               <div className="p-3 bg-blue-50 border border-blue-200 rounded">
                                 <p className="text-sm text-blue-800">
