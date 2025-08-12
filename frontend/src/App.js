@@ -10448,7 +10448,7 @@ function App() {
 
                           {/* QR сканер контейнер */}
                           <div 
-                            id="qr-reader-search" 
+                            id="qr-reader-placement" 
                             className={`w-full bg-black rounded-lg ${searchScannerActive ? 'react-visible' : 'react-hidden'}`}
                             style={{
                               height: 'min(60vh, 400px)',
