@@ -2469,7 +2469,7 @@ function App() {
             // Повторный запрос только один раз
             if (retryCount === 0) {
               console.log('Retrying API call after 401 with valid token');
-              return apiCall(url, method, data, providedToken, retryCount + 1);
+              return apiCall(endpoint, method, data, params, retryCount + 1);
             }
           }
           
