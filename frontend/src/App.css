@@ -57,6 +57,140 @@ body {
 .react-hidden {
   display: none !important;
 }
+
+/* Мобильная адаптивность для размера 412x914px */
+@media screen and (max-width: 420px) and (min-height: 900px) {
+  /* Основные контейнеры */
+  .container {
+    padding: 8px !important;
+  }
+  
+  /* Карточки операций */
+  .space-y-6 > * + * {
+    margin-top: 16px !important;
+  }
+  
+  /* QR сканер контейнеры */
+  #qr-reader-placement {
+    height: min(50vh, 300px) !important;
+    min-height: 250px !important;
+  }
+  
+  /* Кнопки */
+  .w-full {
+    font-size: 14px !important;
+    padding: 12px 16px !important;
+  }
+  
+  /* Заголовки */
+  .text-2xl {
+    font-size: 20px !important;
+  }
+  
+  .text-lg {
+    font-size: 16px !important;
+  }
+  
+  /* Поля ввода */
+  input[type="text"], input[type="tel"], input[type="email"], textarea {
+    font-size: 16px !important;
+    padding: 12px !important;
+  }
+  
+  /* Грид для статистики */
+  .grid-cols-3 {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+  
+  .grid-cols-1.md\\:grid-cols-2 {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+  
+  .grid-cols-1.md\\:grid-cols-3 {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+  
+  /* Отступы для мобильных */
+  .p-4 {
+    padding: 12px !important;
+  }
+  
+  .p-3 {
+    padding: 8px !important;
+  }
+  
+  .space-y-4 > * + * {
+    margin-top: 12px !important;
+  }
+  
+  .space-y-2 > * + * {
+    margin-top: 6px !important;
+  }
+  
+  /* Модальные окна */
+  .bg-white.p-4.rounded.border {
+    max-width: 280px !important;
+    margin: 0 auto !important;
+  }
+  
+  /* QR коды */
+  .w-48.h-48 {
+    width: 200px !important;
+    height: 200px !important;
+  }
+}
+
+/* Общие мобильные стили для устройств до 480px */
+@media screen and (max-width: 480px) {
+  /* Боковое меню */
+  .sidebar {
+    width: 100% !important;
+  }
+  
+  /* Карточки */
+  .bg-gray-50.p-4.rounded {
+    padding: 12px !important;
+    font-size: 14px !important;
+  }
+  
+  /* Кнопки операций */
+  .bg-blue-600, .bg-green-600, .bg-purple-600, .bg-orange-600 {
+    font-size: 14px !important;
+    padding: 10px 16px !important;
+    border-radius: 6px !important;
+  }
+  
+  /* Индикаторы прогресса */
+  .text-center.space-y-4 h3 {
+    font-size: 16px !important;
+  }
+  
+  .text-center.space-y-4 p {
+    font-size: 14px !important;
+  }
+  
+  /* Результаты поиска */
+  .bg-green-50.border.border-green-200 {
+    padding: 8px !important;
+    font-size: 14px !important;
+  }
+  
+  /* Подтвердительные кнопки */
+  .flex.space-x-2 {
+    flex-direction: column !important;
+    space: 0 !important;
+  }
+  
+  .flex.space-x-2 > * + * {
+    margin-left: 0 !important;
+    margin-top: 8px !important;
+  }
+  
+  .flex-1 {
+    width: 100% !important;
+  }
+}
   border-radius: 8px;
   position: relative;
 }
