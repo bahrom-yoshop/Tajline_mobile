@@ -6954,7 +6954,7 @@ function App() {
         blocks_count: 1,
         shelves_per_block: 1,
         cells_per_shelf: 10,
-        assigned_operator_id: ''
+        assigned_operator_id: 'none'
       });
       fetchWarehouses();
     } catch (error) {
