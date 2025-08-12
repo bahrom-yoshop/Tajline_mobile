@@ -3553,8 +3553,8 @@ function App() {
 
   const fetchUserData = async () => {
     // Предотвращаем множественные запросы данных пользователя
-    if (isLoggingIn || isLoggingOut) {
-      console.log('Skipping fetchUserData - login/logout in progress');
+    if (isLoggingIn || isLoggingOut || user) {
+      console.log('Skipping fetchUserData - login/logout in progress or user already loaded');
       return;
     }
 
