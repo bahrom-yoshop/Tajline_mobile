@@ -2101,15 +2101,34 @@ function App() {
     try {
       console.log('🔍 Парсинг QR кода ячейки:', qrData);
       
-      // Новый формат: Б1-П1-Я1 (приоритетный)
+      // Новый формат с ID номерами: 001-01-01-001 (приоритетный)
+      const idFormatMatch = qrData.match(/^(\d{3})-(\d{2})-(\d{2})-(\d{3})$/);
+      if (idFormatMatch) {
+        console.log('✅ Найден ID формат QR кода:', idFormatMatch);
+        return {
+          format: 'id',
+          warehouse_id_number: idFormatMatch[1],
+          block_id_number: idFormatMatch[2],
+          shelf_id_number: idFormatMatch[3],
+          cell_id_number: idFormatMatch[4],
+          // Генерируем читаемое имя для отображения
+          readable_name: `Б${parseInt(idFormatMatch[2])}-П${parseInt(idFormatMatch[3])}-Я${parseInt(idFormatMatch[4])}`,
+          cell_code: qrData // Полный код для размещения
+        };
+      }
+
+      // Формат с читаемыми названиями: Б1-П1-Я1 (для совместимости с существующими QR)
       const simpleFormatMatch = qrData.match(/^Б(\d+)-П(\d+)-Я(\d+)$/);
       if (simpleFormatMatch) {
         console.log('✅ Найден простой формат QR кода:', simpleFormatMatch);
         return {
+          format: 'simple',
           warehouse_id: 'default', // Используем default для простого формата
           block_number: parseInt(simpleFormatMatch[1]),
           shelf_number: parseInt(simpleFormatMatch[2]),
-          cell_number: parseInt(simpleFormatMatch[3])
+          cell_number: parseInt(simpleFormatMatch[3]),
+          readable_name: qrData, // Уже в читаемом формате
+          cell_code: qrData
         };
       }
 
@@ -2118,10 +2137,13 @@ function App() {
         console.log('🔍 Обработка JSON формата QR кода');
         const parsed = JSON.parse(qrData);
         return {
+          format: 'json',
           warehouse_id: parsed.warehouse_id,
           block_number: parseInt(parsed.block_number),
           shelf_number: parseInt(parsed.shelf_number),
-          cell_number: parseInt(parsed.cell_number)
+          cell_number: parseInt(parsed.cell_number),
+          readable_name: `Б${parsed.block_number}-П${parsed.shelf_number}-Я${parsed.cell_number}`,
+          cell_code: `${parsed.warehouse_id}-Б${parsed.block_number}-П${parsed.shelf_number}-Я${parsed.cell_number}`
         };
       } 
       
@@ -2130,10 +2152,13 @@ function App() {
       if (parts.length === 4) {
         console.log('🔍 Обработка формата с разделителями');
         return {
+          format: 'colon_separated',
           warehouse_id: parts[0],
           block_number: parseInt(parts[1]),
           shelf_number: parseInt(parts[2]),
-          cell_number: parseInt(parts[3])
+          cell_number: parseInt(parts[3]),
+          readable_name: `Б${parts[1]}-П${parts[2]}-Я${parts[3]}`,
+          cell_code: `${parts[0]}-Б${parts[1]}-П${parts[2]}-Я${parts[3]}`
         };
       }
       
