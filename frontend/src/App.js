@@ -10662,7 +10662,7 @@ function App() {
                             </div>
                             
                             <div 
-                              id="qr-reader-mobile-placement" 
+                              id="qr-reader-placement" 
                               className="w-full bg-black rounded-lg"
                               style={{
                                 height: 'min(60vh, 400px)',
