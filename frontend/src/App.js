@@ -752,10 +752,10 @@ function App() {
   // Advanced search states
   const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false);
   const [searchFilters, setSearchFilters] = useState({
-    cargo_status: '',
-    payment_status: '',
+    cargo_status: 'any',
+    payment_status: 'any',
     processing_status: '',
-    route: '',
+    route: 'any',
     sender_phone: '',
     recipient_phone: '',
     date_from: '',
