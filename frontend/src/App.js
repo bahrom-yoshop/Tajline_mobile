@@ -1690,6 +1690,17 @@ function App() {
 
   const handleBarcodeScan = async (scannedData) => {
     try {
+      // Защита от множественных сканирований одного и того же QR кода
+      const currentTime = Date.now();
+      if (scannedData === lastScannedData && (currentTime - lastScanTime) < 3000) {
+        console.log('Ignoring duplicate scan within 3 seconds:', scannedData);
+        return;
+      }
+      
+      // Обновляем информацию о последнем сканировании
+      setLastScannedData(scannedData);
+      setLastScanTime(currentTime);
+      
       if (scannerMode === 'cargo-barcode') {
         // Ищем груз по отсканированному номеру
         const cargoNumber = extractCargoNumber(scannedData);
