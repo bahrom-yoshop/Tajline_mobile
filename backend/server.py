@@ -165,6 +165,18 @@ class PaymentMethod(str, Enum):
     CASH_ON_DELIVERY = "cash_on_delivery"  # Оплата при получении
     CREDIT = "credit"  # Оплата в долг
 
+class DeliveryMethod(str, Enum):
+    PICKUP = "pickup"  # Самовывоз
+    HOME_DELIVERY = "home_delivery"  # Доставка до дома
+
+class TransportType(str, Enum):
+    CAR = "car"  # Легковой автомобиль
+    VAN = "van"  # Фургон
+    TRUCK = "truck"  # Грузовик
+    MOTORCYCLE = "motorcycle"  # Мотоцикл
+    BICYCLE = "bicycle"  # Велосипед
+    ON_FOOT = "on_foot"  # Пешком
+
 class TransportStatus(str, Enum):
     EMPTY = "empty"
     FILLED = "filled"
