@@ -1300,25 +1300,24 @@ function App() {
       const html5QrCode = new Html5Qrcode(containerId);
       html5QrCodePlacementRef.current = html5QrCode;
       
-      // Enhanced camera configuration for mobile with improved initialization
+      // Enhanced camera configuration for mobile with FIXED dimensions
       const cameraConfig = {
-        width: { ideal: 1280, min: 640 },
-        height: { ideal: 720, min: 480 },
-        facingMode: "environment", // Мягкий режим для лучшей совместимости
-        aspectRatio: 1.777777778
+        width: 300,  // Фиксированная ширина
+        height: 300, // Фиксированная высота
+        facingMode: "environment" // Мягкий режим для лучшей совместимости
       };
       
       const scannerConfig = {
-        fps: 10, // Увеличили fps для лучшего сканирования
-        qrbox: function(viewfinderWidth, viewfinderHeight) {
-          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          const boxSize = Math.floor(minEdge * 0.7); // Уменьшили размер для лучшего сканирования
-          return {
-            width: boxSize,
-            height: boxSize
-          };
+        fps: 10,
+        qrbox: {
+          width: 200,  // Фиксированные размеры для qrbox
+          height: 200
         },
-        aspectRatio: 1.0
+        aspectRatio: 1.0,
+        // Дополнительные настройки для лучшего сканирования на мобильных
+        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+        rememberLastUsedCamera: true,
+        showTorchButtonIfSupported: true
       };
       
       // Start scanning with enhanced error handling and selected camera
@@ -1327,12 +1326,12 @@ function App() {
           selectedCameraId, // Используем выбранную заднюю камеру
           cameraConfig,
           (decodedText) => {
-            console.log('📱 Мобильное сканирование:', decodedText);
+            console.log('📱 Мобильное сканирование успешно:', decodedText);
             handleBarcodeScan(decodedText);
           },
           (error) => {
-            // Suppress frequent scanning errors
-            if (!error.includes('NotFoundException')) {
+            // Suppress frequent scanning errors but log important ones
+            if (!error.includes('NotFoundException') && !error.includes('No MultiFormat Readers')) {
               console.debug('Сканирование...', error);
             }
           },
@@ -1342,38 +1341,45 @@ function App() {
         console.log('✅ Мобильный QR сканер запущен с задней камерой');
         
         // Добавляем задержку для стабилизации камеры
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 1000));
         console.log('📷 Камера стабилизирована, готова к сканированию');
         
       } catch (cameraError) {
-        console.warn('⚠️ Не удалось запустить с задней камерой, пробуем обычный режим...', cameraError);
+        console.warn('⚠️ Не удалось запустить с задней камерой, пробуем первую доступную...', cameraError);
         
         // Fallback: попробуем с первой доступной камерой
         const fallbackConfig = {
-          width: { ideal: 1280, min: 640 },
-          height: { ideal: 720, min: 480 }
+          width: 300,
+          height: 300,
+          facingMode: "environment"
         };
         
-        await html5QrCode.start(
-          cameras[0].id, // Используем первую доступную камеру
-          fallbackConfig,
-          (decodedText) => {
-            console.log('📱 Мобильное сканирование (fallback):', decodedText);
-            handleBarcodeScan(decodedText);
-          },
-          (error) => {
-            if (!error.includes('NotFoundException')) {
-              console.debug('Сканирование...', error);
-            }
-          },
-          scannerConfig
-        );
-        
-        console.log('✅ Мобильный QR сканер запущен в fallback режиме');
-        
-        // Добавляем задержку для стабилизации
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        console.log('📷 Камера стабилизирована (fallback), готова к сканированию');
+        try {
+          await html5QrCode.start(
+            cameras[0].id, // Используем первую доступную камеру
+            fallbackConfig,
+            (decodedText) => {
+              console.log('📱 Мобильное сканирование (fallback):', decodedText);
+              handleBarcodeScan(decodedText);
+            },
+            (error) => {
+              if (!error.includes('NotFoundException') && !error.includes('No MultiFormat Readers')) {
+                console.debug('Сканирование...', error);
+              }
+            },
+            scannerConfig
+          );
+          
+          console.log('✅ Мобильный QR сканер запущен в fallback режиме');
+          
+          // Добавляем задержку для стабилизации
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          console.log('📷 Камера стабилизирована (fallback), готова к сканированию');
+          
+        } catch (fallbackError) {
+          console.error('❌ Не удалось запустить сканер:', fallbackError);
+          throw fallbackError;
+        }
       }
       isInitializingRef.current = false;
       
