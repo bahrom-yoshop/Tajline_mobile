@@ -784,6 +784,10 @@ function App() {
   const [scannedCargo, setScannedCargo] = useState(null);
   const [scannedCell, setScannedCell] = useState(null);
   
+  // Состояние для предотвращения множественных уведомлений
+  const [lastScannedData, setLastScannedData] = useState('');
+  const [lastScanTime, setLastScanTime] = useState(0);
+  
   // Статистика сессии размещения
   const [sessionPlacements, setSessionPlacements] = useState([]);
   const [sessionPlacementCount, setSessionPlacementCount] = useState(0);
