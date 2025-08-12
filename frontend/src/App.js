@@ -20538,7 +20538,7 @@ function App() {
                       {externalScannedCell && <span className="text-green-600 ml-2">✓ Завершено</span>}
                     </Label>
                     <Input
-                      placeholder="Отсканируйте QR код ячейки здесь..."
+                      placeholder="Отсканируйте QR код ячейки или введите вручную: Б1-П2-Я3"
                       value={externalCellInput}
                       onChange={(e) => setExternalCellInput(e.target.value)}
                       onKeyPress={(e) => {
