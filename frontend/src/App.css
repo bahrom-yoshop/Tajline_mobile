@@ -58,19 +58,35 @@ body {
   display: none !important;
 }
 
-/* Стили плейсхолдера камеры */
+/* Стили плейсхолдера камеры - ФИКСИРОВАННЫЕ размеры */
 .camera-placeholder {
   background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
   border: 2px dashed #4a5568;
   transition: all 0.3s ease;
-  aspect-ratio: 1;
-  max-width: 400px;
-  margin: 0 auto;
+  width: 300px !important;
+  height: 300px !important;
+  max-width: 300px !important;
+  max-height: 300px !important;
+  min-width: 300px !important;
+  min-height: 300px !important;
+  margin: 0 auto !important;
 }
 
 .camera-placeholder:hover {
   border-color: #63b3ed;
   background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+}
+
+/* Мобильная адаптивность для плейсхолдера */
+@media screen and (max-width: 420px) {
+  .camera-placeholder {
+    width: 280px !important;
+    height: 280px !important;
+    max-width: 280px !important;
+    max-height: 280px !important;
+    min-width: 280px !important;
+    min-height: 280px !important;
+  }
 }
 
 /* QR сканер контейнеры - ЖЕСТКО ФИКСИРОВАННЫЕ размеры для мобильных */
