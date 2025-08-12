@@ -131,6 +131,137 @@ function App() {
     }
   };
 
+  // НОВЫЕ ФУНКЦИИ ДЛЯ КУРЬЕРСКОЙ СЛУЖБЫ (ЭТАП 2)
+  const fetchCouriers = async (page = 1, perPage = 25) => {
+    try {
+      const data = await apiCall(`/api/admin/couriers/list?page=${page}&per_page=${perPage}`);
+      setCouriers(data.items || []);
+      setCouriersPagination(data.pagination || {});
+    } catch (error) {
+      console.error('Error fetching couriers:', error);
+      showAlert('Ошибка загрузки курьеров: ' + error.message, 'error');
+    }
+  };
+
+  const handleCreateCourier = async (e) => {
+    e.preventDefault();
+    
+    // Валидация формы
+    if (!courierCreateForm.full_name.trim()) {
+      showAlert('Заполните ФИО курьера', 'error');
+      return;
+    }
+    
+    if (!courierCreateForm.phone.trim()) {
+      showAlert('Заполните телефон курьера', 'error');
+      return;
+    }
+    
+    if (!courierCreateForm.password.trim()) {
+      showAlert('Заполните пароль курьера', 'error');
+      return;
+    }
+    
+    if (!courierCreateForm.assigned_warehouse_id) {
+      showAlert('Выберите склад для курьера', 'error');
+      return;
+    }
+
+    try {
+      const response = await apiCall('/api/admin/couriers/create', 'POST', courierCreateForm);
+      
+      showAlert('Курьер успешно создан!', 'success');
+      
+      // Показать учетные данные
+      if (response.login_credentials) {
+        showAlert(`Учетные данные курьера: ${response.login_credentials.phone} / ${response.login_credentials.password}`, 'info');
+      }
+      
+      // Сброс формы
+      setCourierCreateForm({
+        full_name: '',
+        phone: '',
+        password: '',
+        address: '',
+        transport_type: 'car',
+        transport_number: '',
+        transport_capacity: '',
+        assigned_warehouse_id: ''
+      });
+      
+      setCourierCreateModal(false);
+      fetchCouriers(couriersPage, couriersPerPage);
+      
+    } catch (error) {
+      console.error('Error creating courier:', error);
+      showAlert('Ошибка создания курьера: ' + error.message, 'error');
+    }
+  };
+
+  const handleViewCourierProfile = async (courierId) => {
+    try {
+      const data = await apiCall(`/api/admin/couriers/${courierId}`);
+      setSelectedCourier(data);
+      setCourierProfileModal(true);
+    } catch (error) {
+      console.error('Error fetching courier profile:', error);
+      showAlert('Ошибка загрузки профиля курьера: ' + error.message, 'error');
+    }
+  };
+
+  const handleEditCourier = (courier) => {
+    setCourierEditForm({
+      full_name: courier.full_name,
+      phone: courier.phone,
+      address: courier.address,
+      transport_type: courier.transport_type,
+      transport_number: courier.transport_number,
+      transport_capacity: courier.transport_capacity,
+      assigned_warehouse_id: courier.assigned_warehouse_id,
+      password: 'unchanged' // Пароль не показываем для безопасности
+    });
+    setSelectedCourier(courier);
+    setCourierEditModal(true);
+  };
+
+  const handleUpdateCourier = async (e) => {
+    e.preventDefault();
+    if (!selectedCourier) return;
+
+    try {
+      // Убираем пароль если он не изменился
+      const updateData = { ...courierEditForm };
+      if (updateData.password === 'unchanged') {
+        delete updateData.password;
+      }
+
+      await apiCall(`/api/admin/couriers/${selectedCourier.id}`, 'PUT', updateData);
+      
+      showAlert('Профиль курьера обновлен!', 'success');
+      setCourierEditModal(false);
+      fetchCouriers(couriersPage, couriersPerPage);
+      
+      // Если открыт профиль, обновляем его
+      if (courierProfileModal) {
+        handleViewCourierProfile(selectedCourier.id);
+      }
+      
+    } catch (error) {
+      console.error('Error updating courier:', error);
+      showAlert('Ошибка обновления курьера: ' + error.message, 'error');
+    }
+  };
+
+  const fetchAvailableCouriersForWarehouse = async (warehouseId) => {
+    try {
+      const data = await apiCall(`/api/admin/couriers/available/${warehouseId}`);
+      setAvailableCouriers(data.couriers || []);
+    } catch (error) {
+      console.error('Error fetching available couriers:', error);
+      showAlert('Ошибка загрузки доступных курьеров: ' + error.message, 'error');
+    }
+  };
+
   // Функция для генерации QR кода отдельной ячейки
   const generateSingleCellQR = async () => {
     if (!singleCellBlock || !singleCellShelf || !singleCellNumber) {
