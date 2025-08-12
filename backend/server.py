@@ -133,6 +133,7 @@ class UserRole(str, Enum):
     USER = "user"
     ADMIN = "admin" 
     WAREHOUSE_OPERATOR = "warehouse_operator"
+    COURIER = "courier"
 
 class CargoStatus(str, Enum):
     CREATED = "created"
