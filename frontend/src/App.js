@@ -1074,9 +1074,12 @@ function App() {
     setSearchScannerActive(true);
     setSearchResult(null);
     setScannerMode('cargo-qr-search');
+    
+    // Используем существующую стабильную функцию QR сканера
+    setPlacementActive(true);
     setScannerActive(true);
     setScannerError(null);
-    await startCameraScanner();
+    await startQRScannerForPlacement();
   };
 
   const startMobilePlacement = async () => {
@@ -1084,9 +1087,12 @@ function App() {
     setScannedCargo(null);
     setScannedCell(null);
     setScannerMode('mobile-placement-cargo');
-    setScannerActive(true);
+    
+    // Используем существующую стабильную функцию QR сканера
+    setPlacementActive(true);
+    setScannerActive(true);  
     setScannerError(null);
-    await startCameraScanner();
+    await startQRScannerForPlacement();
   };
 
   const startCargoReceive = async () => {
@@ -1094,9 +1100,12 @@ function App() {
     setReceivedCargo(null);
     setNewCell(null);
     setScannerMode('mobile-receive-cargo');
+    
+    // Используем существующую стабильную функцию QR сканера
+    setPlacementActive(true);
     setScannerActive(true);
     setScannerError(null);
-    await startCameraScanner();
+    await startQRScannerForPlacement();
   };
 
   const startMobileReceive = async () => {
@@ -1104,9 +1113,12 @@ function App() {
     setReceivedCargo(null);
     setNewCell(null);
     setScannerMode('mobile-receive-cargo');
+    
+    // Используем существующую стабильную функцию QR сканера
+    setPlacementActive(true);
     setScannerActive(true);
     setScannerError(null);
-    await startCameraScanner();
+    await startQRScannerForPlacement();
   };
 
   // Функции генерации QR кодов
