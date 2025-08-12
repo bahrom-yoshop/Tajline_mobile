@@ -62,6 +62,29 @@ function App() {
   const [operatorCreationModal, setOperatorCreationModal] = useState(false);
   const [allOperators, setAllOperators] = useState([]);
 
+  // НОВЫЕ СОСТОЯНИЯ ДЛЯ КУРЬЕРСКОЙ СЛУЖБЫ (ЭТАП 2)
+  const [couriers, setCouriers] = useState([]);
+  const [couriersPagination, setCouriersPagination] = useState({});
+  const [couriersPage, setCouriersPage] = useState(1);
+  const [couriersPerPage, setCouriersPerPage] = useState(25);
+  const [courierCreateForm, setCourierCreateForm] = useState({
+    full_name: '',
+    phone: '',
+    password: '',
+    address: '',
+    transport_type: 'car',
+    transport_number: '',
+    transport_capacity: '',
+    assigned_warehouse_id: ''
+  });
+  const [courierCreateModal, setCourierCreateModal] = useState(false);
+  const [selectedCourier, setSelectedCourier] = useState(null);
+  const [courierProfileModal, setCourierProfileModal] = useState(false);
+  const [courierEditForm, setCourierEditForm] = useState({}); 
+  const [courierEditModal, setCourierEditModal] = useState(false);
+  const [courierRequests, setCourierRequests] = useState([]);
+  const [availableCouriers, setAvailableCouriers] = useState([]);
+
   // Новые состояния для оформления груза клиентами
   const [cargoOrderForm, setCargoOrderForm] = useState({
     cargo_name: '',
