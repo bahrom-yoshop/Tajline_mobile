@@ -2694,7 +2694,7 @@ function App() {
         // Токен истек, очищаем его
         console.log('Token expired on startup, clearing session');
         handleLogout();
-        showAlert('Ваша сессия истекла. Пожалуйasta, войдите в систему снова.', 'warning');
+        showAlert('Ваша сессия истекла. Пожалуйста, войдите в систему снова.', 'warning');
       }
     }
   }, [token]); // Убираем user из зависимостей чтобы избежать цикла
