@@ -1293,27 +1293,35 @@ function App() {
     setMobilePlacementStep('start');
     setScannedCargo(null);
     setScannedCell(null);
-    await stopScanner();
+    setPlacementActive(false);
+    setScannerActive(false);
+    await completeQrCleanup("Mobile Placement Reset");
   };
 
   const resetCargoReceive = async () => {
     setReceiveStep('start');
     setReceivedCargo(null);
     setNewCell(null);
-    await stopScanner();
+    setPlacementActive(false);
+    setScannerActive(false);
+    await completeQrCleanup("Cargo Receive Reset");
   };
 
   const resetMobileReceive = async () => {
     setReceiveStep('start');
     setReceivedCargo(null);
     setNewCell(null);
-    await stopScanner();
+    setPlacementActive(false);
+    setScannerActive(false);
+    await completeQrCleanup("Mobile Receive Reset");
   };
 
   const resetCargoSearch = async () => {
     setSearchScannerActive(false);
     setSearchResult(null);
-    await stopScanner();
+    setPlacementActive(false);
+    setScannerActive(false);
+    await completeQrCleanup("Cargo Search Reset");
   };
 
   // Функция для получения информации о грузе по номеру
