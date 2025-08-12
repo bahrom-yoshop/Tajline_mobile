@@ -520,36 +520,42 @@ function App() {
   // Функция выполнения размещения с внешним сканером
   const performExternalScannerPlacement = async (cargo, cell) => {
     try {
-      console.log('🖥️ Выполняем размещение груза:', cargo.cargo_number, 'в ячейку:', `Б${cell.block_number}-П${cell.shelf_number}-Я${cell.cell_number}`);
+      console.log('🖥️ Выполняем размещение груза:', cargo.cargo_number, 'в ячейку:', cell.readable_name);
+      console.log('🖥️ Формат ячейки:', cell.format);
+      console.log('🖥️ Код ячейки для размещения:', cell.cell_code);
       
-      // Выполняем размещение
-      await handlePlaceCargo(
-        cargo.id,
-        cell.warehouse_id,
-        cell.block_number,
-        cell.shelf_number,
-        cell.cell_number
-      );
+      // API call для размещения груза
+      const response = await apiCall('/api/cargo/place-in-cell', 'POST', {
+        cargo_number: cargo.cargo_number,
+        cell_code: cell.cell_code  // Используем новый cell_code который поддерживает ID формат
+      });
       
-      setExternalScannerStep('complete');
-      setScannerMessage(`🎉 Груз ${cargo.cargo_number} успешно размещен на Б${cell.block_number}-П${cell.shelf_number}-Я${cell.cell_number}!`);
-      
-      showAlert(`🎉 Груз ${cargo.cargo_number} размещен на Б${cell.block_number}-П${cell.shelf_number}-Я${cell.cell_number}!`, 'success');
-      
-      // Сбрасываем для следующего размещения через 3 секунды
-      setTimeout(() => {
-        setExternalScannerStep('cargo');
-        setExternalCargoInput('');
-        setExternalCellInput('');
-        setExternalScannedCargo(null);
-        setExternalScannedCell(null);
-        setScannerMessage('Готов к размещению следующего груза. Отсканируйте QR код груза.');
-      }, 3000);
+      if (response && response.success) {
+        setExternalScannerStep('complete');
+        setScannerMessage(`🎉 Груз ${cargo.cargo_number} успешно размещен на ${cell.readable_name}!`);
+        
+        showAlert(`🎉 Груз ${cargo.cargo_number} размещен на ${cell.readable_name}!`, 'success');
+        
+        // Обновляем статистику размещения
+        await fetchPlacementStatistics();
+        
+        // Сбрасываем для следующего размещения через 3 секунды
+        setTimeout(() => {
+          setExternalScannerStep('cargo');
+          setExternalCargoInput('');
+          setExternalCellInput('');
+          setExternalScannedCargo(null);
+          setExternalScannedCell(null);
+          setScannerMessage('Готов к размещению следующего груза. Отсканируйте QR код груза.');
+        }, 3000);
+      } else {
+        throw new Error(response?.message || 'Неизвестная ошибка размещения');
+      }
       
     } catch (error) {
       console.error('Ошибка размещения с внешним сканером:', error);
-      setScannerError('Ошибка при размещении груза');
-      showAlert('Ошибка при размещении груза', 'error');
+      setScannerError(`Ошибка при размещении груза: ${error.message}`);
+      showAlert(`Ошибка при размещении груза: ${error.message}`, 'error');
     }
   };
 
