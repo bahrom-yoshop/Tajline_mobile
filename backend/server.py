@@ -208,6 +208,31 @@ class User(BaseModel):
     token_version: int = 1  # Добавляем версионирование токенов
     created_at: datetime
 
+class CourierCreate(BaseModel):
+    full_name: str = Field(..., min_length=2, max_length=100)
+    phone: str = Field(..., min_length=10, max_length=20)
+    password: str = Field(..., min_length=6, max_length=50)
+    address: str = Field(..., min_length=5, max_length=200)
+    transport_type: TransportType
+    transport_number: str = Field(..., min_length=1, max_length=50)
+    transport_capacity: float = Field(..., gt=0, le=10000, description="Грузоподъемность в кг")
+    assigned_warehouse_id: str = Field(..., description="ID склада, к которому привязан курьер")
+
+class Courier(BaseModel):
+    id: str
+    user_id: str  # Ссылка на пользователя
+    full_name: str
+    phone: str
+    address: str
+    transport_type: TransportType
+    transport_number: str
+    transport_capacity: float
+    assigned_warehouse_id: str
+    assigned_warehouse_name: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime
+    updated_at: datetime
+
 # Модель для обновления роли пользователя
 class UserRoleUpdate(BaseModel):
     user_id: str = Field(..., min_length=1)
