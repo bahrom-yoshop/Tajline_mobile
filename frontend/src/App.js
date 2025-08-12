@@ -1175,15 +1175,43 @@ function App() {
       
       console.log(`✅ Найдено камер: ${cameras.length}`);
       
+      // Выбор задней камеры приоритетно
+      let selectedCameraId = cameras[0].id; // fallback на первую камеру
+      
+      // Поиск задней камеры по label
+      const backCamera = cameras.find(camera => 
+        camera.label && (
+          camera.label.toLowerCase().includes('back') ||
+          camera.label.toLowerCase().includes('rear') ||
+          camera.label.toLowerCase().includes('environment') ||
+          camera.label.toLowerCase().includes('основная') ||
+          camera.label.toLowerCase().includes('задняя')
+        )
+      );
+      
+      if (backCamera) {
+        selectedCameraId = backCamera.id;
+        console.log(`📷 Выбрана задняя камера: ${backCamera.label}`);
+      } else {
+        // Если задняя камера не найдена по label, попробуем последнюю камеру (обычно задняя)
+        if (cameras.length > 1) {
+          selectedCameraId = cameras[cameras.length - 1].id;
+          console.log(`📷 Выбрана последняя камера (предположительно задняя): ${cameras[cameras.length - 1].label}`);
+        } else {
+          console.log(`📷 Используется первая доступная камера: ${cameras[0].label}`);
+        }
+      }
+      
       // Initialize Html5Qrcode
       const html5QrCode = new Html5Qrcode(containerId);
       html5QrCodePlacementRef.current = html5QrCode;
       
-      // Enhanced camera configuration for mobile
+      // Enhanced camera configuration for mobile with strict environment mode
       const cameraConfig = {
         width: { ideal: 1280, min: 640 },
         height: { ideal: 720, min: 480 },
-        facingMode: "environment"
+        facingMode: { exact: "environment" }, // Принудительно задняя камера
+        aspectRatio: 1.777777778
       };
       
       const scannerConfig = {
