@@ -21172,7 +21172,7 @@ function App() {
                           size="sm"
                           className="bg-green-600 hover:bg-green-700"
                         >
-                          <PrinterIcon className="mr-2 h-4 w-4" />
+                          <Printer className="mr-2 h-4 w-4" />
                           Печать QR кода
                         </Button>
                       )}
