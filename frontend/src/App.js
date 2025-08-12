@@ -10735,6 +10735,24 @@ function App() {
                             }}
                           />
 
+                          {/* Кнопка переключения камеры */}
+                          {searchScannerActive && availableCameras.length > 1 && (
+                            <div className="text-center">
+                              <Button 
+                                onClick={() => switchCamera()}
+                                variant="outline"
+                                size="sm"
+                              >
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Переключить камеру ({availableCameras.length > currentCameraIndex ? 
+                                  (availableCameras[currentCameraIndex].label?.includes('back') || 
+                                   availableCameras[currentCameraIndex].label?.includes('rear') ||
+                                   availableCameras[currentCameraIndex].label?.includes('environment') ? 'задняя' : 'передняя') 
+                                  : 'неизвестно'})
+                              </Button>
+                            </div>
+                          )}
+
                           {/* Результаты поиска */}
                           {searchResult && (
                             <Card className="mt-4">
