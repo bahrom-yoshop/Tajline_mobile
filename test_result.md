@@ -261,7 +261,7 @@ frontend:
           agent: "main"
           comment: "✅ INTERNAL SERVER ERROR ИСПРАВЛЕНА! Решена проблема с enum CargoStatus - добавлен отсутствующий статус PLACED_IN_WAREHOUSE = 'placed_in_warehouse' в строке 145. Ошибка возникала при валидации Pydantic модели CargoWithLocation в endpoint /api/cashier/unpaid-cargo из-за несоответствия статуса груза в базе данных ('placed_in_warehouse') и допустимых значений enum. После добавления статуса backend запускается без ошибок, endpoint /api/cashier/unpaid-cargo возвращает данные корректно, /api/auth/me работает стабильно. Backend готов для полного тестирования входа." 
     implemented: true
-    working: false
+    working: true
     file: "/app/frontend/src/App.js"
     stuck_count: 1
     priority: "high"
