@@ -11112,6 +11112,20 @@ function App() {
                               }}
                             />
 
+                            {/* Кнопка переключения камеры для приёма груза */}
+                            {availableCameras.length > 1 && (
+                              <div className="text-center mt-2">
+                                <Button 
+                                  onClick={() => switchCamera()}
+                                  variant="outline"
+                                  size="sm"
+                                >
+                                  <RefreshCw className="mr-2 h-4 w-4" />
+                                  Переключить камеру
+                                </Button>
+                              </div>
+                            )}
+
                             {receivedCargo && (
                               <div className="p-3 bg-orange-50 border border-orange-200 rounded">
                                 <p className="text-sm text-orange-800">
