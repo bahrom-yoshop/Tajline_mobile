@@ -1590,7 +1590,7 @@ function App() {
   // Функция для получения информации о грузе по номеру
   const getCargoByNumber = async (cargoNumber) => {
     try {
-      const response = await apiCall(`/api/cargo/by-number/${cargoNumber}`, 'GET');
+      const response = await apiCall(`/api/cargo/track/${cargoNumber}`, 'GET');
       return response;
     } catch (error) {
       console.error('Error getting cargo by number:', error);
