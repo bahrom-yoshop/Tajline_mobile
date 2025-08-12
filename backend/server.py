@@ -1891,6 +1891,90 @@ async def generate_qr_by_cargo_number(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating QR code: {str(e)}")
 
+@app.post("/api/warehouse/cell/status")
+async def check_warehouse_cell_status(
+    cell_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Проверить статус занятости ячейки склада"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для проверки статуса ячейки"
+        )
+    
+    try:
+        warehouse_id = cell_data.get("warehouse_id")
+        block_number = cell_data.get("block_number")
+        shelf_number = cell_data.get("shelf_number")
+        cell_number = cell_data.get("cell_number")
+        
+        # Поддержка ID формата
+        warehouse_id_number = cell_data.get("warehouse_id_number")
+        block_id_number = cell_data.get("block_id_number")
+        shelf_id_number = cell_data.get("shelf_id_number")
+        cell_id_number = cell_data.get("cell_id_number")
+        
+        if not warehouse_id and not warehouse_id_number:
+            raise HTTPException(status_code=400, detail="Warehouse ID or warehouse ID number is required")
+        
+        # Строим запрос для поиска ячейки
+        query = {}
+        
+        if warehouse_id_number and block_id_number and shelf_id_number and cell_id_number:
+            # Поиск по ID номерам (новая система)
+            query = {
+                "warehouse_id_number": warehouse_id_number,
+                "block_id_number": block_id_number,
+                "shelf_id_number": shelf_id_number,
+                "cell_id_number": cell_id_number
+            }
+        elif warehouse_id and block_number and shelf_number and cell_number:
+            # Поиск по старой системе
+            query = {
+                "warehouse_id": warehouse_id,
+                "block_number": block_number,
+                "shelf_number": shelf_number,
+                "cell_number": cell_number
+            }
+        else:
+            raise HTTPException(status_code=400, detail="Missing required cell identification data")
+        
+        # Ищем ячейку
+        cell = db.warehouse_cells.find_one(query)
+        
+        if not cell:
+            # Ячейка не найдена, считаем её свободной (может быть создана позже)
+            return {
+                "success": True,
+                "is_occupied": False,
+                "occupied_by": None,
+                "cell_exists": False,
+                "message": "Cell not found, assuming available"
+            }
+        
+        # Возвращаем статус ячейки
+        return {
+            "success": True,
+            "is_occupied": cell.get("is_occupied", False),
+            "occupied_by": cell.get("cargo_id"),
+            "cargo_number": cell.get("cargo_number") if cell.get("is_occupied") else None,
+            "cell_exists": True,
+            "cell_info": {
+                "id": cell.get("id"),
+                "warehouse_id": cell.get("warehouse_id"),
+                "warehouse_id_number": cell.get("warehouse_id_number"),
+                "location_code": cell.get("location_code"),
+                "id_based_code": cell.get("id_based_code"),
+                "readable_name": cell.get("readable_name", f"Б{cell.get('block_number')}-П{cell.get('shelf_number')}-Я{cell.get('cell_number')}")
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error checking cell status: {str(e)}")
+
 @app.post("/api/cargo/place-in-cell")
 async def place_cargo_in_cell(
     placement_data: dict,
