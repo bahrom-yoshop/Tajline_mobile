@@ -30544,7 +30544,7 @@ ID склада: {target_warehouse_id}"""
         
         courier_data = {
             "full_name": "Тестовый Курьер Иванов",
-            "phone": "+79991234567",
+            "phone": f"+7999123456{datetime.now().microsecond % 100:02d}",  # Generate unique phone
             "password": "courier123",
             "address": "Москва, ул. Курьерская, 1",
             "transport_type": "car",
