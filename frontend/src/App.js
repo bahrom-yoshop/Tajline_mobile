@@ -108,6 +108,69 @@ function App() {
     }
   };
 
+  // Функция для генерации QR кода отдельной ячейки
+  const generateSingleCellQR = async () => {
+    if (!singleCellBlock || !singleCellShelf || !singleCellNumber) {
+      showAlert('Пожалуйста, заполните все поля (Блок, Полка, Ячейка)', 'error');
+      return;
+    }
+
+    // Проверяем что введены только цифры
+    if (!/^\d+$/.test(singleCellBlock) || !/^\d+$/.test(singleCellShelf) || !/^\d+$/.test(singleCellNumber)) {
+      showAlert('Пожалуйста, вводите только цифры в поля Блок, Полка и Ячейка', 'error');
+      return;
+    }
+
+    setSingleCellQRLoading(true);
+    try {
+      console.log('🏗️ Генерация QR кода для ячейки:', `Б${singleCellBlock}-П${singleCellShelf}-Я${singleCellNumber}`);
+      
+      const response = await apiCall('/api/warehouse/cell/generate-qr', 'POST', {
+        warehouse_id: selectedWarehouseForManagement?.id || 'default',
+        block: parseInt(singleCellBlock),
+        shelf: parseInt(singleCellShelf),
+        cell: parseInt(singleCellNumber),
+        format: 'simple' // Новый параметр для простого формата
+      });
+      
+      if (response && response.success) {
+        setSingleCellQRResult({
+          location: `Б${singleCellBlock}-П${singleCellShelf}-Я${singleCellNumber}`,
+          qr_code: response.qr_code,
+          qr_data: response.qr_data || `Б${singleCellBlock}-П${singleCellShelf}-Я${singleCellNumber}`,
+          success: true
+        });
+        showAlert(`QR код для ячейки Б${singleCellBlock}-П${singleCellShelf}-Я${singleCellNumber} создан успешно!`, 'success');
+      } else {
+        setSingleCellQRResult({
+          location: `Б${singleCellBlock}-П${singleCellShelf}-Я${singleCellNumber}`,
+          success: false,
+          error: 'Не удалось создать QR код'
+        });
+        showAlert('Ошибка создания QR кода', 'error');
+      }
+    } catch (error) {
+      console.error('Error generating single cell QR:', error);
+      setSingleCellQRResult({
+        location: `Б${singleCellBlock}-П${singleCellShelf}-Я${singleCellNumber}`,
+        success: false,
+        error: error.message
+      });
+      showAlert(`Ошибка создания QR кода: ${error.message}`, 'error');
+    } finally {
+      setSingleCellQRLoading(false);
+    }
+  };
+
+  // Функция для сброса формы отдельной ячейки
+  const resetSingleCellForm = () => {
+    setSingleCellBlock('');
+    setSingleCellShelf('');
+    setSingleCellNumber('');
+    setSingleCellQRResult(null);
+    setSingleCellQRLoading(false);
+  };
+
   // Функция для остановки мобильного сканирования
   const stopMobileScanning = async () => {
     try {
