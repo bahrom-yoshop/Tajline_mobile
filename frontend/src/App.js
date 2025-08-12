@@ -442,30 +442,46 @@ function App() {
       
       const cellInfo = parseCellQRCode(cellData);
       if (cellInfo) {
-        // Формируем точные данные ячейки в формате Б?-П?-Я?
-        const cellDisplayFormat = `Б${cellInfo.block_number}-П${cellInfo.shelf_number}-Я${cellInfo.cell_number}`;
+        // Используем читаемое имя ячейки для отображения
+        const cellDisplayFormat = cellInfo.readable_name;
         
         // Вводим данные в поле для сканирования ячейки
         setExternalCellInput(cellDisplayFormat);
         
         console.log('📍 Отсканированы данные ячейки:', cellDisplayFormat);
+        console.log('📍 Формат данных:', cellInfo.format);
+        console.log('📍 Код для размещения:', cellInfo.cell_code);
         
         // Проверяем занятость ячейки перед размещением
         try {
           console.log('🔍 Проверка занятости ячейки:', cellDisplayFormat);
           
-          const cellStatusResponse = await apiCall(`/api/warehouse/cell/status`, 'POST', {
-            warehouse_id: cellInfo.warehouse_id,
-            block_number: cellInfo.block_number,
-            shelf_number: cellInfo.shelf_number,
-            cell_number: cellInfo.cell_number
-          });
+          let cellStatusPayload = {};
+          
+          // Формируем payload в зависимости от формата
+          if (cellInfo.format === 'id') {
+            cellStatusPayload = {
+              warehouse_id_number: cellInfo.warehouse_id_number,
+              block_id_number: cellInfo.block_id_number,
+              shelf_id_number: cellInfo.shelf_id_number,
+              cell_id_number: cellInfo.cell_id_number
+            };
+          } else {
+            cellStatusPayload = {
+              warehouse_id: cellInfo.warehouse_id,
+              block_number: cellInfo.block_number,
+              shelf_number: cellInfo.shelf_number,
+              cell_number: cellInfo.cell_number
+            };
+          }
+          
+          const cellStatusResponse = await apiCall(`/api/warehouse/cell/status`, 'POST', cellStatusPayload);
 
           if (cellStatusResponse && cellStatusResponse.is_occupied) {
             // Ячейка занята - показываем предупреждение
             setScannerError(`Ячейка ${cellDisplayFormat} уже занята`);
-            setScannerMessage(`⚠️ Ячейка ${cellDisplayFormat} уже забронирована другими грузами: ${cellStatusResponse.occupied_by || 'Неизвестный груз'}`);
-            showAlert(`⚠️ Ячейка ${cellDisplayFormat} уже забронирована другими грузами: ${cellStatusResponse.occupied_by || 'Неизвестный груз'}`, 'warning');
+            setScannerMessage(`⚠️ Ячейка ${cellDisplayFormat} уже забронирована грузом: ${cellStatusResponse.cargo_number || 'Неизвестный груз'}`);
+            showAlert(`⚠️ Ячейка ${cellDisplayFormat} уже забронирована грузом: ${cellStatusResponse.cargo_number || 'Неизвестный груз'}`, 'warning');
             return;
           }
 
