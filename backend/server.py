@@ -12577,6 +12577,62 @@ async def get_courier_requests_history(
 
 # ДОПОЛНИТЕЛЬНЫЕ ENDPOINTS ДЛЯ ПОДДЕРЖКИ
 
+@app.post("/api/courier/requests/{request_id}/cancel")
+async def cancel_courier_request(
+    request_id: str,
+    cancel_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Отменить заявку курьером"""
+    if current_user.role != UserRole.COURIER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Получаем профиль курьера
+    courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not courier:
+        raise HTTPException(status_code=404, detail="Courier profile not found")
+    
+    # Получаем заявку
+    request = db.courier_requests.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    if request.get("assigned_courier_id") != courier["id"]:
+        raise HTTPException(status_code=403, detail="Request not assigned to you")
+    
+    try:
+        # Обновляем статус заявки
+        db.courier_requests.update_one(
+            {"id": request_id},
+            {"$set": {
+                "request_status": "cancelled",
+                "courier_notes": cancel_data.get("reason", "Отменено курьером"),
+                "updated_at": datetime.utcnow()
+            }}
+        )
+        
+        # Обновляем груз если есть
+        if request.get("cargo_id"):
+            db.operator_cargo.update_one(
+                {"id": request["cargo_id"]},
+                {"$set": {
+                    "courier_request_status": "cancelled",
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+        
+        # Уведомляем оператора
+        create_notification(
+            user_id=request["created_by"],
+            message=f"Курьер {courier['full_name']} отменил заявку на забор груза: {cancel_data.get('reason', 'Причина не указана')}",
+            related_id=request_id
+        )
+        
+        return {"message": "Request cancelled successfully"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error cancelling request: {str(e)}")
+
 @app.get("/api/admin/couriers/available/{warehouse_id}")
 async def get_available_couriers_for_warehouse(
     warehouse_id: str,
