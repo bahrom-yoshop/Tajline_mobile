@@ -3175,7 +3175,7 @@ function App() {
         fetchDeliveryOptions();
       }
     }
-  }, [user]);
+  }, [user, token, isLoggingOut, isLoggingIn]); // Добавляем зависимости для правильной последовательности
 
   // Функция загрузки данных личного кабинета
   const fetchPersonalDashboard = async () => {
