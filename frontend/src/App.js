@@ -122,6 +122,18 @@ function App() {
   // НОВОЕ: Состояние для интерактивной карты
   const [isMapOpen, setIsMapOpen] = useState(false);
   
+  // НОВОЕ: Состояние для GPS отслеживания курьера
+  const [courierTracking, setCourierTracking] = useState({
+    isTracking: false,
+    status: 'offline', // offline, online, on_route, at_pickup, at_delivery, busy
+    lastUpdate: null,
+    coordinates: null,
+    accuracy: null,
+    watchId: null,
+    error: null,
+    updateInterval: null
+  });
+  
   // НОВЫЕ СОСТОЯНИЯ ДЛЯ УЛУЧШЕНИЙ ИНТЕРФЕЙСА КУРЬЕРА
   const [courierChatModal, setCourierChatModal] = useState(false);
   const [courierProfileEditForm, setCourierProfileEditForm] = useState({
