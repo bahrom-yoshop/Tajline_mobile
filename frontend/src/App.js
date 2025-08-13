@@ -8694,7 +8694,7 @@ function App() {
     `;
   };
 
-  // НОВОЕ: Боковое меню для курьера
+  // НОВОЕ: Адаптивное боковое меню для курьера (УЛУЧШЕННАЯ ВЕРСИЯ)
   const CourierSidebarMenu = () => {
     if (user?.role !== 'courier') return null;
 
@@ -8712,6 +8712,18 @@ function App() {
         section: 'courier-requests'
       },
       {
+        id: 'courier-accepted',
+        label: 'Принятые грузы',
+        icon: <CheckCircle className="w-5 h-5" />,
+        section: 'courier-accepted'
+      },
+      {
+        id: 'courier-picked',
+        label: 'Забранные грузы', 
+        icon: <Truck className="w-5 h-5" />,
+        section: 'courier-picked'
+      },
+      {
         id: 'courier-history',
         label: 'История заявок',
         icon: <Clock className="w-5 h-5" />,
@@ -8720,52 +8732,138 @@ function App() {
     ];
 
     return (
-      <div className="h-full bg-white border-r border-gray-200 w-64 flex flex-col fixed left-0 top-0 z-50">
-        <div className="flex items-center h-16 px-6 border-b border-gray-200">
-          <Truck className="h-8 w-8 text-blue-600" />
-          <span className="ml-2 text-xl font-bold text-gray-900">TAJLINE</span>
-          <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">КУРЬЕР</Badge>
-        </div>
-
-        <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
-          {courierMenuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                setActiveSection(item.section);
-                setActiveTab(item.id);
-              }}
-              className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                activeSection === item.section
-                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-              }`}
-            >
-              {item.icon}
-              <span className="ml-3">{item.label}</span>
-            </button>
-          ))}
-        </nav>
-
-        {/* Информация о курьере */}
-        <div className="px-4 py-4 border-t border-gray-200">
-          <div className="flex items-center">
-            <User className="h-8 w-8 text-gray-400" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-900">{user?.full_name}</p>
-              <p className="text-xs text-gray-500">Курьер</p>
+      <>
+        {/* Мобильная версия меню */}
+        <div className="md:hidden">
+          {/* Мобильная шапка */}
+          <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center">
+              <Truck className="h-6 w-6 text-blue-600" />
+              <span className="ml-2 text-lg font-bold text-gray-900">TAJLINE</span>
+              <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">КУРЬЕР</Badge>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCourierMobileMenuOpen(!courierMobileMenuOpen)}
+              className="p-2"
+            >
+              {courierMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
           </div>
-          <Button
-            onClick={handleLogout}
-            variant="outline" 
-            size="sm"
-            className="w-full mt-3"
-          >
-            Выход
-          </Button>
+
+          {/* Выдвигающееся мобильное меню */}
+          {courierMobileMenuOpen && (
+            <>
+              {/* Затемняющий фон */}
+              <div 
+                className="fixed inset-0 bg-black bg-opacity-50 z-40"
+                onClick={() => setCourierMobileMenuOpen(false)}
+              />
+              
+              {/* Само меню */}
+              <div className="fixed top-0 left-0 h-full w-80 bg-white border-r border-gray-200 z-50 transform transition-transform duration-300">
+                <div className="flex items-center h-16 px-6 border-b border-gray-200">
+                  <Truck className="h-8 w-8 text-blue-600" />
+                  <span className="ml-2 text-xl font-bold text-gray-900">TAJLINE</span>
+                  <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">КУРЬЕР</Badge>
+                </div>
+
+                <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+                  {courierMenuItems.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setActiveSection(item.section);
+                        setActiveTab(item.id);
+                        setCourierMobileMenuOpen(false); // Закрываем меню после выбора
+                      }}
+                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                        activeSection === item.section
+                          ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      }`}
+                    >
+                      {item.icon}
+                      <span className="ml-3">{item.label}</span>
+                    </button>
+                  ))}
+                </nav>
+
+                {/* Информация о курьере в мобильном меню */}
+                <div className="px-4 py-4 border-t border-gray-200">
+                  <div className="flex items-center">
+                    <User className="h-8 w-8 text-gray-400" />
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-900">{user?.full_name}</p>
+                      <p className="text-xs text-gray-500">Курьер</p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      handleLogout();
+                      setCourierMobileMenuOpen(false);
+                    }}
+                    variant="outline" 
+                    size="sm"
+                    className="w-full mt-3"
+                  >
+                    Выход
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
-      </div>
+
+        {/* Десктопная версия меню */}
+        <div className="hidden md:block h-full bg-white border-r border-gray-200 w-64 flex flex-col fixed left-0 top-0 z-30">
+          <div className="flex items-center h-16 px-6 border-b border-gray-200">
+            <Truck className="h-8 w-8 text-blue-600" />
+            <span className="ml-2 text-xl font-bold text-gray-900">TAJLINE</span>
+            <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">КУРЬЕР</Badge>
+          </div>
+
+          <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+            {courierMenuItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveSection(item.section);
+                  setActiveTab(item.id);
+                }}
+                className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  activeSection === item.section
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }`}
+              >
+                {item.icon}
+                <span className="ml-3">{item.label}</span>
+              </button>
+            ))}
+          </nav>
+
+          {/* Информация о курьере */}
+          <div className="px-4 py-4 border-t border-gray-200">
+            <div className="flex items-center">
+              <User className="h-8 w-8 text-gray-400" />
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-900">{user?.full_name}</p>
+                <p className="text-xs text-gray-500">Курьер</p>
+              </div>
+            </div>
+            <Button
+              onClick={handleLogout}
+              variant="outline" 
+              size="sm"
+              className="w-full mt-3"
+            >
+              Выход
+            </Button>
+          </div>
+        </div>
+      </>
     );
   };
 
