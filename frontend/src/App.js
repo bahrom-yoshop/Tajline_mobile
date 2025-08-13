@@ -9141,6 +9141,12 @@ function App() {
         section: 'courier-picked'
       },
       {
+        id: 'courier-cancelled',
+        label: 'Отмененные заявки',
+        icon: <XCircle className="w-5 h-5" />,
+        section: 'courier-cancelled'
+      },
+      {
         id: 'courier-chat',
         label: 'Чат с поддержкой',
         icon: <MessageCircle className="w-5 h-5" />,
