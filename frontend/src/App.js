@@ -16781,6 +16781,224 @@ function App() {
                 </div>
               )}
 
+              {/* НОВАЯ СЕКЦИЯ: Принятые грузы курьера */}
+              {activeSection === 'courier-accepted' && user?.role === 'courier' && (
+                <div className="space-y-6 p-4 md:p-6">
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-4 md:space-y-0">
+                    <div>
+                      <h2 className="text-xl md:text-2xl font-bold text-gray-900">Принятые грузы</h2>
+                      <p className="text-gray-600">Грузы готовые к забору</p>
+                    </div>
+                    <Button onClick={fetchAcceptedRequests} variant="outline">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Обновить
+                    </Button>
+                  </div>
+
+                  {acceptedRequests.length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {acceptedRequests.map((request) => (
+                        <Card key={request.id} className="relative">
+                          <CardHeader>
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <CardTitle className="text-lg">{request.sender_full_name}</CardTitle>
+                                <CardDescription>{request.sender_phone}</CardDescription>
+                              </div>
+                              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                                Готов к забору
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          
+                          <CardContent className="space-y-3">
+                            <div>
+                              <Label className="text-sm font-medium text-gray-500">Груз</Label>
+                              <p className="text-sm font-medium">{request.cargo_name}</p>
+                            </div>
+                            
+                            <div>
+                              <Label className="text-sm font-medium text-gray-500">Адрес забора</Label>
+                              <p className="text-sm text-gray-700">{request.pickup_address}</p>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <Label className="text-sm font-medium text-gray-500">Дата</Label>
+                                <p className="text-sm">{new Date(request.pickup_date).toLocaleDateString('ru-RU')}</p>
+                              </div>
+                              <div>
+                                <Label className="text-sm font-medium text-gray-500">Время</Label>
+                                <p className="text-sm">{request.pickup_time_from} - {request.pickup_time_to}</p>
+                              </div>
+                            </div>
+
+                            {request.courier_fee && (
+                              <div>
+                                <Label className="text-sm font-medium text-gray-500">Оплата</Label>
+                                <p className="text-sm font-medium text-green-600">{request.courier_fee} ₽</p>
+                              </div>
+                            )}
+
+                            {/* История принятия заявки */}
+                            <div className="bg-green-50 p-3 rounded-lg">
+                              <Label className="text-sm font-medium text-green-700">История операций</Label>
+                              <div className="mt-1 text-xs text-green-600">
+                                ✅ {new Date(request.updated_at).toLocaleString('ru-RU')}: Заявка принята курьером
+                              </div>
+                            </div>
+                          </CardContent>
+
+                          <div className="px-6 pb-6">
+                            <Button 
+                              onClick={() => handlePickupCargo(request.id)}
+                              className="w-full bg-blue-600 hover:bg-blue-700"
+                              size="lg"
+                            >
+                              <Truck className="mr-2 h-4 w-4" />
+                              Забрать груз
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <Card>
+                      <CardContent className="flex flex-col items-center justify-center py-12">
+                        <CheckCircle className="h-12 w-12 text-gray-400 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Нет принятых грузов</h3>
+                        <p className="text-gray-500 text-center">
+                          Здесь будут отображаться грузы, которые вы приняли и готовы забрать.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {/* НОВАЯ СЕКЦИЯ: Забранные грузы курьера */}
+              {activeSection === 'courier-picked' && user?.role === 'courier' && (
+                <div className="space-y-6 p-4 md:p-6">
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-4 md:space-y-0">
+                    <div>
+                      <h2 className="text-xl md:text-2xl font-bold text-gray-900">Забранные грузы</h2>
+                      <p className="text-gray-600">Грузы готовые к сдаче на склад</p>
+                    </div>
+                    <Button onClick={fetchPickedRequests} variant="outline">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Обновить
+                    </Button>
+                  </div>
+
+                  {pickedRequests.length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {pickedRequests.map((request) => (
+                        <Card key={request.id} className="relative border-orange-200 bg-orange-50">
+                          <CardHeader>
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <CardTitle className="text-lg">{request.sender_full_name}</CardTitle>
+                                <CardDescription>{request.sender_phone}</CardDescription>
+                              </div>
+                              <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                                У курьера
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          
+                          <CardContent className="space-y-3">
+                            <div>
+                              <Label className="text-sm font-medium text-gray-500">Груз</Label>
+                              <p className="text-sm font-medium">{request.cargo_name}</p>
+                            </div>
+                            
+                            <div>
+                              <Label className="text-sm font-medium text-gray-500">Способ получения</Label>
+                              <p className="text-sm">{request.delivery_method === 'pickup' ? 'Самовывоз' : 'Доставка до дома'}</p>
+                            </div>
+
+                            {request.courier_fee && (
+                              <div>
+                                <Label className="text-sm font-medium text-gray-500">Оплата курьеру</Label>
+                                <p className="text-sm font-medium text-green-600">{request.courier_fee} ₽</p>
+                              </div>
+                            )}
+
+                            {/* Расширенная история операций */}
+                            <div className="bg-blue-50 p-3 rounded-lg">
+                              <Label className="text-sm font-medium text-blue-700">История операций</Label>
+                              <div className="mt-1 space-y-1 text-xs text-blue-600">
+                                <div>✅ {new Date(request.updated_at).toLocaleString('ru-RU')}: Заявка принята курьером</div>
+                                {request.pickup_time && (
+                                  <div>📦 {new Date(request.pickup_time).toLocaleString('ru-RU')}: Груз забран курьером</div>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+
+                          <div className="px-6 pb-6 space-y-2">
+                            {/* Функциональные кнопки для редактирования и заполнения информации */}
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleEditCargoInfo(request)}
+                              >
+                                <Edit className="mr-1 h-3 w-3" />
+                                Редактировать
+                              </Button>
+                              
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  showAlert('Функция печати QR кода будет доступна после заполнения всех данных', 'info');
+                                }}
+                              >
+                                <QrCode className="mr-1 h-3 w-3" />
+                                QR код
+                              </Button>
+                            </div>
+                            
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="w-full"
+                              onClick={() => {
+                                showAlert('Функция печати накладной будет доступна после заполнения всех данных', 'info');
+                              }}
+                            >
+                              <Printer className="mr-2 h-4 w-4" />
+                              Печать накладной
+                            </Button>
+
+                            {/* Главная кнопка - сдать груз */}
+                            <Button 
+                              onClick={() => handleDeliverToWarehouse(request.id)}
+                              className="w-full bg-green-600 hover:bg-green-700"
+                              size="lg"
+                            >
+                              <Building className="mr-2 h-4 w-4" />
+                              Сдать груз на склад
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <Card>
+                      <CardContent className="flex flex-col items-center justify-center py-12">
+                        <Truck className="h-12 w-12 text-gray-400 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Нет забранных грузов</h3>
+                        <p className="text-gray-500 text-center">
+                          Здесь будут отображаться грузы, которые вы забрали и готовы сдать на склад.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+
               {/* История заявок курьера */}
               {activeSection === 'courier-history' && user?.role === 'courier' && (
                 <div className="space-y-6">
