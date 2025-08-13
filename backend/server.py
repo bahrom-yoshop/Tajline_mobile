@@ -14205,6 +14205,209 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     
     return distance
 
+# НОВЫЙ ENDPOINT ДЛЯ ЗАЯВОК НА ЗАБОР ГРУЗА
+
+@app.post("/api/admin/courier/pickup-request")
+async def create_courier_pickup_request(
+    request_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Создать заявку на забор груза курьером (для админов и операторов)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        # Генерировать ID заявки
+        request_id = generate_courier_request_number()
+        now = datetime.utcnow()
+        
+        # Подготовить данные заявки на забор
+        pickup_request = {
+            "id": request_id,
+            "request_number": request_id,  # Для совместимости
+            "request_type": "pickup",  # Тип заявки - забор груза
+            "request_status": "pending",  # Статус заявки
+            
+            # Информация об отправителе
+            "sender_full_name": request_data.get("sender_full_name", ""),
+            "sender_phone": request_data.get("sender_phone", ""),
+            "pickup_address": request_data.get("pickup_address", ""),
+            
+            # Информация о заборе
+            "pickup_date": request_data.get("pickup_date", ""),
+            "pickup_time_from": request_data.get("pickup_time_from", ""),
+            "pickup_time_to": request_data.get("pickup_time_to", ""),
+            
+            # Назначение груза
+            "destination": request_data.get("route", ""),
+            "route": request_data.get("route", ""),
+            
+            # Курьерская служба
+            "courier_fee": float(request_data.get("courier_fee", 0)),
+            "payment_status": request_data.get("payment_method", "not_paid"),
+            
+            # Системная информация
+            "created_by": current_user.id,
+            "created_by_name": current_user.full_name,
+            "created_at": now,
+            "updated_at": now,
+            "assigned_courier_id": None,  # Будет назначен позже
+            
+            # Статус обработки
+            "is_processed": False,
+            "processed_at": None,
+            "processed_by": None
+        }
+        
+        # Сохранить заявку в базу данных
+        result = db.courier_pickup_requests.insert_one(pickup_request)
+        
+        if result.inserted_id:
+            # Создать уведомление для курьеров
+            notification = {
+                "id": str(uuid.uuid4()),
+                "type": "new_pickup_request",
+                "title": "Новая заявка на забор груза",
+                "message": f"Заявка #{request_id} на забор груза от {pickup_request['sender_full_name']}",
+                "recipient_role": "courier",
+                "recipient_id": None,  # Для всех курьеров
+                "data": {
+                    "request_id": request_id,
+                    "sender_name": pickup_request['sender_full_name'],
+                    "pickup_address": pickup_request['pickup_address'],
+                    "pickup_date": pickup_request['pickup_date'],
+                    "pickup_time": f"{pickup_request['pickup_time_from']} - {pickup_request['pickup_time_to']}"
+                },
+                "is_read": False,
+                "created_at": now
+            }
+            
+            db.notifications.insert_one(notification)
+            
+            return {
+                "success": True,
+                "message": "Заявка на забор груза успешно создана",
+                "request_id": request_id,
+                "request_number": request_id,
+                "created_at": now.isoformat()
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to create pickup request")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating pickup request: {str(e)}")
+
+@app.get("/api/courier/pickup-requests")
+async def get_courier_pickup_requests(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить заявки на забор груза для курьера"""
+    if current_user.role != UserRole.COURIER:
+        raise HTTPException(status_code=403, detail="Only couriers can view pickup requests")
+    
+    try:
+        # Найти профиль курьера
+        courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
+        if not courier:
+            raise HTTPException(status_code=404, detail="Courier profile not found")
+        
+        # Получить все доступные заявки на забор (незанятые)
+        available_requests = list(db.courier_pickup_requests.find({
+            "request_status": "pending",
+            "assigned_courier_id": None,
+            "is_processed": False
+        }, {"_id": 0}).sort("created_at", -1))
+        
+        # Получить заявки, назначенные этому курьеру
+        assigned_requests = list(db.courier_pickup_requests.find({
+            "assigned_courier_id": courier["id"],
+            "request_status": {"$in": ["accepted", "in_progress"]},
+            "is_processed": False
+        }, {"_id": 0}).sort("created_at", -1))
+        
+        return {
+            "available_requests": available_requests,
+            "assigned_requests": assigned_requests,
+            "total_available": len(available_requests),
+            "total_assigned": len(assigned_requests)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching pickup requests: {str(e)}")
+
+@app.post("/api/courier/pickup-requests/{request_id}/accept")
+async def accept_pickup_request(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Принять заявку на забор груза курьером"""
+    if current_user.role != UserRole.COURIER:
+        raise HTTPException(status_code=403, detail="Only couriers can accept pickup requests")
+    
+    try:
+        # Найти профиль курьера
+        courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
+        if not courier:
+            raise HTTPException(status_code=404, detail="Courier profile not found")
+        
+        # Найти заявку
+        request = db.courier_pickup_requests.find_one({
+            "id": request_id,
+            "request_status": "pending",
+            "assigned_courier_id": None
+        }, {"_id": 0})
+        
+        if not request:
+            raise HTTPException(status_code=404, detail="Pickup request not found or already assigned")
+        
+        # Обновить заявку
+        now = datetime.utcnow()
+        result = db.courier_pickup_requests.update_one(
+            {"id": request_id},
+            {
+                "$set": {
+                    "request_status": "accepted",
+                    "assigned_courier_id": courier["id"],
+                    "assigned_courier_name": courier["full_name"],
+                    "accepted_at": now,
+                    "updated_at": now
+                }
+            }
+        )
+        
+        if result.modified_count > 0:
+            # Создать уведомление для создателя заявки
+            notification = {
+                "id": str(uuid.uuid4()),
+                "type": "pickup_request_accepted",
+                "title": "Заявка на забор груза принята",
+                "message": f"Курьер {courier['full_name']} принял заявку #{request_id}",
+                "recipient_role": "admin",
+                "recipient_id": request["created_by"],
+                "data": {
+                    "request_id": request_id,
+                    "courier_name": courier["full_name"],
+                    "courier_phone": courier["phone"]
+                },
+                "is_read": False,
+                "created_at": now
+            }
+            
+            db.notifications.insert_one(notification)
+            
+            return {
+                "success": True,
+                "message": "Заявка на забор груза принята",
+                "request_id": request_id,
+                "courier_name": courier["full_name"],
+                "accepted_at": now.isoformat()
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to accept pickup request")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error accepting pickup request: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
