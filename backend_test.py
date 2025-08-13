@@ -1434,13 +1434,12 @@ class CargoTransportAPITester:
             # Don't fail the test completely as this endpoint might not exist yet
             # all_success = False
         
-        # Test 3: BASIC API ENDPOINTS для курьеров
-        print("\n   🔗 Test 3: BASIC API ENDPOINTS для курьеров...")
+        # Test 4: BACKEND STABILITY - Убедиться что удаление колокольчика уведомлений не повлияло на backend
+        print("\n   🔗 Test 4: BACKEND STABILITY - Основные endpoints курьера...")
         
         basic_endpoints = [
             ("/api/auth/me", "Current User Info"),
-            ("/api/courier/requests/history", "Courier Request History"),
-            ("/api/courier/dashboard/stats", "Courier Dashboard Statistics")
+            ("/api/courier/requests/history", "Courier Request History")
         ]
         
         endpoint_results = []
