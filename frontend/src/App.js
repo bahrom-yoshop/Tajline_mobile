@@ -399,6 +399,16 @@ function App() {
       showAlert('Ошибка загрузки забранных грузов: ' + error.message, 'error');
     }
   };
+  
+  const fetchCancelledRequests = async () => {
+    try {
+      const data = await apiCall('/api/courier/requests/cancelled');
+      setCancelledRequests(data.cancelled_requests || []);
+    } catch (error) {
+      console.error('Error fetching cancelled requests:', error);
+      showAlert('Ошибка загрузки отмененных заявок: ' + error.message, 'error');
+    }
+  };
 
   const handlePickupCargo = async (requestId) => {
     try {
