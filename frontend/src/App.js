@@ -3148,6 +3148,7 @@ function App() {
         fetchDebtorsList(); // Загрузка списка задолжников
         fetchAdminDashboardAnalytics(); // Загрузка расширенной аналитики дашборда
       } else if (user.role === 'warehouse_operator') {
+        fetchNotifications();
         fetchWarehouseCargo();
         fetchWarehouses();
         fetchOperatorCargo('', 1, 25);
