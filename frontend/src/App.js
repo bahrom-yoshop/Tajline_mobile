@@ -689,8 +689,9 @@ function App() {
   
   const handlePrintQR = () => {
     if (selectedRequest) {
-      // Генерируем QR код для номера заявки
-      const qrData = `ЗАЯВКА-${selectedRequest.id}`;
+      // Генерируем QR код для номера заявки (используем читаемый номер вместо UUID)
+      const requestNumber = selectedRequest.request_number || selectedRequest.id;
+      const qrData = `ЗАЯВКА-${requestNumber}`;
       
       // Создаем QR код (используем простую библиотеку или API)
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
@@ -700,7 +701,7 @@ function App() {
       printWindow.document.write(`
         <html>
         <head>
-          <title>QR Код - Заявка №${selectedRequest.id}</title>
+          <title>QR Код - Заявка №${requestNumber}</title>
           <style>
             body { 
               font-family: Arial, sans-serif; 
@@ -724,11 +725,14 @@ function App() {
             <h2>QR КОД ЗАЯВКИ</h2>
             <img src="${qrApiUrl}" alt="QR Code" />
             <div class="qr-info">
-              <strong>Номер заявки: ${selectedRequest.id}</strong><br>
+              <strong>Номер заявки: ${requestNumber}</strong><br>
               <strong>Отправитель:</strong> ${selectedRequest.sender_full_name}<br>
               <strong>Телефон:</strong> ${selectedRequest.sender_phone}<br>
               <strong>Груз:</strong> ${selectedRequest.cargo_name}<br>
-              <strong>Курьер:</strong> ${user?.full_name}
+              <strong>Курьер:</strong> ${user?.full_name}<br>
+              <strong>Статус оплаты:</strong> ${selectedRequest.payment_status === 'paid' ? 'Оплачено' : 
+                                             selectedRequest.payment_status === 'not_paid' ? 'Не оплачено' : 
+                                             'При получении'}
             </div>
           </div>
           <script>window.print();</script>
