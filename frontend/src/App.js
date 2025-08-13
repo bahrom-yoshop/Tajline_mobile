@@ -83,6 +83,8 @@ function App() {
   const [courierEditForm, setCourierEditForm] = useState({}); 
   const [courierEditModal, setCourierEditModal] = useState(false);
   const [courierRequests, setCourierRequests] = useState([]);
+  const [availableCouriers, setAvailableCouriers] = useState([]);
+  
   // НОВОЕ: Состояние для мобильного меню курьера
   const [courierMobileMenuOpen, setCourierMobileMenuOpen] = useState(false);
 
