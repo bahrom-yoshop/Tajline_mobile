@@ -693,7 +693,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "QR Code Improvements for Warehouse Cells"
+    - "Courier Profile Modal Completion"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
