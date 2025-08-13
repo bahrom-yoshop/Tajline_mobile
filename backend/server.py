@@ -242,7 +242,33 @@ class Courier(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-# Модель для обновления роли пользователя
+# Модель для GPS местоположения курьера
+class CourierLocationUpdate(BaseModel):
+    latitude: float = Field(..., ge=-90, le=90, description="Широта (от -90 до 90)")
+    longitude: float = Field(..., ge=-180, le=180, description="Долгота (от -180 до 180)")
+    status: CourierStatus = CourierStatus.ONLINE
+    current_address: Optional[str] = None
+    accuracy: Optional[float] = None  # Точность GPS в метрах
+    speed: Optional[float] = None  # Скорость в км/ч
+    heading: Optional[float] = None  # Направление движения в градусах
+
+class CourierLocation(BaseModel):
+    id: str
+    courier_id: str
+    courier_name: str
+    courier_phone: str
+    transport_type: TransportType
+    latitude: float
+    longitude: float
+    status: CourierStatus
+    current_address: Optional[str] = None
+    accuracy: Optional[float] = None
+    speed: Optional[float] = None
+    heading: Optional[float] = None
+    current_request_id: Optional[str] = None  # ID текущей заявки
+    current_request_address: Optional[str] = None  # Адрес текущей заявки
+    last_updated: datetime
+    created_at: datetime
 class UserRoleUpdate(BaseModel):
     user_id: str = Field(..., min_length=1)
     new_role: UserRole
