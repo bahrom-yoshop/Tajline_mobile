@@ -3065,14 +3065,14 @@ metadata:
 test_plan:
   current_focus:
     - "WebSocket Connection Manager Implementation"
-    - "Admin WebSocket Endpoint Implementation"
-    - "Operator WebSocket Endpoint Implementation"
-    - "Real-time Location Broadcasting Integration"
-    - "WebSocket Connection Statistics API"
-    - "WebSocket Error Handling and Connection Management"
-    - "Backend Stability After WebSocket Integration"
-  stuck_tasks: []
+    - "WebSocket Statistics API"
+    - "Courier Location Update with WebSocket Broadcasting"
+    - "Data Isolation for Warehouse Operators"
+    - "WebSocket Endpoints Implementation"
+  stuck_tasks:
+    - "WebSocket Endpoints Implementation"
   test_all: false
+  test_priority: "high_first"
   test_priority: "high_first"
 
 backend:
