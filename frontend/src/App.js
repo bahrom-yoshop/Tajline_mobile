@@ -16939,6 +16939,7 @@ function App() {
                         fetchCourierNewRequests();
                         fetchAcceptedRequests();
                         fetchPickedRequests();
+                        fetchCancelledRequests();
                       }}
                       variant="outline"
                     >
