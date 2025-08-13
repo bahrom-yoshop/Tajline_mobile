@@ -147,6 +147,7 @@ class CargoStatus(str, Enum):
     PICKUP_REQUESTED = "pickup_requested"  # Заявка на забор груза
     ASSIGNED_TO_COURIER = "assigned_to_courier"  # Назначен курьеру
     PICKED_UP_BY_COURIER = "picked_up_by_courier"  # Забран курьером
+    COURIER_DELIVERED_TO_WAREHOUSE = "courier_delivered_to_warehouse"  # Курьер сдал груз на склад
     IN_TRANSIT = "in_transit"
     ARRIVED_DESTINATION = "arrived_destination"
     COMPLETED = "completed"
