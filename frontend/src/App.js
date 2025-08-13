@@ -25051,6 +25051,93 @@ function App() {
           </form>
         </DialogContent>
       </Dialog>
+      
+      {/* МОДАЛЬНОЕ ОКНО СВЯЗИ С ОТПРАВИТЕЛЕМ */}
+      <Dialog open={senderContactModal} onOpenChange={setSenderContactModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Phone className="mr-2 h-5 w-5" />
+              Связаться с отправителем
+            </DialogTitle>
+            <DialogDescription>
+              {contactSender?.full_name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {contactSender && (
+            <div className="space-y-4">
+              {/* Информация об отправителе */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="space-y-2">
+                  <div>
+                    <Label className="text-sm font-medium text-blue-700">ФИО:</Label>
+                    <p className="text-sm font-semibold text-blue-800">{contactSender.full_name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-blue-700">Телефон:</Label>
+                    <p className="text-sm font-semibold text-blue-800">{contactSender.phone}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-blue-700">Груз:</Label>
+                    <p className="text-sm text-blue-700">{contactSender.cargo_name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-blue-700">Адрес забора:</Label>
+                    <p className="text-sm text-blue-700">{contactSender.pickup_address}</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Кнопки связи */}
+              <div className="grid grid-cols-2 gap-3">
+                <Button 
+                  onClick={handleWhatsApp}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  WhatsApp
+                </Button>
+                
+                <Button 
+                  onClick={handleTelegram}
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                >
+                  <Send className="mr-2 h-4 w-4" />
+                  Telegram
+                </Button>
+                
+                <Button 
+                  onClick={handleSenderOnlineChat}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Онлайн чат
+                </Button>
+                
+                <Button 
+                  onClick={handlePhoneCall}
+                  variant="outline"
+                  className="w-full text-green-700 border-green-200 hover:bg-green-50"
+                >
+                  <Phone className="mr-2 h-4 w-4" />
+                  Позвонить
+                </Button>
+              </div>
+              
+              {/* Кнопка закрытия */}
+              <Button 
+                variant="outline" 
+                onClick={() => setSenderContactModal(false)}
+                className="w-full mt-4"
+              >
+                Закрыть
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
