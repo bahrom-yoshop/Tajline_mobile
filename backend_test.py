@@ -32630,9 +32630,36 @@ ID склада: {target_warehouse_id}"""
         return all_success
 
 def main():
-    """Main test execution"""
+    """Main test execution - Courier Backend Stability Testing"""
     tester = CargoTransportAPITester()
-    return tester.run_all_tests()
+    
+    print("🚀 Starting courier backend stability testing after UI updates...")
+    
+    # Run courier backend stability test as requested in review
+    try:
+        result = tester.test_courier_backend_stability_after_ui_updates()
+        
+        # Final summary
+        print("\n" + "="*60)
+        print("🏁 COURIER BACKEND STABILITY TEST SUMMARY")
+        print("="*60)
+        
+        print(f"🔍 Tests run: {tester.tests_run}")
+        print(f"✅ Individual tests passed: {tester.tests_passed}")
+        
+        if result:
+            print("🎉 COURIER BACKEND STABILITY TEST PASSED!")
+            print("✅ Backend остается стабильным после обновления UI курьера")
+            print("✅ Все endpoints для отображения количества заявок в badge работают корректно")
+            return 0
+        else:
+            print("❌ COURIER BACKEND STABILITY TEST FAILED!")
+            print("❌ Some courier backend functionality needs attention")
+            return 1
+            
+    except Exception as e:
+        print(f"❌ Test failed with exception: {e}")
+        return 1
 
 if __name__ == "__main__":
     sys.exit(main())
