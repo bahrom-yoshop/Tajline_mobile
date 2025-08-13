@@ -9497,6 +9497,7 @@ function App() {
             </div>
           </div>
         </header>
+        )}
 
         {/* Main Content */}
         <main className="container mx-auto px-4 py-8">
