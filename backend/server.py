@@ -12750,18 +12750,13 @@ async def accept_courier_request(
         # ИСПРАВЛЕНИЕ: Любой курьер может принять заявку на забор груза со статусом "pending"
         # без предварительного назначения
         can_accept = request.get("request_status") == "pending"
-        print(f"🔍 DEBUG: Pickup request - status: {request.get('request_status')}, can_accept: {can_accept}")
     else:  # delivery
         can_accept = (
             request.get("assigned_courier_id") == courier["id"] or 
             (request.get("assigned_courier_id") is None and request.get("request_status") == "pending")
         )
-        print(f"🔍 DEBUG: Delivery request - can_accept: {can_accept}")
-    
-    print(f"🔍 DEBUG: Final can_accept: {can_accept}, request_type: {request_type}")
     
     if not can_accept:
-        print(f"🔍 DEBUG: Request details - status: {request.get('request_status')}, assigned_courier: {request.get('assigned_courier_id')}")
         raise HTTPException(status_code=403, detail="Request not available for acceptance")
     
     try:
