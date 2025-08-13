@@ -17409,7 +17409,19 @@ function App() {
                         </div>
                         
                         {/* Кнопка "Показать все на карте" */}
-                        <div className="mt-4 pt-4 border-t border-blue-200">
+                        <div className="mt-4 pt-4 border-t border-blue-200 space-y-2">
+                          <Button
+                            onClick={() => setIsMapOpen(!isMapOpen)}
+                            variant={isMapOpen ? "default" : "outline"}
+                            className={`w-full ${isMapOpen 
+                              ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                              : 'border-blue-300 text-blue-700 hover:bg-blue-100'
+                            }`}
+                          >
+                            <MapPin className="mr-2 h-4 w-4" />
+                            {isMapOpen ? 'Скрыть интерактивную карту' : 'Показать интерактивную карту'}
+                          </Button>
+                          
                           <Button
                             onClick={() => {
                               const allAddresses = courierRequests.map(req => req.pickup_address).join(' | ');
@@ -17421,7 +17433,7 @@ function App() {
                             className="w-full border-blue-300 text-blue-700 hover:bg-blue-100"
                           >
                             <MapPin className="mr-2 h-4 w-4" />
-                            Показать все адреса на Яндекс Карте
+                            Открыть все адреса в Яндекс.Картах
                           </Button>
                         </div>
                       </CardContent>
