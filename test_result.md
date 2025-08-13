@@ -3088,13 +3088,14 @@ metadata:
 
 test_plan:
   current_focus:
-    - "GPS Tracking Functions Implementation"
-    - "CourierGPSTracker React Component"
-    - "Courier Dashboard GPS Integration"
-    - "Real-time GPS Functionality Implementation"
-    - "Courier Status Management System"
-    - "Courier Tracking State Management"
-    - "Frontend Stability After GPS Tracking Integration"
+    - "CourierTrackingMap Component Implementation"
+    - "Admin/Operator Navigation Menu Addition"
+    - "Courier Tracking Sections Implementation"
+    - "Backend API Integration for Courier Locations"
+    - "Real-time Auto-refresh Functionality"
+    - "Interactive Map Features Implementation"
+    - "Status Management and Visual Indicators"
+    - "Frontend Stability After Courier Tracking Map Integration"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
