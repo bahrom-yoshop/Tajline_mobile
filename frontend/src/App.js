@@ -1679,7 +1679,10 @@ function App() {
     pickup_time_from: '',  // Время забора с (HH:MM)
     pickup_time_to: '',  // Время забора до (HH:MM)
     delivery_method: 'pickup',  // Способ получения груза (pickup/home_delivery)
-    courier_fee: ''  // Стоимость курьерских услуг
+    courier_fee: '',  // Стоимость курьерских услуг
+    // НОВЫЕ ПОЛЯ ДЛЯ РЕЖИМА ЗАБОРА ГРУЗА
+    pickup_time_from: '',  // Время забора с (HH:MM)
+    pickup_time_to: ''     // Время забора до (HH:MM)
   });
   // Operator cargo management states
   const [operatorCargo, setOperatorCargo] = useState([]);
