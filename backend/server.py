@@ -12613,8 +12613,15 @@ async def cancel_courier_request(
     if not request:
         raise HTTPException(status_code=404, detail="Request not found")
     
-    if request.get("assigned_courier_id") != courier["id"]:
-        raise HTTPException(status_code=403, detail="Request not assigned to you")
+    # Проверяем что заявка может быть отменена этим курьером
+    # Курьер может отменить заявку если она назначена ему или он может ее принять
+    can_cancel = (
+        request.get("assigned_courier_id") == courier["id"] or 
+        (request.get("assigned_courier_id") is None and request.get("request_status") == "pending")
+    )
+    
+    if not can_cancel:
+        raise HTTPException(status_code=403, detail="Request not available for cancellation")
     
     try:
         # Обновляем статус заявки
