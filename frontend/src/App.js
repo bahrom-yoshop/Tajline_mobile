@@ -17310,10 +17310,49 @@ function App() {
                               <p className="text-sm font-medium">{request.cargo_name}</p>
                             </div>
                             
+                            {/* Информация об отправителе */}
+                            <div className="bg-gray-50 p-2 rounded">
+                              <Label className="text-xs font-medium text-gray-500">Отправитель</Label>
+                              <p className="text-xs font-medium">{request.sender_full_name}</p>
+                              <p className="text-xs text-gray-600">{request.sender_phone}</p>
+                            </div>
+                            
+                            {/* Получатель если есть */}
+                            {(request.recipient_full_name || request.recipient_phone) && (
+                              <div className="bg-blue-50 p-2 rounded">
+                                <Label className="text-xs font-medium text-blue-600">Получатель</Label>
+                                <p className="text-xs font-medium">{request.recipient_full_name || 'Не указан'}</p>
+                                <p className="text-xs text-blue-600">{request.recipient_phone || 'Не указан'}</p>
+                              </div>
+                            )}
+                            
                             <div>
                               <Label className="text-sm font-medium text-gray-500">Адрес забора</Label>
                               <p className="text-sm text-gray-700">{request.pickup_address}</p>
                             </div>
+                            
+                            {/* Информация о грузах в таблице если есть несколько */}
+                            {request.cargo_items && Array.isArray(request.cargo_items) && request.cargo_items.length > 1 ? (
+                              <div>
+                                <Label className="text-sm font-medium text-gray-500">Грузы ({request.cargo_items.length})</Label>
+                                <div className="mt-1 text-xs space-y-1 max-h-20 overflow-y-auto">
+                                  {request.cargo_items.map((item, index) => (
+                                    <div key={index} className="flex justify-between bg-gray-50 p-1 rounded">
+                                      <span>{item.name}</span>
+                                      <span>{item.weight}кг × {item.price_per_kg}₽ = {item.total_price}₽</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              /* Отображение одного груза */
+                              request.total_weight && (
+                                <div>
+                                  <Label className="text-sm font-medium text-gray-500">Вес / Стоимость</Label>
+                                  <p className="text-sm">{request.total_weight}кг {request.total_value && `/ ${request.total_value}₽`}</p>
+                                </div>
+                              )
+                            )}
                             
                             <div className="grid grid-cols-2 gap-3">
                               <div>
@@ -17328,7 +17367,7 @@ function App() {
 
                             {request.courier_fee && (
                               <div>
-                                <Label className="text-sm font-medium text-gray-500">Оплата</Label>
+                                <Label className="text-sm font-medium text-gray-500">Оплата курьеру</Label>
                                 <p className="text-sm font-medium text-green-600">{request.courier_fee} ₽</p>
                               </div>
                             )}
