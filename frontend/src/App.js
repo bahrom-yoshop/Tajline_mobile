@@ -17977,6 +17977,21 @@ function App() {
                                 )}
                               </div>
                             </div>
+                            
+                            {/* Кнопка восстановления заявки */}
+                            <div className="pt-3 border-t">
+                              <Button 
+                                onClick={() => handleRestoreRequest(request.id)}
+                                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                                size="lg"
+                              >
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Восстановить заявку
+                              </Button>
+                              <p className="text-xs text-gray-500 text-center mt-2">
+                                Заявка вернется в "Новые заявки"
+                              </p>
+                            </div>
                           </CardContent>
                         </Card>
                       ))}
