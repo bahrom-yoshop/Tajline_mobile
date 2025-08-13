@@ -16620,46 +16620,92 @@ function App() {
                     </Card>
                   )}
 
-                  {/* Быстрые действия */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Button 
-                      onClick={() => {
-                        setActiveSection('courier-requests');
-                        setActiveTab('courier-requests');
-                      }}
-                      className="h-20 flex flex-col items-center justify-center"
-                      variant="outline"
-                    >
-                      <Package className="h-6 w-6 mb-2" />
-                      <span>Новые заявки</span>
-                      <span className="text-xs text-gray-500">{courierRequests.length} заявок</span>
-                    </Button>
+                  {/* УЛУЧШЕННЫЙ Информационный контейнер с кнопками */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => {
+                      setActiveSection('courier-requests');
+                      setActiveTab('courier-requests');
+                    }}>
+                      <CardContent className="p-4 text-center">
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className="relative">
+                            <Package className="h-8 w-8 text-blue-600" />
+                            {courierRequests.length > 0 && (
+                              <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full">
+                                {courierRequests.length}
+                              </Badge>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Новые заявки</p>
+                            <p className="text-xs text-gray-500">{courierRequests.length} заявок</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                    <Button 
-                      onClick={() => {
-                        setActiveSection('courier-accepted');
-                        setActiveTab('courier-accepted');
-                      }}
-                      className="h-20 flex flex-col items-center justify-center"
-                      variant="outline"
-                    >
-                      <CheckCircle className="h-6 w-6 mb-2" />
-                      <span>К забору</span>
-                      <span className="text-xs text-gray-500">{acceptedRequests.length} грузов</span>
-                    </Button>
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => {
+                      setActiveSection('courier-accepted');
+                      setActiveTab('courier-accepted');
+                    }}>
+                      <CardContent className="p-4 text-center">
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className="relative">
+                            <CheckCircle className="h-8 w-8 text-green-600" />
+                            {acceptedRequests.length > 0 && (
+                              <Badge className="absolute -top-2 -right-2 bg-green-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full">
+                                {acceptedRequests.length}
+                              </Badge>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">К забору</p>
+                            <p className="text-xs text-gray-500">{acceptedRequests.length} грузов</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                    <Button 
-                      onClick={() => {
-                        setActiveSection('courier-picked');
-                        setActiveTab('courier-picked');
-                      }}
-                      className="h-20 flex flex-col items-center justify-center"
-                      variant="outline"
-                    >
-                      <Truck className="h-6 w-6 mb-2" />
-                      <span>К сдаче</span>
-                      <span className="text-xs text-gray-500">{pickedRequests.length} грузов</span>
-                    </Button>
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => {
+                      setActiveSection('courier-picked');
+                      setActiveTab('courier-picked');
+                    }}>
+                      <CardContent className="p-4 text-center">
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className="relative">
+                            <Truck className="h-8 w-8 text-orange-600" />
+                            {pickedRequests.length > 0 && (
+                              <Badge className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full">
+                                {pickedRequests.length}
+                              </Badge>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">К сдаче</p>
+                            <p className="text-xs text-gray-500">{pickedRequests.length} грузов</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => {
+                      showAlert('Уведомления: У вас нет новых уведомлений', 'info');
+                    }}>
+                      <CardContent className="p-4 text-center">
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className="relative">
+                            <Bell className="h-8 w-8 text-purple-600" />
+                            <Badge className="absolute -top-2 -right-2 bg-gray-400 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full">
+                              0
+                            </Badge>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Уведомления</p>
+                            <p className="text-xs text-gray-500">Нет новых</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
                 </div>
               )}
