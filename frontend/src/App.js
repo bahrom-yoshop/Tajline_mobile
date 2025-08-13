@@ -602,6 +602,14 @@ function App() {
   const updateRequestCargoItem = (index, field, value) => {
     const newItems = [...requestEditForm.cargo_items];
     newItems[index][field] = value;
+    
+    // Автоматический расчет общей стоимости при изменении веса или цены за кг
+    if (field === 'weight' || field === 'price_per_kg') {
+      const weight = parseFloat(field === 'weight' ? value : newItems[index].weight) || 0;
+      const pricePerKg = parseFloat(field === 'price_per_kg' ? value : newItems[index].price_per_kg) || 0;
+      newItems[index].total_price = (weight * pricePerKg).toFixed(2);
+    }
+    
     setRequestEditForm({
       ...requestEditForm,
       cargo_items: newItems
