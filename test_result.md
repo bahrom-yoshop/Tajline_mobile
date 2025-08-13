@@ -2990,10 +2990,12 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Yandex Maps API Integration"
-    - "Address Block Enhancement for Courier Interface"  
-    - "Interactive Map Features Implementation"
-    - "Backend Stability After Maps Integration"
+    - "Courier Location Model and Status System"
+    - "Courier Location Update API Endpoint"
+    - "Admin Couriers Locations API Endpoint"  
+    - "Operator Couriers Locations API Endpoint"
+    - "Courier Location Status Check API Endpoint"
+    - "Backend Stability After Location Tracking Implementation"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
