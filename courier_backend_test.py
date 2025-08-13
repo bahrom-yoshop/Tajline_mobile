@@ -148,8 +148,19 @@ class CourierBackendTester:
             
             # Verify response structure for badge count
             if isinstance(requests_response, dict):
-                # Check for pagination structure
-                if 'items' in requests_response:
+                # Check for courier-specific response structure
+                if 'new_requests' in requests_response and 'total_count' in requests_response:
+                    new_requests = requests_response['new_requests']
+                    total_count = requests_response.get('total_count', 0)
+                    courier_info = requests_response.get('courier_info', {})
+                    
+                    print(f"   📊 New requests found: {total_count}")
+                    print(f"   📋 New requests items: {len(new_requests) if isinstance(new_requests, list) else 0}")
+                    print(f"   👤 Courier info present: {'Yes' if courier_info else 'No'}")
+                    print("   ✅ Courier-specific response structure correct for badge count calculation")
+                    
+                elif 'items' in requests_response:
+                    # Standard pagination structure
                     requests_items = requests_response['items']
                     total_count = requests_response.get('total_count', 0)
                     print(f"   📊 New requests found: {total_count}")
@@ -172,6 +183,7 @@ class CourierBackendTester:
                     print("   ✅ Direct list response format")
                 else:
                     print("   ❌ Unexpected response format for new requests")
+                    print(f"   📄 Response keys: {list(requests_response.keys())}")
                     all_success = False
             else:
                 print("   ❌ Response is not in expected format")
