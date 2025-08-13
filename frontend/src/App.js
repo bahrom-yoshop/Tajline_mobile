@@ -8840,6 +8840,12 @@ function App() {
         section: 'courier-picked'
       },
       {
+        id: 'courier-chat',
+        label: 'Чат с поддержкой',
+        icon: <MessageCircle className="w-5 h-5" />,
+        section: 'courier-chat'
+      },
+      {
         id: 'courier-history',
         label: 'История заявок',
         icon: <Clock className="w-5 h-5" />,
