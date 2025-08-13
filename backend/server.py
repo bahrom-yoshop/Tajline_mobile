@@ -1452,6 +1452,30 @@ def generate_request_number() -> str:
     """Генерировать номер заявки"""
     return f"REQ{datetime.now().strftime('%Y%m%d')}{str(uuid.uuid4())[:8].upper()}"
 
+def generate_courier_request_number() -> str:
+    """Генерируем читаемый номер заявки курьера формата 100001, 100002, 100003..."""
+    try:
+        # Ищем последнюю заявку курьера с номером для определения следующего номера
+        last_request = db.courier_requests.find_one(
+            {"request_number": {"$regex": "^[0-9]{6}$"}},
+            sort=[("request_number", -1)]
+        )
+        
+        if last_request and last_request.get("request_number"):
+            # Получаем следующий номер
+            last_number = int(last_request["request_number"])
+            new_number = last_number + 1
+        else:
+            # Начинаем с номера 100001
+            new_number = 100001
+        
+        return f"{new_number:06d}"
+        
+    except Exception as e:
+        # В случае ошибки, генерируем случайный номер начиная с 100001
+        import random
+        return f"{random.randint(100001, 999999):06d}"
+
 def generate_warehouse_structure(warehouse_id: str, warehouse_id_number: str, blocks_count: int, shelves_per_block: int, cells_per_shelf: int):
     """Generate warehouse structure with blocks, shelves and cells using ID numbers"""
     cells = []
