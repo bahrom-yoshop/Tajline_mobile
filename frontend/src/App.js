@@ -740,6 +740,55 @@ function App() {
       showAlert('QR код отправлен на печать', 'success');
     }
   };
+  
+  // НОВЫЕ ФУНКЦИИ ДЛЯ СВЯЗИ С ОТПРАВИТЕЛЕМ
+  const handleContactSender = (request) => {
+    setContactSender({
+      full_name: request.sender_full_name,
+      phone: request.sender_phone,
+      cargo_name: request.cargo_name,
+      pickup_address: request.pickup_address
+    });
+    setSenderContactModal(true);
+  };
+  
+  const handleWhatsApp = () => {
+    if (contactSender?.phone) {
+      const cleanPhone = contactSender.phone.replace(/[^\d]/g, '');
+      const message = encodeURIComponent(
+        `Здравствуйте! Я курьер, приеду забрать груз "${contactSender.cargo_name}" по адресу: ${contactSender.pickup_address}`
+      );
+      const whatsappUrl = `https://wa.me/${cleanPhone}?text=${message}`;
+      window.open(whatsappUrl, '_blank');
+      setSenderContactModal(false);
+    }
+  };
+  
+  const handleTelegram = () => {
+    if (contactSender?.phone) {
+      const cleanPhone = contactSender.phone.replace(/[^\d]/g, '');
+      const message = encodeURIComponent(
+        `Здравствуйте! Я курьер, приеду забрать груз "${contactSender.cargo_name}" по адресу: ${contactSender.pickup_address}`
+      );
+      const telegramUrl = `https://t.me/+${cleanPhone}?text=${message}`;
+      window.open(telegramUrl, '_blank');
+      setSenderContactModal(false);
+    }
+  };
+  
+  const handleOnlineChat = () => {
+    // Здесь можно реализовать встроенный чат или перенаправить на страницу чата
+    showAlert(`Онлайн чат с ${contactSender?.full_name} будет доступен в ближайшее время`, 'info');
+    setSenderContactModal(false);
+  };
+  
+  const handlePhoneCall = () => {
+    if (contactSender?.phone) {
+      const phoneUrl = `tel:${contactSender.phone}`;
+      window.location.href = phoneUrl;
+      setSenderContactModal(false);
+    }
+  };
 
   // Функция для генерации QR кода отдельной ячейки
   const generateSingleCellQR = async () => {
