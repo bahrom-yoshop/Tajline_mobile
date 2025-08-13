@@ -18335,11 +18335,21 @@ function App() {
                             <div className="grid grid-cols-2 gap-3">
                               <div>
                                 <Label className="text-sm font-medium text-gray-500">Дата</Label>
-                                <p className="text-sm">{new Date(request.pickup_date).toLocaleDateString('ru-RU')}</p>
+                                <p className="text-sm">
+                                  {request.pickup_date 
+                                    ? new Date(request.pickup_date).toLocaleDateString('ru-RU')
+                                    : 'Не указана'
+                                  }
+                                </p>
                               </div>
                               <div>
                                 <Label className="text-sm font-medium text-gray-500">Время</Label>
-                                <p className="text-sm">{request.pickup_time_from} - {request.pickup_time_to}</p>
+                                <p className="text-sm">
+                                  {request.pickup_time_from && request.pickup_time_to 
+                                    ? `${request.pickup_time_from} - ${request.pickup_time_to}`
+                                    : (request.pickup_time || 'Не указано')
+                                  }
+                                </p>
                               </div>
                             </div>
 
