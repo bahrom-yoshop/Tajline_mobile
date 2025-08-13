@@ -16772,8 +16772,8 @@ function App() {
                             )}
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">К забору</p>
-                            <p className="text-xs text-gray-500">{acceptedRequests.length} грузов</p>
+                            <p className="text-sm font-medium text-gray-900">Принятые заявки</p>
+                            <p className="text-xs text-gray-500">{acceptedRequests.length} заявок</p>
                           </div>
                         </div>
                       </CardContent>
