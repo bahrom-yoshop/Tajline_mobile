@@ -17,6 +17,7 @@ import DataPagination from './components/DataPagination'; // Новый комп
 import YandexMap from './components/YandexMap'; // Компонент Яндекс.Карт
 import CourierGPSTracker from './components/CourierGPSTracker'; // Компонент GPS отслеживания
 import CourierTrackingMap from './components/CourierTrackingMap'; // Компонент карты отслеживания курьеров
+import CourierHistoryAnalytics from './components/CourierHistoryAnalytics'; // Компонент истории и аналитики курьеров
 import { 
   Truck, Package, Users, Bell, Search, Plus, Edit, Trash2, CheckCircle, 
   Clock, MapPin, User, Shield, Warehouse, Menu, X, Building, 
