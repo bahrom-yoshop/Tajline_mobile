@@ -17349,6 +17349,80 @@ function App() {
               {activeSection === 'courier-requests' && user?.role === 'courier' && (
                 <div className="space-y-6">
                   {/* Убрали кнопку обновления */}
+                  
+                  {/* НОВЫЙ БЛОК: Адреса всех заявок для навигации */}
+                  {courierRequests.length > 0 && (
+                    <Card className="border-blue-200 bg-blue-50">
+                      <CardHeader>
+                        <CardTitle className="flex items-center text-blue-800">
+                          <MapPin className="mr-2 h-5 w-5" />
+                          Адреса заявок ({courierRequests.length})
+                        </CardTitle>
+                        <CardDescription className="text-blue-600">
+                          Нажмите на адрес, чтобы открыть в Яндекс Картах
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {courierRequests.map((request, index) => (
+                            <div 
+                              key={request.id}
+                              className="bg-white p-3 rounded-lg border border-blue-200 hover:shadow-md transition-shadow cursor-pointer"
+                              onClick={() => {
+                                const address = encodeURIComponent(request.pickup_address);
+                                const yandexMapsUrl = `https://yandex.ru/maps/?text=${address}&mode=search`;
+                                window.open(yandexMapsUrl, '_blank');
+                              }}
+                            >
+                              <div className="flex items-start space-x-3">
+                                <div className="flex-shrink-0">
+                                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <span className="text-sm font-semibold text-blue-600">{index + 1}</span>
+                                  </div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {request.sender_full_name}
+                                  </p>
+                                  <p className="text-xs text-blue-600 font-medium">
+                                    №{request.request_number || request.id.slice(0, 6)}
+                                  </p>
+                                  <p className="text-xs text-gray-600 mt-1 leading-tight">
+                                    {request.pickup_address}
+                                  </p>
+                                  <div className="flex items-center mt-2 space-x-2">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                      {request.pickup_time_from} - {request.pickup_time_to}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex-shrink-0">
+                                  <MapPin className="h-4 w-4 text-blue-500" />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* Кнопка "Показать все на карте" */}
+                        <div className="mt-4 pt-4 border-t border-blue-200">
+                          <Button
+                            onClick={() => {
+                              const allAddresses = courierRequests.map(req => req.pickup_address).join(' | ');
+                              const encodedAddresses = encodeURIComponent(allAddresses);
+                              const yandexMapsUrl = `https://yandex.ru/maps/?text=${encodedAddresses}&mode=search`;
+                              window.open(yandexMapsUrl, '_blank');
+                            }}
+                            variant="outline"
+                            className="w-full border-blue-300 text-blue-700 hover:bg-blue-100"
+                          >
+                            <MapPin className="mr-2 h-4 w-4" />
+                            Показать все адреса на Яндекс Карте
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {courierRequests.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
