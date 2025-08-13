@@ -8895,7 +8895,7 @@ function App() {
       },
       {
         id: 'courier-accepted',
-        label: 'Принятые грузы',
+        label: 'Принятые заявки',
         icon: <CheckCircle className="w-5 h-5" />,
         section: 'courier-accepted'
       },
