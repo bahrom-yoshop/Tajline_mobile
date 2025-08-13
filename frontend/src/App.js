@@ -17022,12 +17022,7 @@ function App() {
               {/* Новые заявки курьера */}
               {activeSection === 'courier-requests' && user?.role === 'courier' && (
                 <div className="space-y-6">
-                  <div className="flex justify-end items-center">
-                    <Button onClick={fetchCourierNewRequests} variant="outline">
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Обновить список
-                    </Button>
-                  </div>
+                  {/* Убрали кнопку обновления */}
 
                   {courierRequests.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
