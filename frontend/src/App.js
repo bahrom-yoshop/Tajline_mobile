@@ -17163,7 +17163,17 @@ function App() {
                             </div>
                           </CardContent>
 
-                          <div className="px-6 pb-6">
+                          <div className="px-6 pb-6 space-y-3">
+                            <Button 
+                              onClick={() => handleViewRequest(request)}
+                              variant="outline"
+                              className="w-full"
+                              size="lg"
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              Просмотр заявки
+                            </Button>
+                            
                             <Button 
                               onClick={() => handlePickupCargo(request.id)}
                               className="w-full bg-blue-600 hover:bg-blue-700"
