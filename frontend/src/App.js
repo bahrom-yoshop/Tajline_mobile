@@ -18112,8 +18112,15 @@ function App() {
                             </div>
                             
                             <div>
-                              <Label className="text-sm font-medium text-gray-500">Груз</Label>
-                              <p className="text-sm">{request.cargo_name}</p>
+                              <Label className="text-sm font-medium text-gray-500">
+                                {request.request_type === 'pickup' ? 'Назначение груза' : 'Груз'}
+                              </Label>
+                              <p className="text-sm">
+                                {request.request_type === 'pickup' 
+                                  ? (request.destination || request.route || 'Не указано')
+                                  : (request.cargo_name || 'Не указано')
+                                }
+                              </p>
                             </div>
                             
                             <div>
