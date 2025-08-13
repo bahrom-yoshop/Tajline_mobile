@@ -3162,6 +3162,8 @@ function App() {
       } else if (user.role === 'courier') {
         // НОВОЕ: Загрузка данных для курьера (Этап 3)
         fetchCourierNewRequests(); // Загрузка новых заявок
+        fetchAcceptedRequests(); // Загрузка принятых заявок
+        fetchPickedRequests(); // Загрузка забранных грузов
         fetchNotifications(); // Уведомления для курьера
       } else {
         fetchMyCargo();
