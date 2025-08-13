@@ -9065,12 +9065,11 @@ function App() {
             <div className="flex items-center">
               <img 
                 src="https://customer-assets.emergentagent.com/job_tajline-courier/artifacts/st3odbr7_Logo_line.png" 
-                alt="TAJLINE Logo" 
+                alt="Logo" 
                 className="h-8 w-auto mr-2"
               />
               <div>
-                <span className="text-lg font-bold text-gray-900">TAJLINE</span>
-                <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">КУРЬЕР</Badge>
+                <Badge className="bg-blue-100 text-blue-800 text-xs">КУРЬЕР</Badge>
               </div>
             </div>
             <div className="flex items-center space-x-2">
