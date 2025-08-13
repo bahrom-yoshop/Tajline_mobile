@@ -18498,18 +18498,6 @@ function App() {
                                       >
                                         <Eye className="h-4 w-4" />
                                       </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          if (window.confirm('Вы уверены, что хотите удалить этого курьера?')) {
-                                            deleteCourier(courier.id);
-                                          }
-                                        }}
-                                        className="text-red-600 hover:text-red-700"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
                                     </div>
                                   </TableCell>
                                 </TableRow>
