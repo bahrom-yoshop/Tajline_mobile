@@ -26130,11 +26130,21 @@ function App() {
                 <div className="grid grid-cols-2 gap-4 mt-4">
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Дата забора</Label>
-                    <p className="text-sm">{new Date(selectedRequest.pickup_date).toLocaleDateString('ru-RU')}</p>
+                    <p className="text-sm">
+                      {selectedRequest.pickup_date 
+                        ? new Date(selectedRequest.pickup_date).toLocaleDateString('ru-RU')
+                        : 'Не указана'
+                      }
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Время забора</Label>
-                    <p className="text-sm">{selectedRequest.pickup_time_from} - {selectedRequest.pickup_time_to}</p>
+                    <p className="text-sm">
+                      {selectedRequest.pickup_time_from && selectedRequest.pickup_time_to 
+                        ? `${selectedRequest.pickup_time_from} - ${selectedRequest.pickup_time_to}`
+                        : (selectedRequest.pickup_time || 'Не указано')
+                      }
+                    </p>
                   </div>
                 </div>
               </div>
