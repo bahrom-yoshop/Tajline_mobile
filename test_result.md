@@ -3088,14 +3088,14 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Courier Location History System Implementation"
-    - "Courier History API Endpoints Implementation"
-    - "ETA Calculation API Implementation"
-    - "Courier Analytics API Implementation"
-    - "CourierHistoryAnalytics React Component Implementation"
-    - "History Analytics Navigation Integration"
-    - "Calculate Distance Helper Function Implementation"
-    - "Backend Stability After History and ETA Integration"
+    - "Pickup Mode Toggle Implementation"
+    - "Simplified Pickup Form Implementation"
+    - "Multiple Phone Numbers Feature"
+    - "Pickup Request Backend API Endpoints"
+    - "Notification System for Pickup Requests"
+    - "Frontend Form Submission Handler"
+    - "Form State Management Updates"
+    - "Backend Stability After Pickup Request Integration"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
