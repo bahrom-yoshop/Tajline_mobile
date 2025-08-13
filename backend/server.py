@@ -13092,6 +13092,76 @@ async def update_courier_request(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating request: {str(e)}")
 
+@app.put("/api/courier/requests/{request_id}/restore")
+async def restore_cancelled_request(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Восстановить отмененную заявку (вернуть в статус 'pending')"""
+    if current_user.role != UserRole.COURIER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Получаем профиль курьера
+    courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not courier:
+        raise HTTPException(status_code=404, detail="Courier profile not found")
+    
+    # Получаем отмененную заявку
+    request = db.courier_requests.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    # Проверяем что заявка отменена
+    if request.get("request_status") != "cancelled":
+        raise HTTPException(status_code=400, detail="Request is not cancelled")
+    
+    try:
+        current_time = datetime.utcnow()
+        
+        # Обновляем статус заявки на 'pending' (новая)
+        update_result = db.courier_requests.update_one(
+            {"id": request_id},
+            {
+                "$set": {
+                    "request_status": "pending",
+                    "assigned_courier_id": None,  # Убираем назначение курьера
+                    "assigned_courier_name": None,
+                    "cancelled_by": None,
+                    "cancelled_at": None,
+                    "cancellation_reason": None,
+                    "restored_at": current_time,
+                    "restored_by": current_user.id,
+                    "restored_by_courier": courier["full_name"],
+                    "updated_at": current_time
+                }
+            }
+        )
+        
+        if update_result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Request not found")
+        
+        # Создаем уведомление оператору о восстановлении заявки
+        if request.get("created_by"):
+            create_notification(
+                user_id=request["created_by"],
+                message=f"Курьер {courier['full_name']} восстановил отмененную заявку №{request.get('request_number', request_id)}",
+                related_id=request_id
+            )
+        
+        # Добавляем уведомление всем админам
+        admins = list(db.users.find({"role": "admin"}, {"_id": 0}))
+        for admin in admins:
+            create_notification(
+                user_id=admin["id"],
+                message=f"Заявка №{request.get('request_number', request_id)} восстановлена курьером {courier['full_name']}",
+                related_id=request_id
+            )
+        
+        return {"message": "Request restored successfully", "request_id": request_id}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error restoring request: {str(e)}")
+
 @app.get("/api/admin/couriers/available/{warehouse_id}")
 async def get_available_couriers_for_warehouse(
     warehouse_id: str,
