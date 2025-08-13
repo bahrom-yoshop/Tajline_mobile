@@ -13857,7 +13857,7 @@ function App() {
                         )}
                       </CardHeader>
                       <CardContent>
-                        <form onSubmit={handleAcceptCargo} className="space-y-4 max-w-2xl">
+                        <form onSubmit={isPickupMode ? handlePickupCargoSubmit : handleAcceptCargo} className="space-y-4 max-w-2xl">
                           {isPickupMode ? (
                             /* РЕЖИМ ЗАБОРА ГРУЗА - только необходимые поля */
                             <>
