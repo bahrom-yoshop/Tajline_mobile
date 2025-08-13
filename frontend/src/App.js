@@ -560,9 +560,9 @@ function App() {
     e.preventDefault();
     
     try {
-      // Рассчитываем общий вес и стоимость
+      // Рассчитываем общий вес и стоимость в рублях
       const totalWeight = requestEditForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0);
-      const totalValue = requestEditForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.declared_value) || 0), 0);
+      const totalValue = requestEditForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.total_price) || 0), 0);
       
       const updateData = {
         ...requestEditForm,
