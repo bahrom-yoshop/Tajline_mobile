@@ -689,9 +689,9 @@ function App() {
   
   const handlePrintQR = () => {
     if (selectedRequest) {
-      // Генерируем QR код для номера заявки (используем читаемый номер вместо UUID)
+      // Генерируем QR код ТОЛЬКО с номером заявки в цифрах
       const requestNumber = selectedRequest.request_number || selectedRequest.id;
-      const qrData = `ЗАЯВКА-${requestNumber}`;
+      const qrData = requestNumber; // Только номер заявки без префиксов
       
       // Создаем QR код (используем простую библиотеку или API)
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
