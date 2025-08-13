@@ -24727,7 +24727,7 @@ function App() {
                     <div>
                       <span className="text-blue-600">Общая стоимость:</span>
                       <span className="ml-2 font-medium">
-                        ${requestEditForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.declared_value) || 0), 0).toFixed(2)}
+                        {requestEditForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.total_price) || 0), 0).toFixed(2)} ₽
                       </span>
                     </div>
                   </div>
