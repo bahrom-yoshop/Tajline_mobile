@@ -1285,15 +1285,16 @@ class CargoTransportAPITester:
         
         return all_success
 
-    def test_courier_backend_stability_after_ui_updates(self):
-        """Test courier backend stability after UI updates according to review request"""
-        print("\n🚚 COURIER BACKEND STABILITY AFTER UI UPDATES TESTING")
-        print("   🎯 Быстро протестировать стабильность backend после обновления UI курьера в TAJLINE.TJ")
+    def test_courier_backend_stability_after_notification_bell_removal(self):
+        """Test courier backend stability after removing notification bell and adding cancelled requests category"""
+        print("\n🔔 COURIER BACKEND STABILITY AFTER NOTIFICATION BELL REMOVAL TESTING")
+        print("   🎯 Быстро протестировать стабильность backend после удаления колокольчика уведомлений и добавления категории 'Отмененные заявки' в TAJLINE.TJ")
         print("   🔧 ЗАДАЧИ ТЕСТИРОВАНИЯ:")
         print("   1) COURIER AUTHENTICATION: Проверить вход курьера в систему (+79991234567/courier123)")
-        print("   2) COURIER REQUESTS ENDPOINT: Протестировать endpoint /api/courier/requests/new для получения новых заявок")
-        print("   3) BASIC API ENDPOINTS: Убедиться что основные endpoints для курьеров работают корректно без ошибок")
-        print("   4) BACKEND STABILITY: Проверить что изменения в frontend не повлияли на backend функциональность")
+        print("   2) BASIC COURIER ENDPOINTS: Протестировать основные endpoints:")
+        print("      - /api/courier/requests/new для новых заявок")
+        print("      - /api/courier/requests/cancelled для отмененных заявок (новый endpoint)")
+        print("   3) BACKEND STABILITY: Убедиться что удаление колокольчика уведомлений и кнопок обновления не повлияло на backend функциональность")
         
         all_success = True
         
