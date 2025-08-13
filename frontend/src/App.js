@@ -3128,8 +3128,9 @@ function App() {
   useEffect(() => {
     // ИСПРАВЛЕНИЕ: Проверяем и token и user для избежания race condition
     if (user && token && !isLoggingOut && !isLoggingIn) {
-      fetchNotifications();
       if (user.role === 'admin') {
+        fetchNotifications();
+        fetchUsers();
         fetchUsers();
         fetchAllCargo();
         fetchWarehouses();
