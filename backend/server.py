@@ -12994,6 +12994,104 @@ async def get_courier_cancelled_requests(
         "total_count": len(all_cancelled)
     }
 
+@app.put("/api/courier/requests/{request_id}/update")
+async def update_courier_request(
+    request_id: str,
+    update_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Обновить заявку курьером"""
+    if current_user.role != UserRole.COURIER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Получаем профиль курьера
+    courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not courier:
+        raise HTTPException(status_code=404, detail="Courier profile not found")
+    
+    # Получаем заявку
+    request = db.courier_requests.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    # Проверяем что заявка назначена этому курьеру
+    if request.get("assigned_courier_id") != courier["id"]:
+        raise HTTPException(status_code=403, detail="Request not assigned to you")
+    
+    try:
+        current_time = datetime.utcnow()
+        
+        # Подготавливаем данные для обновления
+        update_fields = {}
+        
+        # Обновляем основную информацию
+        if "sender_full_name" in update_data:
+            update_fields["sender_full_name"] = update_data["sender_full_name"]
+        if "sender_phone" in update_data:
+            update_fields["sender_phone"] = update_data["sender_phone"]
+        if "sender_address" in update_data:
+            update_fields["pickup_address"] = update_data["sender_address"]
+        if "recipient_full_name" in update_data:
+            update_fields["recipient_full_name"] = update_data["recipient_full_name"]
+        if "recipient_phone" in update_data:
+            update_fields["recipient_phone"] = update_data["recipient_phone"]
+        if "recipient_address" in update_data:
+            update_fields["recipient_address"] = update_data["recipient_address"]
+        
+        # Обновляем информацию о грузах
+        if "cargo_items" in update_data and isinstance(update_data["cargo_items"], list):
+            # Объединяем информацию о грузах в общее название
+            cargo_names = [item.get("name", "") for item in update_data["cargo_items"] if item.get("name")]
+            if cargo_names:
+                update_fields["cargo_name"] = ", ".join(cargo_names)
+            
+            # Рассчитываем общий вес и стоимость
+            total_weight = sum(float(item.get("weight", 0)) for item in update_data["cargo_items"])
+            total_value = sum(float(item.get("total_price", 0)) for item in update_data["cargo_items"])
+            
+            if total_weight > 0:
+                update_fields["weight"] = total_weight
+            if total_value > 0:
+                update_fields["total_value"] = total_value
+        
+        # Обновляем информацию об оплате
+        if "payment_method" in update_data:
+            update_fields["payment_method"] = update_data["payment_method"]
+        if "payment_received" in update_data:
+            update_fields["payment_received"] = update_data["payment_received"]
+            update_fields["payment_status"] = "paid" if update_data["payment_received"] else "not_paid"
+        
+        # Обновляем способ доставки
+        if "delivery_method" in update_data:
+            update_fields["delivery_method"] = update_data["delivery_method"]
+        if "special_instructions" in update_data:
+            update_fields["special_instructions"] = update_data["special_instructions"]
+        
+        # Добавляем время обновления
+        update_fields["updated_at"] = current_time
+        
+        # Обновляем заявку в базе данных
+        result = db.courier_requests.update_one(
+            {"id": request_id},
+            {"$set": update_fields}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Request not found")
+        
+        # Создаем уведомление оператору об обновлении заявки
+        if request.get("created_by"):
+            create_notification(
+                user_id=request["created_by"],
+                message=f"Курьер {courier['full_name']} обновил информацию по заявке №{request.get('request_number', request_id)}",
+                related_id=request_id
+            )
+        
+        return {"message": "Request updated successfully", "request_id": request_id}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating request: {str(e)}")
+
 @app.get("/api/admin/couriers/available/{warehouse_id}")
 async def get_available_couriers_for_warehouse(
     warehouse_id: str,
