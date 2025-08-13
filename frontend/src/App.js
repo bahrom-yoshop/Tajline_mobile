@@ -16655,7 +16655,7 @@ function App() {
 
               {/* НОВЫЕ СЕКЦИИ ДЛЯ КУРЬЕРА (ЭТАП 3) */}
               
-              {/* УПРОЩЕННАЯ Главная страница курьера */}
+              {/* УПРОЩЕННАЯ Главная страница курьера - ТОЛЬКО КНОПКИ */}
               {activeSection === 'courier-dashboard' && user?.role === 'courier' && (
                 <div className="space-y-6 p-4 md:p-6">
                   <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-4 md:space-y-0">
@@ -16675,45 +16675,6 @@ function App() {
                       Обновить данные
                     </Button>
                   </div>
-
-                  {/* Информация о курьере - БЕЗ АНАЛИТИКИ */}
-                  {selectedCourier && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Мои данные</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <Label className="text-sm font-medium text-gray-500">ФИО</Label>
-                            <p className="text-sm font-medium">{selectedCourier.full_name}</p>
-                          </div>
-                          <div>
-                            <Label className="text-sm font-medium text-gray-500">Телефон</Label>
-                            <p className="text-sm">{selectedCourier.phone}</p>
-                          </div>
-                          <div>
-                            <Label className="text-sm font-medium text-gray-500">Транспорт</Label>
-                            <p className="text-sm">{selectedCourier.transport_type} {selectedCourier.transport_number}</p>
-                          </div>
-                          <div>
-                            <Label className="text-sm font-medium text-gray-500">Грузоподъемность</Label>
-                            <p className="text-sm">{selectedCourier.transport_capacity} кг</p>
-                          </div>
-                          <div>
-                            <Label className="text-sm font-medium text-gray-500">Склад</Label>
-                            <p className="text-sm">{selectedCourier.assigned_warehouse_name}</p>
-                          </div>
-                          <div>
-                            <Label className="text-sm font-medium text-gray-500">Статус</Label>
-                            <Badge variant={selectedCourier.is_active ? "default" : "secondary"}>
-                              {selectedCourier.is_active ? 'Активен' : 'Неактивен'}
-                            </Badge>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
 
                   {/* УЛУЧШЕННЫЙ Информационный контейнер с кнопками */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
