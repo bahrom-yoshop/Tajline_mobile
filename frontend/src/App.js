@@ -9365,39 +9365,40 @@ function App() {
             : ''
       } transition-all duration-300`}>
         
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="flex items-center mr-6">
-                  <img 
-                    src="/logo.png" 
-                    alt="TAJLINE.TJ" 
-                    className="h-10 w-auto"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'block';
-                    }}
-                  />
-                  <div className="hidden flex items-center">
-                    <div className="bg-blue-600 text-white p-2 rounded-lg mr-3">
-                      <Truck className="h-8 w-8" />
-                    </div>
-                    <div>
-                      <h1 className="text-2xl font-bold text-blue-600">TAJLINE.TJ</h1>
-                      <p className="text-sm text-gray-600">Грузоперевозки Москва-Таджикистан</p>
+        {/* Header - СКРЫТ ДЛЯ КУРЬЕРОВ */}
+        {user && user.role !== 'courier' && (
+          <header className="bg-white shadow-sm border-b">
+            <div className="container mx-auto px-4 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="flex items-center mr-6">
+                    <img 
+                      src="/logo.png" 
+                      alt="TAJLINE.TJ" 
+                      className="h-10 w-auto"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'block';
+                      }}
+                    />
+                    <div className="hidden flex items-center">
+                      <div className="bg-blue-600 text-white p-2 rounded-lg mr-3">
+                        <Truck className="h-8 w-8" />
+                      </div>
+                      <div>
+                        <h1 className="text-2xl font-bold text-blue-600">TAJLINE.TJ</h1>
+                        <p className="text-sm text-gray-600">Грузоперевозки Москва-Таджикистан</p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  {getRoleIcon(user.role)}
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">{user.full_name}</span>
-                    {user.user_number && (
+                
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    {getRoleIcon(user.role)}
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">{user.full_name}</span>
+                      {user.user_number && (
                       <span className="text-xs text-gray-500">№ {user.user_number}</span>
                     )}
                   </div>
