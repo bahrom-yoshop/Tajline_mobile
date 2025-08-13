@@ -17358,10 +17358,7 @@ function App() {
               {/* История заявок курьера */}
               {activeSection === 'courier-history' && user?.role === 'courier' && (
                 <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">История заявок</h2>
-                    <p className="text-gray-600">Все выполненные и отклоненные заявки</p>
-                  </div>
+                  {/* Убрали заголовок */}
 
                   <Card>
                     <CardContent className="flex flex-col items-center justify-center py-12">
