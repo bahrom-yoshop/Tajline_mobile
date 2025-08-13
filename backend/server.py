@@ -44,6 +44,108 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 часа для улучшенной с
 
 security = HTTPBearer()
 
+# WebSocket Connection Manager для real-time отслеживания курьеров
+class ConnectionManager:
+    def __init__(self):
+        # Словарь подключений: user_id -> {"websocket": WebSocket, "role": str, "warehouse_ids": List[str]}
+        self.connections: Dict[str, Dict] = {}
+        
+    async def connect(self, websocket: WebSocket, user_id: str, user_role: str, warehouse_ids: List[str] = None):
+        """Подключить WebSocket клиента"""
+        await websocket.accept()
+        self.connections[user_id] = {
+            "websocket": websocket,
+            "role": user_role,
+            "warehouse_ids": warehouse_ids or [],
+            "connected_at": datetime.utcnow()
+        }
+        print(f"📡 WebSocket connected: User {user_id} (role: {user_role})")
+        
+    def disconnect(self, user_id: str):
+        """Отключить WebSocket клиента"""
+        if user_id in self.connections:
+            del self.connections[user_id]
+            print(f"📡 WebSocket disconnected: User {user_id}")
+    
+    async def send_personal_message(self, message: dict, user_id: str):
+        """Отправить сообщение конкретному пользователю"""
+        if user_id in self.connections:
+            try:
+                websocket = self.connections[user_id]["websocket"]
+                await websocket.send_text(json.dumps(message))
+            except Exception as e:
+                print(f"❌ Error sending message to {user_id}: {e}")
+                self.disconnect(user_id)
+    
+    async def broadcast_to_admins(self, message: dict):
+        """Отправить сообщение всем админам"""
+        disconnected = []
+        for user_id, connection in self.connections.items():
+            if connection["role"] == "admin":
+                try:
+                    await connection["websocket"].send_text(json.dumps(message))
+                except Exception as e:
+                    print(f"❌ Error broadcasting to admin {user_id}: {e}")
+                    disconnected.append(user_id)
+        
+        # Удалить отключенные соединения
+        for user_id in disconnected:
+            self.disconnect(user_id)
+    
+    async def broadcast_to_warehouse_operators(self, message: dict, warehouse_ids: List[str]):
+        """Отправить сообщение операторам конкретных складов"""
+        disconnected = []
+        for user_id, connection in self.connections.items():
+            if connection["role"] == "warehouse_operator":
+                # Проверить, есть ли пересечение складов
+                operator_warehouses = set(connection["warehouse_ids"])
+                target_warehouses = set(warehouse_ids)
+                
+                if operator_warehouses.intersection(target_warehouses):
+                    try:
+                        await connection["websocket"].send_text(json.dumps(message))
+                    except Exception as e:
+                        print(f"❌ Error broadcasting to operator {user_id}: {e}")
+                        disconnected.append(user_id)
+        
+        # Удалить отключенные соединения
+        for user_id in disconnected:
+            self.disconnect(user_id)
+    
+    async def broadcast_courier_location_update(self, location_data: dict):
+        """Отправить обновление местоположения курьера всем заинтересованным клиентам"""
+        courier_id = location_data.get("courier_id")
+        
+        # Получить информацию о курьере для определения склада
+        courier = db.couriers.find_one({"id": courier_id}, {"_id": 0, "assigned_warehouse_id": 1})
+        warehouse_id = courier.get("assigned_warehouse_id") if courier else None
+        
+        message = {
+            "type": "courier_location_update",
+            "data": location_data,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        # Отправить всем админам
+        await self.broadcast_to_admins(message)
+        
+        # Отправить операторам соответствующего склада
+        if warehouse_id:
+            await self.broadcast_to_warehouse_operators(message, [warehouse_id])
+    
+    def get_connection_stats(self):
+        """Получить статистику подключений"""
+        stats = {
+            "total_connections": len(self.connections),
+            "admin_connections": len([c for c in self.connections.values() if c["role"] == "admin"]),
+            "operator_connections": len([c for c in self.connections.values() if c["role"] == "warehouse_operator"]),
+            "active_users": list(self.connections.keys())
+        }
+        return stats
+
+# Глобальный менеджер подключений
+connection_manager = ConnectionManager()
+
 # Utility functions for MongoDB ObjectId serialization
 def serialize_mongo_document(document):
     """Converts ObjectId in a MongoDB document to strings recursively."""
