@@ -32378,6 +32378,307 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_login_form_and_adaptive_menu_backend_stability(self):
+        """Test backend stability after login form and adaptive menu improvements in TAJLINE.TJ"""
+        print("\n🔐 LOGIN FORM AND ADAPTIVE MENU BACKEND STABILITY TESTING")
+        print("   🎯 Быстро протестировать стабильность backend после улучшения формы входа и адаптивного меню в TAJLINE.TJ")
+        print("   🔧 ЗАДАЧИ ТЕСТИРОВАНИЯ:")
+        print("   1) BASIC CONNECTIVITY: Проверить доступность API и основных endpoints")
+        print("   2) LOGIN FUNCTIONALITY: Быстро проверить что endpoints аутентификации работают после обновления UI:")
+        print("      - /api/auth/login для входа пользователей")
+        print("      - /api/auth/register для регистрации")
+        print("   3) BACKEND STABILITY: Убедиться что изменения frontend (новая форма входа, адаптивное меню) не повлияли на backend функциональность")
+        
+        all_success = True
+        
+        # Test 1: BASIC CONNECTIVITY - Проверить доступность API и основных endpoints
+        print("\n   🌐 Test 1: BASIC CONNECTIVITY - API AVAILABILITY...")
+        
+        # Test health endpoint
+        success, health_response = self.run_test(
+            "API Health Check",
+            "GET",
+            "/api/health",
+            200
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ API is accessible and responding")
+            if health_response.get('status') == 'ok':
+                print("   ✅ Health check status: OK")
+            else:
+                print(f"   ⚠️  Health check status: {health_response.get('status', 'unknown')}")
+        else:
+            print("   ❌ API is not accessible")
+            all_success = False
+        
+        # Test 2: LOGIN FUNCTIONALITY - /api/auth/login для входа пользователей
+        print("\n   🔐 Test 2: LOGIN FUNCTIONALITY - /api/auth/login...")
+        
+        # Test different user types to ensure login works after UI improvements
+        login_test_cases = [
+            {
+                "name": "Admin Login",
+                "phone": "+79999888777",
+                "password": "admin123",
+                "expected_role": "admin"
+            },
+            {
+                "name": "Warehouse Operator Login", 
+                "phone": "+79777888999",
+                "password": "warehouse123",
+                "expected_role": "warehouse_operator"
+            },
+            {
+                "name": "Courier Login",
+                "phone": "+79991234567", 
+                "password": "courier123",
+                "expected_role": "courier"
+            }
+        ]
+        
+        login_success_count = 0
+        for test_case in login_test_cases:
+            print(f"\n   🔑 Testing {test_case['name']}...")
+            
+            login_data = {
+                "phone": test_case["phone"],
+                "password": test_case["password"]
+            }
+            
+            success, login_response = self.run_test(
+                test_case["name"],
+                "POST",
+                "/api/auth/login",
+                200,
+                login_data
+            )
+            
+            if success and 'access_token' in login_response:
+                login_success_count += 1
+                user_data = login_response.get('user', {})
+                user_role = user_data.get('role')
+                user_name = user_data.get('full_name')
+                token = login_response['access_token']
+                
+                print(f"   ✅ {test_case['name']} successful")
+                print(f"   👤 User: {user_name}")
+                print(f"   👑 Role: {user_role}")
+                print(f"   🔑 JWT Token: {token[:30]}...")
+                
+                # Verify role is correct
+                if user_role == test_case["expected_role"]:
+                    print(f"   ✅ Role correctly set to '{test_case['expected_role']}'")
+                else:
+                    print(f"   ❌ Role incorrect: expected '{test_case['expected_role']}', got '{user_role}'")
+                    all_success = False
+                
+                # Store token for further testing
+                self.tokens[user_role] = token
+                self.users[user_role] = user_data
+                
+            else:
+                print(f"   ❌ {test_case['name']} failed")
+                all_success = False
+        
+        print(f"\n   📊 Login Success Rate: {login_success_count}/{len(login_test_cases)} ({login_success_count/len(login_test_cases)*100:.1f}%)")
+        
+        if login_success_count == len(login_test_cases):
+            print("   ✅ All login endpoints working after UI improvements")
+        else:
+            print("   ❌ Some login endpoints failing after UI improvements")
+            all_success = False
+        
+        # Test 3: REGISTRATION FUNCTIONALITY - /api/auth/register для регистрации
+        print("\n   📝 Test 3: REGISTRATION FUNCTIONALITY - /api/auth/register...")
+        
+        # Test user registration
+        import random
+        test_phone = f"+79{random.randint(1000000000, 9999999999)}"
+        
+        registration_data = {
+            "full_name": "Тестовый Пользователь Регистрация",
+            "phone": test_phone,
+            "password": "testpass123"
+        }
+        
+        success, register_response = self.run_test(
+            "User Registration",
+            "POST",
+            "/api/auth/register",
+            200,
+            registration_data
+        )
+        
+        if success and 'access_token' in register_response:
+            print("   ✅ User registration working after UI improvements")
+            
+            # Verify registration response
+            user_data = register_response.get('user', {})
+            user_role = user_data.get('role')
+            user_name = user_data.get('full_name')
+            user_phone = user_data.get('phone')
+            
+            print(f"   👤 Registered user: {user_name}")
+            print(f"   📞 Phone: {user_phone}")
+            print(f"   👑 Role: {user_role}")
+            
+            # Verify default role is 'user'
+            if user_role == 'user':
+                print("   ✅ Default role correctly set to 'user'")
+            else:
+                print(f"   ❌ Default role incorrect: expected 'user', got '{user_role}'")
+                all_success = False
+                
+        else:
+            print("   ❌ User registration failed after UI improvements")
+            all_success = False
+        
+        # Test 4: BACKEND STABILITY - Core endpoints still working
+        print("\n   🏗️ Test 4: BACKEND STABILITY - Core Endpoints...")
+        
+        # Test core endpoints with different user roles to ensure stability
+        stability_tests = []
+        
+        # Admin endpoints
+        if 'admin' in self.tokens:
+            admin_endpoints = [
+                ("/api/admin/dashboard/analytics", "Admin Dashboard Analytics"),
+                ("/api/admin/users", "Admin Users List"),
+                ("/api/warehouses", "Warehouses List"),
+                ("/api/cargo/all", "All Cargo")
+            ]
+            
+            for endpoint, description in admin_endpoints:
+                success, response = self.run_test(
+                    f"{description} (Admin)",
+                    "GET",
+                    endpoint,
+                    200,
+                    token=self.tokens['admin']
+                )
+                stability_tests.append(success)
+                
+                if success:
+                    print(f"   ✅ {description} working")
+                else:
+                    print(f"   ❌ {description} failing")
+        
+        # Warehouse operator endpoints
+        if 'warehouse_operator' in self.tokens:
+            operator_endpoints = [
+                ("/api/operator/warehouses", "Operator Warehouses"),
+                ("/api/operator/cargo/list", "Operator Cargo List"),
+                ("/api/operator/placement-statistics", "Placement Statistics")
+            ]
+            
+            for endpoint, description in operator_endpoints:
+                success, response = self.run_test(
+                    f"{description} (Operator)",
+                    "GET",
+                    endpoint,
+                    200,
+                    token=self.tokens['warehouse_operator']
+                )
+                stability_tests.append(success)
+                
+                if success:
+                    print(f"   ✅ {description} working")
+                else:
+                    print(f"   ❌ {description} failing")
+        
+        # Courier endpoints
+        if 'courier' in self.tokens:
+            courier_endpoints = [
+                ("/api/courier/requests/new", "New Courier Requests"),
+                ("/api/courier/requests/history", "Courier Request History")
+            ]
+            
+            for endpoint, description in courier_endpoints:
+                success, response = self.run_test(
+                    f"{description} (Courier)",
+                    "GET",
+                    endpoint,
+                    200,
+                    token=self.tokens['courier']
+                )
+                stability_tests.append(success)
+                
+                if success:
+                    print(f"   ✅ {description} working")
+                else:
+                    print(f"   ❌ {description} failing")
+        
+        # Calculate stability success rate
+        stability_success_count = sum(stability_tests)
+        total_stability_tests = len(stability_tests)
+        
+        if total_stability_tests > 0:
+            stability_rate = (stability_success_count / total_stability_tests * 100)
+            print(f"\n   📊 Backend Stability Rate: {stability_success_count}/{total_stability_tests} ({stability_rate:.1f}%)")
+            
+            if stability_rate >= 90:
+                print("   ✅ Backend stability excellent after UI improvements")
+            elif stability_rate >= 75:
+                print("   ⚠️  Backend stability good but some issues after UI improvements")
+            else:
+                print("   ❌ Backend stability poor after UI improvements")
+                all_success = False
+        else:
+            print("   ⚠️  No stability tests could be performed")
+        
+        # Test 5: SESSION MANAGEMENT - Ensure tokens work correctly
+        print("\n   🎫 Test 5: SESSION MANAGEMENT - Token Validation...")
+        
+        session_tests = []
+        for role, token in self.tokens.items():
+            success, me_response = self.run_test(
+                f"Token Validation ({role})",
+                "GET",
+                "/api/auth/me",
+                200,
+                token=token
+            )
+            session_tests.append(success)
+            
+            if success:
+                user_info = me_response
+                print(f"   ✅ {role} token valid - User: {user_info.get('full_name', 'Unknown')}")
+            else:
+                print(f"   ❌ {role} token invalid or expired")
+        
+        session_success_count = sum(session_tests)
+        total_session_tests = len(session_tests)
+        
+        if total_session_tests > 0:
+            session_rate = (session_success_count / total_session_tests * 100)
+            print(f"\n   📊 Session Management Rate: {session_success_count}/{total_session_tests} ({session_rate:.1f}%)")
+            
+            if session_rate == 100:
+                print("   ✅ All sessions working correctly after UI improvements")
+            else:
+                print("   ❌ Some session issues after UI improvements")
+                all_success = False
+        
+        # SUMMARY
+        print("\n   📊 LOGIN FORM AND ADAPTIVE MENU BACKEND STABILITY SUMMARY:")
+        
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Backend remains stable after login form and adaptive menu improvements!")
+            print("   ✅ API connectivity working")
+            print("   ✅ Login functionality working (/api/auth/login)")
+            print("   ✅ Registration functionality working (/api/auth/register)")
+            print("   ✅ Backend stability maintained")
+            print("   ✅ Session management working")
+            print("   🎯 EXPECTED RESULT ACHIEVED: Backend остается стабильным после улучшения форм входа и адаптивного меню")
+        else:
+            print("   ❌ SOME TESTS FAILED - Backend stability issues after UI improvements")
+            print("   🔍 Check the specific failed tests above for details")
+            print("   ⚠️  UI improvements may have affected backend functionality")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
