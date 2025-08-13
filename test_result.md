@@ -162,53 +162,53 @@
 user_problem_statement: "Интеграция Яндекс.Карт с блоком адресов в TAJLINE.TJ. ЗАДАЧИ ИНТЕГРАЦИИ: 1) YANDEX MAPS API INTEGRATION: Добавить API ключ Яндекс.Карт в переменные окружения, создать React компонент для интерактивной карты, 2) ADDRESS BLOCK ENHANCEMENT: Улучшить существующий блок адресов с интеграцией интерактивной карты, добавить кнопку показа/скрытия карты, 3) INTERACTIVE MAP FEATURES: Реализовать геокодирование адресов заявок, создать маркеры для каждой заявки с информационными всплывающими окнами, автоматическое подстраивание границ карты, 4) BACKEND STABILITY: Убедиться что интеграция карт не повлияла на стабильность backend системы. Ожидаемый результат: Полная интеграция интерактивной Яндекс.Карты в блок адресов курьера с отображением всех заявок на карте."
 
 backend:
-  - task: "Courier Authentication System"
+  - task: "Yandex Maps API Integration"
     implemented: true
-    working: true
-    file: "/app/backend/server.py"
+    working: "NA"
+    file: "/app/frontend/src/components/YandexMap.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: true
-          agent: "testing"
-          comment: "✅ COURIER AUTHENTICATION (+79991234567/courier123) ПОЛНОСТЬЮ ФУНКЦИОНАЛЕН: Успешная авторизация курьера с корректным отображением роли 'courier', пользователя 'Курьер Тестовый Обновленный', номера пользователя USR648412, JWT токен генерируется корректно, роль courier подтверждена и корректно установлена, сессии стабильны без преждевременных 401 ошибок, токен работает для всех последующих API вызовов. Система аутентификации курьера готова для функционала восстановления заявок!"
+        - working: "NA"
+          agent: "main"
+          comment: "Создан React компонент YandexMap с полной интеграцией Яндекс.Карт API. API ключ добавлен в переменные окружения (/app/frontend/.env). Компонент включает: динамическую загрузку API скрипта, геокодирование адресов заявок, интерактивную карту с маркерами, информационные всплывающие окна, автоматическое подстраивание границ карты, обработку ошибок и loading состояния. Требуется тестирование backend стабильности и frontend функциональности."
 
-  - task: "Request Restoration Endpoint"
+  - task: "Address Block Enhancement for Courier Interface"
     implemented: true
-    working: true
-    file: "/app/backend/server.py"
+    working: "NA"
+    file: "/app/frontend/src/App.js"
     stuck_count: 0
-    priority: "high"
-    needs_retesting: false
+    priority: "high"  
+    needs_retesting: true
     status_history:
-        - working: true
-          agent: "testing"
-          comment: "✅ REQUEST RESTORATION ENDPOINT /api/courier/requests/{request_id}/restore (PUT) ПОЛНОСТЬЮ ФУНКЦИОНАЛЕН: Аутентификация и авторизация курьера работает корректно, endpoint доступен с courier токеном, успешно восстанавливает отмененную заявку (статус меняется с 'cancelled' на 'pending'), обновляет поля assigned_courier_id=null, restored_at, restored_by как требуется, валидация и обработка ошибок работает (404 для несуществующих заявок, 400 для не отмененных заявок), создает уведомления операторам и админам о восстановлении. Minor: Возвращает 403 вместо 401 для неавторизованного доступа (стандартное поведение FastAPI). Endpoint готов к production использованию!"
+        - working: "NA"
+          agent: "main"
+          comment: "Улучшен существующий блок адресов в интерфейсе курьера (строки 17353-17441). Добавлена интеграция с компонентом YandexMap, состояние isMapOpen для управления видимостью карты, новые кнопки для показа/скрытия интерактивной карты и открытия всех адресов в Яндекс.Картах. Компонент размещен логично после блока адресных карточек. Frontend сервис перезапущен. Требуется тестирование функциональности."
 
-  - task: "Courier Requests with Addresses"
+  - task: "Interactive Map Features Implementation"
     implemented: true
-    working: true
-    file: "/app/backend/server.py"
+    working: "NA"
+    file: "/app/frontend/src/components/YandexMap.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: true
-          agent: "testing"
-          comment: "✅ COURIER REQUESTS WITH ADDRESSES ENDPOINTS ПОЛНОСТЬЮ ФУНКЦИОНАЛЬНЫ: /api/courier/requests/new возвращает заявки с pickup_address для интеграции с Яндекс Картами, все необходимые поля для карт присутствуют (pickup_address, sender_full_name, sender_phone, cargo_name), адреса имеют правильный формат для карт ('Москва, ул. Тестовая Курьерская, 456'), /api/courier/requests/cancelled работает корректно и возвращает отмененные заявки со всеми полями для восстановления (id, request_status='cancelled', pickup_address, sender_full_name, cargo_name), структура данных готова для интеграции с Яндекс Картами. Endpoints готовы для frontend интеграции!"
+        - working: "NA"
+          agent: "main"
+          comment: "Реализованы все интерактивные функции карты: геокодирование всех адресов заявок через ymaps.geocode, создание маркеров для каждой заявки с номерами и подписями, информационные balloonContent с деталями заявки (номер, отправитель, груз, адрес, телефон), автоматическое подстраивание границ карты под все маркеры с помощью setBounds, кнопка открытия в полном Яндекс.Картах. Все функции требуют тестирования."
 
-  - task: "Backend Stability After Request Restoration"
+  - task: "Backend Stability After Maps Integration"
     implemented: true
-    working: true
+    working: "NA"
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: true
-          agent: "testing"
-          comment: "✅ BACKEND STABILITY ПОСЛЕ ДОБАВЛЕНИЯ ФУНКЦИОНАЛА ВОССТАНОВЛЕНИЯ ЗАЯВОК ПОДТВЕРЖДЕНА: Все основные courier endpoints стабильны (/api/auth/me, /api/courier/requests/new, /api/courier/requests/history) с 100% успешностью, session management стабилен (3/3 тестов сессий прошли успешно), JSON сериализация корректна - никаких ObjectId ошибок не обнаружено, никаких 500 Internal Server Errors не найдено, система полностью стабильна после добавления функционала восстановления заявок. Minor: Некоторые error handling тесты показали 405 вместо 404 для GET запросов к PUT endpoints (стандартное поведение REST API). Backend готов к production использованию!"
+        - working: "NA"
+          agent: "main"
+          comment: "Интеграция Яндекс.Карт выполнена только на frontend стороне, backend endpoints остались неизменными. Изменения включают только добавление переменной окружения REACT_APP_YANDEX_MAPS_API_KEY и создание React компонентов. Backend API endpoints (/api/courier/requests/new, /api/courier/requests/cancelled) должны продолжать работать стабильно. Требуется тестирование стабильности backend."
 
   - task: "API Health Check"
     implemented: true
