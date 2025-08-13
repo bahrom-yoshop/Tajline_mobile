@@ -31240,7 +31240,7 @@ ID склада: {target_warehouse_id}"""
         print("\n   🔐 Test 2: COURIER AUTHENTICATION...")
         
         courier_login_data = {
-            "phone": "+79991234567",
+            "phone": f"+7999123{unique_suffix}",
             "password": "courier123"
         }
         
