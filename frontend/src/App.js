@@ -14588,7 +14588,7 @@ function App() {
                             </div>
                           )}
 
-                          {/* Кнопки действий */}
+                          {/* Кнопки действий - показываем только в обычном режиме */}
                           <div className="flex flex-col gap-4">
                             {/* Кнопки печати */}
                             <div className="flex gap-2">
@@ -14650,6 +14650,8 @@ function App() {
                               </div>
                             </div>
                           </div>
+                          </>
+                          )}
                         </form>
                       </CardContent>
                     </Card>
