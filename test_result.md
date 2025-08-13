@@ -778,7 +778,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Backend Stability After Phone Import Fix"
+    - "Courier Authentication System"
+    - "Courier Request Number Generation"
+    - "Courier Request Payment Status Integration"
+    - "Backend Stability After Courier Improvements"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
