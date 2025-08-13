@@ -3076,15 +3076,15 @@ metadata:
 
 test_plan:
   current_focus:
-    - "WebSocket Connection Manager Implementation"
-    - "WebSocket Statistics API"
-    - "Courier Location Update with WebSocket Broadcasting"
-    - "Data Isolation for Warehouse Operators"
-    - "WebSocket Endpoints Implementation"
-  stuck_tasks:
-    - "WebSocket Endpoints Implementation"
+    - "GPS Tracking Functions Implementation"
+    - "CourierGPSTracker React Component"
+    - "Courier Dashboard GPS Integration"
+    - "Real-time GPS Functionality Implementation"
+    - "Courier Status Management System"
+    - "Courier Tracking State Management"
+    - "Frontend Stability After GPS Tracking Integration"
+  stuck_tasks: []
   test_all: false
-  test_priority: "high_first"
   test_priority: "high_first"
 
 backend:
