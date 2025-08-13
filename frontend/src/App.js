@@ -18381,6 +18381,159 @@ function App() {
                   )}
                 </div>
               )}
+              
+              {/* НОВЫЕ СЕКЦИИ ДЛЯ ОТСЛЕЖИВАНИЯ КУРЬЕРОВ */}
+              
+              {/* Карта отслеживания курьеров - доступна админам и операторам */}
+              {activeSection === 'couriers-tracking' && activeTab === 'couriers-tracking-map' && 
+               (user?.role === 'admin' || user?.role === 'warehouse_operator') && (
+                <div className="space-y-6 p-4 md:p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h1 className="text-2xl font-bold text-gray-900">Карта отслеживания курьеров</h1>
+                      <p className="text-gray-600">Real-time мониторинг местоположения курьеров</p>
+                    </div>
+                  </div>
+                  
+                  <CourierTrackingMap 
+                    userRole={user?.role}
+                    apiCall={apiCall}
+                  />
+                </div>
+              )}
+
+              {/* Список курьеров с картой - только для админов */}
+              {activeSection === 'couriers-tracking' && activeTab === 'couriers-tracking-list' && 
+               user?.role === 'admin' && (
+                <div className="space-y-6 p-4 md:p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h1 className="text-2xl font-bold text-gray-900">Управление курьерами</h1>
+                      <p className="text-gray-600">Список курьеров и их отслеживание</p>
+                    </div>
+                  </div>
+                  
+                  {/* Карта отслеживания */}
+                  <CourierTrackingMap 
+                    userRole={user?.role}
+                    apiCall={apiCall}
+                  />
+                  
+                  {/* Существующая таблица курьеров */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <Truck className="mr-2 h-5 w-5" />
+                          Курьеры ({couriers.length})
+                        </div>
+                        <Button onClick={() => setCourierCreateModal(true)}>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Создать курьера
+                        </Button>
+                      </CardTitle>
+                      <CardDescription>Управление курьерами и службой доставки</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {couriers.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>ФИО</TableHead>
+                                <TableHead>Телефон</TableHead>
+                                <TableHead>Транспорт</TableHead>
+                                <TableHead>Грузоподъемность</TableHead>
+                                <TableHead>Склад</TableHead>
+                                <TableHead>Статус</TableHead>
+                                <TableHead>Действия</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {couriers.map((courier) => (
+                                <TableRow key={courier.id}>
+                                  <TableCell className="font-medium">{courier.full_name}</TableCell>
+                                  <TableCell>{courier.phone}</TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center">
+                                      <Truck className="mr-2 h-4 w-4" />
+                                      {courier.transport_type} {courier.transport_number}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{courier.transport_capacity} кг</TableCell>
+                                  <TableCell>{courier.assigned_warehouse_name}</TableCell>
+                                  <TableCell>
+                                    <Badge variant={courier.is_active ? "default" : "secondary"}>
+                                      {courier.is_active ? 'Активен' : 'Неактивен'}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex space-x-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setSelectedCourier(courier);
+                                          setCourierProfileEditForm({
+                                            full_name: courier.full_name,
+                                            phone: courier.phone,
+                                            transport_type: courier.transport_type,
+                                            transport_number: courier.transport_number,
+                                            transport_capacity: courier.transport_capacity,
+                                            assigned_warehouse_id: courier.assigned_warehouse_id,
+                                            is_active: courier.is_active
+                                          });
+                                          setCourierEditModal(true);
+                                        }}
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setSelectedCourier(courier);
+                                          setShowCourierProfileModal(true);
+                                        }}
+                                      >
+                                        <Eye className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          if (window.confirm('Вы уверены, что хотите удалить этого курьера?')) {
+                                            deleteCourier(courier.id);
+                                          }
+                                        }}
+                                        className="text-red-600 hover:text-red-700"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Truck className="mx-auto h-12 w-12 text-gray-400" />
+                          <h3 className="mt-2 text-sm font-medium text-gray-900">Нет курьеров</h3>
+                          <p className="mt-1 text-sm text-gray-500">Начните с создания первого курьера.</p>
+                          <div className="mt-6">
+                            <Button onClick={() => setCourierCreateModal(true)}>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Создать курьера
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
           )}
         </main>
