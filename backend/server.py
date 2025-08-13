@@ -14242,7 +14242,7 @@ async def create_courier_pickup_request(
     
     try:
         # Генерировать ID заявки
-        request_id = generate_courier_request_number()
+        request_id = generate_readable_request_number()
         now = datetime.utcnow()
         
         # Подготовить данные заявки на забор
