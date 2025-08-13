@@ -8717,7 +8717,7 @@ function App() {
     ];
 
     return (
-      <div className="h-full bg-white border-r border-gray-200 w-64 flex flex-col">
+      <div className="h-full bg-white border-r border-gray-200 w-64 flex flex-col fixed left-0 top-0 z-50">
         <div className="flex items-center h-16 px-6 border-b border-gray-200">
           <Truck className="h-8 w-8 text-blue-600" />
           <span className="ml-2 text-xl font-bold text-gray-900">TAJLINE</span>
