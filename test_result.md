@@ -220,7 +220,7 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "✅ API HEALTH CHECK ПОЛНОСТЬЮ ФУНКЦИОНАЛЕН: Endpoint /api/health возвращает статус 200 OK с корректным ответом {'status': 'ok'}, API доступен и отвечает корректно, система полностью готова к работе после улучшений формы входа и адаптивного меню."
+          comment: "✅ API HEALTH CHECK ПОЛНОСТЬЮ ФУНКЦИОНАЛЕН: Endpoint /api/health возвращает статус 200 OK с корректным ответом {'status': 'ok'}, API доступен и отвечает корректно, система полностью готова к работе после добавления функционала восстановления заявок."
 
   - task: "Authentication Endpoints After UI Improvements"
     implemented: true
