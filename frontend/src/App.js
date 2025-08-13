@@ -86,7 +86,7 @@ function App() {
   const [requestEditModal, setRequestEditModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [contactModal, setContactModal] = useState(false);
-  const [selectedSender, setSelectedSender] = useState(null);
+  const [contactSender, setContactSender] = useState(null);
   const [requestEditForm, setRequestEditForm] = useState({
     sender_full_name: '',
     sender_phone: '',
