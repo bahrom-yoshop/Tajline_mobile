@@ -85,7 +85,7 @@ function App() {
   const [requestViewModal, setRequestViewModal] = useState(false);
   const [requestEditModal, setRequestEditModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const [contactModal, setContactModal] = useState(false);
+  const [senderContactModal, setSenderContactModal] = useState(false);
   const [contactSender, setContactSender] = useState(null);
   const [requestEditForm, setRequestEditForm] = useState({
     sender_full_name: '',
