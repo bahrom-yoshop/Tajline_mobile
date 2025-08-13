@@ -587,7 +587,7 @@ function App() {
   const addRequestCargoItem = () => {
     setRequestEditForm({
       ...requestEditForm,
-      cargo_items: [...requestEditForm.cargo_items, { name: '', weight: '', declared_value: '' }]
+      cargo_items: [...requestEditForm.cargo_items, { name: '', weight: '', price_per_kg: '80', total_price: '' }]
     });
   };
   
