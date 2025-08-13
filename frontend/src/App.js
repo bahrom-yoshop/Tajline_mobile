@@ -845,6 +845,51 @@ function App() {
     }));
   };
 
+  // Обработка отправки заявки на забор груза
+  const handlePickupCargoSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      // Подготовить данные заявки на забор
+      const pickupRequestData = {
+        sender_full_name: operatorCargoForm.sender_full_name,
+        sender_phone: senderPhones.filter(phone => phone.trim()).join(', '),
+        pickup_address: operatorCargoForm.pickup_address,
+        pickup_date: operatorCargoForm.pickup_date,
+        pickup_time_from: operatorCargoForm.pickup_time_from,
+        pickup_time_to: operatorCargoForm.pickup_time_to,
+        route: operatorCargoForm.route,
+        courier_fee: operatorCargoForm.courier_fee,
+        payment_method: operatorCargoForm.payment_method
+      };
+
+      const response = await apiCall('/api/admin/courier/pickup-request', 'POST', pickupRequestData);
+      
+      if (response && response.success) {
+        showAlert(`Заявка на забор груза успешно создана! Номер заявки: ${response.request_id}`, 'success');
+        
+        // Очистить форму
+        setOperatorCargoForm(prev => ({
+          ...prev,
+          sender_full_name: '',
+          pickup_address: '',
+          pickup_date: '',
+          pickup_time_from: '',
+          pickup_time_to: '',
+          courier_fee: '',
+          payment_method: 'not_paid'
+        }));
+        setSenderPhones(['']);
+        
+        // Выйти из режима забора
+        setIsPickupMode(false);
+      }
+    } catch (error) {
+      console.error('Error creating pickup request:', error);
+      showAlert('Ошибка при создании заявки на забор груза: ' + error.message, 'error');
+    }
+  };
+
   const handleOpenCourierChat = () => {
     setCourierChatModal(true);
   };
