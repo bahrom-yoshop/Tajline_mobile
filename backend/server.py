@@ -4842,6 +4842,7 @@ async def create_cargo_for_courier_pickup(
         # Создаем курьерскую заявку
         courier_request = {
             "id": str(uuid.uuid4()),
+            "request_number": generate_courier_request_number(),  # Читаемый номер заявки
             "cargo_id": cargo_id,
             "sender_full_name": cargo_data.sender_full_name,
             "sender_phone": cargo_data.sender_phone,
@@ -4852,6 +4853,8 @@ async def create_cargo_for_courier_pickup(
             "pickup_time_to": cargo_data.pickup_time_to,
             "delivery_method": cargo_data.delivery_method.value,
             "courier_fee": cargo_data.courier_fee,
+            "payment_method": cargo_data.payment_method.value,  # Статус оплаты
+            "payment_status": "not_paid" if cargo_data.payment_method == PaymentMethod.NOT_PAID else "paid",
             "assigned_courier_id": None,
             "assigned_courier_name": None,
             "request_status": "pending",
