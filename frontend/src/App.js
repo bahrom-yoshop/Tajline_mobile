@@ -17168,6 +17168,40 @@ function App() {
                 </div>
               )}
 
+              {/* НОВАЯ СЕКЦИЯ: Чат курьера с поддержкой */}
+              {activeSection === 'courier-chat' && user?.role === 'courier' && (
+                <div className="space-y-6 p-4 md:p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl md:text-2xl font-bold text-gray-900">Чат с поддержкой</h2>
+                      <p className="text-gray-600">Свяжитесь с администратором или оператором</p>
+                    </div>
+                  </div>
+
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                      <MessageCircle className="h-16 w-16 text-blue-500 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Чат с поддержкой</h3>
+                      <p className="text-gray-500 text-center mb-6">
+                        Функция чата будет доступна в ближайшее время. <br />
+                        Пока что вы можете связаться с поддержкой по телефону или email.
+                      </p>
+                      
+                      <div className="space-y-3 w-full max-w-sm">
+                        <Button className="w-full" variant="outline">
+                          <MessageCircle className="mr-2 h-4 w-4" />
+                          Написать администратору
+                        </Button>
+                        <Button className="w-full" variant="outline">
+                          <MessageCircle className="mr-2 h-4 w-4" />
+                          Связаться с оператором
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
               {/* История заявок курьера */}
               {activeSection === 'courier-history' && user?.role === 'courier' && (
                 <div className="space-y-6">
