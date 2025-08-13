@@ -165,67 +165,7 @@
 
 user_problem_statement: "Улучшение формы приема заявок для забора груза в TAJLINE.TJ. ЗАДАЧИ УЛУЧШЕНИЯ: 1) PICKUP MODE TOGGLE: Добавить кнопку 'Забор груза' в форму 'Принимать новый груз' для переключения в упрощенный режим, 2) SIMPLIFIED FORM: В режиме забора показывать только необходимые поля (ФИО отправителя, множественные телефоны, адрес груза, дата/время забора, назначение, стоимость курьерской услуги, статус оплаты), 3) MULTIPLE PHONES: Реализовать возможность добавления нескольких номеров телефона отправителя с кнопками добавить/удалить, 4) BACKEND API: Создать endpoints для заявок на забор груза (создание, получение курьерами, принятие заявок), 5) NOTIFICATION SYSTEM: Автоматические уведомления курьерам о новых заявках на забор. Ожидаемый результат: Полнофункциональная система заявок на забор груза с упрощенной формой для операторов и интеграцией с курьерской службой."
 
-  - task: "Courier Location History System Implementation"
-    implemented: true
-    working: "NA"
-    file: "/app/backend/server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: true
-    status_history:
-        - working: "NA"
-          agent: "main"
-          comment: "Реализована система автоматического сохранения истории перемещений. Модифицирован POST /api/courier/location/update для сохранения каждого обновления местоположения в коллекцию courier_location_history с полями: id, courier_id, courier_name, latitude, longitude, status, current_address, accuracy, speed, heading, timestamp, date (для группировки по дням), hour (для группировки по часам). Новый endpoint POST /api/courier/location/history для ручного сохранения. История сохраняется автоматически при каждом GPS обновлении курьера."
-
-  - task: "Courier History API Endpoints Implementation"
-    implemented: true
-    working: "NA"
-    file: "/app/backend/server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: true
-    status_history:
-        - working: "NA"
-          agent: "main"
-          comment: "Созданы endpoints для получения истории перемещений: GET /api/admin/couriers/{courier_id}/history (админы - все курьеры, по умолчанию 7 дней), GET /api/operator/couriers/{courier_id}/history (операторы - только курьеры своих складов, по умолчанию 3 дня). Поддерживают параметры date_from и date_to для фильтрации. Включают расчет общего расстояния, ежедневную статистику (daily_stats), группировку по дням с подсчетом точек маршрута, пройденного расстояния, средней скорости, статусов активности. Полная изоляция данных для операторов."
-
-  - task: "ETA Calculation API Implementation"
-    implemented: true
-    working: "NA"
-    file: "/app/backend/server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: true
-    status_history:
-        - working: "NA"
-          agent: "main"
-          comment: "Реализован endpoint POST /api/courier/eta/calculate для расчета времени прибытия курьера к адресу. Использует текущее местоположение из courier_locations, рассчитывает расстояние по формуле Haversine, учитывает тип транспорта для определения средней скорости (car: 40 км/ч, motorcycle: 35, bicycle: 15, on_foot: 5), добавляет буферное время 20% для пробок, возвращает estimated_time_minutes, estimated_arrival, distance_km, transport_type, avg_speed_kmh. Вспомогательная функция calculate_distance() для расчета расстояния между координатами."
-
-  - task: "Courier Analytics API Implementation"
-    implemented: true
-    working: "NA"
-    file: "/app/backend/server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: true
-    status_history:
-        - working: "NA"
-          agent: "main"
-          comment: "Создан endpoint GET /api/admin/couriers/analytics для комплексной аналитики курьеров (только админы). Анализирует данные за указанный период (по умолчанию 7 дней), рассчитывает метрики для каждого курьера: total_distance_km, total_active_hours, avg_speed_kmh, total_requests, completed_requests, completion_rate, tracking_points, status_breakdown. Включает общую статистику (total_couriers, total_distance_km, total_requests, avg_completion_rate), интеграцию с courier_requests для подсчета выполненных заявок. Полная аналитика эффективности курьеров."
-
-  - task: "CourierHistoryAnalytics React Component Implementation"
-    implemented: true
-    working: "NA"
-    file: "/app/frontend/src/components/CourierHistoryAnalytics.js"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: true
-    status_history:
-        - working: "NA"
-          agent: "main"
-          comment: "Создан полнофункциональный React компонент CourierHistoryAnalytics с 4 вкладками: 1) История перемещений - выбор курьера, фильтрация по датам, статистика (точки маршрута, пройденные км, дни активности), ежедневная активность с badge статусов, последние 20 перемещений, 2) Расчет ETA - ввод адреса назначения, отображение маршрута и времени прибытия с деталями, 3) Аналитика - только админы, общая статистика, производительность курьеров с completion rate, 4) Real-time данные - ссылка на основную карту. Адаптивный дизайн, обработка ошибок, интеграция с backend API."
-
-  - task: "History Analytics Navigation Integration"
+  - task: "Pickup Mode Toggle Implementation"
     implemented: true
     working: "NA"
     file: "/app/frontend/src/App.js"
@@ -235,9 +175,33 @@ user_problem_statement: "Улучшение формы приема заявок
     status_history:
         - working: "NA"
           agent: "main"
-          comment: "Добавлена новая подсекция 'История и аналитика' в секцию 'Курьеры' навигационного меню с id 'couriers-history-analytics'. Создана новая секция контента 'couriers-history-analytics' доступная админам и операторам склада. Секция интегрирована с компонентом CourierHistoryAnalytics, передает userRole и apiCall props. Правильное условное отображение с проверкой activeSection === 'couriers-tracking' && activeTab === 'couriers-history-analytics'. Заголовки на русском языке."
+          comment: "Добавлена кнопка 'Забор груза' в заголовок формы 'Принимать новый груз' с переключением режимов. Состояние isPickupMode управляет видимостью полей, togglePickupMode() функция переключает режимы и устанавливает значения по умолчанию. В режиме забора: pickup_required=true, delivery_method='courier_pickup', payment_method='not_paid'. Визуальное оформление: оранжевая цветовая схема для режима забора, изменение описания CardDescription в зависимости от режима."
 
-  - task: "Calculate Distance Helper Function Implementation"
+  - task: "Simplified Pickup Form Implementation"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Реализована упрощенная форма для режима забора груза с условным рендерингом {isPickupMode ? (pickup fields) : (regular fields)}. Показываются только необходимые поля: ФИО отправителя, множественные телефоны, адрес места нахождения груза, дата и время забора (с/до), назначение груза (Select с маршрутами), стоимость курьерской услуги, статус оплаты курьеру. Все поля имеют оранжевую цветовую схему (border-orange-200, focus:border-orange-400). Валидация: все поля отмечены * и required."
+
+  - task: "Multiple Phone Numbers Feature"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Реализована система множественных телефонов отправителя: состояние senderPhones как массив строк, addSenderPhone() добавляет пустой номер, removeSenderPhone(index) удаляет номер (если больше 1), updateSenderPhone(index, value) обновляет конкретный номер и автоматически обновляет operatorCargoForm.sender_phone через join(', '). UI: кнопка 'Добавить номер' с Plus иконкой, кнопки удаления с Minus иконкой для каждого номера кроме первого. Валидация: первый номер required."
+
+  - task: "Pickup Request Backend API Endpoints"
     implemented: true
     working: "NA"
     file: "/app/backend/server.py"
@@ -247,9 +211,9 @@ user_problem_statement: "Улучшение формы приема заявок
     status_history:
         - working: "NA"
           agent: "main"
-          comment: "Реализована вспомогательная функция calculate_distance() для расчета расстояния между двумя GPS координатами с использованием формулы Haversine. Функция принимает lat1, lon1, lat2, lon2, преобразует градусы в радианы, использует радиус Земли 6371 км, возвращает расстояние в километрах. Используется в аналитике для подсчета пройденных расстояний и в расчете ETA. Точная формула для сферических координат Земли."
+          comment: "Созданы 3 новых API endpoints: 1) POST /api/admin/courier/pickup-request - создание заявки на забор (админы+операторы), использует generate_readable_request_number(), сохраняет в courier_pickup_requests коллекцию, 2) GET /api/courier/pickup-requests - получение доступных и назначенных заявок курьерами, 3) POST /api/courier/pickup-requests/{request_id}/accept - принятие заявки курьером с обновлением статуса на 'accepted'. Все endpoints включают проверку ролей, обработку ошибок, MongoDB интеграцию."
 
-  - task: "Backend Stability After History and ETA Integration"
+  - task: "Notification System for Pickup Requests"
     implemented: true
     working: "NA"
     file: "/app/backend/server.py"
@@ -259,7 +223,43 @@ user_problem_statement: "Улучшение формы приема заявок
     status_history:
         - working: "NA"
           agent: "main"
-          comment: "Добавлены 4 новых API endpoints для истории и ETA (save_location_to_history, get_courier_location_history, calculate_eta_to_address, get_couriers_analytics), модификация существующего POST /api/courier/location/update для автоматического сохранения истории, новая MongoDB коллекция courier_location_history, вспомогательная функция calculate_distance(). Backend и frontend сервисы перезапущены успешно. Требуется тестирование новых endpoints и frontend компонента истории/аналитики."
+          comment: "Интегрированы автоматические уведомления в систему заявок на забор: при создании заявки создается уведомление type='new_pickup_request' для всех курьеров (recipient_role='courier', recipient_id=None), при принятии заявки создается уведомление type='pickup_request_accepted' для создателя заявки. Уведомления содержат детальную информацию: request_id, sender_name, pickup_address, pickup_date, pickup_time, courier_name, courier_phone. Сохраняются в notifications коллекцию."
+
+  - task: "Frontend Form Submission Handler"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Создана функция handlePickupCargoSubmit() для обработки отправки заявки на забор груза. Подготавливает данные из operatorCargoForm и senderPhones, отправляет POST запрос на /api/admin/courier/pickup-request, обрабатывает успешный ответ (показывает alert с номером заявки), очищает форму и выходит из режима забора. Форма использует условный onSubmit: {isPickupMode ? handlePickupCargoSubmit : handleAcceptCargo}. Error handling с showAlert для ошибок."
+
+  - task: "Form State Management Updates"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Добавлены новые состояния: isPickupMode (boolean) для переключения режимов, senderPhones (array) для множественных телефонов отправителя. Добавлены поля в operatorCargoForm: pickup_time_from, pickup_time_to для времени забора. togglePickupMode() управляет переключением режимов и устанавливает значения по умолчанию. Все функции управления состоянием интегрированы с существующими формами без нарушения functionality."
+
+  - task: "Backend Stability After Pickup Request Integration"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Добавлены 3 новых API endpoints для заявок на забор груза, новая функция generate_readable_request_number() (копия generate_courier_request_number), работа с новой MongoDB коллекцией courier_pickup_requests, интеграция с системой уведомлений. Backend и frontend сервисы перезапущены успешно. Существующая функциональность (прием груза, курьерские заявки) должна продолжать работать. Новая система заявок на забор готова к тестированию."
 
 backend:
   - task: "Yandex Maps API Integration"
