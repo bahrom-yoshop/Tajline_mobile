@@ -9249,9 +9249,11 @@ function App() {
       
       {/* Основной контент */}
       <div className={`${
-        user && (user.role === 'admin' || user.role === 'warehouse_operator' || user.role === 'courier') 
+        user && (user.role === 'admin' || user.role === 'warehouse_operator') 
           ? 'ml-64' 
-          : ''
+          : user && user.role === 'courier'
+            ? 'md:ml-64' // На десктопе отступ, на мобиле полная ширина
+            : ''
       } transition-all duration-300`}>
         
         {/* Header */}
