@@ -3088,14 +3088,14 @@ metadata:
 
 test_plan:
   current_focus:
-    - "CourierTrackingMap Component Implementation"
-    - "Admin/Operator Navigation Menu Addition"
-    - "Courier Tracking Sections Implementation"
-    - "Backend API Integration for Courier Locations"
-    - "Real-time Auto-refresh Functionality"
-    - "Interactive Map Features Implementation"
-    - "Status Management and Visual Indicators"
-    - "Frontend Stability After Courier Tracking Map Integration"
+    - "Courier Location History System Implementation"
+    - "Courier History API Endpoints Implementation"
+    - "ETA Calculation API Implementation"
+    - "Courier Analytics API Implementation"
+    - "CourierHistoryAnalytics React Component Implementation"
+    - "History Analytics Navigation Integration"
+    - "Calculate Distance Helper Function Implementation"
+    - "Backend Stability After History and ETA Integration"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
