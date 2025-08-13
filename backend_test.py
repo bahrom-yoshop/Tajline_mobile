@@ -1346,11 +1346,11 @@ class CargoTransportAPITester:
             all_success = False
             return False
         
-        # Test 2: BASIC COURIER ENDPOINTS - /api/courier/requests/new для новых заявок
-        print("\n   📋 Test 2: ENDPOINT /api/courier/requests/new для новых заявок...")
+        # Test 2: BASIC COURIER ENDPOINTS - /api/courier/requests/new для новых заявок (для badge и кнопки связи)
+        print("\n   📋 Test 2: ENDPOINT /api/courier/requests/new для новых заявок (для badge и кнопки связи)...")
         
         success, new_requests_response = self.run_test(
-            "Get New Courier Requests",
+            "Get New Courier Requests (for badge and communication buttons)",
             "GET",
             "/api/courier/requests/new",
             200,
@@ -1371,15 +1371,29 @@ class CargoTransportAPITester:
                 print(f"   📋 Items in response: {len(new_requests)}")
                 print(f"   👤 Courier info available: {bool(courier_info)}")
                 
-                # Verify structure contains required fields for UI
+                # Verify structure contains required fields for UI badge and communication
                 required_fields = ['new_requests', 'total_count', 'courier_info']
                 missing_fields = [field for field in required_fields if field not in new_requests_response]
                 
                 if not missing_fields:
                     print("   ✅ Response structure correct (new_requests, total_count, courier_info)")
+                    print("   ✅ Data available for badge count and communication buttons")
                 else:
                     print(f"   ❌ Missing required fields: {missing_fields}")
                     all_success = False
+                
+                # Check if requests contain sender information for communication
+                if new_requests and len(new_requests) > 0:
+                    sample_request = new_requests[0]
+                    sender_fields = ['sender_full_name', 'sender_phone']
+                    sender_info_available = any(field in sample_request for field in sender_fields)
+                    
+                    if sender_info_available:
+                        print("   ✅ Sender information available for communication functions")
+                        if 'sender_phone' in sample_request:
+                            print(f"   📞 Sample sender phone: {sample_request.get('sender_phone', 'N/A')}")
+                    else:
+                        print("   ⚠️  Sender information may not be available for communication")
                     
             elif isinstance(new_requests_response, list):
                 request_count = len(new_requests_response)
