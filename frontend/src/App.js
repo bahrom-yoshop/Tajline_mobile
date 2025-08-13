@@ -17460,31 +17460,109 @@ function App() {
                           </CardHeader>
                           
                           <CardContent className="space-y-3">
+                            {/* Номер заявки */}
+                            <div>
+                              <Label className="text-sm font-medium text-gray-500">№ Заявки</Label>
+                              <p className="text-sm font-bold text-orange-600">#{request.request_number || request.id}</p>
+                            </div>
+                            
                             <div>
                               <Label className="text-sm font-medium text-gray-500">Груз</Label>
                               <p className="text-sm font-medium">{request.cargo_name}</p>
                             </div>
                             
-                            <div>
-                              <Label className="text-sm font-medium text-gray-500">Способ получения</Label>
-                              <p className="text-sm">{request.delivery_method === 'pickup' ? 'Самовывоз' : 'Доставка до дома'}</p>
+                            {/* Информация об отправителе и получателе */}
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="bg-gray-50 p-2 rounded">
+                                <Label className="text-xs font-medium text-gray-500">Отправитель</Label>
+                                <p className="text-xs font-medium">{request.sender_full_name}</p>
+                                <p className="text-xs text-gray-600">{request.sender_phone}</p>
+                              </div>
+                              
+                              {(request.recipient_full_name || request.recipient_phone) ? (
+                                <div className="bg-blue-50 p-2 rounded">
+                                  <Label className="text-xs font-medium text-blue-600">Получатель</Label>
+                                  <p className="text-xs font-medium">{request.recipient_full_name || 'Не указан'}</p>
+                                  <p className="text-xs text-blue-600">{request.recipient_phone || 'Не указан'}</p>
+                                </div>
+                              ) : (
+                                <div className="bg-yellow-50 p-2 rounded">
+                                  <Label className="text-xs font-medium text-yellow-600">Получатель</Label>
+                                  <p className="text-xs text-yellow-600">Требуется заполнить</p>
+                                </div>
+                              )}
                             </div>
-
-                            {request.courier_fee && (
+                            
+                            {/* Адрес получателя */}
+                            {request.recipient_address && (
                               <div>
-                                <Label className="text-sm font-medium text-gray-500">Оплата курьеру</Label>
-                                <p className="text-sm font-medium text-green-600">{request.courier_fee} ₽</p>
+                                <Label className="text-sm font-medium text-gray-500">Адрес доставки</Label>
+                                <p className="text-sm text-gray-700">{request.recipient_address}</p>
                               </div>
                             )}
+                            
+                            {/* Информация о грузах */}
+                            {request.cargo_items && Array.isArray(request.cargo_items) && request.cargo_items.length > 0 ? (
+                              <div>
+                                <Label className="text-sm font-medium text-gray-500">Детали груза</Label>
+                                <div className="mt-1 text-xs space-y-1 max-h-16 overflow-y-auto">
+                                  {request.cargo_items.map((item, index) => (
+                                    <div key={index} className="flex justify-between bg-orange-50 p-1 rounded">
+                                      <span>{item.name}</span>
+                                      <span className="font-medium">{item.weight}кг / {item.total_price}₽</span>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="text-xs font-medium text-orange-600 mt-1">
+                                  Итого: {request.cargo_items.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0)}кг / 
+                                  {request.cargo_items.reduce((sum, item) => sum + (parseFloat(item.total_price) || 0), 0)}₽
+                                </div>
+                              </div>
+                            ) : (
+                              request.total_weight && (
+                                <div>
+                                  <Label className="text-sm font-medium text-gray-500">Вес / Стоимость</Label>
+                                  <p className="text-sm">{request.total_weight}кг {request.total_value && `/ ${request.total_value}₽`}</p>
+                                </div>
+                              )
+                            )}
+                            
+                            <div>
+                              <Label className="text-sm font-medium text-gray-500">Способ получения</Label>
+                              <p className="text-sm">{
+                                request.delivery_method === 'pickup' ? 'Самовывоз с склада' :
+                                request.delivery_method === 'home_delivery' ? 'Доставка на дом' :
+                                request.delivery_method === 'office_delivery' ? 'Доставка в офис' :
+                                'Самовывоз'
+                              }</p>
+                            </div>
+                            
+                            {/* Статус оплаты */}
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <Label className="text-sm font-medium text-gray-500">Статус оплаты</Label>
+                                <Badge variant={request.payment_status === 'paid' ? 'default' : 'secondary'} className="ml-2">
+                                  {request.payment_status === 'paid' ? 'Оплачено' : 
+                                   request.payment_status === 'not_paid' ? 'Не оплачено' : 
+                                   request.payment_method === 'cash_on_delivery' ? 'При получении' : 'Не указан'}
+                                </Badge>
+                              </div>
+                              
+                              {request.courier_fee && (
+                                <div className="text-right">
+                                  <Label className="text-xs text-gray-500">Курьеру</Label>
+                                  <p className="text-sm font-medium text-green-600">{request.courier_fee} ₽</p>
+                                </div>
+                              )}
+                            </div>
 
-                            {/* Расширенная история операций */}
-                            <div className="bg-blue-50 p-3 rounded-lg">
-                              <Label className="text-sm font-medium text-blue-700">История операций</Label>
-                              <div className="mt-1 space-y-1 text-xs text-blue-600">
-                                <div>✅ {new Date(request.updated_at).toLocaleString('ru-RU')}: Заявка принята курьером</div>
-                                {request.pickup_time && (
-                                  <div>📦 {new Date(request.pickup_time).toLocaleString('ru-RU')}: Груз забран курьером</div>
-                                )}
+                            {/* История операций */}
+                            <div className="bg-orange-50 p-3 rounded-lg">
+                              <Label className="text-sm font-medium text-orange-700">История операций</Label>
+                              <div className="mt-1 space-y-1 text-xs text-orange-600">
+                                <div>✅ {new Date(request.created_at).toLocaleString('ru-RU')}: Заявка создана</div>
+                                <div>📋 {new Date(request.accepted_at || request.updated_at).toLocaleString('ru-RU')}: Принята курьером</div>
+                                <div>📦 {new Date(request.picked_at || Date.now()).toLocaleString('ru-RU')}: Груз забран</div>
                               </div>
                             </div>
                           </CardContent>
