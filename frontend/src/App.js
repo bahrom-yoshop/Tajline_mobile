@@ -540,7 +540,8 @@ function App() {
       cargo_items: [{
         name: request.cargo_name || '',
         weight: request.weight || '',
-        declared_value: request.declared_value || ''
+        price_per_kg: request.price_per_kg || '80',
+        total_price: ((parseFloat(request.weight) || 0) * (parseFloat(request.price_per_kg) || 80)).toString()
       }],
       total_weight: request.weight || '',
       total_value: request.declared_value || '',
