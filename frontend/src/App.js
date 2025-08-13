@@ -80,6 +80,33 @@ function App() {
   const [courierCreateModal, setCourierCreateModal] = useState(false);
   const [selectedCourier, setSelectedCourier] = useState(null);
   const [courierProfileModal, setCourierProfileModal] = useState(false);
+  
+  // НОВЫЕ СОСТОЯНИЯ ДЛЯ МОДАЛЬНЫХ ОКОН ПРОСМОТРА И РЕДАКТИРОВАНИЯ ЗАЯВОК
+  const [requestViewModal, setRequestViewModal] = useState(false);
+  const [requestEditModal, setRequestEditModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [requestEditForm, setRequestEditForm] = useState({
+    sender_full_name: '',
+    sender_phone: '',
+    sender_address: '',
+    recipient_full_name: '',
+    recipient_phone: '',
+    recipient_address: '',
+    cargo_items: [{
+      name: '',
+      weight: '',
+      declared_value: ''
+    }],
+    total_weight: '',
+    total_value: '',
+    payment_method: 'not_paid',
+    payment_received: false,
+    delivery_method: 'pickup',
+    pickup_address: '',
+    pickup_date: '',
+    pickup_time: '',
+    special_instructions: ''
+  });
   const [courierEditForm, setCourierEditForm] = useState({}); 
   const [courierEditModal, setCourierEditModal] = useState(false);
   const [courierRequests, setCourierRequests] = useState([]);
