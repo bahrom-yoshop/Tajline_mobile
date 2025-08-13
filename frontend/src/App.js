@@ -17434,6 +17434,91 @@ function App() {
                   </Card>
                 </div>
               )}
+              
+              {/* НОВАЯ СЕКЦИЯ: Отмененные заявки курьера */}
+              {activeSection === 'courier-cancelled' && user?.role === 'courier' && (
+                <div className="space-y-6 p-4 md:p-6">
+                  {/* Убрали заголовок */}
+
+                  {cancelledRequests.length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {cancelledRequests.map((request) => (
+                        <Card key={request.id} className="relative border-red-200">
+                          <CardHeader>
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <CardTitle className="text-lg">{request.sender_full_name}</CardTitle>
+                                <CardDescription>{request.sender_phone}</CardDescription>
+                              </div>
+                              <Badge variant="destructive" className="bg-red-100 text-red-800">
+                                Отменена
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          
+                          <CardContent className="space-y-3">
+                            <div>
+                              <Label className="text-sm font-medium text-gray-500">Груз</Label>
+                              <p className="text-sm font-medium">{request.cargo_name}</p>
+                            </div>
+                            
+                            <div>
+                              <Label className="text-sm font-medium text-gray-500">Адрес забора</Label>
+                              <p className="text-sm text-gray-700">{request.pickup_address}</p>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <Label className="text-sm font-medium text-gray-500">Дата отмены</Label>
+                                <p className="text-sm">{new Date(request.cancelled_at || request.updated_at).toLocaleDateString('ru-RU')}</p>
+                              </div>
+                              <div>
+                                <Label className="text-sm font-medium text-gray-500">Причина</Label>
+                                <p className="text-sm">{request.cancellation_reason || 'Не указана'}</p>
+                              </div>
+                            </div>
+
+                            {/* История действий */}
+                            <div className="bg-red-50 p-3 rounded-lg">
+                              <Label className="text-sm font-medium text-red-700">История действий</Label>
+                              <div className="mt-2 space-y-1 text-xs text-red-600">
+                                {request.cancelled_by && (
+                                  <div className="flex items-center">
+                                    <XCircle className="h-3 w-3 mr-1" />
+                                    <span>Отменена: {request.cancelled_by === 'courier' ? 'курьером' : 
+                                                     request.cancelled_by === 'operator' ? 'оператором' : 
+                                                     request.cancelled_by === 'admin' ? 'администратором' : request.cancelled_by}</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center">
+                                  <Package className="h-3 w-3 mr-1" />
+                                  <span>Создана: {new Date(request.created_at).toLocaleDateString('ru-RU')} {new Date(request.created_at).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}</span>
+                                </div>
+                                {request.accepted_at && (
+                                  <div className="flex items-center">
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    <span>Принята: {new Date(request.accepted_at).toLocaleDateString('ru-RU')} {new Date(request.accepted_at).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <Card>
+                      <CardContent className="flex flex-col items-center justify-center py-12">
+                        <XCircle className="h-12 w-12 text-gray-400 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Нет отмененных заявок</h3>
+                        <p className="text-gray-500 text-center">
+                          Здесь будут отображаться заявки, которые были отменены вами, операторами или администраторами.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </main>
