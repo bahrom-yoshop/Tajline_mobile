@@ -12515,17 +12515,33 @@ async def accept_courier_request(
     if not request:
         raise HTTPException(status_code=404, detail="Request not found")
     
-    if request.get("assigned_courier_id") != courier["id"]:
-        raise HTTPException(status_code=403, detail="Request not assigned to you")
+    # Проверяем что заявка может быть принята этим курьером
+    # Курьер может принять заявку если:
+    # 1. Заявка назначена ему (assigned_courier_id == courier.id)
+    # 2. Заявка еще не назначена (assigned_courier_id == None) и статус pending
+    can_accept = (
+        request.get("assigned_courier_id") == courier["id"] or 
+        (request.get("assigned_courier_id") is None and request.get("request_status") == "pending")
+    )
+    
+    if not can_accept:
+        raise HTTPException(status_code=403, detail="Request not available for acceptance")
     
     try:
+        # Если заявка еще не была назначена, назначаем ее этому курьеру
+        update_data = {
+            "request_status": "accepted",
+            "updated_at": datetime.utcnow()
+        }
+        
+        if request.get("assigned_courier_id") is None:
+            update_data["assigned_courier_id"] = courier["id"]
+            update_data["assigned_courier_name"] = courier["full_name"]
+        
         # Обновляем статус заявки
         db.courier_requests.update_one(
             {"id": request_id},
-            {"$set": {
-                "request_status": "accepted",
-                "updated_at": datetime.utcnow()
-            }}
+            {"$set": update_data}
         )
         
         # Обновляем груз если есть
