@@ -1615,6 +1615,30 @@ def generate_courier_request_number() -> str:
         import random
         return f"{random.randint(100001, 999999):06d}"
 
+def generate_pickup_request_number() -> str:
+    """Генерируем читаемый номер заявки на забор груза формата 200001, 200002, 200003..."""
+    try:
+        # Ищем последнюю заявку на забор груза с номером для определения следующего номера
+        last_request = db.courier_pickup_requests.find_one(
+            {"request_number": {"$regex": "^[0-9]{6}$"}},
+            sort=[("request_number", -1)]
+        )
+        
+        if last_request and last_request.get("request_number"):
+            # Получаем следующий номер
+            last_number = int(last_request["request_number"])
+            new_number = last_number + 1
+        else:
+            # Начинаем с номера 200001 для заявок на забор груза
+            new_number = 200001
+        
+        return f"{new_number:06d}"
+        
+    except Exception as e:
+        # В случае ошибки, генерируем случайный номер начиная с 200001
+        import random
+        return f"{random.randint(200001, 299999):06d}"
+
 def generate_readable_request_number() -> str:
     """Генерируем читаемый номер заявки формата 100001, 100002, 100003..."""
     try:
