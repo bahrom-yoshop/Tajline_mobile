@@ -2961,11 +2961,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Login Form and Adaptive Menu Backend Stability"
-    - "API Health Check"
-    - "Authentication Endpoints After UI Improvements"
-    - "Backend Core Endpoints Stability"
-    - "Session Management After UI Changes"
+    - "Courier Authentication System"
+    - "Request Restoration Endpoint"
+    - "Courier Requests with Addresses"
+    - "Backend Stability After Request Restoration"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
