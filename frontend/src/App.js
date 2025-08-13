@@ -9268,7 +9268,7 @@ function App() {
 
         {/* Десктопная версия меню */}
         <div className="hidden md:block h-full bg-white border-r border-gray-200 w-64 flex flex-col fixed left-0 top-0 z-30">
-          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+          <div className="flex items-center h-16 px-6 border-b border-gray-200">
             <div className="flex items-center">
               <img 
                 src="https://customer-assets.emergentagent.com/job_tajline-courier/artifacts/st3odbr7_Logo_line.png" 
@@ -9279,24 +9279,6 @@ function App() {
                 <Badge className="bg-blue-100 text-blue-800 text-xs">КУРЬЕР</Badge>
               </div>
             </div>
-            
-            {/* Колокольчик уведомлений для десктопа */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setActiveSection('courier-requests');
-                setActiveTab('courier-requests');
-              }}
-              className="p-2 relative hover:bg-gray-100"
-            >
-              <Bell className="h-5 w-5 text-gray-600" />
-              {courierRequests.length > 0 && (
-                <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs min-w-[18px] h-[18px] flex items-center justify-center rounded-full p-0">
-                  {courierRequests.length}
-                </Badge>
-              )}
-            </Button>
           </div>
 
           <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
