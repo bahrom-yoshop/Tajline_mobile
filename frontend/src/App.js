@@ -3481,6 +3481,7 @@ function App() {
         fetchCourierNewRequests(); // Загрузка новых заявок
         fetchAcceptedRequests(); // Загрузка принятых заявок
         fetchPickedRequests(); // Загрузка забранных грузов
+        fetchCancelledRequests(); // Загрузка отмененных заявок
       } else {
         fetchNotifications(); // Уведомления для обычных пользователей
         fetchMyCargo();
