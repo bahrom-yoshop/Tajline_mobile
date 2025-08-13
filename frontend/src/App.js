@@ -262,6 +262,65 @@ function App() {
     }
   };
 
+  // НОВЫЕ ФУНКЦИИ ДЛЯ ЛИЧНОГО КАБИНЕТА КУРЬЕРА (ЭТАП 3)
+  const fetchCourierNewRequests = async () => {
+    try {
+      const data = await apiCall('/api/courier/requests/new');
+      setCourierRequests(data.new_requests || []);
+      
+      // Обновляем информацию о курьере
+      if (data.courier_info) {
+        setSelectedCourier(data.courier_info);
+      }
+    } catch (error) {
+      console.error('Error fetching courier new requests:', error);
+      showAlert('Ошибка загрузки новых заявок: ' + error.message, 'error');
+    }
+  };
+
+  const handleAcceptCourierRequest = async (requestId) => {
+    try {
+      await apiCall(`/api/courier/requests/${requestId}/accept`, 'POST');
+      
+      showAlert('Заявка принята! Оператор получит уведомление.', 'success');
+      
+      // Обновляем список заявок
+      fetchCourierNewRequests();
+      
+    } catch (error) {
+      console.error('Error accepting courier request:', error);
+      showAlert('Ошибка принятия заявки: ' + error.message, 'error');
+    }
+  };
+
+  const handleCancelCourierRequest = async (requestId, reason = 'Отменено курьером') => {
+    try {
+      await apiCall(`/api/courier/requests/${requestId}/cancel`, 'POST', {
+        reason: reason
+      });
+      
+      showAlert('Заявка отменена. Оператор получит уведомление.', 'warning');
+      
+      // Обновляем список заявок
+      fetchCourierNewRequests();
+      
+    } catch (error) {
+      console.error('Error cancelling courier request:', error);
+      showAlert('Ошибка отмены заявки: ' + error.message, 'error');
+    }
+  };
+
+  const fetchCourierRequestsHistory = async (page = 1, perPage = 20) => {
+    try {
+      const data = await apiCall(`/api/courier/requests/history?page=${page}&per_page=${perPage}`);
+      return data;
+    } catch (error) {
+      console.error('Error fetching courier requests history:', error);
+      showAlert('Ошибка загрузки истории заявок: ' + error.message, 'error');
+      return { items: [], pagination: {} };
+    }
+  };
+
   // Функция для генерации QR кода отдельной ячейки
   const generateSingleCellQR = async () => {
     if (!singleCellBlock || !singleCellShelf || !singleCellNumber) {
