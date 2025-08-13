@@ -18524,6 +18524,24 @@ function App() {
                   </Card>
                 </div>
               )}
+
+              {/* История и аналитика курьеров - доступна админам и операторам */}
+              {activeSection === 'couriers-tracking' && activeTab === 'couriers-history-analytics' && 
+               (user?.role === 'admin' || user?.role === 'warehouse_operator') && (
+                <div className="space-y-6 p-4 md:p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h1 className="text-2xl font-bold text-gray-900">История и аналитика курьеров</h1>
+                      <p className="text-gray-600">Анализ перемещений, расчет времени прибытия и эффективности доставки</p>
+                    </div>
+                  </div>
+                  
+                  <CourierHistoryAnalytics 
+                    userRole={user?.role}
+                    apiCall={apiCall}
+                  />
+                </div>
+              )}
             </div>
           )}
         </main>
