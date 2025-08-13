@@ -1013,8 +1013,14 @@ function App() {
         Вес: ${selectedRequest.weight || 'Не указан'} кг
         
         ЗАБОР:
-        Дата: ${new Date(selectedRequest.pickup_date).toLocaleDateString('ru-RU')}
-        Время: ${selectedRequest.pickup_time_from} - ${selectedRequest.pickup_time_to}
+        Дата: ${selectedRequest.pickup_date 
+          ? new Date(selectedRequest.pickup_date).toLocaleDateString('ru-RU')
+          : 'Не указана'
+        }
+        Время: ${selectedRequest.pickup_time_from && selectedRequest.pickup_time_to 
+          ? `${selectedRequest.pickup_time_from} - ${selectedRequest.pickup_time_to}`
+          : (selectedRequest.pickup_time || 'Не указано')
+        }
         Адрес: ${selectedRequest.pickup_address}
         
         КУРЬЕР: ${user?.full_name}
