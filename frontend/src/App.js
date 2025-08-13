@@ -10008,29 +10008,30 @@ function App() {
       {/* Основной контент */}
       <div className={`${
         user && (user.role === 'admin' || user.role === 'warehouse_operator') 
-          ? 'ml-64' 
+          ? 'md:ml-72 transition-all duration-300'  // На мобиле без отступов, на десктопе с отступом
           : user && user.role === 'courier'
-            ? 'md:ml-64' // На десктопе отступ, на мобиле полная ширина
+            ? 'md:ml-64 pt-16 md:pt-0'  // Курьер: мобиле отступ сверху для header, десктоп с боковым меню
             : ''
-      } transition-all duration-300`}>
+      }`}>
         
-        {/* Header - СКРЫТ ДЛЯ КУРЬЕРОВ */}
+        {/* Header - адаптивный для админов/операторов */}
         {user && user.role !== 'courier' && (
-          <header className="bg-white shadow-sm border-b">
-            <div className="container mx-auto px-4 py-4">
+          <header className="bg-white shadow-sm border-b sticky top-0 z-30">
+            <div className="px-4 md:px-6 py-4">
               <div className="flex items-center justify-between">
+                {/* Логотип и название - скрыто на мобиле если есть боковое меню */}
                 <div className="flex items-center">
-                  <div className="flex items-center mr-6">
+                  <div className="md:flex items-center mr-6 hidden">
                     <img 
-                      src="/logo.png" 
+                      src="https://customer-assets.emergentagent.com/job_tajline-courier/artifacts/st3odbr7_Logo_line.png" 
                       alt="TAJLINE.TJ" 
-                      className="h-10 w-auto"
+                      className="h-10 w-auto mr-3"
                       onError={(e) => {
                         e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'block';
+                        e.target.nextSibling.style.display = 'flex';
                       }}
                     />
-                    <div className="hidden flex items-center">
+                    <div className="hidden">
                       <div className="bg-blue-600 text-white p-2 rounded-lg mr-3">
                         <Truck className="h-8 w-8" />
                       </div>
@@ -10040,12 +10041,29 @@ function App() {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Заголовок страницы на мобиле */}
+                  <div className="md:hidden">
+                    <h1 className="text-lg font-semibold text-gray-900">
+                      {activeSection === 'dashboard' ? 'Главная' :
+                       activeSection === 'users' ? 'Пользователи' :
+                       activeSection === 'cargo-management' ? 'Грузы' :
+                       activeSection === 'warehouses' ? 'Склады' :
+                       activeSection === 'operations' ? 'Операции' :
+                       activeSection === 'notifications-management' ? 'Уведомления' :
+                       activeSection === 'cashier' ? 'Касса' :
+                       activeSection === 'logistics' ? 'Логистика' :
+                       activeSection === 'finances' ? 'Финансы' :
+                       activeSection === 'reports' ? 'Отчеты' :
+                       'Панель управления'}
+                    </h1>
+                  </div>
                 </div>
                 
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2 md:space-x-4">
                   <div className="flex items-center space-x-2">
                     {getRoleIcon(user.role)}
-                    <div className="flex flex-col">
+                    <div className="hidden md:flex flex-col">
                       <span className="text-sm font-medium">{user.full_name}</span>
                       {user.user_number && (
                       <span className="text-xs text-gray-500">№ {user.user_number}</span>
