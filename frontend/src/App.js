@@ -519,6 +519,106 @@ function App() {
   const handleOpenCourierChat = () => {
     setCourierChatModal(true);
   };
+  
+  // НОВЫЕ ФУНКЦИИ ДЛЯ МОДАЛЬНЫХ ОКОН ПРОСМОТРА И РЕДАКТИРОВАНИЯ ЗАЯВОК
+  const handleViewRequest = (request) => {
+    setSelectedRequest(request);
+    setRequestViewModal(true);
+  };
+  
+  const handleEditRequest = (request) => {
+    setSelectedRequest(request);
+    // Предзаполняем форму данными заявки
+    setRequestEditForm({
+      sender_full_name: request.sender_full_name || '',
+      sender_phone: request.sender_phone || '',
+      sender_address: request.pickup_address || '',
+      recipient_full_name: request.recipient_full_name || '',
+      recipient_phone: request.recipient_phone || '',
+      recipient_address: request.recipient_address || '',
+      cargo_items: [{
+        name: request.cargo_name || '',
+        weight: request.weight || '',
+        declared_value: request.declared_value || ''
+      }],
+      total_weight: request.weight || '',
+      total_value: request.declared_value || '',
+      payment_method: request.payment_method || 'not_paid',
+      payment_received: request.payment_received || false,
+      delivery_method: request.delivery_method || 'pickup',
+      pickup_address: request.pickup_address || '',
+      pickup_date: request.pickup_date || '',
+      pickup_time: request.pickup_time || '',
+      special_instructions: request.special_instructions || ''
+    });
+    setRequestEditModal(true);
+  };
+  
+  const handleSaveEditedRequest = async (e) => {
+    e.preventDefault();
+    
+    try {
+      // Рассчитываем общий вес и стоимость
+      const totalWeight = requestEditForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0);
+      const totalValue = requestEditForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.declared_value) || 0), 0);
+      
+      const updateData = {
+        ...requestEditForm,
+        total_weight: totalWeight,
+        total_value: totalValue
+      };
+      
+      await apiCall(`/api/courier/requests/${selectedRequest.id}/update`, 'PUT', updateData);
+      
+      showAlert('Заявка обновлена успешно!', 'success');
+      setRequestEditModal(false);
+      
+      // Обновляем списки заявок
+      fetchAcceptedRequests();
+      
+    } catch (error) {
+      console.error('Error updating request:', error);
+      showAlert('Ошибка обновления заявки: ' + error.message, 'error');
+    }
+  };
+  
+  const addCargoItem = () => {
+    setRequestEditForm({
+      ...requestEditForm,
+      cargo_items: [...requestEditForm.cargo_items, { name: '', weight: '', declared_value: '' }]
+    });
+  };
+  
+  const removeCargoItem = (index) => {
+    const newItems = requestEditForm.cargo_items.filter((_, i) => i !== index);
+    setRequestEditForm({
+      ...requestEditForm,
+      cargo_items: newItems
+    });
+  };
+  
+  const updateCargoItem = (index, field, value) => {
+    const newItems = [...requestEditForm.cargo_items];
+    newItems[index][field] = value;
+    setRequestEditForm({
+      ...requestEditForm,
+      cargo_items: newItems
+    });
+  };
+  
+  const handlePrintLabel = () => {
+    if (selectedRequest) {
+      showAlert('Печать накладной для заявки №' + selectedRequest.id, 'info');
+      // Здесь будет логика печати накладной
+    }
+  };
+  
+  const handlePrintQR = () => {
+    if (selectedRequest) {
+      showAlert('Печать QR кода для заявки №' + selectedRequest.id, 'info');
+      // Здесь будет логика печати QR кода
+    }
+  };
 
   // Функция для генерации QR кода отдельной ячейки
   const generateSingleCellQR = async () => {
