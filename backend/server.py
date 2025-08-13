@@ -13213,6 +13213,246 @@ async def get_available_couriers_for_warehouse(
     
     return {"couriers": couriers, "count": len(couriers)}
 
+# НОВЫЕ ENDPOINTS ДЛЯ ОТСЛЕЖИВАНИЯ МЕСТОПОЛОЖЕНИЯ КУРЬЕРОВ
+
+@app.post("/api/courier/location/update")
+async def update_courier_location(
+    location_data: CourierLocationUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Обновить местоположение курьера (только для курьеров)"""
+    if current_user.role != UserRole.COURIER:
+        raise HTTPException(status_code=403, detail="Only couriers can update location")
+    
+    try:
+        # Найти информацию о курьере
+        courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
+        if not courier:
+            raise HTTPException(status_code=404, detail="Courier profile not found")
+        
+        # Получить информацию о текущей заявке (если есть)
+        current_request = db.courier_requests.find_one({
+            "assigned_courier_id": courier["id"],
+            "request_status": {"$in": ["accepted", "picked_up"]}
+        }, {"_id": 0})
+        
+        current_request_id = current_request["id"] if current_request else None
+        current_request_address = current_request.get("pickup_address") if current_request else None
+        
+        # Создать запись местоположения
+        location_id = str(uuid.uuid4())
+        now = datetime.utcnow()
+        
+        location_record = {
+            "id": location_id,
+            "courier_id": courier["id"],
+            "courier_name": courier["full_name"],
+            "courier_phone": courier["phone"],
+            "transport_type": courier["transport_type"],
+            "latitude": location_data.latitude,
+            "longitude": location_data.longitude,
+            "status": location_data.status.value,
+            "current_address": location_data.current_address,
+            "accuracy": location_data.accuracy,
+            "speed": location_data.speed,
+            "heading": location_data.heading,
+            "current_request_id": current_request_id,
+            "current_request_address": current_request_address,
+            "last_updated": now,
+            "created_at": now
+        }
+        
+        # Обновить или создать запись местоположения
+        db.courier_locations.update_one(
+            {"courier_id": courier["id"]},
+            {"$set": location_record},
+            upsert=True
+        )
+        
+        return {
+            "message": "Location updated successfully",
+            "location_id": location_id,
+            "timestamp": now.isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating location: {str(e)}")
+
+@app.get("/api/admin/couriers/locations")
+async def get_all_couriers_locations(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить местоположения всех курьеров (для админов)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can view all courier locations")
+    
+    try:
+        # Получить все активные местоположения курьеров
+        locations = list(db.courier_locations.find({}, {"_id": 0}))
+        
+        # Сортировать по времени последнего обновления
+        locations.sort(key=lambda x: x.get('last_updated', datetime.min), reverse=True)
+        
+        # Добавить информацию о времени последнего обновления в читаемом формате
+        for location in locations:
+            last_updated = location.get('last_updated')
+            if last_updated:
+                time_diff = datetime.utcnow() - last_updated
+                minutes_ago = int(time_diff.total_seconds() / 60)
+                
+                if minutes_ago < 1:
+                    location['time_since_update'] = "только что"
+                elif minutes_ago < 60:
+                    location['time_since_update'] = f"{minutes_ago} мин назад"
+                else:
+                    hours_ago = int(minutes_ago / 60)
+                    location['time_since_update'] = f"{hours_ago} ч назад"
+            else:
+                location['time_since_update'] = "неизвестно"
+        
+        return {
+            "locations": locations,
+            "total_count": len(locations),
+            "active_couriers": len([l for l in locations if l.get('status') != 'offline']),
+            "last_updated": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching courier locations: {str(e)}")
+
+@app.get("/api/operator/couriers/locations")
+async def get_warehouse_couriers_locations(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить местоположения курьеров склада (для операторов склада)"""
+    if current_user.role != UserRole.WAREHOUSE_OPERATOR:
+        raise HTTPException(status_code=403, detail="Only warehouse operators can view their courier locations")
+    
+    try:
+        # Найти склады, назначенные данному оператору
+        operator_warehouses = list(db.warehouse_operators.find(
+            {"user_id": current_user.id}, 
+            {"warehouse_id": 1, "_id": 0}
+        ))
+        
+        if not operator_warehouses:
+            return {
+                "locations": [],
+                "total_count": 0,
+                "active_couriers": 0,
+                "message": "No warehouses assigned to this operator"
+            }
+        
+        warehouse_ids = [w["warehouse_id"] for w in operator_warehouses]
+        
+        # Найти курьеров, назначенных к этим складам
+        couriers = list(db.couriers.find({
+            "assigned_warehouse_id": {"$in": warehouse_ids},
+            "is_active": True
+        }, {"id": 1, "_id": 0}))
+        
+        if not couriers:
+            return {
+                "locations": [],
+                "total_count": 0,
+                "active_couriers": 0,
+                "message": "No couriers assigned to your warehouses"
+            }
+        
+        courier_ids = [c["id"] for c in couriers]
+        
+        # Получить местоположения этих курьеров
+        locations = list(db.courier_locations.find({
+            "courier_id": {"$in": courier_ids}
+        }, {"_id": 0}))
+        
+        # Сортировать по времени последнего обновления
+        locations.sort(key=lambda x: x.get('last_updated', datetime.min), reverse=True)
+        
+        # Добавить информацию о времени последнего обновления
+        for location in locations:
+            last_updated = location.get('last_updated')
+            if last_updated:
+                time_diff = datetime.utcnow() - last_updated
+                minutes_ago = int(time_diff.total_seconds() / 60)
+                
+                if minutes_ago < 1:
+                    location['time_since_update'] = "только что"
+                elif minutes_ago < 60:
+                    location['time_since_update'] = f"{minutes_ago} мин назад"
+                else:
+                    hours_ago = int(minutes_ago / 60)
+                    location['time_since_update'] = f"{hours_ago} ч назад"
+            else:
+                location['time_since_update'] = "неизвестно"
+        
+        return {
+            "locations": locations,
+            "total_count": len(locations),
+            "active_couriers": len([l for l in locations if l.get('status') != 'offline']),
+            "warehouse_count": len(warehouse_ids),
+            "last_updated": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching courier locations: {str(e)}")
+
+@app.get("/api/courier/location/status")
+async def get_courier_location_status(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить статус отслеживания местоположения курьера"""
+    if current_user.role != UserRole.COURIER:
+        raise HTTPException(status_code=403, detail="Only couriers can check location status")
+    
+    try:
+        # Найти информацию о курьере
+        courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
+        if not courier:
+            raise HTTPException(status_code=404, detail="Courier profile not found")
+        
+        # Найти последнее местоположение
+        location = db.courier_locations.find_one(
+            {"courier_id": courier["id"]}, 
+            {"_id": 0}
+        )
+        
+        if not location:
+            return {
+                "tracking_enabled": False,
+                "status": "offline",
+                "message": "Location tracking not started"
+            }
+        
+        # Проверить, как давно было последнее обновление
+        last_updated = location.get('last_updated')
+        if last_updated:
+            time_diff = datetime.utcnow() - last_updated
+            minutes_ago = int(time_diff.total_seconds() / 60)
+            
+            if minutes_ago > 10:  # Считаем оффлайн если нет обновлений больше 10 минут
+                tracking_status = "stale"
+                time_since = f"{minutes_ago} мин назад"
+            else:
+                tracking_status = "active"
+                time_since = "активно"
+        else:
+            tracking_status = "unknown"
+            time_since = "неизвестно"
+        
+        return {
+            "tracking_enabled": True,
+            "status": location.get('status', 'offline'),
+            "tracking_status": tracking_status,
+            "last_updated": last_updated.isoformat() if last_updated else None,
+            "time_since_update": time_since,
+            "current_address": location.get('current_address'),
+            "current_request_id": location.get('current_request_id')
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error checking location status: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
