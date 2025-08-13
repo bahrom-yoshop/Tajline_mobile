@@ -776,7 +776,7 @@ function App() {
     }
   };
   
-  const handleOnlineChat = () => {
+  const handleSenderOnlineChat = () => {
     // Здесь можно реализовать встроенный чат или перенаправить на страницу чата
     showAlert(`Онлайн чат с ${contactSender?.full_name} будет доступен в ближайшее время`, 'info');
     setSenderContactModal(false);
