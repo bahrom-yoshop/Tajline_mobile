@@ -12657,6 +12657,266 @@ async def cancel_courier_request(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error cancelling request: {str(e)}")
 
+@app.post("/api/courier/requests/{request_id}/pickup")
+async def pickup_cargo_by_courier(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Забрать груз курьером (после принятия заявки)"""
+    if current_user.role != UserRole.COURIER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Получаем профиль курьера
+    courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not courier:
+        raise HTTPException(status_code=404, detail="Courier profile not found")
+    
+    # Получаем заявку
+    request = db.courier_requests.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    # Проверяем что заявка принята этим курьером
+    if request.get("assigned_courier_id") != courier["id"] or request.get("request_status") != "accepted":
+        raise HTTPException(status_code=403, detail="Request not accepted by you or invalid status")
+    
+    try:
+        current_time = datetime.utcnow()
+        
+        # Обновляем статус заявки
+        db.courier_requests.update_one(
+            {"id": request_id},
+            {"$set": {
+                "request_status": "picked_up",
+                "pickup_time": current_time,
+                "updated_at": current_time
+            }}
+        )
+        
+        # Обновляем груз если есть
+        if request.get("cargo_id"):
+            # Создаем историю операций
+            operation_history = {
+                "operation_type": "picked_up_by_courier",
+                "timestamp": current_time,
+                "performed_by": courier["full_name"],
+                "performed_by_id": courier["id"],
+                "details": "Груз забран курьером"
+            }
+            
+            db.operator_cargo.update_one(
+                {"id": request["cargo_id"]},
+                {
+                    "$set": {
+                        "status": CargoStatus.PICKED_UP_BY_COURIER,
+                        "courier_request_status": "picked_up",
+                        "pickup_time": current_time,
+                        "updated_at": current_time
+                    },
+                    "$push": {"operation_history": operation_history}
+                }
+            )
+        
+        # Уведомляем оператора
+        create_notification(
+            user_id=request["created_by"],
+            message=f"Курьер {courier['full_name']} забрал груз {request.get('cargo_name', 'N/A')}",
+            related_id=request_id
+        )
+        
+        return {"message": "Cargo picked up successfully", "pickup_time": current_time}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error picking up cargo: {str(e)}")
+
+@app.post("/api/courier/requests/{request_id}/deliver-to-warehouse")
+async def deliver_cargo_to_warehouse(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Сдать груз на склад курьером"""
+    if current_user.role != UserRole.COURIER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Получаем профиль курьера
+    courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not courier:
+        raise HTTPException(status_code=404, detail="Courier profile not found")
+    
+    # Получаем заявку
+    request = db.courier_requests.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    # Проверяем что груз забран этим курьером
+    if request.get("assigned_courier_id") != courier["id"] or request.get("request_status") != "picked_up":
+        raise HTTPException(status_code=403, detail="Cargo not picked up by you or invalid status")
+    
+    try:
+        current_time = datetime.utcnow()
+        
+        # Обновляем статус заявки
+        db.courier_requests.update_one(
+            {"id": request_id},
+            {"$set": {
+                "request_status": "delivered_to_warehouse",
+                "delivery_time": current_time,
+                "updated_at": current_time
+            }}
+        )
+        
+        # Обновляем груз если есть
+        if request.get("cargo_id"):
+            # Создаем историю операций
+            operation_history = {
+                "operation_type": "delivered_to_warehouse",
+                "timestamp": current_time,
+                "performed_by": courier["full_name"],
+                "performed_by_id": courier["id"],
+                "details": "Груз сдан курьером на склад"
+            }
+            
+            db.operator_cargo.update_one(
+                {"id": request["cargo_id"]},
+                {
+                    "$set": {
+                        "status": CargoStatus.COURIER_DELIVERED_TO_WAREHOUSE,
+                        "courier_request_status": "delivered_to_warehouse",
+                        "delivery_time": current_time,
+                        "updated_at": current_time
+                    },
+                    "$push": {"operation_history": operation_history}
+                }
+            )
+        
+        # Уведомляем оператора
+        create_notification(
+            user_id=request["created_by"],
+            message=f"Курьер {courier['full_name']} сдал груз {request.get('cargo_name', 'N/A')} на склад",
+            related_id=request_id
+        )
+        
+        return {"message": "Cargo delivered to warehouse successfully", "delivery_time": current_time}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error delivering cargo: {str(e)}")
+
+@app.get("/api/courier/requests/accepted")
+async def get_courier_accepted_requests(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить принятые заявки курьера"""
+    if current_user.role != UserRole.COURIER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Получаем профиль курьера
+    courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not courier:
+        raise HTTPException(status_code=404, detail="Courier profile not found")
+    
+    # Получаем принятые заявки (готовые к забору)
+    accepted_requests = list(db.courier_requests.find({
+        "assigned_courier_id": courier["id"],
+        "request_status": "accepted"
+    }, {"_id": 0}).sort("created_at", -1))
+    
+    return {
+        "courier_info": courier,
+        "accepted_requests": accepted_requests,
+        "total_count": len(accepted_requests)
+    }
+
+@app.get("/api/courier/requests/picked")
+async def get_courier_picked_requests(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить забранные грузы курьера (готовые к сдаче на склад)"""
+    if current_user.role != UserRole.COURIER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Получаем профиль курьера
+    courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not courier:
+        raise HTTPException(status_code=404, detail="Courier profile not found")
+    
+    # Получаем забранные грузы
+    picked_requests = list(db.courier_requests.find({
+        "assigned_courier_id": courier["id"],
+        "request_status": "picked_up"
+    }, {"_id": 0}).sort("pickup_time", -1))
+    
+    return {
+        "courier_info": courier,
+        "picked_requests": picked_requests,
+        "total_count": len(picked_requests)
+    }
+
+@app.put("/api/courier/cargo/{cargo_id}/update")
+async def update_cargo_by_courier(
+    cargo_id: str,
+    cargo_update: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Обновить информацию о грузе курьером"""
+    if current_user.role != UserRole.COURIER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Получаем профиль курьера
+    courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not courier:
+        raise HTTPException(status_code=404, detail="Courier profile not found")
+    
+    # Проверяем что груз назначен этому курьеру
+    cargo = db.operator_cargo.find_one({"id": cargo_id}, {"_id": 0})
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    if cargo.get("assigned_courier_id") != courier["id"]:
+        raise HTTPException(status_code=403, detail="Cargo not assigned to you")
+    
+    try:
+        current_time = datetime.utcnow()
+        
+        # Подготавливаем данные для обновления
+        update_data = {
+            "updated_at": current_time,
+            "updated_by_courier": courier["full_name"]
+        }
+        
+        # Обновляем разрешенные поля
+        allowed_fields = [
+            "cargo_name", "weight", "recipient_full_name", "recipient_phone", 
+            "recipient_address", "delivery_method", "payment_method", "declared_value"
+        ]
+        
+        for field in allowed_fields:
+            if field in cargo_update:
+                update_data[field] = cargo_update[field]
+        
+        # Создаем историю операций
+        operation_history = {
+            "operation_type": "updated_by_courier",
+            "timestamp": current_time,
+            "performed_by": courier["full_name"],
+            "performed_by_id": courier["id"],
+            "details": "Информация о грузе обновлена курьером",
+            "updated_fields": list(cargo_update.keys())
+        }
+        
+        # Обновляем груз
+        db.operator_cargo.update_one(
+            {"id": cargo_id},
+            {
+                "$set": update_data,
+                "$push": {"operation_history": operation_history}
+            }
+        )
+        
+        return {"message": "Cargo updated successfully", "updated_fields": list(cargo_update.keys())}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating cargo: {str(e)}")
+
 @app.get("/api/admin/couriers/available/{warehouse_id}")
 async def get_available_couriers_for_warehouse(
     warehouse_id: str,
