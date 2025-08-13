@@ -3183,6 +3183,13 @@ function App() {
     }
   }, [user, token, isLoggingOut, isLoggingIn]); // Добавляем зависимости для правильной последовательности
 
+  // НОВЫЙ USEEFFECT: Устанавливаем правильную секцию для курьеров
+  useEffect(() => {
+    if (user && user.role === 'courier' && activeSection === 'dashboard') {
+      setActiveSection('courier-dashboard');
+    }
+  }, [user, activeSection]);
+
   // Функция загрузки данных личного кабинета
   const fetchPersonalDashboard = async () => {
     setDashboardLoading(true);
