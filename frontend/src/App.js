@@ -10807,10 +10807,11 @@ function App() {
             /* Для админа и оператора склада - новый интерфейс с боковым меню */
             <div className="space-y-6">
               
-              {/* Шапка с поиском и уведомлениями */}
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              {/* Шапка с поиском и уведомлениями - СКРЫТА ДЛЯ КУРЬЕРОВ */}
+              {user.role !== 'courier' && (
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     
                     {/* Поиск с расширенными функциями */}
                     <div className="flex-1 max-w-md relative">
