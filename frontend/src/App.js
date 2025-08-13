@@ -8949,9 +8949,13 @@ function App() {
         {/* Десктопная версия меню */}
         <div className="hidden md:block h-full bg-white border-r border-gray-200 w-64 flex flex-col fixed left-0 top-0 z-30">
           <div className="flex items-center h-16 px-6 border-b border-gray-200">
-            <Truck className="h-8 w-8 text-blue-600" />
-            <span className="ml-2 text-xl font-bold text-gray-900">TAJLINE</span>
-            <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">КУРЬЕР</Badge>
+            <div className="bg-blue-600 text-white p-2 rounded-lg mr-3">
+              <Truck className="h-6 w-6" />
+            </div>
+            <div>
+              <span className="text-xl font-bold text-gray-900">TAJLINE</span>
+              <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">КУРЬЕР</Badge>
+            </div>
           </div>
 
           <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
