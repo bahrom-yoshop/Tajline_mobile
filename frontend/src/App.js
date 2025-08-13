@@ -583,6 +583,7 @@ function App() {
         total_value: totalValue
       };
       
+      // Используем правильный endpoint для обновления заявки курьером
       await apiCall(`/api/courier/requests/${selectedRequest.id}/update`, 'PUT', updateData);
       
       showAlert('Заявка обновлена успешно!', 'success');
@@ -590,6 +591,8 @@ function App() {
       
       // Обновляем списки заявок
       fetchAcceptedRequests();
+      fetchPickedRequests();
+      fetchCourierNewRequests();
       
     } catch (error) {
       console.error('Error updating request:', error);
