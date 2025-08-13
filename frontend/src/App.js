@@ -9144,10 +9144,11 @@ function App() {
     <div className="min-h-screen bg-gray-50">
       {/* Боковое меню */}
       {user && (user.role === 'admin' || user.role === 'warehouse_operator') && <SidebarMenu />}
+      {user && user.role === 'courier' && <CourierSidebarMenu />}
       
       {/* Основной контент */}
       <div className={`${
-        user && (user.role === 'admin' || user.role === 'warehouse_operator') 
+        user && (user.role === 'admin' || user.role === 'warehouse_operator' || user.role === 'courier') 
           ? (sidebarOpen ? 'ml-64' : 'ml-16') 
           : ''
       } transition-all duration-300`}>
