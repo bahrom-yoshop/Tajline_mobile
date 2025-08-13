@@ -12744,10 +12744,18 @@ async def accept_courier_request(
         raise HTTPException(status_code=404, detail="Request not found")
     
     # Проверяем что заявка может быть принята этим курьером
-    can_accept = (
-        request.get("assigned_courier_id") == courier["id"] or 
-        (request.get("assigned_courier_id") is None and request.get("request_status") == "pending")
-    )
+    # Для заявок на забор груза (pickup) - любой курьер может принять заявку со статусом pending
+    # Для обычных заявок (delivery) - следуем старой логике
+    if request_type == "pickup":
+        can_accept = (
+            request.get("request_status") == "pending" and 
+            request.get("assigned_courier_id") is None
+        )
+    else:  # delivery
+        can_accept = (
+            request.get("assigned_courier_id") == courier["id"] or 
+            (request.get("assigned_courier_id") is None and request.get("request_status") == "pending")
+        )
     
     if not can_accept:
         raise HTTPException(status_code=403, detail="Request not available for acceptance")
