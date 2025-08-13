@@ -9431,9 +9431,11 @@ function App() {
     );
   };
 
-  // Боковое меню для админа и оператора склада
+  // Боковое меню для админа и оператора склада - УЛУЧШЕННАЯ АДАПТИВНАЯ ВЕРСИЯ
   const SidebarMenu = () => {
     if (user?.role === 'user') return null;
+
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const menuItems = [
       {
@@ -9458,10 +9460,10 @@ function App() {
           { id: 'users-regular', label: 'Пользователи' },
           { id: 'users-operators', label: 'Операторы склада' },
           { id: 'users-admins', label: 'Администраторы' },
-          { id: 'users-couriers', label: 'Курьеры' }, // НОВАЯ ПОДКАТЕГОРИЯ КУРЬЕРОВ
-          { id: 'users-create-operator', label: 'Создать оператора' }, // Функция 2
+          { id: 'users-couriers', label: 'Курьеры' },
+          { id: 'users-create-operator', label: 'Создать оператора' },
           { id: 'users-operator-bindings', label: 'Привязка операторов' },
-          { id: 'users-debtors', label: 'Список задолжников' }  // НОВАЯ ВКЛАДКА
+          { id: 'users-debtors', label: 'Список задолжников' }
         ]
       },
       {
@@ -9563,76 +9565,247 @@ function App() {
     );
 
     return (
-      <div className={`fixed left-0 top-0 h-full bg-gray-900 text-white transition-all duration-300 z-40 ${
-        sidebarOpen ? 'w-64' : 'w-16'
-      }`}>
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-8">
+      <>
+        {/* Мобильная версия меню */}
+        <div className="md:hidden">
+          {/* Мобильная шапка */}
+          <div className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-50">
+            <div className="flex items-center">
+              <img 
+                src="https://customer-assets.emergentagent.com/job_tajline-courier/artifacts/st3odbr7_Logo_line.png" 
+                alt="Logo" 
+                className="h-8 w-auto mr-2"
+              />
+              <div>
+                <Badge className="bg-blue-100 text-blue-800 text-xs">
+                  {user?.role === 'admin' ? 'АДМИН' : 'ОПЕРАТОР'}
+                </Badge>
+              </div>
+            </div>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          </div>
+
+          {/* Мобильное выдвижное меню */}
+          {mobileMenuOpen && (
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <div 
+                className="fixed left-0 top-0 h-full bg-white w-80 shadow-2xl z-50 overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center">
+                      <img 
+                        src="https://customer-assets.emergentagent.com/job_tajline-courier/artifacts/st3odbr7_Logo_line.png" 
+                        alt="Logo" 
+                        className="h-10 w-auto mr-3"
+                      />
+                      <div>
+                        <Badge className="bg-blue-100 text-blue-800 text-xs">
+                          {user?.role === 'admin' ? 'АДМИН' : 'ОПЕРАТОР'}
+                        </Badge>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="p-1"
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
+
+                  <nav className="space-y-2">
+                    {filteredItems.map((item) => (
+                      <div key={item.id}>
+                        <button
+                          onClick={() => {
+                            setActiveSection(item.section);
+                            if (item.section === 'warehouses' && user?.role === 'admin') {
+                              setActiveTab('warehouses-list');
+                            } else if (item.section === 'users' && user?.role === 'admin') {
+                              setActiveTab('users-regular');
+                            }
+                            setMobileMenuOpen(false);
+                          }}
+                          className={`w-full flex items-center px-4 py-3 rounded-xl transition-colors ${
+                            activeSection === item.section
+                              ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                          }`}
+                        >
+                          {item.icon}
+                          <span className="ml-3 font-medium">{item.label}</span>
+                        </button>
+                        
+                        {item.subsections && activeSection === item.section && (
+                          <div className="ml-6 mt-2 space-y-1">
+                            {item.subsections.map((sub) => (
+                              <button
+                                key={sub.id}
+                                onClick={() => {
+                                  setActiveTab(sub.id);
+                                  setMobileMenuOpen(false);
+                                }}
+                                className={`block w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
+                                  activeTab === sub.id 
+                                    ? 'bg-blue-50 text-blue-600 font-medium' 
+                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                                }`}
+                              >
+                                {sub.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </nav>
+
+                  {/* Профиль и выход */}
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    <div className="bg-gray-50 p-4 rounded-xl mb-4">
+                      <p className="text-sm font-medium text-gray-900">{user?.full_name}</p>
+                      <p className="text-xs text-gray-500">{user?.phone}</p>
+                    </div>
+                    
+                    <Button 
+                      onClick={() => setContactModal(true)}
+                      variant="outline"
+                      className="w-full mb-3"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Связаться с нами
+                    </Button>
+                    
+                    <Button 
+                      onClick={handleLogout} 
+                      variant="outline"
+                      className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                    >
+                      Выход
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Десктопная версия меню - улучшенная */}
+        <div className={`hidden md:block fixed left-0 top-0 h-full bg-gradient-to-b from-gray-900 to-gray-800 text-white transition-all duration-300 z-40 shadow-2xl ${
+          sidebarOpen ? 'w-72' : 'w-16'
+        }`}>
+          {/* Заголовок меню */}
+          <div className="flex items-center justify-between h-16 px-6 bg-gradient-to-r from-blue-600 to-purple-600">
             {sidebarOpen && (
-              <h2 className="text-xl font-bold">Панель управления</h2>
+              <div className="flex items-center">
+                <img 
+                  src="https://customer-assets.emergentagent.com/job_tajline-courier/artifacts/st3odbr7_Logo_line.png" 
+                  alt="Logo" 
+                  className="h-8 w-auto mr-3"
+                />
+                <div>
+                  <Badge className="bg-white/20 text-white text-xs">
+                    {user?.role === 'admin' ? 'АДМИН' : 'ОПЕРАТОР'}
+                  </Badge>
+                </div>
+              </div>
             )}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="text-white hover:bg-gray-800"
+              className="text-white hover:bg-white/10 p-2"
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
           </div>
 
-          <nav className="space-y-2">
-            {filteredItems.map((item) => (
-              <div key={item.id}>
-                <button
-                  onClick={() => {
-                    setActiveSection(item.section);
-                    // Автоматически устанавливаем первый подраздел для некоторых секций
-                    if (item.section === 'warehouses' && user?.role === 'admin') {
-                      setActiveTab('warehouses-list');
-                    } else if (item.section === 'users' && user?.role === 'admin') {
-                      setActiveTab('users-regular');
-                    }
-                  }}
-                  className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${
-                    activeSection === item.section
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                  }`}
-                >
-                  {item.icon}
-                  {sidebarOpen && <span className="ml-3">{item.label}</span>}
-                </button>
-                
-                {sidebarOpen && item.subsections && activeSection === item.section && (
-                  <div className="ml-8 mt-2 space-y-1">
-                    {item.subsections.map((sub) => (
-                      <button
-                        key={sub.id}
-                        onClick={() => setActiveTab(sub.id)}
-                        className="block w-full text-left px-3 py-1 text-sm text-gray-400 hover:text-white transition-colors"
-                      >
-                        {sub.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </nav>
+          <div className="flex-1 overflow-y-auto">
+            <nav className="p-4 space-y-2">
+              {filteredItems.map((item) => (
+                <div key={item.id}>
+                  <button
+                    onClick={() => {
+                      setActiveSection(item.section);
+                      if (item.section === 'warehouses' && user?.role === 'admin') {
+                        setActiveTab('warehouses-list');
+                      } else if (item.section === 'users' && user?.role === 'admin') {
+                        setActiveTab('users-regular');
+                      }
+                    }}
+                    className={`w-full flex items-center px-3 py-3 rounded-xl transition-all duration-200 ${
+                      activeSection === item.section
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
+                        : 'text-gray-300 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    {item.icon}
+                    {sidebarOpen && <span className="ml-3 font-medium">{item.label}</span>}
+                  </button>
+                  
+                  {sidebarOpen && item.subsections && activeSection === item.section && (
+                    <div className="ml-4 mt-2 space-y-1 border-l-2 border-white/20 pl-4">
+                      {item.subsections.map((sub) => (
+                        <button
+                          key={sub.id}
+                          onClick={() => setActiveTab(sub.id)}
+                          className={`block w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
+                            activeTab === sub.id 
+                              ? 'bg-white/20 text-white font-medium' 
+                              : 'text-gray-400 hover:text-white hover:bg-white/10'
+                          }`}
+                        >
+                          {sub.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </nav>
 
-          {/* Кнопка связаться с нами в конце меню */}
-          <div className="mt-8 pt-4 border-t border-gray-700">
-            <button
-              onClick={() => setContactModal(true)}
-              className="w-full flex items-center px-3 py-2 rounded-lg transition-colors text-gray-300 hover:bg-gray-800 hover:text-white"
-            >
-              <MessageCircle className="w-5 h-5" />
-              {sidebarOpen && <span className="ml-3">Связаться с нами</span>}
-            </button>
+            {/* Кнопки внизу меню */}
+            <div className="p-4 border-t border-white/20">
+              {sidebarOpen && (
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-4">
+                  <p className="text-sm font-medium text-white">{user?.full_name}</p>
+                  <p className="text-xs text-gray-300">{user?.phone}</p>
+                </div>
+              )}
+              
+              <button
+                onClick={() => setContactModal(true)}
+                className="w-full flex items-center px-3 py-2 rounded-xl transition-colors text-gray-300 hover:bg-white/10 hover:text-white"
+              >
+                <MessageCircle className="w-5 h-5" />
+                {sidebarOpen && <span className="ml-3">Связаться с нами</span>}
+              </button>
+              
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center px-3 py-2 mt-2 rounded-xl transition-colors text-gray-300 hover:bg-red-600/20 hover:text-red-400"
+              >
+                <Shield className="w-5 h-5" />
+                {sidebarOpen && <span className="ml-3">Выход</span>}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   };
 
