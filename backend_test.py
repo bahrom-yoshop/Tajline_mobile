@@ -1322,10 +1322,12 @@ class CargoTransportAPITester:
             courier_role = courier_user.get('role')
             courier_name = courier_user.get('full_name')
             courier_phone = courier_user.get('phone')
+            courier_user_number = courier_user.get('user_number')
             
             print(f"   ✅ Courier login successful: {courier_name}")
             print(f"   👑 Role: {courier_role}")
             print(f"   📞 Phone: {courier_phone}")
+            print(f"   🆔 User Number: {courier_user_number}")
             print(f"   🔑 JWT Token received: {courier_token[:50]}...")
             
             # Verify role is courier
