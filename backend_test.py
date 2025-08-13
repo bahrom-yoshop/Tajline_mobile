@@ -31197,9 +31197,11 @@ ID склада: {target_warehouse_id}"""
             return False
         
         # Create test courier
+        import time
+        unique_suffix = str(int(time.time()))[-6:]  # Use last 6 digits of timestamp
         courier_data = {
             "full_name": "Тестовый Курьер Системы",
-            "phone": "+79991234567",
+            "phone": f"+7999123{unique_suffix}",
             "password": "courier123",
             "address": "Москва, ул. Курьерская, 1",
             "transport_type": "car",
