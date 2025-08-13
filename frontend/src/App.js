@@ -13769,12 +13769,30 @@ function App() {
                   {activeTab === 'cargo-accept' && (
                     <Card>
                       <CardHeader>
-                        <CardTitle className="flex items-center">
-                          <Plus className="mr-2 h-5 w-5" />
-                          Принимать новый груз
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Plus className="mr-2 h-5 w-5" />
+                            Принимать новый груз
+                          </div>
+                          {/* Кнопка переключения режима забора */}
+                          <Button
+                            type="button"
+                            onClick={togglePickupMode}
+                            variant={isPickupMode ? "default" : "outline"}
+                            className={`${isPickupMode 
+                              ? 'bg-orange-600 hover:bg-orange-700 text-white' 
+                              : 'border-orange-300 text-orange-700 hover:bg-orange-100'
+                            }`}
+                          >
+                            <Truck className="mr-2 h-4 w-4" />
+                            {isPickupMode ? 'Режим забора груза' : 'Забор груза'}
+                          </Button>
                         </CardTitle>
                         <CardDescription>
-                          Заполните форму для приема нового груза от клиента
+                          {isPickupMode 
+                            ? 'Упрощенная форма для заявки на забор груза курьером'
+                            : 'Заполните форму для приема нового груза от клиента'
+                          }
                         </CardDescription>
                         {isFilledFromProfile && profileSourceUser && (
                           <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
