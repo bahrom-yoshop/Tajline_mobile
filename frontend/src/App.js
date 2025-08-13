@@ -3161,11 +3161,8 @@ function App() {
         fetchNewOrdersCount(); // Загрузка количества новых заказов для операторов
         fetchOperatorDashboardAnalytics(); // Загрузка аналитики дашборда оператора
       } else if (user.role === 'courier') {
-        // НОВОЕ: Загрузка данных для курьера (Этап 3)
-        fetchCourierNewRequests(); // Загрузка новых заявок
-        // fetchAcceptedRequests(); // Временно отключено для отладки
-        // fetchPickedRequests(); // Временно отключено для отладки
-        fetchNotifications(); // Уведомления для курьера
+        // НОВОЕ: Загрузка данных для курьера (Этап 3) - минимальная версия для отладки
+        fetchCourierNewRequests(); // Только новые заявки
       } else {
         fetchMyCargo();
         fetchMyRequests();
