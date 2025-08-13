@@ -24819,7 +24819,7 @@ function App() {
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Edit className="mr-2 h-5 w-5" />
-              Редактирование заявки №{selectedRequest?.id}
+              Редактирование заявки №{selectedRequest?.request_number || selectedRequest?.id}
             </DialogTitle>
             <DialogDescription>
               Оформление и заполнение полной информации о заявке
