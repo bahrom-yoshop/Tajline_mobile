@@ -11151,8 +11151,8 @@ function App() {
               </Card>
               )}
 
-              {/* Dashboard */}
-              {activeSection === 'dashboard' && (
+              {/* Dashboard - ТОЛЬКО ДЛЯ АДМИНОВ И ОПЕРАТОРОВ */}
+              {activeSection === 'dashboard' && user.role !== 'courier' && (
                 <div className="space-y-6">
                   {/* Кнопка обновления аналитики */}
                   <div className="flex justify-between items-center">
