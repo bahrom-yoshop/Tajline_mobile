@@ -2925,16 +2925,14 @@ metadata:
 
 test_plan:
   current_focus:
-    - "TAJLINE.TJ Warehouse Operator Isolation Improvements"
-    - "TAJLINE.TJ Operator Registration and Login Fix Testing"
-    - "TAJLINE.TJ Deletion System Comprehensive Testing"
-    - "Barcode Scanning Cargo Placement Workflow Re-Testing"
-    - "Operator Dashboard Analytics Endpoint"
-  stuck_tasks:
-    - "TAJLINE.TJ Operator Registration and Login Fix Testing"
-    - "Warehouse Operator Role Verification"
+    - "Login Form and Adaptive Menu Backend Stability"
+    - "API Health Check"
+    - "Authentication Endpoints After UI Improvements"
+    - "Backend Core Endpoints Stability"
+    - "Session Management After UI Changes"
+  stuck_tasks: []
   test_all: false
-  test_priority: "critical_first"
+  test_priority: "high_first"
 
   - task: "Информация об операторах на складах - GET /api/warehouses"
     implemented: true
