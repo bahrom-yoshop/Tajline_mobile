@@ -16,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import DataPagination from './components/DataPagination'; // Новый компонент пагинации
 import YandexMap from './components/YandexMap'; // Компонент Яндекс.Карт
 import CourierGPSTracker from './components/CourierGPSTracker'; // Компонент GPS отслеживания
+import CourierTrackingMap from './components/CourierTrackingMap'; // Компонент карты отслеживания курьеров
 import { 
   Truck, Package, Users, Bell, Search, Plus, Edit, Trash2, CheckCircle, 
   Clock, MapPin, User, Shield, Warehouse, Menu, X, Building, 
