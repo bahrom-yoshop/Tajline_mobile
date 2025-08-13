@@ -9033,8 +9033,12 @@ function App() {
               <button
                 key={item.id}
                 onClick={() => {
-                  setActiveSection(item.section);
-                  setActiveTab(item.id);
+                  if (item.id === 'courier-chat') {
+                    handleOpenCourierChat();
+                  } else {
+                    setActiveSection(item.section);
+                    setActiveTab(item.id);
+                  }
                 }}
                 className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
                   activeSection === item.section
