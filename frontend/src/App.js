@@ -3054,6 +3054,10 @@ function App() {
         fetchCouriers(1, 25); // НОВОЕ: Операторы тоже могут видеть курьеров своих складов
         fetchNewOrdersCount(); // Загрузка количества новых заказов для операторов
         fetchOperatorDashboardAnalytics(); // Загрузка аналитики дашборда оператора
+      } else if (user.role === 'courier') {
+        // НОВОЕ: Загрузка данных для курьера (Этап 3)
+        fetchCourierNewRequests(); // Загрузка новых заявок
+        fetchNotifications(); // Уведомления для курьера
       } else {
         fetchMyCargo();
         fetchMyRequests();
