@@ -24432,6 +24432,382 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* НОВЫЕ МОДАЛЬНЫЕ ОКНА ДЛЯ ПРОСМОТРА И РЕДАКТИРОВАНИЯ ЗАЯВОК */}
+      
+      {/* Модальное окно просмотра заявки */}
+      <Dialog open={requestViewModal} onOpenChange={setRequestViewModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Package className="mr-2 h-5 w-5" />
+              Просмотр заявки №{selectedRequest?.id}
+            </DialogTitle>
+            <DialogDescription>
+              Полная информация о заявке и история операций
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedRequest && (
+            <div className="space-y-6">
+              {/* Информация об отправителе */}
+              <div>
+                <h3 className="text-lg font-medium mb-3">Информация об отправителе</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">ФИО</Label>
+                    <p className="text-sm font-medium">{selectedRequest.sender_full_name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Телефон</Label>
+                    <p className="text-sm">{selectedRequest.sender_phone}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="text-sm font-medium text-gray-500">Адрес забора</Label>
+                    <p className="text-sm">{selectedRequest.pickup_address}</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Информация о грузе */}
+              <div>
+                <h3 className="text-lg font-medium mb-3">Информация о грузе</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Наименование груза</Label>
+                    <p className="text-sm font-medium">{selectedRequest.cargo_name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Вес</Label>
+                    <p className="text-sm">{selectedRequest.weight} кг</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Дата забора</Label>
+                    <p className="text-sm">{new Date(selectedRequest.pickup_date).toLocaleDateString('ru-RU')}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Время забора</Label>
+                    <p className="text-sm">{selectedRequest.pickup_time_from} - {selectedRequest.pickup_time_to}</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* История операций */}
+              <div>
+                <h3 className="text-lg font-medium mb-3">История операций</h3>
+                <div className="space-y-2">
+                  <div className="bg-green-50 p-3 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-800">
+                        Заявка принята курьером {user?.full_name}
+                      </span>
+                    </div>
+                    <p className="text-xs text-green-600 mt-1">
+                      {new Date(selectedRequest.updated_at).toLocaleString('ru-RU')}
+                    </p>
+                  </div>
+                  
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <Package className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800">
+                        Заявка создана оператором
+                      </span>
+                    </div>
+                    <p className="text-xs text-blue-600 mt-1">
+                      {new Date(selectedRequest.created_at).toLocaleString('ru-RU')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Функциональные кнопки */}
+              <div className="flex flex-col space-y-3 pt-4 border-t">
+                <div className="grid grid-cols-2 gap-3">
+                  <Button onClick={handlePrintLabel} variant="outline">
+                    <Printer className="mr-2 h-4 w-4" />
+                    Печать накладной
+                  </Button>
+                  <Button onClick={handlePrintQR} variant="outline">
+                    <QrCode className="mr-2 h-4 w-4" />
+                    Печать QR кода
+                  </Button>
+                </div>
+                <Button onClick={() => handleEditRequest(selectedRequest)} className="w-full">
+                  <Edit className="mr-2 h-4 w-4" />
+                  Редактировать заявку
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Модальное окно редактирования заявки */}
+      <Dialog open={requestEditModal} onOpenChange={setRequestEditModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Edit className="mr-2 h-5 w-5" />
+              Редактирование заявки №{selectedRequest?.id}
+            </DialogTitle>
+            <DialogDescription>
+              Оформление и заполнение полной информации о заявке
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleSaveEditedRequest} className="space-y-6">
+            {/* Информация об отправителе - автозаполнение */}
+            <div>
+              <h3 className="text-lg font-medium mb-3">Информация об отправителе</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="sender-name">ФИО отправителя *</Label>
+                  <Input
+                    id="sender-name"
+                    value={requestEditForm.sender_full_name}
+                    onChange={(e) => setRequestEditForm({...requestEditForm, sender_full_name: e.target.value})}
+                    placeholder="Иванов Иван Иванович"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="sender-phone">Телефон отправителя *</Label>
+                  <Input
+                    id="sender-phone"
+                    type="tel"
+                    value={requestEditForm.sender_phone}
+                    onChange={(e) => setRequestEditForm({...requestEditForm, sender_phone: e.target.value})}
+                    placeholder="+79XXXXXXXXX"
+                    required
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="sender-address">Адрес отправителя *</Label>
+                  <Input
+                    id="sender-address"
+                    value={requestEditForm.sender_address}
+                    onChange={(e) => setRequestEditForm({...requestEditForm, sender_address: e.target.value})}
+                    placeholder="Москва, ул. Примерная, 10, кв. 5"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Информация о получателе */}
+            <div>
+              <h3 className="text-lg font-medium mb-3">Информация о получателе</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="recipient-name">ФИО получателя *</Label>
+                  <Input
+                    id="recipient-name"
+                    value={requestEditForm.recipient_full_name}
+                    onChange={(e) => setRequestEditForm({...requestEditForm, recipient_full_name: e.target.value})}
+                    placeholder="Петров Петр Петрович"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="recipient-phone">Телефон получателя *</Label>
+                  <Input
+                    id="recipient-phone"
+                    type="tel"
+                    value={requestEditForm.recipient_phone}
+                    onChange={(e) => setRequestEditForm({...requestEditForm, recipient_phone: e.target.value})}
+                    placeholder="+992XXXXXXXXX"
+                    required
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="recipient-address">Адрес получателя *</Label>
+                  <Input
+                    id="recipient-address"
+                    value={requestEditForm.recipient_address}
+                    onChange={(e) => setRequestEditForm({...requestEditForm, recipient_address: e.target.value})}
+                    placeholder="Душанбе, ул. Получательная, 20"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Информация о грузах */}
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-lg font-medium">Информация о грузах</h3>
+                <Button type="button" onClick={addRequestCargoItem} variant="outline" size="sm">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Добавить груз
+                </Button>
+              </div>
+              
+              <div className="space-y-4">
+                {requestEditForm.cargo_items.map((item, index) => (
+                  <div key={index} className="border rounded-lg p-4 relative">
+                    {requestEditForm.cargo_items.length > 1 && (
+                      <Button 
+                        type="button"
+                        onClick={() => removeRequestCargoItem(index)}
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label>Наименование груза *</Label>
+                        <Input
+                          value={item.name}
+                          onChange={(e) => updateRequestCargoItem(index, 'name', e.target.value)}
+                          placeholder="Документы"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label>Вес (кг) *</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={item.weight}
+                          onChange={(e) => updateRequestCargoItem(index, 'weight', e.target.value)}
+                          placeholder="0.5"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label>Объявленная стоимость ($)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.declared_value}
+                          onChange={(e) => updateRequestCargoItem(index, 'declared_value', e.target.value)}
+                          placeholder="100"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {/* Калькулятор общих значений */}
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-blue-800 mb-2">Расчёт итого:</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-blue-600">Общий вес:</span>
+                      <span className="ml-2 font-medium">
+                        {requestEditForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0).toFixed(1)} кг
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-blue-600">Общая стоимость:</span>
+                      <span className="ml-2 font-medium">
+                        ${requestEditForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.declared_value) || 0), 0).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Способ оплаты и функция приёма оплаты */}
+            <div>
+              <h3 className="text-lg font-medium mb-3">Оплата</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Способ оплаты</Label>
+                  <Select 
+                    value={requestEditForm.payment_method}
+                    onValueChange={(value) => setRequestEditForm({...requestEditForm, payment_method: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите способ оплаты" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="not_paid">Не оплачено</SelectItem>
+                      <SelectItem value="cash">Оплата наличными</SelectItem>
+                      <SelectItem value="card_transfer">Перевод на карту</SelectItem>
+                      <SelectItem value="cash_on_delivery">Оплата при получении</SelectItem>
+                      <SelectItem value="debt">Оплата в долг</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="payment-received"
+                    checked={requestEditForm.payment_received}
+                    onChange={(e) => setRequestEditForm({...requestEditForm, payment_received: e.target.checked})}
+                    className="rounded border-gray-300"
+                  />
+                  <Label htmlFor="payment-received">Оплата получена</Label>
+                </div>
+              </div>
+            </div>
+            
+            {/* Способ получения груза */}
+            <div>
+              <h3 className="text-lg font-medium mb-3">Способ получения груза</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Способ получения</Label>
+                  <Select 
+                    value={requestEditForm.delivery_method}
+                    onValueChange={(value) => setRequestEditForm({...requestEditForm, delivery_method: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите способ получения" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pickup">Самовывоз с склада</SelectItem>
+                      <SelectItem value="home_delivery">Доставка на дом</SelectItem>
+                      <SelectItem value="office_delivery">Доставка в офис</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Особые инструкции</Label>
+                  <Textarea
+                    value={requestEditForm.special_instructions}
+                    onChange={(e) => setRequestEditForm({...requestEditForm, special_instructions: e.target.value})}
+                    placeholder="Дополнительная информация о доставке..."
+                    rows={2}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Кнопки управления */}
+            <div className="flex flex-col space-y-3 pt-4 border-t">
+              <div className="grid grid-cols-2 gap-3">
+                <Button type="button" onClick={handlePrintLabel} variant="outline">
+                  <Printer className="mr-2 h-4 w-4" />
+                  Печать накладной
+                </Button>
+                <Button type="button" onClick={handlePrintQR} variant="outline">
+                  <QrCode className="mr-2 h-4 w-4" />
+                  Печать QR кода
+                </Button>
+              </div>
+              
+              <div className="flex space-x-3">
+                <Button type="submit" className="flex-1">
+                  <Save className="mr-2 h-4 w-4" />
+                  Сохранить изменения
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setRequestEditModal(false)}>
+                  Отмена
+                </Button>
+              </div>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
