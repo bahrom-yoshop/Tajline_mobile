@@ -159,7 +159,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Быстрая проверка стабильности backend после исправления ошибки импорта Phone в TAJLINE.TJ. ЗАДАЧИ ТЕСТИРОВАНИЯ: 1) BASIC CONNECTIVITY: Проверить доступность API и основных endpoints, 2) COURIER LOGIN: Быстро проверить авторизацию курьера (+79991234567/courier123), 3) IMPORT FIX VERIFICATION: Убедиться что исправление frontend импорта Phone не повлияло на backend функциональность. Ожидаемый результат: Backend работает стабильно после исправления ошибки импорта Phone. Все основные endpoints доступны и функциональны."
+user_problem_statement: "Протестировать улучшения номеров заявок и статусов оплаты в TAJLINE.TJ. ЗАДАЧИ ТЕСТИРОВАНИЯ: 1) COURIER AUTHENTICATION: Проверить вход курьера в систему (+79991234567/courier123), 2) COURIER REQUESTS WITH READABLE NUMBERS: Протестировать endpoint /api/courier/requests/new - проверить что заявки содержат поле request_number с читаемыми номерами (100001, 100002...), проверить что заявки содержат статус оплаты (payment_status, payment_method), проверить что данные готовы для отображения в улучшенных карточках, 3) READABLE NUMBER GENERATION: Проверить что функция generate_courier_request_number() корректно генерирует последовательные номера, 4) BACKEND STABILITY: Убедиться что все изменения для улучшения информации на карточках не повлияли на стабильность backend. Ожидаемый результат: Backend генерирует читаемые номера заявок, включает статусы оплаты и готов для улучшенного отображения карточек курьера."
 
 backend:
   - task: "Backend Stability After Phone Import Fix"
