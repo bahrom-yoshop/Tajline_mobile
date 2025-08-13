@@ -8860,9 +8860,13 @@ function App() {
           {/* Мобильная шапка */}
           <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
             <div className="flex items-center">
-              <Truck className="h-6 w-6 text-blue-600" />
-              <span className="ml-2 text-lg font-bold text-gray-900">TAJLINE</span>
-              <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">КУРЬЕР</Badge>
+              <div className="bg-blue-600 text-white p-1.5 rounded-lg mr-2">
+                <Truck className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-lg font-bold text-gray-900">TAJLINE</span>
+                <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">КУРЬЕР</Badge>
+              </div>
             </div>
             <Button
               variant="ghost"
