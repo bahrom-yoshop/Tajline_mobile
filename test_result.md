@@ -155,7 +155,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Исправить критическую ошибку SelectItem value='' и протестировать стабильность сессий в TAJLINE.TJ приложении. ОСНОВНЫЕ ЗАДАЧИ: 1) CRITICAL SELECTITEM ERROR FIX: Исправление ошибки 'A Select.Item must have a value prop that is not an empty string' в выпадающих списках, 2) SESSION STABILITY VERIFICATION: Тестирование исправлений нестабильности сессий в App.js, 3) WAREHOUSE CREATION COMPLETENESS: Завершение функциональности создания склада с генерацией QR кодов, 4) QR PRINTING FORMAT: Проверка отображения только 'Б?-П?-Я?' формата при печати QR кодов."
+user_problem_statement: "Протестировать полную курьерскую систему TAJLINE.TJ включая личный кабинет курьера (Этап 3). ОСНОВНЫЕ ЗАДАЧИ ТЕСТИРОВАНИЯ: 1) COURIER MANAGEMENT SYSTEM: Тестирование админ панели для создания курьеров через Пользователи → Курьеры, 2) COURIER AUTHENTICATION: Проверка входа курьера в систему с созданными учетными данными, 3) COURIER DASHBOARD: Тестирование личного кабинета курьера с дашбордом, статистикой, информацией о транспорте, 4) COURIER REQUEST WORKFLOW: Полный цикл заявок - создание оператором, просмотр курьером, принятие/отмена заявок, 5) NOTIFICATION SYSTEM: Проверка уведомлений между курьерами и операторами при принятии/отмене заявок."
 
 backend:
   - task: "Courier Service API Endpoints"
