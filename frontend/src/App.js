@@ -87,6 +87,18 @@ function App() {
   
   // НОВОЕ: Состояние для мобильного меню курьера
   const [courierMobileMenuOpen, setCourierMobileMenuOpen] = useState(false);
+  
+  // НОВЫЕ СОСТОЯНИЯ ДЛЯ УЛУЧШЕНИЙ ИНТЕРФЕЙСА КУРЬЕРА
+  const [courierProfileModal, setCourierProfileModal] = useState(false);
+  const [courierChatModal, setCourierChatModal] = useState(false);
+  const [courierProfileEditForm, setCourierProfileEditForm] = useState({
+    full_name: '',
+    phone: '',
+    address: '',
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
+  });
 
   // Новые состояния для оформления груза клиентами
   const [cargoOrderForm, setCargoOrderForm] = useState({
