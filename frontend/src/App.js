@@ -18493,7 +18493,7 @@ function App() {
                                         variant="outline"
                                         onClick={() => {
                                           setSelectedCourier(courier);
-                                          setShowCourierProfileModal(true);
+                                          setCourierProfileModal(true);
                                         }}
                                       >
                                         <Eye className="h-4 w-4" />
