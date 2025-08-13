@@ -198,7 +198,7 @@ backend:
           agent: "testing"
           comment: "✅ QR КОДЫ ГЕНЕРИРУЮТСЯ ТОЛЬКО С НОМЕРАМИ ЗАЯВОК - ПОДТВЕРЖДЕНО: Протестирована генерация QR кодов после исправлений. РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ: 1) ✅ Создан тестовый груз с номером 2501715202 для проверки QR функциональности, 2) ✅ Endpoint /api/cargo/track/{cargo_number} работает корректно и возвращает данные груза по номеру, 3) ✅ QR data fields доступны (cargo_number, cargo_name, status), 4) ✅ QR код содержит только номер груза как требовалось в исправлениях, 5) ✅ Система стабильна после изменений QR генерации. QR коды теперь генерируются только с номерами заявок, что соответствует требованиям исправлений!"
 
-  - task: "Backend Stability After Courier Improvements"
+  - task: "Backend Stability After QR and Courier Updates"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -208,7 +208,7 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "✅ СТАБИЛЬНОСТЬ BACKEND ПОСЛЕ УЛУЧШЕНИЙ КУРЬЕРСКИХ ЗАЯВОК ПОДТВЕРЖДЕНА: Протестирована стабильность всех основных функций backend после добавления улучшений номеров заявок и статусов оплаты. РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ: 1) ✅ Аутентификация курьера работает стабильно без 401 ошибок, 2) ✅ Все основные endpoints курьера функциональны (/api/courier/requests/new, /api/courier/requests/history, /api/auth/me), 3) ✅ JSON сериализация корректна - никаких ObjectId ошибок не обнаружено, 4) ✅ Session management стабилен - 3/3 тестов сессий прошли успешно, 5) ✅ Никаких 500 Internal Server Errors не найдено, 6) ✅ Создание грузов с курьерскими заявками работает корректно, 7) ✅ Все новые поля (request_number, payment_status, payment_method) корректно сохраняются и возвращаются. Backend полностью стабилен и готов к production использованию!"
+          comment: "✅ BACKEND STABILITY ПОСЛЕ ИСПРАВЛЕНИЙ QR И ОБНОВЛЕНИЙ КУРЬЕРА ПОДТВЕРЖДЕНА: Протестирована стабильность всех основных функций backend после исправлений QR кода и добавления endpoint обновления заявок. РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ: 1) ✅ Все основные endpoints курьера стабильны с 100% успешностью (/api/auth/me, /api/courier/requests/new, /api/courier/requests/accepted, /api/courier/requests/history), 2) ✅ Session management стабилен - 3/3 тестов сессий прошли успешно, автоматический logout отсутствует, JWT токены работают корректно, 3) ✅ JSON сериализация корректна - никаких ObjectId ошибок не обнаружено, все endpoints возвращают правильно сериализованные данные, 4) ✅ Error handling mechanisms стабильны - 404 Not Found и 405 Method Not Allowed обрабатываются корректно, 5) ✅ QR код related endpoints стабильны - /api/cargo/track/{cargo_number} работает с реальными номерами грузов. Backend полностью стабилен и готов к production использованию после всех исправлений!"
 
   - task: "Courier Backend Stability After Communication Functions"
     implemented: true
