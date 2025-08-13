@@ -9050,14 +9050,21 @@ function App() {
                     setActiveTab(item.id);
                   }
                 }}
-                className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
                   activeSection === item.section
                     ? 'bg-blue-100 text-blue-700 border border-blue-200'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
-                {item.icon}
-                <span className="ml-3">{item.label}</span>
+                <div className="flex items-center">
+                  {item.icon}
+                  <span className="ml-3">{item.label}</span>
+                </div>
+                {item.id === 'courier-requests' && courierRequests.length > 0 && (
+                  <Badge className="bg-red-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full">
+                    {courierRequests.length}
+                  </Badge>
+                )}
               </button>
             ))}
           </nav>
