@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 class CourierCancelledRequestsTester:
-    def __init__(self, base_url="https://8ff753ef-fbea-491b-b928-ca4a341062f3.preview.emergentagent.com"):
+    def __init__(self, base_url="https://delivery-hub-56.preview.emergentagent.com"):
         self.base_url = base_url
         self.tokens = {}
         self.users = {}

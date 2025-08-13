@@ -1,35 +1,26 @@
 <analysis>
-The AI engineer's work has primarily focused on extending the TAJLINE.TJ application by systematically adding a comprehensive courier management system. Following an initial phase of critical bug fixes, including resolving  value errors and addressing backend enum mismatches, the focus shifted entirely to implementing the user's detailed requests for a courier service. This involved extensive modifications to both backend (FastAPI) and frontend (React) code, covering data model enhancements, new API endpoints, and a complete UI overhaul for cargo acceptance and courier-specific dashboards. The process has been iterative, characterized by feature phased implementation (cargo form, courier system, courier personal account), continuous testing, and diligent debugging of issues like session instability and permission errors, often leveraging the  for complex problems. The work is currently in progress on refining the courier's personal account UI.
+The AI engineer's work has been an iterative process of extending the TAJLINE.TJ application, primarily focusing on a comprehensive courier management system. Initial efforts involved resolving critical bugs in existing functionalities, such as  value errors and session instability. The bulk of the work then shifted to implementing detailed user requests for the courier service, encompassing backend (FastAPI) and frontend (React) modifications. This included enhancing data models, developing new API endpoints for courier and request management, and a complete overhaul of the courier's UI, including dedicated dashboards, forms, and modals. The process involved phased feature additions, continuous debugging, and responsiveness to user feedback, addressing issues like UI visibility, data persistence, QR code generation logic, and integrating new communication features. The work concluded with the implementation of a restore request functionality and an address block for map integration, awaiting frontend testing.
 </analysis>
 
 <product_requirements>
-The TAJLINE.TJ application is a full-stack cargo management system designed for Moscow-Tajikistan routes, supporting Admin, Warehouse Operator, and User roles. It handles cargo lifecycle, unique numbering, QR scanning, RBAC, financial tracking, and notifications.
+The TAJLINE.TJ application is a full-stack cargo management system for Moscow-Tajikistan routes, supporting Admin, Warehouse Operator, and User roles. It manages cargo lifecycle, unique numbering, QR scanning, RBAC, financial tracking, and notifications.
 
-Initial recent feature development aimed to:
-1.  **Refine QR Scanning**: Fix QR груз не найден errors, ensure camera initialization, adjust camera/simulator size, and prevent duplicate notifications.
-2.  **Enhance Placement UI**: Add close scan buttons, show cargo info panels, and display session statistics for mobile placement.
-3.  **Integrate External Scanner**: For desktop Размещение, enable external barcode/QR scanning for auto-filling cargo/cell data with step-by-step UI.
-4.  **Improve Cell QR Generation**: Generate cell QR codes in Б1-П1-Я1 format, include occupancy checks, and add a Generate QR by Piece button.
-5.  **Refine Cell QR Readout**: Ensure scanned cell QR data (Б?-П?-Я?) displays accurately, auto-fills, and persists in input fields.
-6.  **Warehouse/Cell ID System**: Automatically generate unique IDs for warehouses, blocks, shelves, and cells, using these for QR generation but displaying human-readable format for printing.
-7.  **New Warehouse Creation Page**: A dedicated admin UI for warehouse creation (Name, Address, Operator, Block/Shelf/Cell counts) with QR generation options.
-
-Current development focuses on a comprehensive **Courier Management System**:
-1.  **Cargo Acceptance Form Enhancement**: Add Забор груза (pickup address, date/time), Способ получения груза (self-pickup/home delivery), Стоимость курьерских услуг, and an Отправить курьером button.
-2.  **Courier System Implementation**: Introduce a new  role, implement an admin panel for courier registration, listing, history, status, and profile editing.
-3.  **Courier Personal Account**: Develop a dedicated courier interface with a sidebar menu, a Новый заявку (new requests) section displaying cargo cards with detailed sender and pickup information, and a modal with Принять, Редактировать, Генерировать и печать QR Код, and Отменить заявку actions.
-4.  **Expanded Courier Workflow**: Introduce Принятый груз (accepted cargo) and Забранные грузы (picked up cargo) categories. Implement Забрать груз and Сдать груз buttons to manage cargo status transitions.
-5.  **Operation History & Enhanced Editing**: Add История операции (operation history) to cargo cards. Enable couriers to edit and fill in remaining cargo details (name, weight, recipient, payment, calculation, QR/invoice print, save) for picked-up cargo.
-6.  **Courier UI Refinements**: Implement information buttons with counts on the main courier dashboard (New Requests, To Pick Up, To Deliver, Notifications). Add a Чат (chat) button to the sidebar. Replace user names with a logo in the menu and header. Enable clicking on FIO (Full Name) in the sidebar to open a user profile for editing details and password.
+Recent feature development aimed to:
+1.  **Courier Management System**: Introduce a  role, implement an admin panel for courier management (registration, listing, history, status, profile editing).
+2.  **Cargo Acceptance Form**: Enhance with pickup address/datetime, pickup method, courier service cost, and a Send to Courier button.
+3.  **Courier Personal Account**: Develop a dedicated interface with sidebar, New Requests section (cargo cards with sender/pickup info), and a modal for Accept, Edit, Generate/Print QR, Cancel Request actions.
+4.  **Workflow Expansion**: Add Accepted Cargo and Picked Up Cargo categories with Pick Up Cargo and Deliver Cargo buttons.
+5.  **Enhanced Editing & History**: Add Operation History to cargo cards; enable comprehensive editing (name, weight, recipient, payment, calculation, QR/invoice print) for picked-up cargo, supporting multiple items and a calculator.
+6.  **UI Refinements**: Information buttons on dashboard (counts), chat section, logo instead of username in header/sidebar, and user profile modal from FIO click.
+7.  **Specific Fixes/Improvements**: Remove redundant UI elements (headers, TAJLINE text, refresh buttons, notification bell icon), rename Accepted Cargo to Accepted Requests, ensure QR codes/request numbers are only digits, fix request update saving, show all filled info in view/cards, improve login form for mobile, adaptive Admin/Operator sidebar, and add Restore button for cancelled requests, and a Yandex Map integrated address block for new requests.
 </product_requirements>
 
 <key_technical_concepts>
--   **Full-stack Development**: React.js (frontend), FastAPI (backend), MongoDB.
+-   **Full-stack Development**: React.js (frontend), FastAPI (backend), MongoDB (database).
 -   **Authentication/Authorization**: JWT, Role-Based Access Control (RBAC).
--   **UI/UX**: Tailwind CSS, Shadcn UI, , React Hooks.
--   **API Interaction**: Standardized  wrapper.
--   **Data Modeling**: Pydantic models (FastAPI), Mongoose-like structures (MongoDB).
--   **Debugging/Troubleshooting**: Iterative approach, console logging,  utilization.
+-   **UI/UX**: Tailwind CSS, Shadcn UI, React Hooks for state management.
+-   **API Interaction**: Standardized  wrapper for backend communication.
+-   **Data Modeling**: Pydantic models for data validation and serialization.
 </key_technical_concepts>
 
 <code_architecture>
@@ -38,61 +29,44 @@ The application uses a standard full-stack architecture:
 
 
 -   **/app/backend/server.py**:
-    -   **Summary**: The core FastAPI backend handling API endpoints, MongoDB interactions, user authentication (JWT), and RBAC.
-    -   **Changes Made**: This file received extensive updates for ID system, session fixes, and courier service.
-        *   **Data Models**: , , ,  models updated for ID system.  enum expanded (, , , ). New  and  enums introduced.  enum updated to include .  model updated with courier-related fields (, , , , ). New  and  models defined for courier management.
-        *   **ID Generation**: Helper functions added for automatic ID generation.
-        *   **API Endpoints**:  modified for auto-ID generation.  updated.  added.  updated to handle courier request creation. New courier management endpoints added:  (register, get all, get by ID, update, delete), , , , , , , .
-        *   **Logic Updates**:  updated.  and  logic refined for broader applicability.
+    -   **Summary**: The core FastAPI backend responsible for API endpoints, MongoDB interactions, user authentication (JWT), and RBAC. It defines data models and business logic.
+    -   **Changes Made**: Received extensive updates to support the courier system.
+        -   **Data Models**: , , ,  enums were expanded or introduced. New Pydantic models  and  were added.  was updated with courier-specific fields (, , , , ).
+        -   **ID Generation**: A new  function was added to create shorter, human-readable unique IDs for courier requests, replacing UUIDs for display.
+        -   **API Endpoints**: Numerous new endpoints were created for courier management (, , , , , , , ). Crucially,  was added to retrieve cancelled requests,  was added for couriers to update request details, and  was implemented to change a cancelled request's status back to 'pickup_requested'.
 
 -   **/app/frontend/src/App.js**:
     -   **Summary**: The central React component managing global state, routing, UI rendering, and all backend interactions.
-    -   **Changes Made**: Extensively modified for multiple features and fixes.
-        *   **QR/Placement**: , ,  adjusted.  updated.
-        *   **Warehouse Creation**: New state variables (, , etc.), functions (, ), and a  component for the UI.
-        *   **Session Stability**:  dependencies for , , ,  refactored.  error handling (401) improved.  logic adjusted.
-        *   **Critical Bug Fixes**:  components with  were updated to  or  for filter options (cargo status, payment status, route, assigned operator). Associated logic to transform these values for API calls and update ,  defaults, and form reset logic was implemented.
-        *   **Courier System Integration (Frontend)**:
-            *    state extended with courier-related fields.
-            *   Cargo acceptance form UI updated with pickup address/datetime, pickup method dropdowns, courier service cost input, and Отправить курьером button.
-            *    function implemented.
-            *   New states for courier management (, , etc.) added.
-            *   Functions for courier management (, , , ) created and integrated into .
-            *   Курьеры subcategory added to the sidebar menu under Пользователи.
-            *   UI sections for courier management (table, create/edit modals) created.
-            *   New functions for courier request handling (, , , , , ) added.
-            *    component created for courier-specific navigation.
-            *   UI sections for Новые заявки, Принятые грузы, Забранные грузы, and История заявок for couriers.
-            *    for couriers to edit cargo details added.
-        *   **UI/Permission Fixes**: CSS adjustments for courier sidebar positioning. Conditional rendering logic () applied to  calls, dashboard display, main header, and search/filter card to restrict access/visibility for couriers. Default  set for couriers.
-        *   **Courier UI Refinements**: Information buttons on the main courier dashboard, chat section component, logic for displaying a logo instead of username in header/sidebar, and functions/state for a user profile modal (opened by clicking FIO) were introduced.
-
--   **/app/frontend/src/App.css**:
-    -   **Summary**: Contains global styles.
-    -   **Changes Made**: No direct changes were explicitly mentioned in the trajectory, but CSS adjustments for courier sidebar positioning might have been made either inline or in a related stylesheet.
-
--   **/app/frontend/src/components/DataPagination.jsx**: No changes made.
+    -   **Changes Made**: Extensively modified for the courier system and general UI improvements.
+        -   **State Management**: Numerous state variables were added for courier-related data (, , , , , , , ), and form management (, ).
+        -   **API Integration**: New  hooks and functions (, , , , , , , , , , , , , ) were added to interact with the new backend courier endpoints.
+        -   **UI Modifications**:
+            -   **Courier Dashboard**: Refined to remove user data and show only four informational buttons with counts.
+            -   **Sidebar/Header**: Integrated  instead of text, added notification badges for new/accepted/picked requests. Renamed Принятые грузы to Принятые заявки.
+            -   **Forms & Modals**: Implemented courier profile editing modal, view request modal () displaying comprehensive cargo/payment/sender/recipient info (including multi-item table), and an enhanced edit request modal () with a calculator for multiple cargo items and payment options.
+            -   **QR/Request Numbers**: Logic adjusted to display human-readable request numbers from the backend, and QR generation now uses these numerical IDs.
+            -   **New Categories**: Added Отмененные заявки (Cancelled Requests) section with a Восстановить button.
+            -   **Contact Functionality**: Implemented a Связаться с отправителем button on cargo cards with a modal offering WhatsApp, Telegram, Online Chat, and Call options, with associated handler functions (, , , ).
+            -   **Login/Admin/Operator UI**: Login form made responsive for mobile, and the Admin/Operator sidebar menu was updated for better mobile adaptability.
+            -   **Map Integration**: An address block was added to Новые заявки designed for Yandex Map integration, intended to show request pickup locations.
+        -   **Bug Fixes**: Addressed  component import error. Corrected  naming conflict.
 </code_architecture>
 
 <pending_tasks>
--   Complete the implementation of the courier profile modal, including its full UI and functionality for editing courier details and password.
 -   Thoroughly test and verify the Insufficient permissions error and dashboard reappearance issues, especially for courier roles, to ensure complete resolution.
--   Implement the chat functionality for communication between couriers, admins, and operators.
--   Fully implement and verify the История операций (Operation History) feature on cargo cards for couriers.
--   Finalize the Забранные грузы section functionality, including the detailed editing form, calculation, and print options for QR code and invoice.
+-   Implement the full chat functionality for communication between couriers, admins, and operators.
+-   Fully verify the История операций (Operation History) feature on cargo cards for couriers.
+-   Complete the Yandex Map integration for the address block in Новые заявки, including actual map display and interaction, potentially requiring an API key.
 </pending_tasks>
 
 <current_work>
-Immediately before this summary request, the AI engineer was actively working on enhancing the courier's personal account interface. The specific task being addressed was point 4 of the latest user request: при нажатие на ФИО из боковое меню откроем профил ползователя для изменение всех даный и пароль.
+Immediately before this summary request, the AI engineer was actively working on two primary features requested by the user:
+1.  **Restoring Cancelled Requests**: Implementing a Restore button on the Отмененные заявки (Cancelled Requests) cards. This allows a courier to move a accidentally cancelled request back to the Новая заявка (New Requests) category. The backend endpoint  has been implemented in  (Chat 479-482), and the corresponding frontend function  and the Восстановить button in  have been added (Chat 483-494).
+2.  **Address Block with Map Integration**: Adding a dedicated block for pickup addresses within the Новая заявка section, intended for integration with Yandex Maps. This block allows couriers to view addresses, with the future goal of direct map integration. The UI block for addresses has been implemented in  (Chat 495-506).
 
-The engineer has already implemented the following:
-1.  **State Management**: Added the  state variable in  to control the visibility of the profile editing modal.
-2.  **Event Handlers**: Created  and  functions in  to manage the opening of the modal, pre-filling data, and handling profile updates.
-3.  **UI Integration**: Modified the sidebar menu ( component) to make the Профиль button (and implicitly the user's FIO display) trigger the  function, which in turn opens the profile modal.
-
-The current state is that the necessary state variables, functions, and UI triggers are in place for the courier profile modal. The AI engineer is in the process of defining the actual JSX structure and content of this  (modal) component, and the last action was finding the appropriate location to insert this new modal component within .
+After implementing both these features, the AI engineer successfully performed backend testing (Chat 507-508) to ensure stability and functionality of the new restore endpoint. The current state is that the code for these features is integrated, and the AI engineer is awaiting user confirmation to proceed with frontend testing.
 </current_work>
 
 <optional_next_step>
-Add the courier profile modal component definition in .
+Proceed with frontend testing of the Restore cancelled request button and the Address block with Yandex Map integration.
 </optional_next_step>
