@@ -164,15 +164,18 @@ user_problem_statement: "Интеграция Яндекс.Карт с блок�
 backend:
   - task: "Yandex Maps API Integration"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/components/YandexMap.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Создан React компонент YandexMap с полной интеграцией Яндекс.Карт API. API ключ добавлен в переменные окружения (/app/frontend/.env). Компонент включает: динамическую загрузку API скрипта, геокодирование адресов заявок, интерактивную карту с маркерами, информационные всплывающие окна, автоматическое подстраивание границ карты, обработку ошибок и loading состояния. Требуется тестирование backend стабильности и frontend функциональности."
+        - working: true
+          agent: "testing"
+          comment: "✅ BACKEND STABILITY CONFIRMED AFTER YANDEX MAPS INTEGRATION! Comprehensive testing completed with 100% success rate (8/8 tests passed). COURIER AUTHENTICATION: Успешная авторизация курьера (+79991234567/courier123) с корректной ролью 'courier', JWT токен генерируется корректно (223 символа). COURIER REQUESTS ENDPOINTS: Все endpoints работают стабильно - /api/courier/requests/new возвращает 2 заявки с pickup_address для карт, /api/courier/requests/accepted возвращает 1 заявку с адресами, /api/courier/requests/picked и /api/courier/requests/history работают корректно. ADDRESS DATA STRUCTURE: Все endpoints возвращают корректную структуру данных с полями pickup_address (для карты), sender_full_name (для маркеров), sender_phone (для информационных окон), cargo_name (для описания). BACKEND STABILITY: Интеграция Яндекс.Карт (только frontend изменения) не повлияла на backend - никаких 500 ошибок, JSON сериализация корректна, session management стабилен, все endpoints отвечают с 200 статусом. Backend полностью стабилен после интеграции карт!"
 
   - task: "Address Block Enhancement for Courier Interface"
     implemented: true
