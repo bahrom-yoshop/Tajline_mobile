@@ -89,7 +89,6 @@ function App() {
   const [courierMobileMenuOpen, setCourierMobileMenuOpen] = useState(false);
   
   // НОВЫЕ СОСТОЯНИЯ ДЛЯ УЛУЧШЕНИЙ ИНТЕРФЕЙСА КУРЬЕРА
-  const [courierProfileModal, setCourierProfileModal] = useState(false);
   const [courierChatModal, setCourierChatModal] = useState(false);
   const [courierProfileEditForm, setCourierProfileEditForm] = useState({
     full_name: '',
