@@ -18082,15 +18082,25 @@ function App() {
                                 <CardTitle className="text-lg">{request.sender_full_name}</CardTitle>
                                 <CardDescription>{request.sender_phone}</CardDescription>
                               </div>
-                              <Badge variant={
-                                request.request_status === 'pending' ? 'default' :
-                                request.request_status === 'assigned' ? 'secondary' :
-                                request.request_status === 'accepted' ? 'outline' : 'destructive'
-                              }>
-                                {request.request_status === 'pending' ? 'Новая' :
-                                 request.request_status === 'assigned' ? 'Назначена' :
-                                 request.request_status === 'accepted' ? 'Принята' : 'Отклонена'}
-                              </Badge>
+                              <div className="flex flex-col items-end space-y-1">
+                                {/* Индикатор типа заявки */}
+                                <Badge variant="outline" className={
+                                  request.request_type === 'pickup' ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+                                }>
+                                  {request.request_type === 'pickup' ? '📦 Забор груза' : '🚚 Доставка'}
+                                </Badge>
+                                
+                                {/* Статус заявки */}
+                                <Badge variant={
+                                  request.request_status === 'pending' ? 'default' :
+                                  request.request_status === 'assigned' ? 'secondary' :
+                                  request.request_status === 'accepted' ? 'outline' : 'destructive'
+                                }>
+                                  {request.request_status === 'pending' ? 'Новая' :
+                                   request.request_status === 'assigned' ? 'Назначена' :
+                                   request.request_status === 'accepted' ? 'Принята' : 'Отклонена'}
+                                </Badge>
+                              </div>
                             </div>
                           </CardHeader>
                           
