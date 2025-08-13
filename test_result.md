@@ -159,7 +159,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Быстро протестировать стабильность backend после добавления функций связи с отправителем в TAJLINE.TJ. ЗАДАЧИ ТЕСТИРОВАНИЯ: 1) COURIER AUTHENTICATION: Проверить вход курьера в систему (+79991234567/courier123), 2) BASIC COURIER ENDPOINTS: Протестировать основные endpoints курьера: /api/courier/requests/new для новых заявок (для badge и кнопки связи), /api/courier/requests/accepted для принятых заявок (для badge и кнопки связи), /api/courier/requests/picked для забранных грузов (для badge), 3) BACKEND STABILITY: Убедиться что добавление UI функций связи с отправителем (WhatsApp, Telegram, звонки) не повлияло на backend функциональность. Ожидаемый результат: Backend остается стабильным после добавления функций связи с отправителем. Все endpoints работают корректно для поддержки новых кнопок связи и badge уведомлений в боковом меню."
+user_problem_statement: "Быстрая проверка стабильности backend после исправления ошибки импорта Phone в TAJLINE.TJ. ЗАДАЧИ ТЕСТИРОВАНИЯ: 1) BASIC CONNECTIVITY: Проверить доступность API и основных endpoints, 2) COURIER LOGIN: Быстро проверить авторизацию курьера (+79991234567/courier123), 3) IMPORT FIX VERIFICATION: Убедиться что исправление frontend импорта Phone не повлияло на backend функциональность. Ожидаемый результат: Backend работает стабильно после исправления ошибки импорта Phone. Все основные endpoints доступны и функциональны."
 
 backend:
   - task: "Courier Backend Stability After Communication Functions"
