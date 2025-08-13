@@ -9149,7 +9149,7 @@ function App() {
       {/* Основной контент */}
       <div className={`${
         user && (user.role === 'admin' || user.role === 'warehouse_operator' || user.role === 'courier') 
-          ? (sidebarOpen ? 'ml-64' : 'ml-16') 
+          ? 'ml-64' 
           : ''
       } transition-all duration-300`}>
         
