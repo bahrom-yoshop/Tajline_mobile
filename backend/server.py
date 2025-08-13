@@ -13376,6 +13376,25 @@ async def update_courier_location(
         # НОВОЕ: Отправить real-time обновление через WebSocket
         await connection_manager.broadcast_courier_location_update(location_record)
         
+        # НОВОЕ: Сохранить в историю перемещений
+        history_record = {
+            "id": str(uuid.uuid4()),
+            "courier_id": courier["id"],
+            "courier_name": courier["full_name"],
+            "latitude": location_data.latitude,
+            "longitude": location_data.longitude,
+            "status": location_data.status.value,
+            "current_address": location_data.current_address,
+            "accuracy": location_data.accuracy,
+            "speed": location_data.speed,
+            "heading": location_data.heading,
+            "timestamp": now,
+            "date": now.date().isoformat(),
+            "hour": now.hour
+        }
+        
+        db.courier_location_history.insert_one(history_record)
+        
         return {
             "message": "Location updated successfully",
             "location_id": location_id,
