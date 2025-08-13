@@ -394,7 +394,7 @@ function App() {
 
   const handleEditCargoInfo = (request) => {
     setSelectedCargoForEdit(request);
-    setCargoEditForm({
+    setCourierCargoEditForm({
       cargo_name: request.cargo_name || '',
       weight: '', // Будем заполнять курьером
       recipient_full_name: '', // Будем заполнять курьером
@@ -412,7 +412,7 @@ function App() {
     if (!selectedCargoForEdit || !selectedCargoForEdit.cargo_id) return;
 
     try {
-      await apiCall(`/api/courier/cargo/${selectedCargoForEdit.cargo_id}/update`, 'PUT', cargoEditForm);
+      await apiCall(`/api/courier/cargo/${selectedCargoForEdit.cargo_id}/update`, 'PUT', courierCargoEditForm);
       
       showAlert('Информация о грузе обновлена!', 'success');
       setCargoEditModal(false);
