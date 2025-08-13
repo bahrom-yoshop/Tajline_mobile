@@ -328,7 +328,7 @@ function App() {
   const [acceptedRequests, setAcceptedRequests] = useState([]);
   const [pickedRequests, setPickedRequests] = useState([]);
   const [selectedCargoForEdit, setSelectedCargoForEdit] = useState(null);
-  const [cargoEditForm, setCargoEditForm] = useState({
+  const [courierCargoEditForm, setCourierCargoEditForm] = useState({
     cargo_name: '',
     weight: '',
     recipient_full_name: '',
