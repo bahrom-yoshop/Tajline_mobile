@@ -165,77 +165,89 @@
 
 user_problem_statement: "Создание системы real-time отслеживания местоположения курьеров в TAJLINE.TJ. ЭТАП 3 - КУРЬЕРСКИЙ GPS ИНТЕРФЕЙС: 1) GPS TRACKING FUNCTIONS: Реализовать функции startCourierTracking, stopCourierTracking, changeCourierStatus для управления GPS отслеживанием курьером, 2) COURIER GPS TRACKER COMPONENT: Создать React компонент CourierGPSTracker с полным UI для управления отслеживанием (кнопки старт/стоп, выбор статуса, отображение координат), 3) DASHBOARD INTEGRATION: Интегрировать GPS трекер в курьерский дашборд с автоматической проверкой статуса при входе, 4) REAL-TIME FUNCTIONALITY: Обеспечить автоматическую отправку GPS каждые 30 секунд с высокой точностью, 5) STATUS MANAGEMENT: Реализовать 5 статусов курьера (offline, online, on_route, at_pickup, at_delivery, busy) с UI для переключения. Ожидаемый результат: Полнофункциональный GPS tracking интерфейс для курьеров с real-time отправкой местоположения."
 
-  - task: "WebSocket Connection Manager Implementation"
+  - task: "GPS Tracking Functions Implementation"
     implemented: true
-    working: true
-    file: "/app/backend/server.py"
+    working: "NA"
+    file: "/app/frontend/src/App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: true
-          agent: "testing"
-          comment: "✅ WEBSOCKET CONNECTION MANAGER ПОЛНОСТЬЮ ФУНКЦИОНАЛЕН! Глобальный connection_manager создан с методами connect, disconnect, broadcast_to_admins, broadcast_to_warehouse_operators, broadcast_courier_location_update. Тестирование через API /api/admin/websocket/stats показало: get_connection_stats возвращает корректные integer значения (total_connections, admin_connections, operator_connections, active_users), detailed_connections возвращает список с детальной информацией о подключениях, изоляция данных для операторов реализована через warehouse_ids в connections. Connection Manager готов для real-time отслеживания курьеров."
+        - working: "NA"
+          agent: "main"
+          comment: "Реализованы все GPS tracking функции в App.js: startCourierTracking() запуск отслеживания с получением разрешения пользователя, настройка watchPosition каждые 30 секунд, интервальное обновление, stopCourierTracking() остановка с полным cleanup (clearWatch, clearInterval), changeCourierStatus() изменение статуса с отправкой на сервер, getCurrentPosition() Promise wrapper для геолокации, sendLocationUpdate() отправка координат на /api/courier/location/update, checkTrackingStatus() проверка при входе курьера. Добавлены useEffect hooks для автоматического cleanup и проверки статуса."
 
-  - task: "WebSocket Statistics API"
+  - task: "CourierGPSTracker React Component"
     implemented: true
-    working: true
-    file: "/app/backend/server.py"
+    working: "NA"
+    file: "/app/frontend/src/components/CourierGPSTracker.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: true
-          agent: "testing"
-          comment: "✅ WEBSOCKET STATISTICS API (GET /api/admin/websocket/stats) РАБОТАЕТ ИДЕАЛЬНО! Доступ только для админов подтвержден (403 для операторов), корректная структура ответа с полями connection_stats, detailed_connections, server_uptime. Connection_stats содержит все требуемые поля: total_connections, admin_connections, operator_connections, active_users. Detailed_connections показывает информацию о каждом подключении с user_id, user_name, role, warehouse_ids, connected_at, connected_duration. Server_uptime в ISO формате. API готов для мониторинга WebSocket подключений."
+        - working: "NA"
+          agent: "main"
+          comment: "Создан полнофункциональный React компонент CourierGPSTracker с полным UI для GPS управления. Включает: кнопки 'Начать/Остановить отслеживание' с адаптивными стилями, Select dropdown для 5 статусов курьера с иконками (offline, online, on_route, at_pickup, at_delivery, busy), отображение координат, точности GPS, времени последнего обновления, обработку ошибок с Alert компонентами, подсказки пользователю, статистику отслеживания (GPS, синхронизация, статус), адаптивный дизайн с правильными цветами и иконками для каждого статуса."
 
-  - task: "Courier Location Update with WebSocket Broadcasting"
+  - task: "Courier Dashboard GPS Integration"
     implemented: true
-    working: true
-    file: "/app/backend/server.py"
+    working: "NA"
+    file: "/app/frontend/src/App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: true
-          agent: "testing"
-          comment: "✅ REAL-TIME LOCATION BROADCASTING ПОЛНОСТЬЮ ИНТЕГРИРОВАН! POST /api/courier/location/update успешно обновляет местоположение курьера и автоматически вызывает connection_manager.broadcast_courier_location_update. Тестирование показало: курьер (+79991234567/courier123) успешно обновляет координаты (latitude: 55.7558, longitude: 37.6176, status: on_route), location_id генерируется корректно, данные сохраняются в courier_locations коллекции, WebSocket broadcast интеграция работает (вызов broadcast метода подтвержден). Структура real-time сообщения: type: 'courier_location_update', data: location_data, timestamp: ISO format. Система готова для мгновенных обновлений местоположения."
+        - working: "NA"
+          agent: "main"
+          comment: "GPS трекер интегрирован в курьерский дашборд (courier-dashboard секция). CourierGPSTracker компонент размещен в начале дашборда с передачей всех необходимых props: courierTracking state, onStartTracking, onStopTracking, onStatusChange handlers. Добавлен импорт компонента. Автоматическая проверка статуса отслеживания при входе курьера через useEffect. Frontend сервис перезапущен успешно. Интеграция готова к тестированию."
 
-  - task: "Data Isolation for Warehouse Operators"
+  - task: "Real-time GPS Functionality Implementation"
     implemented: true
-    working: true
-    file: "/app/backend/server.py"
+    working: "NA"
+    file: "/app/frontend/src/App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: true
-          agent: "testing"
-          comment: "✅ DATA ISOLATION ДЛЯ ОПЕРАТОРОВ СКЛАДОВ РАБОТАЕТ КОРРЕКТНО! Оператор склада (+79777888999/warehouse123) получает только данные курьеров своих назначенных складов. Тестирование показало: система корректно обрабатывает операторов без назначенных складов (возвращает 'No warehouses assigned'), /api/operator/couriers/locations возвращает структуру с warehouse_count и фильтрованными locations, изоляция данных реализована через warehouse_operators коллекцию и assigned_warehouse_id в couriers. WebSocket endpoints будут получать warehouse_ids через warehouse_operators для корректной фильтрации broadcast сообщений."
+        - working: "NA"
+          agent: "main"
+          comment: "Реализована полная real-time GPS функциональность: navigator.geolocation.watchPosition с настройками enableHighAccuracy=true, timeout=15000, maximumAge=30000, setInterval каждые 30 секунд для отправки координат на сервер, автоматическая отправка через sendLocationUpdate() на backend endpoint /api/courier/location/update, обработка geolocation errors с user feedback, cleanup при размонтировании компонента. Высокая точность GPS обеспечена настройками браузера."
 
-  - task: "Courier Location Status and Tracking"
+  - task: "Courier Status Management System"
     implemented: true
-    working: true
-    file: "/app/backend/server.py"
+    working: "NA"
+    file: "/app/frontend/src/components/CourierGPSTracker.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: true
-          agent: "testing"
-          comment: "✅ COURIER LOCATION STATUS API РАБОТАЕТ ОТЛИЧНО! GET /api/courier/location/status возвращает полную информацию о статусе отслеживания: tracking_enabled: true, status: 'on_route', tracking_status: 'active', last_updated в ISO формате, time_since_update, current_address, current_request_id. Система корректно определяет активность отслеживания (stale если нет обновлений >10 минут), сохраняет все GPS данные (latitude, longitude, accuracy, speed, heading), связывает с текущими заявками курьера. Location persistence подтвержден - данные сохраняются и доступны для WebSocket broadcasting."
+        - working: "NA"
+          agent: "main"
+          comment: "Реализована полная система управления статусами курьера с 6 статусами: offline (серый, PowerOff), online (зеленый, CheckCircle), on_route (синий, Navigation), at_pickup (оранжевый, Package), at_delivery (фиолетовый, Home), busy (красный, AlertTriangle). Каждый статус имеет цвет, иконку, label и description. Select компонент для переключения статусов с визуальными индикаторами. changeCourierStatus() функция отправляет обновления на сервер. Status management готов к использованию."
 
-  - task: "WebSocket Endpoints Implementation"
+  - task: "Courier Tracking State Management"
     implemented: true
-    working: false
-    file: "/app/backend/server.py"
-    stuck_count: 1
+    working: "NA"  
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: false
-          agent: "testing"
-          comment: "⚠️ WEBSOCKET ENDPOINTS РЕАЛИЗОВАНЫ НО ИМЕЮТ ПРОБЛЕМЫ С ПОДКЛЮЧЕНИЕМ! Endpoints /ws/courier-tracking/admin/{token} и /ws/courier-tracking/operator/{token} созданы с полной функциональностью: JWT авторизация через URL token, проверка ролей (admin/warehouse_operator), initial_data отправка, connection_stats для админов, ping/pong механизм, обработка WebSocketDisconnect, error codes 4001/4003/4004. ПРОБЛЕМА: WebSocket connections timeout during opening handshake - возможно проблема с network configuration или WebSocket proxy settings в Kubernetes environment. Все остальные компоненты WebSocket системы работают идеально (94.1% success rate)."
+        - working: "NA"
+          agent: "main"
+          comment: "Добавлено состояние courierTracking в App.js с полными полями: isTracking (boolean), status (CourierStatus), lastUpdate (Date), coordinates (lat/lng), accuracy (number), watchId (geolocation), error (string), updateInterval (setInterval ID). State management интегрирован с всеми GPS функциями. Состояние автоматически обновляется при получении GPS координат, отправке на сервер, изменении статуса. Полная синхронизация между UI компонентом и backend API."
+
+  - task: "Frontend Stability After GPS Tracking Integration"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Добавлены GPS tracking функции, новый React компонент CourierGPSTracker, состояние courierTracking, интеграция в courier-dashboard, useEffect hooks для lifecycle management. Frontend сервис перезапущен успешно. Существующая функциональность курьера (заявки, карты, чат) должна продолжать работать. GPS tracking интегрирован без нарушения existing UI. Требуется тестирование стабильности и GPS функциональности."
 
 backend:
   - task: "Yandex Maps API Integration"
