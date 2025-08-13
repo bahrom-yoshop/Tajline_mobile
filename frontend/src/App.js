@@ -17137,6 +17137,12 @@ function App() {
                           </CardHeader>
                           
                           <CardContent className="space-y-3">
+                            {/* Номер заявки */}
+                            <div>
+                              <Label className="text-sm font-medium text-gray-500">№ Заявки</Label>
+                              <p className="text-sm font-bold text-blue-600">#{request.request_number || request.id}</p>
+                            </div>
+                            
                             <div>
                               <Label className="text-sm font-medium text-gray-500">Груз</Label>
                               <p className="text-sm">{request.cargo_name}</p>
@@ -17156,6 +17162,16 @@ function App() {
                                 <Label className="text-sm font-medium text-gray-500">Время</Label>
                                 <p className="text-sm">{request.pickup_time_from} - {request.pickup_time_to}</p>
                               </div>
+                            </div>
+                            
+                            {/* Статус оплаты */}
+                            <div>
+                              <Label className="text-sm font-medium text-gray-500">Статус оплаты</Label>
+                              <Badge variant={request.payment_status === 'paid' ? 'default' : 'secondary'} className="ml-2">
+                                {request.payment_status === 'paid' ? 'Оплачено' : 
+                                 request.payment_status === 'not_paid' ? 'Не оплачено' : 
+                                 request.payment_method === 'cash_on_delivery' ? 'При получении' : 'Не оплачено'}
+                              </Badge>
                             </div>
 
                             {request.courier_fee && (
