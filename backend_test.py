@@ -32672,14 +32672,14 @@ ID склада: {target_warehouse_id}"""
         return all_success
 
 def main():
-    """Main test execution - Courier Backend Stability Testing"""
+    """Main test execution - Courier Backend Stability Testing After Notification Bell Removal"""
     tester = CargoTransportAPITester()
     
-    print("🚀 Starting courier backend stability testing after UI updates...")
+    print("🚀 Starting courier backend stability testing after removing notification bell and adding cancelled requests category...")
     
     # Run courier backend stability test as requested in review
     try:
-        result = tester.test_courier_backend_stability_after_ui_updates()
+        result = tester.test_courier_backend_stability_after_notification_bell_removal()
         
         # Final summary
         print("\n" + "="*60)
@@ -32691,8 +32691,8 @@ def main():
         
         if result:
             print("🎉 COURIER BACKEND STABILITY TEST PASSED!")
-            print("✅ Backend остается стабильным после обновления UI курьера")
-            print("✅ Все endpoints для отображения количества заявок в badge работают корректно")
+            print("✅ Backend остается стабильным после удаления колокольчика уведомлений и добавления категории 'Отмененные заявки'")
+            print("✅ Все endpoints работают корректно для поддержки новой категории 'Отмененные заявки'")
             return 0
         else:
             print("❌ COURIER BACKEND STABILITY TEST FAILED!")
