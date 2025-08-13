@@ -17305,6 +17305,16 @@ function App() {
                             </Button>
                             
                             <Button 
+                              onClick={() => handleContactSender(request)}
+                              variant="outline"
+                              className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                              size="lg"
+                            >
+                              <Phone className="mr-2 h-4 w-4" />
+                              Связаться с отправителем
+                            </Button>
+                            
+                            <Button 
                               onClick={() => handlePickupCargo(request.id)}
                               className="w-full bg-blue-600 hover:bg-blue-700"
                               size="lg"
