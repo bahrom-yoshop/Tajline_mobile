@@ -186,6 +186,14 @@ class TransportStatus(str, Enum):
     ARRIVED = "arrived"
     COMPLETED = "completed"
 
+class CourierStatus(str, Enum):
+    OFFLINE = "offline"  # Не в сети / отслеживание выключено
+    ONLINE = "online"    # В сети, свободен
+    ON_ROUTE = "on_route"  # Едет к клиенту
+    AT_PICKUP = "at_pickup"  # На месте забора груза
+    AT_DELIVERY = "at_delivery"  # На месте доставки
+    BUSY = "busy"  # Занят другими делами
+
 # Pydantic модели
 class UserCreate(BaseModel):
     full_name: str = Field(..., min_length=2)
