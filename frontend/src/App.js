@@ -8926,9 +8926,11 @@ function App() {
           {/* Мобильная шапка */}
           <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
             <div className="flex items-center">
-              <div className="bg-blue-600 text-white p-1.5 rounded-lg mr-2">
-                <Truck className="h-5 w-5" />
-              </div>
+              <img 
+                src="https://customer-assets.emergentagent.com/job_tajline-courier/artifacts/st3odbr7_Logo_line.png" 
+                alt="TAJLINE Logo" 
+                className="h-8 w-auto mr-2"
+              />
               <div>
                 <span className="text-lg font-bold text-gray-900">TAJLINE</span>
                 <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">КУРЬЕР</Badge>
