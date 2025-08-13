@@ -582,14 +582,14 @@ function App() {
     }
   };
   
-  const addCargoItem = () => {
+  const addRequestCargoItem = () => {
     setRequestEditForm({
       ...requestEditForm,
       cargo_items: [...requestEditForm.cargo_items, { name: '', weight: '', declared_value: '' }]
     });
   };
   
-  const removeCargoItem = (index) => {
+  const removeRequestCargoItem = (index) => {
     const newItems = requestEditForm.cargo_items.filter((_, i) => i !== index);
     setRequestEditForm({
       ...requestEditForm,
@@ -597,7 +597,7 @@ function App() {
     });
   };
   
-  const updateCargoItem = (index, field, value) => {
+  const updateRequestCargoItem = (index, field, value) => {
     const newItems = [...requestEditForm.cargo_items];
     newItems[index][field] = value;
     setRequestEditForm({
