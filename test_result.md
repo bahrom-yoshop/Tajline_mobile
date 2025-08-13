@@ -742,7 +742,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Courier UI Improvements Implementation"
+    - "Backend Stability After Phone Import Fix"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
