@@ -17158,12 +17158,7 @@ function App() {
               {/* НОВАЯ СЕКЦИЯ: Принятые грузы курьера */}
               {activeSection === 'courier-accepted' && user?.role === 'courier' && (
                 <div className="space-y-6 p-4 md:p-6">
-                  <div className="flex flex-col md:flex-row md:justify-end md:items-center space-y-4 md:space-y-0">
-                    <Button onClick={fetchAcceptedRequests} variant="outline">
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Обновить
-                    </Button>
-                  </div>
+                  {/* Убрали кнопку обновления */}
 
                   {acceptedRequests.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
