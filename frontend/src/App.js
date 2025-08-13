@@ -16334,6 +16334,263 @@ function App() {
                   )}
                 </div>
               )}
+
+              {/* НОВЫЕ СЕКЦИИ ДЛЯ КУРЬЕРА (ЭТАП 3) */}
+              
+              {/* Главная страница курьера */}
+              {activeSection === 'courier-dashboard' && user?.role === 'courier' && (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">Дашборд курьера</h2>
+                      <p className="text-gray-600">Добро пожаловать, {user?.full_name}</p>
+                    </div>
+                    <Button 
+                      onClick={fetchCourierNewRequests}
+                      variant="outline"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Обновить
+                    </Button>
+                  </div>
+
+                  {/* Статистика курьера */}
+                  {selectedCourier && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">Новые заявки</CardTitle>
+                          <Package className="h-4 w-4 text-blue-600" />
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold text-blue-700">{courierRequests.length}</div>
+                          <p className="text-xs text-muted-foreground">Ожидают ответа</p>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">Выполнено</CardTitle>
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold text-green-700">
+                            {selectedCourier.statistics?.total_completed || 0}
+                          </div>
+                          <p className="text-xs text-muted-foreground">Всего заявок</p>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">В работе</CardTitle>
+                          <Clock className="h-4 w-4 text-orange-600" />
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold text-orange-700">
+                            {selectedCourier.statistics?.total_assigned || 0}
+                          </div>
+                          <p className="text-xs text-muted-foreground">Активных заявок</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+
+                  {/* Информация о курьере */}
+                  {selectedCourier && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Мои данные</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-sm font-medium text-gray-500">Транспорт</Label>
+                            <p className="text-sm">{selectedCourier.transport_type} {selectedCourier.transport_number}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-gray-500">Грузоподъемность</Label>
+                            <p className="text-sm">{selectedCourier.transport_capacity} кг</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-gray-500">Склад</Label>
+                            <p className="text-sm">{selectedCourier.assigned_warehouse_name}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-gray-500">Статус</Label>
+                            <Badge variant={selectedCourier.is_active ? "default" : "secondary"}>
+                              {selectedCourier.is_active ? 'Активен' : 'Неактивен'}
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {/* Новые заявки курьера */}
+              {activeSection === 'courier-requests' && user?.role === 'courier' && (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">Новые заявки</h2>
+                      <p className="text-gray-600">Заявки на забор груза от операторов</p>
+                    </div>
+                    <Button onClick={fetchCourierNewRequests} variant="outline">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Обновить список
+                    </Button>
+                  </div>
+
+                  {courierRequests.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {courierRequests.map((request) => (
+                        <Card key={request.id} className="relative">
+                          <CardHeader>
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <CardTitle className="text-lg">{request.sender_full_name}</CardTitle>
+                                <CardDescription>{request.sender_phone}</CardDescription>
+                              </div>
+                              <Badge variant={
+                                request.request_status === 'pending' ? 'default' :
+                                request.request_status === 'assigned' ? 'secondary' :
+                                request.request_status === 'accepted' ? 'outline' : 'destructive'
+                              }>
+                                {request.request_status === 'pending' ? 'Новая' :
+                                 request.request_status === 'assigned' ? 'Назначена' :
+                                 request.request_status === 'accepted' ? 'Принята' : 'Отклонена'}
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          
+                          <CardContent className="space-y-3">
+                            <div>
+                              <Label className="text-sm font-medium text-gray-500">Груз</Label>
+                              <p className="text-sm">{request.cargo_name}</p>
+                            </div>
+                            
+                            <div>
+                              <Label className="text-sm font-medium text-gray-500">Адрес забора</Label>
+                              <p className="text-sm text-gray-700">{request.pickup_address}</p>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <Label className="text-sm font-medium text-gray-500">Дата</Label>
+                                <p className="text-sm">{new Date(request.pickup_date).toLocaleDateString('ru-RU')}</p>
+                              </div>
+                              <div>
+                                <Label className="text-sm font-medium text-gray-500">Время</Label>
+                                <p className="text-sm">{request.pickup_time_from} - {request.pickup_time_to}</p>
+                              </div>
+                            </div>
+
+                            {request.courier_fee && (
+                              <div>
+                                <Label className="text-sm font-medium text-gray-500">Оплата</Label>
+                                <p className="text-sm font-medium text-green-600">{request.courier_fee} ₽</p>
+                              </div>
+                            )}
+                          </CardContent>
+
+                          <div className="px-6 pb-6">
+                            <div className="flex flex-col space-y-2">
+                              {request.request_status === 'assigned' && (
+                                <>
+                                  <Button 
+                                    onClick={() => handleAcceptCourierRequest(request.id)}
+                                    className="w-full bg-green-600 hover:bg-green-700"
+                                  >
+                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                    Принять заявку
+                                  </Button>
+                                  
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => {
+                                        // TODO: Открыть модал редактирования
+                                      }}
+                                    >
+                                      <Edit className="mr-1 h-3 w-3" />
+                                      Редактировать
+                                    </Button>
+                                    
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => {
+                                        // TODO: Открыть модал QR генерации
+                                      }}
+                                    >
+                                      <QrCode className="mr-1 h-3 w-3" />
+                                      QR код
+                                    </Button>
+                                  </div>
+                                  
+                                  <Button 
+                                    variant="destructive" 
+                                    size="sm"
+                                    onClick={() => handleCancelCourierRequest(request.id)}
+                                  >
+                                    <XCircle className="mr-2 h-4 w-4" />
+                                    Отменить заявку
+                                  </Button>
+                                </>
+                              )}
+
+                              {request.request_status === 'pending' && (
+                                <div className="text-center text-sm text-gray-500 py-2">
+                                  Ожидает назначения оператором
+                                </div>
+                              )}
+
+                              {request.request_status === 'accepted' && (
+                                <div className="text-center text-sm text-green-600 py-2 font-medium">
+                                  ✅ Заявка принята
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <Card>
+                      <CardContent className="flex flex-col items-center justify-center py-12">
+                        <Package className="h-12 w-12 text-gray-400 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Новых заявок нет</h3>
+                        <p className="text-gray-500 text-center">
+                          Пока нет новых заявок на забор груза. Они появятся здесь, когда операторы создадут заявки.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {/* История заявок курьера */}
+              {activeSection === 'courier-history' && user?.role === 'courier' && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">История заявок</h2>
+                    <p className="text-gray-600">Все выполненные и отклоненные заявки</p>
+                  </div>
+
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                      <Clock className="h-12 w-12 text-gray-400 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">История загружается...</h3>
+                      <p className="text-gray-500 text-center">
+                        Функция истории заявок будет доступна в ближайшее время.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
           )}
         </main>
