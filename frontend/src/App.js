@@ -17292,6 +17292,12 @@ function App() {
                           </CardHeader>
                           
                           <CardContent className="space-y-3">
+                            {/* Номер заявки */}
+                            <div>
+                              <Label className="text-sm font-medium text-gray-500">№ Заявки</Label>
+                              <p className="text-sm font-bold text-blue-600">#{request.request_number || request.id}</p>
+                            </div>
+                            
                             <div>
                               <Label className="text-sm font-medium text-gray-500">Груз</Label>
                               <p className="text-sm font-medium">{request.cargo_name}</p>
@@ -17319,6 +17325,16 @@ function App() {
                                 <p className="text-sm font-medium text-green-600">{request.courier_fee} ₽</p>
                               </div>
                             )}
+                            
+                            {/* Статус оплаты */}
+                            <div>
+                              <Label className="text-sm font-medium text-gray-500">Статус оплаты</Label>
+                              <Badge variant={request.payment_status === 'paid' ? 'default' : 'secondary'} className="ml-2">
+                                {request.payment_status === 'paid' ? 'Оплачено' : 
+                                 request.payment_status === 'not_paid' ? 'Не оплачено' : 
+                                 request.payment_method === 'cash_on_delivery' ? 'При получении' : 'Не оплачено'}
+                              </Badge>
+                            </div>
 
                             {/* История принятия заявки */}
                             <div className="bg-green-50 p-3 rounded-lg">
