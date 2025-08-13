@@ -33439,4 +33439,32 @@ def main():
         return 1
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # Get the backend URL from environment variable
+    import os
+    backend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://8ff753ef-fbea-491b-b928-ca4a341062f3.preview.emergentagent.com')
+    
+    # Initialize tester with the correct URL
+    tester = CargoTransportAPITester(base_url=backend_url)
+    
+    # Run only the specific test for login form and adaptive menu backend stability
+    print("🎯 RUNNING SPECIFIC TEST: LOGIN FORM AND ADAPTIVE MENU BACKEND STABILITY")
+    print("=" * 80)
+    
+    result = tester.test_login_form_and_adaptive_menu_backend_stability()
+    
+    print("\n" + "=" * 80)
+    print("🏁 FINAL TEST RESULT")
+    print("=" * 80)
+    print(f"📊 Total tests run: {tester.tests_run}")
+    print(f"✅ Tests passed: {tester.tests_passed}")
+    print(f"❌ Tests failed: {tester.tests_run - tester.tests_passed}")
+    print(f"📈 Success rate: {(tester.tests_passed/tester.tests_run*100):.1f}%" if tester.tests_run > 0 else "0%")
+    
+    if result:
+        print("\n🎉 LOGIN FORM AND ADAPTIVE MENU BACKEND STABILITY TEST PASSED!")
+        print("✅ Backend remains stable after UI improvements")
+        sys.exit(0)
+    else:
+        print("\n❌ LOGIN FORM AND ADAPTIVE MENU BACKEND STABILITY TEST FAILED")
+        print("🔍 Check test results above for details")
+        sys.exit(1)
