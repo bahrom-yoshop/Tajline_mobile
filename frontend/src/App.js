@@ -8992,11 +8992,14 @@ function App() {
 
                 {/* Информация о курьере в мобильном меню */}
                 <div className="px-4 py-4 border-t border-gray-200">
-                  <div className="flex items-center">
+                  <div className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded-lg" onClick={() => {
+                    handleOpenCourierProfile();
+                    setCourierMobileMenuOpen(false);
+                  }}>
                     <User className="h-8 w-8 text-gray-400" />
                     <div className="ml-3">
                       <p className="text-sm font-medium text-gray-900">{user?.full_name}</p>
-                      <p className="text-xs text-gray-500">Курьер</p>
+                      <p className="text-xs text-gray-500">Нажмите для редактирования профиля</p>
                     </div>
                   </div>
                   <Button
