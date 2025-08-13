@@ -24735,24 +24735,120 @@ function App() {
                     <p className="text-sm">{selectedRequest.sender_phone}</p>
                   </div>
                   <div className="md:col-span-2">
-                    <Label className="text-sm font-medium text-gray-500">Адрес забора</Label>
-                    <p className="text-sm">{selectedRequest.pickup_address}</p>
+                    <Label className="text-sm font-medium text-gray-500">Адрес отправителя</Label>
+                    <p className="text-sm">{selectedRequest.sender_address || selectedRequest.pickup_address}</p>
                   </div>
                 </div>
               </div>
               
-              {/* Информация о грузе */}
+              {/* Информация о получателе */}
+              {(selectedRequest.recipient_full_name || selectedRequest.recipient_phone || selectedRequest.recipient_address) && (
+                <div>
+                  <h3 className="text-lg font-medium mb-3">Информация о получателе</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">ФИО</Label>
+                      <p className="text-sm font-medium">{selectedRequest.recipient_full_name || 'Не указан'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Телефон</Label>
+                      <p className="text-sm">{selectedRequest.recipient_phone || 'Не указан'}</p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label className="text-sm font-medium text-gray-500">Адрес получателя</Label>
+                      <p className="text-sm">{selectedRequest.recipient_address || 'Не указан'}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Информация о грузах */}
               <div>
-                <h3 className="text-lg font-medium mb-3">Информация о грузе</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">Наименование груза</Label>
-                    <p className="text-sm font-medium">{selectedRequest.cargo_name}</p>
+                <h3 className="text-lg font-medium mb-3">Информация о грузах</h3>
+                
+                {/* Если есть сохраненные cargo_items с подробностями */}
+                {selectedRequest.cargo_items && Array.isArray(selectedRequest.cargo_items) && selectedRequest.cargo_items.length > 0 ? (
+                  <div className="space-y-4">
+                    {/* Таблица грузов */}
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Наименование
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Вес (кг)
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Цена за кг (₽)
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Итого (₽)
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {selectedRequest.cargo_items.map((item, index) => (
+                            <tr key={index}>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {item.name || 'Не указано'}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                {item.weight || 'Не указано'}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                {item.price_per_kg || 'Не указано'}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-green-600">
+                                {item.total_price || 'Не указано'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    {/* Итого */}
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-blue-600 font-medium">Общий вес:</span>
+                          <span className="ml-2 font-bold">
+                            {selectedRequest.cargo_items.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0).toFixed(1)} кг
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-blue-600 font-medium">Общая стоимость:</span>
+                          <span className="ml-2 font-bold">
+                            {selectedRequest.cargo_items.reduce((sum, item) => sum + (parseFloat(item.total_price) || 0), 0).toFixed(2)} ₽
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">Вес</Label>
-                    <p className="text-sm">{selectedRequest.weight} кг</p>
+                ) : (
+                  /* Простое отображение груза если cargo_items нет */
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Наименование груза</Label>
+                      <p className="text-sm font-medium">{selectedRequest.cargo_name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Вес</Label>
+                      <p className="text-sm">{selectedRequest.weight || selectedRequest.total_weight || 'Не указан'} кг</p>
+                    </div>
+                    {selectedRequest.total_value && (
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">Стоимость</Label>
+                        <p className="text-sm font-medium text-green-600">{selectedRequest.total_value} ₽</p>
+                      </div>
+                    )}
                   </div>
+                )}
+                
+                {/* Дополнительная информация о заборе */}
+                <div className="grid grid-cols-2 gap-4 mt-4">
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Дата забора</Label>
                     <p className="text-sm">{new Date(selectedRequest.pickup_date).toLocaleDateString('ru-RU')}</p>
@@ -24762,6 +24858,56 @@ function App() {
                     <p className="text-sm">{selectedRequest.pickup_time_from} - {selectedRequest.pickup_time_to}</p>
                   </div>
                 </div>
+              </div>
+              
+              {/* Информация об оплате */}
+              <div>
+                <h3 className="text-lg font-medium mb-3">Информация об оплате</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Способ оплаты</Label>
+                    <p className="text-sm">{
+                      selectedRequest.payment_method === 'cash' ? 'Наличные' :
+                      selectedRequest.payment_method === 'card_transfer' ? 'Перевод на карту' :
+                      selectedRequest.payment_method === 'cash_on_delivery' ? 'При получении' :
+                      selectedRequest.payment_method === 'debt' ? 'В долг' :
+                      selectedRequest.payment_method === 'not_paid' ? 'Не оплачено' :
+                      selectedRequest.payment_method || 'Не указан'
+                    }</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Статус оплаты</Label>
+                    <Badge variant={selectedRequest.payment_status === 'paid' ? 'default' : 'secondary'} className="ml-2">
+                      {selectedRequest.payment_status === 'paid' ? 'Оплачено' : 
+                       selectedRequest.payment_status === 'not_paid' ? 'Не оплачено' : 
+                       selectedRequest.payment_method === 'cash_on_delivery' ? 'При получении' : 'Не указан'}
+                    </Badge>
+                  </div>
+                  {selectedRequest.payment_received !== undefined && (
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Оплата получена</Label>
+                      <Badge variant={selectedRequest.payment_received ? 'default' : 'secondary'} className="ml-2">
+                        {selectedRequest.payment_received ? 'Да' : 'Нет'}
+                      </Badge>
+                    </div>
+                  )}
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Способ получения</Label>
+                    <p className="text-sm">{
+                      selectedRequest.delivery_method === 'pickup' ? 'Самовывоз с склада' :
+                      selectedRequest.delivery_method === 'home_delivery' ? 'Доставка на дом' :
+                      selectedRequest.delivery_method === 'office_delivery' ? 'Доставка в офис' :
+                      selectedRequest.delivery_method || 'Не указан'
+                    }</p>
+                  </div>
+                </div>
+                
+                {selectedRequest.special_instructions && (
+                  <div className="mt-4">
+                    <Label className="text-sm font-medium text-gray-500">Особые инструкции</Label>
+                    <p className="text-sm bg-gray-50 p-2 rounded">{selectedRequest.special_instructions}</p>
+                  </div>
+                )}
               </div>
               
               {/* История операций */}
@@ -24784,13 +24930,41 @@ function App() {
                     <div className="flex items-center space-x-2">
                       <Package className="h-4 w-4 text-blue-600" />
                       <span className="text-sm font-medium text-blue-800">
-                        Заявка создана оператором
+                        Заявка создана оператором {selectedRequest.created_by_operator || 'Системой'}
                       </span>
                     </div>
                     <p className="text-xs text-blue-600 mt-1">
                       {new Date(selectedRequest.created_at).toLocaleString('ru-RU')}
                     </p>
                   </div>
+                  
+                  {selectedRequest.picked_at && (
+                    <div className="bg-orange-50 p-3 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <Truck className="h-4 w-4 text-orange-600" />
+                        <span className="text-sm font-medium text-orange-800">
+                          Груз забран курьером
+                        </span>
+                      </div>
+                      <p className="text-xs text-orange-600 mt-1">
+                        {new Date(selectedRequest.picked_at).toLocaleString('ru-RU')}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {selectedRequest.delivered_at && (
+                    <div className="bg-purple-50 p-3 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle className="h-4 w-4 text-purple-600" />
+                        <span className="text-sm font-medium text-purple-800">
+                          Груз доставлен получателю
+                        </span>
+                      </div>
+                      <p className="text-xs text-purple-600 mt-1">
+                        {new Date(selectedRequest.delivered_at).toLocaleString('ru-RU')}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
               
