@@ -24120,6 +24120,163 @@ function App() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* НОВЫЕ МОДАЛЬНЫЕ ОКНА ДЛЯ УЛУЧШЕНИЙ ИНТЕРФЕЙСА КУРЬЕРА */}
+      
+      {/* Модальное окно профиля курьера */}
+      <Dialog open={courierProfileModal} onOpenChange={setCourierProfileModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <User className="mr-2 h-5 w-5" />
+              Мой профиль
+            </DialogTitle>
+            <DialogDescription>
+              Редактирование личной информации и смена пароля
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleUpdateCourierProfile} className="space-y-4">
+            <div>
+              <Label htmlFor="profile-full-name">ФИО *</Label>
+              <Input
+                id="profile-full-name"
+                value={courierProfileEditForm.full_name}
+                onChange={(e) => setCourierProfileEditForm({...courierProfileEditForm, full_name: e.target.value})}
+                placeholder="Иванов Иван Иванович"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="profile-phone">Телефон *</Label>
+              <Input
+                id="profile-phone"
+                type="tel"
+                value={courierProfileEditForm.phone}
+                onChange={(e) => setCourierProfileEditForm({...courierProfileEditForm, phone: e.target.value})}
+                placeholder="+79XXXXXXXXX"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="profile-address">Адрес проживания *</Label>
+              <Input
+                id="profile-address"
+                value={courierProfileEditForm.address}
+                onChange={(e) => setCourierProfileEditForm({...courierProfileEditForm, address: e.target.value})}
+                placeholder="Москва, ул. Примерная, 10, кв. 5"
+                required
+              />
+            </div>
+            
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-semibold mb-3">Смена пароля (опционально)</h3>
+              
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="profile-current-password">Текущий пароль</Label>
+                  <Input
+                    id="profile-current-password"
+                    type="password"
+                    value={courierProfileEditForm.current_password}
+                    onChange={(e) => setCourierProfileEditForm({...courierProfileEditForm, current_password: e.target.value})}
+                    placeholder="Введите текущий пароль"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="profile-new-password">Новый пароль</Label>
+                  <Input
+                    id="profile-new-password"
+                    type="password"
+                    value={courierProfileEditForm.new_password}
+                    onChange={(e) => setCourierProfileEditForm({...courierProfileEditForm, new_password: e.target.value})}
+                    placeholder="Минимум 6 символов"
+                    minLength={6}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="profile-confirm-password">Подтвердите пароль</Label>
+                  <Input
+                    id="profile-confirm-password"
+                    type="password"
+                    value={courierProfileEditForm.confirm_password}
+                    onChange={(e) => setCourierProfileEditForm({...courierProfileEditForm, confirm_password: e.target.value})}
+                    placeholder="Повторите новый пароль"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex space-x-3">
+              <Button type="submit" className="flex-1">
+                <Save className="mr-2 h-4 w-4" />
+                Сохранить изменения
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setCourierProfileModal(false)}>
+                Отмена
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Модальное окно чата курьера */}
+      <Dialog open={courierChatModal} onOpenChange={setCourierChatModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <MessageCircle className="mr-2 h-5 w-5" />
+              Чат с поддержкой
+            </DialogTitle>
+            <DialogDescription>
+              Свяжитесь с администратором или оператором склада
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-gray-50 p-4 rounded-lg h-60 overflow-y-auto">
+              <div className="space-y-3">
+                <div className="flex justify-start">
+                  <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg max-w-xs">
+                    <p className="text-sm">Добро пожаловать в чат поддержки! Как мы можем помочь?</p>
+                    <span className="text-xs text-blue-600">Поддержка • 12:00</span>
+                  </div>
+                </div>
+                
+                <div className="flex justify-center">
+                  <div className="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs">
+                    Функция чата будет доступна в ближайшее время
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex space-x-2">
+              <Input
+                placeholder="Напишите ваше сообщение..."
+                className="flex-1"
+                disabled
+              />
+              <Button disabled>
+                <MessageCircle className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="outline" size="sm" disabled>
+                📞 Звонок администратору
+              </Button>
+              <Button variant="outline" size="sm" disabled>
+                📧 Email поддержке
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
