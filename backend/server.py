@@ -13373,6 +13373,9 @@ async def update_courier_location(
             upsert=True
         )
         
+        # НОВОЕ: Отправить real-time обновление через WebSocket
+        await connection_manager.broadcast_courier_location_update(location_record)
+        
         return {
             "message": "Location updated successfully",
             "location_id": location_id,
