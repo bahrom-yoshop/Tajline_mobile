@@ -24669,7 +24669,7 @@ function App() {
                       </Button>
                     )}
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div>
                         <Label>Наименование груза *</Label>
                         <Input
@@ -24686,18 +24686,28 @@ function App() {
                           step="0.1"
                           value={item.weight}
                           onChange={(e) => updateRequestCargoItem(index, 'weight', e.target.value)}
-                          placeholder="0.5"
+                          placeholder="10"
                           required
                         />
                       </div>
                       <div>
-                        <Label>Объявленная стоимость ($)</Label>
+                        <Label>Стоимость за кг (₽) *</Label>
                         <Input
                           type="number"
                           step="0.01"
-                          value={item.declared_value}
-                          onChange={(e) => updateRequestCargoItem(index, 'declared_value', e.target.value)}
-                          placeholder="100"
+                          value={item.price_per_kg}
+                          onChange={(e) => updateRequestCargoItem(index, 'price_per_kg', e.target.value)}
+                          placeholder="80"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label>Итого (₽)</Label>
+                        <Input
+                          value={item.total_price}
+                          disabled
+                          className="bg-gray-100"
+                          placeholder="800"
                         />
                       </div>
                     </div>
