@@ -136,6 +136,10 @@ function App() {
     error: null,
     updateInterval: null
   });
+
+  // НОВОЕ: Состояние для режима забора груза
+  const [isPickupMode, setIsPickupMode] = useState(false);
+  const [senderPhones, setSenderPhones] = useState(['']); // Массив телефонов отправителя
   
   // НОВЫЕ СОСТОЯНИЯ ДЛЯ УЛУЧШЕНИЙ ИНТЕРФЕЙСА КУРЬЕРА
   const [courierChatModal, setCourierChatModal] = useState(false);
