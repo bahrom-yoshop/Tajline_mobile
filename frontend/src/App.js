@@ -17494,6 +17494,14 @@ function App() {
               {/* УПРОЩЕННАЯ Главная страница курьера - ТОЛЬКО КНОПКИ */}
               {activeSection === 'courier-dashboard' && user?.role === 'courier' && (
                 <div className="space-y-6 p-4 md:p-6">
+                  {/* GPS Трекер - добавляем в начало дашборда */}
+                  <CourierGPSTracker
+                    courierTracking={courierTracking}
+                    onStartTracking={startCourierTracking}
+                    onStopTracking={stopCourierTracking}
+                    onStatusChange={changeCourierStatus}
+                  />
+                  
                   <div className="flex flex-col md:flex-row md:justify-end md:items-center space-y-4 md:space-y-0">
                     <Button 
                       onClick={() => {
