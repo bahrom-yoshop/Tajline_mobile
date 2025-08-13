@@ -33175,6 +33175,8 @@ ID склада: {target_warehouse_id}"""
         # Run test suites in order - prioritizing CURRENT REVIEW REQUEST
         test_suites = [
             ("Health Check", self.test_health_check),
+            # 📍 HIGHEST PRIORITY: COURIER LOCATION TRACKING SYSTEM (CURRENT REVIEW REQUEST)
+            ("📍 COURIER LOCATION TRACKING SYSTEM", self.test_courier_location_tracking_system),
             # 🔐 HIGHEST PRIORITY: LOGIN FORM AND ADAPTIVE MENU BACKEND STABILITY (CURRENT REVIEW REQUEST)
             ("🔐 LOGIN FORM AND ADAPTIVE MENU BACKEND STABILITY", self.test_login_form_and_adaptive_menu_backend_stability),
             # 🚚 HIGHEST PRIORITY: COURIER PERSONAL DASHBOARD SYSTEM (CURRENT REVIEW REQUEST - STAGE 3)
