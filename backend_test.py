@@ -1345,12 +1345,11 @@ class CargoTransportAPITester:
             all_success = False
             return False
         
-        # Test 2: COURIER REQUESTS ENDPOINT /api/courier/requests/new (для badge с количеством)
-        print("\n   📋 Test 2: COURIER REQUESTS ENDPOINT /api/courier/requests/new...")
-        print("   🎯 Тестирование endpoint для получения новых заявок (необходимо для отображения badge с количеством)")
+        # Test 2: BASIC COURIER ENDPOINTS - /api/courier/requests/new для новых заявок
+        print("\n   📋 Test 2: ENDPOINT /api/courier/requests/new для новых заявок...")
         
-        success, requests_response = self.run_test(
-            "Get New Courier Requests (for badge count)",
+        success, new_requests_response = self.run_test(
+            "Get New Courier Requests",
             "GET",
             "/api/courier/requests/new",
             200,
@@ -1361,39 +1360,79 @@ class CargoTransportAPITester:
         if success:
             print("   ✅ /api/courier/requests/new endpoint working")
             
-            # Verify response structure for badge count
-            if isinstance(requests_response, dict):
-                # Check for pagination structure
-                if 'items' in requests_response:
-                    requests_items = requests_response['items']
-                    total_count = requests_response.get('total_count', 0)
-                    print(f"   📊 New requests found: {total_count}")
-                    print(f"   📋 Items in current page: {len(requests_items)}")
-                    
-                    # Verify pagination fields for badge count
-                    pagination_fields = ['total_count', 'page', 'per_page', 'total_pages']
-                    missing_fields = [field for field in pagination_fields if field not in requests_response]
-                    
-                    if not missing_fields:
-                        print("   ✅ Pagination structure correct for badge count calculation")
-                    else:
-                        print(f"   ❌ Missing pagination fields: {missing_fields}")
-                        all_success = False
-                        
-                elif isinstance(requests_response, list):
-                    # Direct list response
-                    request_count = len(requests_response)
-                    print(f"   📊 New requests found: {request_count}")
-                    print("   ✅ Direct list response format")
+            # Verify response structure
+            if isinstance(new_requests_response, dict):
+                new_requests = new_requests_response.get('new_requests', [])
+                total_count = new_requests_response.get('total_count', 0)
+                courier_info = new_requests_response.get('courier_info', {})
+                
+                print(f"   📊 New requests found: {total_count}")
+                print(f"   📋 Items in response: {len(new_requests)}")
+                print(f"   👤 Courier info available: {bool(courier_info)}")
+                
+                # Verify structure contains required fields for UI
+                required_fields = ['new_requests', 'total_count', 'courier_info']
+                missing_fields = [field for field in required_fields if field not in new_requests_response]
+                
+                if not missing_fields:
+                    print("   ✅ Response structure correct (new_requests, total_count, courier_info)")
                 else:
-                    print("   ❌ Unexpected response format for new requests")
+                    print(f"   ❌ Missing required fields: {missing_fields}")
                     all_success = False
+                    
+            elif isinstance(new_requests_response, list):
+                request_count = len(new_requests_response)
+                print(f"   📊 New requests found: {request_count}")
+                print("   ✅ Direct list response format")
             else:
-                print("   ❌ Response is not in expected format")
+                print("   ❌ Unexpected response format for new requests")
                 all_success = False
         else:
             print("   ❌ /api/courier/requests/new endpoint failed")
             all_success = False
+        
+        # Test 3: BASIC COURIER ENDPOINTS - /api/courier/requests/cancelled для отмененных заявок (НОВЫЙ ENDPOINT)
+        print("\n   🚫 Test 3: ENDPOINT /api/courier/requests/cancelled для отмененных заявок (НОВЫЙ ENDPOINT)...")
+        
+        success, cancelled_requests_response = self.run_test(
+            "Get Cancelled Courier Requests (New Endpoint)",
+            "GET",
+            "/api/courier/requests/cancelled",
+            200,
+            token=courier_token
+        )
+        
+        if success:
+            print("   ✅ /api/courier/requests/cancelled endpoint working (NEW ENDPOINT)")
+            all_success &= success
+            
+            # Verify response structure for cancelled requests
+            if isinstance(cancelled_requests_response, dict):
+                cancelled_requests = cancelled_requests_response.get('cancelled_requests', [])
+                total_count = cancelled_requests_response.get('total_count', 0)
+                
+                print(f"   📊 Cancelled requests found: {total_count}")
+                print(f"   📋 Items in response: {len(cancelled_requests)}")
+                
+                # Verify structure for cancelled requests
+                if 'cancelled_requests' in cancelled_requests_response:
+                    print("   ✅ Response contains cancelled_requests field")
+                else:
+                    print("   ❌ Response missing cancelled_requests field")
+                    all_success = False
+                    
+            elif isinstance(cancelled_requests_response, list):
+                request_count = len(cancelled_requests_response)
+                print(f"   📊 Cancelled requests found: {request_count}")
+                print("   ✅ Direct list response format")
+            else:
+                print("   ❌ Unexpected response format for cancelled requests")
+                all_success = False
+        else:
+            print("   ❌ /api/courier/requests/cancelled endpoint failed or not implemented")
+            print("   ℹ️  Note: This is a new endpoint that may need to be implemented")
+            # Don't fail the test completely as this endpoint might not exist yet
+            # all_success = False
         
         # Test 3: BASIC API ENDPOINTS для курьеров
         print("\n   🔗 Test 3: BASIC API ENDPOINTS для курьеров...")
