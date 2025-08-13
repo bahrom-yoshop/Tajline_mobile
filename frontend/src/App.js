@@ -618,15 +618,113 @@ function App() {
   
   const handlePrintLabel = () => {
     if (selectedRequest) {
-      showAlert('Печать накладной для заявки №' + selectedRequest.id, 'info');
-      // Здесь будет логика печати накладной
+      // Генерируем накладную
+      const labelContent = `
+        НАКЛАДНАЯ №${selectedRequest.id}
+        
+        ОТПРАВИТЕЛЬ:
+        ФИО: ${selectedRequest.sender_full_name}
+        Телефон: ${selectedRequest.sender_phone}
+        Адрес: ${selectedRequest.pickup_address || selectedRequest.sender_address || ''}
+        
+        ПОЛУЧАТЕЛЬ:
+        ФИО: ${selectedRequest.recipient_full_name || 'Не указан'}
+        Телефон: ${selectedRequest.recipient_phone || 'Не указан'}
+        Адрес: ${selectedRequest.recipient_address || 'Не указан'}
+        
+        ГРУЗ:
+        Наименование: ${selectedRequest.cargo_name}
+        Вес: ${selectedRequest.weight || 'Не указан'} кг
+        
+        ЗАБОР:
+        Дата: ${new Date(selectedRequest.pickup_date).toLocaleDateString('ru-RU')}
+        Время: ${selectedRequest.pickup_time_from} - ${selectedRequest.pickup_time_to}
+        Адрес: ${selectedRequest.pickup_address}
+        
+        КУРЬЕР: ${user?.full_name}
+        Телефон курьера: ${user?.phone}
+        
+        Дата создания: ${new Date().toLocaleString('ru-RU')}
+      `;
+      
+      // Создаем новое окно для печати
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+        <head>
+          <title>Накладная №${selectedRequest.id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; }
+            h1 { font-size: 16px; text-align: center; }
+            .section { margin: 10px 0; }
+            .section h3 { font-size: 14px; margin: 5px 0; }
+          </style>
+        </head>
+        <body>
+          <h1>НАКЛАДНАЯ №${selectedRequest.id}</h1>
+          <hr>
+          <pre style="white-space: pre-wrap; font-family: Arial;">${labelContent}</pre>
+          <script>window.print();</script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      
+      showAlert('Накладная отправлена на печать', 'success');
     }
   };
   
   const handlePrintQR = () => {
     if (selectedRequest) {
-      showAlert('Печать QR кода для заявки №' + selectedRequest.id, 'info');
-      // Здесь будет логика печати QR кода
+      // Генерируем QR код для номера заявки
+      const qrData = `ЗАЯВКА-${selectedRequest.id}`;
+      
+      // Создаем QR код (используем простую библиотеку или API)
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
+      
+      // Создаем новое окно для печати QR кода
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+        <head>
+          <title>QR Код - Заявка №${selectedRequest.id}</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              text-align: center; 
+              margin: 20px;
+            }
+            .qr-container {
+              display: inline-block;
+              border: 2px solid #333;
+              padding: 20px;
+              margin: 20px;
+            }
+            .qr-info {
+              margin: 10px 0;
+              font-size: 12px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="qr-container">
+            <h2>QR КОД ЗАЯВКИ</h2>
+            <img src="${qrApiUrl}" alt="QR Code" />
+            <div class="qr-info">
+              <strong>Номер заявки: ${selectedRequest.id}</strong><br>
+              <strong>Отправитель:</strong> ${selectedRequest.sender_full_name}<br>
+              <strong>Телефон:</strong> ${selectedRequest.sender_phone}<br>
+              <strong>Груз:</strong> ${selectedRequest.cargo_name}<br>
+              <strong>Курьер:</strong> ${user?.full_name}
+            </div>
+          </div>
+          <script>window.print();</script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      
+      showAlert('QR код отправлен на печать', 'success');
     }
   };
 
