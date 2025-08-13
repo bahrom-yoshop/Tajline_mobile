@@ -2961,15 +2961,15 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Courier Authentication System"
-    - "Request Restoration Endpoint"
-    - "Courier Requests with Addresses"
-    - "Backend Stability After Request Restoration"
+    - "Yandex Maps API Integration"
+    - "Address Block Enhancement for Courier Interface"  
+    - "Interactive Map Features Implementation"
+    - "Backend Stability After Maps Integration"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
-  - task: "Информация об операторах на складах - GET /api/warehouses"
+backend:
     implemented: true
     working: true
     file: "/app/backend/server.py"
