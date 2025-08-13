@@ -11149,6 +11149,7 @@ function App() {
                   </div>
                 </CardContent>
               </Card>
+              )}
 
               {/* Dashboard */}
               {activeSection === 'dashboard' && (
