@@ -287,8 +287,9 @@ function App() {
       
       showAlert('Заявка принята! Оператор получит уведомление.', 'success');
       
-      // Обновляем список заявок
+      // Обновляем все списки
       fetchCourierNewRequests();
+      fetchAcceptedRequests();
       
     } catch (error) {
       console.error('Error accepting courier request:', error);
