@@ -16549,66 +16549,28 @@ function App() {
 
               {/* НОВЫЕ СЕКЦИИ ДЛЯ КУРЬЕРА (ЭТАП 3) */}
               
-              {/* Главная страница курьера */}
+              {/* УПРОЩЕННАЯ Главная страница курьера */}
               {activeSection === 'courier-dashboard' && user?.role === 'courier' && (
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center">
+                <div className="space-y-6 p-4 md:p-6">
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-4 md:space-y-0">
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-900">Дашборд курьера</h2>
+                      <h2 className="text-xl md:text-2xl font-bold text-gray-900">Личный кабинет курьера</h2>
                       <p className="text-gray-600">Добро пожаловать, {user?.full_name}</p>
                     </div>
                     <Button 
-                      onClick={fetchCourierNewRequests}
+                      onClick={() => {
+                        fetchCourierNewRequests();
+                        fetchAcceptedRequests();
+                        fetchPickedRequests();
+                      }}
                       variant="outline"
                     >
                       <RefreshCw className="h-4 w-4 mr-2" />
-                      Обновить
+                      Обновить данные
                     </Button>
                   </div>
 
-                  {/* Статистика курьера */}
-                  {selectedCourier && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-sm font-medium">Новые заявки</CardTitle>
-                          <Package className="h-4 w-4 text-blue-600" />
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold text-blue-700">{courierRequests.length}</div>
-                          <p className="text-xs text-muted-foreground">Ожидают ответа</p>
-                        </CardContent>
-                      </Card>
-
-                      <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-sm font-medium">Выполнено</CardTitle>
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold text-green-700">
-                            {selectedCourier.statistics?.total_completed || 0}
-                          </div>
-                          <p className="text-xs text-muted-foreground">Всего заявок</p>
-                        </CardContent>
-                      </Card>
-
-                      <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-sm font-medium">В работе</CardTitle>
-                          <Clock className="h-4 w-4 text-orange-600" />
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold text-orange-700">
-                            {selectedCourier.statistics?.total_assigned || 0}
-                          </div>
-                          <p className="text-xs text-muted-foreground">Активных заявок</p>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  )}
-
-                  {/* Информация о курьере */}
+                  {/* Информация о курьере - БЕЗ АНАЛИТИКИ */}
                   {selectedCourier && (
                     <Card>
                       <CardHeader>
@@ -16616,6 +16578,14 @@ function App() {
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-sm font-medium text-gray-500">ФИО</Label>
+                            <p className="text-sm font-medium">{selectedCourier.full_name}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-gray-500">Телефон</Label>
+                            <p className="text-sm">{selectedCourier.phone}</p>
+                          </div>
                           <div>
                             <Label className="text-sm font-medium text-gray-500">Транспорт</Label>
                             <p className="text-sm">{selectedCourier.transport_type} {selectedCourier.transport_number}</p>
@@ -16638,6 +16608,48 @@ function App() {
                       </CardContent>
                     </Card>
                   )}
+
+                  {/* Быстрые действия */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Button 
+                      onClick={() => {
+                        setActiveSection('courier-requests');
+                        setActiveTab('courier-requests');
+                      }}
+                      className="h-20 flex flex-col items-center justify-center"
+                      variant="outline"
+                    >
+                      <Package className="h-6 w-6 mb-2" />
+                      <span>Новые заявки</span>
+                      <span className="text-xs text-gray-500">{courierRequests.length} заявок</span>
+                    </Button>
+
+                    <Button 
+                      onClick={() => {
+                        setActiveSection('courier-accepted');
+                        setActiveTab('courier-accepted');
+                      }}
+                      className="h-20 flex flex-col items-center justify-center"
+                      variant="outline"
+                    >
+                      <CheckCircle className="h-6 w-6 mb-2" />
+                      <span>К забору</span>
+                      <span className="text-xs text-gray-500">{acceptedRequests.length} грузов</span>
+                    </Button>
+
+                    <Button 
+                      onClick={() => {
+                        setActiveSection('courier-picked');
+                        setActiveTab('courier-picked');
+                      }}
+                      className="h-20 flex flex-col items-center justify-center"
+                      variant="outline"
+                    >
+                      <Truck className="h-6 w-6 mb-2" />
+                      <span>К сдаче</span>
+                      <span className="text-xs text-gray-500">{pickedRequests.length} грузов</span>
+                    </Button>
+                  </div>
                 </div>
               )}
 
