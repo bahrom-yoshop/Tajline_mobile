@@ -17205,11 +17205,7 @@ function App() {
               {/* НОВАЯ СЕКЦИЯ: Забранные грузы курьера */}
               {activeSection === 'courier-picked' && user?.role === 'courier' && (
                 <div className="space-y-6 p-4 md:p-6">
-                  <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-4 md:space-y-0">
-                    <div>
-                      <h2 className="text-xl md:text-2xl font-bold text-gray-900">Забранные грузы</h2>
-                      <p className="text-gray-600">Грузы готовые к сдаче на склад</p>
-                    </div>
+                  <div className="flex flex-col md:flex-row md:justify-end md:items-center space-y-4 md:space-y-0">
                     <Button onClick={fetchPickedRequests} variant="outline">
                       <RefreshCw className="h-4 w-4 mr-2" />
                       Обновить
