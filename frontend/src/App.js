@@ -9302,6 +9302,16 @@ function App() {
                           {courierRequests.length}
                         </Badge>
                       )}
+                      {item.id === 'courier-accepted' && acceptedRequests.length > 0 && (
+                        <Badge className="bg-blue-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full">
+                          {acceptedRequests.length}
+                        </Badge>
+                      )}
+                      {item.id === 'courier-picked' && pickedRequests.length > 0 && (
+                        <Badge className="bg-orange-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full">
+                          {pickedRequests.length}
+                        </Badge>
+                      )}
                     </button>
                   ))}
                 </nav>
