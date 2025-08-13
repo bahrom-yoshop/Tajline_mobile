@@ -8628,6 +8628,81 @@ function App() {
     `;
   };
 
+  // НОВОЕ: Боковое меню для курьера
+  const CourierSidebarMenu = () => {
+    if (user?.role !== 'courier') return null;
+
+    const courierMenuItems = [
+      {
+        id: 'courier-dashboard',
+        label: 'Главная',
+        icon: <Home className="w-5 h-5" />,
+        section: 'courier-dashboard'
+      },
+      {
+        id: 'courier-requests',
+        label: 'Новые заявки',
+        icon: <Package className="w-5 h-5" />,
+        section: 'courier-requests'
+      },
+      {
+        id: 'courier-history',
+        label: 'История заявок',
+        icon: <Clock className="w-5 h-5" />,
+        section: 'courier-history'
+      }
+    ];
+
+    return (
+      <div className="h-full bg-white border-r border-gray-200 w-64 flex flex-col">
+        <div className="flex items-center h-16 px-6 border-b border-gray-200">
+          <Truck className="h-8 w-8 text-blue-600" />
+          <span className="ml-2 text-xl font-bold text-gray-900">TAJLINE</span>
+          <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">КУРЬЕР</Badge>
+        </div>
+
+        <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+          {courierMenuItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => {
+                setActiveSection(item.section);
+                setActiveTab(item.id);
+              }}
+              className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                activeSection === item.section
+                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+            >
+              {item.icon}
+              <span className="ml-3">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Информация о курьере */}
+        <div className="px-4 py-4 border-t border-gray-200">
+          <div className="flex items-center">
+            <User className="h-8 w-8 text-gray-400" />
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-900">{user?.full_name}</p>
+              <p className="text-xs text-gray-500">Курьер</p>
+            </div>
+          </div>
+          <Button
+            onClick={handleLogout}
+            variant="outline" 
+            size="sm"
+            className="w-full mt-3"
+          >
+            Выход
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   // Боковое меню для админа и оператора склада
   const SidebarMenu = () => {
     if (user?.role === 'user') return null;
