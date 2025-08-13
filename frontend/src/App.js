@@ -95,7 +95,8 @@ function App() {
     cargo_items: [{
       name: '',
       weight: '',
-      declared_value: ''
+      price_per_kg: '',
+      total_price: ''
     }],
     total_weight: '',
     total_value: '',
