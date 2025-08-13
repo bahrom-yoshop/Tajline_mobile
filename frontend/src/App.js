@@ -14,6 +14,7 @@ import { Textarea } from './components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from './components/ui/dropdown-menu';
 import DataPagination from './components/DataPagination'; // Новый компонент пагинации
+import YandexMap from './components/YandexMap'; // Компонент Яндекс.Карт
 import { 
   Truck, Package, Users, Bell, Search, Plus, Edit, Trash2, CheckCircle, 
   Clock, MapPin, User, Shield, Warehouse, Menu, X, Building, 
