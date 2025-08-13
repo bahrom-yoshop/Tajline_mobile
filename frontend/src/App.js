@@ -24710,7 +24710,7 @@ function App() {
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Package className="mr-2 h-5 w-5" />
-              Просмотр заявки №{selectedRequest?.id}
+              Просмотр заявки №{selectedRequest?.request_number || selectedRequest?.id}
             </DialogTitle>
             <DialogDescription>
               Полная информация о заявке и история операций
