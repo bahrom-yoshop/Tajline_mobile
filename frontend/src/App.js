@@ -796,6 +796,23 @@ function App() {
       setSenderContactModal(false);
     }
   };
+  
+  // НОВАЯ ФУНКЦИЯ ДЛЯ ВОССТАНОВЛЕНИЯ ОТМЕНЕННОЙ ЗАЯВКИ
+  const handleRestoreRequest = async (requestId) => {
+    try {
+      await apiCall(`/api/courier/requests/${requestId}/restore`, 'PUT');
+      
+      showAlert('Заявка успешно восстановлена и перемещена в новые заявки!', 'success');
+      
+      // Обновляем все списки заявок
+      fetchCourierNewRequests();
+      fetchCancelledRequests();
+      
+    } catch (error) {
+      console.error('Error restoring request:', error);
+      showAlert('Ошибка восстановления заявки: ' + error.message, 'error');
+    }
+  };
 
   // Функция для генерации QR кода отдельной ячейки
   const generateSingleCellQR = async () => {
