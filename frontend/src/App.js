@@ -367,6 +367,7 @@ function App() {
   // НОВЫЕ ФУНКЦИИ ДЛЯ РАСШИРЕННОГО WORKFLOW КУРЬЕРА (ЭТАП 2)
   const [acceptedRequests, setAcceptedRequests] = useState([]);
   const [pickedRequests, setPickedRequests] = useState([]);
+  const [cancelledRequests, setCancelledRequests] = useState([]);
   const [selectedCargoForEdit, setSelectedCargoForEdit] = useState(null);
   const [courierCargoEditForm, setCourierCargoEditForm] = useState({
     cargo_name: '',
