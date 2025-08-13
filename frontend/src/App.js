@@ -9638,168 +9638,189 @@ function App() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-md mx-auto">
-            <div className="text-center mb-8">
-              <div className="flex items-center justify-center mb-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          {/* Заголовок с логотипом */}
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center mb-6">
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 shadow-2xl">
                 <img 
-                  src="/logo.png" 
+                  src="https://customer-assets.emergentagent.com/job_tajline-courier/artifacts/st3odbr7_Logo_line.png" 
                   alt="TAJLINE.TJ" 
-                  className="h-16 w-auto"
+                  className="h-12 w-auto"
                   onError={(e) => {
                     e.target.style.display = 'none';
                     e.target.nextSibling.style.display = 'block';
                   }}
                 />
                 <div className="hidden">
-                  <div className="bg-blue-600 text-white p-2 rounded-lg">
-                    <Truck className="h-12 w-12" />
-                  </div>
-                  <h1 className="text-3xl font-bold text-blue-600 mt-2">TAJLINE.TJ</h1>
+                  <Truck className="h-12 w-12 text-white" />
                 </div>
               </div>
-              <p className="text-gray-600">Грузоперевозки Москва-Таджикистан</p>
             </div>
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">TAJLINE</h1>
+            <p className="text-blue-100 text-sm md:text-base">Грузоперевозки Москва-Таджикистан</p>
+          </div>
 
+          {/* Форма входа */}
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden">
             <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Вход</TabsTrigger>
-                <TabsTrigger value="register">Регистрация</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 bg-gray-50/80 p-1 m-4 rounded-xl">
+                <TabsTrigger 
+                  value="login" 
+                  className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
+                >
+                  Вход
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="register"
+                  className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
+                >
+                  Регистрация
+                </TabsTrigger>
               </TabsList>
               
-              <TabsContent value="login">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Вход в систему</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <form onSubmit={handleLogin} className="space-y-4">
-                      <div>
-                        <Label htmlFor="login-phone">Телефон</Label>
+              <TabsContent value="login" className="p-6 pt-2">
+                <form onSubmit={handleLogin} className="space-y-5">
+                  <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Добро пожаловать!</h2>
+                    <p className="text-gray-600 text-sm">Войдите в свою учетную запись</p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="login-phone" className="text-gray-700 font-medium">Номер телефона</Label>
+                      <div className="relative mt-2">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Phone className="h-5 w-5 text-gray-400" />
+                        </div>
                         <Input
                           id="login-phone"
                           type="tel"
                           placeholder="+7XXXXXXXXXX"
                           value={loginForm.phone}
                           onChange={(e) => setLoginForm({...loginForm, phone: e.target.value})}
+                          className="pl-10 h-12 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-blue-500"
                           required
                         />
                       </div>
-                      <div>
-                        <Label htmlFor="login-password">Пароль</Label>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="login-password" className="text-gray-700 font-medium">Пароль</Label>
+                      <div className="relative mt-2">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Shield className="h-5 w-5 text-gray-400" />
+                        </div>
                         <Input
                           id="login-password"
                           type="password"
                           placeholder="Введите пароль"
                           value={loginForm.password}
                           onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
+                          className="pl-10 h-12 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-blue-500"
                           required
                         />
                       </div>
-                      <Button type="submit" className="w-full">Войти</Button>
-                    </form>
-                  </CardContent>
-                </Card>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    disabled={isLoggingIn}
+                    className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
+                  >
+                    {isLoggingIn ? (
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
+                        Вход...
+                      </div>
+                    ) : (
+                      'Войти в систему'
+                    )}
+                  </Button>
+                </form>
               </TabsContent>
               
-              <TabsContent value="register">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Регистрация</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <form onSubmit={handleRegister} className="space-y-4">
-                      <div>
-                        <Label htmlFor="register-name">ФИО</Label>
+              <TabsContent value="register" className="p-6 pt-2">
+                <form onSubmit={handleRegister} className="space-y-5">
+                  <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Создать аккаунт</h2>
+                    <p className="text-gray-600 text-sm">Зарегистрируйтесь для начала работы</p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="register-name" className="text-gray-700 font-medium">Полное имя</Label>
+                      <div className="relative mt-2">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <User className="h-5 w-5 text-gray-400" />
+                        </div>
                         <Input
                           id="register-name"
-                          placeholder="Введите полное имя"
+                          placeholder="Введите ФИО"
                           value={registerForm.full_name}
                           onChange={(e) => setRegisterForm({...registerForm, full_name: e.target.value})}
+                          className="pl-10 h-12 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-blue-500"
                           required
                         />
                       </div>
-                      <div>
-                        <Label htmlFor="register-phone">Телефон</Label>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="register-phone" className="text-gray-700 font-medium">Номер телефона</Label>
+                      <div className="relative mt-2">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Phone className="h-5 w-5 text-gray-400" />
+                        </div>
                         <Input
                           id="register-phone"
                           type="tel"
                           placeholder="+7XXXXXXXXXX"
                           value={registerForm.phone}
                           onChange={(e) => setRegisterForm({...registerForm, phone: e.target.value})}
+                          className="pl-10 h-12 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-blue-500"
                           required
                         />
                       </div>
-                      <div>
-                        <Label htmlFor="register-password">Пароль</Label>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="register-password" className="text-gray-700 font-medium">Пароль</Label>
+                      <div className="relative mt-2">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Shield className="h-5 w-5 text-gray-400" />
+                        </div>
                         <Input
                           id="register-password"
                           type="password"
                           placeholder="Минимум 6 символов"
                           value={registerForm.password}
                           onChange={(e) => setRegisterForm({...registerForm, password: e.target.value})}
+                          className="pl-10 h-12 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-blue-500"
                           required
                         />
                       </div>
-                      {/* Роль убрана - всегда USER по умолчанию (Функция 3) */}
-                      <Button type="submit" className="w-full">Зарегистрироваться</Button>
-                    </form>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-
-            {/* Отслеживание без авторизации */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Search className="mr-2 h-5 w-5" />
-                  Отследить груз
-                </CardTitle>
-                <CardDescription>Введите номер груза для отслеживания</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleTrackCargo} className="space-y-4">
-                  <Input
-                    placeholder="Номер груза"
-                    value={trackingNumber}
-                    onChange={(e) => setTrackingNumber(e.target.value)}
-                    required
-                  />
-                  <Button type="submit" className="w-full">
-                    <Search className="mr-2 h-4 w-4" />
-                    Отследить
-                  </Button>
-                </form>
-                
-                {trackingResult && (
-                  <div className="mt-4 p-4 border rounded-lg">
-                    <h3 className="font-semibold mb-2">Информация о грузе:</h3>
-                    <div className="space-y-2 text-sm">
-                      <p><strong>Номер:</strong> {trackingResult.cargo_number}</p>
-                      <p><strong>Получатель:</strong> {trackingResult.recipient_name}</p>
-                      <p><strong>Статус:</strong> {getStatusBadge(trackingResult.status)}</p>
-                      <p><strong>Вес:</strong> {trackingResult.weight} кг</p>
-                      <p><strong>Маршрут:</strong> {trackingResult.route === 'moscow_to_tajikistan' ? 'Москва → Таджикистан' : 'Таджикистан → Москва'}</p>
-                      {trackingResult.warehouse_location && (
-                        <p><strong>Местоположение на складе:</strong> {trackingResult.warehouse_location}</p>
-                      )}
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
+                  >
+                    Создать аккаунт
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
           </div>
-        </div>
-
-        {/* Alerts */}
-        <div className="fixed top-4 right-4 space-y-2 z-50">
-          {alerts.map((alert) => (
-            <Alert key={alert.id} className={`max-w-sm ${alert.type === 'error' ? 'border-red-500' : alert.type === 'success' ? 'border-green-500' : 'border-blue-500'}`}>
-              <AlertDescription>{alert.message}</AlertDescription>
-            </Alert>
-          ))}
+          
+          {/* Дополнительная информация */}
+          <div className="text-center mt-8">
+            <p className="text-blue-100 text-sm">
+              © 2024 TAJLINE.TJ - Надежные грузоперевозки
+            </p>
+          </div>
         </div>
       </div>
     );
