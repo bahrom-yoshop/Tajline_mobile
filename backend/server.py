@@ -12667,7 +12667,7 @@ async def create_courier_request_for_pickup(
 async def get_courier_new_requests(
     current_user: User = Depends(get_current_user)
 ):
-    """Получить новые заявки для курьера"""
+    """Получить новые заявки для курьера (включая заявки на забор груза)"""
     if current_user.role != UserRole.COURIER:
         raise HTTPException(status_code=403, detail="Access denied")
     
@@ -12676,7 +12676,7 @@ async def get_courier_new_requests(
     if not courier:
         raise HTTPException(status_code=404, detail="Courier profile not found")
     
-    # Получаем назначенные и новые заявки
+    # Получаем обычные заявки курьера
     courier_requests = list(db.courier_requests.find({
         "$or": [
             {"assigned_courier_id": courier["id"], "request_status": "assigned"},
@@ -12684,10 +12684,37 @@ async def get_courier_new_requests(
         ]
     }, {"_id": 0}).sort("created_at", -1))
     
+    # Получаем заявки на забор груза
+    pickup_requests = list(db.courier_pickup_requests.find({
+        "$or": [
+            {"assigned_courier_id": courier["id"], "request_status": "accepted"},
+            {"assigned_courier_id": None, "request_status": "pending"}
+        ]
+    }, {"_id": 0}).sort("created_at", -1))
+    
+    # Добавляем тип заявки для различения в интерфейсе
+    for request in courier_requests:
+        request['request_type'] = 'delivery'  # Обычная доставка
+        
+    for request in pickup_requests:
+        request['request_type'] = 'pickup'  # Забор груза
+        # Добавляем поля совместимости для единообразного отображения
+        request['cargo_name'] = request.get('destination', 'Груз для забора')
+        request['weight'] = 'Не указано'
+        request['declared_value'] = request.get('courier_fee', 0)
+    
+    # Объединяем все заявки и сортируем по дате создания
+    all_requests = courier_requests + pickup_requests
+    all_requests.sort(key=lambda x: x.get('created_at', datetime.min), reverse=True)
+    
     return {
         "courier_info": courier,
-        "new_requests": courier_requests,
-        "total_count": len(courier_requests)
+        "new_requests": all_requests,
+        "courier_requests": courier_requests,  # Обычные заявки
+        "pickup_requests": pickup_requests,   # Заявки на забор
+        "total_count": len(all_requests),
+        "delivery_count": len(courier_requests),
+        "pickup_count": len(pickup_requests)
     }
 
 @app.post("/api/courier/requests/{request_id}/accept")
