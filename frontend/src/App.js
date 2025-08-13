@@ -23726,6 +23726,197 @@ function App() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* НОВОЕ МОДАЛЬНОЕ ОКНО: Редактирование груза курьером */}
+      <Dialog open={cargoEditModal} onOpenChange={setCargoEditModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Edit className="mr-2 h-5 w-5" />
+              Редактирование информации о грузе
+            </DialogTitle>
+            <DialogDescription>
+              Заполните всю информацию о грузе для генерации документов
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleUpdateCargoInfo} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Информация о грузе */}
+              <div>
+                <Label htmlFor="edit-cargo-name">Наименование груза *</Label>
+                <Input
+                  id="edit-cargo-name"
+                  value={courierCargoEditForm.cargo_name}
+                  onChange={(e) => setCourierCargoEditForm({...courierCargoEditForm, cargo_name: e.target.value})}
+                  placeholder="Например: Посылка с одеждой"
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-cargo-weight">Вес груза (кг) *</Label>
+                <Input
+                  id="edit-cargo-weight"
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  value={courierCargoEditForm.weight}
+                  onChange={(e) => setCourierCargoEditForm({...courierCargoEditForm, weight: e.target.value})}
+                  placeholder="Например: 2.5"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Информация о получателе */}
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-semibold mb-3">Информация о получателе</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-recipient-name">ФИО получателя *</Label>
+                  <Input
+                    id="edit-recipient-name"
+                    value={courierCargoEditForm.recipient_full_name}
+                    onChange={(e) => setCourierCargoEditForm({...courierCargoEditForm, recipient_full_name: e.target.value})}
+                    placeholder="Иванов Иван Иванович"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="edit-recipient-phone">Телефон получателя *</Label>
+                  <Input
+                    id="edit-recipient-phone"
+                    type="tel"
+                    value={courierCargoEditForm.recipient_phone}
+                    onChange={(e) => setCourierCargoEditForm({...courierCargoEditForm, recipient_phone: e.target.value})}
+                    placeholder="+79XXXXXXXXX"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <Label htmlFor="edit-recipient-address">Адрес получателя *</Label>
+                <Input
+                  id="edit-recipient-address"
+                  value={courierCargoEditForm.recipient_address}
+                  onChange={(e) => setCourierCargoEditForm({...courierCargoEditForm, recipient_address: e.target.value})}
+                  placeholder="Душанбе, ул. Рудаки, 10, кв. 5"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Способ получения и оплаты */}
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-semibold mb-3">Способ получения и оплата</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-delivery-method">Способ получения груза *</Label>
+                  <select
+                    id="edit-delivery-method"
+                    value={courierCargoEditForm.delivery_method}
+                    onChange={(e) => setCourierCargoEditForm({...courierCargoEditForm, delivery_method: e.target.value})}
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                    required
+                  >
+                    <option value="pickup">Самовывоз</option>
+                    <option value="home_delivery">Доставка до дома</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="edit-payment-method">Способ оплаты *</Label>
+                  <select
+                    id="edit-payment-method"
+                    value={courierCargoEditForm.payment_method}
+                    onChange={(e) => setCourierCargoEditForm({...courierCargoEditForm, payment_method: e.target.value})}
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                    required
+                  >
+                    <option value="not_paid">Не оплачено</option>
+                    <option value="cash">Оплата наличными</option>
+                    <option value="card_transfer">Перевод на карту</option>
+                    <option value="cash_on_delivery">Оплата при получении</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <Label htmlFor="edit-declared-value">Объявленная стоимость (₽)</Label>
+                <Input
+                  id="edit-declared-value"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={courierCargoEditForm.declared_value}
+                  onChange={(e) => setCourierCargoEditForm({...courierCargoEditForm, declared_value: e.target.value})}
+                  placeholder="Например: 5000"
+                />
+              </div>
+
+              {/* Возможность приема оплаты */}
+              {courierCargoEditForm.payment_method === 'cash' && (
+                <div className="mt-4 p-3 bg-green-50 rounded-lg">
+                  <Label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      className="mr-2"
+                    />
+                    <span className="text-sm">Принял оплату наличными</span>
+                  </Label>
+                  <p className="text-xs text-green-600 mt-1">
+                    Отметьте, если получили оплату от отправителя
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex flex-col space-y-2 pt-4">
+              <Button type="submit" className="w-full" size="lg">
+                <Save className="mr-2 h-4 w-4" />
+                Сохранить информацию
+              </Button>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    showAlert('После сохранения информации будет доступна печать QR кода', 'info');
+                  }}
+                >
+                  <QrCode className="mr-2 h-4 w-4" />
+                  Печать QR
+                </Button>
+                
+                <Button 
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    showAlert('После сохранения информации будет доступна печать накладной', 'info');
+                  }}
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Накладная
+                </Button>
+              </div>
+              
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setCargoEditModal(false)}
+              >
+                Отмена
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
