@@ -438,6 +438,61 @@ function App() {
     }
   };
 
+  // НОВЫЕ ФУНКЦИИ ДЛЯ УЛУЧШЕНИЙ ИНТЕРФЕЙСА КУРЬЕРА
+  const handleOpenCourierProfile = () => {
+    if (user) {
+      setCourierProfileEditForm({
+        full_name: user.full_name || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        current_password: '',
+        new_password: '',
+        confirm_password: ''
+      });
+      setCourierProfileModal(true);
+    }
+  };
+
+  const handleUpdateCourierProfile = async (e) => {
+    e.preventDefault();
+    
+    // Валидация
+    if (courierProfileEditForm.new_password && courierProfileEditForm.new_password !== courierProfileEditForm.confirm_password) {
+      showAlert('Новые пароли не совпадают', 'error');
+      return;
+    }
+    
+    try {
+      const updateData = {
+        full_name: courierProfileEditForm.full_name,
+        phone: courierProfileEditForm.phone,
+        address: courierProfileEditForm.address
+      };
+      
+      // Добавляем пароль если указан
+      if (courierProfileEditForm.new_password) {
+        updateData.current_password = courierProfileEditForm.current_password;
+        updateData.new_password = courierProfileEditForm.new_password;
+      }
+      
+      await apiCall('/api/auth/profile/update', 'PUT', updateData);
+      
+      showAlert('Профиль обновлен успешно!', 'success');
+      setCourierProfileModal(false);
+      
+      // Обновляем данные пользователя
+      fetchUserData();
+      
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      showAlert('Ошибка обновления профиля: ' + error.message, 'error');
+    }
+  };
+
+  const handleOpenCourierChat = () => {
+    setCourierChatModal(true);
+  };
+
   // Функция для генерации QR кода отдельной ячейки
   const generateSingleCellQR = async () => {
     if (!singleCellBlock || !singleCellShelf || !singleCellNumber) {
