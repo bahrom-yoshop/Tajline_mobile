@@ -13810,6 +13810,227 @@ function App() {
                       </CardHeader>
                       <CardContent>
                         <form onSubmit={handleAcceptCargo} className="space-y-4 max-w-2xl">
+                          {isPickupMode ? (
+                            /* РЕЖИМ ЗАБОРА ГРУЗА - только необходимые поля */
+                            <>
+                              <div className="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-6">
+                                <h3 className="font-semibold text-orange-800 mb-2 flex items-center">
+                                  <Truck className="mr-2 h-5 w-5" />
+                                  Заявка на забор груза
+                                </h3>
+                                <p className="text-sm text-orange-700">
+                                  Заполните только основные данные для отправки заявки курьеру на забор груза
+                                </p>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* ФИО отправителя */}
+                                <div>
+                                  <Label htmlFor="pickup_sender_name" className="text-orange-700 font-medium">
+                                    ФИО отправителя *
+                                  </Label>
+                                  <Input
+                                    id="pickup_sender_name"
+                                    value={operatorCargoForm.sender_full_name}
+                                    onChange={(e) => setOperatorCargoForm({...operatorCargoForm, sender_full_name: e.target.value})}
+                                    placeholder="Иванов Иван Иванович"
+                                    className="border-orange-200 focus:border-orange-400"
+                                    required
+                                  />
+                                </div>
+
+                                {/* Назначение груза */}
+                                <div>
+                                  <Label htmlFor="pickup_destination" className="text-orange-700 font-medium">
+                                    Назначение груза *
+                                  </Label>
+                                  <Select
+                                    value={operatorCargoForm.route}
+                                    onValueChange={(value) => setOperatorCargoForm({...operatorCargoForm, route: value})}
+                                  >
+                                    <SelectTrigger className="border-orange-200 focus:border-orange-400">
+                                      <SelectValue placeholder="Выберите направление" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="moscow_to_tajikistan">Москва → Душанбе</SelectItem>
+                                      <SelectItem value="moscow_to_khujand">Москва → Худжанд</SelectItem>
+                                      <SelectItem value="moscow_to_kulob">Москва → Кулоб</SelectItem>
+                                      <SelectItem value="moscow_to_kurgan_tube">Москва → Курган-Тюбе</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+
+                              {/* Телефоны отправителя с возможностью добавления нескольких */}
+                              <div>
+                                <div className="flex items-center justify-between mb-2">
+                                  <Label className="text-orange-700 font-medium">
+                                    Телефоны отправителя *
+                                  </Label>
+                                  <Button
+                                    type="button"
+                                    onClick={addSenderPhone}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-orange-300 text-orange-700 hover:bg-orange-100"
+                                  >
+                                    <Plus className="mr-1 h-3 w-3" />
+                                    Добавить номер
+                                  </Button>
+                                </div>
+                                <div className="space-y-2">
+                                  {senderPhones.map((phone, index) => (
+                                    <div key={index} className="flex gap-2">
+                                      <Input
+                                        type="tel"
+                                        value={phone}
+                                        onChange={(e) => updateSenderPhone(index, e.target.value)}
+                                        placeholder={`Телефон ${index + 1}: +7XXXXXXXXXX`}
+                                        className="border-orange-200 focus:border-orange-400"
+                                        required={index === 0}
+                                      />
+                                      {senderPhones.length > 1 && (
+                                        <Button
+                                          type="button"
+                                          onClick={() => removeSenderPhone(index)}
+                                          variant="outline"
+                                          size="sm"
+                                          className="border-red-300 text-red-600 hover:bg-red-50"
+                                        >
+                                          <Minus className="h-3 w-3" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Адрес места нахождения груза */}
+                              <div>
+                                <Label htmlFor="pickup_address" className="text-orange-700 font-medium">
+                                  Адрес места нахождения груза *
+                                </Label>
+                                <Textarea
+                                  id="pickup_address"
+                                  value={operatorCargoForm.pickup_address}
+                                  onChange={(e) => setOperatorCargoForm({...operatorCargoForm, pickup_address: e.target.value})}
+                                  placeholder="Укажите точный адрес, где находится груз для забора"
+                                  className="border-orange-200 focus:border-orange-400"
+                                  rows={2}
+                                  required
+                                />
+                              </div>
+
+                              {/* Дата и время забора груза */}
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                  <Label htmlFor="pickup_date" className="text-orange-700 font-medium">
+                                    Дата забора *
+                                  </Label>
+                                  <Input
+                                    id="pickup_date"
+                                    type="date"
+                                    value={operatorCargoForm.pickup_date}
+                                    onChange={(e) => setOperatorCargoForm({...operatorCargoForm, pickup_date: e.target.value})}
+                                    className="border-orange-200 focus:border-orange-400"
+                                    min={new Date().toISOString().split('T')[0]}
+                                    required
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="pickup_time_from" className="text-orange-700 font-medium">
+                                    Время с *
+                                  </Label>
+                                  <Input
+                                    id="pickup_time_from"
+                                    type="time"
+                                    value={operatorCargoForm.pickup_time_from}
+                                    onChange={(e) => setOperatorCargoForm({...operatorCargoForm, pickup_time_from: e.target.value})}
+                                    className="border-orange-200 focus:border-orange-400"
+                                    required
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="pickup_time_to" className="text-orange-700 font-medium">
+                                    Время до *
+                                  </Label>
+                                  <Input
+                                    id="pickup_time_to"
+                                    type="time"
+                                    value={operatorCargoForm.pickup_time_to}
+                                    onChange={(e) => setOperatorCargoForm({...operatorCargoForm, pickup_time_to: e.target.value})}
+                                    className="border-orange-200 focus:border-orange-400"
+                                    required
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Оплата за курьерскую услугу */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <Label htmlFor="courier_fee" className="text-orange-700 font-medium">
+                                    Стоимость курьерской услуги *
+                                  </Label>
+                                  <Input
+                                    id="courier_fee"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={operatorCargoForm.courier_fee}
+                                    onChange={(e) => setOperatorCargoForm({...operatorCargoForm, courier_fee: e.target.value})}
+                                    placeholder="1000.00"
+                                    className="border-orange-200 focus:border-orange-400"
+                                    required
+                                  />
+                                  <p className="text-xs text-orange-600 mt-1">Стоимость в рублях</p>
+                                </div>
+
+                                {/* Статус оплаты для курьерской службы */}
+                                <div>
+                                  <Label htmlFor="courier_payment_status" className="text-orange-700 font-medium">
+                                    Статус оплаты курьеру *
+                                  </Label>
+                                  <Select
+                                    value={operatorCargoForm.payment_method}
+                                    onValueChange={(value) => setOperatorCargoForm({...operatorCargoForm, payment_method: value})}
+                                  >
+                                    <SelectTrigger className="border-orange-200 focus:border-orange-400">
+                                      <SelectValue placeholder="Статус оплаты" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="paid">Оплачено</SelectItem>
+                                      <SelectItem value="not_paid">Не оплачено</SelectItem>
+                                      <SelectItem value="partial">Частично оплачено</SelectItem>
+                                      <SelectItem value="on_delivery">Оплата при доставке</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+
+                              {/* Кнопка отправки заявки на курьера */}
+                              <div className="pt-6 border-t border-orange-200">
+                                <Button
+                                  type="submit"
+                                  className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                                  disabled={!operatorCargoForm.sender_full_name || 
+                                           !operatorCargoForm.pickup_address || 
+                                           !operatorCargoForm.pickup_date ||
+                                           !operatorCargoForm.pickup_time_from ||
+                                           !operatorCargoForm.pickup_time_to ||
+                                           !operatorCargoForm.courier_fee ||
+                                           senderPhones.filter(p => p.trim()).length === 0}
+                                >
+                                  <Truck className="mr-2 h-4 w-4" />
+                                  Отправить заявку на курьера
+                                </Button>
+                                <p className="text-xs text-orange-600 text-center mt-2">
+                                  Заявка будет отправлена доступным курьерам для забора груза
+                                </p>
+                              </div>
+                            </>
+                          ) : (
+                            /* ОБЫЧНЫЙ РЕЖИМ - все поля как было */
+                            <>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                               <Label htmlFor="sender_full_name">ФИО отправителя</Label>
