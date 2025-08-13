@@ -13767,6 +13767,425 @@ async def get_websocket_connection_stats(
         "server_uptime": datetime.utcnow().isoformat()
     }
 
+# НОВЫЕ ENDPOINTS ДЛЯ ИСТОРИИ ПЕРЕМЕЩЕНИЙ И ETA
+
+@app.post("/api/courier/location/history")
+async def save_location_to_history(
+    location_data: CourierLocationUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Сохранить местоположение курьера в историю (автоматически при обновлении)"""
+    if current_user.role != UserRole.COURIER:
+        raise HTTPException(status_code=403, detail="Only couriers can save location history")
+    
+    try:
+        # Найти информацию о курьере
+        courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
+        if not courier:
+            raise HTTPException(status_code=404, detail="Courier profile not found")
+        
+        # Создать запись истории
+        history_id = str(uuid.uuid4())
+        now = datetime.utcnow()
+        
+        history_record = {
+            "id": history_id,
+            "courier_id": courier["id"],
+            "courier_name": courier["full_name"],
+            "latitude": location_data.latitude,
+            "longitude": location_data.longitude,
+            "status": location_data.status.value,
+            "current_address": location_data.current_address,
+            "accuracy": location_data.accuracy,
+            "speed": location_data.speed,
+            "heading": location_data.heading,
+            "timestamp": now,
+            "date": now.date().isoformat(),  # Для группировки по дням
+            "hour": now.hour  # Для группировки по часам
+        }
+        
+        # Сохранить в коллекцию истории
+        db.courier_location_history.insert_one(history_record)
+        
+        return {
+            "message": "Location history saved successfully",
+            "history_id": history_id,
+            "timestamp": now.isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving location history: {str(e)}")
+
+@app.get("/api/admin/couriers/{courier_id}/history")
+async def get_courier_location_history(
+    courier_id: str,
+    date_from: str = None,  # YYYY-MM-DD
+    date_to: str = None,    # YYYY-MM-DD
+    current_user: User = Depends(get_current_user)
+):
+    """Получить историю перемещений курьера (для админов)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can view courier history")
+    
+    try:
+        # Подготовить фильтр по датам
+        date_filter = {"courier_id": courier_id}
+        
+        if date_from or date_to:
+            date_range = {}
+            if date_from:
+                date_range["$gte"] = date_from
+            if date_to:
+                date_range["$lte"] = date_to
+            date_filter["date"] = date_range
+        else:
+            # По умолчанию - последние 7 дней
+            week_ago = (datetime.utcnow() - timedelta(days=7)).date().isoformat()
+            date_filter["date"] = {"$gte": week_ago}
+        
+        # Получить историю перемещений
+        history = list(db.courier_location_history.find(
+            date_filter,
+            {"_id": 0}
+        ).sort("timestamp", 1))
+        
+        # Группировать по дням для статистики
+        daily_stats = {}
+        total_distance = 0
+        
+        for i, record in enumerate(history):
+            date = record["date"]
+            if date not in daily_stats:
+                daily_stats[date] = {
+                    "date": date,
+                    "points_count": 0,
+                    "distance_km": 0,
+                    "avg_speed": 0,
+                    "statuses": set()
+                }
+            
+            daily_stats[date]["points_count"] += 1
+            daily_stats[date]["statuses"].add(record["status"])
+            
+            # Рассчитать расстояние между точками
+            if i > 0 and history[i-1]["date"] == date:
+                distance = calculate_distance(
+                    history[i-1]["latitude"], history[i-1]["longitude"],
+                    record["latitude"], record["longitude"]
+                )
+                daily_stats[date]["distance_km"] += distance
+                total_distance += distance
+            
+            # Средняя скорость
+            if record.get("speed"):
+                daily_stats[date]["avg_speed"] = max(daily_stats[date]["avg_speed"], record["speed"])
+        
+        # Конвертировать set в list для JSON
+        for stats in daily_stats.values():
+            stats["statuses"] = list(stats["statuses"])
+        
+        return {
+            "courier_id": courier_id,
+            "date_from": date_from or week_ago,
+            "date_to": date_to or datetime.utcnow().date().isoformat(),
+            "history": history,
+            "total_points": len(history),
+            "total_distance_km": round(total_distance, 2),
+            "daily_stats": list(daily_stats.values())
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching courier history: {str(e)}")
+
+@app.get("/api/operator/couriers/{courier_id}/history")
+async def get_courier_location_history_operator(
+    courier_id: str,
+    date_from: str = None,
+    date_to: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить историю перемещений курьера (для операторов склада)"""
+    if current_user.role != UserRole.WAREHOUSE_OPERATOR:
+        raise HTTPException(status_code=403, detail="Only warehouse operators can view courier history")
+    
+    try:
+        # Проверить, что курьер принадлежит складам оператора
+        operator_warehouses = list(db.warehouse_operators.find(
+            {"user_id": current_user.id}, 
+            {"warehouse_id": 1, "_id": 0}
+        ))
+        
+        if not operator_warehouses:
+            raise HTTPException(status_code=404, detail="No warehouses assigned to this operator")
+        
+        warehouse_ids = [w["warehouse_id"] for w in operator_warehouses]
+        
+        # Проверить, что курьер назначен к одному из складов оператора
+        courier = db.couriers.find_one({
+            "id": courier_id,
+            "assigned_warehouse_id": {"$in": warehouse_ids}
+        }, {"_id": 0})
+        
+        if not courier:
+            raise HTTPException(status_code=403, detail="Courier not assigned to your warehouses")
+        
+        # Использовать ту же логику, что и для админов
+        date_filter = {"courier_id": courier_id}
+        
+        if date_from or date_to:
+            date_range = {}
+            if date_from:
+                date_range["$gte"] = date_from
+            if date_to:
+                date_range["$lte"] = date_to
+            date_filter["date"] = date_range
+        else:
+            # По умолчанию - последние 3 дня для операторов
+            days_ago = (datetime.utcnow() - timedelta(days=3)).date().isoformat()
+            date_filter["date"] = {"$gte": days_ago}
+        
+        history = list(db.courier_location_history.find(
+            date_filter,
+            {"_id": 0}
+        ).sort("timestamp", 1))
+        
+        # Упрощенная статистика для операторов
+        total_points = len(history)
+        total_distance = 0
+        
+        for i in range(1, len(history)):
+            if history[i]["date"] == history[i-1]["date"]:
+                distance = calculate_distance(
+                    history[i-1]["latitude"], history[i-1]["longitude"],
+                    history[i]["latitude"], history[i]["longitude"]
+                )
+                total_distance += distance
+        
+        return {
+            "courier_id": courier_id,
+            "courier_name": courier["full_name"],
+            "date_from": date_from or days_ago,
+            "date_to": date_to or datetime.utcnow().date().isoformat(),
+            "history": history,
+            "total_points": total_points,
+            "total_distance_km": round(total_distance, 2)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching courier history: {str(e)}")
+
+@app.post("/api/courier/eta/calculate")
+async def calculate_eta_to_address(
+    request_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Рассчитать время прибытия курьера к адресу"""
+    if current_user.role != UserRole.COURIER:
+        raise HTTPException(status_code=403, detail="Only couriers can calculate ETA")
+    
+    try:
+        destination_address = request_data.get("destination_address")
+        if not destination_address:
+            raise HTTPException(status_code=400, detail="Destination address is required")
+        
+        # Найти курьера
+        courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
+        if not courier:
+            raise HTTPException(status_code=404, detail="Courier profile not found")
+        
+        # Найти текущее местоположение курьера
+        current_location = db.courier_locations.find_one(
+            {"courier_id": courier["id"]}, 
+            {"_id": 0}
+        )
+        
+        if not current_location:
+            raise HTTPException(status_code=404, detail="Current location not found")
+        
+        # Рассчитать расстояние и время
+        # Простой расчет на основе прямого расстояния (можно улучшить с API маршрутов)
+        current_lat = current_location["latitude"]
+        current_lng = current_location["longitude"]
+        
+        # Здесь должна быть геокодирование адреса назначения
+        # Для примера используем фиксированные координаты Москвы
+        # В реальности нужно использовать Yandex Geocoding API
+        dest_lat, dest_lng = 55.751244, 37.618423  # Москва центр
+        
+        distance_km = calculate_distance(current_lat, current_lng, dest_lat, dest_lng)
+        
+        # Оценка времени в зависимости от типа транспорта
+        transport_speeds = {
+            "car": 40,      # км/ч в городе
+            "motorcycle": 35,
+            "bicycle": 15,
+            "on_foot": 5
+        }
+        
+        avg_speed = transport_speeds.get(courier.get("transport_type", "car"), 30)
+        eta_hours = distance_km / avg_speed
+        eta_minutes = int(eta_hours * 60)
+        
+        # Добавить буферное время (пробки, светофоры)
+        buffer_minutes = max(5, int(eta_minutes * 0.2))  # 20% буфер, минимум 5 минут
+        total_eta_minutes = eta_minutes + buffer_minutes
+        
+        eta_time = datetime.utcnow() + timedelta(minutes=total_eta_minutes)
+        
+        return {
+            "destination_address": destination_address,
+            "current_location": {
+                "latitude": current_lat,
+                "longitude": current_lng
+            },
+            "destination_location": {
+                "latitude": dest_lat,
+                "longitude": dest_lng
+            },
+            "distance_km": round(distance_km, 2),
+            "estimated_time_minutes": total_eta_minutes,
+            "estimated_arrival": eta_time.isoformat(),
+            "transport_type": courier.get("transport_type", "car"),
+            "avg_speed_kmh": avg_speed,
+            "buffer_minutes": buffer_minutes,
+            "calculated_at": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error calculating ETA: {str(e)}")
+
+@app.get("/api/admin/couriers/analytics")
+async def get_couriers_analytics(
+    date_from: str = None,
+    date_to: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить аналитику по курьерам (для админов)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can view courier analytics")
+    
+    try:
+        # Подготовить фильтр по датам
+        if not date_from:
+            date_from = (datetime.utcnow() - timedelta(days=7)).date().isoformat()
+        if not date_to:
+            date_to = datetime.utcnow().date().isoformat()
+        
+        date_filter = {
+            "date": {"$gte": date_from, "$lte": date_to}
+        }
+        
+        # Получить всех курьеров
+        couriers = list(db.couriers.find({"is_active": True}, {"_id": 0}))
+        
+        analytics_data = []
+        
+        for courier in couriers:
+            # История перемещений курьера
+            history = list(db.courier_location_history.find(
+                {**date_filter, "courier_id": courier["id"]},
+                {"_id": 0}
+            ).sort("timestamp", 1))
+            
+            if not history:
+                continue
+            
+            # Рассчитать метрики
+            total_distance = 0
+            total_time_active = 0
+            statuses = []
+            
+            for i in range(1, len(history)):
+                # Расстояние
+                distance = calculate_distance(
+                    history[i-1]["latitude"], history[i-1]["longitude"],
+                    history[i]["latitude"], history[i]["longitude"]
+                )
+                total_distance += distance
+                
+                # Время активности (между точками)
+                time_diff = (datetime.fromisoformat(history[i]["timestamp"].replace('Z', '+00:00')) - 
+                           datetime.fromisoformat(history[i-1]["timestamp"].replace('Z', '+00:00')))
+                total_time_active += time_diff.total_seconds() / 3600  # в часах
+                
+                statuses.append(history[i]["status"])
+            
+            # Заявки курьера за период
+            requests = list(db.courier_requests.find({
+                "assigned_courier_id": courier["id"],
+                "created_at": {
+                    "$gte": datetime.fromisoformat(date_from + "T00:00:00"),
+                    "$lte": datetime.fromisoformat(date_to + "T23:59:59")
+                }
+            }, {"_id": 0}))
+            
+            completed_requests = [r for r in requests if r.get("request_status") == "delivered"]
+            
+            analytics_data.append({
+                "courier_id": courier["id"],
+                "courier_name": courier["full_name"],
+                "transport_type": courier["transport_type"],
+                "warehouse_name": courier.get("assigned_warehouse_name", "N/A"),
+                "metrics": {
+                    "total_distance_km": round(total_distance, 2),
+                    "total_active_hours": round(total_time_active, 2),
+                    "avg_speed_kmh": round(total_distance / total_time_active, 2) if total_time_active > 0 else 0,
+                    "total_requests": len(requests),
+                    "completed_requests": len(completed_requests),
+                    "completion_rate": round(len(completed_requests) / len(requests) * 100, 1) if requests else 0,
+                    "tracking_points": len(history),
+                    "status_breakdown": {
+                        status: statuses.count(status) for status in set(statuses)
+                    }
+                }
+            })
+        
+        # Общая статистика
+        total_analytics = {
+            "period": {"from": date_from, "to": date_to},
+            "total_couriers": len(analytics_data),
+            "total_distance_km": sum(c["metrics"]["total_distance_km"] for c in analytics_data),
+            "total_requests": sum(c["metrics"]["total_requests"] for c in analytics_data),
+            "total_completed": sum(c["metrics"]["completed_requests"] for c in analytics_data),
+            "avg_completion_rate": round(
+                sum(c["metrics"]["completion_rate"] for c in analytics_data) / len(analytics_data), 1
+            ) if analytics_data else 0
+        }
+        
+        return {
+            "analytics": analytics_data,
+            "summary": total_analytics,
+            "generated_at": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating courier analytics: {str(e)}")
+
+# Вспомогательная функция для расчета расстояния между координатами
+def calculate_distance(lat1, lon1, lat2, lon2):
+    """Рассчитать расстояние между двумя точками в километрах (формула Haversine)"""
+    import math
+    
+    # Радиус Земли в километрах
+    R = 6371.0
+    
+    # Преобразовать градусы в радианы
+    lat1_rad = math.radians(lat1)
+    lon1_rad = math.radians(lon1)
+    lat2_rad = math.radians(lat2)
+    lon2_rad = math.radians(lon2)
+    
+    # Разность координат
+    dlat = lat2_rad - lat1_rad
+    dlon = lon2_rad - lon1_rad
+    
+    # Формула Haversine
+    a = math.sin(dlat / 2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2)**2
+    c = 2 * math.asin(math.sqrt(a))
+    distance = R * c
+    
+    return distance
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
