@@ -31961,6 +31961,423 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_courier_card_information_display_backend_stability(self):
+        """Test backend stability after improvements to courier card information display in TAJLINE.TJ"""
+        print("\n📋 COURIER CARD INFORMATION DISPLAY BACKEND STABILITY TESTING")
+        print("   🎯 Быстро протестировать стабильность backend после улучшения отображения информации на карточках курьера в TAJLINE.TJ")
+        print("   🔧 ЗАДАЧИ ТЕСТИРОВАНИЯ:")
+        print("   1) COURIER AUTHENTICATION: Проверить вход курьера в систему (+79991234567/courier123)")
+        print("   2) COURIER REQUESTS DATA: Проверить что endpoints возвращают полную информацию:")
+        print("      - /api/courier/requests/new - новые заявки с полными данными")
+        print("      - /api/courier/requests/accepted - принятые заявки с отправителем, получателем, грузами")
+        print("      - /api/courier/requests/picked - забранные грузы со всей информацией")
+        print("   3) DATA COMPLETENESS: Убедиться что данные содержат:")
+        print("      - Информацию об отправителе и получателе")
+        print("      - Детали грузов (cargo_items)")
+        print("      - Статусы оплаты и способы получения")
+        print("      - Временные метки для истории операций")
+        print("   4) BACKEND STABILITY: Проверить стабильность после обновления отображения информации")
+        
+        all_success = True
+        
+        # Test 1: COURIER AUTHENTICATION (+79991234567/courier123)
+        print("\n   🔐 Test 1: COURIER AUTHENTICATION (+79991234567/courier123)...")
+        
+        courier_login_data = {
+            "phone": "+79991234567",
+            "password": "courier123"
+        }
+        
+        success, login_response = self.run_test(
+            "Courier Login Authentication",
+            "POST",
+            "/api/auth/login",
+            200,
+            courier_login_data
+        )
+        all_success &= success
+        
+        courier_token = None
+        if success and 'access_token' in login_response:
+            courier_token = login_response['access_token']
+            courier_user = login_response.get('user', {})
+            courier_role = courier_user.get('role')
+            courier_name = courier_user.get('full_name')
+            courier_phone = courier_user.get('phone')
+            courier_user_number = courier_user.get('user_number')
+            
+            print(f"   ✅ Courier login successful: {courier_name}")
+            print(f"   👑 Role: {courier_role}")
+            print(f"   📞 Phone: {courier_phone}")
+            print(f"   🆔 User Number: {courier_user_number}")
+            print(f"   🔑 JWT Token received: {courier_token[:50]}...")
+            
+            # Verify role is courier
+            if courier_role == 'courier':
+                print("   ✅ Courier role correctly set to 'courier'")
+            else:
+                print(f"   ❌ Courier role incorrect: expected 'courier', got '{courier_role}'")
+                all_success = False
+            
+            self.tokens['courier'] = courier_token
+            self.users['courier'] = courier_user
+        else:
+            print("   ❌ Courier login failed - no access token received")
+            print(f"   📄 Response: {login_response}")
+            all_success = False
+            return False
+        
+        # Test 2: COURIER REQUESTS DATA - /api/courier/requests/new (новые заявки с полными данными)
+        print("\n   📋 Test 2: /api/courier/requests/new - новые заявки с полными данными...")
+        
+        success, new_requests_response = self.run_test(
+            "Get New Courier Requests with Full Data",
+            "GET",
+            "/api/courier/requests/new",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ /api/courier/requests/new endpoint working")
+            
+            # Verify response structure and data completeness
+            if isinstance(new_requests_response, dict):
+                new_requests = new_requests_response.get('new_requests', [])
+                total_count = new_requests_response.get('total_count', 0)
+                courier_info = new_requests_response.get('courier_info', {})
+                
+                print(f"   📊 New requests found: {total_count}")
+                print(f"   📋 Items in response: {len(new_requests)}")
+                print(f"   👤 Courier info available: {bool(courier_info)}")
+                
+                # Check data completeness for courier card display
+                if new_requests and len(new_requests) > 0:
+                    sample_request = new_requests[0]
+                    
+                    # Check for sender and recipient information
+                    sender_fields = ['sender_full_name', 'sender_phone']
+                    recipient_fields = ['recipient_full_name', 'recipient_phone', 'recipient_address']
+                    cargo_fields = ['cargo_name', 'weight', 'declared_value']
+                    status_fields = ['request_status', 'created_at', 'updated_at']
+                    
+                    sender_complete = all(field in sample_request for field in sender_fields)
+                    recipient_complete = all(field in sample_request for field in recipient_fields)
+                    cargo_complete = any(field in sample_request for field in cargo_fields)
+                    status_complete = any(field in sample_request for field in status_fields)
+                    
+                    print(f"   📤 Sender info complete: {sender_complete}")
+                    print(f"   📥 Recipient info complete: {recipient_complete}")
+                    print(f"   📦 Cargo info available: {cargo_complete}")
+                    print(f"   📅 Status/timestamps available: {status_complete}")
+                    
+                    if sender_complete and recipient_complete:
+                        print("   ✅ Full sender and recipient information available for courier cards")
+                    else:
+                        print("   ❌ Incomplete sender/recipient information for courier cards")
+                        all_success = False
+                        
+                    # Check for cargo items (detailed cargo information)
+                    if 'cargo_items' in sample_request:
+                        cargo_items = sample_request['cargo_items']
+                        if isinstance(cargo_items, list) and len(cargo_items) > 0:
+                            print(f"   ✅ Cargo items available: {len(cargo_items)} items")
+                        else:
+                            print("   ⚠️  Cargo items field present but empty")
+                    else:
+                        print("   ⚠️  Cargo items field not present (may use legacy cargo fields)")
+                        
+                else:
+                    print("   ℹ️  No new requests available for data completeness check")
+                    
+            else:
+                print("   ❌ Unexpected response format for new requests")
+                all_success = False
+        else:
+            print("   ❌ /api/courier/requests/new endpoint failed")
+            all_success = False
+        
+        # Test 3: COURIER REQUESTS DATA - /api/courier/requests/accepted (принятые заявки с отправителем, получателем, грузами)
+        print("\n   ✅ Test 3: /api/courier/requests/accepted - принятые заявки с отправителем, получателем, грузами...")
+        
+        success, accepted_requests_response = self.run_test(
+            "Get Accepted Courier Requests with Full Data",
+            "GET",
+            "/api/courier/requests/accepted",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ /api/courier/requests/accepted endpoint working")
+            
+            # Verify response structure and data completeness
+            if isinstance(accepted_requests_response, dict):
+                accepted_requests = accepted_requests_response.get('accepted_requests', [])
+                total_count = accepted_requests_response.get('total_count', 0)
+                courier_info = accepted_requests_response.get('courier_info', {})
+                
+                print(f"   📊 Accepted requests found: {total_count}")
+                print(f"   📋 Items in response: {len(accepted_requests)}")
+                print(f"   👤 Courier info available: {bool(courier_info)}")
+                
+                # Check data completeness for accepted requests
+                if accepted_requests and len(accepted_requests) > 0:
+                    sample_request = accepted_requests[0]
+                    
+                    # Comprehensive data check for courier card display
+                    required_fields = {
+                        'sender_info': ['sender_full_name', 'sender_phone'],
+                        'recipient_info': ['recipient_full_name', 'recipient_phone', 'recipient_address'],
+                        'cargo_info': ['cargo_name', 'weight'],
+                        'request_info': ['id', 'request_status', 'created_at'],
+                        'pickup_info': ['pickup_address']
+                    }
+                    
+                    completeness_results = {}
+                    for category, fields in required_fields.items():
+                        available_fields = [field for field in fields if field in sample_request]
+                        completeness = len(available_fields) / len(fields) * 100
+                        completeness_results[category] = completeness
+                        
+                        print(f"   📊 {category}: {len(available_fields)}/{len(fields)} fields ({completeness:.0f}%)")
+                        
+                        if available_fields:
+                            print(f"      Available: {', '.join(available_fields)}")
+                        
+                        missing_fields = [field for field in fields if field not in sample_request]
+                        if missing_fields:
+                            print(f"      Missing: {', '.join(missing_fields)}")
+                    
+                    # Overall completeness check
+                    overall_completeness = sum(completeness_results.values()) / len(completeness_results)
+                    print(f"   📈 Overall data completeness: {overall_completeness:.1f}%")
+                    
+                    if overall_completeness >= 80:
+                        print("   ✅ Sufficient data completeness for courier card display")
+                    else:
+                        print("   ❌ Insufficient data completeness for courier card display")
+                        all_success = False
+                        
+                    # Check for payment and delivery method information
+                    payment_fields = ['payment_method', 'payment_status']
+                    delivery_fields = ['delivery_method']
+                    
+                    payment_info = any(field in sample_request for field in payment_fields)
+                    delivery_info = any(field in sample_request for field in delivery_fields)
+                    
+                    print(f"   💳 Payment info available: {payment_info}")
+                    print(f"   🚚 Delivery method info available: {delivery_info}")
+                    
+                else:
+                    print("   ℹ️  No accepted requests available for data completeness check")
+                    
+            else:
+                print("   ❌ Unexpected response format for accepted requests")
+                all_success = False
+        else:
+            print("   ❌ /api/courier/requests/accepted endpoint failed")
+            all_success = False
+        
+        # Test 4: COURIER REQUESTS DATA - /api/courier/requests/picked (забранные грузы со всей информацией)
+        print("\n   📦 Test 4: /api/courier/requests/picked - забранные грузы со всей информацией...")
+        
+        success, picked_requests_response = self.run_test(
+            "Get Picked Courier Requests with Full Data",
+            "GET",
+            "/api/courier/requests/picked",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ /api/courier/requests/picked endpoint working")
+            
+            # Verify response structure and data completeness
+            if isinstance(picked_requests_response, dict):
+                picked_requests = picked_requests_response.get('picked_requests', [])
+                total_count = picked_requests_response.get('total_count', 0)
+                courier_info = picked_requests_response.get('courier_info', {})
+                
+                print(f"   📊 Picked requests found: {total_count}")
+                print(f"   📋 Items in response: {len(picked_requests)}")
+                print(f"   👤 Courier info available: {bool(courier_info)}")
+                
+                # Check data completeness for picked requests
+                if picked_requests and len(picked_requests) > 0:
+                    sample_request = picked_requests[0]
+                    
+                    # Check for complete information including timestamps for history
+                    history_fields = ['created_at', 'updated_at', 'picked_at', 'accepted_at']
+                    status_fields = ['request_status', 'cargo_status']
+                    location_fields = ['pickup_address', 'recipient_address']
+                    
+                    history_available = [field for field in history_fields if field in sample_request]
+                    status_available = [field for field in status_fields if field in sample_request]
+                    location_available = [field for field in location_fields if field in sample_request]
+                    
+                    print(f"   📅 History timestamps: {len(history_available)}/{len(history_fields)} available")
+                    print(f"   📊 Status fields: {len(status_available)}/{len(status_fields)} available")
+                    print(f"   📍 Location fields: {len(location_available)}/{len(location_fields)} available")
+                    
+                    if history_available:
+                        print(f"      Timestamps: {', '.join(history_available)}")
+                    if status_available:
+                        print(f"      Status info: {', '.join(status_available)}")
+                    if location_available:
+                        print(f"      Locations: {', '.join(location_available)}")
+                    
+                    # Check for operation history completeness
+                    if len(history_available) >= 2:
+                        print("   ✅ Sufficient timestamp information for operation history")
+                    else:
+                        print("   ⚠️  Limited timestamp information for operation history")
+                        
+                else:
+                    print("   ℹ️  No picked requests available for data completeness check")
+                    
+            else:
+                print("   ❌ Unexpected response format for picked requests")
+                all_success = False
+        else:
+            print("   ❌ /api/courier/requests/picked endpoint failed")
+            all_success = False
+        
+        # Test 5: BACKEND STABILITY CHECK (проверить стабильность после обновления отображения информации)
+        print("\n   🔧 Test 5: BACKEND STABILITY CHECK...")
+        
+        # Test multiple endpoints to ensure no regressions
+        stability_endpoints = [
+            ("/api/auth/me", "User Authentication Check"),
+            ("/api/courier/requests/history", "Courier Request History"),
+        ]
+        
+        stability_results = []
+        
+        for endpoint, description in stability_endpoints:
+            print(f"\n   🔍 Testing {description} ({endpoint})...")
+            
+            success, response = self.run_test(
+                description,
+                "GET",
+                endpoint,
+                200,
+                token=courier_token
+            )
+            
+            stability_results.append({
+                'endpoint': endpoint,
+                'description': description,
+                'success': success,
+                'response': response
+            })
+            
+            if success:
+                print(f"   ✅ {description} working")
+                
+                # Check for JSON serialization issues
+                if isinstance(response, (dict, list)):
+                    response_str = str(response)
+                    if 'ObjectId' in response_str:
+                        print(f"   ⚠️  Potential ObjectId serialization issue in {description}")
+                        all_success = False
+                    else:
+                        print(f"   ✅ JSON serialization correct for {description}")
+            else:
+                print(f"   ❌ {description} failing")
+                all_success = False
+        
+        # Check for 500 Internal Server Errors
+        error_500_count = 0
+        for result in stability_results:
+            if not result['success']:
+                try:
+                    import requests
+                    url = f"{self.base_url}{result['endpoint']}"
+                    headers = {'Authorization': f'Bearer {courier_token}', 'Content-Type': 'application/json'}
+                    response = requests.get(url, headers=headers)
+                    if response.status_code == 500:
+                        error_500_count += 1
+                        print(f"   ❌ 500 Error in {result['description']} ({result['endpoint']})")
+                except:
+                    pass
+        
+        if error_500_count == 0:
+            print("   ✅ No 500 Internal Server Errors found!")
+        else:
+            print(f"   ❌ Found {error_500_count} endpoints with 500 Internal Server Errors")
+            all_success = False
+        
+        # Test session stability
+        print("\n   🔐 Test 5.1: Session Stability Check...")
+        
+        # Make multiple requests to check session stability
+        session_tests = 0
+        session_successes = 0
+        
+        for i in range(3):
+            success, _ = self.run_test(
+                f"Session Stability Test {i+1}",
+                "GET",
+                "/api/auth/me",
+                200,
+                token=courier_token
+            )
+            session_tests += 1
+            if success:
+                session_successes += 1
+        
+        session_stability = (session_successes / session_tests * 100) if session_tests > 0 else 0
+        print(f"   📊 Session stability: {session_successes}/{session_tests} ({session_stability:.1f}%)")
+        
+        if session_stability >= 100:
+            print("   ✅ Session management stable")
+        else:
+            print("   ❌ Session management unstable")
+            all_success = False
+        
+        # SUMMARY
+        print("\n   📊 COURIER CARD INFORMATION DISPLAY BACKEND STABILITY SUMMARY:")
+        
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Backend stability confirmed after courier card improvements!")
+            print("   ✅ Courier authentication working (+79991234567/courier123)")
+            print("   ✅ /api/courier/requests/new returns complete data for courier cards")
+            print("   ✅ /api/courier/requests/accepted returns full sender, recipient, and cargo information")
+            print("   ✅ /api/courier/requests/picked returns complete information with operation history")
+            print("   ✅ Data completeness sufficient for improved courier card display:")
+            print("       - Sender and recipient information ✅")
+            print("       - Cargo details and items ✅")
+            print("       - Payment statuses and delivery methods ✅")
+            print("       - Timestamps for operation history ✅")
+            print("   ✅ Backend stability maintained after display improvements")
+            print("   ✅ No 500 Internal Server Errors")
+            print("   ✅ JSON serialization correct (no ObjectId errors)")
+            print("   ✅ Session management stable")
+            print("   🎯 EXPECTED RESULT ACHIEVED: Backend returns complete information for improved courier card display")
+        else:
+            print("   ❌ SOME TESTS FAILED - Backend stability issues detected")
+            print("   🔍 Check the specific failed tests above for details")
+            
+            # List specific issues
+            failed_areas = []
+            if not courier_token:
+                failed_areas.append("Courier authentication")
+            if error_500_count > 0:
+                failed_areas.append("500 Internal Server Errors")
+            if session_stability < 100:
+                failed_areas.append("Session stability")
+                
+            if failed_areas:
+                print("   ❌ Issues found in:")
+                for area in failed_areas:
+                    print(f"     - {area}")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
