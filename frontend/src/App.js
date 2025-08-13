@@ -790,6 +790,61 @@ function App() {
     };
   }, [courierTracking.watchId, courierTracking.updateInterval]);
 
+  // НОВЫЕ ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ РЕЖИМОМ ЗАБОРА ГРУЗА
+
+  // Переключение режима забора груза
+  const togglePickupMode = () => {
+    setIsPickupMode(!isPickupMode);
+    if (!isPickupMode) {
+      // При включении режима забора - очистить форму и установить значения по умолчанию
+      setOperatorCargoForm(prev => ({
+        ...prev,
+        pickup_required: true,
+        delivery_method: 'courier_pickup',
+        payment_method: 'not_paid'
+      }));
+      setSenderPhones(['']);
+    } else {
+      // При выключении режима забора - вернуть обычные значения
+      setOperatorCargoForm(prev => ({
+        ...prev,
+        pickup_required: false,
+        delivery_method: 'pickup'
+      }));
+      setSenderPhones(['']);
+    }
+  };
+
+  // Добавить номер телефона отправителя
+  const addSenderPhone = () => {
+    setSenderPhones([...senderPhones, '']);
+  };
+
+  // Удалить номер телефона отправителя
+  const removeSenderPhone = (index) => {
+    if (senderPhones.length > 1) {
+      const newPhones = senderPhones.filter((_, i) => i !== index);
+      setSenderPhones(newPhones);
+      // Обновить основное поле телефона
+      setOperatorCargoForm(prev => ({
+        ...prev,
+        sender_phone: newPhones.join(', ')
+      }));
+    }
+  };
+
+  // Обновить номер телефона отправителя
+  const updateSenderPhone = (index, value) => {
+    const newPhones = [...senderPhones];
+    newPhones[index] = value;
+    setSenderPhones(newPhones);
+    // Обновить основное поле телефона
+    setOperatorCargoForm(prev => ({
+      ...prev,
+      sender_phone: newPhones.filter(phone => phone.trim()).join(', ')
+    }));
+  };
+
   const handleOpenCourierChat = () => {
     setCourierChatModal(true);
   };
