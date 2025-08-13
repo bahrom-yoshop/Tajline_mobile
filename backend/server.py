@@ -14321,8 +14321,8 @@ async def create_courier_pickup_request(
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     try:
-        # Генерировать ID заявки
-        request_id = generate_readable_request_number()
+        # Генерировать ID заявки на забор груза
+        request_id = generate_pickup_request_number()
         now = datetime.utcnow()
         
         # Подготовить данные заявки на забор
