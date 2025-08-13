@@ -1285,16 +1285,17 @@ class CargoTransportAPITester:
         
         return all_success
 
-    def test_courier_backend_stability_after_notification_bell_removal(self):
-        """Test courier backend stability after removing notification bell and adding cancelled requests category"""
-        print("\n🔔 COURIER BACKEND STABILITY AFTER NOTIFICATION BELL REMOVAL TESTING")
-        print("   🎯 Быстро протестировать стабильность backend после удаления колокольчика уведомлений и добавления категории 'Отмененные заявки' в TAJLINE.TJ")
+    def test_courier_backend_stability_after_communication_functions(self):
+        """Test courier backend stability after adding communication functions with senders in TAJLINE.TJ"""
+        print("\n📞 COURIER BACKEND STABILITY AFTER COMMUNICATION FUNCTIONS TESTING")
+        print("   🎯 Быстро протестировать стабильность backend после добавления функций связи с отправителем в TAJLINE.TJ")
         print("   🔧 ЗАДАЧИ ТЕСТИРОВАНИЯ:")
         print("   1) COURIER AUTHENTICATION: Проверить вход курьера в систему (+79991234567/courier123)")
-        print("   2) BASIC COURIER ENDPOINTS: Протестировать основные endpoints:")
-        print("      - /api/courier/requests/new для новых заявок")
-        print("      - /api/courier/requests/cancelled для отмененных заявок (новый endpoint)")
-        print("   3) BACKEND STABILITY: Убедиться что удаление колокольчика уведомлений и кнопок обновления не повлияло на backend функциональность")
+        print("   2) BASIC COURIER ENDPOINTS: Протестировать основные endpoints курьера:")
+        print("      - /api/courier/requests/new для новых заявок (для badge и кнопки связи)")
+        print("      - /api/courier/requests/accepted для принятых заявок (для badge и кнопки связи)")
+        print("      - /api/courier/requests/picked для забранных грузов (для badge)")
+        print("   3) BACKEND STABILITY: Убедиться что добавление UI функций связи с отправителем (WhatsApp, Telegram, звонки) не повлияло на backend функциональность")
         
         all_success = True
         
