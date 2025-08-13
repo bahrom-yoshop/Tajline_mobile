@@ -119,6 +119,9 @@ function App() {
   // НОВОЕ: Состояние для мобильного меню курьера
   const [courierMobileMenuOpen, setCourierMobileMenuOpen] = useState(false);
   
+  // НОВОЕ: Состояние для интерактивной карты
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  
   // НОВЫЕ СОСТОЯНИЯ ДЛЯ УЛУЧШЕНИЙ ИНТЕРФЕЙСА КУРЬЕРА
   const [courierChatModal, setCourierChatModal] = useState(false);
   const [courierProfileEditForm, setCourierProfileEditForm] = useState({
