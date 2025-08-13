@@ -15552,6 +15552,12 @@ function App() {
                   {/* НОВАЯ СЕКЦИЯ: Курьеры */}
                   {activeTab === 'users-couriers' && (
                     <div className="space-y-6">
+                      {/* Карта отслеживания курьеров */}
+                      <CourierTrackingMap 
+                        userRole={user?.role}
+                        apiCall={apiCall}
+                      />
+                      
                       <Card>
                         <CardHeader>
                           <CardTitle className="flex items-center justify-between">
