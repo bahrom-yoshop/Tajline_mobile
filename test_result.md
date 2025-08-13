@@ -155,7 +155,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Быстро протестировать стабильность backend после обновления UI курьера в TAJLINE.TJ. ЗАДАЧИ ТЕСТИРОВАНИЯ: 1) COURIER AUTHENTICATION: Проверить вход курьера в систему (+79991234567/courier123), 2) COURIER REQUESTS ENDPOINT: Протестировать endpoint /api/courier/requests/new для получения новых заявок (необходимо для отображения badge с количеством), 3) BASIC API ENDPOINTS: Убедиться что основные endpoints для курьеров работают корректно без ошибок, 4) BACKEND STABILITY: Проверить что изменения в frontend не повлияли на backend функциональность. Ожидаемый результат: Backend остается стабильным после обновления UI интерфейса курьера. Все endpoints для отображения количества заявок в badge работают корректно."
+user_problem_statement: "Быстро протестировать стабильность backend после удаления колокольчика уведомлений и добавления категории 'Отмененные заявки' в TAJLINE.TJ. ЗАДАЧИ ТЕСТИРОВАНИЯ: 1) COURIER AUTHENTICATION: Проверить вход курьера в систему (+79991234567/courier123), 2) BASIC COURIER ENDPOINTS: Протестировать основные endpoints: /api/courier/requests/new для новых заявок, /api/courier/requests/cancelled для отмененных заявок (новый endpoint), 3) BACKEND STABILITY: Убедиться что удаление колокольчика уведомлений и кнопок обновления не повлияло на backend функциональность. Ожидаемый результат: Backend остается стабильным после UI изменений. Все endpoints работают корректно для поддержки новой категории 'Отмененные заявки'."
 
 backend:
   - task: "Courier Backend Stability After UI Updates"
