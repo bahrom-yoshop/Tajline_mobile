@@ -2398,6 +2398,21 @@ backend:
           agent: "testing"
           comment: "✅ CALCULATE COST BUTTON FIX FULLY WORKING - All required fields validation and cost calculation working perfectly! 1) FIELD VALIDATION: cargo_name field is now properly required and validated - button enables correctly when cargo_name, weight, and declared_value are filled ✅, 2) COST CALCULATION API: POST /api/client/cargo/calculate works perfectly with complete data including cargo_name field ✅, 3) ALL ROUTES TESTED: moscow_dushanbe (Total: 3050 руб, 7 days), moscow_khujand (Total: 2875 руб, 6 days), moscow_kulob (Total: 3250 руб, 8 days), moscow_kurgantyube (Total: 3150 руб, 7 days) ✅, 4) COMPLETE WORKFLOW: Full cargo ordering from cost calculation to order submission working end-to-end ✅, 5) ERROR VALIDATION: Missing cargo_name properly handled with appropriate error messages ✅. The Calculate Cost button no longer remains disabled when all fields are properly filled. SUCCESS RATE: 100% (15/15 calculate cost tests passed). The cargo ordering system is now fully functional."
 
+  - task: "Courier Personal Dashboard System (Stage 3)"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Testing COURIER PERSONAL DASHBOARD SYSTEM (STAGE 3) according to review request: 1) COURIER AUTHENTICATION: Тестирование входа курьера в систему, 2) COURIER DASHBOARD ENDPOINTS: Тестирование endpoints личного кабинета курьера, 3) COURIER REQUEST WORKFLOW: Тестирование полного цикла заявок, 4) NOTIFICATION SYSTEM: Проверка уведомлений между курьером и оператором"
+        - working: false
+          agent: "testing"
+          comment: "❌ COURIER PERSONAL DASHBOARD SYSTEM PARTIALLY WORKING - Core endpoints functional but request assignment workflow has issues. DETAILED RESULTS: ✅ COURIER AUTHENTICATION: 1) Admin authentication successful ✅, 2) Test courier creation via admin panel successful (ID: 3166c1a0-6b7b-4a8c-84a1-739959983c9f) ✅, 3) Courier login with credentials successful ✅, 4) Courier role correctly set to 'courier' ✅. ✅ COURIER DASHBOARD ENDPOINTS: 1) GET /api/courier/requests/new working (found 5 new requests) ✅, 2) GET /api/courier/requests/history working with proper pagination ✅. ❌ COURIER REQUEST WORKFLOW: 1) Cargo creation for courier pickup successful ✅, 2) Request assignment process unclear - requests exist but not assigned to specific courier ❌, 3) POST /api/courier/requests/{id}/accept fails with 403 'Request not assigned to you' ❌, 4) POST /api/courier/requests/{id}/cancel fails with 403 'Request not assigned to you' ❌. ✅ NOTIFICATION SYSTEM: Operator notifications working (586 total, 6 courier-related) ✅. ✅ ADDITIONAL ENDPOINTS: Available couriers and couriers list endpoints working ✅. CRITICAL ISSUE: Request assignment workflow needs investigation - requests exist but assignment to specific couriers not working properly."
+
 frontend:
   - task: "Client Cargo Ordering System - Frontend Implementation"
     implemented: true
