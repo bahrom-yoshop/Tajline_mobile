@@ -269,6 +269,7 @@ class CourierLocation(BaseModel):
     current_request_address: Optional[str] = None  # Адрес текущей заявки
     last_updated: datetime
     created_at: datetime
+# Модель для обновления роли пользователя
 class UserRoleUpdate(BaseModel):
     user_id: str = Field(..., min_length=1)
     new_role: UserRole
