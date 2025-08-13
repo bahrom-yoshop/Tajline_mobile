@@ -9775,6 +9775,16 @@ function App() {
         ]
       },
       {
+        id: 'couriers-tracking',
+        label: 'Курьеры',
+        icon: <Truck className="w-5 h-5" />,
+        section: 'couriers-tracking',
+        subsections: [
+          { id: 'couriers-tracking-map', label: 'Карта отслеживания' },
+          { id: 'couriers-tracking-list', label: 'Список курьеров', adminOnly: true }
+        ]
+      },
+      {
         id: 'notifications-management',
         label: 'Уведомления',
         icon: <Bell className="w-5 h-5" />,
