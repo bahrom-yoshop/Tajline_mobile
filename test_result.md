@@ -252,17 +252,17 @@ backend:
           comment: "✅ PASSED - Cell Status Endpoint Implementation fully working: 1) ✅ POST /api/warehouse/cell/status endpoint accessible and functional, 2) ✅ Supports ID format (warehouse_id_number, block_id_number, shelf_id_number, cell_id_number) correctly, 3) ✅ Supports legacy format (warehouse_id, block_number, shelf_number, cell_number) for backward compatibility, 4) ✅ Returns proper response structure with is_occupied, occupied_by, and cell_info fields, 5) ✅ Cell info contains correct id_based_code (002-01-01-001) format. The endpoint is fully functional and ready for production use."
 
 frontend:
-  - task: "Critical SelectItem Empty Value Error Fix"
+  - task: "Complete Courier System Testing"
     implemented: true
-    working: true
+    working: false
     file: "/app/frontend/src/App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: true
+        - working: false
           agent: "main"
-          comment: "✅ КРИТИЧЕСКАЯ ОШИБКА SELECTITEM ИСПРАВЛЕНА! Полностью решена проблема 'A Select.Item must have a value prop that is not an empty string' в 4 компонентах: 1) Строка 10257: SelectItem для статуса груза заменено value='' на value='any', 2) Строка 10276: SelectItem для статуса оплаты заменено value='' на value='any', 3) Строка 10295: SelectItem для маршрута заменено value='' на value='any', 4) Строка 21576: SelectItem для назначения оператора заменено value='' на value='none'. ДОПОЛНИТЕЛЬНЫЕ ИСПРАВЛЕНИЯ: обновлена логика обработки фильтров в handleAdvancedSearch для преобразования 'any' значений обратно в пустые строки для API, обновлена логика создания склада для корректной обработки 'none' значения оператора, обновлены значения по умолчанию в searchFilters и warehouseForm. Страница загружается без критических ошибок, консоль чистая."
+          comment: "Требуется полное тестирование курьерской системы TAJLINE.TJ (Этап 3). Реализованы: 1) Админ панель управления курьерами в разделе Пользователи → Курьеры, 2) Личный кабинет курьера с дашбордом, новыми заявками, историей, 3) Карточки заявок с функциональными кнопками принять/отменить/редактировать/QR, 4) Полный цикл заявок от создания оператором до принятия курьером, 5) Система уведомлений между курьерами и операторами. Backend endpoints работают корректно, улучшена логика заявок. Нужно протестировать весь пользовательский интерфейс."
 
   - task: "Internal Server Error Fix - CargoStatus Enum Update"
     implemented: true
