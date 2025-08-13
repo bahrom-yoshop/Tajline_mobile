@@ -12722,7 +12722,7 @@ async def accept_courier_request(
     request_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Принять заявку курьером"""
+    """Принять заявку курьером (обычную или на забор груза)"""
     if current_user.role != UserRole.COURIER:
         raise HTTPException(status_code=403, detail="Access denied")
     
@@ -12731,15 +12731,19 @@ async def accept_courier_request(
     if not courier:
         raise HTTPException(status_code=404, detail="Courier profile not found")
     
-    # Получаем заявку
+    # Сначала ищем в обычных заявках
     request = db.courier_requests.find_one({"id": request_id}, {"_id": 0})
+    request_type = "delivery"
+    
+    # Если не найдено, ищем в заявках на забор груза
+    if not request:
+        request = db.courier_pickup_requests.find_one({"id": request_id}, {"_id": 0})
+        request_type = "pickup"
+    
     if not request:
         raise HTTPException(status_code=404, detail="Request not found")
     
     # Проверяем что заявка может быть принята этим курьером
-    # Курьер может принять заявку если:
-    # 1. Заявка назначена ему (assigned_courier_id == courier.id)
-    # 2. Заявка еще не назначена (assigned_courier_id == None) и статус pending
     can_accept = (
         request.get("assigned_courier_id") == courier["id"] or 
         (request.get("assigned_courier_id") is None and request.get("request_status") == "pending")
@@ -12749,7 +12753,7 @@ async def accept_courier_request(
         raise HTTPException(status_code=403, detail="Request not available for acceptance")
     
     try:
-        # Если заявка еще не была назначена, назначаем ее этому курьеру
+        # Подготавливаем данные для обновления
         update_data = {
             "request_status": "accepted",
             "updated_at": datetime.utcnow()
@@ -12759,30 +12763,48 @@ async def accept_courier_request(
             update_data["assigned_courier_id"] = courier["id"]
             update_data["assigned_courier_name"] = courier["full_name"]
         
-        # Обновляем статус заявки
-        db.courier_requests.update_one(
-            {"id": request_id},
-            {"$set": update_data}
-        )
-        
-        # Обновляем груз если есть
-        if request.get("cargo_id"):
-            db.operator_cargo.update_one(
-                {"id": request["cargo_id"]},
-                {"$set": {
-                    "courier_request_status": "accepted",
-                    "updated_at": datetime.utcnow()
-                }}
+        # Обновляем заявку в соответствующей коллекции
+        if request_type == "pickup":
+            db.courier_pickup_requests.update_one(
+                {"id": request_id},
+                {"$set": update_data}
+            )
+            
+            # Создаем уведомление для создателя заявки на забор
+            create_notification(
+                user_id=request["created_by"],
+                message=f"Курьер {courier['full_name']} принял заявку на забор груза от {request.get('sender_full_name', 'Клиент')}",
+                related_id=request_id
+            )
+            
+        else:  # delivery
+            db.courier_requests.update_one(
+                {"id": request_id},
+                {"$set": update_data}
+            )
+            
+            # Обновляем груз если есть
+            if request.get("cargo_id"):
+                db.operator_cargo.update_one(
+                    {"id": request["cargo_id"]},
+                    {"$set": {
+                        "courier_request_status": "accepted",
+                        "updated_at": datetime.utcnow()
+                    }}
+                )
+            
+            # Уведомляем оператора
+            create_notification(
+                user_id=request["created_by"],
+                message=f"Курьер {courier['full_name']} принял заявку на доставку груза {request.get('cargo_name', 'N/A')}",
+                related_id=request_id
             )
         
-        # Уведомляем оператора
-        create_notification(
-            user_id=request["created_by"],
-            message=f"Курьер {courier['full_name']} принял заявку на забор груза {request.get('cargo_name', 'N/A')}",
-            related_id=request_id
-        )
-        
-        return {"message": "Request accepted successfully"}
+        return {
+            "message": "Request accepted successfully",
+            "request_type": request_type,
+            "request_id": request_id
+        }
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error accepting request: {str(e)}")
