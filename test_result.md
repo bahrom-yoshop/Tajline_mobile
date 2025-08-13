@@ -2990,12 +2990,13 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Courier Location Model and Status System"
-    - "Courier Location Update API Endpoint"
-    - "Admin Couriers Locations API Endpoint"  
-    - "Operator Couriers Locations API Endpoint"
-    - "Courier Location Status Check API Endpoint"
-    - "Backend Stability After Location Tracking Implementation"
+    - "WebSocket Connection Manager Implementation"
+    - "Admin WebSocket Endpoint Implementation"
+    - "Operator WebSocket Endpoint Implementation"
+    - "Real-time Location Broadcasting Integration"
+    - "WebSocket Connection Statistics API"
+    - "WebSocket Error Handling and Connection Management"
+    - "Backend Stability After WebSocket Integration"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
