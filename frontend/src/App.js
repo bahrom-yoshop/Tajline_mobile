@@ -16497,7 +16497,7 @@ function App() {
 
                           <div className="px-6 pb-6">
                             <div className="flex flex-col space-y-2">
-                              {request.request_status === 'assigned' && (
+                              {(request.request_status === 'assigned' || request.request_status === 'pending') && (
                                 <>
                                   <Button 
                                     onClick={() => handleAcceptCourierRequest(request.id)}
@@ -16513,6 +16513,7 @@ function App() {
                                       size="sm"
                                       onClick={() => {
                                         // TODO: Открыть модал редактирования
+                                        showAlert('Функция редактирования будет доступна в ближайшее время', 'info');
                                       }}
                                     >
                                       <Edit className="mr-1 h-3 w-3" />
@@ -16524,6 +16525,7 @@ function App() {
                                       size="sm"
                                       onClick={() => {
                                         // TODO: Открыть модал QR генерации
+                                        showAlert('Функция генерации QR кода будет доступна в ближайшее время', 'info');
                                       }}
                                     >
                                       <QrCode className="mr-1 h-3 w-3" />
@@ -16542,15 +16544,15 @@ function App() {
                                 </>
                               )}
 
-                              {request.request_status === 'pending' && (
-                                <div className="text-center text-sm text-gray-500 py-2">
-                                  Ожидает назначения оператором
-                                </div>
-                              )}
-
                               {request.request_status === 'accepted' && (
                                 <div className="text-center text-sm text-green-600 py-2 font-medium">
                                   ✅ Заявка принята
+                                </div>
+                              )}
+
+                              {request.request_status === 'cancelled' && (
+                                <div className="text-center text-sm text-red-600 py-2 font-medium">
+                                  ❌ Заявка отменена
                                 </div>
                               )}
                             </div>
