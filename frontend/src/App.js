@@ -324,6 +324,109 @@ function App() {
     }
   };
 
+  // НОВЫЕ ФУНКЦИИ ДЛЯ РАСШИРЕННОГО WORKFLOW КУРЬЕРА (ЭТАП 2)
+  const [acceptedRequests, setAcceptedRequests] = useState([]);
+  const [pickedRequests, setPickedRequests] = useState([]);
+  const [cargoEditModal, setCargoEditModal] = useState(false);
+  const [selectedCargoForEdit, setSelectedCargoForEdit] = useState(null);
+  const [cargoEditForm, setCargoEditForm] = useState({
+    cargo_name: '',
+    weight: '',
+    recipient_full_name: '',
+    recipient_phone: '',
+    recipient_address: '',
+    delivery_method: 'pickup',
+    payment_method: 'not_paid',
+    declared_value: ''
+  });
+
+  const fetchAcceptedRequests = async () => {
+    try {
+      const data = await apiCall('/api/courier/requests/accepted');
+      setAcceptedRequests(data.accepted_requests || []);
+    } catch (error) {
+      console.error('Error fetching accepted requests:', error);
+      showAlert('Ошибка загрузки принятых заявок: ' + error.message, 'error');
+    }
+  };
+
+  const fetchPickedRequests = async () => {
+    try {
+      const data = await apiCall('/api/courier/requests/picked');
+      setPickedRequests(data.picked_requests || []);
+    } catch (error) {
+      console.error('Error fetching picked requests:', error);
+      showAlert('Ошибка загрузки забранных грузов: ' + error.message, 'error');
+    }
+  };
+
+  const handlePickupCargo = async (requestId) => {
+    try {
+      await apiCall(`/api/courier/requests/${requestId}/pickup`, 'POST');
+      
+      showAlert('Груз забран! Статус обновлен.', 'success');
+      
+      // Обновляем списки
+      fetchAcceptedRequests();
+      fetchPickedRequests();
+      fetchCourierNewRequests();
+      
+    } catch (error) {
+      console.error('Error picking up cargo:', error);
+      showAlert('Ошибка при заборе груза: ' + error.message, 'error');
+    }
+  };
+
+  const handleDeliverToWarehouse = async (requestId) => {
+    try {
+      await apiCall(`/api/courier/requests/${requestId}/deliver-to-warehouse`, 'POST');
+      
+      showAlert('Груз сдан на склад! Заказ выполнен.', 'success');
+      
+      // Обновляем списки
+      fetchPickedRequests();
+      fetchCourierRequestsHistory(); // Обновляем историю
+      
+    } catch (error) {
+      console.error('Error delivering to warehouse:', error);
+      showAlert('Ошибка при сдаче груза: ' + error.message, 'error');
+    }
+  };
+
+  const handleEditCargoInfo = (request) => {
+    setSelectedCargoForEdit(request);
+    setCargoEditForm({
+      cargo_name: request.cargo_name || '',
+      weight: '', // Будем заполнять курьером
+      recipient_full_name: '', // Будем заполнять курьером
+      recipient_phone: '', // Будем заполнять курьером
+      recipient_address: '', // Будем заполнять курьером
+      delivery_method: request.delivery_method || 'pickup',
+      payment_method: 'not_paid', // Будем заполнять курьером
+      declared_value: ''
+    });
+    setCargoEditModal(true);
+  };
+
+  const handleUpdateCargoInfo = async (e) => {
+    e.preventDefault();
+    if (!selectedCargoForEdit || !selectedCargoForEdit.cargo_id) return;
+
+    try {
+      await apiCall(`/api/courier/cargo/${selectedCargoForEdit.cargo_id}/update`, 'PUT', cargoEditForm);
+      
+      showAlert('Информация о грузе обновлена!', 'success');
+      setCargoEditModal(false);
+      
+      // Обновляем списки
+      fetchPickedRequests();
+      
+    } catch (error) {
+      console.error('Error updating cargo info:', error);
+      showAlert('Ошибка обновления информации: ' + error.message, 'error');
+    }
+  };
+
   // Функция для генерации QR кода отдельной ячейки
   const generateSingleCellQR = async () => {
     if (!singleCellBlock || !singleCellShelf || !singleCellNumber) {
