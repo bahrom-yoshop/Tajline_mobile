@@ -546,6 +546,243 @@ function App() {
     }
   };
 
+  // НОВЫЕ ФУНКЦИИ ДЛЯ GPS ОТСЛЕЖИВАНИЯ КУРЬЕРА
+
+  // Запуск GPS отслеживания
+  const startCourierTracking = async () => {
+    if (!navigator.geolocation) {
+      showAlert('Геолокация не поддерживается браузером', 'error');
+      return;
+    }
+
+    try {
+      // Сначала получить разрешение пользователя
+      const position = await getCurrentPosition();
+      
+      // Обновить статус отслеживания
+      setCourierTracking(prev => ({
+        ...prev,
+        isTracking: true,
+        status: 'online',
+        coordinates: {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        },
+        accuracy: position.coords.accuracy,
+        lastUpdate: new Date(),
+        error: null
+      }));
+
+      // Отправить первое обновление местоположения
+      await sendLocationUpdate(position.coords, 'online');
+
+      // Запустить постоянное отслеживание каждые 30 секунд
+      const watchId = navigator.geolocation.watchPosition(
+        async (position) => {
+          const coords = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          };
+          
+          setCourierTracking(prev => ({
+            ...prev,
+            coordinates: coords,
+            accuracy: position.coords.accuracy,
+            lastUpdate: new Date(),
+            error: null
+          }));
+
+          // Отправить обновление на сервер
+          await sendLocationUpdate(position.coords, courierTracking.status);
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          setCourierTracking(prev => ({
+            ...prev,
+            error: `Ошибка геолокации: ${error.message}`
+          }));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 30000
+        }
+      );
+
+      // Настроить интервальное обновление каждые 30 секунд
+      const updateInterval = setInterval(async () => {
+        if (courierTracking.coordinates) {
+          await sendLocationUpdate(
+            { 
+              latitude: courierTracking.coordinates.latitude, 
+              longitude: courierTracking.coordinates.longitude,
+              accuracy: courierTracking.accuracy 
+            }, 
+            courierTracking.status
+          );
+        }
+      }, 30000); // 30 секунд
+
+      setCourierTracking(prev => ({
+        ...prev,
+        watchId,
+        updateInterval
+      }));
+
+      showAlert('GPS отслеживание запущено', 'success');
+
+    } catch (error) {
+      console.error('Error starting tracking:', error);
+      showAlert(`Ошибка запуска отслеживания: ${error.message}`, 'error');
+      setCourierTracking(prev => ({
+        ...prev,
+        error: error.message
+      }));
+    }
+  };
+
+  // Остановка GPS отслеживания
+  const stopCourierTracking = async () => {
+    // Остановить geolocation watch
+    if (courierTracking.watchId) {
+      navigator.geolocation.clearWatch(courierTracking.watchId);
+    }
+
+    // Остановить интервальное обновление
+    if (courierTracking.updateInterval) {
+      clearInterval(courierTracking.updateInterval);
+    }
+
+    // Отправить финальный статус offline
+    if (courierTracking.coordinates) {
+      await sendLocationUpdate(
+        { 
+          latitude: courierTracking.coordinates.latitude, 
+          longitude: courierTracking.coordinates.longitude,
+          accuracy: courierTracking.accuracy 
+        }, 
+        'offline'
+      );
+    }
+
+    // Сбросить состояние отслеживания
+    setCourierTracking({
+      isTracking: false,
+      status: 'offline',
+      lastUpdate: null,
+      coordinates: null,
+      accuracy: null,
+      watchId: null,
+      error: null,
+      updateInterval: null
+    });
+
+    showAlert('GPS отслеживание остановлено', 'info');
+  };
+
+  // Изменение статуса курьера
+  const changeCourierStatus = async (newStatus) => {
+    setCourierTracking(prev => ({
+      ...prev,
+      status: newStatus
+    }));
+
+    // Отправить обновление с новым статусом
+    if (courierTracking.coordinates) {
+      await sendLocationUpdate(
+        { 
+          latitude: courierTracking.coordinates.latitude, 
+          longitude: courierTracking.coordinates.longitude,
+          accuracy: courierTracking.accuracy 
+        }, 
+        newStatus
+      );
+    }
+
+    const statusNames = {
+      'online': 'Свободен',
+      'on_route': 'Едет к клиенту', 
+      'at_pickup': 'На месте забора',
+      'at_delivery': 'На месте доставки',
+      'busy': 'Занят'
+    };
+
+    showAlert(`Статус изменен на: ${statusNames[newStatus]}`, 'info');
+  };
+
+  // Получить текущую позицию (Promise wrapper)
+  const getCurrentPosition = () => {
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      });
+    });
+  };
+
+  // Отправить обновление местоположения на сервер
+  const sendLocationUpdate = async (coords, status) => {
+    try {
+      const locationData = {
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        status: status,
+        accuracy: coords.accuracy || null,
+        speed: coords.speed || null,
+        heading: coords.heading || null,
+        current_address: null // Можно добавить reverse geocoding позже
+      };
+
+      const response = await apiCall('/api/courier/location/update', 'POST', locationData);
+      
+      if (response) {
+        console.log('Location updated successfully:', response);
+      }
+    } catch (error) {
+      console.error('Error updating location:', error);
+      setCourierTracking(prev => ({
+        ...prev,
+        error: `Ошибка отправки местоположения: ${error.message}`
+      }));
+    }
+  };
+
+  // Проверить статус отслеживания при загрузке
+  const checkTrackingStatus = async () => {
+    try {
+      const response = await apiCall('/api/courier/location/status', 'GET');
+      if (response && response.tracking_enabled) {
+        setCourierTracking(prev => ({
+          ...prev,
+          status: response.status || 'offline',
+          lastUpdate: response.last_updated ? new Date(response.last_updated) : null
+        }));
+      }
+    } catch (error) {
+      console.error('Error checking tracking status:', error);
+    }
+  };
+
+  // useEffect для проверки статуса отслеживания при входе курьера
+  useEffect(() => {
+    if (user && user.role === 'courier') {
+      checkTrackingStatus();
+    }
+  }, [user]);
+
+  // useEffect для автоматической остановки отслеживания при размонтировании
+  useEffect(() => {
+    return () => {
+      if (courierTracking.watchId) {
+        navigator.geolocation.clearWatch(courierTracking.watchId);
+      }
+      if (courierTracking.updateInterval) {
+        clearInterval(courierTracking.updateInterval);
+      }
+    };
+  }, [courierTracking.watchId, courierTracking.updateInterval]);
+
   const handleOpenCourierChat = () => {
     setCourierChatModal(true);
   };
