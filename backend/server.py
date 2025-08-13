@@ -12747,10 +12747,9 @@ async def accept_courier_request(
     # Для заявок на забор груза (pickup) - любой курьер может принять заявку со статусом pending
     # Для обычных заявок (delivery) - следуем старой логике
     if request_type == "pickup":
-        can_accept = (
-            request.get("request_status") == "pending" and 
-            request.get("assigned_courier_id") is None
-        )
+        # ИСПРАВЛЕНИЕ: Любой курьер может принять заявку на забор груза со статусом "pending"
+        # без предварительного назначения
+        can_accept = request.get("request_status") == "pending"
     else:  # delivery
         can_accept = (
             request.get("assigned_courier_id") == courier["id"] or 
