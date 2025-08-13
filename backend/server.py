@@ -13560,6 +13560,213 @@ async def get_courier_location_status(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error checking location status: {str(e)}")
 
+# НОВЫЕ WEBSOCKET ENDPOINTS ДЛЯ REAL-TIME ОТСЛЕЖИВАНИЯ
+
+@app.websocket("/ws/courier-tracking/admin/{token}")
+async def websocket_admin_courier_tracking(websocket: WebSocket, token: str):
+    """WebSocket для real-time отслеживания курьеров админом"""
+    try:
+        # Верифицировать токен админа
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id = payload.get("sub")
+            token_version = payload.get("token_version", 0)
+            
+            # Найти пользователя и проверить версию токена
+            user_doc = db.users.find_one({"id": user_id}, {"_id": 0})
+            if not user_doc or user_doc.get("token_version", 0) != token_version:
+                await websocket.close(code=4001, reason="Invalid token")
+                return
+                
+            if user_doc["role"] != "admin":
+                await websocket.close(code=4003, reason="Admin access required")
+                return
+                
+        except jwt.InvalidTokenError:
+            await websocket.close(code=4001, reason="Invalid token")
+            return
+        
+        # Подключить админа
+        await connection_manager.connect(websocket, user_id, "admin")
+        
+        # Отправить текущее состояние всех курьеров
+        locations = list(db.courier_locations.find({}, {"_id": 0}))
+        welcome_message = {
+            "type": "initial_data",
+            "data": {
+                "locations": locations,
+                "total_count": len(locations),
+                "active_couriers": len([l for l in locations if l.get('status') != 'offline'])
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        await connection_manager.send_personal_message(welcome_message, user_id)
+        
+        # Отправить статистику подключений
+        stats_message = {
+            "type": "connection_stats",
+            "data": connection_manager.get_connection_stats(),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        await connection_manager.send_personal_message(stats_message, user_id)
+        
+        # Ожидать отключения
+        try:
+            while True:
+                # Ping каждые 30 секунд для поддержания соединения
+                message = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
+                
+                # Обработать входящие сообщения (например, запросы на обновление)
+                try:
+                    data = json.loads(message)
+                    if data.get("type") == "ping":
+                        pong_message = {
+                            "type": "pong",
+                            "timestamp": datetime.utcnow().isoformat()
+                        }
+                        await connection_manager.send_personal_message(pong_message, user_id)
+                except json.JSONDecodeError:
+                    pass
+                    
+        except asyncio.TimeoutError:
+            # Периодический ping для поддержания соединения
+            ping_message = {
+                "type": "ping",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            await connection_manager.send_personal_message(ping_message, user_id)
+        except WebSocketDisconnect:
+            pass
+            
+    except Exception as e:
+        print(f"❌ WebSocket error for admin: {e}")
+    finally:
+        connection_manager.disconnect(user_id)
+
+@app.websocket("/ws/courier-tracking/operator/{token}")
+async def websocket_operator_courier_tracking(websocket: WebSocket, token: str):
+    """WebSocket для real-time отслеживания курьеров оператором склада"""
+    try:
+        # Верифицировать токен оператора
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id = payload.get("sub")
+            token_version = payload.get("token_version", 0)
+            
+            # Найти пользователя и проверить версию токена
+            user_doc = db.users.find_one({"id": user_id}, {"_id": 0})
+            if not user_doc or user_doc.get("token_version", 0) != token_version:
+                await websocket.close(code=4001, reason="Invalid token")
+                return
+                
+            if user_doc["role"] != "warehouse_operator":
+                await websocket.close(code=4003, reason="Warehouse operator access required")
+                return
+                
+        except jwt.InvalidTokenError:
+            await websocket.close(code=4001, reason="Invalid token")
+            return
+        
+        # Найти склады оператора
+        operator_warehouses = list(db.warehouse_operators.find(
+            {"user_id": user_id}, 
+            {"warehouse_id": 1, "_id": 0}
+        ))
+        warehouse_ids = [w["warehouse_id"] for w in operator_warehouses]
+        
+        if not warehouse_ids:
+            await websocket.close(code=4004, reason="No warehouses assigned")
+            return
+        
+        # Подключить оператора
+        await connection_manager.connect(websocket, user_id, "warehouse_operator", warehouse_ids)
+        
+        # Найти курьеров складов оператора
+        couriers = list(db.couriers.find({
+            "assigned_warehouse_id": {"$in": warehouse_ids},
+            "is_active": True
+        }, {"id": 1, "_id": 0}))
+        
+        courier_ids = [c["id"] for c in couriers]
+        
+        # Отправить текущее состояние курьеров складов
+        locations = list(db.courier_locations.find({
+            "courier_id": {"$in": courier_ids}
+        }, {"_id": 0}))
+        
+        welcome_message = {
+            "type": "initial_data",
+            "data": {
+                "locations": locations,
+                "total_count": len(locations),
+                "active_couriers": len([l for l in locations if l.get('status') != 'offline']),
+                "warehouse_count": len(warehouse_ids),
+                "assigned_warehouses": warehouse_ids
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        await connection_manager.send_personal_message(welcome_message, user_id)
+        
+        # Ожидать отключения
+        try:
+            while True:
+                message = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
+                
+                # Обработать входящие сообщения
+                try:
+                    data = json.loads(message)
+                    if data.get("type") == "ping":
+                        pong_message = {
+                            "type": "pong",
+                            "timestamp": datetime.utcnow().isoformat()
+                        }
+                        await connection_manager.send_personal_message(pong_message, user_id)
+                except json.JSONDecodeError:
+                    pass
+                    
+        except asyncio.TimeoutError:
+            ping_message = {
+                "type": "ping",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            await connection_manager.send_personal_message(ping_message, user_id)
+        except WebSocketDisconnect:
+            pass
+            
+    except Exception as e:
+        print(f"❌ WebSocket error for operator: {e}")
+    finally:
+        connection_manager.disconnect(user_id)
+
+@app.get("/api/admin/websocket/stats")
+async def get_websocket_connection_stats(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить статистику WebSocket подключений (только для админов)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can view WebSocket stats")
+    
+    stats = connection_manager.get_connection_stats()
+    
+    # Добавить дополнительную информацию
+    detailed_connections = []
+    for user_id, connection in connection_manager.connections.items():
+        user_info = db.users.find_one({"id": user_id}, {"_id": 0, "full_name": 1, "role": 1})
+        detailed_connections.append({
+            "user_id": user_id,
+            "user_name": user_info.get("full_name", "Unknown") if user_info else "Unknown",
+            "role": connection["role"],
+            "warehouse_ids": connection.get("warehouse_ids", []),
+            "connected_at": connection["connected_at"].isoformat(),
+            "connected_duration": str(datetime.utcnow() - connection["connected_at"])
+        })
+    
+    return {
+        "connection_stats": stats,
+        "detailed_connections": detailed_connections,
+        "server_uptime": datetime.utcnow().isoformat()
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
