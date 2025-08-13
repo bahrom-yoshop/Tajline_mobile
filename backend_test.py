@@ -1585,13 +1585,14 @@ class CargoTransportAPITester:
         if all_success:
             print("   🎉 ALL COURIER BACKEND STABILITY TESTS PASSED!")
             print("   ✅ Courier authentication working (+79991234567/courier123)")
-            print("   ✅ /api/courier/requests/new endpoint working (badge count ready)")
+            print("   ✅ /api/courier/requests/new endpoint working для новых заявок")
+            print("   ✅ /api/courier/requests/cancelled endpoint working для отмененных заявок (новый endpoint)")
             print("   ✅ All basic courier endpoints working correctly")
             print("   ✅ No 500 Internal Server Errors")
             print("   ✅ JSON serialization correct (no ObjectId errors)")
             print("   ✅ Session stability confirmed")
-            print("   🎯 ОЖИДАЕМЫЙ РЕЗУЛЬТАТ ДОСТИГНУТ: Backend остается стабильным после обновления UI интерфейса курьера")
-            print("   🎯 Все endpoints для отображения количества заявок в badge работают корректно")
+            print("   🎯 ОЖИДАЕМЫЙ РЕЗУЛЬТАТ ДОСТИГНУТ: Backend остается стабильным после удаления колокольчика уведомлений и добавления категории 'Отмененные заявки'")
+            print("   🎯 Все endpoints работают корректно для поддержки новой категории 'Отмененные заявки'")
         else:
             print("   ❌ SOME COURIER BACKEND STABILITY TESTS FAILED")
             print("   🔍 Check the specific failed tests above for details")
