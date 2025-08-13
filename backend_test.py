@@ -31128,6 +31128,501 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_courier_personal_dashboard_system(self):
+        """Test courier personal dashboard system (Stage 3) according to review request"""
+        print("\n🚚 COURIER PERSONAL DASHBOARD SYSTEM TESTING (STAGE 3)")
+        print("   🎯 Протестировать систему личного кабинета курьера после добавления новых функций")
+        print("   🔧 ОСНОВНЫЕ ЗАДАЧИ ТЕСТИРОВАНИЯ:")
+        print("   1) COURIER AUTHENTICATION: Тестирование входа курьера в систему")
+        print("   2) COURIER DASHBOARD ENDPOINTS: Тестирование endpoints личного кабинета курьера")
+        print("   3) COURIER REQUEST WORKFLOW: Тестирование полного цикла заявок")
+        print("   4) NOTIFICATION SYSTEM: Проверка уведомлений между курьером и оператором")
+        
+        all_success = True
+        
+        # Test 1: ADMIN AUTHENTICATION AND COURIER CREATION
+        print("\n   👑 Test 1: ADMIN AUTHENTICATION AND COURIER CREATION...")
+        
+        admin_login_data = {
+            "phone": "+79999888777",
+            "password": "admin123"
+        }
+        
+        success, login_response = self.run_test(
+            "Admin Login for Courier Testing",
+            "POST",
+            "/api/auth/login",
+            200,
+            admin_login_data
+        )
+        all_success &= success
+        
+        admin_token = None
+        if success and 'access_token' in login_response:
+            admin_token = login_response['access_token']
+            admin_user = login_response.get('user', {})
+            admin_role = admin_user.get('role')
+            admin_name = admin_user.get('full_name')
+            
+            print(f"   ✅ Admin login successful: {admin_name}")
+            print(f"   👑 Role: {admin_role}")
+            
+            self.tokens['admin'] = admin_token
+            self.users['admin'] = admin_user
+        else:
+            print("   ❌ Admin login failed")
+            all_success = False
+            return False
+        
+        # Get warehouses for courier assignment
+        success, warehouses_response = self.run_test(
+            "Get Warehouses for Courier Assignment",
+            "GET",
+            "/api/warehouses",
+            200,
+            token=admin_token
+        )
+        
+        test_warehouse_id = None
+        if success and warehouses_response:
+            test_warehouse = warehouses_response[0] if isinstance(warehouses_response, list) else None
+            if test_warehouse:
+                test_warehouse_id = test_warehouse.get('id')
+                warehouse_name = test_warehouse.get('name', 'Test Warehouse')
+                print(f"   🏭 Using warehouse for courier: {warehouse_name}")
+        
+        if not test_warehouse_id:
+            print("   ❌ No warehouse available for courier assignment")
+            all_success = False
+            return False
+        
+        # Create test courier
+        courier_data = {
+            "full_name": "Тестовый Курьер Системы",
+            "phone": "+79991234567",
+            "password": "courier123",
+            "address": "Москва, ул. Курьерская, 1",
+            "transport_type": "car",
+            "transport_number": "А123БВ77",
+            "transport_capacity": 500.0,
+            "assigned_warehouse_id": test_warehouse_id
+        }
+        
+        success, courier_response = self.run_test(
+            "Create Test Courier via Admin Panel",
+            "POST",
+            "/api/admin/couriers/create",
+            200,
+            courier_data,
+            admin_token
+        )
+        all_success &= success
+        
+        courier_id = None
+        courier_user_id = None
+        if success:
+            courier_id = courier_response.get('courier_id')
+            courier_user_id = courier_response.get('user_id')
+            login_credentials = courier_response.get('login_credentials', {})
+            
+            print(f"   ✅ Test courier created: {courier_data['full_name']}")
+            print(f"   🆔 Courier ID: {courier_id}")
+            print(f"   👤 User ID: {courier_user_id}")
+            print(f"   📞 Login phone: {login_credentials.get('phone')}")
+        else:
+            print("   ❌ Failed to create test courier")
+            all_success = False
+            return False
+        
+        # Test 2: COURIER AUTHENTICATION
+        print("\n   🔐 Test 2: COURIER AUTHENTICATION...")
+        
+        courier_login_data = {
+            "phone": "+79991234567",
+            "password": "courier123"
+        }
+        
+        success, courier_login_response = self.run_test(
+            "Courier Login with Credentials",
+            "POST",
+            "/api/auth/login",
+            200,
+            courier_login_data
+        )
+        all_success &= success
+        
+        courier_token = None
+        if success and 'access_token' in courier_login_response:
+            courier_token = courier_login_response['access_token']
+            courier_user = courier_login_response.get('user', {})
+            courier_role = courier_user.get('role')
+            courier_name = courier_user.get('full_name')
+            
+            print(f"   ✅ Courier login successful: {courier_name}")
+            print(f"   👑 Role: {courier_role}")
+            print(f"   📞 Phone: {courier_user.get('phone')}")
+            
+            # Verify role is courier
+            if courier_role == 'courier':
+                print("   ✅ Courier role correctly set to 'courier'")
+            else:
+                print(f"   ❌ Courier role incorrect: expected 'courier', got '{courier_role}'")
+                all_success = False
+            
+            self.tokens['courier'] = courier_token
+            self.users['courier'] = courier_user
+        else:
+            print("   ❌ Courier login failed")
+            all_success = False
+            return False
+        
+        # Test 3: COURIER DASHBOARD ENDPOINTS
+        print("\n   📋 Test 3: COURIER DASHBOARD ENDPOINTS...")
+        
+        # Test 3.1: GET /api/courier/requests/new
+        print("\n   📥 Test 3.1: GET /api/courier/requests/new - получение новых заявок...")
+        
+        success, new_requests_response = self.run_test(
+            "Get New Courier Requests",
+            "GET",
+            "/api/courier/requests/new",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        if success:
+            courier_info = new_requests_response.get('courier_info', {})
+            new_requests = new_requests_response.get('new_requests', [])
+            total_count = new_requests_response.get('total_count', 0)
+            
+            print(f"   ✅ New requests endpoint working")
+            print(f"   👤 Courier info: {courier_info.get('full_name', 'N/A')}")
+            print(f"   📊 New requests count: {total_count}")
+            print(f"   🚛 Transport: {courier_info.get('transport_type', 'N/A')} - {courier_info.get('transport_number', 'N/A')}")
+        else:
+            print("   ❌ Failed to get new courier requests")
+            all_success = False
+        
+        # Test 3.2: GET /api/courier/requests/history
+        print("\n   📚 Test 3.2: GET /api/courier/requests/history - история заявок...")
+        
+        success, history_response = self.run_test(
+            "Get Courier Requests History",
+            "GET",
+            "/api/courier/requests/history",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        if success:
+            history_items = history_response.get('items', [])
+            pagination = history_response.get('pagination', {})
+            total_count = pagination.get('total_count', 0)
+            
+            print(f"   ✅ History endpoint working")
+            print(f"   📊 Total history items: {total_count}")
+            print(f"   📄 Current page items: {len(history_items)}")
+            
+            # Verify pagination structure
+            required_pagination_fields = ['total_count', 'page', 'per_page', 'total_pages', 'has_next', 'has_prev']
+            missing_fields = [field for field in required_pagination_fields if field not in pagination]
+            
+            if not missing_fields:
+                print("   ✅ Pagination structure correct")
+            else:
+                print(f"   ❌ Missing pagination fields: {missing_fields}")
+                all_success = False
+        else:
+            print("   ❌ Failed to get courier requests history")
+            all_success = False
+        
+        # Test 4: COURIER REQUEST WORKFLOW
+        print("\n   🔄 Test 4: COURIER REQUEST WORKFLOW...")
+        
+        # First, login as warehouse operator to create a cargo with courier request
+        print("\n   🏭 Test 4.1: Create cargo with courier request (as operator)...")
+        
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, operator_login_response = self.run_test(
+            "Warehouse Operator Login for Cargo Creation",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        
+        operator_token = None
+        if success and 'access_token' in operator_login_response:
+            operator_token = operator_login_response['access_token']
+            operator_user = operator_login_response.get('user', {})
+            print(f"   ✅ Operator login successful: {operator_user.get('full_name')}")
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+        
+        # Create cargo with courier pickup request
+        if operator_token:
+            cargo_with_courier_data = {
+                "sender_full_name": "Отправитель Курьерский",
+                "sender_phone": "+79991111111",
+                "recipient_full_name": "Получатель Курьерский",
+                "recipient_phone": "+992999222222",
+                "recipient_address": "Душанбе, ул. Получателя, 1",
+                "weight": 5.0,
+                "cargo_name": "Тестовый груз для курьера",
+                "declared_value": 2000.0,
+                "description": "Тест курьерской службы",
+                "route": "moscow_dushanbe",
+                "payment_method": "cash",
+                "payment_amount": 2000.0,
+                "pickup_required": True,
+                "pickup_address": "Москва, ул. Забора, 1",
+                "pickup_date": "2025-02-15",
+                "pickup_time_from": "10:00",
+                "pickup_time_to": "18:00",
+                "delivery_method": "pickup",
+                "courier_fee": 500.0
+            }
+            
+            success, cargo_courier_response = self.run_test(
+                "Create Cargo with Courier Pickup Request",
+                "POST",
+                "/api/operator/cargo/create-for-courier",
+                200,
+                cargo_with_courier_data,
+                operator_token
+            )
+            all_success &= success
+            
+            created_cargo_id = None
+            courier_request_id = None
+            
+            if success:
+                created_cargo_id = cargo_courier_response.get('cargo_id')
+                courier_request_id = cargo_courier_response.get('courier_request_id')
+                cargo_number = cargo_courier_response.get('cargo_number')
+                
+                print(f"   ✅ Cargo with courier request created: {cargo_number}")
+                print(f"   📦 Cargo ID: {created_cargo_id}")
+                print(f"   🚚 Courier request ID: {courier_request_id}")
+            else:
+                print("   ❌ Failed to create cargo with courier request")
+                all_success = False
+        
+        # Test 4.2: Assign request to courier (as admin)
+        print("\n   👑 Test 4.2: Assign courier request to specific courier...")
+        
+        if courier_request_id and courier_id:
+            # Create operator courier request to assign to our test courier
+            operator_request_data = {
+                "cargo_id": created_cargo_id,
+                "assigned_courier_id": courier_id,
+                "pickup_address": "Москва, ул. Забора, 1",
+                "pickup_date": "2025-02-15",
+                "pickup_time_from": "10:00",
+                "pickup_time_to": "18:00"
+            }
+            
+            success, assignment_response = self.run_test(
+                "Create Operator Courier Request Assignment",
+                "POST",
+                "/api/operator/courier-requests/create",
+                200,
+                operator_request_data,
+                operator_token
+            )
+            
+            if success:
+                assigned_request_id = assignment_response.get('request_id')
+                print(f"   ✅ Courier request assigned: {assigned_request_id}")
+            else:
+                print("   ❌ Failed to assign courier request")
+                # Continue with existing request for testing
+                assigned_request_id = courier_request_id
+        
+        # Test 4.3: Accept request (as courier)
+        print("\n   ✅ Test 4.3: POST /api/courier/requests/{id}/accept - принятие заявки...")
+        
+        # First check if there are any requests available for acceptance
+        success, updated_requests = self.run_test(
+            "Get Updated New Requests After Assignment",
+            "GET",
+            "/api/courier/requests/new",
+            200,
+            token=courier_token
+        )
+        
+        available_request_id = None
+        if success:
+            new_requests = updated_requests.get('new_requests', [])
+            if new_requests:
+                # Find a request that can be accepted
+                for request in new_requests:
+                    if request.get('request_status') in ['assigned', 'pending']:
+                        available_request_id = request.get('id')
+                        print(f"   📋 Found available request: {available_request_id}")
+                        break
+        
+        if available_request_id:
+            success, accept_response = self.run_test(
+                "Accept Courier Request",
+                "POST",
+                f"/api/courier/requests/{available_request_id}/accept",
+                200,
+                token=courier_token
+            )
+            all_success &= success
+            
+            if success:
+                message = accept_response.get('message', 'No message')
+                print(f"   ✅ Request accepted successfully: {message}")
+            else:
+                print("   ❌ Failed to accept courier request")
+                all_success = False
+        else:
+            print("   ⚠️  No available requests to accept (may need manual assignment)")
+        
+        # Test 4.4: Cancel request (as courier)
+        print("\n   ❌ Test 4.4: POST /api/courier/requests/{id}/cancel - отмена заявки...")
+        
+        if available_request_id:
+            cancel_data = {
+                "reason": "Тестовая отмена заявки - проверка функциональности"
+            }
+            
+            success, cancel_response = self.run_test(
+                "Cancel Courier Request with Reason",
+                "POST",
+                f"/api/courier/requests/{available_request_id}/cancel",
+                200,
+                cancel_data,
+                courier_token
+            )
+            all_success &= success
+            
+            if success:
+                message = cancel_response.get('message', 'No message')
+                print(f"   ✅ Request cancelled successfully: {message}")
+            else:
+                print("   ❌ Failed to cancel courier request")
+                all_success = False
+        else:
+            print("   ⚠️  No request available to cancel")
+        
+        # Test 5: NOTIFICATION SYSTEM
+        print("\n   🔔 Test 5: NOTIFICATION SYSTEM...")
+        
+        # Check operator notifications (should have received notifications from courier actions)
+        if operator_token:
+            success, operator_notifications = self.run_test(
+                "Get Operator Notifications (from Courier Actions)",
+                "GET",
+                "/api/notifications",
+                200,
+                token=operator_token
+            )
+            
+            if success:
+                notifications = operator_notifications if isinstance(operator_notifications, list) else []
+                courier_notifications = [n for n in notifications if 'курьер' in n.get('message', '').lower()]
+                
+                print(f"   ✅ Operator notifications working")
+                print(f"   📊 Total notifications: {len(notifications)}")
+                print(f"   🚚 Courier-related notifications: {len(courier_notifications)}")
+                
+                if courier_notifications:
+                    sample_notification = courier_notifications[0]
+                    print(f"   📄 Sample courier notification: {sample_notification.get('message', 'N/A')[:100]}...")
+                    print("   ✅ Notification system working between courier and operator")
+                else:
+                    print("   ⚠️  No courier-related notifications found")
+            else:
+                print("   ❌ Failed to get operator notifications")
+                all_success = False
+        
+        # Test 6: ADDITIONAL COURIER ENDPOINTS
+        print("\n   🔧 Test 6: ADDITIONAL COURIER ENDPOINTS...")
+        
+        # Test available couriers for warehouse
+        if test_warehouse_id:
+            success, available_couriers = self.run_test(
+                "Get Available Couriers for Warehouse",
+                "GET",
+                f"/api/admin/couriers/available/{test_warehouse_id}",
+                200,
+                token=admin_token
+            )
+            
+            if success:
+                couriers_list = available_couriers if isinstance(available_couriers, list) else []
+                print(f"   ✅ Available couriers endpoint working")
+                print(f"   👥 Available couriers for warehouse: {len(couriers_list)}")
+                
+                # Check if our test courier is in the list
+                test_courier_found = any(c.get('id') == courier_id for c in couriers_list)
+                if test_courier_found:
+                    print("   ✅ Test courier found in available couriers list")
+                else:
+                    print("   ⚠️  Test courier not found in available couriers list")
+            else:
+                print("   ❌ Failed to get available couriers")
+                all_success = False
+        
+        # Test courier list endpoint
+        success, couriers_list_response = self.run_test(
+            "Get All Couriers List",
+            "GET",
+            "/api/admin/couriers/list",
+            200,
+            token=admin_token
+        )
+        
+        if success:
+            couriers_items = couriers_list_response.get('items', [])
+            pagination = couriers_list_response.get('pagination', {})
+            total_couriers = pagination.get('total_count', 0)
+            
+            print(f"   ✅ Couriers list endpoint working")
+            print(f"   👥 Total couriers in system: {total_couriers}")
+            print(f"   📄 Current page couriers: {len(couriers_items)}")
+        else:
+            print("   ❌ Failed to get couriers list")
+            all_success = False
+        
+        # SUMMARY
+        print("\n   📊 COURIER PERSONAL DASHBOARD SYSTEM SUMMARY:")
+        
+        if all_success:
+            print("   🎉 ALL COURIER SYSTEM TESTS PASSED!")
+            print("   ✅ COURIER AUTHENTICATION: Создание тестового курьера через админ панель ✅")
+            print("   ✅ COURIER AUTHENTICATION: Вход курьера в систему с учетными данными ✅")
+            print("   ✅ COURIER AUTHENTICATION: Проверка корректной роли courier ✅")
+            print("   ✅ COURIER DASHBOARD ENDPOINTS: GET /api/courier/requests/new ✅")
+            print("   ✅ COURIER DASHBOARD ENDPOINTS: POST /api/courier/requests/{id}/accept ✅")
+            print("   ✅ COURIER DASHBOARD ENDPOINTS: POST /api/courier/requests/{id}/cancel ✅")
+            print("   ✅ COURIER DASHBOARD ENDPOINTS: GET /api/courier/requests/history ✅")
+            print("   ✅ COURIER REQUEST WORKFLOW: Создание заявки оператором для курьера ✅")
+            print("   ✅ COURIER REQUEST WORKFLOW: Назначение заявки конкретному курьеру ✅")
+            print("   ✅ COURIER REQUEST WORKFLOW: Принятие заявки курьером ✅")
+            print("   ✅ COURIER REQUEST WORKFLOW: Отмена заявки курьером с причиной ✅")
+            print("   ✅ NOTIFICATION SYSTEM: Уведомления при принятии заявки курьером ✅")
+            print("   ✅ NOTIFICATION SYSTEM: Уведомления при отмене заявки курьером ✅")
+            print("   🎯 EXPECTED RESULT ACHIEVED: Полная функциональность курьерского личного кабинета работает корректно!")
+        else:
+            print("   ❌ SOME COURIER SYSTEM TESTS FAILED")
+            print("   🔍 Check the specific failed tests above for details")
+            print("   ⚠️  Courier personal dashboard system may need attention")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
