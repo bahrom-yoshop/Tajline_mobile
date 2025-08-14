@@ -13492,9 +13492,9 @@ async def send_pickup_request_to_placement(
             "sender_full_name": pickup_request.get("sender_full_name", ""),
             "sender_phone": pickup_request.get("sender_phone", ""),
             "sender_address": pickup_request.get("pickup_address", ""),
-            "recipient_full_name": "Не указан",  # Будет заполнен при размещении
-            "recipient_phone": "",
-            "recipient_address": pickup_request.get("destination", ""),
+            "recipient_full_name": pickup_request.get("recipient_full_name", ""),  # Данные получателя от курьера/оператора
+            "recipient_phone": pickup_request.get("recipient_phone", ""),
+            "recipient_address": pickup_request.get("recipient_address", ""),
             "cargo_name": pickup_request.get("destination", "Груз по заявке на забор"),
             "weight": 0.0,  # Будет заполнен при размещении
             "declared_value": 0.0,
