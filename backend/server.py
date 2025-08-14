@@ -13226,12 +13226,12 @@ async def accept_warehouse_delivery(
             raise HTTPException(status_code=404, detail="Notification not found")
         
         if notification.get("status") != "pending_acceptance":
-            raise HTTPException(status_code=400, detail="Notification already processed")
+            raise HTTPException(status_code=400, detail=f"Notification already processed. Current status: {notification.get('status')}")
         
         current_time = datetime.utcnow()
         
         # Обновляем статус уведомления на "в процессе оформления"
-        db.warehouse_notifications.update_one(
+        update_result = db.warehouse_notifications.update_one(
             {"id": notification_id},
             {"$set": {
                 "status": "in_processing",
@@ -13242,13 +13242,21 @@ async def accept_warehouse_delivery(
             }}
         )
         
+        if update_result.modified_count == 0:
+            raise HTTPException(status_code=400, detail="Failed to update notification status")
+        
         return {
             "message": "Notification accepted for processing",
             "notification_id": notification_id,
             "status": "in_processing"
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
+        import traceback
+        error_details = f"Error accepting notification: {str(e)}. Traceback: {traceback.format_exc()}"
+        print(f"DEBUG: {error_details}")  # This will appear in logs
         raise HTTPException(status_code=500, detail=f"Error accepting notification: {str(e)}")
 
 # НОВЫЙ ENDPOINT: Полное оформление груза с деталями
