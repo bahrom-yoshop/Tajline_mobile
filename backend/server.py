@@ -13031,7 +13031,7 @@ async def deliver_cargo_to_warehouse(
     request_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Сдать груз на склад курьером"""
+    """Сдать груз на склад курьером (обычный груз или заявка на забор груза)"""
     if current_user.role != UserRole.COURIER:
         raise HTTPException(status_code=403, detail="Access denied")
     
@@ -13040,8 +13040,15 @@ async def deliver_cargo_to_warehouse(
     if not courier:
         raise HTTPException(status_code=404, detail="Courier profile not found")
     
-    # Получаем заявку
+    # Сначала ищем в обычных заявках
     request = db.courier_requests.find_one({"id": request_id}, {"_id": 0})
+    request_type = "delivery"
+    
+    # Если не найдено, ищем в заявках на забор груза
+    if not request:
+        request = db.courier_pickup_requests.find_one({"id": request_id}, {"_id": 0})
+        request_type = "pickup"
+    
     if not request:
         raise HTTPException(status_code=404, detail="Request not found")
     
@@ -13052,51 +13059,131 @@ async def deliver_cargo_to_warehouse(
     try:
         current_time = datetime.utcnow()
         
-        # Обновляем статус заявки
-        db.courier_requests.update_one(
-            {"id": request_id},
-            {"$set": {
-                "request_status": "delivered_to_warehouse",
-                "delivery_time": current_time,
-                "updated_at": current_time
-            }}
-        )
+        # Создаем полную историю действий для заявки
+        action_history = []
         
-        # Обновляем груз если есть
-        if request.get("cargo_id"):
-            # Создаем историю операций
-            operation_history = {
-                "operation_type": "delivered_to_warehouse",
-                "timestamp": current_time,
+        # Добавляем базовые действия
+        action_history.append({
+            "action": "request_created",
+            "timestamp": request.get("created_at", current_time),
+            "performed_by": "Оператор",
+            "performed_by_id": request.get("created_by"),
+            "details": f"Заявка создана {'на забор груза' if request_type == 'pickup' else 'на доставку'}"
+        })
+        
+        if request.get("updated_at") and request.get("request_status") == "picked_up":
+            action_history.append({
+                "action": "request_accepted",
+                "timestamp": request.get("updated_at"),
                 "performed_by": courier["full_name"],
                 "performed_by_id": courier["id"],
-                "details": "Груз сдан курьером на склад"
+                "details": "Заявка принята курьером"
+            })
+            
+            action_history.append({
+                "action": "cargo_picked_up",
+                "timestamp": request.get("pickup_time", request.get("updated_at")),
+                "performed_by": courier["full_name"],
+                "performed_by_id": courier["id"],
+                "details": "Груз забран курьером"
+            })
+        
+        # Добавляем действие сдачи на склад
+        action_history.append({
+            "action": "delivered_to_warehouse",
+            "timestamp": current_time,
+            "performed_by": courier["full_name"],
+            "performed_by_id": courier["id"],
+            "details": "Груз сдан на склад"
+        })
+        
+        # Обновляем заявку в соответствующей коллекции
+        update_data = {
+            "request_status": "delivered_to_warehouse",
+            "delivery_time": current_time,
+            "updated_at": current_time,
+            "action_history": action_history,
+            "completed": True
+        }
+        
+        if request_type == "pickup":
+            db.courier_pickup_requests.update_one(
+                {"id": request_id},
+                {"$set": update_data}
+            )
+            
+            # Создаем уведомление для операторов о поступившем грузе
+            warehouse_notification = {
+                "id": generate_readable_request_number(),
+                "request_id": request_id,
+                "request_number": request.get("request_number", request_id[:6]),
+                "request_type": "pickup",
+                "courier_name": courier["full_name"],
+                "courier_id": courier["id"], 
+                "sender_full_name": request.get("sender_full_name"),
+                "sender_phone": request.get("sender_phone"),
+                "pickup_address": request.get("pickup_address"),
+                "destination": request.get("destination"),
+                "courier_fee": request.get("courier_fee", 0),
+                "payment_method": request.get("payment_method", "not_paid"),
+                "delivered_at": current_time,
+                "status": "pending_acceptance",
+                "action_history": action_history,
+                "created_at": current_time
             }
             
-            db.operator_cargo.update_one(
-                {"id": request["cargo_id"]},
-                {
-                    "$set": {
-                        "status": CargoStatus.COURIER_DELIVERED_TO_WAREHOUSE,
+            # Сохраняем уведомление для операторов
+            db.warehouse_notifications.insert_one(warehouse_notification)
+            
+            # Создаем уведомления для всех операторов и администраторов
+            operators_and_admins = list(db.users.find({
+                "role": {"$in": ["warehouse_operator", "admin"]}
+            }, {"_id": 0}))
+            
+            for operator in operators_and_admins:
+                create_notification(
+                    user_id=operator["id"],
+                    message=f"Курьер {courier['full_name']} сдал груз на склад. Заявка №{request.get('request_number', request_id[:6])} готова к приемке",
+                    related_id=request_id
+                )
+            
+        else:  # delivery
+            db.courier_requests.update_one(
+                {"id": request_id},
+                {"$set": update_data}
+            )
+            
+            # Обновляем груз если есть
+            if request.get("cargo_id"):
+                # Создаем историю операций для груза
+                operation_history = {
+                    "operation_type": "delivered_to_warehouse",
+                    "timestamp": current_time,
+                    "performed_by": courier["full_name"],
+                    "performed_by_id": courier["id"],
+                    "details": "Груз сдан курьером на склад"
+                }
+                
+                db.operator_cargo.update_one(
+                    {"id": request["cargo_id"]},
+                    {"$set": {
+                        "status": "delivered_to_warehouse",
                         "courier_request_status": "delivered_to_warehouse",
-                        "delivery_time": current_time,
                         "updated_at": current_time
                     },
-                    "$push": {"operation_history": operation_history}
-                }
-            )
+                    "$push": {"operation_history": operation_history}}
+                )
         
-        # Уведомляем оператора
-        create_notification(
-            user_id=request["created_by"],
-            message=f"Курьер {courier['full_name']} сдал груз {request.get('cargo_name', 'N/A')} на склад",
-            related_id=request_id
-        )
-        
-        return {"message": "Cargo delivered to warehouse successfully", "delivery_time": current_time}
+        return {
+            "message": "Cargo delivered to warehouse successfully",
+            "request_type": request_type,
+            "request_id": request_id,
+            "delivery_time": current_time.isoformat(),
+            "action_history": action_history
+        }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error delivering cargo: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error delivering cargo to warehouse: {str(e)}")
 
 @app.get("/api/courier/requests/accepted")
 async def get_courier_accepted_requests(
