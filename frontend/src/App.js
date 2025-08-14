@@ -16018,7 +16018,7 @@ function App() {
                                           <span className="ml-1">{request.pickup_address}</span>
                                         </div>
                                         <div>
-                                          <span className="font-medium text-gray-700">Назначение:</span>
+                                          <span className="font-medium text-gray-700">Наименование груза:</span>
                                           <span className="ml-1">{request.destination || request.route || 'Не указано'}</span>
                                         </div>
                                         <div>
