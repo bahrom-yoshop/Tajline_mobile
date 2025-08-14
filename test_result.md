@@ -216,8 +216,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Pickup Cargo Form Changes - Cargo Name as Destination"
-  stuck_tasks: []
+    - "Fix GPS Tracking Data Not Received by Operators/Admins"
+  stuck_tasks: 
+    - "Fix GPS Tracking Data Not Received by Operators/Admins"
   test_all: false
   test_priority: "high_first"
 
