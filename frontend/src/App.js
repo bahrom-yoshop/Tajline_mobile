@@ -8429,19 +8429,6 @@ function App() {
     }
   };
 
-  // Получение схемы ячеек склада
-  const fetchWarehouseCells = async (warehouseId) => {
-    try {
-      const data = await apiCall(`/api/warehouse/${warehouseId}/cells`);
-      setWarehouseCells(data || []);
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching warehouse cells:', error);
-      setWarehouseCells([]);
-      return [];
-    }
-  };
-
   // Получение грузов склада с информацией о клиентах для цветового кодирования
   const fetchWarehouseCargoWithClients = async (warehouseId) => {
     try {
