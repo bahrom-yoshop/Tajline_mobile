@@ -233,6 +233,209 @@ function App() {
     }
   };
 
+  // ФУНКЦИИ УПРАВЛЕНИЯ ЯЧЕЙКАМИ СКЛАДА
+  const openCellManagement = (warehouse) => {
+    setSelectedWarehouseForCells(warehouse);
+    setCellEditForm({
+      blocks_count: warehouse.blocks_count || '',
+      shelves_per_block: warehouse.shelves_per_block || '',
+      cells_per_shelf: warehouse.cells_per_shelf || ''
+    });
+    setCellManagementModal(true);
+    fetchWarehouseCells(warehouse.id);
+  };
+
+  const fetchWarehouseCells = async (warehouseId) => {
+    setCellsLoading(true);
+    try {
+      const response = await apiCall(`/api/warehouses/${warehouseId}/cells`, 'GET');
+      setWarehouseCells(response.cells || []);
+    } catch (error) {
+      console.error('Error fetching warehouse cells:', error);
+      showAlert('Ошибка загрузки ячеек: ' + error.message, 'error');
+      setWarehouseCells([]);
+    } finally {
+      setCellsLoading(false);
+    }
+  };
+
+  const handleUpdateWarehouseStructure = async () => {
+    if (!selectedWarehouseForCells) return;
+    
+    try {
+      const updateData = {
+        blocks_count: parseInt(cellEditForm.blocks_count),
+        shelves_per_block: parseInt(cellEditForm.shelves_per_block),
+        cells_per_shelf: parseInt(cellEditForm.cells_per_shelf)
+      };
+      
+      await apiCall(`/api/warehouses/${selectedWarehouseForCells.id}/structure`, 'PUT', updateData);
+      
+      showAlert('Структура склада успешно обновлена', 'success');
+      
+      // Обновляем данные
+      fetchWarehouses();
+      fetchWarehouseCells(selectedWarehouseForCells.id);
+      
+    } catch (error) {
+      console.error('Error updating warehouse structure:', error);
+      showAlert('Ошибка обновления структуры: ' + error.message, 'error');
+    }
+  };
+
+  const handleGenerateCellQR = async (cellId, cellLocation) => {
+    try {
+      const response = await apiCall(`/api/warehouses/cells/${cellId}/qr`, 'GET');
+      
+      // Открываем окно печати QR кода
+      const qrWindow = window.open('', '_blank');
+      if (qrWindow) {
+        qrWindow.document.write(`
+          <html>
+            <head>
+              <title>QR код ячейки ${cellLocation}</title>
+              <style>
+                body { 
+                  font-family: Arial, sans-serif; 
+                  text-align: center; 
+                  padding: 20px; 
+                }
+                .qr-container { 
+                  margin: 20px auto; 
+                  max-width: 300px; 
+                }
+                .cell-info { 
+                  font-size: 18px; 
+                  font-weight: bold; 
+                  margin-bottom: 10px; 
+                }
+              </style>
+            </head>
+            <body>
+              <div class="cell-info">Ячейка: ${cellLocation}</div>
+              <div class="qr-container">
+                <img src="${response.qr_code}" alt="QR код ячейки" style="max-width: 100%; height: auto;" />
+              </div>
+              <p>Склад: ${selectedWarehouseForCells.name}</p>
+              <button onclick="window.print()">Печать</button>
+            </body>
+          </html>
+        `);
+        qrWindow.document.close();
+      }
+      
+    } catch (error) {
+      console.error('Error generating cell QR:', error);
+      showAlert('Ошибка генерации QR кода: ' + error.message, 'error');
+    }
+  };
+
+  const handleGenerateAllCellsQR = async () => {
+    if (!selectedWarehouseForCells) return;
+    
+    try {
+      const response = await apiCall(`/api/warehouses/${selectedWarehouseForCells.id}/cells/qr-batch`, 'GET');
+      
+      // Открываем окно с массовыми QR кодами
+      const qrWindow = window.open('', '_blank');
+      if (qrWindow) {
+        let qrContent = `
+          <html>
+            <head>
+              <title>QR коды всех ячеек - ${selectedWarehouseForCells.name}</title>
+              <style>
+                body { 
+                  font-family: Arial, sans-serif; 
+                  padding: 20px; 
+                }
+                .warehouse-title { 
+                  text-align: center; 
+                  font-size: 24px; 
+                  font-weight: bold; 
+                  margin-bottom: 30px; 
+                }
+                .qr-grid { 
+                  display: grid; 
+                  grid-template-columns: repeat(3, 1fr); 
+                  gap: 20px; 
+                  page-break-inside: avoid; 
+                }
+                .qr-item { 
+                  text-align: center; 
+                  border: 1px solid #ddd; 
+                  padding: 10px; 
+                  page-break-inside: avoid; 
+                }
+                .cell-label { 
+                  font-weight: bold; 
+                  margin-bottom: 5px; 
+                }
+                @media print { 
+                  .qr-grid { grid-template-columns: repeat(2, 1fr); } 
+                }
+              </style>
+            </head>
+            <body>
+              <div class="warehouse-title">QR коды ячеек - ${selectedWarehouseForCells.name}</div>
+              <div class="qr-grid">
+        `;
+        
+        response.qr_codes.forEach(item => {
+          qrContent += `
+            <div class="qr-item">
+              <div class="cell-label">${item.cell_location}</div>
+              <img src="${item.qr_code}" alt="QR код ${item.cell_location}" style="max-width: 150px; height: auto;" />
+            </div>
+          `;
+        });
+        
+        qrContent += `
+              </div>
+              <div style="text-align: center; margin-top: 20px;">
+                <button onclick="window.print()">Печать всех QR кодов</button>
+              </div>
+            </body>
+          </html>
+        `;
+        
+        qrWindow.document.write(qrContent);
+        qrWindow.document.close();
+      }
+      
+    } catch (error) {
+      console.error('Error generating batch QR codes:', error);
+      showAlert('Ошибка массовой генерации QR кодов: ' + error.message, 'error');
+    }
+  };
+
+  const handleDeleteSelectedCells = async () => {
+    if (selectedCells.length === 0) {
+      showAlert('Выберите ячейки для удаления', 'warning');
+      return;
+    }
+    
+    if (!confirm(`Удалить ${selectedCells.length} выбранных ячеек?`)) {
+      return;
+    }
+    
+    try {
+      await apiCall(`/api/warehouses/${selectedWarehouseForCells.id}/cells/batch-delete`, 'POST', {
+        cell_ids: selectedCells
+      });
+      
+      showAlert(`Удалено ${selectedCells.length} ячеек`, 'success');
+      
+      // Обновляем данные
+      fetchWarehouseCells(selectedWarehouseForCells.id);
+      fetchWarehouses();
+      setSelectedCells([]);
+      
+    } catch (error) {
+      console.error('Error deleting cells:', error);
+      showAlert('Ошибка удаления ячеек: ' + error.message, 'error');
+    }
+  };
+
   // НОВЫЕ ФУНКЦИИ ДЛЯ КУРЬЕРСКОЙ СЛУЖБЫ (ЭТАП 2)
   const fetchCouriers = async (page = 1, perPage = 25) => {
     try {
