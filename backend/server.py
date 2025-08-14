@@ -13245,7 +13245,7 @@ async def accept_warehouse_delivery(
         return {
             "message": "Notification accepted for processing",
             "notification_id": notification_id,
-            "notification_data": notification
+            "status": "in_processing"
         }
         
     except Exception as e:
