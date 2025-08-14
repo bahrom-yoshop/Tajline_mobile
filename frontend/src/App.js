@@ -18264,7 +18264,106 @@ function App() {
               {/* НОВАЯ СЕКЦИЯ: Принятые грузы курьера */}
               {activeSection === 'courier-accepted' && user?.role === 'courier' && (
                 <div className="space-y-6 p-4 md:p-6">
-                  {/* Убрали кнопку обновления */}
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold">Принятые заявки</h2>
+                    <Badge variant="secondary" className="bg-green-100 text-green-800">
+                      {acceptedRequests.length} заявок
+                    </Badge>
+                  </div>
+
+                  {/* Карта адресов принятых заявок */}
+                  {acceptedRequests.length > 0 && (
+                    <Card className="mb-6">
+                      <CardHeader>
+                        <CardTitle className="text-lg text-green-700">
+                          📍 Адреса принятых заявок ({acceptedRequests.length})
+                        </CardTitle>
+                        <CardDescription className="text-green-600">
+                          Нажмите на адрес, чтобы открыть в Яндекс Картах
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {acceptedRequests.map((request, index) => (
+                            <div 
+                              key={request.id}
+                              className="bg-white p-3 rounded-lg border border-green-200 hover:shadow-md transition-shadow cursor-pointer"
+                              onClick={() => {
+                                const address = encodeURIComponent(request.pickup_address);
+                                const yandexMapsUrl = `https://yandex.ru/maps/?text=${address}&mode=search`;
+                                window.open(yandexMapsUrl, '_blank');
+                              }}
+                            >
+                              <div className="flex items-start space-x-3">
+                                <div className="flex-shrink-0">
+                                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                    <span className="text-sm font-semibold text-green-600">{index + 1}</span>
+                                  </div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {request.sender_full_name}
+                                  </p>
+                                  <p className="text-xs text-green-600 font-medium">
+                                    №{request.request_number || request.id.slice(0, 6)}
+                                  </p>
+                                  <p className="text-xs text-gray-600 mt-1 leading-tight">
+                                    {request.pickup_address}
+                                  </p>
+                                  <div className="flex items-center mt-2 space-x-2">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                      Принято
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex-shrink-0">
+                                  <MapPin className="h-4 w-4 text-green-500" />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* Кнопки для карты принятых заявок */}
+                        <div className="mt-4 pt-4 border-t border-green-200 space-y-2">
+                          <Button
+                            onClick={() => setIsAcceptedMapOpen(!isAcceptedMapOpen)}
+                            variant={isAcceptedMapOpen ? "default" : "outline"}
+                            className={`w-full ${isAcceptedMapOpen 
+                              ? 'bg-green-600 hover:bg-green-700 text-white' 
+                              : 'border-green-300 text-green-700 hover:bg-green-100'
+                            }`}
+                          >
+                            <MapPin className="mr-2 h-4 w-4" />
+                            {isAcceptedMapOpen ? 'Скрыть интерактивную карту' : 'Показать интерактивную карту'}
+                          </Button>
+                          
+                          <Button
+                            onClick={() => {
+                              const allAddresses = acceptedRequests.map(req => req.pickup_address).join(' | ');
+                              const encodedAddresses = encodeURIComponent(allAddresses);
+                              const yandexMapsUrl = `https://yandex.ru/maps/?text=${encodedAddresses}&mode=search`;
+                              window.open(yandexMapsUrl, '_blank');
+                            }}
+                            variant="outline"
+                            className="w-full border-green-300 text-green-700 hover:bg-green-100"
+                          >
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Открыть все адреса в Яндекс.Картах
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Интерактивная карта для принятых заявок */}
+                  {acceptedRequests.length > 0 && (
+                    <YandexMap
+                      addresses={acceptedRequests}
+                      isOpen={isAcceptedMapOpen}
+                      onToggle={() => setIsAcceptedMapOpen(!isAcceptedMapOpen)}
+                    />
+                  )}
 
                   {acceptedRequests.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
