@@ -6550,7 +6550,7 @@ function App() {
         }
         setSelectedPickupRequests([]);
         setSelectAllPickupRequests(false);
-        fetchPickupRequests();
+        fetchAllPickupRequests();
       }
       
       else if (type === 'user') {
