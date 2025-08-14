@@ -288,48 +288,91 @@ function App() {
 
   const handleGenerateCellQR = async (cellId, cellLocation) => {
     try {
+      setGeneratingSelectedCellQR(true);
       const response = await apiCall(`/api/warehouses/cells/${cellId}/qr`, 'GET');
       
-      // Открываем окно печати QR кода
-      const qrWindow = window.open('', '_blank');
-      if (qrWindow) {
-        qrWindow.document.write(`
-          <html>
-            <head>
-              <title>QR код ячейки ${cellLocation}</title>
-              <style>
-                body { 
-                  font-family: Arial, sans-serif; 
-                  text-align: center; 
-                  padding: 20px; 
-                }
-                .qr-container { 
-                  margin: 20px auto; 
-                  max-width: 300px; 
-                }
-                .cell-info { 
-                  font-size: 18px; 
-                  font-weight: bold; 
-                  margin-bottom: 10px; 
-                }
-              </style>
-            </head>
-            <body>
-              <div class="cell-info">Ячейка: ${cellLocation}</div>
-              <div class="qr-container">
-                <img src="${response.qr_code}" alt="QR код ячейки" style="max-width: 100%; height: auto;" />
-              </div>
-              <p>Склад: ${selectedWarehouseForCells.name}</p>
-              <button onclick="window.print()">Печать</button>
-            </body>
-          </html>
-        `);
-        qrWindow.document.close();
-      }
+      // Устанавливаем данные для модального окна
+      setSelectedCellQR({
+        cellId: cellId,
+        cellLocation: cellLocation,
+        warehouseName: selectedWarehouseForCells?.name || 'Склад',
+        qrCode: response.qr_code,
+        qrData: response.qr_data
+      });
+      
+      setCellQRModal(true);
       
     } catch (error) {
       console.error('Error generating cell QR:', error);
       showAlert('Ошибка генерации QR кода: ' + error.message, 'error');
+    } finally {
+      setGeneratingSelectedCellQR(false);
+    }
+  };
+  
+  const handlePrintCellQR = () => {
+    if (!selectedCellQR) return;
+    
+    // Создаем улучшенный шаблон печати с минимальными отступами
+    const qrWindow = window.open('', '_blank');
+    if (qrWindow) {
+      qrWindow.document.write(`
+        <html>
+          <head>
+            <title>QR код ячейки ${selectedCellQR.cellLocation}</title>
+            <style>
+              body { 
+                font-family: Arial, sans-serif; 
+                text-align: center; 
+                margin: 0;
+                padding: 10px;
+                background: white;
+              }
+              .qr-container { 
+                display: inline-block;
+                border: 1px solid #ddd;
+                padding: 15px;
+                background: white;
+              }
+              .cell-location { 
+                font-size: 24px; 
+                font-weight: bold; 
+                margin-bottom: 5px;
+                color: #333;
+              }
+              .qr-code { 
+                margin: 5px 0;
+              }
+              .qr-data {
+                font-size: 14px;
+                color: #666;
+                margin-top: 5px;
+              }
+              @media print {
+                body { margin: 0; padding: 5px; }
+                .qr-container { border: none; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="qr-container">
+              <div class="cell-location">${selectedCellQR.cellLocation}</div>
+              <div class="qr-code">
+                <img src="${selectedCellQR.qrCode}" alt="QR код ячейки" style="width: 200px; height: 200px;" />
+              </div>
+              <div class="qr-data">Код: ${selectedCellQR.qrData || 'N/A'}</div>
+            </div>
+            <script>
+              window.onload = function() {
+                setTimeout(function() {
+                  window.print();
+                }, 500);
+              }
+            </script>
+          </body>
+        </html>
+      `);
+      qrWindow.document.close();
     }
   };
 
