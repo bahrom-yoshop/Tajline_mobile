@@ -13175,7 +13175,8 @@ async def deliver_cargo_to_warehouse(
             notification_id = f"WN_{int(current_time.timestamp() * 1000)}"  # Unique timestamp-based ID
             warehouse_notification = {
                 "id": notification_id,
-                "request_id": request_id,
+                "request_id": request_id,  # Оставляем для совместимости
+                "pickup_request_id": request_id,  # ИСПРАВЛЕНИЕ: Добавляем pickup_request_id для frontend
                 "request_number": request.get("request_number", request_id[:6]),
                 "request_type": "pickup",
                 "courier_name": courier["full_name"],
