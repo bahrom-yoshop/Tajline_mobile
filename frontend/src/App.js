@@ -2899,6 +2899,7 @@ function App() {
   const [selectAllCargo, setSelectAllCargo] = useState(false);
   const [selectAllUsers, setSelectAllUsers] = useState(false);
   const [selectAllRequests, setSelectAllRequests] = useState(false); // Выбрать все заявки
+  const [selectAllPickupRequests, setSelectAllPickupRequests] = useState(false); // Выбрать все заявки на забор
   const [selectAllOperators, setSelectAllOperators] = useState(false); // Выбрать всех операторов
   const [selectAllTransports, setSelectAllTransports] = useState(false); // Выбрать все транспорты
 
