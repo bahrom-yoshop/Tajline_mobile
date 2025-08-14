@@ -17,7 +17,7 @@
 user_problem_statement: "Протестировать новую функциональность массового удаления заявок на забор в TAJLINE.TJ. КОНТЕКСТ: Добавлена функциональность массового удаления для списков складов, грузов и заявок: 1) BACKEND: Новый endpoint DELETE /api/admin/pickup-requests/bulk для массового удаления заявок на забор, 2) FRONTEND: Добавлен интерфейс массового выбора и удаления для заявок на забор с чекбоксами, 3) СОСТОЯНИЯ: Добавлены selectedPickupRequests, selectAllPickupRequests для управления выбором, 4) ФУНКЦИИ: handlePickupRequestSelect, handleSelectAllPickupRequests для работы с выбором. ОЖИДАЕМЫЙ РЕЗУЛЬТАТ: Endpoint должен корректно удалять заявки на забор с проверками статусов, освобождать курьеров, удалять связанные уведомления и возвращать подробный отчет об удалении."
 
 backend:
-  - task: "Авторизация оператора склада (+79777888999/warehouse123)"
+  - task: "Авторизация администратора (+79999888777/admin123)"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -27,9 +27,9 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "Успешная авторизация с корректным отображением роли 'Оператор Складской Обновленный', номера пользователя USR648400, JWT токен генерируется корректно, роль warehouse_operator подтверждена, сессии стабильны без преждевременных 401 ошибок"
+          comment: "Успешная авторизация администратора с корректным отображением роли 'Администратор Системы', номера пользователя USR648362, JWT токен генерируется корректно, роль admin подтверждена, сессии стабильны без преждевременных 401 ошибок"
 
-  - task: "Получение грузов для размещения (/api/operator/cargo/available-for-placement)"
+  - task: "Создание тестовых заявок на забор груза"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -39,9 +39,9 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "GET /api/operator/cargo/available-for-placement работает корректно, найдено 25 грузов доступных для размещения, endpoint полностью функционален, структура ответа содержит items array с корректными полями пагинации"
+          comment: "POST /api/admin/courier/pickup-request работает корректно, успешно создано множество тестовых заявок на забор груза с номерами 100082-100087, все поля корректно сохраняются, структура ответа содержит request_id и request_number"
 
-  - task: "Backend возвращает полные данные об оплате для грузов из забора"
+  - task: "Endpoint массового удаления заявок на забор (/api/admin/pickup-requests/bulk)"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -51,9 +51,9 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "КРИТИЧЕСКИЙ УСПЕХ - Backend возвращает полную информацию об оплате для грузов из забора: payment_status (100% покрытие), payment_method (100% покрытие), processing_status (100% покрытие). Создан тестовый груз из заявки на забор №100068/01 с полными данными об оплате и истории операций"
+          comment: "КРИТИЧЕСКИЙ УСПЕХ - DELETE /api/admin/pickup-requests/bulk полностью функционален: успешно удаляет заявки на забор груза, возвращает корректную структуру ответа (message, success_count, total_count, errors), обрабатывает массовое удаление нескольких заявок одновременно (протестировано удаление 3 заявок за раз)"
 
-  - task: "Проверка полей payment_status, payment_method, amount_paid, payment_notes"
+  - task: "Валидация несуществующих заявок при массовом удалении"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -63,9 +63,9 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "Основные поля оплаты присутствуют и работают корректно: payment_status='paid' ✅, payment_method='cash' ✅. Дополнительные поля amount_paid и payment_notes отсутствуют для грузов из забора, что является нормальным поведением. Процент успеха тестирования улучшений: 80%"
+          comment: "Валидация работает корректно - несуществующие заявки не удаляются, endpoint возвращает детальные ошибки для каждой несуществующей заявки ('Заявка fake-id-1 не найдена'), success_count остается 0 для несуществующих ID"
 
-  - task: "Корректное отображение данных получателя для грузов из забора"
+  - task: "Проверка авторизации - только администраторы могут удалять заявки"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -75,9 +75,33 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "КРИТИЧЕСКИЙ УСПЕХ - Данные получателя для грузов из забора отображаются корректно: recipient_full_name пустое поле для груза 100068/01, что должно показывать 'Указывается при размещении' на frontend. Backend предоставляет все необходимые данные для улучшенного отображения карточек"
+          comment: "Авторизация работает корректно - операторы склада не могут удалять заявки на забор (возвращается 403 Forbidden), только администраторы имеют доступ к массовому удалению заявок"
 
-  - task: "Создание и обработка тестового груза из заявки на забор"
+  - task: "Логика освобождения курьеров при удалении активных заявок"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Логика освобождения курьеров реализована и протестирована - при удалении заявки с assigned_courier_id система корректно обновляет поле current_pickup_request_id у курьера, освобождая его для новых заявок"
+
+  - task: "Удаление связанных уведомлений при удалении заявок"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Удаление связанных уведомлений реализовано и протестировано - система корректно удаляет все warehouse_notifications связанные с pickup_request_id при удалении заявки, предотвращая orphaned records"
+
+  - task: "Получение списка заявок на забор для админа"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -87,7 +111,7 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "Полный цикл создания груза из заявки на забор работает идеально: создание заявки ✅, принятие курьером ✅, забор груза ✅, сдача на склад ✅, создание уведомления ✅, принятие оператором ✅, завершение оформления ✅. Груз появляется в списке размещения с корректными данными"
+          comment: "Найден рабочий endpoint /api/operator/pickup-requests для получения списка заявок на забор (47 заявок), структура ответа содержит pickup_requests array, by_status группировку, total_count и status_counts. Специальный admin endpoint /api/admin/pickup-requests/all не найден, но функциональность доступна через operator endpoint"
 
 frontend:
   - task: "Frontend testing not required for this backend fix"
