@@ -20973,7 +20973,46 @@ function App() {
                   Принятие оплаты
                 </h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                {/* Общая сумма из калькулятора */}
+                <div className="bg-blue-100 border border-blue-300 rounded p-3 mb-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-blue-800 font-medium">📊 Общая сумма к получению:</span>
+                    <span className="text-blue-900 font-bold text-lg">
+                      {cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + ((parseFloat(item.weight) || 0) * (parseFloat(item.price) || 0)), 0).toFixed(2)} ₽
+                    </span>
+                  </div>
+                  <div className="text-blue-700 text-sm mt-1">
+                    Расчет: {cargoAcceptanceForm.cargo_items.map((item, idx) => 
+                      `${item.weight || 0} кг × ${item.price || 0} ₽`
+                    ).join(' + ')}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                  {/* Список складов */}
+                  <div>
+                    <Label htmlFor="warehouse_id">Склад *</Label>
+                    <Select 
+                      value={cargoAcceptanceForm.warehouse_id || ''} 
+                      onValueChange={(value) => setCargoAcceptanceForm({...cargoAcceptanceForm, warehouse_id: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите склад" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {warehouses
+                          .filter(warehouse => warehouse.is_active)
+                          .map(warehouse => (
+                            <SelectItem key={warehouse.id} value={warehouse.id}>
+                              {warehouse.name} ({warehouse.location})
+                            </SelectItem>
+                          ))
+                        }
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Статусы оплаты */}
                   <div>
                     <Label htmlFor="payment_status">Статус оплаты *</Label>
                     <Select 
@@ -20988,22 +21027,34 @@ function App() {
                         <SelectItem value="partially_paid">Частично оплачено</SelectItem>
                         <SelectItem value="paid">Полностью оплачено</SelectItem>
                         <SelectItem value="prepaid">Предоплачено</SelectItem>
+                        <SelectItem value="debt">В долг</SelectItem>
+                        <SelectItem value="payment_on_delivery">Оплата при получении</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   
+                  {/* Способы оплаты */}
                   <div>
-                    <Label htmlFor="amount_received">Сумма к получению (₽)</Label>
-                    <Input
-                      id="amount_received"
-                      type="number"
-                      step="0.01"
-                      value={cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0).toFixed(2)}
-                      readOnly
-                      className="bg-gray-100"
-                    />
+                    <Label htmlFor="payment_method">Способ оплаты *</Label>
+                    <Select 
+                      value={cargoAcceptanceForm.payment_method} 
+                      onValueChange={(value) => setCargoAcceptanceForm({...cargoAcceptanceForm, payment_method: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите способ оплаты" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">Наличные</SelectItem>
+                        <SelectItem value="card">Банковская карта</SelectItem>
+                        <SelectItem value="transfer">Банковский перевод</SelectItem>
+                        <SelectItem value="debt">В долг</SelectItem>
+                        <SelectItem value="prepaid">Предоплачено</SelectItem>
+                        <SelectItem value="online_payment">Онлайн оплата</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   
+                  {/* Фактически получено */}
                   <div>
                     <Label htmlFor="amount_paid">Фактически получено (₽)</Label>
                     <Input
@@ -21011,9 +21062,10 @@ function App() {
                       type="number"
                       step="0.01"
                       placeholder="0.00"
+                      value={cargoAcceptanceForm.amount_paid}
                       onChange={(e) => {
                         const amountPaid = parseFloat(e.target.value) || 0;
-                        const totalAmount = cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+                        const totalAmount = cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + ((parseFloat(item.weight) || 0) * (parseFloat(item.price) || 0)), 0);
                         let newStatus = 'not_paid';
                         
                         if (amountPaid >= totalAmount) {
@@ -21030,6 +21082,18 @@ function App() {
                       }}
                     />
                   </div>
+                </div>
+                
+                {/* Заметки по оплате */}
+                <div className="mb-4">
+                  <Label htmlFor="payment_notes">Заметки по оплате</Label>
+                  <Textarea
+                    id="payment_notes"
+                    placeholder="Дополнительные заметки по оплате..."
+                    value={cargoAcceptanceForm.payment_notes}
+                    onChange={(e) => setCargoAcceptanceForm({...cargoAcceptanceForm, payment_notes: e.target.value})}
+                    rows={2}
+                  />
                 </div>
                 
                 {cargoAcceptanceForm.payment_status === 'paid' && (
