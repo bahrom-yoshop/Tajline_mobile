@@ -9278,7 +9278,7 @@ async def get_placed_cargo(
         
         # Основной фильтр - размещенные грузы и грузы готовые к размещению
         base_filter = {
-            "status": {"$in": ["placed_in_warehouse", "placement_ready"]},
+            "status": {"$in": ["placed_in_warehouse", "awaiting_placement"]},
             **warehouse_filter
         }
         
