@@ -3296,7 +3296,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Multiple Cargo Items Display Investigation"
+    - "Pickup Request Processing Fixes Testing"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
