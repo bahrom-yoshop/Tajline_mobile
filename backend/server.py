@@ -13209,13 +13209,13 @@ async def get_warehouse_notifications(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching warehouse notifications: {str(e)}")
 
-# НОВЫЙ ENDPOINT: Принятие груза оператором со склада
+# ОБНОВЛЕННЫЙ ENDPOINT: Принятие груза оператором со склада (упрощенный)
 @app.post("/api/operator/warehouse-notifications/{notification_id}/accept")
 async def accept_warehouse_delivery(
     notification_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Принять груз на складе оператором"""
+    """Принять уведомление о грузе для оформления"""
     if current_user.role not in [UserRole.WAREHOUSE_OPERATOR, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Access denied: Only operators and admins")
     
@@ -13230,38 +13230,72 @@ async def accept_warehouse_delivery(
         
         current_time = datetime.utcnow()
         
-        # Обновляем статус уведомления
+        # Обновляем статус уведомления на "в процессе оформления"
         db.warehouse_notifications.update_one(
             {"id": notification_id},
             {"$set": {
-                "status": "accepted",
-                "accepted_by": current_user.full_name,
-                "accepted_by_id": current_user.id,
-                "accepted_at": current_time,
+                "status": "in_processing",
+                "processing_by": current_user.full_name,
+                "processing_by_id": current_user.id,
+                "processing_started_at": current_time,
                 "updated_at": current_time
             }}
         )
         
-        # Если это заявка на забор груза, переносим её в систему грузов
-        if notification.get("request_type") == "pickup":
-            # Создаем груз на основе заявки на забор
+        return {
+            "message": "Notification accepted for processing",
+            "notification_id": notification_id,
+            "notification_data": notification
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error accepting notification: {str(e)}")
+
+# НОВЫЙ ENDPOINT: Полное оформление груза с деталями
+@app.post("/api/operator/warehouse-notifications/{notification_id}/complete")
+async def complete_cargo_processing(
+    notification_id: str,
+    cargo_details: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Завершить оформление груза с полными деталями"""
+    if current_user.role not in [UserRole.WAREHOUSE_OPERATOR, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Access denied: Only operators and admins")
+    
+    try:
+        # Получаем уведомление в процессе обработки
+        notification = db.warehouse_notifications.find_one({"id": notification_id}, {"_id": 0})
+        if not notification:
+            raise HTTPException(status_code=404, detail="Notification not found")
+        
+        if notification.get("status") != "in_processing":
+            raise HTTPException(status_code=400, detail="Notification not in processing status")
+        
+        current_time = datetime.utcnow()
+        
+        # Создаем грузы на основе данных формы
+        cargo_items = cargo_details.get("cargo_items", [])
+        created_cargos = []
+        
+        for index, item in enumerate(cargo_items):
             cargo_id = generate_readable_request_number()
-            cargo_number = generate_cargo_number()
+            cargo_number = f"{notification.get('request_number', '000000000')}/{str(index + 1).zfill(2)}"
             
             cargo_data = {
                 "id": cargo_id,
                 "cargo_number": cargo_number,
-                "sender_full_name": notification.get("sender_full_name"),
-                "sender_phone": notification.get("sender_phone"),
-                "sender_address": notification.get("pickup_address"),
-                "recipient_full_name": "Получатель не указан",  # Будет заполнен позже
-                "recipient_phone": "",
-                "recipient_address": "",
-                "cargo_name": notification.get("destination", "Груз для забора"),
-                "weight": 0,  # Будет заполнен оператором
-                "declared_value": notification.get("courier_fee", 0),
-                "payment_method": notification.get("payment_method", "not_paid"),
-                "payment_status": "not_paid",
+                "sender_full_name": cargo_details.get("sender_full_name"),
+                "sender_phone": cargo_details.get("sender_phone"),
+                "sender_address": cargo_details.get("sender_address"),
+                "recipient_full_name": cargo_details.get("recipient_full_name"),
+                "recipient_phone": cargo_details.get("recipient_phone"),
+                "recipient_address": cargo_details.get("recipient_address"),
+                "cargo_name": item.get("name"),
+                "weight": float(item.get("weight", 0)),
+                "declared_value": float(item.get("price", 0)),
+                "payment_method": cargo_details.get("payment_method", "cash"),
+                "payment_status": cargo_details.get("payment_status", "not_paid"),
+                "delivery_method": cargo_details.get("delivery_method", "pickup"),
                 "status": "placement_ready",  # Готов к размещению
                 "created_by": current_user.id,
                 "created_by_name": current_user.full_name,
@@ -13271,6 +13305,8 @@ async def accept_warehouse_delivery(
                 "pickup_request_number": notification.get("request_number"),
                 "courier_delivered_by": notification.get("courier_name"),
                 "courier_delivered_at": notification.get("delivered_at"),
+                "total_weight": sum(float(item.get("weight", 0)) for item in cargo_items),
+                "total_value": sum(float(item.get("price", 0)) for item in cargo_items),
                 "operation_history": [
                     {
                         "operation_type": "created_from_pickup_request",
@@ -13285,21 +13321,33 @@ async def accept_warehouse_delivery(
             
             # Сохраняем груз
             db.operator_cargo.insert_one(cargo_data)
-            
-            return {
-                "message": "Груз принят на склад и добавлен в систему грузов",
+            created_cargos.append({
                 "cargo_id": cargo_id,
-                "cargo_number": cargo_number,
-                "notification_id": notification_id
-            }
+                "cargo_number": cargo_number
+            })
+        
+        # Помечаем уведомление как завершенное
+        db.warehouse_notifications.update_one(
+            {"id": notification_id},
+            {"$set": {
+                "status": "completed",
+                "completed_by": current_user.full_name,
+                "completed_by_id": current_user.id,
+                "completed_at": current_time,
+                "created_cargos": created_cargos,
+                "updated_at": current_time
+            }}
+        )
         
         return {
-            "message": "Уведомление обработано",
-            "notification_id": notification_id
+            "message": "Cargo processing completed successfully",
+            "notification_id": notification_id,
+            "created_cargos": created_cargos,
+            "total_items": len(created_cargos)
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error accepting warehouse delivery: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error completing cargo processing: {str(e)}")
 
 # НОВЫЙ ENDPOINT: Получение всех заявок на забор для операторов и администраторов
 @app.get("/api/operator/pickup-requests")
