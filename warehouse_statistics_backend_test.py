@@ -140,10 +140,10 @@ class WarehouseStatisticsTest:
             if response.status_code == 200:
                 stats = response.json()
                 
-                # Validate required fields
+                # Validate required fields (using actual field names from API)
                 required_fields = [
                     'total_cells', 'occupied_cells', 'free_cells', 
-                    'occupancy_percentage', 'cargo_count', 'total_weight'
+                    'utilization_percent', 'total_cargo_count', 'total_weight'
                 ]
                 
                 missing_fields = [field for field in required_fields if field not in stats]
