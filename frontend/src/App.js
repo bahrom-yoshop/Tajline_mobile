@@ -43,6 +43,18 @@ function App() {
   const [pickupRequestsHistory, setPickupRequestsHistory] = useState([]);
   const [showCargoAcceptanceModal, setShowCargoAcceptanceModal] = useState(false);
   const [currentCargoNotification, setCurrentCargoNotification] = useState(null);
+  const [cargoAcceptanceForm, setCargoAcceptanceForm] = useState({
+    sender_full_name: '',
+    sender_phone: '',
+    sender_address: '',
+    recipient_full_name: '',
+    recipient_phone: '',
+    recipient_address: '',
+    cargo_items: [{ name: '', weight: '', price: '' }],
+    payment_method: '',
+    delivery_method: '',
+    payment_status: 'not_paid'
+  });
   const [cargo, setCargo] = useState([]);
   const [users, setUsers] = useState([]);
   const [usersPagination, setUsersPagination] = useState({}); // Пагинация для пользователей
