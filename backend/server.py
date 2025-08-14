@@ -13185,6 +13185,164 @@ async def deliver_cargo_to_warehouse(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error delivering cargo to warehouse: {str(e)}")
 
+# НОВЫЙ ENDPOINT: Получение уведомлений о поступивших грузах для операторов
+@app.get("/api/operator/warehouse-notifications")
+async def get_warehouse_notifications(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить уведомления о грузах, сданных курьерами на склад"""
+    if current_user.role not in [UserRole.WAREHOUSE_OPERATOR, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Access denied: Only operators and admins")
+    
+    try:
+        # Получаем все уведомления о поступивших грузах
+        notifications = list(db.warehouse_notifications.find({
+            "status": "pending_acceptance"
+        }, {"_id": 0}).sort("delivered_at", -1))
+        
+        return {
+            "notifications": notifications,
+            "total_count": len(notifications),
+            "pending_count": len([n for n in notifications if n.get("status") == "pending_acceptance"])
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching warehouse notifications: {str(e)}")
+
+# НОВЫЙ ENDPOINT: Принятие груза оператором со склада
+@app.post("/api/operator/warehouse-notifications/{notification_id}/accept")
+async def accept_warehouse_delivery(
+    notification_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Принять груз на складе оператором"""
+    if current_user.role not in [UserRole.WAREHOUSE_OPERATOR, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Access denied: Only operators and admins")
+    
+    try:
+        # Получаем уведомление
+        notification = db.warehouse_notifications.find_one({"id": notification_id}, {"_id": 0})
+        if not notification:
+            raise HTTPException(status_code=404, detail="Notification not found")
+        
+        if notification.get("status") != "pending_acceptance":
+            raise HTTPException(status_code=400, detail="Notification already processed")
+        
+        current_time = datetime.utcnow()
+        
+        # Обновляем статус уведомления
+        db.warehouse_notifications.update_one(
+            {"id": notification_id},
+            {"$set": {
+                "status": "accepted",
+                "accepted_by": current_user.full_name,
+                "accepted_by_id": current_user.id,
+                "accepted_at": current_time,
+                "updated_at": current_time
+            }}
+        )
+        
+        # Если это заявка на забор груза, переносим её в систему грузов
+        if notification.get("request_type") == "pickup":
+            # Создаем груз на основе заявки на забор
+            cargo_id = generate_readable_request_number()
+            cargo_number = generate_cargo_number()
+            
+            cargo_data = {
+                "id": cargo_id,
+                "cargo_number": cargo_number,
+                "sender_full_name": notification.get("sender_full_name"),
+                "sender_phone": notification.get("sender_phone"),
+                "sender_address": notification.get("pickup_address"),
+                "recipient_full_name": "Получатель не указан",  # Будет заполнен позже
+                "recipient_phone": "",
+                "recipient_address": "",
+                "cargo_name": notification.get("destination", "Груз для забора"),
+                "weight": 0,  # Будет заполнен оператором
+                "declared_value": notification.get("courier_fee", 0),
+                "payment_method": notification.get("payment_method", "not_paid"),
+                "payment_status": "not_paid",
+                "status": "placement_ready",  # Готов к размещению
+                "created_by": current_user.id,
+                "created_by_name": current_user.full_name,
+                "created_at": current_time,
+                "updated_at": current_time,
+                "pickup_request_id": notification.get("request_id"),
+                "pickup_request_number": notification.get("request_number"),
+                "courier_delivered_by": notification.get("courier_name"),
+                "courier_delivered_at": notification.get("delivered_at"),
+                "operation_history": [
+                    {
+                        "operation_type": "created_from_pickup_request",
+                        "timestamp": current_time,
+                        "performed_by": current_user.full_name,
+                        "performed_by_id": current_user.id,
+                        "details": f"Груз создан из заявки на забор №{notification.get('request_number')}"
+                    }
+                ],
+                "original_action_history": notification.get("action_history", [])
+            }
+            
+            # Сохраняем груз
+            db.operator_cargo.insert_one(cargo_data)
+            
+            return {
+                "message": "Груз принят на склад и добавлен в систему грузов",
+                "cargo_id": cargo_id,
+                "cargo_number": cargo_number,
+                "notification_id": notification_id
+            }
+        
+        return {
+            "message": "Уведомление обработано",
+            "notification_id": notification_id
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error accepting warehouse delivery: {str(e)}")
+
+# НОВЫЙ ENDPOINT: Получение всех заявок на забор для операторов и администраторов
+@app.get("/api/operator/pickup-requests")
+async def get_all_pickup_requests(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить все заявки на забор груза для операторов и администраторов"""
+    if current_user.role not in [UserRole.WAREHOUSE_OPERATOR, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Access denied: Only operators and admins")
+    
+    try:
+        # Получаем все заявки на забор груза
+        pickup_requests = list(db.courier_pickup_requests.find({}, {"_id": 0}).sort("created_at", -1))
+        
+        # Добавляем информацию о статусах
+        for request in pickup_requests:
+            request['request_type'] = 'pickup'
+        
+        # Группируем по статусам
+        by_status = {
+            "pending": [r for r in pickup_requests if r.get("request_status") == "pending"],
+            "accepted": [r for r in pickup_requests if r.get("request_status") == "accepted"],
+            "picked_up": [r for r in pickup_requests if r.get("request_status") == "picked_up"],
+            "delivered_to_warehouse": [r for r in pickup_requests if r.get("request_status") == "delivered_to_warehouse"],
+            "cancelled": [r for r in pickup_requests if r.get("request_status") == "cancelled"]
+        }
+        
+        return {
+            "pickup_requests": pickup_requests,
+            "by_status": by_status,
+            "total_count": len(pickup_requests),
+            "status_counts": {
+                "pending": len(by_status["pending"]),
+                "accepted": len(by_status["accepted"]),
+                "picked_up": len(by_status["picked_up"]),
+                "delivered_to_warehouse": len(by_status["delivered_to_warehouse"]),
+                "cancelled": len(by_status["cancelled"])
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching pickup requests: {str(e)}")
+
 @app.get("/api/courier/requests/accepted")
 async def get_courier_accepted_requests(
     current_user: User = Depends(get_current_user)
