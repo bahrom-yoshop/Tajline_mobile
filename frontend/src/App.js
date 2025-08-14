@@ -979,6 +979,36 @@ function App() {
       showAlert('Ошибка загрузки истории заявок на забор: ' + error.message, 'error');
     }
   };
+
+  // НОВАЯ ФУНКЦИЯ ДЛЯ ЗАВЕРШЕНИЯ ОФОРМЛЕНИЯ ГРУЗА
+  const handleCompleteCargoProcessing = async (notificationId, cargoDetails) => {
+    try {
+      const response = await apiCall(`/api/operator/warehouse-notifications/${notificationId}/complete`, 'POST', cargoDetails);
+      
+      showAlert('Груз успешно оформлен и добавлен в систему!', 'success');
+      
+      // Закрываем модал
+      setShowCargoAcceptanceModal(false);
+      setCurrentCargoNotification(null);
+      
+      // Обновляем данные
+      await Promise.all([
+        fetchWarehouseNotifications(),
+        fetchOperatorCargo(),
+        fetchPickupRequestsHistory()
+      ]);
+      
+      // Показываем информацию о созданных грузах
+      if (response?.created_cargos?.length > 0) {
+        const cargoNumbers = response.created_cargos.map(c => c.cargo_number).join(', ');
+        showAlert(`Создано грузов: ${response.total_items}. Номера: ${cargoNumbers}`, 'success');
+      }
+      
+    } catch (error) {
+      console.error('Error completing cargo processing:', error);
+      showAlert('Ошибка при завершении оформления: ' + error.message, 'error');
+    }
+  };
   
   // НОВЫЕ ФУНКЦИИ ДЛЯ МОДАЛЬНЫХ ОКОН ПРОСМОТРА И РЕДАКТИРОВАНИЯ ЗАЯВОК
   const handleViewRequest = (request) => {
