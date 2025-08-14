@@ -378,7 +378,7 @@ class PickupImprovementsTester:
         success, cargo_list_response = self.run_test(
             "Get Operator Cargo List (Check for Pickup Request Cargo)",
             "GET",
-            "/api/operator/cargo",
+            "/api/operator/cargo/list",
             200,
             token=operator_token
         )
