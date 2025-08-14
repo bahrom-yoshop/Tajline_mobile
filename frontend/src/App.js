@@ -20104,65 +20104,182 @@ function App() {
                 
                 <div className="space-y-3">
                   {cargoAcceptanceForm.cargo_items.map((item, index) => (
-                    <div key={index} className="grid grid-cols-12 gap-3 p-3 bg-gray-50 rounded border">
-                      <div className="col-span-5">
-                        <Label>Название груза *</Label>
-                        <Input
-                          value={item.name}
-                          onChange={(e) => {
-                            const newItems = [...cargoAcceptanceForm.cargo_items];
-                            newItems[index].name = e.target.value;
-                            setCargoAcceptanceForm({...cargoAcceptanceForm, cargo_items: newItems});
-                          }}
-                          placeholder="Документы, одежда..."
-                          required
-                        />
+                    <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="grid grid-cols-12 gap-3 mb-3">
+                        <div className="col-span-5">
+                          <Label>Название груза *</Label>
+                          <Input
+                            value={item.name}
+                            onChange={(e) => {
+                              const newItems = [...cargoAcceptanceForm.cargo_items];
+                              newItems[index].name = e.target.value;
+                              setCargoAcceptanceForm({...cargoAcceptanceForm, cargo_items: newItems});
+                            }}
+                            placeholder="Документы, одежда..."
+                            required
+                          />
+                        </div>
+                        <div className="col-span-3">
+                          <Label>Вес (кг) *</Label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            value={item.weight}
+                            onChange={(e) => {
+                              const newItems = [...cargoAcceptanceForm.cargo_items];
+                              newItems[index].weight = e.target.value;
+                              setCargoAcceptanceForm({...cargoAcceptanceForm, cargo_items: newItems});
+                            }}
+                            placeholder="1.5"
+                            required
+                          />
+                        </div>
+                        <div className="col-span-3">
+                          <Label>Цена (₽) *</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={item.price}
+                            onChange={(e) => {
+                              const newItems = [...cargoAcceptanceForm.cargo_items];
+                              newItems[index].price = e.target.value;
+                              setCargoAcceptanceForm({...cargoAcceptanceForm, cargo_items: newItems});
+                            }}
+                            placeholder="1000"
+                            required
+                          />
+                        </div>
+                        <div className="col-span-1 flex items-end">
+                          {cargoAcceptanceForm.cargo_items.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const newItems = cargoAcceptanceForm.cargo_items.filter((_, i) => i !== index);
+                                setCargoAcceptanceForm({...cargoAcceptanceForm, cargo_items: newItems});
+                              }}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="col-span-3">
-                        <Label>Вес (кг) *</Label>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={item.weight}
-                          onChange={(e) => {
-                            const newItems = [...cargoAcceptanceForm.cargo_items];
-                            newItems[index].weight = e.target.value;
-                            setCargoAcceptanceForm({...cargoAcceptanceForm, cargo_items: newItems});
-                          }}
-                          placeholder="1.5"
-                          required
-                        />
-                      </div>
-                      <div className="col-span-3">
-                        <Label>Цена (₽) *</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={item.price}
-                          onChange={(e) => {
-                            const newItems = [...cargoAcceptanceForm.cargo_items];
-                            newItems[index].price = e.target.value;
-                            setCargoAcceptanceForm({...cargoAcceptanceForm, cargo_items: newItems});
-                          }}
-                          placeholder="1000"
-                          required
-                        />
-                      </div>
-                      <div className="col-span-1 flex items-end">
-                        {cargoAcceptanceForm.cargo_items.length > 1 && (
+                      
+                      {/* Действия для груза */}
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-300">
+                        <div className="text-sm text-gray-600">
+                          Груз #{index + 1}: {item.name || 'Не указано'} - {item.weight || '0'} кг - {item.price || '0'} ₽
+                        </div>
+                        <div className="flex space-x-2">
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              const newItems = cargoAcceptanceForm.cargo_items.filter((_, i) => i !== index);
-                              setCargoAcceptanceForm({...cargoAcceptanceForm, cargo_items: newItems});
+                              // Генерируем уникальный ID для груза для QR кода
+                              const cargoId = `${currentCargoNotification?.request_number || 'TEMP'}-${index + 1}`;
+                              const qrData = JSON.stringify({
+                                cargo_id: cargoId,
+                                name: item.name,
+                                weight: item.weight,
+                                price: item.price,
+                                sender: cargoAcceptanceForm.sender_full_name,
+                                recipient: cargoAcceptanceForm.recipient_full_name,
+                                request_number: currentCargoNotification?.request_number,
+                                created_at: new Date().toISOString()
+                              });
+                              
+                              // Создаем QR код и открываем окно печати
+                              const printWindow = window.open('', '_blank');
+                              printWindow.document.write(`
+                                <html>
+                                  <head>
+                                    <title>QR код - Груз ${cargoId}</title>
+                                    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+                                    <style>
+                                      body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+                                      .qr-container { margin: 20px auto; }
+                                      .cargo-info { margin: 10px 0; font-size: 14px; }
+                                      @media print { body { margin: 0; } }
+                                    </style>
+                                  </head>
+                                  <body>
+                                    <h2>QR код груза</h2>
+                                    <div class="cargo-info">
+                                      <strong>Номер заявки:</strong> ${currentCargoNotification?.request_number || 'N/A'}<br>
+                                      <strong>Груз:</strong> ${item.name || 'Не указано'}<br>
+                                      <strong>Вес:</strong> ${item.weight || '0'} кг<br>
+                                      <strong>Стоимость:</strong> ${item.price || '0'} ₽<br>
+                                      <strong>Отправитель:</strong> ${cargoAcceptanceForm.sender_full_name}<br>
+                                      <strong>Получатель:</strong> ${cargoAcceptanceForm.recipient_full_name}
+                                    </div>
+                                    <div class="qr-container">
+                                      <canvas id="qrcode"></canvas>
+                                    </div>
+                                    <script>
+                                      QRCode.toCanvas(document.getElementById('qrcode'), '${qrData}', {
+                                        width: 200,
+                                        margin: 2
+                                      }, function(error) {
+                                        if (error) console.error(error);
+                                        else window.print();
+                                      });
+                                    </script>
+                                  </body>
+                                </html>
+                              `);
+                              printWindow.document.close();
                             }}
-                            className="text-red-600 hover:text-red-700"
+                            className="text-blue-600 hover:text-blue-700"
                           >
-                            <Minus className="h-4 w-4" />
+                            <QrCode className="mr-1 h-4 w-4" />
+                            QR код
                           </Button>
-                        )}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const cargoId = `${currentCargoNotification?.request_number || 'TEMP'}-${index + 1}`;
+                              const printWindow = window.open('', '_blank');
+                              printWindow.document.write(`
+                                <html>
+                                  <head>
+                                    <title>Этикетка - Груз ${cargoId}</title>
+                                    <style>
+                                      body { font-family: Arial, sans-serif; padding: 20px; }
+                                      .label { border: 2px solid #000; padding: 15px; width: 300px; margin: 0 auto; }
+                                      .header { text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 10px; }
+                                      .info { margin: 5px 0; font-size: 12px; }
+                                      @media print { body { margin: 0; } }
+                                    </style>
+                                  </head>
+                                  <body>
+                                    <div class="label">
+                                      <div class="header">TAJLINE.TJ</div>
+                                      <div class="info"><strong>Заявка:</strong> ${currentCargoNotification?.request_number || 'N/A'}</div>
+                                      <div class="info"><strong>Груз:</strong> ${item.name || 'Не указано'}</div>
+                                      <div class="info"><strong>Вес:</strong> ${item.weight || '0'} кг</div>
+                                      <div class="info"><strong>Стоимость:</strong> ${item.price || '0'} ₽</div>
+                                      <div class="info"><strong>От:</strong> ${cargoAcceptanceForm.sender_full_name}</div>
+                                      <div class="info"><strong>Кому:</strong> ${cargoAcceptanceForm.recipient_full_name}</div>
+                                      <div class="info"><strong>Телефон:</strong> ${cargoAcceptanceForm.recipient_phone}</div>
+                                      <div class="info"><strong>Дата:</strong> ${new Date().toLocaleDateString('ru-RU')}</div>
+                                    </div>
+                                    <script>window.print();</script>
+                                  </body>
+                                </html>
+                              `);
+                              printWindow.document.close();
+                            }}
+                            className="text-green-600 hover:text-green-700"
+                          >
+                            <Printer className="mr-1 h-4 w-4" />
+                            Этикетка
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
