@@ -114,7 +114,7 @@ backend:
           comment: "Найден рабочий endpoint /api/operator/pickup-requests для получения списка заявок на забор (47 заявок), структура ответа содержит pickup_requests array, by_status группировку, total_count и status_counts. Специальный admin endpoint /api/admin/pickup-requests/all не найден, но функциональность доступна через operator endpoint"
 
 frontend:
-  - task: "Frontend testing not required for this backend fix"
+  - task: "Frontend testing not required for backend bulk delete functionality"
     implemented: true
     working: "NA"
     file: "N/A"
@@ -124,7 +124,7 @@ frontend:
     status_history:
         - working: "NA"
           agent: "testing"
-          comment: "Frontend testing not applicable for backend endpoint fix testing"
+          comment: "Frontend testing not applicable for backend bulk delete endpoint testing - focus is on backend API functionality"
 metadata:
   created_by: "testing_agent"
   version: "1.0"
