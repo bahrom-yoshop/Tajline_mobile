@@ -40,6 +40,9 @@ function App() {
   const [notifications, setNotifications] = useState([]);
   const [warehouseNotifications, setWarehouseNotifications] = useState([]);
   const [allPickupRequests, setAllPickupRequests] = useState([]);
+  const [pickupRequestsHistory, setPickupRequestsHistory] = useState([]);
+  const [showCargoAcceptanceModal, setShowCargoAcceptanceModal] = useState(false);
+  const [currentCargoNotification, setCurrentCargoNotification] = useState(null);
   const [cargo, setCargo] = useState([]);
   const [users, setUsers] = useState([]);
   const [usersPagination, setUsersPagination] = useState({}); // Пагинация для пользователей
