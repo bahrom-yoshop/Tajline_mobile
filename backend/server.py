@@ -13152,7 +13152,7 @@ async def get_courier_accepted_requests(
 async def get_courier_picked_requests(
     current_user: User = Depends(get_current_user)
 ):
-    """Получить забранные грузы курьера (готовые к сдаче на склад)"""
+    """Получить забранные грузы курьера (готовые к сдаче на склад - включая заявки на забор груза)"""
     if current_user.role != UserRole.COURIER:
         raise HTTPException(status_code=403, detail="Access denied")
     
@@ -13161,16 +13161,41 @@ async def get_courier_picked_requests(
     if not courier:
         raise HTTPException(status_code=404, detail="Courier profile not found")
     
-    # Получаем забранные грузы
+    # Получаем забранные обычные заявки
     picked_requests = list(db.courier_requests.find({
         "assigned_courier_id": courier["id"],
         "request_status": "picked_up"
     }, {"_id": 0}).sort("pickup_time", -1))
     
+    # Получаем забранные заявки на забор груза
+    picked_pickup_requests = list(db.courier_pickup_requests.find({
+        "assigned_courier_id": courier["id"],
+        "request_status": "picked_up"
+    }, {"_id": 0}).sort("pickup_time", -1))
+    
+    # Добавляем тип заявки для различения в интерфейсе
+    for request in picked_requests:
+        request['request_type'] = 'delivery'  # Обычная доставка
+        
+    for request in picked_pickup_requests:
+        request['request_type'] = 'pickup'  # Забор груза
+        # Добавляем поля совместимости для единообразного отображения
+        request['cargo_name'] = request.get('destination', 'Груз для забора')
+        request['weight'] = 'Не указано'
+        request['declared_value'] = request.get('courier_fee', 0)
+    
+    # Объединяем все забранные заявки и сортируем по времени забора
+    all_picked = picked_requests + picked_pickup_requests
+    all_picked.sort(key=lambda x: x.get('pickup_time', datetime.min), reverse=True)
+    
     return {
         "courier_info": courier,
-        "picked_requests": picked_requests,
-        "total_count": len(picked_requests)
+        "picked_requests": all_picked,
+        "delivery_requests": picked_requests,  # Обычные заявки
+        "pickup_requests": picked_pickup_requests,   # Заявки на забор
+        "total_count": len(all_picked),
+        "delivery_count": len(picked_requests),
+        "pickup_count": len(picked_pickup_requests)
     }
 
 @app.put("/api/courier/cargo/{cargo_id}/update")
