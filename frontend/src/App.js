@@ -25431,112 +25431,130 @@ function App() {
                     <span className="ml-2 text-gray-600">Загрузка схемы склада...</span>
                   </div>
                 ) : (
-                  warehouseSchemeData.map((block) => (
-                    <div key={block.block_number} className="border rounded-lg p-4 bg-white">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-bold text-lg text-gray-800">
-                          📦 Блок {block.block_number}
-                        </h3>
-                        <div className="text-sm text-gray-600">
-                          Занято: {block.occupied_cells}/{block.total_cells} ячеек 
-                          ({Math.round((block.occupied_cells / block.total_cells) * 100)}%)
+                  warehouseSchemeData.map((block) => {
+                    // Группируем ячейки блока по полкам для правильного отображения
+                    const cellsByShelf = block.cells.reduce((shelves, cell) => {
+                      const shelfKey = cell.shelf_number;
+                      if (!shelves[shelfKey]) {
+                        shelves[shelfKey] = [];
+                      }
+                      shelves[shelfKey].push(cell);
+                      return shelves;
+                    }, {});
+
+                    return (
+                      <div key={block.block_number} className="border rounded-lg p-6 bg-white">
+                        <div className="flex justify-between items-center mb-6">
+                          <h3 className="font-bold text-xl text-gray-800">
+                            🏭 Блок {block.block_number}
+                          </h3>
+                          <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-lg">
+                            Занято: {block.occupied_cells}/{block.total_cells} ячеек 
+                            ({Math.round((block.occupied_cells / block.total_cells) * 100)}%)
+                          </div>
+                        </div>
+                        
+                        {/* ИСПРАВЛЕНИЕ: Отображаем ячейки группами по полкам */}
+                        <div className="space-y-6">
+                          {Object.keys(cellsByShelf)
+                            .sort((a, b) => parseInt(a) - parseInt(b))
+                            .map(shelfNumber => {
+                              const shelfCells = cellsByShelf[shelfNumber].sort((a, b) => a.cell_number - b.cell_number);
+                              
+                              return (
+                                <div key={shelfNumber} className="bg-gray-50 rounded-lg p-4">
+                                  <div className="flex items-center justify-between mb-3">
+                                    <h4 className="font-semibold text-gray-700 flex items-center">
+                                      <Package className="mr-2 h-4 w-4" />
+                                      Полка {shelfNumber}
+                                    </h4>
+                                    <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded">
+                                      {shelfCells.filter(c => c.is_occupied).length}/{shelfCells.length} занято
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Сетка ячеек для данной полки */}
+                                  <div className="grid gap-2" style={{
+                                    gridTemplateColumns: `repeat(${shelfCells.length}, minmax(80px, 1fr))`
+                                  }}>
+                                    {shelfCells.map((cell) => {
+                                      // Определяем цвет ячейки
+                                      let cellStyle = '';
+                                      if (!cell.is_occupied) {
+                                        cellStyle = 'bg-green-100 border-green-300 hover:bg-green-200';
+                                      } else if (cell.hasRelatedCargo && cell.clientGroup && cell.clientGroup.color) {
+                                        // Груз из группы - используем цвет группы
+                                        const color = cell.clientGroup.color;
+                                        cellStyle = `${color.bg} ${color.border} hover:opacity-80`;
+                                      } else {
+                                        // Одиночный груз
+                                        cellStyle = 'bg-red-100 border-red-300 hover:bg-red-200';
+                                      }
+                                      
+                                      return (
+                                        <div
+                                          key={cell.id}
+                                          className={`
+                                            relative border-2 rounded-lg p-3 text-center cursor-pointer transition-all hover:scale-105 min-h-20
+                                            ${cellStyle}
+                                          `}
+                                          onClick={() => {
+                                            if (cell.is_occupied) {
+                                              openCargoManagementModal(cell);
+                                            }
+                                          }}
+                                          title={cell.is_occupied ? 
+                                            (cell.hasRelatedCargo && cell.relatedCargo ? 
+                                              `Груз из группы ${cell.groupType === 'sender' ? 'отправителя' : 'получателя'}: ${cell.relatedCargo.client_name} (всего грузов: ${cell.relatedCargo.totalCargo})` :
+                                              `Груз: ${cell.cargo_number} от ${cell.cargo_sender}`
+                                            ) : 
+                                            'Свободная ячейка'
+                                          }
+                                        >
+                                          <div className="text-xs font-bold text-gray-800 mb-1">
+                                            Я{cell.cell_number}
+                                          </div>
+                                          {cell.is_occupied ? (
+                                            <div className="space-y-1">
+                                              <div className={`text-xs font-bold ${
+                                                cell.hasRelatedCargo && cell.clientGroup && cell.clientGroup.color ? 
+                                                  cell.clientGroup.color.text : 
+                                                  'text-red-800'
+                                              }`}>
+                                                {cell.hasRelatedCargo ? 'ГРУППА' : 'ЗАНЯТО'}
+                                              </div>
+                                              <div className={`text-xs truncate ${
+                                                cell.hasRelatedCargo && cell.clientGroup && cell.clientGroup.color ? 
+                                                  cell.clientGroup.color.text : 
+                                                  'text-red-700'
+                                              }`} title={cell.cargo_number}>
+                                                {cell.cargo_number?.substring(0, 8)}...
+                                              </div>
+                                              {cell.hasRelatedCargo && cell.relatedCargo && (
+                                                <div className={`text-xs ${cell.clientGroup && cell.clientGroup.color ? cell.clientGroup.color.text : 'text-blue-700'}`}>
+                                                  {cell.groupType === 'sender' ? '📤' : '📥'} {cell.relatedCargo.totalCargo} шт
+                                                </div>
+                                              )}
+                                              {cell.cargo_weight && (
+                                                <div className="text-xs text-gray-600">
+                                                  {cell.cargo_weight} кг
+                                                </div>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <div className="text-xs font-bold text-green-800">СВОБОДНО</div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })}
                         </div>
                       </div>
-                      
-                      {/* Сетка ячеек с цветовой группировкой - адаптивная сетка */}
-                      <div className={`grid gap-2`} style={{
-                        gridTemplateColumns: `repeat(${
-                          (() => {
-                            const warehousesList = user?.role === 'admin' ? warehouses : operatorWarehouses;
-                            return warehousesList.find(w => w.id === showWarehouseScheme)?.cells_per_shelf || 5;
-                          })()
-                        }, 1fr)`
-                      }}>
-                        {block.cells.map((cell) => {
-                          // Определяем цвет ячейки
-                          let cellStyle = '';
-                          if (!cell.is_occupied) {
-                            cellStyle = 'bg-green-100 border-green-300 hover:bg-green-200';
-                          } else if (cell.hasRelatedCargo && cell.clientGroup && cell.clientGroup.color) {
-                            // Груз из группы - используем цвет группы
-                            const color = cell.clientGroup.color;
-                            cellStyle = `${color.bg} ${color.border} hover:opacity-80`;
-                          } else {
-                            // Одиночный груз
-                            cellStyle = 'bg-red-100 border-red-300 hover:bg-red-200';
-                          }
-                          
-                          return (
-                            <div
-                              key={cell.id}
-                              className={`
-                                relative border-2 rounded-lg p-2 text-center cursor-pointer transition-all hover:scale-105 min-h-20
-                                ${cellStyle}
-                              `}
-                              onClick={() => {
-                                if (cell.is_occupied) {
-                                  openCargoManagementModal(cell);
-                                }
-                              }}
-                              title={cell.is_occupied ? 
-                                (cell.hasRelatedCargo && cell.relatedCargo ? 
-                                  `Груз из группы ${cell.groupType === 'sender' ? 'отправителя' : 'получателя'}: ${cell.relatedCargo.client_name} (всего грузов: ${cell.relatedCargo.totalCargo})` :
-                                  `Груз: ${cell.cargo_number} от ${cell.cargo_sender}`
-                                ) : 
-                                'Свободная ячейка'
-                              }
-                            >
-                              <div className="text-xs font-medium text-gray-700 mb-1">
-                                {cell.shelf_number ? `П${cell.shelf_number}Я${cell.cell_number}` : `Ячейка ${cell.cell_position}`}
-                              </div>
-                              {cell.is_occupied ? (
-                                <div className="space-y-1">
-                                  <div className={`text-xs font-bold ${
-                                    cell.hasRelatedCargo && cell.clientGroup && cell.clientGroup.color ? 
-                                      cell.clientGroup.color.text : 
-                                      'text-red-800'
-                                  }`}>
-                                    {cell.hasRelatedCargo ? 'ГРУППА' : 'ЗАНЯТО'}
-                                  </div>
-                                  <div className={`text-xs truncate ${
-                                    cell.hasRelatedCargo && cell.clientGroup && cell.clientGroup.color ? 
-                                      cell.clientGroup.color.text : 
-                                      'text-red-700'
-                                  }`} title={cell.cargo_number}>
-                                    {cell.cargo_number?.substring(0, 8)}...
-                                  </div>
-                                  {cell.hasRelatedCargo && cell.relatedCargo && (
-                                    <div className={`text-xs ${cell.clientGroup && cell.clientGroup.color ? cell.clientGroup.color.text : 'text-blue-700'}`}>
-                                      {cell.groupType === 'sender' ? '📤' : '📥'} {cell.relatedCargo.totalCargo} шт
-                                    </div>
-                                  )}
-                                  {cell.cargo_weight && (
-                                    <div className="text-xs text-gray-600">
-                                      {cell.cargo_weight} кг
-                                    </div>
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="text-xs font-bold text-green-800">СВОБОДНО</div>
-                              )}
-                              
-                              {/* Индикатор позиции */}
-                              <div className="absolute top-1 right-1 text-xs text-gray-400">
-                                {cell.position.row},{cell.position.col}
-                              </div>
-                              
-                              {/* Индикатор группы */}
-                              {cell.hasRelatedCargo && cell.clientGroup && cell.clientGroup.color && (
-                                <div className="absolute top-1 left-1">
-                                  <div className={`w-3 h-3 rounded-full ${cell.clientGroup.color.bg} ${cell.clientGroup.color.border} border`}></div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
 
