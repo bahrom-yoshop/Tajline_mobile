@@ -13367,19 +13367,20 @@ async def complete_cargo_processing(
             cargo_data = {
                 "id": cargo_id,
                 "cargo_number": cargo_number,
-                "sender_full_name": cargo_details.get("sender_full_name"),
-                "sender_phone": cargo_details.get("sender_phone"),
-                "sender_address": cargo_details.get("sender_address"),
-                "recipient_full_name": cargo_details.get("recipient_full_name"),
-                "recipient_phone": cargo_details.get("recipient_phone"),
-                "recipient_address": cargo_details.get("recipient_address"),
-                "cargo_name": item.get("name"),
+                "sender_full_name": cargo_details.get("sender_full_name", ""),
+                "sender_phone": cargo_details.get("sender_phone", ""),
+                "sender_address": cargo_details.get("sender_address", ""),
+                "recipient_full_name": cargo_details.get("recipient_full_name", ""),
+                "recipient_phone": cargo_details.get("recipient_phone", ""),
+                "recipient_address": cargo_details.get("recipient_address", ""),
+                "cargo_name": item.get("name", ""),
                 "weight": float(item.get("weight", 0)),
                 "declared_value": float(item.get("price", 0)),
                 "payment_method": cargo_details.get("payment_method", "cash"),
                 "payment_status": cargo_details.get("payment_status", "not_paid"),
                 "delivery_method": cargo_details.get("delivery_method", "pickup"),
                 "status": "awaiting_placement",  # ИСПРАВЛЕНО: используем валидный статус вместо placement_ready
+                "processing_status": "paid",  # Добавляем для появления в списке размещения
                 "warehouse_id": warehouse_id,  # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: добавляем warehouse_id
                 "created_by": current_user.id,
                 "created_by_name": current_user.full_name,
@@ -13389,6 +13390,8 @@ async def complete_cargo_processing(
                 "pickup_request_number": notification.get("request_number"),
                 "courier_delivered_by": notification.get("courier_name"),
                 "courier_delivered_at": notification.get("delivered_at"),
+                "route": "moscow_to_tajikistan",  # Добавляем обязательное поле
+                "description": f"Груз создан из заявки на забор №{notification.get('request_number')}, позиция {index + 1}",  # Добавляем обязательное поле
                 "total_weight": sum(float(item.get("weight", 0)) for item in cargo_items),
                 "total_value": sum(float(item.get("price", 0)) for item in cargo_items),
                 "operation_history": [
