@@ -4291,15 +4291,41 @@ function App() {
       );
       
       showAlert(
-        `Груз ${scannedCargoData.cargo_number} успешно размещен в ячейке ${scannedCellData.block_number}-${scannedCellData.shelf_number}-${scannedCellData.cell_number}!`,
+        `Груз ${scannedCargoData.cargo_number} успешно размещен в ячейке ${scannedCellData.readable_name || `${scannedCellData.block_number}-${scannedCellData.shelf_number}-${scannedCellData.cell_number}`}!`,
         'success'
       );
       
-      // Сбрасываем состояние сканирования
-      await resetScannerState();
+      // ИСПРАВЛЕНИЕ: Автоматический переход к сканированию следующего груза
+      // Сбрасываем состояние предыдущего сканирования
+      setScannedCargoData(null);
+      setScannedCellData(null);
+      setScannerError(null);
       
       // Обновляем списки
-      fetchAvailableCargoForPlacement();
+      await fetchAvailableCargoForPlacement();
+      
+      // АВТОМАТИЧЕСКИЙ ПЕРЕХОД: Проверяем, есть ли еще грузы для размещения
+      setTimeout(async () => {
+        const remainingCargo = availableCargoForPlacement.length;
+        if (remainingCargo > 0) {
+          console.log(`🔄 Найдено еще ${remainingCargo} грузов для размещения. Автоматически переходим к сканированию следующего груза.`);
+          
+          // Автоматически запускаем сканирование следующего груза
+          setScannerMode('cargo-barcode');
+          setScannerActive(true);
+          setScannerError(null);
+          
+          showAlert(`Размещение завершено! Отсканируйте следующий груз. Осталось грузов: ${remainingCargo}`, 'info');
+        } else {
+          console.log('✅ Все грузы размещены. Закрываем сканер.');
+          showAlert('Все грузы успешно размещены!', 'success');
+          
+          // Закрываем модальное окно сканера
+          setTimeout(() => {
+            resetScannerState();
+          }, 2000);
+        }
+      }, 1500); // Задержка для отображения сообщения об успехе
       
     } catch (error) {
       console.error('Auto placement error:', error);
