@@ -6307,6 +6307,25 @@ function App() {
     }
   };
 
+  // Функции для работы с выбранными заявками на забор
+  const handlePickupRequestSelect = (requestId, isSelected) => {
+    if (isSelected) {
+      setSelectedPickupRequests(prev => [...prev, requestId]);
+    } else {
+      setSelectedPickupRequests(prev => prev.filter(id => id !== requestId));
+    }
+  };
+
+  const handleSelectAllPickupRequests = (isSelected, requestList) => {
+    setSelectAllPickupRequests(isSelected);
+    if (isSelected) {
+      const allIds = requestList.map(request => request.id);
+      setSelectedPickupRequests(allIds);
+    } else {
+      setSelectedPickupRequests([]);
+    }
+  };
+
   // Функции для работы с выбранными пользователями
   const handleUserSelect = (userId, isSelected) => {
     if (isSelected) {
