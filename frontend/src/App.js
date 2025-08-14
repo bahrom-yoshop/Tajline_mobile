@@ -18144,24 +18144,24 @@ function App() {
                                       <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border border-green-200">
                                         <div className="flex items-center justify-between">
                                           <div>
-                                            <p className="text-xs font-medium text-green-700">Клиентов</p>
+                                            <p className="text-xs font-medium text-green-700">Всего грузов</p>
                                             <p className="text-lg font-bold text-green-900">
-                                              {Math.floor((Math.floor(((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)) * 0.6) + Math.floor(Math.random() * 10)) * 0.7)}
+                                              {warehousesStatistics[warehouse.id]?.total_cargo_count || 0}
                                             </p>
                                           </div>
-                                          <Users className="h-5 w-5 text-green-600" />
+                                          <Package className="h-5 w-5 text-green-600" />
                                         </div>
                                       </div>
                                       
                                       <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-3 rounded-lg border border-yellow-200">
                                         <div className="flex items-center justify-between">
                                           <div>
-                                            <p className="text-xs font-medium text-yellow-700">Сумма (₽)</p>
+                                            <p className="text-xs font-medium text-yellow-700">Общий вес (кг)</p>
                                             <p className="text-lg font-bold text-yellow-900">
-                                              {(Math.floor(Math.random() * 100000) + 50000).toLocaleString()}
+                                              {warehousesStatistics[warehouse.id]?.total_weight || 0}
                                             </p>
                                           </div>
-                                          <CreditCard className="h-5 w-5 text-yellow-600" />
+                                          <Package2 className="h-5 w-5 text-yellow-600" />
                                         </div>
                                       </div>
                                     </div>
