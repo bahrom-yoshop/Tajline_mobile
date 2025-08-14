@@ -13439,7 +13439,7 @@ function App() {
                           <div className="space-y-4">
                             {/* Показываем контейнер камеры сначала */}
                             <div 
-                              id="qr-reader-placement" 
+                              id="qr-reader-placement-main" 
                               className="camera-placeholder w-full bg-black rounded-lg flex items-center justify-center"
                               style={{
                                 width: '300px',
