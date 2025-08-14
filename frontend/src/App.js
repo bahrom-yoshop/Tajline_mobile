@@ -8449,35 +8449,48 @@ function App() {
     }
     
     const blocks = warehouse.blocks_count || 3;
-    const shelves_per_block = warehouse.shelves_per_block || 4; // Количество полок на блок
-    const cells_per_shelf = warehouse.cells_per_shelf || 5; // Количество ячеек на полку
-    const cellsPerBlock = shelves_per_block * cells_per_shelf; // Общее количество ячеек на блок
+    const shelves_per_block = warehouse.shelves_per_block || 4;
+    const cells_per_shelf = warehouse.cells_per_shelf || 5;
+    const cellsPerBlock = shelves_per_block * cells_per_shelf;
     
-    // Получаем реальные данные о грузах склада с группировкой по клиентам
-    const warehouseCargoData = await fetchWarehouseCargoWithClients(warehouse.id);
-    const { sender_groups = {}, recipient_groups = {}, color_assignments = {} } = warehouseCargoData;
-    
-    const scheme = [];
-    
-    // Создаем схему блоков
-    for (let block = 1; block <= blocks; block++) {
-      const blockCells = [];
+    try {
+      // ИСПРАВЛЕНИЕ: Получаем реальные данные о ячейках из API
+      const cellsResponse = await apiCall(`/api/warehouses/${warehouse.id}/cells`, 'GET');
+      const realCells = cellsResponse.cells || [];
       
-      for (let shelf = 1; shelf <= shelves_per_block; shelf++) {
-        for (let cell = 1; cell <= cells_per_shelf; cell++) {
-          const cellNumber = (shelf - 1) * cells_per_shelf + cell;
-          const cellId = `${warehouse.id}-${block}-${shelf}-${cell}`;
-          
-          // Имитируем занятость ячеек (в реальном проекте это будет из базы данных)
-          const isOccupied = Math.random() < 0.6; // 60% вероятность занятости
-          
-          let cellData = {
-            id: cellId,
-            block_number: block,
-            shelf_number: shelf,
-            cell_number: cell,
-            cell_position: cellNumber,
-            is_occupied: isOccupied,
+      // Создаем карту реальной занятости ячеек
+      const occupancyMap = {};
+      realCells.forEach(cell => {
+        const key = `${cell.block_number}-${cell.shelf_number}-${cell.cell_number}`;
+        occupancyMap[key] = cell.is_occupied;
+      });
+      
+      // Получаем реальные данные о грузах склада с группировкой по клиентам
+      const warehouseCargoData = await fetchWarehouseCargoWithClients(warehouse.id);
+      const { sender_groups = {}, recipient_groups = {}, color_assignments = {} } = warehouseCargoData;
+      
+      const scheme = [];
+      
+      // Создаем схему блоков
+      for (let block = 1; block <= blocks; block++) {
+        const blockCells = [];
+        
+        for (let shelf = 1; shelf <= shelves_per_block; shelf++) {
+          for (let cell = 1; cell <= cells_per_shelf; cell++) {
+            const cellNumber = (shelf - 1) * cells_per_shelf + cell;
+            const cellId = `${warehouse.id}-${block}-${shelf}-${cell}`;
+            
+            // ИСПРАВЛЕНИЕ: Используем реальные данные о занятости ячеек
+            const occupancyKey = `${block}-${shelf}-${cell}`;
+            const isOccupied = occupancyMap[occupancyKey] || false;
+            
+            let cellData = {
+              id: cellId,
+              block_number: block,
+              shelf_number: shelf,
+              cell_number: cell,
+              cell_position: cellNumber,
+              is_occupied: isOccupied,
             position: {
               row: shelf,
               col: cell
