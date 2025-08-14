@@ -29066,6 +29066,258 @@ function App() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* МОДАЛЬНОЕ ОКНО УПРАВЛЕНИЯ ЯЧЕЙКАМИ */}
+      <Dialog open={cellManagementModal} onOpenChange={setCellManagementModal}>
+        <DialogContent className="w-full max-w-6xl max-h-[95vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Settings className="mr-2 h-5 w-5" />
+              Управление ячейками: {selectedWarehouseForCells?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Управление структурой склада, генерация QR кодов для ячеек и массовые операции
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Информация о складе */}
+            {selectedWarehouseForCells && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-lg">
+                    <Building className="mr-2 h-5 w-5" />
+                    Информация о складе
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                      <p className="text-2xl font-bold text-blue-600">{selectedWarehouseForCells.blocks_count || 0}</p>
+                      <p className="text-sm text-gray-600">Блоков</p>
+                    </div>
+                    <div className="text-center p-3 bg-green-50 rounded-lg">
+                      <p className="text-2xl font-bold text-green-600">{selectedWarehouseForCells.shelves_per_block || 0}</p>
+                      <p className="text-sm text-gray-600">Полок в блоке</p>
+                    </div>
+                    <div className="text-center p-3 bg-orange-50 rounded-lg">
+                      <p className="text-2xl font-bold text-orange-600">{selectedWarehouseForCells.cells_per_shelf || 0}</p>
+                      <p className="text-sm text-gray-600">Ячеек на полке</p>
+                    </div>
+                    <div className="text-center p-3 bg-purple-50 rounded-lg">
+                      <p className="text-2xl font-bold text-purple-600">
+                        {(selectedWarehouseForCells.blocks_count || 0) * 
+                         (selectedWarehouseForCells.shelves_per_block || 0) * 
+                         (selectedWarehouseForCells.cells_per_shelf || 0)}
+                      </p>
+                      <p className="text-sm text-gray-600">Всего ячеек</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Редактирование структуры склада */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Grid3X3 className="mr-2 h-5 w-5" />
+                  Изменить структуру склада
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <Label htmlFor="blocks-count">Количество блоков</Label>
+                    <Input
+                      id="blocks-count"
+                      type="number"
+                      min="1"
+                      value={cellEditForm.blocks_count}
+                      onChange={(e) => setCellEditForm({...cellEditForm, blocks_count: e.target.value})}
+                      placeholder="Например: 3"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="shelves-per-block">Полок в блоке</Label>
+                    <Input
+                      id="shelves-per-block"
+                      type="number"
+                      min="1"
+                      value={cellEditForm.shelves_per_block}
+                      onChange={(e) => setCellEditForm({...cellEditForm, shelves_per_block: e.target.value})}
+                      placeholder="Например: 5"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cells-per-shelf">Ячеек на полке</Label>
+                    <Input
+                      id="cells-per-shelf"
+                      type="number"
+                      min="1"
+                      value={cellEditForm.cells_per_shelf}
+                      onChange={(e) => setCellEditForm({...cellEditForm, cells_per_shelf: e.target.value})}
+                      placeholder="Например: 4"
+                    />
+                  </div>
+                </div>
+                <Button onClick={handleUpdateWarehouseStructure} className="w-full">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Обновить структуру склада
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Массовые операции с QR */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <QrCode className="mr-2 h-5 w-5" />
+                  Генерация QR кодов
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button onClick={handleGenerateAllCellsQR} className="h-16">
+                    <QrCode className="mr-2 h-6 w-6" />
+                    <div className="text-left">
+                      <div className="font-semibold">Генерировать все QR коды</div>
+                      <div className="text-sm opacity-75">Создать QR коды для всех ячеек склада</div>
+                    </div>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleDeleteSelectedCells}
+                    disabled={selectedCells.length === 0}
+                    className="h-16"
+                  >
+                    <Trash2 className="mr-2 h-6 w-6" />
+                    <div className="text-left">
+                      <div className="font-semibold">Удалить выбранные ячейки</div>
+                      <div className="text-sm opacity-75">
+                        {selectedCells.length > 0 ? `Выбрано: ${selectedCells.length}` : 'Не выбрано ячеек'}
+                      </div>
+                    </div>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Список ячеек */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Package className="mr-2 h-5 w-5" />
+                    Ячейки склада
+                  </div>
+                  {warehouseCells.length > 0 && (
+                    <Badge variant="outline">
+                      {warehouseCells.length} ячеек
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {cellsLoading ? (
+                  <div className="text-center py-8">
+                    <RefreshCw className="mx-auto h-8 w-8 animate-spin text-gray-400 mb-4" />
+                    <p className="text-gray-500">Загрузка ячеек...</p>
+                  </div>
+                ) : warehouseCells.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <p className="text-gray-500 mb-2">Ячеек пока нет</p>
+                    <p className="text-sm text-gray-400">Обновите структуру склада для создания ячеек</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Групповое выделение */}
+                    <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                      <Checkbox
+                        checked={selectedCells.length === warehouseCells.length}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedCells(warehouseCells.map(cell => cell.id));
+                          } else {
+                            setSelectedCells([]);
+                          }
+                        }}
+                      />
+                      <span className="text-sm font-medium">Выбрать все ячейки</span>
+                    </div>
+
+                    {/* Сетка ячеек */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                      {warehouseCells.map((cell) => (
+                        <div
+                          key={cell.id}
+                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                            selectedCells.includes(cell.id)
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          onClick={() => {
+                            if (selectedCells.includes(cell.id)) {
+                              setSelectedCells(selectedCells.filter(id => id !== cell.id));
+                            } else {
+                              setSelectedCells([...selectedCells, cell.id]);
+                            }
+                          }}
+                        >
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Checkbox
+                              checked={selectedCells.includes(cell.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedCells([...selectedCells, cell.id]);
+                                } else {
+                                  setSelectedCells(selectedCells.filter(id => id !== cell.id));
+                                }
+                              }}
+                            />
+                            <span className="text-xs font-medium">{cell.location}</span>
+                          </div>
+                          
+                          <div className="text-center mb-2">
+                            <div className={`w-8 h-8 mx-auto rounded ${
+                              cell.is_occupied ? 'bg-red-200' : 'bg-green-200'
+                            } flex items-center justify-center text-xs font-bold`}>
+                              {cell.is_occupied ? '📦' : '✅'}
+                            </div>
+                          </div>
+                          
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleGenerateCellQR(cell.id, cell.location);
+                            }}
+                          >
+                            <QrCode className="mr-1 h-3 w-3" />
+                            QR
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-4 border-t">
+            <Button 
+              variant="outline" 
+              onClick={() => setCellManagementModal(false)}
+            >
+              Закрыть
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
