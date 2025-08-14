@@ -1007,9 +1007,9 @@ function App() {
             cargo_items: cargoInfo.cargo_items && cargoInfo.cargo_items.length > 0 
               ? cargoInfo.cargo_items 
               : [{ 
-                  name: cargoInfo.destination || cargoInfo.cargo_name || notification.destination || 'Наименование груза не указано', 
-                  weight: cargoInfo.weight || '', 
-                  price: cargoInfo.total_value || cargoInfo.declared_value || '' 
+                  name: cargoInfo.cargo_name || cargoInfo.destination || notification.destination || 'Наименование груза не указано', 
+                  weight: cargoInfo.weight ? String(cargoInfo.weight) : '', 
+                  price: cargoInfo.total_value ? String(cargoInfo.total_value) : cargoInfo.declared_value ? String(cargoInfo.declared_value) : '' 
                 }],
             payment_method: paymentInfo.payment_method || notification.payment_method || 'cash',
             delivery_method: recipientData.delivery_method || 'pickup',
@@ -1017,6 +1017,19 @@ function App() {
             amount_paid: '',
             payment_notes: ''
           });
+          
+          console.log('=== ОТЛАДКА ЗАПОЛНЕНИЯ ФОРМЫ ===');
+          console.log('modalData:', modalData);
+          console.log('cargoInfo:', cargoInfo);
+          console.log('recipientData:', recipientData);
+          console.log('senderData:', senderData);
+          console.log('Заполняемые cargo_items:', cargoInfo.cargo_items && cargoInfo.cargo_items.length > 0 
+            ? cargoInfo.cargo_items 
+            : [{ 
+                name: cargoInfo.cargo_name || cargoInfo.destination || notification.destination || 'Наименование груза не указано', 
+                weight: cargoInfo.weight ? String(cargoInfo.weight) : '', 
+                price: cargoInfo.total_value ? String(cargoInfo.total_value) : cargoInfo.declared_value ? String(cargoInfo.declared_value) : '' 
+              }]);
           
           // Сохраняем обогащенные данные уведомления для отображения
           const enrichedNotification = {
