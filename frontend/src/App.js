@@ -16548,7 +16548,7 @@ function App() {
                                     const requestsToDelete = allPickupRequests.filter(req => 
                                       selectedPickupRequests.includes(req.id)
                                     );
-                                    handleDeleteItems('pickup-request', requestsToDelete, true);
+                                    openDeleteConfirmModal('pickup-request', requestsToDelete, true);
                                   }}
                                   className="flex items-center"
                                 >
