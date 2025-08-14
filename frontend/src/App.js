@@ -13790,6 +13790,11 @@ function App() {
                                               {cargo.payment_status}
                                             </Badge>
                                           )}
+                                          {cargo.processing_status && (
+                                            <Badge variant="outline" className="block">
+                                              {cargo.processing_status}
+                                            </Badge>
+                                          )}
                                         </div>
                                       </div>
                                     </div>
