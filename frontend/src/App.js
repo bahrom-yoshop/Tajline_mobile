@@ -18180,7 +18180,13 @@ function App() {
                                         <FileText className="mr-2 h-4 w-4" />
                                         Отчет по складу
                                       </Button>
-                                      <Button variant="outline">
+                                      <Button 
+                                        variant="outline"
+                                        onClick={() => {
+                                          setSelectedWarehouse(warehouse);
+                                          setActiveTab('warehouse-cells');
+                                        }}
+                                      >
                                         <Settings className="mr-2 h-4 w-4" />
                                         Управление ячейками
                                       </Button>
