@@ -13870,22 +13870,47 @@ async def update_courier_request(
         
         # Обновляем информацию о грузах
         if "cargo_items" in update_data and isinstance(update_data["cargo_items"], list):
-            # Объединяем информацию о грузах в общее название
-            cargo_names = [item.get("name", "") for item in update_data["cargo_items"] if item.get("name")]
-            if cargo_names:
+            # ИСПРАВЛЕНИЕ: Сохраняем полный массив cargo_items с индивидуальными параметрами
+            clean_cargo_items = []
+            cargo_names = []
+            total_weight = 0
+            total_value = 0
+            
+            for item in update_data["cargo_items"]:
+                if item.get("name"):  # Только грузы с названием
+                    clean_item = {
+                        "name": item.get("name", ""),
+                        "weight": float(item.get("weight", 0)) if item.get("weight") else 0,
+                        "price": float(item.get("total_price", 0)) if item.get("total_price") else 0
+                    }
+                    
+                    # Альтернативные имена полей
+                    if not clean_item["price"] and item.get("price"):
+                        clean_item["price"] = float(item.get("price", 0))
+                    
+                    clean_cargo_items.append(clean_item)
+                    cargo_names.append(clean_item["name"])
+                    total_weight += clean_item["weight"]
+                    total_value += clean_item["price"]
+            
+            if clean_cargo_items:
+                # Сохраняем массив cargo_items для детального отображения
+                update_fields["cargo_items"] = clean_cargo_items
+                
+                # Также сохраняем объединенное название для совместимости
                 update_fields["cargo_name"] = ", ".join(cargo_names)
+                
                 # Для заявок на забор груза также обновляем поле destination
                 if request_collection == "courier_pickup_requests":
                     update_fields["destination"] = ", ".join(cargo_names)
+                
+                # Сохраняем общие расчеты
+                if total_weight > 0:
+                    update_fields["weight"] = total_weight
+                if total_value > 0:
+                    update_fields["total_value"] = total_value
             
-            # Рассчитываем общий вес и стоимость
-            total_weight = sum(float(item.get("weight", 0)) for item in update_data["cargo_items"])
-            total_value = sum(float(item.get("total_price", 0)) for item in update_data["cargo_items"])
-            
-            if total_weight > 0:
-                update_fields["weight"] = total_weight
-            if total_value > 0:
-                update_fields["total_value"] = total_value
+            print(f"💾 Обновляем cargo_items для заявки {request_id}: {len(clean_cargo_items)} грузов, общий вес: {total_weight} кг, общая стоимость: {total_value} ₽")
         
         # Обновляем информацию об оплате
         if "payment_method" in update_data:
