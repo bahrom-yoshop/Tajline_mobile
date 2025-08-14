@@ -186,7 +186,7 @@ def test_bulk_delete_pickup_requests():
     print("-" * 50)
     
     # Получаем ID созданных заявок для удаления
-    test_request_ids = [req.get('id') for req in test_pickup_requests if req.get('id')]
+    test_request_ids = [req.get('request_id') for req in test_pickup_requests if req.get('request_id')]
     
     if not test_request_ids:
         print("❌ КРИТИЧЕСКАЯ ОШИБКА: Нет ID заявок для тестирования удаления")
