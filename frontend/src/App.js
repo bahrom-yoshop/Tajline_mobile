@@ -20347,6 +20347,100 @@ function App() {
                 </div>
               </div>
 
+              {/* Статус оплаты и принятие оплаты */}
+              <div className="border rounded-lg p-4 bg-green-50">
+                <h3 className="font-medium text-lg mb-3 flex items-center">
+                  <CreditCard className="mr-2 h-5 w-5 text-green-600" />
+                  Принятие оплаты
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <Label htmlFor="payment_status">Статус оплаты *</Label>
+                    <Select 
+                      value={cargoAcceptanceForm.payment_status} 
+                      onValueChange={(value) => setCargoAcceptanceForm({...cargoAcceptanceForm, payment_status: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите статус оплаты" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="not_paid">Не оплачено</SelectItem>
+                        <SelectItem value="partially_paid">Частично оплачено</SelectItem>
+                        <SelectItem value="paid">Полностью оплачено</SelectItem>
+                        <SelectItem value="prepaid">Предоплачено</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="amount_received">Сумма к получению (₽)</Label>
+                    <Input
+                      id="amount_received"
+                      type="number"
+                      step="0.01"
+                      value={cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0).toFixed(2)}
+                      readOnly
+                      className="bg-gray-100"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="amount_paid">Фактически получено (₽)</Label>
+                    <Input
+                      id="amount_paid"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      onChange={(e) => {
+                        const amountPaid = parseFloat(e.target.value) || 0;
+                        const totalAmount = cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+                        let newStatus = 'not_paid';
+                        
+                        if (amountPaid >= totalAmount) {
+                          newStatus = 'paid';
+                        } else if (amountPaid > 0) {
+                          newStatus = 'partially_paid';
+                        }
+                        
+                        setCargoAcceptanceForm({
+                          ...cargoAcceptanceForm, 
+                          amount_paid: e.target.value,
+                          payment_status: newStatus
+                        });
+                      }}
+                    />
+                  </div>
+                </div>
+                
+                {cargoAcceptanceForm.payment_status === 'paid' && (
+                  <div className="bg-green-100 border border-green-300 rounded p-3 mb-4">
+                    <div className="flex items-center">
+                      <CheckCircle className="mr-2 h-5 w-5 text-green-600" />
+                      <span className="text-green-800 font-medium">Оплата получена полностью</span>
+                    </div>
+                  </div>
+                )}
+                
+                {cargoAcceptanceForm.payment_status === 'partially_paid' && (
+                  <div className="bg-yellow-100 border border-yellow-300 rounded p-3 mb-4">
+                    <div className="flex items-center">
+                      <Clock className="mr-2 h-5 w-5 text-yellow-600" />
+                      <span className="text-yellow-800 font-medium">Частичная оплата получена</span>
+                    </div>
+                  </div>
+                )}
+                
+                <div>
+                  <Label htmlFor="payment_notes">Примечания по оплате</Label>
+                  <Textarea
+                    id="payment_notes"
+                    placeholder="Комментарии к оплате, условия доплаты и т.д."
+                    onChange={(e) => setCargoAcceptanceForm({...cargoAcceptanceForm, payment_notes: e.target.value})}
+                  />
+                </div>
+              </div>
+
               {/* Кнопки действий */}
               <div className="flex justify-between items-center pt-4 border-t">
                 <Button 
