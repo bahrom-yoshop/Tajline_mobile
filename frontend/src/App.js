@@ -20394,6 +20394,160 @@ function App() {
                             <p><strong>Вес:</strong> {item.weight ? `${item.weight} кг` : 'Не указан'}</p>
                             <p><strong>Цена:</strong> {item.price ? `${item.price} ₽` : 'Не указана'}</p>
                           </div>
+                          
+                          {/* Кнопки QR кода и этикетки для каждого груза */}
+                          <div className="flex space-x-2 mt-3 pt-2 border-t border-gray-200">
+                            <Button
+                              size="sm"
+                              variant="outline" 
+                              onClick={() => {
+                                // Генерируем номер груза в формате заявки/индекс (только цифры)
+                                const requestNum = currentCargoNotification?.request_number?.replace(/\D/g, '') || '000000';
+                                const cargoNumber = `${requestNum}/${String(index + 1).padStart(2, '0')}`;
+                                
+                                // Создаем новое окно для QR кода конкретного груза
+                                const printWindow = window.open('', '_blank');
+                                if (!printWindow) {
+                                  showAlert('Не удалось открыть окно печати. Пожалуйста, разрешите всплывающие окна в настройках браузера.', 'error');
+                                  return;
+                                }
+                                
+                                printWindow.document.write(`
+                                  <html>
+                                    <head>
+                                      <title>QR код груза ${cargoNumber}</title>
+                                      <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+                                      <style>
+                                        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+                                        .qr-container { margin: 20px auto; }
+                                        .cargo-info { margin: 10px 0; font-size: 14px; }
+                                        #qrcode { margin: 20px auto; display: block; }
+                                        .print-btn { 
+                                          margin: 20px; 
+                                          padding: 10px 20px; 
+                                          font-size: 16px; 
+                                          background: #007bff; 
+                                          color: white; 
+                                          border: none; 
+                                          border-radius: 5px; 
+                                          cursor: pointer; 
+                                        }
+                                        @media print { 
+                                          body { margin: 0; }
+                                          .print-btn { display: none; }
+                                        }
+                                      </style>
+                                    </head>
+                                    <body>
+                                      <h2>QR код груза</h2>
+                                      <div class="cargo-info">
+                                        <strong>Номер груза:</strong> ${cargoNumber}<br>
+                                        <strong>Заявка №:</strong> ${currentCargoNotification?.request_number || 'N/A'}<br>
+                                        <strong>Наименование:</strong> ${item.name || 'Не указано'}<br>
+                                        <strong>Вес:</strong> ${item.weight ? item.weight + ' кг' : 'Не указан'}<br>
+                                        <strong>Цена:</strong> ${item.price ? item.price + ' ₽' : 'Не указана'}
+                                      </div>
+                                      <div class="qr-container">
+                                        <canvas id="qrcode" width="200" height="200"></canvas>
+                                      </div>
+                                      <button class="print-btn" onclick="window.print()">Печать</button>
+                                      <div id="error-message" style="color: red; margin-top: 20px;"></div>
+                                      
+                                      <script>
+                                        function generateQR() {
+                                          try {
+                                            if (typeof QRious !== 'undefined') {
+                                              console.log('QRious library loaded, generating QR code...');
+                                              var qr = new QRious({
+                                                element: document.getElementById('qrcode'),
+                                                value: "${cargoNumber}",
+                                                size: 200
+                                              });
+                                              console.log('QR Code generated successfully for:', "${cargoNumber}");
+                                            } else {
+                                              console.log('QRious not loaded yet, retrying...');
+                                              setTimeout(generateQR, 200);
+                                            }
+                                          } catch (error) {
+                                            console.error('Error generating QR code:', error);
+                                            document.getElementById('error-message').innerHTML = 
+                                              '<p>Ошибка создания QR кода: ' + error.message + '</p>' +
+                                              '<p>Данные для QR: <strong>${cargoNumber}</strong></p>';
+                                          }
+                                        }
+                                        
+                                        setTimeout(generateQR, 300);
+                                        
+                                        setTimeout(function() {
+                                          var canvas = document.getElementById('qrcode');
+                                          var ctx = canvas.getContext('2d');
+                                          if (!ctx.getImageData(0, 0, 1, 1).data.some(channel => channel !== 0)) {
+                                            document.getElementById('error-message').innerHTML = 
+                                              '<p style="color: orange;">QR код не сгенерирован. Номер груза:</p>' +
+                                              '<p style="font-size: 18px; font-weight: bold;">${cargoNumber}</p>';
+                                          }
+                                        }, 3000);
+                                      </script>
+                                    </body>
+                                  </html>
+                                `);
+                                printWindow.document.close();
+                                showAlert('QR код груза отправлен на печать', 'success');
+                              }}
+                              className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                            >
+                              <QrCode className="mr-1 h-3 w-3" />
+                              QR код
+                            </Button>
+                            
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                const requestNum = currentCargoNotification?.request_number?.replace(/\D/g, '') || '000000';
+                                const cargoNumber = `${requestNum}/${String(index + 1).padStart(2, '0')}`;
+                                
+                                const printWindow = window.open('', '_blank');
+                                if (!printWindow) {
+                                  showAlert('Не удалось открыть окно печати. Пожалуйста, разрешите всплывающие окна в настройках браузера.', 'error');
+                                  return;
+                                }
+                                printWindow.document.write(`
+                                  <html>
+                                    <head>
+                                      <title>Этикетка - Груз ${cargoNumber}</title>
+                                      <style>
+                                        body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; }
+                                        .label { border: 2px solid #333; padding: 15px; max-width: 400px; margin: 0 auto; }
+                                        .label h2 { text-align: center; margin: 0 0 15px 0; font-size: 16px; }
+                                        .label-section { margin: 10px 0; }
+                                        .label-section strong { display: inline-block; width: 100px; }
+                                        @media print { body { margin: 0; } }
+                                      </style>
+                                    </head>
+                                    <body>
+                                      <div class="label">
+                                        <h2>TAJLINE.TJ</h2>
+                                        <div class="label-section"><strong>Груз:</strong> ${cargoNumber}</div>
+                                        <div class="label-section"><strong>Заявка:</strong> ${currentCargoNotification?.request_number || 'N/A'}</div>
+                                        <div class="label-section"><strong>Название:</strong> ${item.name || 'Не указано'}</div>
+                                        <div class="label-section"><strong>Вес:</strong> ${item.weight ? item.weight + ' кг' : 'Не указан'}</div>
+                                        <div class="label-section"><strong>Цена:</strong> ${item.price ? item.price + ' ₽' : 'Не указана'}</div>
+                                        <div class="label-section"><strong>Дата:</strong> ${new Date().toLocaleDateString('ru-RU')}</div>
+                                      </div>
+                                      <script>window.print();</script>
+                                    </body>
+                                  </html>
+                                `);
+                                printWindow.document.close();
+                                showAlert('Этикетка груза отправлена на печать', 'success');
+                              }}
+                              className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                            >
+                              <FileText className="mr-1 h-3 w-3" />
+                              Этикетка
+                            </Button>
+                          </div>
                         </div>
                       ))}
                       
