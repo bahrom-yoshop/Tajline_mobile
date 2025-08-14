@@ -223,7 +223,7 @@ class ImprovedPickupModalTester:
         success, response = self.run_test(
             "Courier accepts pickup request",
             "POST",
-            f"/api/courier/requests/{self.pickup_request_id}/accept",
+            f"/api/courier/pickup-requests/{self.pickup_request_id}/accept",
             200,
             {},
             self.courier_token
@@ -239,7 +239,7 @@ class ImprovedPickupModalTester:
         success, response = self.run_test(
             "Courier picks up cargo",
             "POST",
-            f"/api/courier/requests/{self.pickup_request_id}/pickup",
+            f"/api/courier/pickup-requests/{self.pickup_request_id}/pickup",
             200,
             {},
             self.courier_token
@@ -255,7 +255,7 @@ class ImprovedPickupModalTester:
         success, response = self.run_test(
             "Courier delivers cargo to warehouse",
             "POST",
-            f"/api/courier/requests/{self.pickup_request_id}/deliver-to-warehouse",
+            f"/api/courier/pickup-requests/{self.pickup_request_id}/deliver-to-warehouse",
             200,
             {},
             self.courier_token
