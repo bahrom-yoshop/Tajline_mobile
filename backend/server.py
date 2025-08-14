@@ -5231,6 +5231,91 @@ async def place_cargo_in_warehouse_auto(
     
     return {"message": "Cargo placed successfully in assigned warehouse", "warehouse_name": warehouse["name"]}
 
+@app.get("/api/warehouses/{warehouse_id}/statistics")
+async def get_warehouse_statistics(
+    warehouse_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить статистику склада: количество грузов, вес, заполненность"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        # Получаем информацию о складе
+        warehouse = db.warehouses.find_one({"id": warehouse_id}, {"_id": 0})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        
+        # Подсчитываем грузы на складе (из разных коллекций)
+        cargo_count_operator = db.operator_cargo.count_documents({
+            "warehouse_id": warehouse_id,
+            "status": {"$in": ["IN_TRANSIT", "READY_FOR_DELIVERY"]}
+        })
+        
+        cargo_count_general = db.cargo.count_documents({
+            "warehouse_id": warehouse_id,
+            "status": {"$in": ["awaiting_placement", "in_transit", "ready_for_delivery"]}
+        })
+        
+        total_cargo_count = cargo_count_operator + cargo_count_general
+        
+        # Подсчитываем общий вес грузов
+        operator_cargo_weights = list(db.operator_cargo.aggregate([
+            {"$match": {
+                "warehouse_id": warehouse_id,
+                "status": {"$in": ["IN_TRANSIT", "READY_FOR_DELIVERY"]}
+            }},
+            {"$group": {"_id": None, "total_weight": {"$sum": "$weight"}}}
+        ]))
+        
+        general_cargo_weights = list(db.cargo.aggregate([
+            {"$match": {
+                "warehouse_id": warehouse_id,
+                "status": {"$in": ["awaiting_placement", "in_transit", "ready_for_delivery"]}
+            }},
+            {"$group": {"_id": None, "total_weight": {"$sum": "$weight"}}}
+        ]))
+        
+        total_weight = (
+            (operator_cargo_weights[0]["total_weight"] if operator_cargo_weights else 0) +
+            (general_cargo_weights[0]["total_weight"] if general_cargo_weights else 0)
+        )
+        
+        # Подсчитываем общее количество ячеек
+        total_cells = (
+            warehouse.get("blocks_count", 0) * 
+            warehouse.get("shelves_per_block", 0) * 
+            warehouse.get("cells_per_shelf", 0)
+        )
+        
+        # Подсчитываем занятые ячейки
+        occupied_cells = db.warehouse_cells.count_documents({
+            "warehouse_id": warehouse_id,
+            "is_occupied": True
+        })
+        
+        # Подсчитываем статистику
+        free_cells = max(0, total_cells - occupied_cells)
+        utilization_percent = (occupied_cells / total_cells * 100) if total_cells > 0 else 0
+        
+        return {
+            "warehouse_id": warehouse_id,
+            "warehouse_name": warehouse.get("name"),
+            "total_cells": total_cells,
+            "occupied_cells": occupied_cells,
+            "free_cells": free_cells,
+            "utilization_percent": round(utilization_percent, 1),
+            "total_cargo_count": total_cargo_count,
+            "total_weight": round(total_weight, 2),
+            "cargo_breakdown": {
+                "operator_cargo": cargo_count_operator,
+                "general_cargo": cargo_count_general
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting warehouse statistics: {str(e)}")
+
 @app.get("/api/operator/cargo/available-for-placement")
 async def get_available_cargo_for_placement(
     page: int = 1,
