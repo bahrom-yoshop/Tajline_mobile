@@ -35,7 +35,7 @@ import sys
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://logitaj-1.preview.emergentagent.com/api"
+BACKEND_URL = "https://cargo-compass.preview.emergentagent.com/api"
 
 class MultipleCargoInvestigationTester:
     def __init__(self):

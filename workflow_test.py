@@ -9,7 +9,7 @@ import json
 import time
 
 def test_complete_workflow():
-    base_url = "https://070dd26f-a3d7-46ef-924a-497ae22492be.preview.emergentagent.com"
+    base_url = "https://cargo-compass.preview.emergentagent.com"
     
     # Login as warehouse operator
     login_data = {

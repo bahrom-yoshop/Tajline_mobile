@@ -24,7 +24,7 @@ import sys
 from datetime import datetime
 
 # Конфигурация
-BACKEND_URL = "https://070dd26f-a3d7-46ef-924a-497ae22492be.preview.emergentagent.com/api"
+BACKEND_URL = "https://cargo-compass.preview.emergentagent.com/api"
 
 # Тестовые данные
 WAREHOUSE_OPERATOR = {

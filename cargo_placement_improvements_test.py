@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 class CargoPlacementImprovementsTester:
-    def __init__(self, base_url="https://070dd26f-a3d7-46ef-924a-497ae22492be.preview.emergentagent.com"):
+    def __init__(self, base_url="https://cargo-compass.preview.emergentagent.com"):
         self.base_url = base_url
         self.tokens = {}
         self.tests_run = 0
