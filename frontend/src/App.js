@@ -3986,6 +3986,8 @@ function App() {
         fetchOperatorCargo('', 1, 25);
         fetchAvailableCargoForPlacement(1, 25); // Добавляем загрузку грузов для размещения
         fetchPlacedCargo(1, 25); // Добавляем загрузку размещенных грузов
+        fetchWarehouseNotifications(); // НОВОЕ: Загрузка уведомлений о поступивших грузах
+        fetchAllPickupRequests(); // НОВОЕ: Загрузка всех заявок на забор
         fetchUnpaidCargo();
         fetchPaymentHistory();
         fetchCargoRequests();
