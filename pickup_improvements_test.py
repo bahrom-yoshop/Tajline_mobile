@@ -145,8 +145,8 @@ class PickupImprovementsTester:
         
         pickup_request_id = None
         pickup_request_number = None
-        if success and 'id' in pickup_response:
-            pickup_request_id = pickup_response['id']
+        if success and pickup_response.get('success'):
+            pickup_request_id = pickup_response.get('request_id')
             pickup_request_number = pickup_response.get('request_number')
             
             print(f"   ✅ Pickup request created: ID {pickup_request_id}")
