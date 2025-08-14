@@ -14531,9 +14531,11 @@ function App() {
                             </CardHeader>
                             <CardContent>
                               <div className="space-y-3">
-                                {(showAllNotifications ? warehouseNotifications : warehouseNotifications.slice(0, 2)).map((notification) => (
+                                {(showAllNotifications ? warehouseNotifications : warehouseNotifications.slice(0, 2))
+                                  .filter(notification => notification?.id) // Добавляем фильтр для безопасности
+                                  .map((notification, index) => (
                                   <div
-                                    key={notification.id}
+                                    key={`${notification.id}-${notification.status}-${index}`} // Более уникальный ключ
                                     className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm"
                                   >
                                     <div className="flex items-start justify-between">
