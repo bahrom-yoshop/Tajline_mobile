@@ -13342,6 +13342,9 @@ async def complete_cargo_processing(
         return {
             "message": "Cargo processing completed successfully",
             "notification_id": notification_id,
+            "cargo_id": created_cargos[0]["cargo_id"] if created_cargos else None,
+            "cargo_number": created_cargos[0]["cargo_number"] if created_cargos else None,
+            "notification_status": "completed",
             "created_cargos": created_cargos,
             "total_items": len(created_cargos)
         }
