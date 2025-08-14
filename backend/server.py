@@ -13419,19 +13419,20 @@ async def get_all_pickup_requests(
         raise HTTPException(status_code=403, detail="Access denied: Only operators and admins")
     
     try:
-        # Получаем все заявки на забор груза
-        pickup_requests = list(db.courier_pickup_requests.find({}, {"_id": 0}).sort("created_at", -1))
+        # Получаем только активные заявки на забор груза (исключаем выполненные)
+        pickup_requests = list(db.courier_pickup_requests.find({
+            "request_status": {"$nin": ["delivered_to_warehouse", "completed"]}  # Исключаем выполненные
+        }, {"_id": 0}).sort("created_at", -1))
         
         # Добавляем информацию о статусах
         for request in pickup_requests:
             request['request_type'] = 'pickup'
         
-        # Группируем по статусам
+        # Группируем по статусам (только активные)
         by_status = {
             "pending": [r for r in pickup_requests if r.get("request_status") == "pending"],
             "accepted": [r for r in pickup_requests if r.get("request_status") == "accepted"],
             "picked_up": [r for r in pickup_requests if r.get("request_status") == "picked_up"],
-            "delivered_to_warehouse": [r for r in pickup_requests if r.get("request_status") == "delivered_to_warehouse"],
             "cancelled": [r for r in pickup_requests if r.get("request_status") == "cancelled"]
         }
         
@@ -13443,7 +13444,6 @@ async def get_all_pickup_requests(
                 "pending": len(by_status["pending"]),
                 "accepted": len(by_status["accepted"]),
                 "picked_up": len(by_status["picked_up"]),
-                "delivered_to_warehouse": len(by_status["delivered_to_warehouse"]),
                 "cancelled": len(by_status["cancelled"])
             }
         }
