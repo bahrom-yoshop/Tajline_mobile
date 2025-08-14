@@ -5830,10 +5830,27 @@ function App() {
 
   const fetchWarehouses = async () => {
     try {
-      const data = await apiCall('/api/warehouses');
-      setWarehouses(data);
+      const data = await apiCall('/api/warehouses', 'GET');
+      setWarehouses(data.warehouses || []);
+      
+      // Загружаем статистику для каждого склада
+      const statisticsPromises = (data.warehouses || []).map(async (warehouse) => {
+        try {
+          const stats = await apiCall(`/api/warehouses/${warehouse.id}/statistics`, 'GET');
+          return { [warehouse.id]: stats };
+        } catch (error) {
+          console.error(`Error loading statistics for warehouse ${warehouse.id}:`, error);
+          return { [warehouse.id]: null };
+        }
+      });
+      
+      const statisticsResults = await Promise.all(statisticsPromises);
+      const statistics = statisticsResults.reduce((acc, stat) => ({ ...acc, ...stat }), {});
+      setWarehousesStatistics(statistics);
+      
     } catch (error) {
       console.error('Error fetching warehouses:', error);
+      setWarehouses([]);
     }
   };
 
