@@ -437,7 +437,7 @@ class RecipientInfoTester:
         if not self.process_pickup_request_by_courier():
             return False
         
-        # Step 5: Send pickup to placement
+        # Step 6: Send pickup to placement
         if not self.send_pickup_to_placement():
             return False
         
