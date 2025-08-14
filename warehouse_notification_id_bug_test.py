@@ -378,12 +378,24 @@ class WarehouseNotificationIDTester:
         print("\n   ✅ ЭТАП 9: ЗАВЕРШЕНИЕ ОФОРМЛЕНИЯ УВЕДОМЛЕНИЯ...")
         
         if notification_id:
+            # Add required data for complete endpoint
+            complete_data = {
+                "cargo_items": [
+                    {
+                        "cargo_name": f"Груз из заявки {pickup_request_number}",
+                        "weight": 5.0,
+                        "declared_value": 1500.0
+                    }
+                ]
+            }
+            
             success, complete_notification_response = self.run_test(
                 "Завершение оформления уведомления",
                 "POST",
                 f"/api/operator/warehouse-notifications/{notification_id}/complete",
                 200,
-                token=operator_token
+                complete_data,
+                operator_token
             )
             
             if success:
