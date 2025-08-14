@@ -13754,11 +13754,17 @@ async def update_courier_request(
         # Добавляем время обновления
         update_fields["updated_at"] = current_time
         
-        # Обновляем заявку в базе данных
-        result = db.courier_requests.update_one(
-            {"id": request_id},
-            {"$set": update_fields}
-        )
+        # Обновляем заявку в базе данных (используем определенную ранее коллекцию)
+        if request_collection == "courier_requests":
+            result = db.courier_requests.update_one(
+                {"id": request_id},
+                {"$set": update_fields}
+            )
+        else:  # courier_pickup_requests
+            result = db.courier_pickup_requests.update_one(
+                {"id": request_id},
+                {"$set": update_fields}
+            )
         
         if result.matched_count == 0:
             raise HTTPException(status_code=404, detail="Request not found")
