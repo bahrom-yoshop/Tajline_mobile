@@ -162,8 +162,8 @@ class WarehouseNotificationIDTester:
         
         pickup_request_id = None
         pickup_request_number = None
-        if success and 'id' in pickup_response:
-            pickup_request_id = pickup_response['id']
+        if success and ('id' in pickup_response or 'request_id' in pickup_response):
+            pickup_request_id = pickup_response.get('request_id') or pickup_response.get('id')
             pickup_request_number = pickup_response.get('request_number')
             
             print(f"   ✅ Заявка на забор груза создана: ID {pickup_request_id}")
@@ -173,6 +173,7 @@ class WarehouseNotificationIDTester:
             self.test_data['pickup_request_number'] = pickup_request_number
         else:
             print("   ❌ Создание заявки на забор груза не удалось")
+            print(f"   📄 Response keys: {list(pickup_response.keys()) if pickup_response else 'No response'}")
             return False
         
         # ЭТАП 3: Авторизация курьера (+79991234567/courier123)
