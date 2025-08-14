@@ -1021,17 +1021,32 @@ function App() {
       setShowCargoAcceptanceModal(false);
       setCurrentCargoNotification(null);
       
+      // Сбрасываем форму
+      setCargoAcceptanceForm({
+        sender_full_name: '',
+        sender_phone: '',
+        sender_address: '',
+        recipient_full_name: '',
+        recipient_phone: '',
+        recipient_address: '',
+        cargo_items: [{ name: '', weight: '', price: '' }],
+        payment_method: '',
+        delivery_method: '',
+        payment_status: 'not_paid'
+      });
+      
       // Обновляем данные
       await Promise.all([
         fetchWarehouseNotifications(),
         fetchOperatorCargo(),
-        fetchPickupRequestsHistory()
+        fetchPickupRequestsHistory(),
+        fetchAvailableCargoForPlacement() // Обновляем список для размещения
       ]);
       
       // Показываем информацию о созданных грузах
       if (response?.created_cargos?.length > 0) {
         const cargoNumbers = response.created_cargos.map(c => c.cargo_number).join(', ');
-        showAlert(`Создано грузов: ${response.total_items}. Номера: ${cargoNumbers}`, 'success');
+        showAlert(`Создано грузов: ${response.total_items}. Номера: ${cargoNumbers}. Грузы доступны в разделе "Размещение груза".`, 'success');
       }
       
     } catch (error) {
