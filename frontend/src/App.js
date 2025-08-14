@@ -2680,14 +2680,33 @@ function App() {
       await completeQrCleanup("Mobile Scanner Start");
       
       // Use existing container instead of creating isolated one
-      const containerId = 'qr-reader-placement';
-      const qrElement = document.getElementById(containerId);
+      const possibleContainerIds = [
+        'qr-reader-placement-main',
+        'qr-reader-placement-cargo', 
+        'qr-reader-placement-mobile',
+        'qr-reader-placement-edit',
+        'qr-reader-placement-receive',
+        'qr-reader-placement-update',
+        'qr-reader-placement-search'
+      ];
       
-      if (!qrElement) {
-        throw new Error('QR контейнер не найден');
+      let containerId = null;
+      let qrElement = null;
+      
+      // Найти первый доступный контейнер
+      for (const id of possibleContainerIds) {
+        const element = document.getElementById(id);
+        if (element && element.offsetParent !== null) { // элемент видим на странице
+          containerId = id;
+          qrElement = element;
+          console.log(`✅ Найден доступный QR контейнер: ${containerId}`);
+          break;
+        }
       }
       
-      console.log('✅ QR контейнер найден для мобильного сканера');
+      if (!qrElement) {
+        throw new Error('QR контейнер не найден среди доступных вариантов');
+      }
 
       // Get cameras with retry logic
       let cameras = [];
