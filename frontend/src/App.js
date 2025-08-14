@@ -15949,6 +15949,132 @@ function App() {
                     </Card>
                   )}
 
+                  {/* История забора груза */}
+                  {activeTab === 'cargo-pickup-history' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Package className="mr-2 h-5 w-5" />
+                            История забора груза
+                          </div>
+                          <Badge variant="secondary" className="bg-purple-100 text-purple-800">
+                            {pickupRequestsHistory.length} завершено
+                          </Badge>
+                        </CardTitle>
+                        <CardDescription>
+                          Завершенные заявки на забор груза с полной историей действий
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {pickupRequestsHistory.length === 0 ? (
+                          <div className="text-center py-8">
+                            <Package className="mx-auto h-12 w-12 text-gray-400" />
+                            <h3 className="mt-2 text-sm font-medium text-gray-900">Нет завершенных заявок</h3>
+                            <p className="mt-1 text-sm text-gray-500">
+                              Завершенные заявки на забор груза будут отображаться здесь.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {pickupRequestsHistory.map((request) => (
+                              <Card key={request.id} className="border border-purple-200">
+                                <CardContent className="p-4">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <div className="flex items-center space-x-3 mb-3">
+                                        <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+                                          № {request.request_number || request.id.slice(0, 6)}
+                                        </Badge>
+                                        <Badge className="bg-green-100 text-green-800 border-green-200">
+                                          ✅ Выполнено
+                                        </Badge>
+                                        {request.assigned_courier_name && (
+                                          <Badge className="bg-blue-100 text-blue-700">
+                                            👤 {request.assigned_courier_name}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
+                                        <div>
+                                          <span className="font-medium text-gray-700">Отправитель:</span>
+                                          <span className="ml-1">{request.sender_full_name}</span>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Телефон:</span>
+                                          <span className="ml-1">{request.sender_phone}</span>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Адрес забора:</span>
+                                          <span className="ml-1">{request.pickup_address}</span>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Назначение:</span>
+                                          <span className="ml-1">{request.destination || request.route || 'Не указано'}</span>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Сдано на склад:</span>
+                                          <span className="ml-1">
+                                            {request.delivery_time 
+                                              ? new Date(request.delivery_time).toLocaleString('ru-RU')
+                                              : 'Не указано'
+                                            }
+                                          </span>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Обработал:</span>
+                                          <span className="ml-1">{request.processed_by || 'Не указано'}</span>
+                                        </div>
+                                      </div>
+
+                                      {/* Созданные грузы */}
+                                      {request.created_cargos && request.created_cargos.length > 0 && (
+                                        <div className="mt-3 p-3 bg-green-50 rounded border border-green-200">
+                                          <div className="text-sm font-medium text-green-800 mb-2">
+                                            📦 Созданные грузы ({request.created_cargos.length}):
+                                          </div>
+                                          <div className="flex flex-wrap gap-2">
+                                            {request.created_cargos.map((cargo, index) => (
+                                              <Badge key={index} className="bg-green-100 text-green-700 border-green-300">
+                                                {cargo.cargo_number}
+                                              </Badge>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                      
+                                      {/* История действий */}
+                                      {request.action_history && request.action_history.length > 0 && (
+                                        <div className="mt-3 p-3 bg-gray-50 rounded">
+                                          <div className="text-sm font-medium text-gray-700 mb-2">📋 История действий:</div>
+                                          <div className="space-y-1">
+                                            {request.action_history.map((action, index) => (
+                                              <div key={index} className="text-xs text-gray-600 flex items-start space-x-2">
+                                                <span className="w-2 h-2 bg-blue-400 rounded-full mt-1.5 flex-shrink-0"></span>
+                                                <div>
+                                                  <span className="font-medium">
+                                                    {new Date(action.timestamp).toLocaleString('ru-RU')}:
+                                                  </span>
+                                                  <span className="ml-1">{action.details}</span>
+                                                  <span className="text-gray-500"> ({action.performed_by})</span>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
                   {/* История грузов */}
                   {activeTab === 'cargo-history' && (
                     <Card>
