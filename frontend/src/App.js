@@ -1072,6 +1072,8 @@ function App() {
           console.log('processedCargoItems:', processedCargoItems);
           console.log('recipientData:', recipientData);
           console.log('senderData:', senderData);
+          console.log('paymentInfo:', paymentInfo);
+          console.log('СТАТУС ОПЛАТЫ ОТ КУРЬЕРА:', paymentInfo.payment_status);
           
           // Сохраняем обогащенные данные уведомления для отображения
           const enrichedNotification = {
