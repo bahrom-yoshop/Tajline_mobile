@@ -12882,8 +12882,15 @@ async def cancel_courier_request(
     if not courier:
         raise HTTPException(status_code=404, detail="Courier profile not found")
     
-    # Получаем заявку
+    # Получаем заявку (проверяем обе коллекции)
     request = db.courier_requests.find_one({"id": request_id}, {"_id": 0})
+    request_collection = "courier_requests"
+    
+    if not request:
+        # Проверяем коллекцию заявок на забор груза
+        request = db.courier_pickup_requests.find_one({"id": request_id}, {"_id": 0})
+        request_collection = "courier_pickup_requests"
+    
     if not request:
         raise HTTPException(status_code=404, detail="Request not found")
     
