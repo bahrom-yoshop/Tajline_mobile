@@ -5799,8 +5799,8 @@ function App() {
     try {
       const params = {
         page: page,
-        per_page: perPage,
-        status: 'placed,placement_ready'  // Включаем оба статуса
+        per_page: perPage
+        // Убираем параметр status - backend теперь фильтрует сам
       };
       
       const response = await apiCall('/api/warehouses/placed-cargo', 'GET', null, params);
