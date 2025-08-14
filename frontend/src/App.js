@@ -1054,6 +1054,9 @@ function App() {
         } catch (requestError) {
           console.error('Error fetching full pickup request:', requestError);
           // Если не удалось получить полную заявку, используем данные из уведомления
+          console.log('=== ОТЛАДКА: Используем данные из уведомления ===');
+          console.log('notification:', notification);
+          
           setCargoAcceptanceForm({
             sender_full_name: notification.sender_full_name || '',
             sender_phone: notification.sender_phone || '',
@@ -1061,7 +1064,11 @@ function App() {
             recipient_full_name: '',
             recipient_phone: '',
             recipient_address: '',
-            cargo_items: [{ name: notification.destination || 'Наименование груза не указано', weight: '', price: '' }],
+            cargo_items: [{ 
+              name: notification.destination || 'Наименование груза не указано', 
+              weight: '', 
+              price: '' 
+            }],
             payment_method: notification.payment_method || 'cash',
             delivery_method: 'pickup',
             payment_status: 'not_paid',
