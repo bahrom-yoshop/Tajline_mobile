@@ -13462,10 +13462,16 @@ async def send_pickup_request_to_placement(
         
         # Получаем склады оператора для назначения грузу
         operator_warehouses = get_operator_warehouse_ids(current_user.id)
-        warehouse_id = operator_warehouses[0] if operator_warehouses else None
         
-        if not warehouse_id:
-            raise HTTPException(status_code=400, detail="Operator has no assigned warehouses")
+        if not operator_warehouses:
+            # Если нет привязок, используем первый активный склад
+            warehouses = list(db.warehouses.find({"is_active": True}))
+            if warehouses:
+                warehouse_id = warehouses[0]["id"]
+            else:
+                raise HTTPException(status_code=400, detail="No active warehouses found")
+        else:
+            warehouse_id = operator_warehouses[0]
         
         # Создаем базовый груз на основе данных заявки
         cargo_id = generate_readable_request_number()
