@@ -13430,6 +13430,115 @@ async def complete_cargo_processing(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error completing cargo processing: {str(e)}")
 
+# НОВЫЙ ENDPOINT: Отправка заявки на размещение
+@app.post("/api/operator/warehouse-notifications/{notification_id}/send-to-placement")
+async def send_pickup_request_to_placement(
+    notification_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Отправить заявку на забор груза на размещение и исключить из текущего списка"""
+    if current_user.role not in [UserRole.WAREHOUSE_OPERATOR, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Access denied: Only operators and admins")
+    
+    try:
+        # Получаем уведомление
+        notification = db.warehouse_notifications.find_one({"id": notification_id}, {"_id": 0})
+        if not notification:
+            raise HTTPException(status_code=404, detail="Notification not found")
+        
+        if notification.get("status") != "in_processing":
+            raise HTTPException(status_code=400, detail="Notification not in processing status")
+        
+        current_time = datetime.utcnow()
+        
+        # Получаем данные заявки на забор груза
+        pickup_request_id = notification.get("pickup_request_id")
+        if not pickup_request_id:
+            raise HTTPException(status_code=400, detail="Pickup request ID not found in notification")
+        
+        pickup_request = db.courier_pickup_requests.find_one({"id": pickup_request_id}, {"_id": 0})
+        if not pickup_request:
+            raise HTTPException(status_code=404, detail="Pickup request not found")
+        
+        # Получаем склады оператора для назначения грузу
+        operator_warehouses = get_operator_warehouse_ids(current_user.id)
+        warehouse_id = operator_warehouses[0] if operator_warehouses else None
+        
+        if not warehouse_id:
+            raise HTTPException(status_code=400, detail="Operator has no assigned warehouses")
+        
+        # Создаем базовый груз на основе данных заявки
+        cargo_id = generate_readable_request_number()
+        cargo_number = f"{notification.get('request_number', '000000')}/01"
+        
+        cargo_data = {
+            "id": cargo_id,
+            "cargo_number": cargo_number,
+            "sender_full_name": pickup_request.get("sender_full_name"),
+            "sender_phone": pickup_request.get("sender_phone"),
+            "sender_address": pickup_request.get("pickup_address"),
+            "recipient_full_name": "Не указан",  # Будет заполнен при размещении
+            "recipient_phone": "",
+            "recipient_address": pickup_request.get("destination", ""),
+            "cargo_name": pickup_request.get("destination", "Груз по заявке на забор"),
+            "weight": 0.0,  # Будет заполнен при размещении
+            "declared_value": 0.0,
+            "payment_method": "cash",
+            "payment_status": "not_paid",
+            "delivery_method": "pickup",
+            "status": "awaiting_placement",
+            "processing_status": "pending",
+            "warehouse_id": warehouse_id,
+            "pickup_request_id": pickup_request_id,  # Связываем с заявкой на забор
+            "created_by": current_user.id,
+            "created_by_name": current_user.full_name,
+            "created_at": current_time,
+            "route": pickup_request.get("route", "moscow_to_tajikistan"),
+            "description": f"Груз создан из заявки на забор №{notification.get('request_number')}"
+        }
+        
+        # Вставляем груз в коллекцию
+        db.cargo.insert_one(cargo_data)
+        
+        # Обновляем статус уведомления на "sent_to_placement"
+        db.warehouse_notifications.update_one(
+            {"id": notification_id},
+            {
+                "$set": {
+                    "status": "sent_to_placement",
+                    "sent_to_placement_at": current_time,
+                    "sent_to_placement_by": current_user.full_name,
+                    "sent_to_placement_by_id": current_user.id,
+                    "created_cargo_id": cargo_id,
+                    "created_cargo_number": cargo_number
+                }
+            }
+        )
+        
+        # Обновляем заявку на забор груза
+        db.courier_pickup_requests.update_one(
+            {"id": pickup_request_id},
+            {
+                "$set": {
+                    "sent_to_placement": True,
+                    "sent_to_placement_at": current_time,
+                    "created_cargo_id": cargo_id,
+                    "created_cargo_number": cargo_number
+                }
+            }
+        )
+        
+        return {
+            "message": "Pickup request sent to placement successfully",
+            "notification_id": notification_id,
+            "cargo_id": cargo_id,
+            "cargo_number": cargo_number,
+            "status": "sent_to_placement"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error sending to placement: {str(e)}")
+
 # НОВЫЙ ENDPOINT: История заявок на забор груза  
 @app.get("/api/operator/pickup-requests/history")
 async def get_pickup_requests_history(
