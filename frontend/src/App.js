@@ -67,6 +67,7 @@ function App() {
   const [usersPage, setUsersPage] = useState(1);
   const [usersPerPage, setUsersPerPage] = useState(25);
   const [warehouses, setWarehouses] = useState([]);
+  const [warehousesStatistics, setWarehousesStatistics] = useState({}); // Статистика складов
   const [warehouseCargo, setWarehouseCargo] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
