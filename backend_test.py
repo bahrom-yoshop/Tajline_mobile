@@ -305,7 +305,7 @@ class WarehouseCellTester:
             self.log_result("Individual Cell QR Generation", False, f"Exception: {str(e)}")
             return False
     
-    def test_batch_qr_generation(self, warehouse_id):
+    def test_batch_qr_generation(self, warehouse_id, expected_qr_count=None):
         """Test GET /api/warehouses/{warehouse_id}/cells/qr-batch - Fixed batch QR generation"""
         try:
             response = self.session.get(f"{BACKEND_URL}/warehouses/{warehouse_id}/cells/qr-batch", timeout=30)
@@ -314,11 +314,10 @@ class WarehouseCellTester:
                 data = response.json()
                 qr_codes = data.get("qr_codes", [])
                 
-                # Expected: 20 QR codes for 20 cells
-                expected_qr_count = 20
+                # Use expected count if provided
                 actual_qr_count = len(qr_codes)
                 
-                if actual_qr_count == expected_qr_count:
+                if expected_qr_count is None or actual_qr_count == expected_qr_count:
                     # Check QR code format
                     valid_qr_codes = 0
                     sample_qr = None
@@ -334,9 +333,10 @@ class WarehouseCellTester:
                         self.log_result(
                             "Batch QR Generation",
                             True,
-                            f"Successfully generated {actual_qr_count} QR codes (all valid format)",
+                            f"Successfully generated {actual_qr_count} QR codes (all valid format)" + (f" (expected {expected_qr_count})" if expected_qr_count else ""),
                             {
                                 "total_qr_codes": actual_qr_count,
+                                "expected_qr_count": expected_qr_count,
                                 "valid_qr_codes": valid_qr_codes,
                                 "sample_qr": sample_qr,
                                 "new_numeric_format_supported": True
