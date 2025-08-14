@@ -124,6 +124,7 @@ function App() {
   
   // НОВОЕ: Состояние для интерактивной карты
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [isAcceptedMapOpen, setIsAcceptedMapOpen] = useState(false);
   
   // НОВОЕ: Состояние для GPS отслеживания курьера
   const [courierTracking, setCourierTracking] = useState({
