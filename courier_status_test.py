@@ -226,9 +226,9 @@ class CourierStatusTester:
         
         if success:
             tracking_enabled = status_response.get('tracking_enabled')
-            current_status = status_response.get('current_status')
+            current_status = status_response.get('status')  # Fixed: use 'status' instead of 'current_status'
             current_address = status_response.get('current_address')
-            last_update = status_response.get('last_update')
+            last_update = status_response.get('last_updated')  # Fixed: use 'last_updated' instead of 'last_update'
             
             print(f"   ✅ Статус курьера получен из профиля")
             print(f"   📊 Отслеживание включено: {tracking_enabled}")
