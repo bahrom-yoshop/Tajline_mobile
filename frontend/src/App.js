@@ -19072,8 +19072,28 @@ function App() {
                   )}
 
                   {acceptedRequests.length > 0 ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {acceptedRequests.map((request) => (
+                    <div className="space-y-4">
+                      {/* Кнопка для показа всех карточек принятых заявок */}
+                      {acceptedRequests.length > 6 && (
+                        <div className="text-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowAllAcceptedRequests(!showAllAcceptedRequests)}
+                            className="text-green-700 border-green-300 hover:bg-green-100"
+                          >
+                            {showAllAcceptedRequests ? 'Показать только 6 заявок' : `Показать все заявки (${acceptedRequests.length})`}
+                          </Button>
+                          {!showAllAcceptedRequests && (
+                            <p className="text-sm text-gray-600 mt-2">
+                              Показано 6 из {acceptedRequests.length} заявок
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {(showAllAcceptedRequests ? acceptedRequests : acceptedRequests.slice(0, 6)).map((request) => (
                         <Card key={request.id} className="relative">
                           <CardHeader>
                             <div className="flex items-start justify-between">
