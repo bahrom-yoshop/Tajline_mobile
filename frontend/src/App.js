@@ -19982,16 +19982,21 @@ function App() {
                 </div>
                 
                 {/* Информация о получателе (если есть) */}
-                {(currentCargoNotification.recipient_data?.recipient_full_name || cargoAcceptanceForm.recipient_full_name) && (
-                  <div className="mt-4 pt-4 border-t border-orange-200">
-                    <h4 className="font-medium text-orange-700 mb-2">👤 Данные получателя (заполнено курьером)</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
-                      <p><strong>ФИО:</strong> {currentCargoNotification.recipient_data?.recipient_full_name || cargoAcceptanceForm.recipient_full_name || 'Не указано'}</p>
-                      <p><strong>Телефон:</strong> {currentCargoNotification.recipient_data?.recipient_phone || cargoAcceptanceForm.recipient_phone || 'Не указан'}</p>
-                      <p><strong>Адрес:</strong> {currentCargoNotification.recipient_data?.recipient_address || cargoAcceptanceForm.recipient_address || 'Не указан'}</p>
-                    </div>
+                <div className="mt-4 pt-4 border-t border-orange-200">
+                  <h4 className="font-medium text-orange-700 mb-2">👤 Данные получателя (заполнено курьером)</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                    <p><strong>ФИО:</strong> {currentCargoNotification?.recipient_data?.recipient_full_name || cargoAcceptanceForm.recipient_full_name || 'Не указано'}</p>
+                    <p><strong>Телефон:</strong> {currentCargoNotification?.recipient_data?.recipient_phone || cargoAcceptanceForm.recipient_phone || 'Не указан'}</p>
+                    <p><strong>Адрес:</strong> {currentCargoNotification?.recipient_data?.recipient_address || cargoAcceptanceForm.recipient_address || 'Не указан'}</p>
                   </div>
-                )}
+                  {/* Отладочная информация */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
+                      <p>DEBUG - recipient_data: {JSON.stringify(currentCargoNotification?.recipient_data)}</p>
+                      <p>DEBUG - form data: ФИО: {cargoAcceptanceForm.recipient_full_name}, Тел: {cargoAcceptanceForm.recipient_phone}</p>
+                    </div>
+                  )}
+                </div>
                 
                 {/* Информация о грузе */}
                 <div className="mt-4 pt-4 border-t border-orange-200">
