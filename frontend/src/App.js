@@ -7668,6 +7668,10 @@ function App() {
       const data = await apiCall(`/api/warehouse/${warehouse.id}/all-cells-qr`);
       
       const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        showAlert('Не удалось открыть окно печати. Пожалуйста, разрешите всплывающие окна в настройках браузера.', 'error');
+        return;
+      }
       printWindow.document.write(`
         <html>
           <head>
