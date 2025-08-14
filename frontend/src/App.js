@@ -26094,6 +26094,10 @@ function App() {
                         variant="outline"
                         onClick={() => {
                           const printWindow = window.open('', '_blank');
+                          if (!printWindow) {
+                            showAlert('Не удалось открыть окно печати. Пожалуйста, разрешите всплывающие окна в настройках браузера.', 'error');
+                            return;
+                          }
                           const successfulResults = cellQRResults.filter(r => r.success);
                           const qrHtml = successfulResults.map(result => `
                             <div style="margin: 10px; text-align: center; display: inline-block; page-break-inside: avoid;">
