@@ -144,6 +144,12 @@ class CargoPlacementImprovementsTester:
             print("   ⚠️ Нет грузов для размещения - создаем тестовый груз")
             return self.create_test_pickup_cargo()
         
+        # Проверяем есть ли грузы из заявок на забор
+        pickup_cargos = [cargo for cargo in items if not cargo.get("recipient_full_name", "").strip()]
+        if len(pickup_cargos) == 0:
+            print("   ⚠️ Нет грузов из заявок на забор - создаем тестовый груз")
+            return self.create_test_pickup_cargo()
+        
         return True
 
     def create_test_pickup_cargo(self) -> bool:
