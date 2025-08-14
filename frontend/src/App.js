@@ -1225,15 +1225,8 @@ function App() {
         return;
       }
 
-      // Создаем данные для QR кода с проверками на undefined
-      const qrData = JSON.stringify({
-        request_number: notification.request_number || 'N/A',
-        sender_name: notification.sender_full_name || 'Не указан',
-        pickup_address: notification.pickup_address || 'Не указан',
-        courier_name: notification.courier_name || 'Не указан',
-        delivered_at: notification.delivered_at || new Date().toISOString(),
-        type: 'pickup_request'
-      });
+      // Упрощаем QR код - только номер заявки
+      const qrData = notification.request_number;
 
       // Создаем новое окно для печати QR кода
       const printWindow = window.open('', '_blank');
@@ -1246,12 +1239,26 @@ function App() {
         <html>
           <head>
             <title>QR код заявки ${notification.request_number || 'N/A'}</title>
-            <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
             <style>
               body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
               .qr-container { margin: 20px auto; }
               .request-info { margin: 10px 0; font-size: 14px; }
-              @media print { body { margin: 0; } }
+              #qrcode { margin: 20px auto; display: block; }
+              .print-btn { 
+                margin: 20px; 
+                padding: 10px 20px; 
+                font-size: 16px; 
+                background: #007bff; 
+                color: white; 
+                border: none; 
+                border-radius: 5px; 
+                cursor: pointer; 
+              }
+              @media print { 
+                body { margin: 0; }
+                .print-btn { display: none; }
+              }
             </style>
           </head>
           <body>
@@ -1264,46 +1271,49 @@ function App() {
               <strong>Сдано на склад:</strong> ${notification.delivered_at ? new Date(notification.delivered_at).toLocaleString('ru-RU') : 'Не указано'}
             </div>
             <div class="qr-container">
-              <canvas id="qrcode"></canvas>
+              <canvas id="qrcode" width="200" height="200"></canvas>
             </div>
+            <button class="print-btn" onclick="window.print()">Печать</button>
+            <div id="error-message" style="color: red; margin-top: 20px;"></div>
+            
             <script>
-              const qrData = ${JSON.stringify(qrData)};
+              const qrData = "${qrData}";
               
-              // Функция для генерации QR кода с ожиданием загрузки библиотеки
               function generateQR() {
-                if (typeof QRCode !== 'undefined') {
-                  QRCode.toCanvas(document.getElementById('qrcode'), qrData, {
-                    width: 200,
-                    margin: 2
-                  }, function(error) {
-                    if (error) {
-                      console.error('QR Code generation error:', error);
-                      document.getElementById('qrcode').style.display = 'none';
-                      document.body.innerHTML += '<p style="color: red; font-size: 16px; margin: 20px;">Ошибка создания QR кода: ' + error.message + '</p>';
-                    } else {
-                      console.log('QR Code generated successfully');
-                      // Добавляем кнопку печати
-                      document.body.innerHTML += '<button onclick="window.print()" style="margin: 20px; padding: 10px 20px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Печать</button>';
-                    }
-                  });
-                } else {
-                  console.log('QRCode library not yet loaded, retrying...');
-                  // Пытаемся еще раз через 100ms
-                  setTimeout(generateQR, 100);
+                try {
+                  if (typeof QRious !== 'undefined') {
+                    console.log('QRious library loaded, generating QR code...');
+                    var qr = new QRious({
+                      element: document.getElementById('qrcode'),
+                      value: qrData,
+                      size: 200
+                    });
+                    console.log('QR Code generated successfully for:', qrData);
+                  } else {
+                    console.log('QRious not loaded yet, retrying...');
+                    setTimeout(generateQR, 200);
+                  }
+                } catch (error) {
+                  console.error('Error generating QR code:', error);
+                  document.getElementById('error-message').innerHTML = 
+                    '<p>Ошибка создания QR кода: ' + error.message + '</p>' +
+                    '<p>Данные для QR: <strong>' + qrData + '</strong></p>';
                 }
               }
               
-              // Начинаем генерацию после небольшой задержки
-              setTimeout(generateQR, 200);
+              // Начинаем генерацию после загрузки страницы
+              setTimeout(generateQR, 300);
               
-              // Fallback - если библиотека не загрузилась через 5 секунд
+              // Fallback - показываем данные если QR не сгенерировался
               setTimeout(function() {
-                if (typeof QRCode === 'undefined') {
-                  document.getElementById('qrcode').style.display = 'none';
-                  document.body.innerHTML += '<p style="color: red; font-size: 16px; margin: 20px;">Библиотека QRCode не загружена. Проверьте интернет-соединение и попробуйте еще раз.</p>';
-                  document.body.innerHTML += '<p style="color: blue; font-size: 14px;">Данные QR кода: ' + qrData + '</p>';
+                var canvas = document.getElementById('qrcode');
+                var ctx = canvas.getContext('2d');
+                if (!ctx.getImageData(0, 0, 1, 1).data.some(channel => channel !== 0)) {
+                  document.getElementById('error-message').innerHTML = 
+                    '<p style="color: orange;">QR код не сгенерирован. Данные заявки:</p>' +
+                    '<p style="font-size: 18px; font-weight: bold;">' + qrData + '</p>';
                 }
-              }, 5000);
+              }, 3000);
             </script>
           </body>
         </html>
