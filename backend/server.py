@@ -13474,9 +13474,9 @@ async def send_pickup_request_to_placement(
         cargo_data = {
             "id": cargo_id,
             "cargo_number": cargo_number,
-            "sender_full_name": pickup_request.get("sender_full_name"),
-            "sender_phone": pickup_request.get("sender_phone"),
-            "sender_address": pickup_request.get("pickup_address"),
+            "sender_full_name": pickup_request.get("sender_full_name", ""),
+            "sender_phone": pickup_request.get("sender_phone", ""),
+            "sender_address": pickup_request.get("pickup_address", ""),
             "recipient_full_name": "Не указан",  # Будет заполнен при размещении
             "recipient_phone": "",
             "recipient_address": pickup_request.get("destination", ""),
