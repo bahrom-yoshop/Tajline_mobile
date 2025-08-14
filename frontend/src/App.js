@@ -4024,17 +4024,28 @@ function App() {
         // Парсим QR-код ячейки
         const cellData = parseCellQRCode(scannedData);
         if (cellData) {
+          console.log('✅ Ячейка успешно распознана:', cellData);
           setScannedCellData(cellData);
           setScannerActive(false);
-          showAlert(`Ячейка найдена: Склад ${cellData.warehouse_id}, Блок ${cellData.block_number}, Полка ${cellData.shelf_number}, Ячейка ${cellData.cell_number}`, 'success');
+          
+          // ИСПРАВЛЕНИЕ: Улучшенное сообщение с поддержкой нового формата
+          let successMessage = '';
+          if (cellData.format === 'compact') {
+            successMessage = `Ячейка найдена: ${cellData.readable_name} (склад №${cellData.warehouse_number})`;
+          } else {
+            successMessage = `Ячейка найдена: ${cellData.readable_name}`;
+          }
+          
+          showAlert(successMessage, 'success');
           
           // Автоматически размещаем груз
           if (scannedCargoData) {
             await performAutoPlacement();
           }
         } else {
+          console.log('❌ Неверный формат QR-кода ячейки:', scannedData);
           setScannerError('Неверный формат QR-кода ячейки');
-          showAlert('Неверный формат QR-кода ячейки. Попробуйте еще раз.', 'error');
+          showAlert(`Неверный формат QR-кода ячейки: "${scannedData}". Ожидается формат: 03010101`, 'error');
         }
       } else if (scannerMode === 'cargo-qr-search') {
         // Режим поиска груза
