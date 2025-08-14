@@ -13313,7 +13313,7 @@ async def complete_cargo_processing(
                 "payment_method": cargo_details.get("payment_method", "cash"),
                 "payment_status": cargo_details.get("payment_status", "not_paid"),
                 "delivery_method": cargo_details.get("delivery_method", "pickup"),
-                "status": "placement_ready",  # Готов к размещению
+                "status": "awaiting_placement",  # ИСПРАВЛЕНО: используем валидный статус вместо placement_ready
                 "warehouse_id": warehouse_id,  # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: добавляем warehouse_id
                 "created_by": current_user.id,
                 "created_by_name": current_user.full_name,
