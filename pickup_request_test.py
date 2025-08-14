@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-Pickup Request System Fixes Test for TAJLINE.TJ
-Testing the fixes for pickup request system where operators create pickup requests
-but they don't show up in courier's personal cabinet.
+TAJLINE.TJ Improved Pickup Request Modal Testing
+Testing the improved pickup request processing modal functionality according to review request
 """
 
 import requests
