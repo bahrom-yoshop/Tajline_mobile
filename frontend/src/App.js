@@ -20065,19 +20065,46 @@ function App() {
                   {cargoAcceptanceForm.cargo_items && cargoAcceptanceForm.cargo_items.length > 0 ? (
                     <div className="space-y-2">
                       {cargoAcceptanceForm.cargo_items.map((item, index) => (
-                        <div key={index} className="bg-white p-2 rounded border text-sm">
-                          <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                        <div key={index} className="bg-white p-3 rounded border text-sm">
+                          <div className="flex items-center justify-between mb-2">
+                            <h5 className="font-medium text-gray-800">Груз №{index + 1}</h5>
+                            <span className="text-xs text-gray-500">
+                              {item.weight && item.price ? 
+                                `${item.weight} кг × ${item.price} ₽ = ${(parseFloat(item.weight) * parseFloat(item.price)).toFixed(2)} ₽` : 
+                                'Расчет не доступен'
+                              }
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                             <p><strong>Наименование:</strong> {item.name || 'Не указано'}</p>
                             <p><strong>Вес:</strong> {item.weight ? `${item.weight} кг` : 'Не указан'}</p>
-                            <p><strong>Стоимость:</strong> {item.price ? `${item.price} ₽` : 'Не указана'}</p>
-                            <p><strong>Объявленная стоимость:</strong> {currentCargoNotification.cargo_info?.declared_value || currentCargoNotification.declared_value ? `${currentCargoNotification.cargo_info?.declared_value || currentCargoNotification.declared_value} ₽` : 'Не указана'}</p>
+                            <p><strong>Цена:</strong> {item.price ? `${item.price} ₽` : 'Не указана'}</p>
                           </div>
                         </div>
                       ))}
+                      
+                      {/* Итоговые расчеты для всех грузов */}
                       {cargoAcceptanceForm.cargo_items.length > 1 && (
-                        <div className="bg-gray-100 p-2 rounded text-sm">
-                          <p><strong>Общий вес:</strong> {cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0)} кг</p>
-                          <p><strong>Общая стоимость:</strong> {cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0)} ₽</p>
+                        <div className="bg-blue-50 border border-blue-200 p-3 rounded text-sm">
+                          <h5 className="font-medium text-blue-800 mb-2">📊 Общие расчеты</h5>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <p><strong>Всего грузов:</strong> {cargoAcceptanceForm.cargo_items.length} шт.</p>
+                            <p><strong>Общий вес:</strong> {cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0).toFixed(1)} кг</p>
+                            <p><strong>Общая стоимость:</strong> {cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0).toFixed(2)} ₽</p>
+                          </div>
+                          
+                          {/* Расчет средней цены за кг */}
+                          {(() => {
+                            const totalWeight = cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0);
+                            const totalPrice = cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+                            const avgPricePerKg = totalWeight > 0 ? (totalPrice / totalWeight).toFixed(2) : 0;
+                            
+                            return totalWeight > 0 && totalPrice > 0 ? (
+                              <div className="mt-2 pt-2 border-t border-blue-300">
+                                <p className="text-blue-700"><strong>Средняя цена за кг:</strong> {avgPricePerKg} ₽/кг</p>
+                              </div>
+                            ) : null;
+                          })()}
                         </div>
                       )}
                     </div>
