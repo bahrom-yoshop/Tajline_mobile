@@ -13175,7 +13175,7 @@ function App() {
                           {/* QR сканер контейнер с плейсхолдером */}
                           <div className="relative">
                             <div 
-                              id="qr-reader-placement" 
+                              id="qr-reader-placement-search" 
                               className="w-full bg-black rounded-lg"
                               style={{
                                 width: '300px',
