@@ -150,8 +150,8 @@ class WarehouseNotificationsBackendTester:
         if success:
             print("   ✅ /api/operator/warehouse-notifications endpoint working")
             
-            if isinstance(notifications_response, list):
-                notifications_list = notifications_response
+            if isinstance(notifications_response, dict) and 'notifications' in notifications_response:
+                notifications_list = notifications_response['notifications']
                 notification_count = len(notifications_list)
                 print(f"   📊 Found {notification_count} warehouse notifications")
                 
