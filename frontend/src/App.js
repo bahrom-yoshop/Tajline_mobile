@@ -18990,7 +18990,7 @@ function App() {
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {acceptedRequests.map((request, index) => (
+                          {(showAllAcceptedRequests ? acceptedRequests : acceptedRequests.slice(0, 2)).map((request, index) => (
                             <div 
                               key={request.id}
                               className="bg-white p-3 rounded-lg border border-green-200 hover:shadow-md transition-shadow cursor-pointer"
