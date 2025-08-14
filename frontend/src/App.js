@@ -15833,7 +15833,15 @@ function App() {
                                     <div className="flex-1">
                                       <div className="flex items-center space-x-4 mb-4">
                                         <h3 className="font-bold text-xl text-green-600">{item.cargo_number}</h3>
-                                        <Badge variant="success">Размещен</Badge>
+                                        <Badge variant={item.status === 'placement_ready' ? 'secondary' : 'success'}>
+                                          {item.status === 'placement_ready' ? 'Готов к размещению' : 'Размещен'}
+                                        </Badge>
+                                        {/* Индикатор груза из заявки на забор */}
+                                        {item.pickup_request_id && (
+                                          <Badge className="bg-orange-100 text-orange-700 border-orange-200">
+                                            🚚 Заявка на забор
+                                          </Badge>
+                                        )}
                                         {item.placement_date && (
                                           <Badge variant="outline">
                                             <Calendar className="mr-1 h-3 w-3" />
