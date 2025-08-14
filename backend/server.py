@@ -12772,8 +12772,8 @@ async def generate_all_cells_qr(
                 for cell in range(1, cells_per_shelf + 1):
                     cell_location = f"Б{block}-П{shelf}-Я{cell}"
                     
-                    # Создаем числовой QR код в формате: номер_склада номер_блока номер_полки номер_ячейки
-                    qr_code_data = f"{warehouse_number:02d} {block:02d} {shelf:02d} {cell:02d}"
+                    # Создаем числовой QR код в формате: номер_склада номер_блока номер_полки номер_ячейки (без пробелов)
+                    qr_code_data = f"{warehouse_number:02d}{block:02d}{shelf:02d}{cell:02d}"
                     
                     # Генерируем QR код с числовыми данными
                     qr = qrcode.QRCode(version=1, box_size=10, border=5)
