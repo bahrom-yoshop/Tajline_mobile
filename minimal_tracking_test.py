@@ -7,7 +7,7 @@ import requests
 import json
 
 def minimal_tracking_test():
-    base_url = "https://delivery-hub-58.preview.emergentagent.com"
+    base_url = "https://logitaj-1.preview.emergentagent.com"
     
     # Login as admin
     admin_login = {

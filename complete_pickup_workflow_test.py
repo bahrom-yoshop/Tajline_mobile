@@ -10,7 +10,7 @@ import json
 from datetime import datetime
 
 class CompletePickupWorkflowTester:
-    def __init__(self, base_url="https://0f9674de-acc0-4c8f-b486-1aac17409609.preview.emergentagent.com"):
+    def __init__(self, base_url="https://logitaj-1.preview.emergentagent.com"):
         self.base_url = base_url
         self.operator_token = None
         self.courier_token = None
