@@ -13487,7 +13487,7 @@ async def send_pickup_request_to_placement(
             "payment_status": "not_paid",
             "delivery_method": "pickup",
             "status": "awaiting_placement",
-            "processing_status": "pending",
+            "processing_status": "paid",  # Изменяем на "paid" чтобы груз появился в списке для размещения
             "warehouse_id": warehouse_id,
             "pickup_request_id": pickup_request_id,  # Связываем с заявкой на забор
             "created_by": current_user.id,
