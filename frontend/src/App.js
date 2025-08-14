@@ -447,14 +447,22 @@ function App() {
 
   const handlePickupCargo = async (requestId) => {
     try {
-      await apiCall(`/api/courier/requests/${requestId}/pickup`, 'POST');
+      const response = await apiCall(`/api/courier/requests/${requestId}/pickup`, 'POST');
       
       showAlert('Груз забран! Статус обновлен.', 'success');
       
-      // Обновляем списки
-      fetchAcceptedRequests();
-      fetchPickedRequests();
-      fetchCourierNewRequests();
+      // Автоматически обновляем все списки заявок для реактивного обновления
+      await Promise.all([
+        fetchAcceptedRequests(),       // Обновляем принятые заявки (заявка исчезнет отсюда)
+        fetchPickedRequests(),         // Обновляем забранные заявки (заявка появится здесь)  
+        fetchCourierNewRequests(),     // Обновляем новые заявки
+        fetchCancelledRequests()       // Обновляем отмененные заявки
+      ]);
+      
+      // Если это заявка на забор груза, показываем дополнительную информацию
+      if (response?.request_type === 'pickup') {
+        showAlert('Груз по заявке на забор забран! Теперь вы можете сдать его на склад в разделе "Забранные грузы".', 'success');
+      }
       
     } catch (error) {
       console.error('Error picking up cargo:', error);
