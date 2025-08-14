@@ -33658,8 +33658,8 @@ ID склада: {target_warehouse_id}"""
         all_success &= success
         
         pickup_request_id = None
-        if success and 'id' in pickup_response:
-            pickup_request_id = pickup_response['id']
+        if success and 'request_id' in pickup_response:
+            pickup_request_id = pickup_response['request_id']
             pickup_request_number = pickup_response.get('request_number')
             print(f"   ✅ Pickup request created: ID {pickup_request_id}, Number {pickup_request_number}")
         else:
