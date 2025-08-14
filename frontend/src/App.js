@@ -1061,7 +1061,7 @@ function App() {
             cargo_items: processedCargoItems,
             payment_method: paymentInfo.payment_method || notification.payment_method || 'cash',
             delivery_method: recipientData.delivery_method || 'pickup',
-            payment_status: 'not_paid',
+            payment_status: paymentInfo.payment_status || 'not_paid', // ИСПРАВЛЕНИЕ: Используем статус оплаты от курьера
             amount_paid: '',
             payment_notes: ''
           });
