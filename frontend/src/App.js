@@ -19530,6 +19530,319 @@ function App() {
         </DialogContent>
       </Dialog>
 
+      {/* НОВОЕ МОДАЛЬНОЕ ОКНО: Полное оформление груза из уведомления */}
+      <Dialog open={showCargoAcceptanceModal} onOpenChange={setShowCargoAcceptanceModal}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Package className="mr-2 h-5 w-5 text-blue-600" />
+              Полное оформление груза на складе
+            </DialogTitle>
+            <DialogDescription>
+              Оформление груза из заявки на забор №{currentCargoNotification?.request_number}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {currentCargoNotification && (
+            <form onSubmit={(e) => { 
+              e.preventDefault(); 
+              handleCompleteCargoProcessing(currentCargoNotification.id, cargoAcceptanceForm); 
+            }} className="space-y-6">
+              
+              {/* Информация о заявке */}
+              <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                <h3 className="font-medium text-orange-800 mb-2">📦 Информация о поступившем грузе</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p><strong>Номер заявки:</strong> {currentCargoNotification.request_number}</p>
+                    <p><strong>Курьер:</strong> {currentCargoNotification.courier_name}</p>
+                    <p><strong>Сдано на склад:</strong> {new Date(currentCargoNotification.delivered_at).toLocaleString('ru-RU')}</p>
+                  </div>
+                  <div>
+                    <p><strong>Маршрут:</strong> {currentCargoNotification.destination}</p>
+                    <p><strong>Плата курьеру:</strong> {currentCargoNotification.courier_fee} ₽</p>
+                    <p><strong>Адрес забора:</strong> {currentCargoNotification.pickup_address}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Данные отправителя */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-medium text-lg mb-3 flex items-center">
+                  <User className="mr-2 h-5 w-5 text-blue-600" />
+                  Отправитель
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="sender_full_name">ФИО отправителя *</Label>
+                    <Input
+                      id="sender_full_name"
+                      value={cargoAcceptanceForm.sender_full_name}
+                      onChange={(e) => setCargoAcceptanceForm({...cargoAcceptanceForm, sender_full_name: e.target.value})}
+                      placeholder="Иван Иванович Петров"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="sender_phone">Телефон отправителя *</Label>
+                    <Input
+                      id="sender_phone"
+                      value={cargoAcceptanceForm.sender_phone}
+                      onChange={(e) => setCargoAcceptanceForm({...cargoAcceptanceForm, sender_phone: e.target.value})}
+                      placeholder="+7 900 123-45-67"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="sender_address">Адрес отправителя *</Label>
+                    <Input
+                      id="sender_address"
+                      value={cargoAcceptanceForm.sender_address}
+                      onChange={(e) => setCargoAcceptanceForm({...cargoAcceptanceForm, sender_address: e.target.value})}
+                      placeholder="г. Москва, ул. Тверская, д. 1"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Данные получателя */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-medium text-lg mb-3 flex items-center">
+                  <MapPin className="mr-2 h-5 w-5 text-green-600" />
+                  Получатель
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="recipient_full_name">ФИО получателя *</Label>
+                    <Input
+                      id="recipient_full_name"
+                      value={cargoAcceptanceForm.recipient_full_name}
+                      onChange={(e) => setCargoAcceptanceForm({...cargoAcceptanceForm, recipient_full_name: e.target.value})}
+                      placeholder="Петр Петрович Иванов"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="recipient_phone">Телефон получателя *</Label>
+                    <Input
+                      id="recipient_phone"
+                      value={cargoAcceptanceForm.recipient_phone}
+                      onChange={(e) => setCargoAcceptanceForm({...cargoAcceptanceForm, recipient_phone: e.target.value})}
+                      placeholder="+992 900 123456"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="recipient_address">Адрес получателя *</Label>
+                    <Input
+                      id="recipient_address"
+                      value={cargoAcceptanceForm.recipient_address}
+                      onChange={(e) => setCargoAcceptanceForm({...cargoAcceptanceForm, recipient_address: e.target.value})}
+                      placeholder="г. Душанбе, ул. Рудаки, д. 10"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Список грузов */}
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-medium text-lg flex items-center">
+                    <Package2 className="mr-2 h-5 w-5 text-purple-600" />
+                    Список грузов
+                  </h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setCargoAcceptanceForm({
+                        ...cargoAcceptanceForm,
+                        cargo_items: [...cargoAcceptanceForm.cargo_items, { name: '', weight: '', price: '' }]
+                      });
+                    }}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Добавить груз
+                  </Button>
+                </div>
+                
+                <div className="space-y-3">
+                  {cargoAcceptanceForm.cargo_items.map((item, index) => (
+                    <div key={index} className="grid grid-cols-12 gap-3 p-3 bg-gray-50 rounded border">
+                      <div className="col-span-5">
+                        <Label>Название груза *</Label>
+                        <Input
+                          value={item.name}
+                          onChange={(e) => {
+                            const newItems = [...cargoAcceptanceForm.cargo_items];
+                            newItems[index].name = e.target.value;
+                            setCargoAcceptanceForm({...cargoAcceptanceForm, cargo_items: newItems});
+                          }}
+                          placeholder="Документы, одежда..."
+                          required
+                        />
+                      </div>
+                      <div className="col-span-3">
+                        <Label>Вес (кг) *</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={item.weight}
+                          onChange={(e) => {
+                            const newItems = [...cargoAcceptanceForm.cargo_items];
+                            newItems[index].weight = e.target.value;
+                            setCargoAcceptanceForm({...cargoAcceptanceForm, cargo_items: newItems});
+                          }}
+                          placeholder="1.5"
+                          required
+                        />
+                      </div>
+                      <div className="col-span-3">
+                        <Label>Цена (₽) *</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.price}
+                          onChange={(e) => {
+                            const newItems = [...cargoAcceptanceForm.cargo_items];
+                            newItems[index].price = e.target.value;
+                            setCargoAcceptanceForm({...cargoAcceptanceForm, cargo_items: newItems});
+                          }}
+                          placeholder="1000"
+                          required
+                        />
+                      </div>
+                      <div className="col-span-1 flex items-end">
+                        {cargoAcceptanceForm.cargo_items.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const newItems = cargoAcceptanceForm.cargo_items.filter((_, i) => i !== index);
+                              setCargoAcceptanceForm({...cargoAcceptanceForm, cargo_items: newItems});
+                            }}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Итоги */}
+                <div className="mt-4 p-3 bg-blue-50 rounded">
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className="text-lg font-bold text-blue-600">
+                        {cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0).toFixed(1)} кг
+                      </div>
+                      <div className="text-sm text-gray-600">Общий вес</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold text-green-600">
+                        {cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0).toFixed(2)} ₽
+                      </div>
+                      <div className="text-sm text-gray-600">Общая сумма</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold text-purple-600">
+                        {cargoAcceptanceForm.cargo_items.length}
+                      </div>
+                      <div className="text-sm text-gray-600">Количество грузов</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Способы оплаты и получения */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="payment_method">Способ оплаты для груза *</Label>
+                  <Select 
+                    value={cargoAcceptanceForm.payment_method} 
+                    onValueChange={(value) => setCargoAcceptanceForm({...cargoAcceptanceForm, payment_method: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите способ оплаты" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash">Наличные</SelectItem>
+                      <SelectItem value="card">Банковская карта</SelectItem>
+                      <SelectItem value="transfer">Перевод</SelectItem>
+                      <SelectItem value="prepaid">Предоплата</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="delivery_method">Способ получения груза *</Label>
+                  <Select 
+                    value={cargoAcceptanceForm.delivery_method} 
+                    onValueChange={(value) => setCargoAcceptanceForm({...cargoAcceptanceForm, delivery_method: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите способ получения" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pickup">Самовывоз</SelectItem>
+                      <SelectItem value="delivery">Доставка курьером</SelectItem>
+                      <SelectItem value="shipping">Отправка почтой</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Кнопки действий */}
+              <div className="flex justify-between items-center pt-4 border-t">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowCargoAcceptanceModal(false);
+                    setCurrentCargoNotification(null);
+                    setCargoAcceptanceForm({
+                      sender_full_name: '',
+                      sender_phone: '',
+                      sender_address: '',
+                      recipient_full_name: '',
+                      recipient_phone: '',
+                      recipient_address: '',
+                      cargo_items: [{ name: '', weight: '', price: '' }],
+                      payment_method: '',
+                      delivery_method: '',
+                      payment_status: 'not_paid'
+                    });
+                  }}
+                >
+                  Отмена
+                </Button>
+                <div className="space-x-3">
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      // TODO: Печать накладной
+                      showAlert('Функция печати накладной будет реализована', 'info');
+                    }}
+                  >
+                    <Printer className="mr-2 h-4 w-4" />
+                    Печать накладной
+                  </Button>
+                  <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Оформить и создать грузы
+                  </Button>
+                </div>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Модальное окно схемы склада */}
       <Dialog open={layoutModal} onOpenChange={setLayoutModal}>
         <DialogContent className="max-w-4xl">
