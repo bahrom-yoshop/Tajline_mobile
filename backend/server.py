@@ -12757,6 +12757,14 @@ async def generate_all_cells_qr(
         if not all([blocks_count, shelves_per_block, cells_per_shelf]):
             raise HTTPException(status_code=400, detail="Warehouse structure not defined")
         
+        # Получаем номер склада для QR кода
+        warehouse_number = warehouse.get("warehouse_number", 1)
+        if isinstance(warehouse_number, str):
+            try:
+                warehouse_number = int(warehouse_number)
+            except ValueError:
+                warehouse_number = 1
+        
         qr_codes = []
         
         for block in range(1, blocks_count + 1):
@@ -12764,20 +12772,12 @@ async def generate_all_cells_qr(
                 for cell in range(1, cells_per_shelf + 1):
                     cell_location = f"Б{block}-П{shelf}-Я{cell}"
                     
-                    # Создаем данные для QR кода
-                    qr_data = {
-                        "type": "warehouse_cell",
-                        "warehouse_id": warehouse_id,
-                        "warehouse_name": warehouse.get("name", ""),
-                        "cell_location": cell_location,
-                        "block": block,
-                        "shelf": shelf,
-                        "cell": cell
-                    }
+                    # Создаем числовой QR код в формате: номер_склада номер_блока номер_полки номер_ячейки
+                    qr_code_data = f"{warehouse_number:02d} {block:02d} {shelf:02d} {cell:02d}"
                     
-                    # Генерируем QR код
+                    # Генерируем QR код с числовыми данными
                     qr = qrcode.QRCode(version=1, box_size=10, border=5)
-                    qr.add_data(json.dumps(qr_data))
+                    qr.add_data(qr_code_data)
                     qr.make(fit=True)
                     
                     img = qr.make_image(fill_color="black", back_color="white")
@@ -12791,7 +12791,8 @@ async def generate_all_cells_qr(
                     
                     qr_codes.append({
                         "cell_location": cell_location,
-                        "qr_code": qr_code_data_url
+                        "qr_code": qr_code_data_url,
+                        "qr_data": qr_code_data
                     })
         
         return {
