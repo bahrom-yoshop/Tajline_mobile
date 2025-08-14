@@ -16572,8 +16572,21 @@ function App() {
                             {allPickupRequests.map((request) => (
                               <Card key={request.id} className="border border-gray-200">
                                 <CardContent className="p-4">
-                                  <div className="flex items-start justify-between">
+                                  <div className="flex items-start space-x-3">
+                                    {/* Чекбокс для выбора заявки */}
+                                    <div className="mt-1">
+                                      <Checkbox
+                                        id={`pickup-request-${request.id}`}
+                                        checked={selectedPickupRequests.includes(request.id)}
+                                        onCheckedChange={(checked) => 
+                                          handlePickupRequestSelect(request.id, checked)
+                                        }
+                                      />
+                                    </div>
+                                    
                                     <div className="flex-1">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex-1">
                                       <div className="flex items-center space-x-3 mb-2">
                                         <Badge className="bg-orange-100 text-orange-700 border-orange-200">
                                           № {request.request_number || request.id.slice(0, 6)}
