@@ -165,10 +165,8 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Интерфейс массового удаления заявок на забор"
-  stuck_tasks:
-    - "Интерфейс массового удаления заявок на забор"
+  current_focus: []
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
