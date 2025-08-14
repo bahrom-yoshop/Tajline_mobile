@@ -33582,6 +33582,423 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_updated_notification_and_pickup_endpoints(self):
+        """Test updated backend endpoints for notifications and pickup requests according to review request"""
+        print("\n🔔 UPDATED NOTIFICATION AND PICKUP ENDPOINTS TESTING")
+        print("   🎯 Протестировать обновленные backend endpoints для уведомлений и заявок на забор")
+        print("   🔧 НОВЫЕ/ОБНОВЛЕННЫЕ ENDPOINTS:")
+        print("   1) POST /api/operator/warehouse-notifications/{notification_id}/accept - теперь только помечает уведомление как 'in_processing'")
+        print("   2) POST /api/operator/warehouse-notifications/{notification_id}/complete - новый endpoint для полного оформления груза с деталями")
+        print("   3) GET /api/operator/pickup-requests/history - получение истории завершенных заявок на забор")
+        print("   4) GET /api/courier/requests/new - исправлена логика фильтрации заявок на забор груза")
+        
+        all_success = True
+        
+        # ПОЛНЫЙ ЦИКЛ ТЕСТИРОВАНИЯ:
+        # 1. Авторизация оператора (+79777888999/warehouse123)
+        print("\n   🔐 Step 1: АВТОРИЗАЦИЯ ОПЕРАТОРА (+79777888999/warehouse123)...")
+        
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+            return False
+        
+        # 2. Создание заявки на забор груза через POST /api/admin/courier/pickup-request
+        print("\n   📝 Step 2: СОЗДАНИЕ ЗАЯВКИ НА ЗАБОР ГРУЗА...")
+        
+        pickup_request_data = {
+            "sender_full_name": "Тест Отправитель Уведомления",
+            "sender_phone": "+79991234567,+79991234568",
+            "pickup_address": "Москва, ул. Тестовая Уведомления, 123",
+            "pickup_date": "2025-01-20",
+            "pickup_time_from": "10:00",
+            "pickup_time_to": "18:00",
+            "route": "moscow_to_tajikistan",
+            "courier_fee": 500.0,
+            "cargo_name": "Тестовый груз для уведомлений",
+            "weight": 5.0,
+            "declared_value": 2000.0,
+            "description": "Тест полного цикла уведомлений"
+        }
+        
+        success, pickup_response = self.run_test(
+            "Create Pickup Request for Notification Testing",
+            "POST",
+            "/api/admin/courier/pickup-request",
+            200,
+            pickup_request_data,
+            operator_token
+        )
+        all_success &= success
+        
+        pickup_request_id = None
+        if success and 'id' in pickup_response:
+            pickup_request_id = pickup_response['id']
+            pickup_request_number = pickup_response.get('request_number')
+            print(f"   ✅ Pickup request created: ID {pickup_request_id}, Number {pickup_request_number}")
+        else:
+            print("   ❌ Failed to create pickup request")
+            all_success = False
+            return False
+        
+        # 3. Авторизация курьера (+79991234567/courier123)
+        print("\n   🚚 Step 3: АВТОРИЗАЦИЯ КУРЬЕРА (+79991234567/courier123)...")
+        
+        courier_login_data = {
+            "phone": "+79991234567",
+            "password": "courier123"
+        }
+        
+        success, courier_login_response = self.run_test(
+            "Courier Login",
+            "POST",
+            "/api/auth/login",
+            200,
+            courier_login_data
+        )
+        all_success &= success
+        
+        courier_token = None
+        if success and 'access_token' in courier_login_response:
+            courier_token = courier_login_response['access_token']
+            courier_user = courier_login_response.get('user', {})
+            courier_name = courier_user.get('full_name')
+            
+            print(f"   ✅ Courier login successful: {courier_name}")
+            
+            self.tokens['courier'] = courier_token
+            self.users['courier'] = courier_user
+        else:
+            print("   ❌ Courier login failed")
+            all_success = False
+            return False
+        
+        # 4. Проверка что заявка отображается в GET /api/courier/requests/new (должна быть со статусом pending)
+        print("\n   📋 Step 4: ПРОВЕРКА ЗАЯВКИ В НОВЫХ ЗАЯВКАХ КУРЬЕРА...")
+        
+        success, new_requests_response = self.run_test(
+            "Get New Courier Requests (Check Pickup Request Visible)",
+            "GET",
+            "/api/courier/requests/new",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        if success:
+            # Find our pickup request in the list
+            new_requests = new_requests_response.get('new_requests', []) if isinstance(new_requests_response, dict) else new_requests_response
+            pickup_found = False
+            
+            for request in new_requests:
+                if request.get('id') == pickup_request_id:
+                    pickup_found = True
+                    request_status = request.get('request_status')
+                    print(f"   ✅ Pickup request found in new requests with status: {request_status}")
+                    
+                    if request_status == 'pending':
+                        print("   ✅ Request status is 'pending' as expected")
+                    else:
+                        print(f"   ❌ Request status incorrect: expected 'pending', got '{request_status}'")
+                        all_success = False
+                    break
+            
+            if not pickup_found:
+                print("   ❌ Pickup request not found in new requests")
+                all_success = False
+        else:
+            print("   ❌ Failed to get new courier requests")
+            all_success = False
+        
+        # 5. Принятие заявки курьером через POST /api/courier/requests/{request_id}/accept
+        print("\n   ✅ Step 5: ПРИНЯТИЕ ЗАЯВКИ КУРЬЕРОМ...")
+        
+        success, accept_response = self.run_test(
+            "Accept Pickup Request by Courier",
+            "POST",
+            f"/api/courier/requests/{pickup_request_id}/accept",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Pickup request accepted by courier")
+        else:
+            print("   ❌ Failed to accept pickup request")
+            all_success = False
+        
+        # 6. Проверка что заявка все еще отображается в новых заявках (должна остаться до забора)
+        print("\n   🔍 Step 6: ПРОВЕРКА ЧТО ЗАЯВКА ОСТАЕТСЯ В НОВЫХ ЗАЯВКАХ...")
+        
+        success, new_requests_after_accept = self.run_test(
+            "Check Request Still in New Requests After Accept",
+            "GET",
+            "/api/courier/requests/new",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        if success:
+            new_requests = new_requests_after_accept.get('new_requests', []) if isinstance(new_requests_after_accept, dict) else new_requests_after_accept
+            still_in_new = any(request.get('id') == pickup_request_id for request in new_requests)
+            
+            if still_in_new:
+                print("   ✅ Request still appears in new requests (correct behavior until pickup)")
+            else:
+                print("   ⚠️  Request no longer in new requests (may be moved to accepted)")
+        
+        # 7. Забор груза через POST /api/courier/requests/{request_id}/pickup
+        print("\n   📦 Step 7: ЗАБОР ГРУЗА КУРЬЕРОМ...")
+        
+        success, pickup_cargo_response = self.run_test(
+            "Pickup Cargo by Courier",
+            "POST",
+            f"/api/courier/requests/{pickup_request_id}/pickup",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Cargo picked up by courier")
+        else:
+            print("   ❌ Failed to pickup cargo")
+            all_success = False
+        
+        # 8. Сдача груза на склад через POST /api/courier/requests/{request_id}/deliver-to-warehouse
+        print("\n   🏭 Step 8: СДАЧА ГРУЗА НА СКЛАД...")
+        
+        success, deliver_response = self.run_test(
+            "Deliver Cargo to Warehouse",
+            "POST",
+            f"/api/courier/requests/{pickup_request_id}/deliver-to-warehouse",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        notification_id = None
+        if success:
+            print("   ✅ Cargo delivered to warehouse")
+            # Check if notification was created
+            if 'notification_id' in deliver_response:
+                notification_id = deliver_response['notification_id']
+                print(f"   ✅ Notification created: {notification_id}")
+        else:
+            print("   ❌ Failed to deliver cargo to warehouse")
+            all_success = False
+        
+        # 9. Получение уведомлений оператором через GET /api/operator/warehouse-notifications
+        print("\n   🔔 Step 9: ПОЛУЧЕНИЕ УВЕДОМЛЕНИЙ ОПЕРАТОРОМ...")
+        
+        success, notifications_response = self.run_test(
+            "Get Warehouse Notifications",
+            "GET",
+            "/api/operator/warehouse-notifications",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            notifications = notifications_response if isinstance(notifications_response, list) else notifications_response.get('notifications', [])
+            notification_count = len(notifications)
+            print(f"   ✅ Found {notification_count} warehouse notifications")
+            
+            # Find our notification
+            our_notification = None
+            for notification in notifications:
+                if notification.get('request_id') == pickup_request_id:
+                    our_notification = notification
+                    notification_id = notification.get('id')
+                    notification_status = notification.get('status')
+                    print(f"   ✅ Found our notification: ID {notification_id}, Status {notification_status}")
+                    break
+            
+            if not our_notification:
+                print("   ❌ Our notification not found in the list")
+                all_success = False
+        else:
+            print("   ❌ Failed to get warehouse notifications")
+            all_success = False
+        
+        # 10. НОВЫЙ ТЕСТ: Принятие уведомления через POST /api/operator/warehouse-notifications/{notification_id}/accept
+        print("\n   ✅ Step 10: НОВЫЙ ТЕСТ - ПРИНЯТИЕ УВЕДОМЛЕНИЯ (должен изменить статус на 'in_processing')...")
+        
+        if notification_id:
+            success, accept_notification_response = self.run_test(
+                "Accept Warehouse Notification (New Behavior - Only Mark as in_processing)",
+                "POST",
+                f"/api/operator/warehouse-notifications/{notification_id}/accept",
+                200,
+                token=operator_token
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Notification accepted successfully")
+                
+                # Verify status changed to 'in_processing'
+                new_status = accept_notification_response.get('status')
+                if new_status == 'in_processing':
+                    print("   ✅ Notification status correctly changed to 'in_processing'")
+                else:
+                    print(f"   ❌ Notification status incorrect: expected 'in_processing', got '{new_status}'")
+                    all_success = False
+            else:
+                print("   ❌ Failed to accept notification")
+                all_success = False
+        else:
+            print("   ❌ No notification ID available for acceptance test")
+            all_success = False
+        
+        # 11. НОВЫЙ ТЕСТ: Полное оформление через POST /api/operator/warehouse-notifications/{notification_id}/complete
+        print("\n   ✅ Step 11: НОВЫЙ ТЕСТ - ПОЛНОЕ ОФОРМЛЕНИЕ ГРУЗА С ДЕТАЛЯМИ...")
+        
+        if notification_id:
+            complete_cargo_data = {
+                "cargo_details": {
+                    "weight": 5.0,
+                    "declared_value": 2000.0,
+                    "description": "Полное оформление тестового груза",
+                    "special_instructions": "Хрупкий груз, осторожно"
+                },
+                "warehouse_placement": {
+                    "block": 1,
+                    "shelf": 1,
+                    "cell": 5
+                },
+                "operator_notes": "Груз принят в хорошем состоянии"
+            }
+            
+            success, complete_response = self.run_test(
+                "Complete Cargo Processing (New Endpoint with Details)",
+                "POST",
+                f"/api/operator/warehouse-notifications/{notification_id}/complete",
+                200,
+                complete_cargo_data,
+                operator_token
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ Cargo processing completed successfully")
+                
+                # Verify cargo was created
+                cargo_id = complete_response.get('cargo_id')
+                cargo_number = complete_response.get('cargo_number')
+                
+                if cargo_id and cargo_number:
+                    print(f"   ✅ Cargo created: ID {cargo_id}, Number {cargo_number}")
+                else:
+                    print("   ❌ Cargo creation details not returned")
+                    all_success = False
+                
+                # Verify notification status
+                final_status = complete_response.get('notification_status')
+                if final_status == 'completed':
+                    print("   ✅ Notification status correctly set to 'completed'")
+                else:
+                    print(f"   ❌ Notification status incorrect: expected 'completed', got '{final_status}'")
+                    all_success = False
+            else:
+                print("   ❌ Failed to complete cargo processing")
+                all_success = False
+        else:
+            print("   ❌ No notification ID available for completion test")
+            all_success = False
+        
+        # 12. НОВЫЙ ТЕСТ: Получение истории через GET /api/operator/pickup-requests/history
+        print("\n   📚 Step 12: НОВЫЙ ТЕСТ - ПОЛУЧЕНИЕ ИСТОРИИ ЗАВЕРШЕННЫХ ЗАЯВОК НА ЗАБОР...")
+        
+        success, history_response = self.run_test(
+            "Get Pickup Requests History (New Endpoint)",
+            "GET",
+            "/api/operator/pickup-requests/history",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Pickup requests history endpoint working")
+            
+            # Verify response structure
+            if isinstance(history_response, dict):
+                history_items = history_response.get('items', [])
+                total_count = history_response.get('total_count', 0)
+                print(f"   📊 History items: {len(history_items)}")
+                print(f"   📊 Total count: {total_count}")
+                
+                # Look for our completed request
+                our_request_found = False
+                for item in history_items:
+                    if item.get('id') == pickup_request_id:
+                        our_request_found = True
+                        item_status = item.get('request_status')
+                        print(f"   ✅ Our request found in history with status: {item_status}")
+                        break
+                
+                if our_request_found:
+                    print("   ✅ Completed request correctly appears in history")
+                else:
+                    print("   ⚠️  Our request not yet in history (may take time to update)")
+                    
+            elif isinstance(history_response, list):
+                history_count = len(history_response)
+                print(f"   📊 History items: {history_count}")
+            else:
+                print("   ❌ Unexpected response format for history")
+                all_success = False
+        else:
+            print("   ❌ Failed to get pickup requests history")
+            all_success = False
+        
+        # SUMMARY
+        print("\n   📊 UPDATED NOTIFICATION AND PICKUP ENDPOINTS SUMMARY:")
+        
+        if all_success:
+            print("   🎉 ALL TESTS PASSED - Updated notification and pickup endpoints working perfectly!")
+            print("   ✅ Полный цикл от создания заявки до полного оформления груза работает")
+            print("   ✅ POST /api/operator/warehouse-notifications/{notification_id}/accept - помечает как 'in_processing'")
+            print("   ✅ POST /api/operator/warehouse-notifications/{notification_id}/complete - полное оформление с деталями")
+            print("   ✅ GET /api/operator/pickup-requests/history - получение истории завершенных заявок")
+            print("   ✅ GET /api/courier/requests/new - логика фильтрации заявок на забор исправлена")
+            print("   🎯 ОЖИДАЕМЫЙ РЕЗУЛЬТАТ ДОСТИГНУТ: Все новые endpoints работают корректно с правильными статусами и логикой фильтрации")
+        else:
+            print("   ❌ SOME TESTS FAILED - Updated notification and pickup endpoints need attention")
+            print("   🔍 Check the specific failed tests above for details")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
