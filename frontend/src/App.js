@@ -348,13 +348,22 @@ function App() {
 
   const handleAcceptCourierRequest = async (requestId) => {
     try {
-      await apiCall(`/api/courier/requests/${requestId}/accept`, 'POST');
+      const response = await apiCall(`/api/courier/requests/${requestId}/accept`, 'POST');
       
-      showAlert('Заявка принята! Оператор получит уведомление.', 'success');
+      showAlert('Заявка принята! Теперь вы можете забрать груз.', 'success');
       
-      // Обновляем все списки
-      fetchCourierNewRequests();
-      fetchAcceptedRequests();
+      // Автоматически обновляем все списки заявок для реактивного обновления
+      await Promise.all([
+        fetchCourierNewRequests(),     // Обновляем новые заявки (заявка исчезнет отсюда)
+        fetchAcceptedRequests(),       // Обновляем принятые заявки (заявка появится здесь)
+        fetchPickedRequests(),         // Обновляем забранные заявки
+        fetchCancelledRequests()       // Обновляем отмененные заявки
+      ]);
+      
+      // Если это заявка на забор груза, показываем дополнительную информацию
+      if (response?.request_type === 'pickup') {
+        showAlert('Заявка на забор груза принята! Вы можете найти её в разделе "Принятые заявки".', 'success');
+      }
       
     } catch (error) {
       console.error('Error accepting courier request:', error);
