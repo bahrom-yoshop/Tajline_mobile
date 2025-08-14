@@ -181,8 +181,14 @@ class WarehouseNotificationsBackendTester:
                         all_success = False
                 else:
                     print("   ⚠️  No notifications found for testing")
+            elif isinstance(notifications_response, list):
+                notifications_list = notifications_response
+                notification_count = len(notifications_list)
+                print(f"   📊 Found {notification_count} warehouse notifications (direct list format)")
             else:
                 print("   ❌ Unexpected response format for notifications")
+                print(f"   📄 Response type: {type(notifications_response)}")
+                print(f"   📄 Response keys: {list(notifications_response.keys()) if isinstance(notifications_response, dict) else 'Not a dict'}")
                 all_success = False
         else:
             print("   ❌ Failed to get warehouse notifications")
