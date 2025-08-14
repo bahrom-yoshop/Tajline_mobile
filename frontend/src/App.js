@@ -4045,7 +4045,7 @@ function App() {
         } else {
           console.log('❌ Неверный формат QR-кода ячейки:', scannedData);
           setScannerError('Неверный формат QR-кода ячейки');
-          showAlert(`Неверный формат QR-кода ячейки: "${scannedData}". Ожидается формат: 03010101`, 'error');
+          showAlert(`Неверный формат QR-кода ячейки: "${scannedData}". Ожидается формат: '03010101', '001-01-01-001' или 'Б1-П1-Я1'`, 'error');
         }
       } else if (scannerMode === 'cargo-qr-search') {
         // Режим поиска груза
