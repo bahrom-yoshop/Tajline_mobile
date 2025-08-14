@@ -968,7 +968,7 @@ function App() {
           recipient_full_name: '',
           recipient_phone: '',
           recipient_address: '',
-          cargo_items: [{ name: notification.destination || 'Груз для забора', weight: '', price: '' }],
+          cargo_items: [{ name: notification.destination || 'Наименование груза не указано', weight: '', price: '' }],
           payment_method: notification.payment_method || 'cash',
           delivery_method: 'pickup',
           payment_status: 'not_paid'
