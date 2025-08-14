@@ -12708,10 +12708,10 @@ async def get_courier_new_requests(
         ]
     }, {"_id": 0}).sort("created_at", -1))
     
-    # Получаем заявки на забор груза
+    # Получаем заявки на забор груза - ИСПРАВЛЕННАЯ ЛОГИКА
     pickup_requests = list(db.courier_pickup_requests.find({
         "$or": [
-            {"assigned_courier_id": courier["id"], "request_status": "accepted"},
+            {"assigned_courier_id": courier["id"], "request_status": {"$in": ["accepted", "pending"]}},
             {"assigned_courier_id": None, "request_status": "pending"}
         ]
     }, {"_id": 0}).sort("created_at", -1))
