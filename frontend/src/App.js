@@ -9953,6 +9953,7 @@ function App() {
           { id: 'cargo-accept', label: 'Принимать новый груз' },
           { id: 'cargo-list', label: 'Список грузов' },
           { id: 'cargo-placement', label: 'Размещение груза' },
+          { id: 'cargo-pickup-requests', label: 'На Забор' },
           { id: 'cargo-history', label: 'История грузов' }
         ]
       },
