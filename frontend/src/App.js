@@ -2889,6 +2889,7 @@ function App() {
   const [selectedCargo, setSelectedCargo] = useState([]);
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [selectedRequests, setSelectedRequests] = useState([]); // Выбранные заявки
+  const [selectedPickupRequests, setSelectedPickupRequests] = useState([]); // Выбранные заявки на забор
   const [selectedOperators, setSelectedOperators] = useState([]); // Выбранные операторы
   const [selectedTransports, setSelectedTransports] = useState([]); // Выбранные транспорты
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
