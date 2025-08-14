@@ -159,9 +159,8 @@ function App() {
     cells_per_shelf: ''
   });
   
-  // НОВОЕ: Состояния для модального окна QR кода ячейки
+  // НОВОЕ: Состояние для модального окна QR кода ячейки
   const [cellQRModal, setCellQRModal] = useState(false);
-  const [selectedCellQR, setSelectedCellQR] = useState(null);
   const [isAcceptedMapOpen, setIsAcceptedMapOpen] = useState(false);
   
   // НОВОЕ: Состояние для GPS отслеживания курьера
