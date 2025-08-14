@@ -268,7 +268,9 @@ class PickupRequestModalDataTester:
             requests_with_recipient_data = []
             requests_without_recipient_data = []
             
-            for i, request in enumerate(all_pickup_requests[:10]):  # Проверяем первые 10 заявок
+            # Проверяем первые 10 заявок
+            requests_to_check = all_pickup_requests[:10] if len(all_pickup_requests) > 10 else all_pickup_requests
+            for i, request in enumerate(requests_to_check):
                 request_id = request.get('id', f'unknown_{i}')
                 
                 # Пытаемся получить детальную информацию о каждой заявке
