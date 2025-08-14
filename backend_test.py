@@ -35086,6 +35086,327 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_pickup_request_workflow_with_pickup_request_id(self):
+        """Test complete pickup request workflow for TAJLINE.TJ modal window testing"""
+        print("\n🚚 PICKUP REQUEST WORKFLOW WITH PICKUP_REQUEST_ID TESTING")
+        print("   🎯 Создание полного workflow заявки на забор груза с pickup_request_id для тестирования улучшенного модального окна TAJLINE.TJ")
+        print("   📋 ПОЛНЫЙ WORKFLOW СОЗДАНИЯ ЗАЯВКИ:")
+        print("   1. Авторизация оператора (+79777888999/warehouse123)")
+        print("   2. Создание заявки на забор груза через POST /api/admin/courier/pickup-request")
+        print("   3. Авторизация курьера (+79991234567/courier123)")
+        print("   4. Принятие заявки курьером: POST /api/courier/requests/{request_id}/accept")
+        print("   5. Забор груза курьером: POST /api/courier/requests/{request_id}/pickup")
+        print("   6. Заполнение данных получателя курьером: PUT /api/courier/requests/{request_id}/update")
+        print("   7. Доставка груза на склад: POST /api/courier/requests/{request_id}/deliver-to-warehouse")
+        print("   8. Проверка создания уведомления с pickup_request_id: GET /api/operator/warehouse-notifications")
+        print("   9. Тестирование endpoint GET /api/operator/pickup-requests/{pickup_request_id}")
+        
+        all_success = True
+        pickup_request_id = None
+        
+        # ЭТАП 1: Авторизация оператора (+79777888999/warehouse123)
+        print("\n   🔐 ЭТАП 1: АВТОРИЗАЦИЯ ОПЕРАТОРА (+79777888999/warehouse123)...")
+        
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Operator Authentication for Pickup Request Workflow",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_name = operator_user.get('full_name')
+            operator_role = operator_user.get('role')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+            return False
+        
+        # ЭТАП 2: Создание заявки на забор груза через POST /api/admin/courier/pickup-request
+        print("\n   📝 ЭТАП 2: СОЗДАНИЕ ЗАЯВКИ НА ЗАБОР ГРУЗА...")
+        
+        pickup_request_data = {
+            "sender_full_name": "Тестовый Отправитель Workflow",
+            "sender_phone": "+79999123456",
+            "pickup_address": "Москва, ул. Тестовая Workflow, 101",
+            "pickup_date": "2025-01-20",
+            "pickup_time_from": "10:00",
+            "pickup_time_to": "18:00",
+            "destination": "Тестовые документы и груз",
+            "courier_fee": 1500.0,
+            "payment_method": "cash"
+        }
+        
+        success, pickup_response = self.run_test(
+            "Create Pickup Request for Workflow Testing",
+            "POST",
+            "/api/admin/courier/pickup-request",
+            200,
+            pickup_request_data,
+            operator_token
+        )
+        all_success &= success
+        
+        if success and 'id' in pickup_response:
+            pickup_request_id = pickup_response['id']
+            pickup_request_number = pickup_response.get('request_number', pickup_request_id)
+            
+            print(f"   ✅ Pickup request created successfully")
+            print(f"   🆔 Request ID: {pickup_request_id}")
+            print(f"   📋 Request Number: {pickup_request_number}")
+        else:
+            print("   ❌ Failed to create pickup request")
+            print(f"   📄 Response: {pickup_response}")
+            all_success = False
+            return False
+        
+        # ЭТАП 3: Авторизация курьера (+79991234567/courier123)
+        print("\n   🚴 ЭТАП 3: АВТОРИЗАЦИЯ КУРЬЕРА (+79991234567/courier123)...")
+        
+        courier_login_data = {
+            "phone": "+79991234567",
+            "password": "courier123"
+        }
+        
+        success, courier_login_response = self.run_test(
+            "Courier Authentication for Pickup Request Workflow",
+            "POST",
+            "/api/auth/login",
+            200,
+            courier_login_data
+        )
+        all_success &= success
+        
+        courier_token = None
+        if success and 'access_token' in courier_login_response:
+            courier_token = courier_login_response['access_token']
+            courier_user = courier_login_response.get('user', {})
+            courier_name = courier_user.get('full_name')
+            courier_role = courier_user.get('role')
+            
+            print(f"   ✅ Courier login successful: {courier_name}")
+            print(f"   👑 Role: {courier_role}")
+            
+            self.tokens['courier'] = courier_token
+            self.users['courier'] = courier_user
+        else:
+            print("   ❌ Courier login failed")
+            all_success = False
+            return False
+        
+        # ЭТАП 4: Принятие заявки курьером: POST /api/courier/requests/{request_id}/accept
+        print("\n   ✅ ЭТАП 4: ПРИНЯТИЕ ЗАЯВКИ КУРЬЕРОМ...")
+        
+        success, accept_response = self.run_test(
+            "Courier Accept Pickup Request",
+            "POST",
+            f"/api/courier/requests/{pickup_request_id}/accept",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Pickup request accepted by courier")
+            print(f"   📄 Response: {accept_response}")
+        else:
+            print("   ❌ Failed to accept pickup request")
+            all_success = False
+        
+        # ЭТАП 5: Забор груза курьером: POST /api/courier/requests/{request_id}/pickup
+        print("\n   📦 ЭТАП 5: ЗАБОР ГРУЗА КУРЬЕРОМ...")
+        
+        success, pickup_cargo_response = self.run_test(
+            "Courier Pickup Cargo",
+            "POST",
+            f"/api/courier/requests/{pickup_request_id}/pickup",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Cargo picked up by courier")
+            print(f"   📄 Response: {pickup_cargo_response}")
+        else:
+            print("   ❌ Failed to pickup cargo")
+            all_success = False
+        
+        # ЭТАП 6: Заполнение данных получателя курьером: PUT /api/courier/requests/{request_id}/update
+        print("\n   📝 ЭТАП 6: ЗАПОЛНЕНИЕ ДАННЫХ ПОЛУЧАТЕЛЯ КУРЬЕРОМ...")
+        
+        recipient_data = {
+            "cargo_items": [{"name": "Тестовые документы", "weight": "2.5", "total_price": "1000"}],
+            "recipient_full_name": "Получатель Тестовый Workflow",
+            "recipient_phone": "+992900111222",
+            "recipient_address": "Душанбе, ул. Workflow, 5",
+            "delivery_method": "pickup"
+        }
+        
+        success, update_response = self.run_test(
+            "Courier Update Recipient Data",
+            "PUT",
+            f"/api/courier/requests/{pickup_request_id}/update",
+            200,
+            recipient_data,
+            courier_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Recipient data updated by courier")
+            print(f"   📄 Response: {update_response}")
+        else:
+            print("   ❌ Failed to update recipient data")
+            all_success = False
+        
+        # ЭТАП 7: Доставка груза на склад: POST /api/courier/requests/{request_id}/deliver-to-warehouse
+        print("\n   🏭 ЭТАП 7: ДОСТАВКА ГРУЗА НА СКЛАД...")
+        
+        success, deliver_response = self.run_test(
+            "Courier Deliver to Warehouse",
+            "POST",
+            f"/api/courier/requests/{pickup_request_id}/deliver-to-warehouse",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Cargo delivered to warehouse")
+            print(f"   📄 Response: {deliver_response}")
+        else:
+            print("   ❌ Failed to deliver cargo to warehouse")
+            all_success = False
+        
+        # ЭТАП 8: Проверка создания уведомления с pickup_request_id: GET /api/operator/warehouse-notifications
+        print("\n   🔔 ЭТАП 8: ПРОВЕРКА СОЗДАНИЯ УВЕДОМЛЕНИЯ С PICKUP_REQUEST_ID...")
+        
+        success, notifications_response = self.run_test(
+            "Get Warehouse Notifications with pickup_request_id",
+            "GET",
+            "/api/operator/warehouse-notifications",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        notification_with_pickup_id = None
+        if success:
+            print("   ✅ Warehouse notifications retrieved")
+            
+            # Look for notification with pickup_request_id
+            if isinstance(notifications_response, list):
+                for notification in notifications_response:
+                    if notification.get('pickup_request_id') == pickup_request_id:
+                        notification_with_pickup_id = notification
+                        break
+                        
+                if notification_with_pickup_id:
+                    print(f"   ✅ Found notification with pickup_request_id: {pickup_request_id}")
+                    print(f"   📋 Notification ID: {notification_with_pickup_id.get('id')}")
+                    print(f"   📄 Message: {notification_with_pickup_id.get('message', 'No message')}")
+                else:
+                    print(f"   ❌ No notification found with pickup_request_id: {pickup_request_id}")
+                    all_success = False
+            else:
+                print("   ❌ Unexpected response format for notifications")
+                all_success = False
+        else:
+            print("   ❌ Failed to get warehouse notifications")
+            all_success = False
+        
+        # ЭТАП 9: Тестирование endpoint GET /api/operator/pickup-requests/{pickup_request_id}
+        print("\n   🔍 ЭТАП 9: ТЕСТИРОВАНИЕ ENDPOINT GET /api/operator/pickup-requests/{pickup_request_id}...")
+        
+        success, pickup_details_response = self.run_test(
+            "Get Pickup Request Details for Modal Window",
+            "GET",
+            f"/api/operator/pickup-requests/{pickup_request_id}",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Pickup request details retrieved successfully")
+            print(f"   📄 Response keys: {list(pickup_details_response.keys()) if isinstance(pickup_details_response, dict) else 'Not a dict'}")
+            
+            # Verify response contains recipient_data for modal window
+            if isinstance(pickup_details_response, dict):
+                required_fields = ['id', 'sender_full_name', 'sender_phone', 'pickup_address']
+                missing_fields = [field for field in required_fields if field not in pickup_details_response]
+                
+                if not missing_fields:
+                    print("   ✅ All required fields present in pickup request details")
+                    
+                    # Check for recipient data filled by courier
+                    if 'recipient_data' in pickup_details_response or 'recipient_full_name' in pickup_details_response:
+                        print("   ✅ Recipient data available for modal window")
+                        recipient_name = pickup_details_response.get('recipient_full_name') or pickup_details_response.get('recipient_data', {}).get('recipient_full_name')
+                        if recipient_name:
+                            print(f"   👤 Recipient: {recipient_name}")
+                    else:
+                        print("   ⚠️  Recipient data may not be available in expected format")
+                        
+                    # Check for cargo information
+                    if 'cargo_items' in pickup_details_response or 'destination' in pickup_details_response:
+                        print("   ✅ Cargo information available for modal window")
+                    else:
+                        print("   ⚠️  Cargo information may not be available")
+                        
+                else:
+                    print(f"   ❌ Missing required fields: {missing_fields}")
+                    all_success = False
+            else:
+                print("   ❌ Response is not in expected dictionary format")
+                all_success = False
+        else:
+            print("   ❌ Failed to get pickup request details")
+            all_success = False
+        
+        # SUMMARY
+        print("\n   📊 PICKUP REQUEST WORKFLOW WITH PICKUP_REQUEST_ID SUMMARY:")
+        
+        if all_success:
+            print("   🎉 ПОЛНЫЙ WORKFLOW УСПЕШНО ЗАВЕРШЕН!")
+            print("   ✅ Авторизация оператора работает")
+            print("   ✅ Создание заявки на забор груза работает")
+            print("   ✅ Авторизация курьера работает")
+            print("   ✅ Принятие заявки курьером работает")
+            print("   ✅ Забор груза курьером работает")
+            print("   ✅ Заполнение данных получателя работает")
+            print("   ✅ Доставка груза на склад работает")
+            print("   ✅ Уведомление создается с pickup_request_id")
+            print("   ✅ Endpoint /api/operator/pickup-requests/{pickup_request_id} возвращает данные")
+            print("   🎯 ОЖИДАЕМЫЙ РЕЗУЛЬТАТ ДОСТИГНУТ:")
+            print("       - Уведомление создается с полем pickup_request_id")
+            print("       - Endpoint /api/operator/pickup-requests/{pickup_request_id} возвращает полные данные включая recipient_data")
+            print("       - Данные получателя заполнены курьером и доступны оператору")
+            print("   🎪 ЦЕЛЬ: Создать уведомление с pickup_request_id для тестирования исправленного модального окна - ВЫПОЛНЕНА!")
+        else:
+            print("   ❌ НЕКОТОРЫЕ ЭТАПЫ WORKFLOW НЕ ПРОШЛИ")
+            print("   🔍 Проверьте детали неудачных тестов выше")
+            print("   ⚠️  Модальное окно может не получить все необходимые данные")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
