@@ -13078,7 +13078,7 @@ async def deliver_cargo_to_warehouse(
 async def get_courier_accepted_requests(
     current_user: User = Depends(get_current_user)
 ):
-    """Получить принятые заявки курьера"""
+    """Получить принятые заявки курьера (включая заявки на забор груза)"""
     if current_user.role != UserRole.COURIER:
         raise HTTPException(status_code=403, detail="Access denied")
     
@@ -13087,16 +13087,41 @@ async def get_courier_accepted_requests(
     if not courier:
         raise HTTPException(status_code=404, detail="Courier profile not found")
     
-    # Получаем принятые заявки (готовые к забору)
+    # Получаем принятые обычные заявки
     accepted_requests = list(db.courier_requests.find({
         "assigned_courier_id": courier["id"],
         "request_status": "accepted"
     }, {"_id": 0}).sort("created_at", -1))
     
+    # Получаем принятые заявки на забор груза
+    accepted_pickup_requests = list(db.courier_pickup_requests.find({
+        "assigned_courier_id": courier["id"],
+        "request_status": "accepted"
+    }, {"_id": 0}).sort("created_at", -1))
+    
+    # Добавляем тип заявки для различения в интерфейсе
+    for request in accepted_requests:
+        request['request_type'] = 'delivery'  # Обычная доставка
+        
+    for request in accepted_pickup_requests:
+        request['request_type'] = 'pickup'  # Забор груза
+        # Добавляем поля совместимости для единообразного отображения
+        request['cargo_name'] = request.get('destination', 'Груз для забора')
+        request['weight'] = 'Не указано'
+        request['declared_value'] = request.get('courier_fee', 0)
+    
+    # Объединяем все принятые заявки и сортируем по дате создания
+    all_accepted = accepted_requests + accepted_pickup_requests
+    all_accepted.sort(key=lambda x: x.get('created_at', datetime.min), reverse=True)
+    
     return {
         "courier_info": courier,
-        "accepted_requests": accepted_requests,
-        "total_count": len(accepted_requests)
+        "accepted_requests": all_accepted,
+        "delivery_requests": accepted_requests,  # Обычные заявки
+        "pickup_requests": accepted_pickup_requests,   # Заявки на забор
+        "total_count": len(all_accepted),
+        "delivery_count": len(accepted_requests),
+        "pickup_count": len(accepted_pickup_requests)
     }
 
 @app.get("/api/courier/requests/picked")
