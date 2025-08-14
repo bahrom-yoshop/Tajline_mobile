@@ -20031,6 +20031,14 @@ function App() {
                       <p className="text-sm text-gray-600 mt-2">Детальная информация о грузе будет заполнена ниже</p>
                     </div>
                   )}
+                  
+                  {/* Отладочная информация для грузов */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
+                      <p>DEBUG - cargo_info: {JSON.stringify(currentCargoNotification?.cargo_info)}</p>
+                      <p>DEBUG - cargo_items: {JSON.stringify(cargoAcceptanceForm.cargo_items)}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
