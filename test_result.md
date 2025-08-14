@@ -265,9 +265,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Fix GPS Tracking Data Not Received by Operators/Admins"
-  stuck_tasks: 
-    - "Fix GPS Tracking Data Not Received by Operators/Admins"
+    - "Backend Stability After QR Code Modal JavaScript Fix"
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
