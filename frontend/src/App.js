@@ -15833,8 +15833,8 @@ function App() {
                                     <div className="flex-1">
                                       <div className="flex items-center space-x-4 mb-4">
                                         <h3 className="font-bold text-xl text-green-600">{item.cargo_number}</h3>
-                                        <Badge variant={item.status === 'placement_ready' ? 'secondary' : 'success'}>
-                                          {item.status === 'placement_ready' ? 'Готов к размещению' : 'Размещен'}
+                                        <Badge variant={item.status === 'awaiting_placement' ? 'secondary' : 'success'}>
+                                          {item.status === 'awaiting_placement' ? 'Готов к размещению' : 'Размещен'}
                                         </Badge>
                                         {/* Индикатор груза из заявки на забор */}
                                         {item.pickup_request_id && (
