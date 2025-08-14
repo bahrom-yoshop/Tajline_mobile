@@ -9289,8 +9289,8 @@ async def get_placed_cargo(
         skip = (page - 1) * per_page
         total_pages = math.ceil(total_count / per_page)
         
-        # Получаем грузы с пагинацией
-        cargo_cursor = db.cargo.find(base_filter).skip(skip).limit(per_page).sort("created_at", -1)
+        # Получаем грузы с пагинацией из operator_cargo
+        cargo_cursor = db.operator_cargo.find(base_filter, {"_id": 0}).skip(skip).limit(per_page).sort("created_at", -1)
         cargo_list = list(cargo_cursor)
         
         # Получаем информацию о складах для каждого груза
