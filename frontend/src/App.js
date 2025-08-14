@@ -13482,7 +13482,7 @@ function App() {
                             </div>
                             
                             <div 
-                              id="qr-reader-placement" 
+                              id="qr-reader-placement-cargo" 
                               className="w-full bg-black rounded-lg"
                               style={{
                                 width: '300px',
