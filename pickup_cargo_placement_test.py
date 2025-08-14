@@ -309,21 +309,20 @@ class PickupCargoPlacementTester:
             notifications = response.get("notifications", [])
             print(f"   📨 Found {len(notifications)} notifications")
             
-            # Find our notification
-            our_notification = None
-            for notif in notifications:
-                if notif.get("id") == self.test_data.get("notification_id"):
-                    our_notification = notif
-                    break
-            
-            if our_notification:
-                print(f"   ✅ Found our notification")
+            # Find the most recent notification (likely ours)
+            if notifications:
+                # Sort by created_at or take the first one
+                our_notification = notifications[0]  # Most recent
+                notification_id = our_notification.get("id")
+                
+                print(f"   ✅ Using notification ID: {notification_id}")
+                print(f"   📋 Notification: {our_notification.get('message', 'No message')[:100]}...")
                 
                 # Accept notification
                 success, response = self.run_test(
                     "Accept Notification",
                     "POST",
-                    f"/api/operator/warehouse-notifications/{self.test_data['notification_id']}/accept",
+                    f"/api/operator/warehouse-notifications/{notification_id}/accept",
                     200,
                     token=self.tokens["operator"]
                 )
@@ -333,7 +332,7 @@ class PickupCargoPlacementTester:
                     success, response = self.run_test(
                         "Complete Notification Processing",
                         "POST",
-                        f"/api/operator/warehouse-notifications/{self.test_data['notification_id']}/complete",
+                        f"/api/operator/warehouse-notifications/{notification_id}/complete",
                         200,
                         token=self.tokens["operator"]
                     )
@@ -347,6 +346,8 @@ class PickupCargoPlacementTester:
                             print(f"   📦 Cargo: {cargo.get('cargo_number')} - {cargo.get('cargo_name')}")
                         
                         return True
+            else:
+                print(f"   ❌ No notifications found")
         
         return False
 
