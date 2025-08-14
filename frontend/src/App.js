@@ -14294,25 +14294,19 @@ function App() {
                                   />
                                 </div>
 
-                                {/* Назначение груза */}
+                                {/* Наименование груза */}
                                 <div>
-                                  <Label htmlFor="pickup_destination" className="text-orange-700 font-medium">
-                                    Назначение груза *
+                                  <Label htmlFor="pickup_cargo_name" className="text-orange-700 font-medium">
+                                    Наименование груза *
                                   </Label>
-                                  <Select
-                                    value={operatorCargoForm.route}
-                                    onValueChange={(value) => setOperatorCargoForm({...operatorCargoForm, route: value})}
-                                  >
-                                    <SelectTrigger className="border-orange-200 focus:border-orange-400">
-                                      <SelectValue placeholder="Выберите направление" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="moscow_to_tajikistan">Москва → Душанбе</SelectItem>
-                                      <SelectItem value="moscow_to_khujand">Москва → Худжанд</SelectItem>
-                                      <SelectItem value="moscow_to_kulob">Москва → Кулоб</SelectItem>
-                                      <SelectItem value="moscow_to_kurgan_tube">Москва → Курган-Тюбе</SelectItem>
-                                    </SelectContent>
-                                  </Select>
+                                  <Input
+                                    id="pickup_cargo_name"
+                                    value={operatorCargoForm.cargo_name || ''}
+                                    onChange={(e) => setOperatorCargoForm({...operatorCargoForm, cargo_name: e.target.value})}
+                                    placeholder="Документы, одежда, подарки..."
+                                    className="border-orange-200 focus:border-orange-400"
+                                    required
+                                  />
                                 </div>
                               </div>
 
