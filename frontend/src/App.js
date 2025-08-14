@@ -13745,9 +13745,6 @@ function App() {
                                             </Badge>
                                           )}
                                         </div>
-                                        <p className="text-xs text-gray-500 mt-1">
-                                          {new Date(cargo.created_at).toLocaleDateString('ru-RU')}
-                                        </p>
                                       </div>
                                     </div>
                                   </div>
