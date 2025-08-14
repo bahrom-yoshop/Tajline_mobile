@@ -423,14 +423,15 @@ class WarehouseCellTester:
         self.test_warehouse_number_field(warehouse_data)
         
         # Step 4: Test warehouse cells list (MAIN FOCUS)
-        cells = self.test_warehouse_cells_list(TARGET_WAREHOUSE_ID)
+        expected_cells = warehouse_data.get("blocks_count", 0) * warehouse_data.get("shelves_per_block", 0) * warehouse_data.get("cells_per_shelf", 0)
+        cells = self.test_warehouse_cells_list(warehouse_data.get("id"), expected_cells)
         
         # Step 5: Test individual cell QR generation (if cells available)
         if cells:
             self.test_individual_cell_qr(cells)
         
         # Step 6: Test batch QR generation
-        self.test_batch_qr_generation(TARGET_WAREHOUSE_ID)
+        self.test_batch_qr_generation(warehouse_data.get("id"))
         
         # Summary
         print("\n" + "=" * 80)
