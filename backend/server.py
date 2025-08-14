@@ -10048,6 +10048,71 @@ async def delete_operators_bulk(
             detail=f"Ошибка массового удаления операторов: {str(e)}"
         )
 
+@app.delete("/api/admin/pickup-requests/bulk")
+async def delete_pickup_requests_bulk(
+    request_ids: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Массовое удаление заявок на забор"""
+    if current_user.role not in [UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Только администраторы могут удалять заявки на забор")
+    
+    try:
+        ids = request_ids.get("ids", [])
+        if not ids:
+            raise HTTPException(status_code=400, detail="Не указаны ID заявок для удаления")
+        
+        success_count = 0
+        error_messages = []
+        
+        for request_id in ids:
+            try:
+                # Проверяем существование заявки
+                request = db.courier_pickup_requests.find_one({"id": request_id}, {"_id": 0})
+                if not request:
+                    error_messages.append(f"Заявка {request_id} не найдена")
+                    continue
+                
+                # Проверяем, можно ли удалять заявку
+                if request.get('request_status') == 'completed':
+                    error_messages.append(f"Нельзя удалить завершенную заявку {request_id}")
+                    continue
+                    
+                # Если заявка в процессе обработки, нужно освободить курьера
+                if request.get('assigned_courier_id'):
+                    db.couriers.update_one(
+                        {"id": request.get('assigned_courier_id')},
+                        {"$unset": {"current_pickup_request_id": ""}}
+                    )
+                
+                # Удаляем связанные уведомления
+                db.warehouse_notifications.delete_many({"pickup_request_id": request_id})
+                
+                # Удаляем саму заявку
+                result = db.courier_pickup_requests.delete_one({"id": request_id})
+                if result.deleted_count > 0:
+                    success_count += 1
+                else:
+                    error_messages.append(f"Не удалось удалить заявку {request_id}")
+                    
+            except Exception as e:
+                error_messages.append(f"Ошибка при удалении заявки {request_id}: {str(e)}")
+        
+        message = f"Успешно удалено заявок: {success_count} из {len(ids)}"
+        
+        return {
+            "message": message,
+            "success_count": success_count,
+            "total_count": len(ids),
+            "errors": error_messages
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка удаления заявок на забор: {str(e)}"
+        )
+
 @app.delete("/api/admin/operators/{operator_id}")
 async def delete_operator(
     operator_id: str,
