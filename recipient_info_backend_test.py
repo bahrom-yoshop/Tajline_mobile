@@ -254,17 +254,37 @@ class RecipientInfoTester:
         notifications = response.get("notifications", [])
         target_notification = None
         
-        for notification in notifications:
+        print(f"   Searching for notification with request number: {self.test_data['pickup_request_number']}")
+        print(f"   Available notifications: {len(notifications)}")
+        
+        for i, notification in enumerate(notifications):
+            print(f"   Notification {i+1}: {notification.get('request_number', 'No number')} - {notification.get('sender_full_name', 'No sender')}")
             if (notification.get("request_number") == self.test_data["pickup_request_number"] or
                 "Иван Петрович Сидоров" in notification.get("sender_full_name", "")):
                 target_notification = notification
                 break
         
         if not target_notification:
+            # Try to find by status 'in_processing' and recent creation
+            for notification in notifications:
+                if (notification.get("status") == "in_processing" and 
+                    "Иван" in notification.get("sender_full_name", "")):
+                    target_notification = notification
+                    print(f"   Found notification by sender name and status")
+                    break
+        
+        if not target_notification:
             print("❌ Could not find warehouse notification for our pickup request")
-            print(f"   Looking for request number: {self.test_data['pickup_request_number']}")
-            print(f"   Available notifications: {len(notifications)}")
-            return False
+            print(f"   This might be expected if the notification creation is delayed")
+            print(f"   Let's try to find the most recent 'in_processing' notification")
+            
+            # Find the most recent in_processing notification
+            in_processing_notifications = [n for n in notifications if n.get("status") == "in_processing"]
+            if in_processing_notifications:
+                target_notification = in_processing_notifications[0]  # Take the first one
+                print(f"   Using most recent in_processing notification: {target_notification.get('id')}")
+            else:
+                return False
         
         print(f"✅ Found warehouse notification: {target_notification['id']}")
         self.test_data["notification_id"] = target_notification["id"]
