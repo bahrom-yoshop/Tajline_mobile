@@ -18195,32 +18195,6 @@ function App() {
                                     Связаться с отправителем
                                   </Button>
                                   
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={() => {
-                                        // TODO: Открыть модал редактирования
-                                        showAlert('Функция редактирования будет доступна в ближайшее время', 'info');
-                                      }}
-                                    >
-                                      <Edit className="mr-1 h-3 w-3" />
-                                      Редактировать
-                                    </Button>
-                                    
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={() => {
-                                        // TODO: Открыть модал QR генерации
-                                        showAlert('Функция генерации QR кода будет доступна в ближайшее время', 'info');
-                                      }}
-                                    >
-                                      <QrCode className="mr-1 h-3 w-3" />
-                                      QR код
-                                    </Button>
-                                  </div>
-                                  
                                   <Button 
                                     variant="destructive" 
                                     size="sm"
