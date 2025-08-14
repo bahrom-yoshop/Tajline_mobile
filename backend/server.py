@@ -13893,10 +13893,34 @@ async def update_courier_location(
         raise HTTPException(status_code=403, detail="Only couriers can update location")
     
     try:
-        # Найти информацию о курьере
+        # Найти информацию о курьере (создать профиль если не существует)
         courier = db.couriers.find_one({"user_id": current_user.id}, {"_id": 0})
         if not courier:
-            raise HTTPException(status_code=404, detail="Courier profile not found")
+            # Автоматически создать профиль курьера при первом GPS update
+            courier_id = str(uuid.uuid4())
+            current_time = datetime.utcnow()
+            
+            courier_profile = {
+                "id": courier_id,
+                "user_id": current_user.id,
+                "full_name": current_user.full_name,
+                "phone": current_user.phone,
+                "address": "Не указан",
+                "transport_type": "car",  # По умолчанию
+                "transport_number": "Не указан",
+                "transport_capacity": 50.0,  # По умолчанию
+                "assigned_warehouse_id": None,  # Будет назначен админом позже
+                "assigned_warehouse_name": None,
+                "is_active": True,
+                "created_at": current_time,
+                "updated_at": current_time,
+                "status": "offline",
+                "notes": "Профиль создан автоматически при первом GPS update"
+            }
+            
+            db.couriers.insert_one(courier_profile)
+            courier = courier_profile
+            print(f"✅ Auto-created courier profile for user {current_user.id}")
         
         # Получить информацию о текущей заявке (если есть)
         current_request = db.courier_requests.find_one({
