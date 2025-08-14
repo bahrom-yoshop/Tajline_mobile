@@ -12528,6 +12528,48 @@ async def get_couriers_list(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching couriers: {str(e)}")
 
+@app.get("/api/admin/couriers/locations")
+async def get_all_couriers_locations(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить местоположения всех курьеров (для админов)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can view all courier locations")
+    
+    try:
+        # Получить все активные местоположения курьеров
+        locations = list(db.courier_locations.find({}, {"_id": 0}))
+        
+        # Сортировать по времени последнего обновления
+        locations.sort(key=lambda x: x.get('last_updated', datetime.min), reverse=True)
+        
+        # Добавить информацию о времени последнего обновления в читаемом формате
+        for location in locations:
+            last_updated = location.get('last_updated')
+            if last_updated:
+                time_diff = datetime.utcnow() - last_updated
+                minutes_ago = int(time_diff.total_seconds() / 60)
+                
+                if minutes_ago < 1:
+                    location['time_since_update'] = "только что"
+                elif minutes_ago < 60:
+                    location['time_since_update'] = f"{minutes_ago} мин назад"
+                else:
+                    hours_ago = int(minutes_ago / 60)
+                    location['time_since_update'] = f"{hours_ago} ч назад"
+            else:
+                location['time_since_update'] = "неизвестно"
+        
+        return {
+            "locations": locations,
+            "total_count": len(locations),
+            "active_couriers": len([l for l in locations if l.get('status') != 'offline']),
+            "last_updated": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching courier locations: {str(e)}")
+
 @app.get("/api/admin/couriers/{courier_id}")
 async def get_courier_profile(
     courier_id: str,
