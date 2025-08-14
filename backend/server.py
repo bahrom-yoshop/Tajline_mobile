@@ -13283,6 +13283,13 @@ async def complete_cargo_processing(
         
         current_time = datetime.utcnow()
         
+        # Получаем склады оператора для назначения грузам
+        operator_warehouses = get_operator_warehouse_ids(current_user.id)
+        warehouse_id = operator_warehouses[0] if operator_warehouses else None
+        
+        if not warehouse_id:
+            raise HTTPException(status_code=400, detail="Operator has no assigned warehouses")
+        
         # Создаем грузы на основе данных формы
         cargo_items = cargo_details.get("cargo_items", [])
         created_cargos = []
