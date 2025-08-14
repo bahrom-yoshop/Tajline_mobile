@@ -15077,6 +15077,11 @@ async def create_courier_pickup_request(
             "sender_phone": request_data.get("sender_phone", ""),
             "pickup_address": request_data.get("pickup_address", ""),
             
+            # Информация о получателе (добавлено для отображения в размещении)
+            "recipient_full_name": request_data.get("recipient_full_name", ""),
+            "recipient_phone": request_data.get("recipient_phone", ""),
+            "recipient_address": request_data.get("recipient_address", ""),
+            
             # Информация о заборе
             "pickup_date": request_data.get("pickup_date", ""),
             "pickup_time_from": request_data.get("pickup_time_from", ""),
