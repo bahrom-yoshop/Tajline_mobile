@@ -1203,6 +1203,200 @@ function App() {
     }
   };
   
+  // НОВЫЕ ФУНКЦИИ ДЛЯ ОБРАБОТКИ ЗАЯВОК НА ЗАБОР ГРУЗА
+  const handlePrintPickupQR = (notification) => {
+    try {
+      // Создаем данные для QR кода
+      const qrData = JSON.stringify({
+        request_number: notification.request_number,
+        sender_name: notification.sender_full_name,
+        pickup_address: notification.pickup_address,
+        courier_name: notification.courier_name,
+        delivered_at: notification.delivered_at,
+        type: 'pickup_request'
+      });
+
+      // Создаем новое окно для печати QR кода
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        showAlert('Не удалось открыть окно печати. Пожалуйста, разрешите всплывающие окна в настройках браузера.', 'error');
+        return;
+      }
+      
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>QR код заявки ${notification.request_number}</title>
+            <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+              .qr-container { margin: 20px auto; }
+              .request-info { margin: 10px 0; font-size: 14px; }
+              @media print { body { margin: 0; } }
+            </style>
+          </head>
+          <body>
+            <h2>QR код заявки на забор груза</h2>
+            <div class="request-info">
+              <strong>Заявка №:</strong> ${notification.request_number}<br>
+              <strong>Отправитель:</strong> ${notification.sender_full_name}<br>
+              <strong>Адрес забора:</strong> ${notification.pickup_address}<br>
+              <strong>Курьер:</strong> ${notification.courier_name}<br>
+              <strong>Сдано на склад:</strong> ${new Date(notification.delivered_at).toLocaleString('ru-RU')}
+            </div>
+            <div class="qr-container">
+              <canvas id="qrcode"></canvas>
+            </div>
+            <script>
+              QRCode.toCanvas(document.getElementById('qrcode'), '${qrData}', {
+                width: 200,
+                margin: 2
+              }, function(error) {
+                if (error) console.error(error);
+                else window.print();
+              });
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      
+      showAlert('QR код заявки отправлен на печать', 'success');
+    } catch (error) {
+      console.error('Error printing pickup QR:', error);
+      showAlert('Ошибка при печати QR кода: ' + error.message, 'error');
+    }
+  };
+
+  const handlePrintPickupInvoice = (notification) => {
+    try {
+      // Создаем новое окно для печати накладной
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        showAlert('Не удалось открыть окно печати. Пожалуйста, разрешите всплывающие окна в настройках браузера.', 'error');
+        return;
+      }
+      
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Накладная заявки ${notification.request_number}</title>
+            <style>
+              body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; }
+              h1 { font-size: 16px; text-align: center; margin-bottom: 20px; }
+              .section { margin: 15px 0; }
+              .section h3 { font-size: 14px; margin: 10px 0 5px 0; border-bottom: 1px solid #333; }
+              .info-row { margin: 5px 0; }
+              .info-label { font-weight: bold; display: inline-block; width: 150px; }
+              .company-header { text-align: center; margin-bottom: 30px; }
+              .signatures { margin-top: 40px; display: flex; justify-content: space-between; }
+              .signature { text-align: center; }
+              @media print { body { margin: 0; } }
+            </style>
+          </head>
+          <body>
+            <div class="company-header">
+              <h1>TAJLINE.TJ</h1>
+              <p>Грузоперевозки Москва-Таджикистан</p>
+            </div>
+            
+            <h1>НАКЛАДНАЯ ЗАЯВКИ НА ЗАБОР ГРУЗА №${notification.request_number}</h1>
+            
+            <div class="section">
+              <h3>Информация о заявке</h3>
+              <div class="info-row">
+                <span class="info-label">Номер заявки:</span> ${notification.request_number}
+              </div>
+              <div class="info-row">
+                <span class="info-label">Дата создания:</span> ${new Date(notification.created_at || Date.now()).toLocaleString('ru-RU')}
+              </div>
+              <div class="info-row">
+                <span class="info-label">Сдано на склад:</span> ${new Date(notification.delivered_at).toLocaleString('ru-RU')}
+              </div>
+            </div>
+            
+            <div class="section">
+              <h3>Отправитель</h3>
+              <div class="info-row">
+                <span class="info-label">ФИО:</span> ${notification.sender_full_name}
+              </div>
+              <div class="info-row">
+                <span class="info-label">Телефон:</span> ${notification.sender_phone}
+              </div>
+              <div class="info-row">
+                <span class="info-label">Адрес забора:</span> ${notification.pickup_address}
+              </div>
+            </div>
+            
+            <div class="section">
+              <h3>Курьер</h3>
+              <div class="info-row">
+                <span class="info-label">ФИО курьера:</span> ${notification.courier_name}
+              </div>
+              <div class="info-row">
+                <span class="info-label">Плата курьеру:</span> ${notification.courier_fee || 0} ₽
+              </div>
+            </div>
+            
+            <div class="section">
+              <h3>Дополнительная информация</h3>
+              <div class="info-row">
+                <span class="info-label">Наименование груза:</span> ${notification.destination || 'Не указано'}
+              </div>
+              <div class="info-row">
+                <span class="info-label">Статус:</span> ${notification.status === 'in_processing' ? 'Обрабатывается' : notification.status}
+              </div>
+            </div>
+            
+            <div class="signatures">
+              <div class="signature">
+                <p>Принял оператор:</p>
+                <p>_________________</p>
+                <p>(подпись)</p>
+              </div>
+              <div class="signature">
+                <p>Дата: ${new Date().toLocaleDateString('ru-RU')}</p>
+                <p>_________________</p>
+                <p>(дата)</p>
+              </div>
+            </div>
+            
+            <script>window.print();</script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      
+      showAlert('Накладная заявки отправлена на печать', 'success');
+    } catch (error) {
+      console.error('Error printing pickup invoice:', error);
+      showAlert('Ошибка при печати накладной: ' + error.message, 'error');
+    }
+  };
+
+  const handleSendToPlacement = async (notification) => {
+    try {
+      // Подтверждение действия
+      const confirm = window.confirm(`Отправить заявку №${notification.request_number} на размещение? После этого заявка будет исключена из текущего списка.`);
+      if (!confirm) return;
+
+      // Отправляем запрос на backend для изменения статуса
+      const response = await apiCall(`/api/operator/warehouse-notifications/${notification.id}/send-to-placement`, 'POST');
+      
+      showAlert('Заявка успешно отправлена на размещение!', 'success');
+      
+      // Обновляем список уведомлений (заявка должна исчезнуть из текущего списка)
+      await fetchWarehouseNotifications();
+      
+      // Обновляем список доступных грузов для размещения
+      await fetchAvailableCargoForPlacement();
+      
+    } catch (error) {
+      console.error('Error sending to placement:', error);
+      showAlert('Ошибка при отправке на размещение: ' + error.message, 'error');
+    }
+  };
+  
   // НОВЫЕ ФУНКЦИИ ДЛЯ МОДАЛЬНЫХ ОКОН ПРОСМОТРА И РЕДАКТИРОВАНИЯ ЗАЯВОК
   const handleViewRequest = (request) => {
     setSelectedRequest(request);
