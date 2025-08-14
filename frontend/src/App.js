@@ -8788,16 +8788,116 @@ function App() {
   const openWarehouseReport = async (warehouse) => {
     setShowWarehouseReport(warehouse.id);
     
-    // Получаем данные отчета (симуляция)
-    const reportData = generateWarehouseReportData(warehouse);
-    setWarehouseReportData(reportData);
-    
-    // Получаем детальную аналитику (симуляция)
-    const analytics = generateWarehouseAnalytics(warehouse);
-    setWarehouseDetailedAnalytics(prev => ({
-      ...prev,
-      [warehouse.id]: analytics
-    }));
+    try {
+      // ИСПРАВЛЕНИЕ: Получаем реальные данные отчета из API
+      const reportData = await generateRealWarehouseReportData(warehouse);
+      setWarehouseReportData(reportData);
+      
+      // ИСПРАВЛЕНИЕ: Получаем реальную аналитику из API
+      const analytics = await generateRealWarehouseAnalytics(warehouse);
+      setWarehouseDetailedAnalytics(prev => ({
+        ...prev,
+        [warehouse.id]: analytics
+      }));
+    } catch (error) {
+      console.error('Error generating warehouse report:', error);
+      showAlert('Ошибка загрузки отчета: ' + error.message, 'error');
+    }
+  };
+
+  // ИСПРАВЛЕНИЕ: Генерация реальных данных отчета по складу
+  const generateRealWarehouseReportData = async (warehouse) => {
+    try {
+      // Получаем реальные грузы склада
+      const cargoResponse = await apiCall(`/api/warehouses/${warehouse.id}/cargo`, 'GET');
+      const cargos = cargoResponse.cargo || [];
+      
+      // Получаем статистику склада
+      const statsResponse = await apiCall(`/api/warehouses/${warehouse.id}/statistics`, 'GET');
+      const stats = statsResponse || {};
+      
+      // Преобразуем реальные данные в формат отчета
+      const reportData = cargos.map((cargo, index) => ({
+        id: cargo.id || `cargo-${index}`,
+        cargo_number: cargo.cargo_number || `TEMP-${Date.now()}-${index}`,
+        sender_name: cargo.sender_full_name || 'Не указано',
+        sender_phone: cargo.sender_phone || 'Не указан',
+        recipient_name: cargo.recipient_full_name || 'Не указано',
+        recipient_phone: cargo.recipient_phone || 'Не указан',
+        cargo_type: cargo.description || cargo.cargo_type || 'Не указано',
+        weight: cargo.weight || 0,
+        declared_value: cargo.declared_value || cargo.total_cost || 0,
+        payment_status: cargo.payment_status || 'Не оплачено',
+        route: cargo.route || 'Не указан',
+        created_date: cargo.created_at ? new Date(cargo.created_at).toLocaleDateString('ru-RU') : new Date().toLocaleDateString('ru-RU'),
+        processing_status: cargo.processing_status || 'unknown',
+        cell_location: cargo.block_number && cargo.shelf_number && cargo.cell_number ? 
+          `Б${cargo.block_number}-П${cargo.shelf_number}-Я${cargo.cell_number}` : 'Не размещен'
+      }));
+      
+      return reportData;
+    } catch (error) {
+      console.error('Error fetching real warehouse report data:', error);
+      return []; // Возвращаем пустой массив при ошибке
+    }
+  };
+
+  // ИСПРАВЛЕНИЕ: Генерация реальной аналитики склада
+  const generateRealWarehouseAnalytics = async (warehouse) => {
+    try {
+      // Получаем статистику склада
+      const statsResponse = await apiCall(`/api/warehouses/${warehouse.id}/statistics`, 'GET');
+      const stats = statsResponse || {};
+      
+      // Получаем данные о грузах для аналитики
+      const cargoResponse = await apiCall(`/api/warehouses/${warehouse.id}/cargo`, 'GET');
+      const cargos = cargoResponse.cargo || [];
+      
+      // Рассчитываем реальную аналитику
+      const totalCargo = cargos.length;
+      const totalWeight = cargos.reduce((sum, cargo) => sum + (cargo.weight || 0), 0);
+      const totalValue = cargos.reduce((sum, cargo) => sum + (cargo.declared_value || cargo.total_cost || 0), 0);
+      
+      // Группируем по статусам
+      const statusGroups = cargos.reduce((groups, cargo) => {
+        const status = cargo.processing_status || 'unknown';
+        groups[status] = (groups[status] || 0) + 1;
+        return groups;
+      }, {});
+      
+      // Группируем по маршрутам
+      const routeGroups = cargos.reduce((groups, cargo) => {
+        const route = cargo.route || 'Не указан';
+        groups[route] = (groups[route] || 0) + 1;
+        return groups;
+      }, {});
+      
+      return {
+        totalCargo: totalCargo,
+        totalWeight: totalWeight,
+        totalValue: totalValue,
+        occupiedCells: stats.occupied_cells || 0,
+        totalCells: stats.total_cells || ((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)),
+        utilizationRate: stats.utilization || 0,
+        statusDistribution: statusGroups,
+        routeDistribution: routeGroups,
+        lastUpdated: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error fetching real warehouse analytics:', error);
+      // Возвращаем базовую аналитику при ошибке
+      return {
+        totalCargo: 0,
+        totalWeight: 0,  
+        totalValue: 0,
+        occupiedCells: 0,
+        totalCells: (warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0),
+        utilizationRate: 0,
+        statusDistribution: {},
+        routeDistribution: {},
+        lastUpdated: new Date().toISOString()
+      };
+    }
   };
 
   // Генерация данных отчета по складу (симуляция)
