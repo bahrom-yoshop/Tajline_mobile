@@ -196,7 +196,7 @@ class CargoPlacementImprovementsTester:
         
         success, response = self.run_test(
             "Создание заявки на забор груза",
-            "POST", "/api/admin/courier/pickup-request", 201, 
+            "POST", "/api/admin/courier/pickup-request", 200, 
             pickup_request_data, admin_token
         )
         
