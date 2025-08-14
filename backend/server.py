@@ -12935,7 +12935,7 @@ async def pickup_cargo_by_courier(
     request_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Забрать груз курьером (после принятия заявки)"""
+    """Забрать груз курьером (после принятия заявки - обычной или на забор груза)"""
     if current_user.role != UserRole.COURIER:
         raise HTTPException(status_code=403, detail="Access denied")
     
@@ -12944,8 +12944,15 @@ async def pickup_cargo_by_courier(
     if not courier:
         raise HTTPException(status_code=404, detail="Courier profile not found")
     
-    # Получаем заявку
+    # Сначала ищем в обычных заявках
     request = db.courier_requests.find_one({"id": request_id}, {"_id": 0})
+    request_type = "delivery"
+    
+    # Если не найдено, ищем в заявках на забор груза
+    if not request:
+        request = db.courier_pickup_requests.find_one({"id": request_id}, {"_id": 0})
+        request_type = "pickup"
+    
     if not request:
         raise HTTPException(status_code=404, detail="Request not found")
     
@@ -12956,48 +12963,65 @@ async def pickup_cargo_by_courier(
     try:
         current_time = datetime.utcnow()
         
-        # Обновляем статус заявки
-        db.courier_requests.update_one(
-            {"id": request_id},
-            {"$set": {
-                "request_status": "picked_up",
-                "pickup_time": current_time,
-                "updated_at": current_time
-            }}
-        )
+        # Обновляем заявку в соответствующей коллекции
+        update_data = {
+            "request_status": "picked_up",
+            "pickup_time": current_time,
+            "updated_at": current_time
+        }
         
-        # Обновляем груз если есть
-        if request.get("cargo_id"):
-            # Создаем историю операций
-            operation_history = {
-                "operation_type": "picked_up_by_courier",
-                "timestamp": current_time,
-                "performed_by": courier["full_name"],
-                "performed_by_id": courier["id"],
-                "details": "Груз забран курьером"
-            }
+        if request_type == "pickup":
+            db.courier_pickup_requests.update_one(
+                {"id": request_id},
+                {"$set": update_data}
+            )
             
-            db.operator_cargo.update_one(
-                {"id": request["cargo_id"]},
-                {
-                    "$set": {
-                        "status": CargoStatus.PICKED_UP_BY_COURIER,
+            # Создаем уведомление для создателя заявки на забор
+            create_notification(
+                user_id=request["created_by"],
+                message=f"Курьер {courier['full_name']} забрал груз по заявке от {request.get('sender_full_name', 'Клиент')}",
+                related_id=request_id
+            )
+            
+        else:  # delivery
+            db.courier_requests.update_one(
+                {"id": request_id},
+                {"$set": update_data}
+            )
+            
+            # Обновляем груз если есть
+            if request.get("cargo_id"):
+                # Создаем историю операций
+                operation_history = {
+                    "operation_type": "picked_up_by_courier",
+                    "timestamp": current_time,
+                    "performed_by": courier["full_name"],
+                    "performed_by_id": courier["id"],
+                    "details": "Груз забран курьером"
+                }
+                
+                db.operator_cargo.update_one(
+                    {"id": request["cargo_id"]},
+                    {"$set": {
                         "courier_request_status": "picked_up",
-                        "pickup_time": current_time,
                         "updated_at": current_time
                     },
-                    "$push": {"operation_history": operation_history}
-                }
+                    "$push": {"operation_history": operation_history}}
+                )
+            
+            # Уведомляем оператора
+            create_notification(
+                user_id=request["created_by"],
+                message=f"Курьер {courier['full_name']} забрал груз {request.get('cargo_name', 'N/A')}",
+                related_id=request_id
             )
         
-        # Уведомляем оператора
-        create_notification(
-            user_id=request["created_by"],
-            message=f"Курьер {courier['full_name']} забрал груз {request.get('cargo_name', 'N/A')}",
-            related_id=request_id
-        )
-        
-        return {"message": "Cargo picked up successfully", "pickup_time": current_time}
+        return {
+            "message": "Cargo picked up successfully",
+            "request_type": request_type,
+            "request_id": request_id,
+            "pickup_time": current_time.isoformat()
+        }
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error picking up cargo: {str(e)}")
