@@ -13738,6 +13738,9 @@ async def update_courier_request(
             cargo_names = [item.get("name", "") for item in update_data["cargo_items"] if item.get("name")]
             if cargo_names:
                 update_fields["cargo_name"] = ", ".join(cargo_names)
+                # Для заявок на забор груза также обновляем поле destination
+                if request_collection == "courier_pickup_requests":
+                    update_fields["destination"] = ", ".join(cargo_names)
             
             # Рассчитываем общий вес и стоимость
             total_weight = sum(float(item.get("weight", 0)) for item in update_data["cargo_items"])
