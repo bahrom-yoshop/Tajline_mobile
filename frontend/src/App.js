@@ -940,18 +940,14 @@ function App() {
     try {
       const response = await apiCall(`/api/operator/warehouse-notifications/${notificationId}/accept`, 'POST');
       
-      showAlert('Груз принят на склад и добавлен в систему грузов!', 'success');
+      showAlert('Уведомление принято для оформления!', 'success');
       
-      // Обновляем уведомления и грузы
-      await Promise.all([
-        fetchWarehouseNotifications(),
-        fetchOperatorCargo()
-      ]);
+      // Открываем форму полного оформления груза
+      setCurrentCargoNotification(response.notification_data || { id: notificationId });
+      setShowCargoAcceptanceModal(true);
       
-      // Если создан новый груз, показываем дополнительную информацию
-      if (response?.cargo_number) {
-        showAlert(`Груз принят! Номер груза: ${response.cargo_number}`, 'success');
-      }
+      // Обновляем уведомления
+      await fetchWarehouseNotifications();
       
     } catch (error) {
       console.error('Error accepting warehouse delivery:', error);
