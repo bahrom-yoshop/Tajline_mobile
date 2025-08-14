@@ -997,6 +997,59 @@ function App() {
           const requestInfo = modalData.request_info || {};
           
           // Заполняем форму структурированными данными
+          let processedCargoItems = [];
+          
+          // Обработка данных о грузах - создаем отдельные контейнеры для каждого груза
+          if (cargoInfo.cargo_items && cargoInfo.cargo_items.length > 0) {
+            // Если есть массив cargo_items, используем каждый элемент как отдельный груз
+            processedCargoItems = cargoInfo.cargo_items.map((item, index) => ({
+              name: item.name || `Груз ${index + 1}`,
+              weight: item.weight ? String(item.weight) : '',
+              price: item.price || item.total_price || item.value || ''
+            }));
+          } else if (cargoInfo.cargo_name) {
+            // Если есть cargo_name, попробуем разбить по запятым на отдельные грузы
+            const cargoNames = cargoInfo.cargo_name.split(',').map(name => name.trim()).filter(name => name);
+            if (cargoNames.length > 1) {
+              // Несколько грузов - создаем отдельный контейнер для каждого
+              processedCargoItems = cargoNames.map((name, index) => ({
+                name: name,
+                weight: index === 0 && cargoInfo.weight ? String(cargoInfo.weight) : '', // Вес только для первого груза
+                price: index === 0 && (cargoInfo.total_value || cargoInfo.declared_value) ? String(cargoInfo.total_value || cargoInfo.declared_value) : '' // Цена только для первого груза
+              }));
+            } else {
+              // Один груз
+              processedCargoItems = [{
+                name: cargoInfo.cargo_name,
+                weight: cargoInfo.weight ? String(cargoInfo.weight) : '',
+                price: cargoInfo.total_value ? String(cargoInfo.total_value) : cargoInfo.declared_value ? String(cargoInfo.declared_value) : ''
+              }];
+            }
+          } else if (cargoInfo.destination) {
+            // Если есть только destination, также попробуем разбить на отдельные грузы
+            const destinations = cargoInfo.destination.split(',').map(dest => dest.trim()).filter(dest => dest);
+            if (destinations.length > 1) {
+              processedCargoItems = destinations.map((name, index) => ({
+                name: name,
+                weight: index === 0 && cargoInfo.weight ? String(cargoInfo.weight) : '',
+                price: index === 0 && (cargoInfo.total_value || cargoInfo.declared_value) ? String(cargoInfo.total_value || cargoInfo.declared_value) : ''
+              }));
+            } else {
+              processedCargoItems = [{
+                name: cargoInfo.destination,
+                weight: cargoInfo.weight ? String(cargoInfo.weight) : '',
+                price: cargoInfo.total_value ? String(cargoInfo.total_value) : cargoInfo.declared_value ? String(cargoInfo.declared_value) : ''
+              }];
+            }
+          } else {
+            // Fallback - создаем один пустой груз
+            processedCargoItems = [{
+              name: 'Наименование груза не указано',
+              weight: '',
+              price: ''
+            }];
+          }
+          
           setCargoAcceptanceForm({
             sender_full_name: senderData.sender_full_name || notification.sender_full_name || '',
             sender_phone: senderData.sender_phone || notification.sender_phone || '',
@@ -1004,13 +1057,7 @@ function App() {
             recipient_full_name: recipientData.recipient_full_name || '',
             recipient_phone: recipientData.recipient_phone || '',
             recipient_address: recipientData.recipient_address || '',
-            cargo_items: cargoInfo.cargo_items && cargoInfo.cargo_items.length > 0 
-              ? cargoInfo.cargo_items 
-              : [{ 
-                  name: cargoInfo.cargo_name || cargoInfo.destination || notification.destination || 'Наименование груза не указано', 
-                  weight: cargoInfo.weight ? String(cargoInfo.weight) : '', 
-                  price: cargoInfo.total_value ? String(cargoInfo.total_value) : cargoInfo.declared_value ? String(cargoInfo.declared_value) : '' 
-                }],
+            cargo_items: processedCargoItems,
             payment_method: paymentInfo.payment_method || notification.payment_method || 'cash',
             delivery_method: recipientData.delivery_method || 'pickup',
             payment_status: 'not_paid',
@@ -1021,15 +1068,9 @@ function App() {
           console.log('=== ОТЛАДКА ЗАПОЛНЕНИЯ ФОРМЫ ===');
           console.log('modalData:', modalData);
           console.log('cargoInfo:', cargoInfo);
+          console.log('processedCargoItems:', processedCargoItems);
           console.log('recipientData:', recipientData);
           console.log('senderData:', senderData);
-          console.log('Заполняемые cargo_items:', cargoInfo.cargo_items && cargoInfo.cargo_items.length > 0 
-            ? cargoInfo.cargo_items 
-            : [{ 
-                name: cargoInfo.cargo_name || cargoInfo.destination || notification.destination || 'Наименование груза не указано', 
-                weight: cargoInfo.weight ? String(cargoInfo.weight) : '', 
-                price: cargoInfo.total_value ? String(cargoInfo.total_value) : cargoInfo.declared_value ? String(cargoInfo.declared_value) : '' 
-              }]);
           
           // Сохраняем обогащенные данные уведомления для отображения
           const enrichedNotification = {
