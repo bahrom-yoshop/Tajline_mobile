@@ -26792,6 +26792,10 @@ function App() {
                       onClick={() => {
                         // Печать всех QR кодов
                         const printWindow = window.open('', '_blank');
+                        if (!printWindow) {
+                          showAlert('Не удалось открыть окно печати. Пожалуйста, разрешите всплывающие окна в настройках браузера.', 'error');
+                          return;
+                        }
                         const qrContent = generatedQRs
                           .filter(qr => qr.success)
                           .map(qr => `
