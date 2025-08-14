@@ -13510,6 +13510,32 @@ async def get_all_pickup_requests(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching pickup requests: {str(e)}")
 
+@app.get("/api/operator/pickup-requests/{request_id}")
+async def get_pickup_request_by_id(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить полную информацию о заявке на забор груза по ID"""
+    if current_user.role not in [UserRole.WAREHOUSE_OPERATOR, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Access denied: Only operators and admins")
+    
+    try:
+        # Ищем заявку в коллекции заявок на забор груза
+        pickup_request = db.courier_pickup_requests.find_one({"id": request_id}, {"_id": 0})
+        
+        if not pickup_request:
+            raise HTTPException(status_code=404, detail="Pickup request not found")
+        
+        # Добавляем тип заявки
+        pickup_request['request_type'] = 'pickup'
+        
+        return pickup_request
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching pickup request: {str(e)}")
+
 @app.get("/api/courier/requests/accepted")
 async def get_courier_accepted_requests(
     current_user: User = Depends(get_current_user)
