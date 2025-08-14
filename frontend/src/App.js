@@ -20297,10 +20297,23 @@ function App() {
                         </div>
                       </div>
                       
-                      {/* Действия для груза */}
+                      {/* Действия и информация для груза */}
                       <div className="flex items-center justify-between pt-3 border-t border-gray-300">
-                        <div className="text-sm text-gray-600">
-                          Груз #{index + 1}: {item.name || 'Не указано'} - {item.weight || '0'} кг - {item.price || '0'} ₽
+                        <div className="text-sm">
+                          <div className="flex items-center space-x-4">
+                            <span className="font-medium text-gray-800">Груз #{index + 1}:</span>
+                            <span className="text-gray-600">{item.name || 'Не указано'}</span>
+                            {item.weight && item.price && (
+                              <span className="text-green-600 font-medium">
+                                {item.weight} кг × {item.price} ₽ = {(parseFloat(item.weight) * parseFloat(item.price)).toFixed(2)} ₽
+                              </span>
+                            )}
+                          </div>
+                          {(!item.weight || !item.price) && (
+                            <div className="text-xs text-orange-600 mt-1">
+                              ⚠️ Заполните вес и цену для автоматического расчета
+                            </div>
+                          )}
                         </div>
                         <div className="flex space-x-2">
                           <Button
