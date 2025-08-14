@@ -18803,7 +18803,7 @@ function App() {
                             
                             <div>
                               <Label className="text-sm font-medium text-gray-500">
-                                {request.request_type === 'pickup' ? 'Назначение груза' : 'Груз'}
+                                {request.request_type === 'pickup' ? 'Наименование груза' : 'Груз'}
                               </Label>
                               <p className="text-sm">
                                 {request.request_type === 'pickup' 
