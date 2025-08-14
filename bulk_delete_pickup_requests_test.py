@@ -119,8 +119,10 @@ def test_bulk_delete_pickup_requests():
             
             if create_response.status_code == 200:
                 created_request = create_response.json()
+                # Добавляем ID из ответа
+                created_request['id'] = created_request.get('request_id')
                 test_pickup_requests.append(created_request)
-                print(f"✅ Создана тестовая заявка {i}: ID {created_request.get('id', 'unknown')}, номер {created_request.get('request_number', 'unknown')}")
+                print(f"✅ Создана тестовая заявка {i}: ID {created_request.get('request_id', 'unknown')}, номер {created_request.get('request_number', 'unknown')}")
             else:
                 print(f"⚠️ Не удалось создать тестовую заявку {i}: {create_response.status_code}")
                 print(f"Ответ: {create_response.text}")
