@@ -441,7 +441,7 @@ class RecipientInfoTester:
         if not self.send_pickup_to_placement():
             return False
         
-        # Step 6: Verify recipient data in placement
+        # Step 7: Verify recipient data in placement
         if not self.verify_recipient_data_in_placement():
             return False
         
