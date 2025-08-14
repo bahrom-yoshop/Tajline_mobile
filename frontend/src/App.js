@@ -14112,17 +14112,32 @@ function App() {
                         {(user?.role === 'warehouse_operator' || user?.role === 'admin') && warehouseNotifications.length > 0 && (
                           <Card className="mb-6 border-blue-200 bg-blue-50">
                             <CardHeader>
-                              <CardTitle className="flex items-center text-blue-700">
-                                <Bell className="mr-2 h-5 w-5" />
-                                Поступившие грузы на склад ({warehouseNotifications.length})
+                              <CardTitle className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <Bell className="mr-2 h-5 w-5 text-blue-700" />
+                                  Поступившие грузы на склад ({warehouseNotifications.length})
+                                </div>
+                                {warehouseNotifications.length > 2 && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setShowAllNotifications(!showAllNotifications)}
+                                    className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                                  >
+                                    {showAllNotifications ? 'Скрыть' : `Показать всех (${warehouseNotifications.length})`}
+                                  </Button>
+                                )}
                               </CardTitle>
                               <CardDescription className="text-blue-600">
                                 Курьеры сдали следующие грузы на склад. Необходимо принять и оформить их в системе.
+                                {!showAllNotifications && warehouseNotifications.length > 2 && 
+                                  ` Показано ${Math.min(2, warehouseNotifications.length)} из ${warehouseNotifications.length} уведомлений.`
+                                }
                               </CardDescription>
                             </CardHeader>
                             <CardContent>
                               <div className="space-y-3">
-                                {warehouseNotifications.map((notification) => (
+                                {(showAllNotifications ? warehouseNotifications : warehouseNotifications.slice(0, 2)).map((notification) => (
                                   <div
                                     key={notification.id}
                                     className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm"
