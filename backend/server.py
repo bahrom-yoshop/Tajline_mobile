@@ -14003,6 +14003,15 @@ async def update_courier_location(
             upsert=True
         )
         
+        # НОВОЕ: Обновить статус в профиле курьера
+        db.couriers.update_one(
+            {"id": courier["id"]},
+            {"$set": {
+                "status": location_data.status.value,
+                "updated_at": now
+            }}
+        )
+        
         # НОВОЕ: Отправить real-time обновление через WebSocket
         await connection_manager.broadcast_courier_location_update(location_record)
         
