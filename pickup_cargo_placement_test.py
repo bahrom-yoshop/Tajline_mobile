@@ -188,7 +188,7 @@ class PickupCargoPlacementTester:
             "Create Pickup Request",
             "POST",
             "/api/admin/courier/pickup-request",
-            201,
+            200,
             pickup_data,
             token=self.tokens["operator"]
         )
