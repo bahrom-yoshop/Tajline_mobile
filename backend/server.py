@@ -12680,33 +12680,35 @@ async def generate_cell_qr(
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     try:
-        # Извлекаем информацию о ячейке из ID
+        # Извлекаем информацию о ячейке из ID (формат: warehouse_uuid-block-shelf-cell)
         parts = cell_id.split("-")
-        if len(parts) != 4:
+        if len(parts) < 4:
             raise HTTPException(status_code=400, detail="Invalid cell ID format")
         
-        warehouse_id, block, shelf, cell = parts
+        # UUID склада может содержать дефисы, поэтому берем последние 3 части как block-shelf-cell
+        block = parts[-3]
+        shelf = parts[-2] 
+        cell = parts[-1]
+        warehouse_id = "-".join(parts[:-3])  # Восстанавливаем UUID склада
         
         warehouse = db.warehouses.find_one({"id": warehouse_id})
         if not warehouse:
             raise HTTPException(status_code=404, detail="Warehouse not found")
         
-        cell_location = f"Б{block}-П{shelf}-Я{cell}"
+        # Получаем номер склада для QR кода (используем порядковый номер или warehouse_number)
+        warehouse_number = warehouse.get("warehouse_number", 1)
+        if isinstance(warehouse_number, str):
+            try:
+                warehouse_number = int(warehouse_number)
+            except ValueError:
+                warehouse_number = 1
         
-        # Создаем данные для QR кода
-        qr_data = {
-            "type": "warehouse_cell",
-            "warehouse_id": warehouse_id,
-            "warehouse_name": warehouse.get("name", ""),
-            "cell_location": cell_location,
-            "block": int(block),
-            "shelf": int(shelf),
-            "cell": int(cell)
-        }
+        # Создаем числовой QR код в формате: номер_склада номер_блока номер_полки номер_ячейки
+        qr_code_data = f"{warehouse_number:02d} {int(block):02d} {int(shelf):02d} {int(cell):02d}"
         
-        # Генерируем QR код
+        # Генерируем QR код с числовыми данными
         qr = qrcode.QRCode(version=1, box_size=10, border=5)
-        qr.add_data(json.dumps(qr_data))
+        qr.add_data(qr_code_data)
         qr.make(fit=True)
         
         img = qr.make_image(fill_color="black", back_color="white")
@@ -12718,11 +12720,15 @@ async def generate_cell_qr(
         qr_code_base64 = base64.b64encode(buffer.getvalue()).decode()
         qr_code_data_url = f"data:image/png;base64,{qr_code_base64}"
         
+        cell_location = f"Б{block}-П{shelf}-Я{cell}"
+        
         return {
             "cell_id": cell_id,
             "cell_location": cell_location,
             "warehouse_name": warehouse.get("name", ""),
-            "qr_code": qr_code_data_url
+            "warehouse_number": warehouse_number,
+            "qr_code": qr_code_data_url,
+            "qr_data": qr_code_data
         }
         
     except HTTPException:
