@@ -29,8 +29,7 @@ def debug_operator_warehouses():
     print(f"Status: {response.status_code}")
     
     if response.status_code == 200:
-        data = response.json()
-        warehouses = data.get("warehouses", [])
+        warehouses = response.json()
         print(f"Found {len(warehouses)} warehouses for operator")
         
         for i, wh in enumerate(warehouses):
