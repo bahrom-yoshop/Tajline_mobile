@@ -5831,10 +5831,12 @@ function App() {
   const fetchWarehouses = async () => {
     try {
       const data = await apiCall('/api/warehouses', 'GET');
-      setWarehouses(data.warehouses || []);
+      // ИСПРАВЛЕНИЕ: API возвращает прямой массив складов, а не объект с полем warehouses
+      const warehousesArray = Array.isArray(data) ? data : (data.warehouses || []);
+      setWarehouses(warehousesArray);
       
       // Загружаем статистику для каждого склада
-      const statisticsPromises = (data.warehouses || []).map(async (warehouse) => {
+      const statisticsPromises = warehousesArray.map(async (warehouse) => {
         try {
           const stats = await apiCall(`/api/warehouses/${warehouse.id}/statistics`, 'GET');
           return { [warehouse.id]: stats };
