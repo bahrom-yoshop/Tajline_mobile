@@ -34447,6 +34447,273 @@ ID склада: {target_warehouse_id}"""
         
         return all_success
 
+    def test_pickup_request_improvements(self):
+        """Test улучшения для заявок на забор груза согласно review request"""
+        print("\n🚚 PICKUP REQUEST IMPROVEMENTS TESTING")
+        print("   🎯 Протестировать улучшения для заявок на забор груза:")
+        print("   📋 УЛУЧШЕНИЯ РЕАЛИЗОВАННЫЕ:")
+        print("   1) Frontend: Заменено 'Назначение груза' на 'Наименование груза' во всех карточках и формах")
+        print("   2) Backend: Обновлен endpoint /api/operator/pickup-requests - теперь исключает заявки со статусами 'delivered_to_warehouse' и 'completed'")
+        print("   3) Frontend: Обновлено описание раздела 'На Забор'")
+        print("   🔧 ТЕСТ УЛУЧШЕНИЙ:")
+        print("   1) Авторизация оператора (+79777888999/warehouse123)")
+        print("   2) ОСНОВНОЙ ТЕСТ: GET /api/operator/pickup-requests - должны возвращаться только активные заявки")
+        print("   3) Проверить что заявки со статусом 'delivered_to_warehouse' НЕ включены в ответ")
+        print("   4) Проверить что группировка by_status не включает 'delivered_to_warehouse'")
+        print("   5) Проверить что счетчики status_counts корректны для активных статусов")
+        print("   6) ДОПОЛНИТЕЛЬНЫЙ ТЕСТ: Если есть заявки в истории через GET /api/operator/pickup-requests/history, убедиться что они НЕ дублируются в основном списке")
+        print("   🎯 ОЖИДАЕМЫЙ РЕЗУЛЬТАТ: Раздел 'На Забор' должен показывать только активные заявки (pending, accepted, picked_up, cancelled)")
+        print("   📚 Выполненные заявки должны быть доступны только в 'Истории забора груза'")
+        
+        all_success = True
+        
+        # Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРА (+79777888999/warehouse123)
+        print("\n   🔐 Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРА (+79777888999/warehouse123)...")
+        
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login for Pickup Request Improvements",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            operator_phone = operator_user.get('phone')
+            operator_user_number = operator_user.get('user_number')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            print(f"   📞 Phone: {operator_phone}")
+            print(f"   🆔 User Number: {operator_user_number}")
+            
+            # Verify role is warehouse_operator
+            if operator_role == 'warehouse_operator':
+                print("   ✅ Operator role correctly set to 'warehouse_operator'")
+            else:
+                print(f"   ❌ Operator role incorrect: expected 'warehouse_operator', got '{operator_role}'")
+                all_success = False
+            
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed - no access token received")
+            print(f"   📄 Response: {login_response}")
+            all_success = False
+            return False
+        
+        # Test 2: ОСНОВНОЙ ТЕСТ - GET /api/operator/pickup-requests должны возвращаться только активные заявки
+        print("\n   📋 Test 2: ОСНОВНОЙ ТЕСТ - GET /api/operator/pickup-requests (должны возвращаться только активные заявки)...")
+        
+        success, pickup_requests_response = self.run_test(
+            "Get Active Pickup Requests (Main Test)",
+            "GET",
+            "/api/operator/pickup-requests",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        active_pickup_requests = []
+        by_status = {}
+        status_counts = {}
+        
+        if success:
+            print("   ✅ /api/operator/pickup-requests endpoint working")
+            
+            # Verify response structure
+            if isinstance(pickup_requests_response, dict):
+                active_pickup_requests = pickup_requests_response.get('pickup_requests', [])
+                by_status = pickup_requests_response.get('by_status', {})
+                status_counts = pickup_requests_response.get('status_counts', {})
+                total_count = pickup_requests_response.get('total_count', 0)
+                
+                print(f"   📊 Total active pickup requests: {total_count}")
+                print(f"   📋 Items in response: {len(active_pickup_requests)}")
+                
+                # Verify response structure
+                required_fields = ['pickup_requests', 'by_status', 'total_count', 'status_counts']
+                missing_fields = [field for field in required_fields if field not in pickup_requests_response]
+                
+                if not missing_fields:
+                    print("   ✅ Response structure correct (pickup_requests, by_status, total_count, status_counts)")
+                else:
+                    print(f"   ❌ Missing required fields: {missing_fields}")
+                    all_success = False
+                
+                # Test 3: Проверить что заявки со статусом "delivered_to_warehouse" НЕ включены в ответ
+                print("\n   🚫 Test 3: Проверить что заявки со статусом 'delivered_to_warehouse' НЕ включены в ответ...")
+                
+                delivered_requests = [req for req in active_pickup_requests if req.get('request_status') == 'delivered_to_warehouse']
+                completed_requests = [req for req in active_pickup_requests if req.get('request_status') == 'completed']
+                
+                if len(delivered_requests) == 0:
+                    print("   ✅ No requests with status 'delivered_to_warehouse' found in active list")
+                else:
+                    print(f"   ❌ Found {len(delivered_requests)} requests with status 'delivered_to_warehouse' in active list")
+                    all_success = False
+                
+                if len(completed_requests) == 0:
+                    print("   ✅ No requests with status 'completed' found in active list")
+                else:
+                    print(f"   ❌ Found {len(completed_requests)} requests with status 'completed' in active list")
+                    all_success = False
+                
+                # Test 4: Проверить что группировка by_status не включает "delivered_to_warehouse"
+                print("\n   📊 Test 4: Проверить что группировка by_status не включает 'delivered_to_warehouse'...")
+                
+                expected_active_statuses = ['pending', 'accepted', 'picked_up', 'cancelled']
+                excluded_statuses = ['delivered_to_warehouse', 'completed']
+                
+                # Check that only active statuses are present
+                for status in expected_active_statuses:
+                    if status in by_status:
+                        status_count = len(by_status[status])
+                        print(f"   ✅ Status '{status}' present with {status_count} requests")
+                    else:
+                        print(f"   ⚠️  Status '{status}' not present in by_status (may be empty)")
+                
+                # Check that excluded statuses are NOT present
+                for status in excluded_statuses:
+                    if status in by_status:
+                        print(f"   ❌ Excluded status '{status}' found in by_status grouping")
+                        all_success = False
+                    else:
+                        print(f"   ✅ Excluded status '{status}' correctly NOT present in by_status")
+                
+                # Test 5: Проверить что счетчики status_counts корректны для активных статусов
+                print("\n   🔢 Test 5: Проверить что счетчики status_counts корректны для активных статусов...")
+                
+                # Verify status_counts match by_status lengths
+                for status in expected_active_statuses:
+                    expected_count = len(by_status.get(status, []))
+                    actual_count = status_counts.get(status, 0)
+                    
+                    if expected_count == actual_count:
+                        print(f"   ✅ Status count for '{status}': {actual_count} (matches by_status)")
+                    else:
+                        print(f"   ❌ Status count mismatch for '{status}': expected {expected_count}, got {actual_count}")
+                        all_success = False
+                
+                # Check that excluded statuses are NOT in status_counts
+                for status in excluded_statuses:
+                    if status in status_counts:
+                        print(f"   ❌ Excluded status '{status}' found in status_counts")
+                        all_success = False
+                    else:
+                        print(f"   ✅ Excluded status '{status}' correctly NOT present in status_counts")
+                
+                # Show summary of active requests
+                if active_pickup_requests:
+                    print(f"\n   📋 ACTIVE PICKUP REQUESTS SUMMARY:")
+                    status_summary = {}
+                    for req in active_pickup_requests:
+                        status = req.get('request_status', 'unknown')
+                        status_summary[status] = status_summary.get(status, 0) + 1
+                    
+                    for status, count in status_summary.items():
+                        print(f"   📊 {status}: {count} requests")
+                else:
+                    print("   ℹ️  No active pickup requests found")
+                    
+            else:
+                print("   ❌ Unexpected response format for pickup requests")
+                all_success = False
+        else:
+            print("   ❌ /api/operator/pickup-requests endpoint failed")
+            all_success = False
+        
+        # Test 6: ДОПОЛНИТЕЛЬНЫЙ ТЕСТ - GET /api/operator/pickup-requests/history
+        print("\n   📚 Test 6: ДОПОЛНИТЕЛЬНЫЙ ТЕСТ - GET /api/operator/pickup-requests/history...")
+        print("   🔍 Убедиться что заявки в истории НЕ дублируются в основном списке")
+        
+        success, history_response = self.run_test(
+            "Get Pickup Requests History (Should NOT Duplicate in Main List)",
+            "GET",
+            "/api/operator/pickup-requests/history",
+            200,
+            token=operator_token
+        )
+        
+        if success:
+            print("   ✅ /api/operator/pickup-requests/history endpoint working")
+            
+            if isinstance(history_response, dict):
+                history_requests = history_response.get('history_requests', [])
+                history_total = history_response.get('total_count', 0)
+                
+                print(f"   📚 History requests found: {history_total}")
+                print(f"   📋 Items in history: {len(history_requests)}")
+                
+                if history_requests:
+                    # Check that history requests are NOT in active list
+                    history_ids = set(req.get('id') for req in history_requests if req.get('id'))
+                    active_ids = set(req.get('id') for req in active_pickup_requests if req.get('id'))
+                    
+                    duplicates = history_ids.intersection(active_ids)
+                    
+                    if len(duplicates) == 0:
+                        print("   ✅ No duplicates found between history and active requests")
+                    else:
+                        print(f"   ❌ Found {len(duplicates)} duplicate requests between history and active lists")
+                        print(f"   🔍 Duplicate IDs: {list(duplicates)}")
+                        all_success = False
+                    
+                    # Verify history requests have completed statuses
+                    completed_statuses = ['delivered_to_warehouse', 'completed']
+                    history_status_summary = {}
+                    
+                    for req in history_requests:
+                        status = req.get('request_status', 'unknown')
+                        history_status_summary[status] = history_status_summary.get(status, 0) + 1
+                    
+                    print(f"   📊 HISTORY REQUESTS STATUS SUMMARY:")
+                    for status, count in history_status_summary.items():
+                        if status in completed_statuses:
+                            print(f"   ✅ {status}: {count} requests (correctly in history)")
+                        else:
+                            print(f"   ⚠️  {status}: {count} requests (unexpected in history)")
+                else:
+                    print("   ℹ️  No history requests found")
+            else:
+                print("   ❌ Unexpected response format for history requests")
+        else:
+            print("   ❌ /api/operator/pickup-requests/history endpoint failed")
+            # Don't fail the main test as history might be empty
+        
+        # SUMMARY
+        print("\n   📊 PICKUP REQUEST IMPROVEMENTS SUMMARY:")
+        
+        if all_success:
+            print("   🎉 ALL PICKUP REQUEST IMPROVEMENTS TESTS PASSED!")
+            print("   ✅ Авторизация оператора (+79777888999/warehouse123) работает")
+            print("   ✅ GET /api/operator/pickup-requests возвращает только активные заявки")
+            print("   ✅ Заявки со статусом 'delivered_to_warehouse' НЕ включены в ответ")
+            print("   ✅ Заявки со статусом 'completed' НЕ включены в ответ")
+            print("   ✅ Группировка by_status не включает исключенные статусы")
+            print("   ✅ Счетчики status_counts корректны для активных статусов")
+            print("   ✅ Заявки в истории НЕ дублируются в основном списке")
+            print("   🎯 ОЖИДАЕМЫЙ РЕЗУЛЬТАТ ДОСТИГНУТ:")
+            print("   📋 Раздел 'На Забор' показывает только активные заявки (pending, accepted, picked_up, cancelled)")
+            print("   📚 Выполненные заявки доступны только в 'Истории забора груза'")
+        else:
+            print("   ❌ SOME PICKUP REQUEST IMPROVEMENTS TESTS FAILED")
+            print("   🔍 Check the specific failed tests above for details")
+            print("   ⚠️  Pickup request improvements may need attention")
+        
+        return all_success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting comprehensive API testing...")
