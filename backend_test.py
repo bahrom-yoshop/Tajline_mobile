@@ -34195,18 +34195,29 @@ ID склада: {target_warehouse_id}"""
             print(f"   ✅ Found {notification_count} warehouse notifications")
             
             if notification_count > 0:
-                # Find our notification
+                # Find our notification or any pending notification
                 for notification in notifications:
-                    if notification.get('request_id') == request_id:
+                    if notification.get('request_id') == request_id and notification.get('status') == 'pending_acceptance':
                         notification_id = notification.get('id')
                         notification_status = notification.get('status')
-                        print(f"   📢 Found our notification: ID {notification_id}, Status: {notification_status}")
+                        print(f"   📢 Found our pending notification: ID {notification_id}, Status: {notification_status}")
                         break
                 
+                # If our specific notification is not pending, find any pending notification
                 if not notification_id:
-                    # Use the first notification if we can't find our specific one
+                    for notification in notifications:
+                        if notification.get('status') == 'pending_acceptance':
+                            notification_id = notification.get('id')
+                            notification_status = notification.get('status')
+                            print(f"   📢 Using pending notification: ID {notification_id}, Status: {notification_status}")
+                            break
+                
+                # If no pending notifications, use the first one (may already be processed)
+                if not notification_id:
                     notification_id = notifications[0].get('id')
-                    print(f"   📢 Using first notification: ID {notification_id}")
+                    notification_status = notifications[0].get('status')
+                    print(f"   📢 Using first notification: ID {notification_id}, Status: {notification_status}")
+                    print(f"   ⚠️  Note: This notification may already be processed")
             else:
                 print("   ❌ No warehouse notifications found")
                 all_success = False
