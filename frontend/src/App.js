@@ -56,7 +56,9 @@ function App() {
     cargo_items: [{ name: '', weight: '', price: '' }],
     payment_method: '',
     delivery_method: '',
-    payment_status: 'not_paid'
+    payment_status: 'not_paid',
+    amount_paid: '',
+    payment_notes: ''
   });
   const [cargo, setCargo] = useState([]);
   const [users, setUsers] = useState([]);
