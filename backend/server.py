@@ -13113,8 +13113,9 @@ async def deliver_cargo_to_warehouse(
             )
             
             # Создаем уведомление для операторов о поступившем грузе
+            notification_id = f"WN_{int(current_time.timestamp() * 1000)}"  # Unique timestamp-based ID
             warehouse_notification = {
-                "id": generate_readable_request_number(),
+                "id": notification_id,
                 "request_id": request_id,
                 "request_number": request.get("request_number", request_id[:6]),
                 "request_type": "pickup",
