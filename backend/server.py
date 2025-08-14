@@ -9276,14 +9276,14 @@ async def get_placed_cargo(
             warehouse_ids = [binding["warehouse_id"] for binding in operator_warehouse_bindings]
             warehouse_filter = {"warehouse_id": {"$in": warehouse_ids}}
         
-        # Основной фильтр - только размещенные грузы
+        # Основной фильтр - размещенные грузы и грузы готовые к размещению
         base_filter = {
-            "status": "placed_in_warehouse",
+            "status": {"$in": ["placed_in_warehouse", "placement_ready"]},
             **warehouse_filter
         }
         
-        # Подсчитываем общее количество
-        total_count = db.cargo.count_documents(base_filter)
+        # Подсчитываем общее количество из operator_cargo (основная коллекция для грузов)
+        total_count = db.operator_cargo.count_documents(base_filter)
         
         # Вычисляем параметры пагинации
         skip = (page - 1) * per_page
