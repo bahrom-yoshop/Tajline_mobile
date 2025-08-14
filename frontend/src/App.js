@@ -1269,22 +1269,41 @@ function App() {
             <script>
               const qrData = ${JSON.stringify(qrData)};
               
-              // Проверяем загрузку библиотеки QRCode
-              if (typeof QRCode !== 'undefined') {
-                QRCode.toCanvas(document.getElementById('qrcode'), qrData, {
-                  width: 200,
-                  margin: 2
-                }, function(error) {
-                  if (error) {
-                    console.error('QR Code generation error:', error);
-                    document.body.innerHTML += '<p style="color: red;">Ошибка создания QR кода: ' + error.message + '</p>';
-                  } else {
-                    setTimeout(() => window.print(), 500);
-                  }
-                });
-              } else {
-                document.body.innerHTML += '<p style="color: red;">Библиотека QRCode не загружена. Попробуйте еще раз.</p>';
+              // Функция для генерации QR кода с ожиданием загрузки библиотеки
+              function generateQR() {
+                if (typeof QRCode !== 'undefined') {
+                  QRCode.toCanvas(document.getElementById('qrcode'), qrData, {
+                    width: 200,
+                    margin: 2
+                  }, function(error) {
+                    if (error) {
+                      console.error('QR Code generation error:', error);
+                      document.getElementById('qrcode').style.display = 'none';
+                      document.body.innerHTML += '<p style="color: red; font-size: 16px; margin: 20px;">Ошибка создания QR кода: ' + error.message + '</p>';
+                    } else {
+                      console.log('QR Code generated successfully');
+                      // Добавляем кнопку печати
+                      document.body.innerHTML += '<button onclick="window.print()" style="margin: 20px; padding: 10px 20px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Печать</button>';
+                    }
+                  });
+                } else {
+                  console.log('QRCode library not yet loaded, retrying...');
+                  // Пытаемся еще раз через 100ms
+                  setTimeout(generateQR, 100);
+                }
               }
+              
+              // Начинаем генерацию после небольшой задержки
+              setTimeout(generateQR, 200);
+              
+              // Fallback - если библиотека не загрузилась через 5 секунд
+              setTimeout(function() {
+                if (typeof QRCode === 'undefined') {
+                  document.getElementById('qrcode').style.display = 'none';
+                  document.body.innerHTML += '<p style="color: red; font-size: 16px; margin: 20px;">Библиотека QRCode не загружена. Проверьте интернет-соединение и попробуйте еще раз.</p>';
+                  document.body.innerHTML += '<p style="color: blue; font-size: 14px;">Данные QR кода: ' + qrData + '</p>';
+                }
+              }, 5000);
             </script>
           </body>
         </html>
