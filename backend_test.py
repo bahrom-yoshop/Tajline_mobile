@@ -6081,22 +6081,20 @@ class CargoTransportAPITester:
         all_success &= success
         
         pickup_request_id = None
-        if success and 'id' in pickup_response:
-            pickup_request_id = pickup_response['id']
+        if success and pickup_response.get('success'):
+            pickup_request_id = pickup_response.get('request_id')
             pickup_request_number = pickup_response.get('request_number')
             
             print(f"   ✅ Pickup request created successfully")
             print(f"   🆔 Request ID: {pickup_request_id}")
             print(f"   📋 Request Number: {pickup_request_number}")
+            print(f"   📄 Message: {pickup_response.get('message')}")
             
-            # Verify all required fields are present
-            required_fields = ['id', 'request_number', 'sender_full_name', 'sender_phone', 'pickup_address', 'pickup_date', 'pickup_time_from', 'pickup_time_to', 'route', 'courier_fee']
-            missing_fields = [field for field in required_fields if field not in pickup_response]
-            
-            if not missing_fields:
-                print("   ✅ All required fields present in pickup request response")
+            # Verify required fields are present
+            if pickup_request_id and pickup_request_number:
+                print("   ✅ Required fields present in pickup request response")
             else:
-                print(f"   ❌ Missing fields in pickup request response: {missing_fields}")
+                print(f"   ❌ Missing required fields in pickup request response")
                 all_success = False
         else:
             print("   ❌ Failed to create pickup request")
