@@ -968,6 +968,17 @@ function App() {
       showAlert('Ошибка загрузки заявок на забор: ' + error.message, 'error');
     }
   };
+
+  // НОВАЯ ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ ИСТОРИИ ЗАБОРА ГРУЗА
+  const fetchPickupRequestsHistory = async () => {
+    try {
+      const data = await apiCall('/api/operator/pickup-requests/history', 'GET');
+      setPickupRequestsHistory(data.history_requests || []);
+    } catch (error) {
+      console.error('Error fetching pickup requests history:', error);
+      showAlert('Ошибка загрузки истории заявок на забор: ' + error.message, 'error');
+    }
+  };
   
   // НОВЫЕ ФУНКЦИИ ДЛЯ МОДАЛЬНЫХ ОКОН ПРОСМОТРА И РЕДАКТИРОВАНИЯ ЗАЯВОК
   const handleViewRequest = (request) => {
