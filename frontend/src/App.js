@@ -1248,7 +1248,8 @@ function App() {
               <canvas id="qrcode"></canvas>
             </div>
             <script>
-              QRCode.toCanvas(document.getElementById('qrcode'), '${qrData}', {
+              const qrData = ${JSON.stringify(qrData)};
+              QRCode.toCanvas(document.getElementById('qrcode'), qrData, {
                 width: 200,
                 margin: 2
               }, function(error) {
