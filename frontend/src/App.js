@@ -2894,7 +2894,32 @@ function App() {
       console.log(`🔄 Переключение на камеру: ${nextCamera.label}`);
 
       // Перезапускаем сканер с новой камерой
-      const containerId = 'qr-reader-placement';
+      const possibleContainerIds = [
+        'qr-reader-placement-main',
+        'qr-reader-placement-cargo', 
+        'qr-reader-placement-mobile',
+        'qr-reader-placement-edit',
+        'qr-reader-placement-receive',
+        'qr-reader-placement-update',
+        'qr-reader-placement-search'
+      ];
+      
+      let containerId = null;
+      
+      // Найти первый доступный контейнер
+      for (const id of possibleContainerIds) {
+        const element = document.getElementById(id);
+        if (element && element.offsetParent !== null) { // элемент видим на странице
+          containerId = id;
+          console.log(`✅ Найден доступный QR контейнер для переключения камеры: ${containerId}`);
+          break;
+        }
+      }
+      
+      if (!containerId) {
+        throw new Error('QR контейнер не найден для переключения камеры');
+      }
+      
       const html5QrCode = new Html5Qrcode(containerId);
       html5QrCodePlacementRef.current = html5QrCode;
 
