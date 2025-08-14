@@ -242,12 +242,12 @@ class TestDataCreator:
         print("📊 TEST DATA CREATION SUMMARY")
         print("="*80)
         
-        if final_notifications and len(final_notifications) > 0:
+        if final_notifications and isinstance(final_notifications, list) and len(final_notifications) > 0:
             print("✅ SUCCESS: Warehouse notifications created")
             print(f"📊 Total notifications: {len(final_notifications)}")
             
             # Check if any notification has pickup_request_id
-            notifications_with_pickup_id = [n for n in final_notifications if n.get('pickup_request_id')]
+            notifications_with_pickup_id = [n for n in final_notifications if isinstance(n, dict) and n.get('pickup_request_id')]
             if notifications_with_pickup_id:
                 print(f"✅ {len(notifications_with_pickup_id)} notifications have pickup_request_id")
             else:
