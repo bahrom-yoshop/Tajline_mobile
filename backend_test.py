@@ -5998,6 +5998,424 @@ class CargoTransportAPITester:
             print("   ❌ No admin token available")
             return False
             
+    def test_pickup_request_status_management_system(self):
+        """Test улучшенную систему управления статусами заявок на забор груза в TAJLINE.TJ"""
+        print("\n🚚 PICKUP REQUEST STATUS MANAGEMENT SYSTEM TESTING")
+        print("   🎯 Протестировать улучшенную систему управления статусами заявок на забор груза в TAJLINE.TJ")
+        print("   🔧 УЛУЧШЕНИЯ РЕАЛИЗОВАННЫЕ:")
+        print("   1) Обновлен endpoint /api/courier/requests/new - включает заявки на забор груза с полем request_type")
+        print("   2) Обновлен endpoint /api/courier/requests/accepted - включает принятые заявки на забор груза")
+        print("   3) Обновлен endpoint /api/courier/requests/picked - включает забранные заявки на забор груза")
+        print("   4) Обновлен endpoint /api/courier/requests/{request_id}/pickup - поддерживает забор по заявкам на забор груза")
+        print("   🎯 ПОЛНЫЙ ЦИКЛ ТЕСТИРОВАНИЯ:")
+        print("   1) Авторизация оператора (+79777888999/warehouse123)")
+        print("   2) Создание заявки на забор груза через POST /api/admin/courier/pickup-request")
+        print("   3) Авторизация курьера (+79991234567/courier123)")
+        print("   4) ПРОВЕРКА ПЕРЕХОДОВ СТАТУСОВ:")
+        print("      - GET /api/courier/requests/new - должна показать заявку с request_type: 'pickup' в new_requests")
+        print("      - POST /api/courier/requests/{request_id}/accept - принять заявку на забор груза")
+        print("      - GET /api/courier/requests/accepted - должна показать принятую заявку с request_type: 'pickup' в accepted_requests")
+        print("      - POST /api/courier/requests/{request_id}/pickup - забрать груз по заявке на забор")
+        print("      - GET /api/courier/requests/picked - должна показать забранную заявку с request_type: 'pickup' в picked_requests")
+        print("   🎯 ОЖИДАЕМЫЙ РЕЗУЛЬТАТ: Заявки на забор груза должны корректно переходить через все статусы (pending -> accepted -> picked_up) и правильно отображаться в соответствующих категориях.")
+        
+        all_success = True
+        
+        # Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРА (+79777888999/warehouse123)
+        print("\n   🔐 Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРА (+79777888999/warehouse123)...")
+        
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Operator Authentication",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            print(f"   📞 Phone: {operator_user.get('phone')}")
+            
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed")
+            all_success = False
+            return False
+        
+        # Test 2: СОЗДАНИЕ ЗАЯВКИ НА ЗАБОР ГРУЗА через POST /api/admin/courier/pickup-request
+        print("\n   📦 Test 2: СОЗДАНИЕ ЗАЯВКИ НА ЗАБОР ГРУЗА через POST /api/admin/courier/pickup-request...")
+        
+        pickup_request_data = {
+            "sender_full_name": "Тест Отправитель Забор",
+            "sender_phone": "+79991234567, +79991234568",
+            "pickup_address": "Москва, ул. Тестовая Забор, 123",
+            "pickup_date": "2025-01-20",
+            "pickup_time_from": "10:00",
+            "pickup_time_to": "12:00",
+            "route": "moscow_to_tajikistan",
+            "courier_fee": 500.0
+        }
+        
+        success, pickup_response = self.run_test(
+            "Create Pickup Request",
+            "POST",
+            "/api/admin/courier/pickup-request",
+            200,
+            pickup_request_data,
+            operator_token
+        )
+        all_success &= success
+        
+        pickup_request_id = None
+        if success and 'id' in pickup_response:
+            pickup_request_id = pickup_response['id']
+            pickup_request_number = pickup_response.get('request_number')
+            
+            print(f"   ✅ Pickup request created successfully")
+            print(f"   🆔 Request ID: {pickup_request_id}")
+            print(f"   📋 Request Number: {pickup_request_number}")
+            
+            # Verify all required fields are present
+            required_fields = ['id', 'request_number', 'sender_full_name', 'sender_phone', 'pickup_address', 'pickup_date', 'pickup_time_from', 'pickup_time_to', 'route', 'courier_fee']
+            missing_fields = [field for field in required_fields if field not in pickup_response]
+            
+            if not missing_fields:
+                print("   ✅ All required fields present in pickup request response")
+            else:
+                print(f"   ❌ Missing fields in pickup request response: {missing_fields}")
+                all_success = False
+        else:
+            print("   ❌ Failed to create pickup request")
+            print(f"   📄 Response: {pickup_response}")
+            all_success = False
+            return False
+        
+        # Test 3: АВТОРИЗАЦИЯ КУРЬЕРА (+79991234567/courier123)
+        print("\n   🔐 Test 3: АВТОРИЗАЦИЯ КУРЬЕРА (+79991234567/courier123)...")
+        
+        courier_login_data = {
+            "phone": "+79991234567",
+            "password": "courier123"
+        }
+        
+        success, courier_login_response = self.run_test(
+            "Courier Authentication",
+            "POST",
+            "/api/auth/login",
+            200,
+            courier_login_data
+        )
+        all_success &= success
+        
+        courier_token = None
+        if success and 'access_token' in courier_login_response:
+            courier_token = courier_login_response['access_token']
+            courier_user = courier_login_response.get('user', {})
+            courier_role = courier_user.get('role')
+            courier_name = courier_user.get('full_name')
+            
+            print(f"   ✅ Courier login successful: {courier_name}")
+            print(f"   👑 Role: {courier_role}")
+            print(f"   📞 Phone: {courier_user.get('phone')}")
+            
+            self.tokens['courier'] = courier_token
+            self.users['courier'] = courier_user
+        else:
+            print("   ❌ Courier login failed")
+            all_success = False
+            return False
+        
+        # Test 4: GET /api/courier/requests/new - должна показать заявку с request_type: 'pickup' в new_requests
+        print("\n   📋 Test 4: GET /api/courier/requests/new - проверка заявки с request_type: 'pickup' в new_requests...")
+        
+        success, new_requests_response = self.run_test(
+            "Get New Requests (Should Include Pickup Request)",
+            "GET",
+            "/api/courier/requests/new",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        pickup_found_in_new = False
+        if success:
+            print("   ✅ /api/courier/requests/new endpoint working")
+            
+            # Check if response contains new_requests with pickup requests
+            if isinstance(new_requests_response, dict):
+                new_requests = new_requests_response.get('new_requests', [])
+                total_count = new_requests_response.get('total_count', 0)
+                
+                print(f"   📊 Total new requests: {total_count}")
+                print(f"   📋 New requests in response: {len(new_requests)}")
+                
+                # Look for our pickup request
+                pickup_requests = [req for req in new_requests if req.get('request_type') == 'pickup']
+                pickup_count = len(pickup_requests)
+                
+                print(f"   🚚 Pickup requests found: {pickup_count}")
+                
+                if pickup_count > 0:
+                    pickup_found_in_new = True
+                    print("   ✅ Pickup requests found in new_requests with request_type: 'pickup'")
+                    
+                    # Check if our specific pickup request is there
+                    our_pickup = next((req for req in pickup_requests if req.get('id') == pickup_request_id), None)
+                    if our_pickup:
+                        print(f"   ✅ Our pickup request found in new_requests: {our_pickup.get('sender_full_name')}")
+                        print(f"   📍 Pickup address: {our_pickup.get('pickup_address')}")
+                        print(f"   📅 Pickup date: {our_pickup.get('pickup_date')}")
+                        print(f"   ⏰ Pickup time: {our_pickup.get('pickup_time_from')} - {our_pickup.get('pickup_time_to')}")
+                    else:
+                        print("   ⚠️  Our specific pickup request not found in new_requests")
+                else:
+                    print("   ❌ No pickup requests found in new_requests")
+                    all_success = False
+            else:
+                print("   ❌ Unexpected response format for new requests")
+                all_success = False
+        else:
+            print("   ❌ /api/courier/requests/new endpoint failed")
+            all_success = False
+        
+        if not pickup_found_in_new:
+            print("   ❌ CRITICAL: Pickup request not found in new_requests - cannot continue with status transitions")
+            return False
+        
+        # Test 5: POST /api/courier/requests/{request_id}/accept - принять заявку на забор груза
+        print("\n   ✅ Test 5: POST /api/courier/requests/{request_id}/accept - принять заявку на забор груза...")
+        
+        success, accept_response = self.run_test(
+            "Accept Pickup Request",
+            "POST",
+            f"/api/courier/requests/{pickup_request_id}/accept",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Pickup request accepted successfully")
+            
+            # Verify response contains expected fields
+            if 'message' in accept_response:
+                print(f"   📄 Response message: {accept_response.get('message')}")
+            if 'request_type' in accept_response:
+                request_type = accept_response.get('request_type')
+                print(f"   🏷️  Request type: {request_type}")
+                if request_type == 'pickup':
+                    print("   ✅ Request type correctly identified as 'pickup'")
+                else:
+                    print(f"   ❌ Request type incorrect: expected 'pickup', got '{request_type}'")
+                    all_success = False
+            if 'request_id' in accept_response:
+                returned_id = accept_response.get('request_id')
+                print(f"   🆔 Returned request ID: {returned_id}")
+                if returned_id == pickup_request_id:
+                    print("   ✅ Request ID matches")
+                else:
+                    print("   ❌ Request ID mismatch")
+                    all_success = False
+        else:
+            print("   ❌ Failed to accept pickup request")
+            all_success = False
+            return False
+        
+        # Test 6: GET /api/courier/requests/accepted - должна показать принятую заявку с request_type: 'pickup' в accepted_requests
+        print("\n   📋 Test 6: GET /api/courier/requests/accepted - проверка принятой заявки с request_type: 'pickup' в accepted_requests...")
+        
+        success, accepted_requests_response = self.run_test(
+            "Get Accepted Requests (Should Include Accepted Pickup Request)",
+            "GET",
+            "/api/courier/requests/accepted",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        pickup_found_in_accepted = False
+        if success:
+            print("   ✅ /api/courier/requests/accepted endpoint working")
+            
+            # Check if response contains accepted_requests with pickup requests
+            if isinstance(accepted_requests_response, dict):
+                accepted_requests = accepted_requests_response.get('accepted_requests', [])
+                total_count = accepted_requests_response.get('total_count', 0)
+                
+                print(f"   📊 Total accepted requests: {total_count}")
+                print(f"   📋 Accepted requests in response: {len(accepted_requests)}")
+                
+                # Look for pickup requests
+                pickup_requests = [req for req in accepted_requests if req.get('request_type') == 'pickup']
+                pickup_count = len(pickup_requests)
+                
+                print(f"   🚚 Pickup requests found: {pickup_count}")
+                
+                if pickup_count > 0:
+                    pickup_found_in_accepted = True
+                    print("   ✅ Pickup requests found in accepted_requests with request_type: 'pickup'")
+                    
+                    # Check if our specific pickup request is there
+                    our_pickup = next((req for req in pickup_requests if req.get('id') == pickup_request_id), None)
+                    if our_pickup:
+                        print(f"   ✅ Our pickup request found in accepted_requests: {our_pickup.get('sender_full_name')}")
+                        print(f"   📍 Pickup address: {our_pickup.get('pickup_address')}")
+                        print(f"   📊 Request status: {our_pickup.get('request_status', 'unknown')}")
+                    else:
+                        print("   ⚠️  Our specific pickup request not found in accepted_requests")
+                else:
+                    print("   ❌ No pickup requests found in accepted_requests")
+                    all_success = False
+            else:
+                print("   ❌ Unexpected response format for accepted requests")
+                all_success = False
+        else:
+            print("   ❌ /api/courier/requests/accepted endpoint failed")
+            all_success = False
+        
+        if not pickup_found_in_accepted:
+            print("   ❌ CRITICAL: Accepted pickup request not found in accepted_requests - cannot continue with pickup")
+            return False
+        
+        # Test 7: POST /api/courier/requests/{request_id}/pickup - забрать груз по заявке на забор
+        print("\n   📦 Test 7: POST /api/courier/requests/{request_id}/pickup - забрать груз по заявке на забор...")
+        
+        success, pickup_action_response = self.run_test(
+            "Pickup Cargo by Pickup Request",
+            "POST",
+            f"/api/courier/requests/{pickup_request_id}/pickup",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        if success:
+            print("   ✅ Pickup action completed successfully")
+            
+            # Verify response contains expected fields
+            if 'message' in pickup_action_response:
+                print(f"   📄 Response message: {pickup_action_response.get('message')}")
+            if 'request_type' in pickup_action_response:
+                request_type = pickup_action_response.get('request_type')
+                print(f"   🏷️  Request type: {request_type}")
+                if request_type == 'pickup':
+                    print("   ✅ Request type correctly identified as 'pickup'")
+                else:
+                    print(f"   ❌ Request type incorrect: expected 'pickup', got '{request_type}'")
+                    all_success = False
+            if 'request_id' in pickup_action_response:
+                returned_id = pickup_action_response.get('request_id')
+                print(f"   🆔 Returned request ID: {returned_id}")
+        else:
+            print("   ❌ Failed to pickup cargo by pickup request")
+            all_success = False
+            return False
+        
+        # Test 8: GET /api/courier/requests/picked - должна показать забранную заявку с request_type: 'pickup' в picked_requests
+        print("\n   📋 Test 8: GET /api/courier/requests/picked - проверка забранной заявки с request_type: 'pickup' в picked_requests...")
+        
+        success, picked_requests_response = self.run_test(
+            "Get Picked Requests (Should Include Picked Pickup Request)",
+            "GET",
+            "/api/courier/requests/picked",
+            200,
+            token=courier_token
+        )
+        all_success &= success
+        
+        pickup_found_in_picked = False
+        if success:
+            print("   ✅ /api/courier/requests/picked endpoint working")
+            
+            # Check if response contains picked_requests with pickup requests
+            if isinstance(picked_requests_response, dict):
+                picked_requests = picked_requests_response.get('picked_requests', [])
+                total_count = picked_requests_response.get('total_count', 0)
+                
+                print(f"   📊 Total picked requests: {total_count}")
+                print(f"   📋 Picked requests in response: {len(picked_requests)}")
+                
+                # Look for pickup requests
+                pickup_requests = [req for req in picked_requests if req.get('request_type') == 'pickup']
+                pickup_count = len(pickup_requests)
+                
+                print(f"   🚚 Pickup requests found: {pickup_count}")
+                
+                if pickup_count > 0:
+                    pickup_found_in_picked = True
+                    print("   ✅ Pickup requests found in picked_requests with request_type: 'pickup'")
+                    
+                    # Check if our specific pickup request is there
+                    our_pickup = next((req for req in picked_requests if req.get('id') == pickup_request_id), None)
+                    if our_pickup:
+                        print(f"   ✅ Our pickup request found in picked_requests: {our_pickup.get('sender_full_name')}")
+                        print(f"   📍 Pickup address: {our_pickup.get('pickup_address')}")
+                        print(f"   📊 Request status: {our_pickup.get('request_status', 'unknown')}")
+                        
+                        # Verify status is picked_up
+                        if our_pickup.get('request_status') == 'picked_up':
+                            print("   ✅ Request status correctly set to 'picked_up'")
+                        else:
+                            print(f"   ❌ Request status incorrect: expected 'picked_up', got '{our_pickup.get('request_status')}'")
+                            all_success = False
+                    else:
+                        print("   ⚠️  Our specific pickup request not found in picked_requests")
+                else:
+                    print("   ❌ No pickup requests found in picked_requests")
+                    all_success = False
+            else:
+                print("   ❌ Unexpected response format for picked requests")
+                all_success = False
+        else:
+            print("   ❌ /api/courier/requests/picked endpoint failed")
+            all_success = False
+        
+        # SUMMARY
+        print("\n   📊 PICKUP REQUEST STATUS MANAGEMENT SYSTEM SUMMARY:")
+        
+        if all_success and pickup_found_in_new and pickup_found_in_accepted and pickup_found_in_picked:
+            print("   🎉 ALL PICKUP REQUEST STATUS MANAGEMENT TESTS PASSED!")
+            print("   ✅ ПОЛНЫЙ ЦИКЛ ТЕСТИРОВАНИЯ ЗАВЕРШЕН УСПЕШНО:")
+            print("   1) ✅ Авторизация оператора (+79777888999/warehouse123) работает")
+            print("   2) ✅ Создание заявки на забор груза через POST /api/admin/courier/pickup-request работает")
+            print("   3) ✅ Авторизация курьера (+79991234567/courier123) работает")
+            print("   4) ✅ ПРОВЕРКА ПЕРЕХОДОВ СТАТУСОВ:")
+            print("      ✅ GET /api/courier/requests/new - показывает заявку с request_type: 'pickup' в new_requests")
+            print("      ✅ POST /api/courier/requests/{request_id}/accept - принимает заявку на забор груза")
+            print("      ✅ GET /api/courier/requests/accepted - показывает принятую заявку с request_type: 'pickup' в accepted_requests")
+            print("      ✅ POST /api/courier/requests/{request_id}/pickup - забирает груз по заявке на забор")
+            print("      ✅ GET /api/courier/requests/picked - показывает забранную заявку с request_type: 'pickup' в picked_requests")
+            print("   🎯 ОЖИДАЕМЫЙ РЕЗУЛЬТАТ ДОСТИГНУТ: Заявки на забор груза корректно переходят через все статусы (pending -> accepted -> picked_up) и правильно отображаются в соответствующих категориях!")
+            print("   🚚 УЛУЧШЕННАЯ СИСТЕМА УПРАВЛЕНИЯ СТАТУСАМИ ЗАЯВОК НА ЗАБОР ГРУЗА ПОЛНОСТЬЮ ФУНКЦИОНАЛЬНА!")
+        else:
+            print("   ❌ SOME PICKUP REQUEST STATUS MANAGEMENT TESTS FAILED")
+            print("   🔍 Check the specific failed tests above for details")
+            
+            # Detailed failure analysis
+            if not pickup_found_in_new:
+                print("   ❌ CRITICAL ISSUE: Pickup request not found in new_requests")
+            if not pickup_found_in_accepted:
+                print("   ❌ CRITICAL ISSUE: Accepted pickup request not found in accepted_requests")
+            if not pickup_found_in_picked:
+                print("   ❌ CRITICAL ISSUE: Picked pickup request not found in picked_requests")
+            
+            print("   ⚠️  Улучшенная система управления статусами заявок на забор груза требует доработки")
+        
+        return all_success and pickup_found_in_new and pickup_found_in_accepted and pickup_found_in_picked
         all_success = True
         
         # Test get all users
