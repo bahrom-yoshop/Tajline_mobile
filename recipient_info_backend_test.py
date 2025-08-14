@@ -173,9 +173,21 @@ class RecipientInfoTester:
             pickup_request_data, token=self.tokens["warehouse_operator"]
         )
         
-        if success and "id" in response:
-            self.test_data["pickup_request_id"] = response["id"]
-            self.test_data["pickup_request_number"] = response.get("request_number", "Unknown")
+        if success:
+            print(f"✅ Pickup request API call successful")
+            print(f"   Response: {response}")
+            
+            # Check for different possible response formats
+            if "id" in response:
+                self.test_data["pickup_request_id"] = response["id"]
+                self.test_data["pickup_request_number"] = response.get("request_number", "Unknown")
+            elif "request_id" in response:
+                self.test_data["pickup_request_id"] = response["request_id"]
+                self.test_data["pickup_request_number"] = response.get("request_number", "Unknown")
+            else:
+                print("❌ No ID found in response, but request was successful")
+                return False
+            
             print(f"✅ Pickup request created successfully")
             print(f"   Request ID: {self.test_data['pickup_request_id']}")
             print(f"   Request Number: {self.test_data['pickup_request_number']}")
@@ -185,6 +197,7 @@ class RecipientInfoTester:
             return True
         
         print("❌ Failed to create pickup request")
+        print(f"   Response: {response}")
         return False
 
     def process_pickup_request_by_courier(self):
