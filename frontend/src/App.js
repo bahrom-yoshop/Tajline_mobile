@@ -4120,7 +4120,27 @@ function App() {
     try {
       console.log('🔍 Парсинг QR кода ячейки:', qrData);
       
-      // Новый формат с ID номерами: 001-01-01-001 (приоритетный)
+      // ИСПРАВЛЕНИЕ: Новый формат без дефисов: 03010101 (склад блок полка ячейка)
+      const compactFormatMatch = qrData.match(/^(\d{2})(\d{2})(\d{2})(\d{2})$/);
+      if (compactFormatMatch) {
+        console.log('✅ Найден компактный формат QR кода:', compactFormatMatch);
+        const warehouseNum = parseInt(compactFormatMatch[1]);
+        const blockNum = parseInt(compactFormatMatch[2]);
+        const shelfNum = parseInt(compactFormatMatch[3]);
+        const cellNum = parseInt(compactFormatMatch[4]);
+        
+        return {
+          format: 'compact',
+          warehouse_number: warehouseNum,
+          block_number: blockNum,
+          shelf_number: shelfNum,
+          cell_number: cellNum,
+          readable_name: `Б${blockNum}-П${shelfNum}-Я${cellNum}`,
+          cell_code: qrData // Полный код для размещения
+        };
+      }
+      
+      // Старый формат с ID номерами: 001-01-01-001 (для совместимости)
       const idFormatMatch = qrData.match(/^(\d{3})-(\d{2})-(\d{2})-(\d{3})$/);
       if (idFormatMatch) {
         console.log('✅ Найден ID формат QR кода:', idFormatMatch);
