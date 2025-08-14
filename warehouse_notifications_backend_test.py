@@ -265,7 +265,20 @@ class WarehouseNotificationsBackendTester:
             )
             
             if success:
-                if isinstance(filtered_response, list):
+                if isinstance(filtered_response, dict) and 'notifications' in filtered_response:
+                    filtered_notifications = filtered_response['notifications']
+                    filtered_count = len(filtered_notifications)
+                    print(f"   ✅ {description} filter working: {filtered_count} notifications")
+                    
+                    # Verify all returned notifications have the correct status
+                    if filtered_count > 0:
+                        correct_status_count = sum(1 for n in filtered_notifications if n.get('status') == status_filter)
+                        if correct_status_count == filtered_count:
+                            print(f"   ✅ All {filtered_count} notifications have correct status: {status_filter}")
+                        else:
+                            print(f"   ❌ Status filtering incorrect: {correct_status_count}/{filtered_count} have correct status")
+                            all_success = False
+                elif isinstance(filtered_response, list):
                     filtered_count = len(filtered_response)
                     print(f"   ✅ {description} filter working: {filtered_count} notifications")
                     
