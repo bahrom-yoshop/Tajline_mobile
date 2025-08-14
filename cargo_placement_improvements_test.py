@@ -336,9 +336,12 @@ class CargoPlacementImprovementsTester:
         print(f"\n   📊 РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ УЛУЧШЕНИЙ:")
         print(f"   📈 Проверено улучшений: {improvements_tested}")
         print(f"   ✅ Пройдено улучшений: {improvements_passed}")
-        print(f"   📊 Процент успеха: {(improvements_passed/improvements_tested*100):.1f}%")
-        
-        return improvements_passed >= improvements_tested * 0.7  # 70% успеха
+        if improvements_tested > 0:
+            print(f"   📊 Процент успеха: {(improvements_passed/improvements_tested*100):.1f}%")
+            return improvements_passed >= improvements_tested * 0.7  # 70% успеха
+        else:
+            print(f"   ⚠️ Нет грузов из заявок на забор для тестирования улучшений")
+            return False
 
     def test_payment_data_completeness(self) -> bool:
         """Тестирование полноты данных об оплате"""
