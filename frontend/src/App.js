@@ -919,6 +919,7 @@ function App() {
         setOperatorCargoForm(prev => ({
           ...prev,
           sender_full_name: '',
+          cargo_name: '',  // Очищаем новое поле
           pickup_address: '',
           pickup_date: '',
           pickup_time_from: '',
