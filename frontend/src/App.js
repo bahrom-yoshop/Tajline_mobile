@@ -4078,6 +4078,7 @@ function App() {
         fetchWarehouseNotifications(); // НОВОЕ: Загрузка уведомлений о поступивших грузах
         fetchAllPickupRequests(); // НОВОЕ: Загрузка всех заявок на забор
         fetchPickupRequestsHistory(); // НОВОЕ: Загрузка истории заявок на забор
+        fetchPickupRequestsHistory(); // НОВОЕ: Загрузка истории заявок на забор
       } else if (user.role === 'warehouse_operator') {
         fetchNotifications();
         fetchWarehouseCargo();
