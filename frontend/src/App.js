@@ -25357,11 +25357,8 @@ function App() {
                       <p className="text-sm font-medium text-red-700">Занято</p>
                       <p className="text-2xl font-bold text-red-900">
                         {(() => {
-                          const warehousesList = user?.role === 'admin' ? warehouses : operatorWarehouses;
-                          const warehouse = warehousesList.find(w => w.id === showWarehouseScheme);
-                          const totalCells = warehouse?.total_cells || 
-                                           ((warehouse?.blocks_count || 0) * (warehouse?.shelves_per_block || 0) * (warehouse?.cells_per_shelf || 0)) || 0;
-                          return Math.floor(totalCells * 0.6);
+                          // ИСПРАВЛЕНИЕ: Используем реальные данные из warehouseSchemeData
+                          return warehouseSchemeData.reduce((total, block) => total + block.occupied_cells, 0);
                         })()}
                       </p>
                     </div>
@@ -25375,11 +25372,10 @@ function App() {
                       <p className="text-sm font-medium text-green-700">Свободно</p>
                       <p className="text-2xl font-bold text-green-900">
                         {(() => {
-                          const warehousesList = user?.role === 'admin' ? warehouses : operatorWarehouses;
-                          const warehouse = warehousesList.find(w => w.id === showWarehouseScheme);
-                          const totalCells = warehouse?.total_cells || 
-                                           ((warehouse?.blocks_count || 0) * (warehouse?.shelves_per_block || 0) * (warehouse?.cells_per_shelf || 0)) || 0;
-                          return Math.floor(totalCells * 0.4);
+                          // ИСПРАВЛЕНИЕ: Используем реальные данные из warehouseSchemeData
+                          const totalCells = warehouseSchemeData.reduce((total, block) => total + block.total_cells, 0);
+                          const occupiedCells = warehouseSchemeData.reduce((total, block) => total + block.occupied_cells, 0);
+                          return totalCells - occupiedCells;
                         })()}
                       </p>
                     </div>
