@@ -204,7 +204,7 @@ class CargoPlacementImprovementsTester:
             print("   ❌ Не удалось создать заявку на забор груза")
             return False
             
-        request_id = response.get("id")
+        request_id = response.get("request_id") or response.get("request_number")
         print(f"   📝 Создана заявка на забор: {request_id}")
         
         # Теперь авторизуемся как курьер для обработки заявки
