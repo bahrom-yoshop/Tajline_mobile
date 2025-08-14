@@ -3227,7 +3227,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Fix Courier Request Editing Save Error"
+    - "Improved Pickup Request Modal Window"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
