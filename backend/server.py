@@ -13552,7 +13552,11 @@ async def send_pickup_request_to_placement(
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error sending to placement: {str(e)}")
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"ERROR in send_pickup_request_to_placement: {str(e)}")
+        print(f"TRACEBACK: {error_details}")
+        raise HTTPException(status_code=500, detail=f"Error sending to placement: {str(e)} | Details: {error_details[:200]}")
 
 # НОВЫЙ ENDPOINT: История заявок на забор груза  
 @app.get("/api/operator/pickup-requests/history")
