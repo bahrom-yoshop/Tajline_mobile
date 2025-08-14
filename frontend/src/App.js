@@ -1006,7 +1006,9 @@ function App() {
                 }],
             payment_method: fullRequest.payment_method || notification.payment_method || 'cash',
             delivery_method: fullRequest.delivery_method || 'pickup',
-            payment_status: 'not_paid'
+            payment_status: 'not_paid',
+            amount_paid: '',
+            payment_notes: ''
           });
           
           // Сохраняем полные данные заявки в уведомление для отображения
