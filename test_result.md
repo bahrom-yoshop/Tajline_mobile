@@ -3514,7 +3514,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Тестирование исправлений ошибок в категории складов TAJLINE.TJ"
+    - "Исправление ошибки парсинга cell_id в GET /api/warehouses/cells/{cell_id}/qr"
+    - "Валидация работы альтернативных QR endpoints"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
