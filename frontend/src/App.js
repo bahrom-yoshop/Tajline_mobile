@@ -18067,7 +18067,8 @@ function App() {
                                           <div>
                                             <p className="text-xs font-medium text-gray-500">Всего ячеек</p>
                                             <p className="text-xl font-bold text-blue-600">
-                                              {(warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)}
+                                              {warehousesStatistics[warehouse.id]?.total_cells || 
+                                               (warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)}
                                             </p>
                                           </div>
                                           <Grid3X3 className="h-6 w-6 text-blue-500" />
@@ -18079,7 +18080,7 @@ function App() {
                                           <div>
                                             <p className="text-xs font-medium text-gray-500">Занято</p>
                                             <p className="text-xl font-bold text-red-600">
-                                              {Math.floor(((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)) * 0.6)}
+                                              {warehousesStatistics[warehouse.id]?.occupied_cells || 0}
                                             </p>
                                           </div>
                                           <Package className="h-6 w-6 text-red-500" />
@@ -18091,7 +18092,8 @@ function App() {
                                           <div>
                                             <p className="text-xs font-medium text-gray-500">Свободно</p>
                                             <p className="text-xl font-bold text-green-600">
-                                              {Math.floor(((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)) * 0.4)}
+                                              {warehousesStatistics[warehouse.id]?.free_cells || 
+                                               ((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0))}
                                             </p>
                                           </div>
                                           <CheckCircle className="h-6 w-6 text-green-500" />
@@ -18102,7 +18104,9 @@ function App() {
                                         <div className="flex items-center justify-between">
                                           <div>
                                             <p className="text-xs font-medium text-gray-500">Загрузка</p>
-                                            <p className="text-xl font-bold text-orange-600">60%</p>
+                                            <p className="text-xl font-bold text-orange-600">
+                                              {warehousesStatistics[warehouse.id]?.utilization_percent?.toFixed(1) || '0.0'}%
+                                            </p>
                                           </div>
                                           <DollarSign className="h-6 w-6 text-orange-500" />
                                         </div>
@@ -18116,7 +18120,7 @@ function App() {
                                           <div>
                                             <p className="text-xs font-medium text-purple-700">Вес (кг)</p>
                                             <p className="text-lg font-bold text-purple-900">
-                                              {Math.floor(Math.random() * 1000) + 500}
+                                              {warehousesStatistics[warehouse.id]?.total_weight || 0}
                                             </p>
                                           </div>
                                           <Package2 className="h-5 w-5 text-purple-600" />
@@ -18128,7 +18132,7 @@ function App() {
                                           <div>
                                             <p className="text-xs font-medium text-blue-700">Кол-во грузов</p>
                                             <p className="text-lg font-bold text-blue-900">
-                                              {Math.floor(((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)) * 0.6) + Math.floor(Math.random() * 10)}
+                                              {warehousesStatistics[warehouse.id]?.total_cargo_count || 0}
                                             </p>
                                           </div>
                                           <FileText className="h-5 w-5 text-blue-600" />
