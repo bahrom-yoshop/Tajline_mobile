@@ -38150,11 +38150,11 @@ if __name__ == "__main__":
     # Initialize tester with the correct URL
     tester = CargoTransportAPITester(base_url=backend_url)
     
-    # Run only the pickup request system fixes test
-    print("🎯 RUNNING SPECIFIC TEST: PICKUP REQUEST SYSTEM FIXES")
+    # Run only the cargo items structure analysis test
+    print("🎯 RUNNING SPECIFIC TEST: CARGO ITEMS STRUCTURE ANALYSIS")
     print("=" * 80)
     
-    result = tester.test_pickup_request_system_fixes()
+    result = tester.test_cargo_items_structure_analysis_for_pickup_requests()
     
     print("\n" + "=" * 80)
     print("🏁 FINAL TEST RESULT")
@@ -38165,10 +38165,10 @@ if __name__ == "__main__":
     print(f"📈 Success rate: {(tester.tests_passed/tester.tests_run*100):.1f}%" if tester.tests_run > 0 else "0%")
     
     if result:
-        print("\n🎉 PICKUP REQUEST SYSTEM FIXES TEST PASSED!")
-        print("✅ Pickup request system fixes working correctly")
+        print("\n🎉 CARGO ITEMS STRUCTURE ANALYSIS TEST PASSED!")
+        print("✅ Cargo items structure analysis completed successfully")
         sys.exit(0)
     else:
-        print("\n❌ PICKUP REQUEST SYSTEM FIXES TEST FAILED")
+        print("\n❌ CARGO ITEMS STRUCTURE ANALYSIS TEST FAILED")
         print("🔍 Check test results above for details")
         sys.exit(1)
