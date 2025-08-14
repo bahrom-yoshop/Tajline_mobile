@@ -17,7 +17,7 @@
 user_problem_statement: "Протестировать исправления ошибок в категории складов TAJLINE.TJ. КОНТЕКСТ: Исправлены критические проблемы в разделе складов: 1. BACKEND: Новый endpoint GET /api/warehouses/{warehouse_id}/statistics для получения реальной статистики склада, 2. FRONTEND: Исправлено отображение данных на карточках складов - убраны жестко заданные 60% и случайные числа, 3. ФУНКЦИОНАЛЬНОСТЬ: Добавлена функция загрузки статистики складов с реальными данными о заполненности, 4. КНОПКИ УПРАВЛЕНИЯ: Исправлена кнопка 'Управление ячейками' для перехода к управлению. ТЕСТОВЫЙ ПЛАН: 1. Авторизация администратора (admin@emergent.com/admin123), 2. Получение списка складов (/api/warehouses), 3. Тестирование нового endpoint статистики для каждого склада, 4. Проверка корректности расчетов: - Общее количество ячеек (блоки × полки × ячейки), - Занятые ячейки (из коллекции warehouse_cells), - Свободные ячейки (общие - занятые), - Процент заполненности (занятые / общие × 100), - Количество грузов (из operator_cargo + cargo коллекций), - Общий вес грузов, 5. Проверка обработки складов без данных. ОЖИДАЕМЫЙ РЕЗУЛЬТАТ: Endpoint должен возвращать корректную статистику складов с реальными данными вместо жестко заданных значений, процент заполненности должен рассчитываться на основе реальных данных о занятых ячейках."
 
 backend:
-  - task: "Авторизация администратора (+79999888777/admin123)"
+  - task: "Авторизация администратора (admin@emergent.com/admin123)"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -29,7 +29,7 @@ backend:
           agent: "testing"
           comment: "Успешная авторизация администратора с корректным отображением роли 'Администратор Системы', номера пользователя USR648362, JWT токен генерируется корректно, роль admin подтверждена, сессии стабильны без преждевременных 401 ошибок"
 
-  - task: "Создание тестовых заявок на забор груза"
+  - task: "Получение списка складов (/api/warehouses)"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -39,9 +39,9 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "POST /api/admin/courier/pickup-request работает корректно, успешно создано множество тестовых заявок на забор груза с номерами 100082-100087, все поля корректно сохраняются, структура ответа содержит request_id и request_number"
+          comment: "Получен список складов: 148 складов. Endpoint работает корректно и возвращает полную информацию о складах с необходимыми полями для расчета статистики"
 
-  - task: "Endpoint массового удаления заявок на забор (/api/admin/pickup-requests/bulk)"
+  - task: "Новый endpoint GET /api/warehouses/{warehouse_id}/statistics"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -51,9 +51,9 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "КРИТИЧЕСКИЙ УСПЕХ - DELETE /api/admin/pickup-requests/bulk полностью функционален: успешно удаляет заявки на забор груза, возвращает корректную структуру ответа (message, success_count, total_count, errors), обрабатывает массовое удаление нескольких заявок одновременно (протестировано удаление 3 заявок за раз)"
+          comment: "КРИТИЧЕСКИЙ УСПЕХ - Новый endpoint GET /api/warehouses/{warehouse_id}/statistics полностью функционален и работает корректно. Endpoint возвращает все требуемые поля: total_cells, occupied_cells, free_cells, utilization_percent, total_cargo_count, total_weight, cargo_breakdown. Протестировано на 5 складах с 100% успешностью"
 
-  - task: "Валидация несуществующих заявок при массовом удалении"
+  - task: "Корректность расчетов статистики складов"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -63,9 +63,9 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "Валидация работает корректно - несуществующие заявки не удаляются, endpoint возвращает детальные ошибки для каждой несуществующей заявки ('Заявка fake-id-1 не найдена'), success_count остается 0 для несуществующих ID"
+          comment: "Все расчеты статистики корректны: общее количество ячеек рассчитывается как блоки × полки × ячейки, свободные ячейки = общие - занятые, процент заполненности = занятые / общие × 100. Математические формулы работают правильно для всех протестированных складов"
 
-  - task: "Проверка авторизации - только администраторы могут удалять заявки"
+  - task: "Реалистичность данных (отсутствие жестко заданных значений)"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -75,33 +75,9 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "Авторизация работает корректно - операторы склада не могут удалять заявки на забор (возвращается 403 Forbidden), только администраторы имеют доступ к массовому удалению заявок"
+          comment: "Данные выглядят реалистично и не содержат жестко заданных значений. Нет подозрительных паттернов типа фиксированных 60% заполненности или тестовых значений. Все данные рассчитываются динамически на основе реальных данных из базы"
 
-  - task: "Логика освобождения курьеров при удалении активных заявок"
-    implemented: true
-    working: true
-    file: "/app/backend/server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Логика освобождения курьеров реализована и протестирована - при удалении заявки с assigned_courier_id система корректно обновляет поле current_pickup_request_id у курьера, освобождая его для новых заявок"
-
-  - task: "Удаление связанных уведомлений при удалении заявок"
-    implemented: true
-    working: true
-    file: "/app/backend/server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Удаление связанных уведомлений реализовано и протестировано - система корректно удаляет все warehouse_notifications связанные с pickup_request_id при удалении заявки, предотвращая orphaned records"
-
-  - task: "Получение списка заявок на забор для админа"
+  - task: "Структура складов и расчет общих ячеек"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -111,7 +87,7 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "Найден рабочий endpoint /api/operator/pickup-requests для получения списка заявок на забор (47 заявок), структура ответа содержит pickup_requests array, by_status группировку, total_count и status_counts. Специальный admin endpoint /api/admin/pickup-requests/all не найден, но функциональность доступна через operator endpoint"
+          comment: "Расчет структуры складов работает корректно для всех протестированных складов. Примеры: 2 блока × 2 полки × 5 ячеек = 20 всего ячеек, 1 блок × 1 полка × 3 ячейки = 3 всего ячейки. Формула blocks_count × shelves_per_block × cells_per_shelf работает правильно"
 
 frontend:
   - task: "Авторизация администратора (admin@emergent.com/admin123)"
