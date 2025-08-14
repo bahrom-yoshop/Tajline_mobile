@@ -152,7 +152,6 @@ function App() {
   // НОВОЕ: Состояния для модального окна управления ячейками
   const [cellManagementModal, setCellManagementModal] = useState(false);
   const [selectedWarehouseForCells, setSelectedWarehouseForCells] = useState(null);
-  const [warehouseCells, setWarehouseCells] = useState([]);
   const [cellsLoading, setCellsLoading] = useState(false);
   const [cellEditForm, setCellEditForm] = useState({
     blocks_count: '',
