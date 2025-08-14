@@ -283,11 +283,29 @@ class CargoPlacementImprovementsTester:
                     )
                     
                     if success:
-                        # Завершаем оформление груза
+                        # Завершаем оформление груза с необходимыми данными
+                        cargo_details = {
+                            "sender_full_name": "Тестовый Отправитель Забор",
+                            "sender_phone": "+79991234567",
+                            "sender_address": "Москва, ул. Забора Тестовая, 456",
+                            "recipient_full_name": "",  # Пустое для тестирования улучшений
+                            "recipient_phone": "+79887654321",
+                            "recipient_address": "Душанбе, ул. Тестовая, 123",
+                            "payment_method": "cash",
+                            "payment_status": "paid",
+                            "cargo_items": [
+                                {
+                                    "name": "Тестовый груз из забора",
+                                    "weight": 15.5,
+                                    "price": 5000
+                                }
+                            ]
+                        }
+                        
                         success, complete_response = self.run_test(
                             "Завершение оформления груза",
                             "POST", f"/api/operator/warehouse-notifications/{notification_id}/complete", 200,
-                            token=self.tokens["warehouse_operator"]
+                            cargo_details, self.tokens["warehouse_operator"]
                         )
                         
                         if success:
