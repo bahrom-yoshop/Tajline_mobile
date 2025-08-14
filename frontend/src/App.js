@@ -4417,10 +4417,7 @@ function App() {
     console.log('🔙 Закрытие страницы размещения груза...');
     
     // Stop any active scanners
-    if (html5QrCodePlacement) {
-      safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement", "Page Close");
-      setHtml5QrCodePlacement(null);
-    }
+    cleanupAllQrScanners();
     
     // Reset all placement states
     setPlacementActive(false);
@@ -4430,6 +4427,46 @@ function App() {
     
     // Return to main page
     setCurrentPage('main');
+  };
+  
+  // НОВАЯ ФУНКЦИЯ: Универсальная очистка всех QR сканеров
+  const cleanupAllQrScanners = () => {
+    console.log('🧹 Очистка всех QR сканеров...');
+    
+    const scannerIds = [
+      'qr-reader-placement-main',
+      'qr-reader-placement-cargo', 
+      'qr-reader-placement-mobile',
+      'qr-reader-placement-edit',
+      'qr-reader-placement-receive',
+      'qr-reader-placement-update',
+      'qr-reader-placement-search',
+      'qr-reader-placement-isolated'
+    ];
+    
+    // Остановка всех активных сканеров
+    if (html5QrCodePlacement) {
+      safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement-main", "Tab Switch Cleanup");
+      setHtml5QrCodePlacement(null);
+    }
+    
+    // Очистка DOM элементов всех сканеров
+    scannerIds.forEach(scannerId => {
+      try {
+        const element = document.getElementById(scannerId);
+        if (element) {
+          element.innerHTML = '';
+          console.log(`✅ Очищен сканер: ${scannerId}`);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Ошибка очистки сканера ${scannerId}:`, error);
+      }
+    });
+    
+    // Сброс состояний сканеров
+    setScannerActive(false);
+    setExternalScannerActive(false);
+    setSearchScannerActive(false);
   };  
   const startCargoPlacement = async () => {
     try {
