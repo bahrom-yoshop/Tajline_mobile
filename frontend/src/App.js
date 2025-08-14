@@ -14151,6 +14151,19 @@ function App() {
                                           <Badge className="bg-green-100 text-green-700 border-green-200">
                                             {notification.courier_name}
                                           </Badge>
+                                          {/* Индикатор статуса уведомления */}
+                                          <Badge variant={
+                                            notification.status === 'pending_acceptance' ? 'default' :
+                                            notification.status === 'in_processing' ? 'secondary' : 'outline'
+                                          } className={
+                                            notification.status === 'pending_acceptance' ? 'bg-blue-100 text-blue-800' :
+                                            notification.status === 'in_processing' ? 'bg-yellow-100 text-yellow-800' : 
+                                            'bg-gray-100 text-gray-800'
+                                          }>
+                                            {notification.status === 'pending_acceptance' ? '🔔 Новое' :
+                                             notification.status === 'in_processing' ? '⏳ Обрабатывается' : 
+                                             '✅ Обработано'}
+                                          </Badge>
                                         </div>
                                         
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
@@ -14182,14 +14195,51 @@ function App() {
                                       </div>
                                       
                                       <div className="ml-4">
-                                        <Button
-                                          onClick={() => handleAcceptWarehouseDelivery(notification.id)}
-                                          className="bg-blue-600 hover:bg-blue-700"
-                                          size="sm"
-                                        >
-                                          <CheckCircle className="mr-2 h-4 w-4" />
-                                          Принять груз
-                                        </Button>
+                                        {/* Условные кнопки в зависимости от статуса */}
+                                        {notification.status === 'pending_acceptance' && (
+                                          <Button
+                                            onClick={() => handleAcceptWarehouseDelivery(notification.id)}
+                                            className="bg-blue-600 hover:bg-blue-700"
+                                            size="sm"
+                                          >
+                                            <CheckCircle className="mr-2 h-4 w-4" />
+                                            Принять груз
+                                          </Button>
+                                        )}
+                                        
+                                        {notification.status === 'in_processing' && (
+                                          <div className="text-center">
+                                            <div className="text-sm text-yellow-600 font-medium">Обрабатывается</div>
+                                            <div className="text-xs text-gray-500 mt-1">
+                                              {notification.processing_by}
+                                            </div>
+                                            <Button
+                                              onClick={() => {
+                                                // Найти это уведомление и открыть форму оформления
+                                                setCurrentCargoNotification(notification);
+                                                setCargoAcceptanceForm({
+                                                  sender_full_name: notification.sender_full_name || '',
+                                                  sender_phone: notification.sender_phone || '',
+                                                  sender_address: notification.pickup_address || '',
+                                                  recipient_full_name: '',
+                                                  recipient_phone: '',
+                                                  recipient_address: '',
+                                                  cargo_items: [{ name: notification.destination || 'Груз для забора', weight: '', price: '' }],
+                                                  payment_method: notification.payment_method || 'cash',
+                                                  delivery_method: 'pickup',
+                                                  payment_status: 'not_paid'
+                                                });
+                                                setShowCargoAcceptanceModal(true);
+                                              }}
+                                              variant="outline"
+                                              size="sm"
+                                              className="mt-2 w-full"
+                                            >
+                                              <Edit className="mr-2 h-4 w-4" />
+                                              Продолжить оформление
+                                            </Button>
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
                                   </div>
