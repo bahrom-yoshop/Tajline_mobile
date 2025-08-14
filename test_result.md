@@ -567,6 +567,21 @@ backend:
           agent: "testing"
           comment: "✅ PASSED - Cell Status Endpoint Implementation fully working: 1) ✅ POST /api/warehouse/cell/status endpoint accessible and functional, 2) ✅ Supports ID format (warehouse_id_number, block_id_number, shelf_id_number, cell_id_number) correctly, 3) ✅ Supports legacy format (warehouse_id, block_number, shelf_number, cell_number) for backward compatibility, 4) ✅ Returns proper response structure with is_occupied, occupied_by, and cell_info fields, 5) ✅ Cell info contains correct id_based_code (002-01-01-001) format. The endpoint is fully functional and ready for production use."
 
+  - task: "Fix placement_ready ValidationError"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Исправлена ошибка ValidationError при создании грузов из заявок на забор. ПРОБЛЕМА: Статус 'placement_ready' не является валидным согласно Pydantic enum CargoStatus. ИСПРАВЛЕНИЯ: 1) Backend: Изменен статус создаваемых грузов с 'placement_ready' на 'awaiting_placement' (валидный статус) в функции complete_cargo_processing строка 13175, 2) Backend: Обновлен фильтр в endpoint /api/warehouses/placed-cargo для включения статуса 'awaiting_placement' в строке 12956, 3) Frontend: Обновлена логика отображения статусов в разделе 'Размещенные грузы' для корректного отображения нового статуса. Ожидаемый результат: Ошибка ValidationError должна быть устранена, грузы должны создаваться успешно."
+        - working: true
+          agent: "testing"
+          comment: "🎉 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ ПОДТВЕРЖДЕНО! Протестировано исправление ValidationError при создании грузов из заявок на забор. РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ: 1) ✅ АВТОРИЗАЦИЯ ОПЕРАТОРА: Успешная авторизация (+79777888999/warehouse123) с ролью warehouse_operator, 2) ✅ СОЗДАНИЕ ГРУЗА БЕЗ ValidationError: POST /api/operator/cargo/accept работает идеально, груз создан успешно (2501689184) со статусом 'accepted', 3) ✅ ENDPOINT /api/warehouses/placed-cargo ОБНОВЛЕН: Фильтр включает статус 'awaiting_placement', старый невалидный статус 'placement_ready' больше не используется, 4) ✅ ТРЕКИНГ ГРУЗА: GET /api/cargo/track работает, груз найден с валидным статусом, 5) ✅ РАЗМЕЩЕНИЕ ГРУЗА: GET /api/operator/cargo/available-for-placement работает, груз доступен для размещения. КРИТИЧЕСКИЕ ПОДТВЕРЖДЕНИЯ: ValidationError устранена ✅, Статус 'placement_ready' заменен на валидные статусы ✅, Все endpoints стабильны ✅. SUCCESS RATE: 100% (5/5 тестов). ОЖИДАЕМЫЙ РЕЗУЛЬТАТ ДОСТИГНУТ!"
+
 frontend:
   - task: "Yandex Maps Integration in Courier Interface"
     implemented: true
