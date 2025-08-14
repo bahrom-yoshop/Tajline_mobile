@@ -3620,13 +3620,53 @@ async def get_my_cargo(current_user: User = Depends(get_current_user)):
 
 @app.get("/api/cargo/track/{cargo_number}")
 async def track_cargo(cargo_number: str):
-    # Search in both collections
-    cargo = db.cargo.find_one({"cargo_number": cargo_number})
+    # ИСПРАВЛЕНИЕ: Улучшенный поиск грузов с поддержкой различных форматов номеров
+    
+    # Создаем список возможных вариантов поиска
+    search_patterns = [cargo_number]
+    
+    # Если это JSON данные - извлекаем номера
+    if cargo_number.startswith('{') and cargo_number.endswith('}'):
+        try:
+            json_data = json.loads(cargo_number)
+            if 'cargo_number' in json_data:
+                search_patterns.append(json_data['cargo_number'])
+            if 'request_number' in json_data:
+                search_patterns.append(json_data['request_number'])
+        except:
+            pass
+    
+    # Поиск в коллекции operator_cargo (приоритетный - для размещения)
+    cargo = None
+    for pattern in search_patterns:
+        # Точное совпадение
+        cargo = db.operator_cargo.find_one({"cargo_number": pattern})
+        if cargo:
+            break
+            
+        # Поиск по ID
+        cargo = db.operator_cargo.find_one({"id": pattern})
+        if cargo:
+            break
+            
+        # Поиск по номеру заявки
+        cargo = db.operator_cargo.find_one({"request_number": pattern})
+        if cargo:
+            break
+    
+    # Если не найдено в operator_cargo, ищем в cargo
     if not cargo:
-        cargo = db.operator_cargo.find_one({"cargo_number": cargo_number})
+        for pattern in search_patterns:
+            cargo = db.cargo.find_one({"cargo_number": pattern})
+            if cargo:
+                break
+                
+            cargo = db.cargo.find_one({"id": pattern})  
+            if cargo:
+                break
     
     if not cargo:
-        raise HTTPException(status_code=404, detail="Cargo not found")
+        raise HTTPException(status_code=404, detail=f"Cargo not found with patterns: {search_patterns}")
     
     # Normalize cargo data
     normalized = serialize_mongo_document(cargo)
