@@ -156,12 +156,12 @@ class WarehouseStatisticsTest:
                     )
                     return False
                 
-                # Validate data types and logic
+                # Validate data types and logic (using actual field names)
                 total_cells = stats.get('total_cells', 0)
                 occupied_cells = stats.get('occupied_cells', 0)
                 free_cells = stats.get('free_cells', 0)
-                occupancy_percentage = stats.get('occupancy_percentage', 0)
-                cargo_count = stats.get('cargo_count', 0)
+                utilization_percent = stats.get('utilization_percent', 0)
+                total_cargo_count = stats.get('total_cargo_count', 0)
                 total_weight = stats.get('total_weight', 0)
                 
                 # Check calculations
@@ -173,8 +173,8 @@ class WarehouseStatisticsTest:
                 if free_cells != calculated_free:
                     calculation_errors.append(f"Свободные ячейки: ожидалось {calculated_free}, получено {free_cells}")
                 
-                if abs(occupancy_percentage - calculated_percentage) > 0.1:
-                    calculation_errors.append(f"Процент заполненности: ожидалось {calculated_percentage:.1f}%, получено {occupancy_percentage}%")
+                if abs(utilization_percent - calculated_percentage) > 0.1:
+                    calculation_errors.append(f"Процент заполненности: ожидалось {calculated_percentage:.1f}%, получено {utilization_percent}%")
                 
                 if calculation_errors:
                     self.log_result(
@@ -187,18 +187,18 @@ class WarehouseStatisticsTest:
                         f"Statistics Calculations - {warehouse_name}",
                         True,
                         f"Расчеты корректны: {total_cells} всего, {occupied_cells} занято, "
-                        f"{free_cells} свободно, {occupancy_percentage:.1f}% заполненность"
+                        f"{free_cells} свободно, {utilization_percent:.1f}% заполненность"
                     )
                 
                 # Check if data looks realistic (not hardcoded)
                 is_realistic = True
                 realism_notes = []
                 
-                if occupancy_percentage == 60.0:
+                if utilization_percent == 60.0:
                     is_realistic = False
                     realism_notes.append("Подозрение на жестко заданные 60%")
                 
-                if total_cells in [100, 200, 300] and occupancy_percentage in [50.0, 60.0, 75.0]:
+                if total_cells in [100, 200, 300] and utilization_percent in [50.0, 60.0, 75.0]:
                     is_realistic = False
                     realism_notes.append("Подозрение на тестовые данные")
                 
@@ -213,8 +213,8 @@ class WarehouseStatisticsTest:
                     f"Statistics Endpoint - {warehouse_name}",
                     True,
                     f"Endpoint работает. Статистика: всего ячеек {total_cells}, "
-                    f"занято {occupied_cells} ({occupancy_percentage:.1f}%), "
-                    f"грузов {cargo_count}, общий вес {total_weight}кг"
+                    f"занято {occupied_cells} ({utilization_percent:.1f}%), "
+                    f"грузов {total_cargo_count}, общий вес {total_weight}кг"
                 )
                 
                 return True
