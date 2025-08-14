@@ -19982,13 +19982,13 @@ function App() {
                 </div>
                 
                 {/* Информация о получателе (если есть) */}
-                {(currentCargoNotification.recipient_full_name || cargoAcceptanceForm.recipient_full_name) && (
+                {(currentCargoNotification.recipient_data?.recipient_full_name || cargoAcceptanceForm.recipient_full_name) && (
                   <div className="mt-4 pt-4 border-t border-orange-200">
                     <h4 className="font-medium text-orange-700 mb-2">👤 Данные получателя (заполнено курьером)</h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
-                      <p><strong>ФИО:</strong> {currentCargoNotification.recipient_full_name || cargoAcceptanceForm.recipient_full_name || 'Не указано'}</p>
-                      <p><strong>Телефон:</strong> {currentCargoNotification.recipient_phone || cargoAcceptanceForm.recipient_phone || 'Не указан'}</p>
-                      <p><strong>Адрес:</strong> {currentCargoNotification.recipient_address || cargoAcceptanceForm.recipient_address || 'Не указан'}</p>
+                      <p><strong>ФИО:</strong> {currentCargoNotification.recipient_data?.recipient_full_name || cargoAcceptanceForm.recipient_full_name || 'Не указано'}</p>
+                      <p><strong>Телефон:</strong> {currentCargoNotification.recipient_data?.recipient_phone || cargoAcceptanceForm.recipient_phone || 'Не указан'}</p>
+                      <p><strong>Адрес:</strong> {currentCargoNotification.recipient_data?.recipient_address || cargoAcceptanceForm.recipient_address || 'Не указан'}</p>
                     </div>
                   </div>
                 )}
@@ -20004,7 +20004,7 @@ function App() {
                             <p><strong>Наименование:</strong> {item.name || 'Не указано'}</p>
                             <p><strong>Вес:</strong> {item.weight ? `${item.weight} кг` : 'Не указан'}</p>
                             <p><strong>Стоимость:</strong> {item.price ? `${item.price} ₽` : 'Не указана'}</p>
-                            <p><strong>Объявленная стоимость:</strong> {currentCargoNotification.declared_value ? `${currentCargoNotification.declared_value} ₽` : 'Не указана'}</p>
+                            <p><strong>Объявленная стоимость:</strong> {currentCargoNotification.cargo_info?.declared_value || currentCargoNotification.declared_value ? `${currentCargoNotification.cargo_info?.declared_value || currentCargoNotification.declared_value} ₽` : 'Не указана'}</p>
                           </div>
                         </div>
                       ))}
@@ -20016,7 +20016,15 @@ function App() {
                       )}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-600">Информация о грузе будет заполнена ниже</p>
+                    <div className="bg-white p-2 rounded border text-sm">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <p><strong>Наименование:</strong> {currentCargoNotification.cargo_info?.destination || currentCargoNotification.destination || 'Не указано'}</p>
+                        <p><strong>Вес:</strong> {currentCargoNotification.cargo_info?.weight ? `${currentCargoNotification.cargo_info.weight} кг` : 'Не указан'}</p>
+                        <p><strong>Стоимость:</strong> {currentCargoNotification.cargo_info?.total_value ? `${currentCargoNotification.cargo_info.total_value} ₽` : 'Не указана'}</p>
+                        <p><strong>Объявленная стоимость:</strong> {currentCargoNotification.cargo_info?.declared_value ? `${currentCargoNotification.cargo_info.declared_value} ₽` : 'Не указана'}</p>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-2">Детальная информация о грузе будет заполнена ниже</p>
+                    </div>
                   )}
                 </div>
               </div>
