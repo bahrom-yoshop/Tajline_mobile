@@ -35418,6 +35418,8 @@ ID склада: {target_warehouse_id}"""
             ("Health Check", self.test_health_check),
             # 🎯 HIGHEST PRIORITY: IMPROVED PICKUP REQUEST MODAL WINDOW (CURRENT REVIEW REQUEST)
             ("🎯 IMPROVED PICKUP REQUEST MODAL WINDOW", self.test_improved_pickup_request_modal_window),
+            # 🚚 HIGHEST PRIORITY: PICKUP REQUEST WORKFLOW WITH PICKUP_REQUEST_ID (CURRENT REVIEW REQUEST)
+            ("🚚 PICKUP REQUEST WORKFLOW WITH PICKUP_REQUEST_ID", self.test_pickup_request_workflow_with_pickup_request_id),
             # 🚚 HIGHEST PRIORITY: PICKUP REQUEST IMPROVEMENTS (CURRENT REVIEW REQUEST)
             ("🚚 PICKUP REQUEST IMPROVEMENTS", self.test_pickup_request_improvements),
             # 🔔 HIGHEST PRIORITY: NEW NOTIFICATION SYSTEM AND CARGO PROCESSING FULL CYCLE (CURRENT REVIEW REQUEST)
