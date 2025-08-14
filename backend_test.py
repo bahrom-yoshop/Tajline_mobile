@@ -35312,7 +35312,21 @@ ID склада: {target_warehouse_id}"""
             print("   ✅ Warehouse notifications retrieved")
             
             # Look for notification with pickup_request_id
-            if isinstance(notifications_response, list):
+            if isinstance(notifications_response, dict):
+                notifications = notifications_response.get('notifications', [])
+                for notification in notifications:
+                    if notification.get('pickup_request_id') == pickup_request_id:
+                        notification_with_pickup_id = notification
+                        break
+                        
+                if notification_with_pickup_id:
+                    print(f"   ✅ Found notification with pickup_request_id: {pickup_request_id}")
+                    print(f"   📋 Notification ID: {notification_with_pickup_id.get('id')}")
+                    print(f"   📄 Message: {notification_with_pickup_id.get('message', 'No message')}")
+                else:
+                    print(f"   ❌ No notification found with pickup_request_id: {pickup_request_id}")
+                    all_success = False
+            elif isinstance(notifications_response, list):
                 for notification in notifications_response:
                     if notification.get('pickup_request_id') == pickup_request_id:
                         notification_with_pickup_id = notification
