@@ -311,7 +311,7 @@ class WarehouseStatisticsTest:
             elif response.status_code == 200:
                 stats = response.json()
                 # Check if it returns zeros for empty warehouse
-                if all(stats.get(field, 0) == 0 for field in ['total_cells', 'occupied_cells', 'cargo_count']):
+                if all(stats.get(field, 0) == 0 for field in ['total_cells', 'occupied_cells', 'total_cargo_count']):
                     self.log_result(
                         "Empty Warehouse Handling",
                         True,
