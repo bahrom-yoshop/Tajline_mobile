@@ -14407,12 +14407,46 @@ function App() {
                                         )}
                                         
                                         {notification.status === 'in_processing' && (
-                                          <div className="text-center">
-                                            <div className="text-sm text-yellow-600 font-medium">Обрабатывается</div>
-                                            <div className="text-xs text-gray-500 mt-1">
-                                              {notification.processing_by}
+                                          <div className="flex flex-col space-y-2">
+                                            <div className="text-center mb-2">
+                                              <div className="text-sm text-yellow-600 font-medium">Обрабатывается</div>
+                                              <div className="text-xs text-gray-500 mt-1">
+                                                {notification.processing_by}
+                                              </div>
                                             </div>
-                                            {/* ИСПРАВЛЕНИЕ: Убрана кнопка "Продолжить оформление" для избежания дублирования модальных окон */}
+                                            
+                                            {/* Функциональные кнопки для обработки заявки */}
+                                            <div className="flex flex-col space-y-1">
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handlePrintPickupQR(notification)}
+                                                className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                                              >
+                                                <QrCode className="mr-1 h-3 w-3" />
+                                                QR код
+                                              </Button>
+                                              
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handlePrintPickupInvoice(notification)}
+                                                className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                                              >
+                                                <FileText className="mr-1 h-3 w-3" />
+                                                Накладная
+                                              </Button>
+                                              
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleSendToPlacement(notification)}
+                                                className="text-green-600 border-green-300 hover:bg-green-50"
+                                              >
+                                                <Package className="mr-1 h-3 w-3" />
+                                                Отправить на размещение
+                                              </Button>
+                                            </div>
                                           </div>
                                         )}
                                       </div>
