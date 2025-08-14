@@ -13196,15 +13196,16 @@ async def get_warehouse_notifications(
         raise HTTPException(status_code=403, detail="Access denied: Only operators and admins")
     
     try:
-        # Получаем все уведомления о поступивших грузах
+        # Получаем только активные уведомления о поступивших грузах (не обработанные)
         notifications = list(db.warehouse_notifications.find({
-            "status": "pending_acceptance"
+            "status": {"$in": ["pending_acceptance", "in_processing"]}  # Только активные статусы
         }, {"_id": 0}).sort("delivered_at", -1))
         
         return {
             "notifications": notifications,
             "total_count": len(notifications),
-            "pending_count": len([n for n in notifications if n.get("status") == "pending_acceptance"])
+            "pending_count": len([n for n in notifications if n.get("status") == "pending_acceptance"]),
+            "in_processing_count": len([n for n in notifications if n.get("status") == "in_processing"])
         }
         
     except Exception as e:
