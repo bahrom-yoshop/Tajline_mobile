@@ -12564,6 +12564,308 @@ async def fix_warehouse_operator_role(current_user: User = Depends(get_current_u
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка исправления роли: {str(e)}")
 
+# ===== НОВЫЕ ENDPOINTS УПРАВЛЕНИЯ ЯЧЕЙКАМИ СКЛАДА =====
+
+@app.get("/api/warehouses/{warehouse_id}/cells")
+async def get_warehouse_cells(
+    warehouse_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить список всех ячеек склада"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        
+        cells = []
+        blocks_count = warehouse.get("blocks_count", 0)
+        shelves_per_block = warehouse.get("shelves_per_block", 0)
+        cells_per_shelf = warehouse.get("cells_per_shelf", 0)
+        
+        for block in range(1, blocks_count + 1):
+            for shelf in range(1, shelves_per_block + 1):
+                for cell in range(1, cells_per_shelf + 1):
+                    cell_location = f"Б{block}-П{shelf}-Я{cell}"
+                    
+                    # Проверяем занятость ячейки
+                    is_occupied = db.operator_cargo.find_one({
+                        "warehouse_id": warehouse_id,
+                        "block_number": block,
+                        "shelf_number": shelf, 
+                        "cell_number": cell,
+                        "processing_status": {"$in": ["placed_in_warehouse", "awaiting_delivery"]}
+                    }) is not None
+                    
+                    cells.append({
+                        "id": f"{warehouse_id}-{block}-{shelf}-{cell}",
+                        "warehouse_id": warehouse_id,
+                        "block_number": block,
+                        "shelf_number": shelf,
+                        "cell_number": cell,
+                        "location": cell_location,
+                        "is_occupied": is_occupied
+                    })
+        
+        return {"cells": cells}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching warehouse cells: {str(e)}")
+
+@app.put("/api/warehouses/{warehouse_id}/structure")
+async def update_warehouse_structure(
+    warehouse_id: str,
+    structure_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Обновить структуру склада (количество блоков, полок, ячеек)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        
+        blocks_count = structure_data.get("blocks_count")
+        shelves_per_block = structure_data.get("shelves_per_block")
+        cells_per_shelf = structure_data.get("cells_per_shelf")
+        
+        if not all([blocks_count, shelves_per_block, cells_per_shelf]):
+            raise HTTPException(status_code=400, detail="All structure fields are required")
+        
+        if blocks_count <= 0 or shelves_per_block <= 0 or cells_per_shelf <= 0:
+            raise HTTPException(status_code=400, detail="All structure values must be positive")
+        
+        # Обновляем структуру склада
+        db.warehouses.update_one(
+            {"id": warehouse_id},
+            {
+                "$set": {
+                    "blocks_count": blocks_count,
+                    "shelves_per_block": shelves_per_block,
+                    "cells_per_shelf": cells_per_shelf,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        return {
+            "message": "Warehouse structure updated successfully",
+            "warehouse_id": warehouse_id,
+            "new_structure": {
+                "blocks_count": blocks_count,
+                "shelves_per_block": shelves_per_block,
+                "cells_per_shelf": cells_per_shelf,
+                "total_cells": blocks_count * shelves_per_block * cells_per_shelf
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating warehouse structure: {str(e)}")
+
+@app.get("/api/warehouses/cells/{cell_id}/qr")
+async def generate_cell_qr(
+    cell_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Генерировать QR код для отдельной ячейки"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        # Извлекаем информацию о ячейке из ID
+        parts = cell_id.split("-")
+        if len(parts) != 4:
+            raise HTTPException(status_code=400, detail="Invalid cell ID format")
+        
+        warehouse_id, block, shelf, cell = parts
+        
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        
+        cell_location = f"Б{block}-П{shelf}-Я{cell}"
+        
+        # Создаем данные для QR кода
+        qr_data = {
+            "type": "warehouse_cell",
+            "warehouse_id": warehouse_id,
+            "warehouse_name": warehouse.get("name", ""),
+            "cell_location": cell_location,
+            "block": int(block),
+            "shelf": int(shelf),
+            "cell": int(cell)
+        }
+        
+        # Генерируем QR код
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(json.dumps(qr_data))
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        
+        # Конвертируем в base64
+        qr_code_base64 = base64.b64encode(buffer.getvalue()).decode()
+        qr_code_data_url = f"data:image/png;base64,{qr_code_base64}"
+        
+        return {
+            "cell_id": cell_id,
+            "cell_location": cell_location,
+            "warehouse_name": warehouse.get("name", ""),
+            "qr_code": qr_code_data_url
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating cell QR code: {str(e)}")
+
+@app.get("/api/warehouses/{warehouse_id}/cells/qr-batch")
+async def generate_all_cells_qr(
+    warehouse_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Генерировать QR коды для всех ячеек склада"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        
+        blocks_count = warehouse.get("blocks_count", 0)
+        shelves_per_block = warehouse.get("shelves_per_block", 0)
+        cells_per_shelf = warehouse.get("cells_per_shelf", 0)
+        
+        if not all([blocks_count, shelves_per_block, cells_per_shelf]):
+            raise HTTPException(status_code=400, detail="Warehouse structure not defined")
+        
+        qr_codes = []
+        
+        for block in range(1, blocks_count + 1):
+            for shelf in range(1, shelves_per_block + 1):
+                for cell in range(1, cells_per_shelf + 1):
+                    cell_location = f"Б{block}-П{shelf}-Я{cell}"
+                    
+                    # Создаем данные для QR кода
+                    qr_data = {
+                        "type": "warehouse_cell",
+                        "warehouse_id": warehouse_id,
+                        "warehouse_name": warehouse.get("name", ""),
+                        "cell_location": cell_location,
+                        "block": block,
+                        "shelf": shelf,
+                        "cell": cell
+                    }
+                    
+                    # Генерируем QR код
+                    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+                    qr.add_data(json.dumps(qr_data))
+                    qr.make(fit=True)
+                    
+                    img = qr.make_image(fill_color="black", back_color="white")
+                    buffer = BytesIO()
+                    img.save(buffer, format='PNG')
+                    buffer.seek(0)
+                    
+                    # Конвертируем в base64
+                    qr_code_base64 = base64.b64encode(buffer.getvalue()).decode()
+                    qr_code_data_url = f"data:image/png;base64,{qr_code_base64}"
+                    
+                    qr_codes.append({
+                        "cell_location": cell_location,
+                        "qr_code": qr_code_data_url
+                    })
+        
+        return {
+            "warehouse_id": warehouse_id,
+            "warehouse_name": warehouse.get("name", ""),
+            "total_cells": len(qr_codes),
+            "qr_codes": qr_codes
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating batch QR codes: {str(e)}")
+
+@app.post("/api/warehouses/{warehouse_id}/cells/batch-delete")
+async def delete_cells_batch(
+    warehouse_id: str,
+    cell_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Удалить выбранные ячейки (освободить их от грузов)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        
+        cell_ids = cell_data.get("cell_ids", [])
+        if not cell_ids:
+            raise HTTPException(status_code=400, detail="No cell IDs provided")
+        
+        affected_cargo = []
+        
+        for cell_id in cell_ids:
+            # Извлекаем информацию о ячейке из ID
+            parts = cell_id.split("-")
+            if len(parts) != 4:
+                continue
+                
+            _, block, shelf, cell = parts
+            
+            # Ищем грузы в этой ячейке
+            cargo_in_cell = list(db.operator_cargo.find({
+                "warehouse_id": warehouse_id,
+                "block_number": int(block),
+                "shelf_number": int(shelf),
+                "cell_number": int(cell),
+                "processing_status": {"$in": ["placed_in_warehouse", "awaiting_delivery"]}
+            }))
+            
+            for cargo in cargo_in_cell:
+                # Переводим груз в статус "готов к размещению"
+                db.operator_cargo.update_one(
+                    {"id": cargo["id"]},
+                    {
+                        "$set": {
+                            "processing_status": "awaiting_placement",
+                            "block_number": None,
+                            "shelf_number": None,
+                            "cell_number": None,
+                            "updated_at": datetime.utcnow()
+                        }
+                    }
+                )
+                affected_cargo.append(cargo["cargo_number"])
+        
+        return {
+            "message": f"Successfully cleared {len(cell_ids)} cells",
+            "cleared_cells": len(cell_ids),
+            "affected_cargo": affected_cargo,
+            "affected_cargo_count": len(affected_cargo)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting cells: {str(e)}")
+
 # НОВЫЕ ENDPOINTS ДЛЯ КУРЬЕРСКОЙ СЛУЖБЫ (ЭТАП 1)
 
 @app.post("/api/admin/couriers/create")
