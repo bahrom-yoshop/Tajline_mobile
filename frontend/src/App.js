@@ -20558,13 +20558,13 @@ function App() {
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                             <p><strong>Всего грузов:</strong> {cargoAcceptanceForm.cargo_items.length} шт.</p>
                             <p><strong>Общий вес:</strong> {cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0).toFixed(1)} кг</p>
-                            <p><strong>Общая стоимость:</strong> {cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0).toFixed(2)} ₽</p>
+                            <p><strong>Общая стоимость:</strong> {cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + ((parseFloat(item.weight) || 0) * (parseFloat(item.price) || 0)), 0).toFixed(2)} ₽</p>
                           </div>
                           
                           {/* Расчет средней цены за кг */}
                           {(() => {
                             const totalWeight = cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0);
-                            const totalPrice = cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+                            const totalPrice = cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + ((parseFloat(item.weight) || 0) * (parseFloat(item.price) || 0)), 0);
                             const avgPricePerKg = totalWeight > 0 ? (totalPrice / totalWeight).toFixed(2) : 0;
                             
                             return totalWeight > 0 && totalPrice > 0 ? (
