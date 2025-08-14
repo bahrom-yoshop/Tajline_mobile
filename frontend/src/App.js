@@ -984,37 +984,50 @@ function App() {
       if (notification) {
         // Получаем полную информацию о заявке на забор груза
         try {
-          const requestResponse = await apiCall(`/api/operator/pickup-requests/${notification.pickup_request_id}`, 'GET');
-          const fullRequest = requestResponse;
+          const modalResponse = await apiCall(`/api/operator/pickup-requests/${notification.pickup_request_id}`, 'GET');
+          const modalData = modalResponse;
           
-          console.log('Full pickup request data:', fullRequest);
+          console.log('Enhanced pickup request modal data:', modalData);
           
-          // Заполняем форму полными данными из заявки
+          // Используем структурированные данные из modal_data
+          const senderData = modalData.sender_data || {};
+          const recipientData = modalData.recipient_data || {};
+          const cargoInfo = modalData.cargo_info || {};
+          const paymentInfo = modalData.payment_info || {};
+          const requestInfo = modalData.request_info || {};
+          
+          // Заполняем форму структурированными данными
           setCargoAcceptanceForm({
-            sender_full_name: fullRequest.sender_full_name || notification.sender_full_name || '',
-            sender_phone: fullRequest.sender_phone || notification.sender_phone || '',
-            sender_address: fullRequest.pickup_address || notification.pickup_address || '',
-            recipient_full_name: fullRequest.recipient_full_name || '',
-            recipient_phone: fullRequest.recipient_phone || '',
-            recipient_address: fullRequest.recipient_address || '',
-            cargo_items: fullRequest.cargo_items && fullRequest.cargo_items.length > 0 
-              ? fullRequest.cargo_items 
+            sender_full_name: senderData.sender_full_name || notification.sender_full_name || '',
+            sender_phone: senderData.sender_phone || notification.sender_phone || '',
+            sender_address: senderData.pickup_address || notification.pickup_address || '',
+            recipient_full_name: recipientData.recipient_full_name || '',
+            recipient_phone: recipientData.recipient_phone || '',
+            recipient_address: recipientData.recipient_address || '',
+            cargo_items: cargoInfo.cargo_items && cargoInfo.cargo_items.length > 0 
+              ? cargoInfo.cargo_items 
               : [{ 
-                  name: fullRequest.destination || notification.destination || 'Наименование груза не указано', 
-                  weight: fullRequest.weight || '', 
-                  price: fullRequest.total_value || fullRequest.declared_value || '' 
+                  name: cargoInfo.destination || cargoInfo.cargo_name || notification.destination || 'Наименование груза не указано', 
+                  weight: cargoInfo.weight || '', 
+                  price: cargoInfo.total_value || cargoInfo.declared_value || '' 
                 }],
-            payment_method: fullRequest.payment_method || notification.payment_method || 'cash',
-            delivery_method: fullRequest.delivery_method || 'pickup',
+            payment_method: paymentInfo.payment_method || notification.payment_method || 'cash',
+            delivery_method: recipientData.delivery_method || 'pickup',
             payment_status: 'not_paid',
             amount_paid: '',
             payment_notes: ''
           });
           
-          // Сохраняем полные данные заявки в уведомление для отображения
+          // Сохраняем обогащенные данные уведомления для отображения
           const enrichedNotification = {
             ...notification,
-            ...fullRequest,
+            // Добавляем структурированные данные
+            modal_data: modalData,
+            sender_data: senderData,
+            recipient_data: recipientData,
+            cargo_info: cargoInfo,
+            payment_info: paymentInfo,
+            request_info: requestInfo,
             // Сохраняем оригинальные поля уведомления
             id: notification.id,
             request_number: notification.request_number,
