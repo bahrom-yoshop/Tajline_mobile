@@ -35364,23 +35364,43 @@ ID склада: {target_warehouse_id}"""
             
             # Verify response contains recipient_data for modal window
             if isinstance(pickup_details_response, dict):
+                # Check for nested structure
+                request_info = pickup_details_response.get('request_info', {})
+                sender_data = pickup_details_response.get('sender_data', {})
+                recipient_data = pickup_details_response.get('recipient_data', {})
+                
+                # Check if we have the basic required fields either in root or nested
                 required_fields = ['id', 'sender_full_name', 'sender_phone', 'pickup_address']
-                missing_fields = [field for field in required_fields if field not in pickup_details_response]
+                missing_fields = []
+                
+                # Check in request_info first, then root level
+                for field in required_fields:
+                    if field in pickup_details_response:
+                        continue
+                    elif field in request_info:
+                        continue
+                    elif field == 'sender_full_name' and 'sender_full_name' in sender_data:
+                        continue
+                    elif field == 'sender_phone' and 'sender_phone' in sender_data:
+                        continue
+                    else:
+                        missing_fields.append(field)
                 
                 if not missing_fields:
                     print("   ✅ All required fields present in pickup request details")
                     
                     # Check for recipient data filled by courier
-                    if 'recipient_data' in pickup_details_response or 'recipient_full_name' in pickup_details_response:
+                    if recipient_data or 'recipient_full_name' in pickup_details_response:
                         print("   ✅ Recipient data available for modal window")
-                        recipient_name = pickup_details_response.get('recipient_full_name') or pickup_details_response.get('recipient_data', {}).get('recipient_full_name')
+                        recipient_name = recipient_data.get('recipient_full_name') or pickup_details_response.get('recipient_full_name')
                         if recipient_name:
                             print(f"   👤 Recipient: {recipient_name}")
                     else:
                         print("   ⚠️  Recipient data may not be available in expected format")
                         
                     # Check for cargo information
-                    if 'cargo_items' in pickup_details_response or 'destination' in pickup_details_response:
+                    cargo_info = pickup_details_response.get('cargo_info', {})
+                    if cargo_info or 'destination' in pickup_details_response:
                         print("   ✅ Cargo information available for modal window")
                     else:
                         print("   ⚠️  Cargo information may not be available")
