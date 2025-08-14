@@ -94,16 +94,44 @@ const CourierTrackingMap = ({ userRole, apiCall }) => {
         ? '/api/admin/couriers/locations'
         : '/api/operator/couriers/locations';
 
+      console.log(`Fetching courier locations from: ${endpoint}, User role: ${userRole}`);
+      
       const response = await apiCall(endpoint, 'GET');
       
-      if (response && response.locations) {
-        setCourierLocations(response.locations);
-        setActiveCouriers(response.active_couriers || 0);
+      console.log('Courier locations response:', response);
+      
+      if (response) {
+        // Проверяем разные форматы ответа
+        let locations = [];
+        let activeCount = 0;
+        
+        if (response.locations && Array.isArray(response.locations)) {
+          // Стандартный формат: {locations: [...], active_couriers: N}
+          locations = response.locations;
+          activeCount = response.active_couriers || 0;
+        } else if (Array.isArray(response)) {
+          // Прямой массив курьеров
+          locations = response;
+          activeCount = locations.filter(l => l.status !== 'offline').length;
+        } else {
+          console.warn('Unexpected response format:', response);
+        }
+        
+        console.log(`Found ${locations.length} courier locations, ${activeCount} active`);
+        
+        setCourierLocations(locations);
+        setActiveCouriers(activeCount);
         setLastUpdated(new Date());
+      } else {
+        console.warn('Empty response from courier locations endpoint');
+        setCourierLocations([]);
+        setActiveCouriers(0);
       }
     } catch (error) {
       console.error('Error fetching courier locations:', error);
       setError(`Ошибка загрузки местоположений: ${error.message}`);
+      setCourierLocations([]);
+      setActiveCouriers(0);
     } finally {
       setIsLoading(false);
     }
