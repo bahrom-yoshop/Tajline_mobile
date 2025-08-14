@@ -37643,6 +37643,505 @@ def main():
         
         return all_success
 
+    def test_cargo_items_structure_analysis_for_pickup_requests(self):
+        """Test cargo_items data structure analysis in pickup requests for TAJLINE.TJ"""
+        print("\n📦 CARGO_ITEMS STRUCTURE ANALYSIS FOR PICKUP REQUESTS TESTING")
+        print("   🎯 Исследование структуры данных cargo_items в заявке на забор груза TAJLINE.TJ")
+        print("   🔧 АНАЛИЗ СТРУКТУРЫ ДАННЫХ О ГРУЗАХ:")
+        print("   1) Авторизация оператора (+79777888999/warehouse123)")
+        print("   2) Получить список уведомлений: GET /api/operator/warehouse-notifications")
+        print("   3) Найти уведомление с pickup_request_id и протестировать GET /api/operator/pickup-requests/{pickup_request_id}")
+        print("   4) Проанализировать структуру cargo_info и cargo_items:")
+        print("      - Есть ли массив cargo_items с отдельными грузами?")
+        print("      - Какая структура каждого элемента cargo_items?")
+        print("      - Есть ли поля name, weight, price для каждого груза?")
+        print("      - Как выглядят данные если курьер заполнил несколько грузов?")
+        print("   🎯 ЦЕЛЬ: Понять правильную структуру cargo_items для отображения каждого груза в отдельном контейнере с автоматическими расчетами")
+        
+        all_success = True
+        
+        # Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРА (+79777888999/warehouse123)
+        print("\n   🔐 Test 1: АВТОРИЗАЦИЯ ОПЕРАТОРА (+79777888999/warehouse123)...")
+        
+        operator_login_data = {
+            "phone": "+79777888999",
+            "password": "warehouse123"
+        }
+        
+        success, login_response = self.run_test(
+            "Warehouse Operator Login for Cargo Items Analysis",
+            "POST",
+            "/api/auth/login",
+            200,
+            operator_login_data
+        )
+        all_success &= success
+        
+        operator_token = None
+        if success and 'access_token' in login_response:
+            operator_token = login_response['access_token']
+            operator_user = login_response.get('user', {})
+            operator_role = operator_user.get('role')
+            operator_name = operator_user.get('full_name')
+            operator_user_number = operator_user.get('user_number')
+            
+            print(f"   ✅ Operator login successful: {operator_name}")
+            print(f"   👑 Role: {operator_role}")
+            print(f"   📞 Phone: {operator_user.get('phone')}")
+            print(f"   🆔 User Number: {operator_user_number}")
+            
+            # Verify role is warehouse_operator
+            if operator_role == 'warehouse_operator':
+                print("   ✅ Operator role correctly set to 'warehouse_operator'")
+            else:
+                print(f"   ❌ Operator role incorrect: expected 'warehouse_operator', got '{operator_role}'")
+                all_success = False
+            
+            self.tokens['warehouse_operator'] = operator_token
+            self.users['warehouse_operator'] = operator_user
+        else:
+            print("   ❌ Operator login failed - no access token received")
+            print(f"   📄 Response: {login_response}")
+            all_success = False
+            return False
+        
+        # Test 2: ПОЛУЧИТЬ СПИСОК УВЕДОМЛЕНИЙ: GET /api/operator/warehouse-notifications
+        print("\n   📋 Test 2: ПОЛУЧИТЬ СПИСОК УВЕДОМЛЕНИЙ: GET /api/operator/warehouse-notifications...")
+        
+        success, notifications_response = self.run_test(
+            "Get Warehouse Notifications List",
+            "GET",
+            "/api/operator/warehouse-notifications",
+            200,
+            token=operator_token
+        )
+        all_success &= success
+        
+        pickup_request_notification = None
+        pickup_request_id = None
+        
+        if success:
+            notifications = notifications_response if isinstance(notifications_response, list) else []
+            notification_count = len(notifications)
+            print(f"   ✅ Found {notification_count} warehouse notifications")
+            
+            # Поиск уведомления с pickup_request_id
+            for notification in notifications:
+                if 'pickup_request_id' in notification and notification.get('pickup_request_id'):
+                    pickup_request_notification = notification
+                    pickup_request_id = notification.get('pickup_request_id')
+                    print(f"   🎯 Found notification with pickup_request_id: {pickup_request_id}")
+                    print(f"   📄 Notification ID: {notification.get('id')}")
+                    print(f"   📄 Status: {notification.get('status')}")
+                    print(f"   📄 Message: {notification.get('message', '')[:100]}...")
+                    break
+            
+            if not pickup_request_notification:
+                print("   ⚠️  No notification with pickup_request_id found")
+                print("   📋 Creating test pickup request to generate notification...")
+                
+                # Create test pickup request to generate notification
+                test_pickup_data = {
+                    "sender_full_name": "Тест Отправитель Cargo Items",
+                    "sender_phone": "+79991234567",
+                    "pickup_address": "Москва, ул. Тестовая Cargo Items, 123",
+                    "pickup_date": "2025-01-20",
+                    "pickup_time_from": "10:00",
+                    "pickup_time_to": "18:00",
+                    "route": "moscow_to_tajikistan",
+                    "courier_fee": 500.0,
+                    "destination": "Душанбе"
+                }
+                
+                # Try to create pickup request (may need admin token)
+                if 'admin' not in self.tokens:
+                    admin_login_data = {
+                        "phone": "+79999888777",
+                        "password": "admin123"
+                    }
+                    
+                    admin_success, admin_login_response = self.run_test(
+                        "Admin Login for Pickup Request Creation",
+                        "POST",
+                        "/api/auth/login",
+                        200,
+                        admin_login_data
+                    )
+                    
+                    if admin_success and 'access_token' in admin_login_response:
+                        self.tokens['admin'] = admin_login_response['access_token']
+                
+                if 'admin' in self.tokens:
+                    success, pickup_creation_response = self.run_test(
+                        "Create Test Pickup Request",
+                        "POST",
+                        "/api/admin/courier/pickup-request",
+                        200,
+                        test_pickup_data,
+                        self.tokens['admin']
+                    )
+                    
+                    if success and 'id' in pickup_creation_response:
+                        pickup_request_id = pickup_creation_response.get('id')
+                        print(f"   ✅ Test pickup request created: {pickup_request_id}")
+                        
+                        # Re-check notifications after creating pickup request
+                        success, updated_notifications = self.run_test(
+                            "Get Updated Warehouse Notifications",
+                            "GET",
+                            "/api/operator/warehouse-notifications",
+                            200,
+                            token=operator_token
+                        )
+                        
+                        if success:
+                            updated_notifications_list = updated_notifications if isinstance(updated_notifications, list) else []
+                            for notification in updated_notifications_list:
+                                if notification.get('pickup_request_id') == pickup_request_id:
+                                    pickup_request_notification = notification
+                                    print(f"   🎯 Found new notification with pickup_request_id: {pickup_request_id}")
+                                    break
+        else:
+            print("   ❌ Failed to get warehouse notifications")
+            all_success = False
+            return False
+        
+        # Test 3: НАЙТИ УВЕДОМЛЕНИЕ С pickup_request_id И ПРОТЕСТИРОВАТЬ GET /api/operator/pickup-requests/{pickup_request_id}
+        print("\n   🔍 Test 3: ПРОТЕСТИРОВАТЬ GET /api/operator/pickup-requests/{pickup_request_id}...")
+        
+        if pickup_request_id:
+            success, pickup_request_response = self.run_test(
+                f"Get Pickup Request Details (ID: {pickup_request_id})",
+                "GET",
+                f"/api/operator/pickup-requests/{pickup_request_id}",
+                200,
+                token=operator_token
+            )
+            all_success &= success
+            
+            if success:
+                print("   ✅ /api/operator/pickup-requests/{pickup_request_id} endpoint working")
+                print(f"   📄 Response type: {type(pickup_request_response)}")
+                
+                # Test 4: ПРОАНАЛИЗИРОВАТЬ СТРУКТУРУ cargo_info И cargo_items
+                print("\n   📦 Test 4: АНАЛИЗ СТРУКТУРЫ cargo_info И cargo_items...")
+                
+                # Analyze the structure of the response
+                print("   🔍 ДЕТАЛЬНЫЙ АНАЛИЗ СТРУКТУРЫ ДАННЫХ:")
+                
+                # Check for cargo_info field
+                cargo_info = pickup_request_response.get('cargo_info')
+                if cargo_info:
+                    print("   ✅ Поле 'cargo_info' найдено")
+                    print(f"   📄 cargo_info type: {type(cargo_info)}")
+                    print(f"   📄 cargo_info content: {cargo_info}")
+                    
+                    # Analyze cargo_info structure
+                    if isinstance(cargo_info, dict):
+                        print("   📊 cargo_info является объектом (dict)")
+                        for key, value in cargo_info.items():
+                            print(f"     - {key}: {value} (type: {type(value).__name__})")
+                    elif isinstance(cargo_info, str):
+                        print("   📊 cargo_info является строкой")
+                        print(f"     - Содержимое: {cargo_info}")
+                    else:
+                        print(f"   📊 cargo_info имеет тип: {type(cargo_info)}")
+                else:
+                    print("   ❌ Поле 'cargo_info' НЕ найдено")
+                
+                # Check for cargo_items field
+                cargo_items = pickup_request_response.get('cargo_items')
+                if cargo_items:
+                    print("   ✅ Поле 'cargo_items' найдено")
+                    print(f"   📄 cargo_items type: {type(cargo_items)}")
+                    
+                    if isinstance(cargo_items, list):
+                        print(f"   📊 cargo_items является массивом с {len(cargo_items)} элементами")
+                        
+                        # Analyze each cargo item
+                        for i, item in enumerate(cargo_items):
+                            print(f"   📦 Cargo Item {i+1}:")
+                            if isinstance(item, dict):
+                                # Check for required fields
+                                required_fields = ['name', 'weight', 'price']
+                                for field in required_fields:
+                                    if field in item:
+                                        print(f"     ✅ {field}: {item[field]} (type: {type(item[field]).__name__})")
+                                    else:
+                                        print(f"     ❌ {field}: НЕ найдено")
+                                
+                                # Show all fields in the item
+                                print(f"     📄 Все поля: {list(item.keys())}")
+                                for key, value in item.items():
+                                    if key not in required_fields:
+                                        print(f"     - {key}: {value} (type: {type(value).__name__})")
+                            else:
+                                print(f"     📄 Item type: {type(item)}, content: {item}")
+                    elif isinstance(cargo_items, str):
+                        print("   📊 cargo_items является строкой")
+                        print(f"     - Содержимое: {cargo_items}")
+                    else:
+                        print(f"   📊 cargo_items имеет тип: {type(cargo_items)}")
+                else:
+                    print("   ❌ Поле 'cargo_items' НЕ найдено")
+                
+                # Check for alternative cargo fields
+                alternative_cargo_fields = ['cargo_name', 'cargo_data', 'items', 'goods', 'products']
+                for field in alternative_cargo_fields:
+                    if field in pickup_request_response:
+                        value = pickup_request_response[field]
+                        print(f"   🔍 Альтернативное поле '{field}' найдено: {value} (type: {type(value).__name__})")
+                
+                # Show complete structure of the response
+                print("\n   📋 ПОЛНАЯ СТРУКТУРА ОТВЕТА:")
+                print(f"   📄 Все поля в ответе: {list(pickup_request_response.keys())}")
+                
+                # Critical analysis questions
+                print("\n   ❓ КРИТИЧЕСКИЕ ВОПРОСЫ - АНАЛИЗ:")
+                
+                # Question 1: Возвращает ли backend массив cargo_items или одну строку cargo_name?
+                has_cargo_items_array = isinstance(pickup_request_response.get('cargo_items'), list)
+                has_cargo_name_string = isinstance(pickup_request_response.get('cargo_name'), str)
+                
+                if has_cargo_items_array:
+                    print("   ✅ ОТВЕТ 1: Backend возвращает массив cargo_items")
+                    cargo_items_count = len(pickup_request_response.get('cargo_items', []))
+                    print(f"     - Количество элементов в массиве: {cargo_items_count}")
+                elif has_cargo_name_string:
+                    print("   ❌ ОТВЕТ 1: Backend возвращает только строку cargo_name")
+                    print(f"     - cargo_name: {pickup_request_response.get('cargo_name')}")
+                else:
+                    print("   ⚠️  ОТВЕТ 1: Неясно - нет ни cargo_items массива, ни cargo_name строки")
+                
+                # Question 2: Как правильно разбить грузы на отдельные контейнеры в UI?
+                if has_cargo_items_array:
+                    cargo_items_list = pickup_request_response.get('cargo_items', [])
+                    print("   ✅ ОТВЕТ 2: Можно создать отдельный контейнер для каждого элемента cargo_items")
+                    print(f"     - Рекомендуется создать {len(cargo_items_list)} контейнеров")
+                else:
+                    print("   ❌ ОТВЕТ 2: Нужно парсить строку cargo_name или использовать другой подход")
+                
+                # Question 3: Есть ли данные о весе и цене для каждого отдельного груза?
+                individual_weight_price_data = False
+                if has_cargo_items_array:
+                    cargo_items_list = pickup_request_response.get('cargo_items', [])
+                    for item in cargo_items_list:
+                        if isinstance(item, dict) and ('weight' in item or 'price' in item):
+                            individual_weight_price_data = True
+                            break
+                
+                if individual_weight_price_data:
+                    print("   ✅ ОТВЕТ 3: Есть индивидуальные данные о весе и цене для каждого груза")
+                    print("     - Можно реализовать автоматические расчеты для каждого контейнера")
+                else:
+                    print("   ❌ ОТВЕТ 3: Нет индивидуальных данных о весе и цене")
+                    print("     - Автоматические расчеты будут ограничены")
+                
+            else:
+                print("   ❌ Failed to get pickup request details")
+                all_success = False
+        else:
+            print("   ⚠️  No pickup_request_id available for testing")
+            print("   📋 Trying to create test scenario with multiple cargo items...")
+            
+            # ДОПОЛНИТЕЛЬНАЯ ДИАГНОСТИКА: Создать тестовую заявку с несколькими грузами через курьера
+            print("\n   🧪 ДОПОЛНИТЕЛЬНАЯ ДИАГНОСТИКА: Создание тестовой заявки с несколькими грузами...")
+            
+            # Login as courier to create test request with multiple cargo items
+            courier_login_data = {
+                "phone": "+79991234567",
+                "password": "courier123"
+            }
+            
+            courier_success, courier_login_response = self.run_test(
+                "Courier Login for Test Cargo Items Creation",
+                "POST",
+                "/api/auth/login",
+                200,
+                courier_login_data
+            )
+            
+            if courier_success and 'access_token' in courier_login_response:
+                courier_token = courier_login_response['access_token']
+                print("   ✅ Courier login successful for test creation")
+                
+                # Create test request with multiple cargo items
+                test_request_data = {
+                    "sender_full_name": "Тест Отправитель Множественные Грузы",
+                    "sender_phone": "+79991234567",
+                    "recipient_full_name": "Тест Получатель Множественные Грузы",
+                    "recipient_phone": "+992987654321",
+                    "recipient_address": "Душанбе, ул. Тестовая Множественные Грузы, 456",
+                    "cargo_items": [
+                        {
+                            "name": "Груз 1 - Электроника",
+                            "weight": 2.5,
+                            "price": 15000.0
+                        },
+                        {
+                            "name": "Груз 2 - Одежда",
+                            "weight": 1.8,
+                            "price": 8000.0
+                        },
+                        {
+                            "name": "Груз 3 - Книги",
+                            "weight": 3.2,
+                            "price": 5000.0
+                        }
+                    ],
+                    "delivery_method": "pickup",
+                    "payment_method": "cash"
+                }
+                
+                # Try to update an existing request with multiple cargo items
+                # First get accepted requests
+                success, accepted_requests = self.run_test(
+                    "Get Accepted Requests for Cargo Items Test",
+                    "GET",
+                    "/api/courier/requests/accepted",
+                    200,
+                    token=courier_token
+                )
+                
+                if success and accepted_requests:
+                    accepted_list = accepted_requests.get('accepted_requests', []) if isinstance(accepted_requests, dict) else accepted_requests
+                    
+                    if accepted_list and len(accepted_list) > 0:
+                        test_request_id = accepted_list[0].get('id')
+                        print(f"   🎯 Using existing request for cargo items test: {test_request_id}")
+                        
+                        # Update request with multiple cargo items
+                        success, update_response = self.run_test(
+                            "Update Request with Multiple Cargo Items",
+                            "PUT",
+                            f"/api/courier/requests/{test_request_id}/update",
+                            200,
+                            test_request_data,
+                            courier_token
+                        )
+                        
+                        if success:
+                            print("   ✅ Request updated with multiple cargo items")
+                            print("   📦 Test cargo items structure:")
+                            for i, item in enumerate(test_request_data['cargo_items']):
+                                print(f"     - Item {i+1}: {item['name']} ({item['weight']}kg, {item['price']}руб)")
+                            
+                            # Now try to deliver this request to warehouse to create notification
+                            success, delivery_response = self.run_test(
+                                "Deliver Request with Multiple Cargo Items to Warehouse",
+                                "POST",
+                                f"/api/courier/requests/{test_request_id}/deliver-to-warehouse",
+                                200,
+                                token=courier_token
+                            )
+                            
+                            if success:
+                                print("   ✅ Request with multiple cargo items delivered to warehouse")
+                                print("   📋 This should create notification with cargo_items structure")
+                                
+                                # Re-check notifications to see the new structure
+                                success, final_notifications = self.run_test(
+                                    "Get Final Warehouse Notifications with Cargo Items",
+                                    "GET",
+                                    "/api/operator/warehouse-notifications",
+                                    200,
+                                    token=operator_token
+                                )
+                                
+                                if success:
+                                    final_notifications_list = final_notifications if isinstance(final_notifications, list) else []
+                                    
+                                    # Find the latest notification
+                                    for notification in final_notifications_list:
+                                        if notification.get('pickup_request_id') == test_request_id:
+                                            print(f"   🎯 Found notification with test cargo items: {test_request_id}")
+                                            
+                                            # Test the pickup request endpoint with this ID
+                                            success, final_pickup_response = self.run_test(
+                                                f"Get Final Pickup Request with Cargo Items (ID: {test_request_id})",
+                                                "GET",
+                                                f"/api/operator/pickup-requests/{test_request_id}",
+                                                200,
+                                                token=operator_token
+                                            )
+                                            
+                                            if success:
+                                                print("   🎉 ФИНАЛЬНЫЙ АНАЛИЗ СТРУКТУРЫ CARGO_ITEMS:")
+                                                
+                                                # Final analysis of cargo_items structure
+                                                final_cargo_items = final_pickup_response.get('cargo_items')
+                                                if final_cargo_items and isinstance(final_cargo_items, list):
+                                                    print(f"   ✅ УСПЕХ: cargo_items массив найден с {len(final_cargo_items)} элементами")
+                                                    
+                                                    for i, item in enumerate(final_cargo_items):
+                                                        print(f"   📦 Cargo Item {i+1}:")
+                                                        if isinstance(item, dict):
+                                                            name = item.get('name', 'N/A')
+                                                            weight = item.get('weight', 'N/A')
+                                                            price = item.get('price', 'N/A')
+                                                            print(f"     - name: {name}")
+                                                            print(f"     - weight: {weight}")
+                                                            print(f"     - price: {price}")
+                                                            
+                                                            # Check if all required fields are present
+                                                            if name != 'N/A' and weight != 'N/A' and price != 'N/A':
+                                                                print(f"     ✅ Все поля присутствуют для груза {i+1}")
+                                                            else:
+                                                                print(f"     ❌ Некоторые поля отсутствуют для груза {i+1}")
+                                                else:
+                                                    print("   ❌ cargo_items массив не найден или имеет неправильный формат")
+                                                    
+                                                    # Check alternative fields
+                                                    cargo_info = final_pickup_response.get('cargo_info')
+                                                    if cargo_info:
+                                                        print(f"   🔍 Найдено cargo_info: {cargo_info}")
+                                                    
+                                                    cargo_name = final_pickup_response.get('cargo_name')
+                                                    if cargo_name:
+                                                        print(f"   🔍 Найдено cargo_name: {cargo_name}")
+                                            break
+                            else:
+                                print("   ❌ Failed to deliver request to warehouse")
+                        else:
+                            print("   ❌ Failed to update request with multiple cargo items")
+                    else:
+                        print("   ⚠️  No accepted requests available for cargo items test")
+                else:
+                    print("   ❌ Failed to get accepted requests for cargo items test")
+            else:
+                print("   ❌ Courier login failed for test creation")
+        
+        # SUMMARY
+        print("\n   📊 CARGO_ITEMS STRUCTURE ANALYSIS SUMMARY:")
+        
+        if all_success:
+            print("   🎉 CARGO_ITEMS STRUCTURE ANALYSIS COMPLETED!")
+            print("   ✅ Авторизация оператора склада (+79777888999/warehouse123) работает")
+            print("   ✅ Endpoint /api/operator/warehouse-notifications доступен")
+            print("   ✅ Endpoint /api/operator/pickup-requests/{pickup_request_id} доступен")
+            print("   📦 СТРУКТУРА ДАННЫХ ПРОАНАЛИЗИРОВАНА:")
+            
+            # Provide recommendations based on findings
+            print("\n   💡 РЕКОМЕНДАЦИИ ДЛЯ UI РАЗРАБОТКИ:")
+            print("   1. Проверить наличие поля cargo_items как массива в ответе API")
+            print("   2. Если cargo_items массив существует - создать отдельный контейнер для каждого элемента")
+            print("   3. Если cargo_items отсутствует - использовать cargo_name или cargo_info как единое поле")
+            print("   4. Для автоматических расчетов проверить наличие полей weight и price в каждом элементе")
+            print("   5. Реализовать fallback для случаев, когда структура данных неполная")
+            
+            print("\n   🎯 КРИТИЧЕСКИЕ ВЫВОДЫ:")
+            print("   - Backend endpoint /api/operator/pickup-requests/{pickup_request_id} работает")
+            print("   - Структура ответа зависит от того, как курьер заполнил данные")
+            print("   - Необходимо проверить реальные данные в production для точного анализа")
+            print("   - UI должен быть готов к различным форматам данных (массив vs строка)")
+        else:
+            print("   ❌ SOME CARGO_ITEMS ANALYSIS TESTS FAILED")
+            print("   🔍 Check the specific failed tests above for details")
+            print("   ⚠️  Cargo items structure analysis may need attention")
+        
+        return all_success
+
+
 if __name__ == "__main__":
     # Get the backend URL from environment variable
     import os
