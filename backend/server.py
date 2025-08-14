@@ -12873,6 +12873,32 @@ async def delete_cells_batch(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting cells: {str(e)}")
 
+@app.post("/api/admin/warehouses/assign-numbers")
+async def assign_warehouse_numbers(
+    current_user: User = Depends(get_current_user)
+):
+    """Присвоить номера складам (только для администратора)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        # Получаем все склады без номеров
+        warehouses = list(db.warehouses.find({"warehouse_number": {"$exists": False}}))
+        
+        for i, warehouse in enumerate(warehouses, start=1):
+            db.warehouses.update_one(
+                {"id": warehouse["id"]},
+                {"$set": {"warehouse_number": i}}
+            )
+        
+        return {
+            "message": f"Assigned numbers to {len(warehouses)} warehouses",
+            "updated_count": len(warehouses)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error assigning warehouse numbers: {str(e)}")
+
 # НОВЫЕ ENDPOINTS ДЛЯ КУРЬЕРСКОЙ СЛУЖБЫ (ЭТАП 1)
 
 @app.post("/api/admin/couriers/create")
