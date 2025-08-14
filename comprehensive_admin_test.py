@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 class ComprehensiveAdminTester:
-    def __init__(self, base_url="https://pickup-express.preview.emergentagent.com"):
+    def __init__(self, base_url="https://delivery-hub-58.preview.emergentagent.com"):
         self.base_url = base_url
         self.tokens = {}  # Store tokens for different users
         self.users = {}   # Store user data

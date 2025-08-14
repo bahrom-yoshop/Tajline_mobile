@@ -1,32 +1,35 @@
 <analysis>
-The AI engineer has comprehensively extended the TAJLINE.TJ application, moving from initial bug fixes to a robust courier management system. The work trajectory demonstrates an iterative, user-driven development process. Key achievements include integrating Yandex Maps for pickup addresses, implementing real-time courier GPS tracking for both couriers (self-tracking) and admin/operators (monitoring), adding courier movement history and ETA calculation, and significantly enhancing the Receive New Cargo form with a dedicated Cargo Pickup mode. Each feature involved concurrent backend (FastAPI) and frontend (React) development, including data model updates, new API endpoints, and UI component creation/modification. The process consistently involved user confirmation and testing, ensuring features met explicit requirements. The focus has been on core functionality delivery, addressing user feedback promptly.
+The previous AI engineer successfully transitioned the TAJLINE.TJ application from a basic MVP to a more feature-rich cargo management system. The development followed an iterative process, primarily driven by user feedback and bug reports. Key feature additions included a complete courier management system, real-time GPS tracking with history and ETA, an enhanced cargo pickup request form, and a new Cargo Pickup section for operators. The engineer meticulously addressed various issues, from logical discrepancies in data handling (e.g., separate collections for requests, incorrect status filtering, missing ) to frontend rendering bugs (e.g.,  error due to duplicate IDs, UI display logic for different request types). The work involved significant modifications to both FastAPI backend endpoints and React frontend components, demonstrating a strong grasp of full-stack development. The trajectory shows a cycle of feature implementation, testing, user feedback, and bug fixing.
 </analysis>
 
 <product_requirements>
-The TAJLINE.TJ application is a full-stack cargo management system designed for Moscow-Tajikistan routes, supporting Admin, Warehouse Operator, and User roles. Its core purpose is to manage the cargo lifecycle, including unique numbering, QR scanning, role-based access control (RBAC), financial tracking, and notifications.
+The TAJLINE.TJ application is a full-stack cargo management system for Moscow-Tajikistan routes, supporting Admin, Warehouse Operator, and User roles. Its core purpose is to manage the cargo lifecycle, including unique numbering, QR scanning, RBAC, financial tracking, and notifications.
 
 Recent feature development aimed to:
-1.  **Courier Management System**: Introduce a  role with an admin panel for registration, listing, history, status, and profile editing.
-2.  **Cargo Acceptance Form**: Enhance the form for  to include pickup address, datetime, method, courier service cost, and a Send to Courier button.
-3.  **Courier Personal Account**: Develop a dedicated interface with a sidebar, New Requests section (cargo cards with sender/pickup info), and actions like Accept, Edit, Generate/Print QR, and Cancel Request.
+1.  **Courier Management System**: Introduce a  role with admin panel for registration, listing, history, status, and profile editing.
+2.  **Cargo Acceptance Form**: Enhance form for  with pickup address, datetime, method, courier service cost, and Send to Courier button.
+3.  **Courier Personal Account**: Develop a dedicated interface with New Requests (cargo cards) and actions (Accept, Edit, QR, Cancel).
 4.  **Workflow Expansion**: Add Accepted Cargo and Picked Up Cargo categories with Pick Up Cargo and Deliver Cargo buttons.
-5.  **Enhanced Editing & History**: Implement Operation History on cargo cards; enable comprehensive editing (name, weight, recipient, payment, calculation, QR/invoice print) for picked-up cargo, supporting multiple items and a calculator.
-6.  **UI Refinements**: Include information buttons on the dashboard (counts), chat section, logo instead of username, and a user profile modal.
-7.  **Specific Fixes/Improvements**: Remove redundant UI elements, rename Accepted Cargo, ensure numeric QR/request numbers, fix request update saving, show all filled info in views/cards, improve mobile responsiveness for login and sidebars, add a Restore button for cancelled requests, and integrate a Yandex Map address block for new requests.
-8.  **Courier Location Tracking**: Implement functionality for couriers to send their GPS location and for admins/operators to view real-time courier locations on a map.
-9.  **Courier History & ETA**: Provide features to view courier movement history and calculate estimated time of arrival.
-10. **Refined Pickup Request Form**: Create a simplified Cargo Pickup mode within the Receive New Cargo form, allowing operators/admins to quickly generate courier requests by filling only essential pickup details (sender info, address, date/time, cost, designation, payment status), hiding other fields.
+5.  **Enhanced Editing & History**: Implement Operation History on cargo cards; enable comprehensive editing for picked-up cargo.
+6.  **UI Refinements**: Information buttons, chat section, logo, user profile modal, mobile responsiveness.
+7.  **Specific Fixes/Improvements**: Restore button for cancelled requests, Yandex Map integration for new requests.
+8.  **Courier Location Tracking**: Implement courier GPS tracking and admin/operator map view.
+9.  **Courier History & ETA**: Provide features to view courier movement history and calculate ETA.
+10. **Refined Pickup Request Form**: Create a simplified Cargo Pickup mode within Receive New Cargo form for essential pickup details.
+11. **Warehouse Delivery Enhancements**: Process delivered pickup requests, show notifications to operators, and display them in Размещенные грузы (Placed Cargo).
+12. **UI Polish**: Replace Назначение груза with Наименование груза, filter completed pickup requests from На Забор.
+13. **Courier UI Refinements**: Limit displayed addresses (2) and cargo cards (6) in New and Accepted requests, add Show All button.
 </product_requirements>
 
 <key_technical_concepts>
 -   **Full-stack Development**: React.js (frontend), FastAPI (backend), MongoDB (database).
 -   **Authentication/Authorization**: JWT, Role-Based Access Control (RBAC).
 -   **UI/UX**: Tailwind CSS, Shadcn UI, React Hooks for state management.
--   **API Interaction**: Standardized  wrapper for backend communication.
+-   **API Interaction**: Standardized  wrapper, new API endpoints for specific features.
 -   **Data Modeling**: Pydantic models for data validation and serialization.
--   **Geolocation**: GPS tracking implementation for real-time location updates.
--   **Mapping**: Yandex Maps API integration for displaying locations.
--   **WebSockets**: Used for real-time updates (implied by previous work, though not explicitly detailed in new trajectory).
+-   **Geolocation**: GPS tracking, Yandex Maps API for location display.
+-   **Real-time Updates**: Implied for location tracking and notifications.
+-   **QR Code Generation**: On-the-fly QR code generation for cargo.
 </key_technical_concepts>
 
 <code_architecture>
@@ -36,52 +39,73 @@ The application uses a standard full-stack architecture:
 
 -   **/app/backend/server.py**:
     -   **Summary**: The core FastAPI backend handling API endpoints, MongoDB interactions, user authentication (JWT), and RBAC. It defines data models and business logic.
-    -   **Changes Made**:
-        -   **Data Models**: The  Pydantic model was updated to include  and  fields for real-time tracking. Implicit updates to  for the new pickup form.
+    -   **Key Changes**:
+        -   **Data Models**:  model updated for tracking.  implicitly updated for pickup form.  model status enum extended (e.g., ).
         -   **API Endpoints**:
-            -   **Existing**:  was implemented to change a cancelled request's status back to 'pickup_requested'.
-            -   **New**:
-                -    (POST): Allows couriers to send their current GPS coordinates, speed, heading, and current request details. This endpoint now also saves a history of these locations to a new  MongoDB collection.
-                -    (GET): Retrieves the latest known locations of all active couriers, including  and .
-                -    (GET): Fetches the movement history for a specific courier.
-                -    (POST): Calculates the estimated time of arrival for a courier.
-                -    (POST): Handles the submission of simplified cargo pickup requests from operators/admins, sending them directly to couriers.
-        -   **ID Generation**: Confirmed use of  for request IDs.
+            -    (GET): Modified to fetch requests from both  and  collections, distinguishing by  or . Filtered to show only 'pending' requests for couriers.
+            -    (POST): For courier GPS updates, saving history to .
+            -    (GET): Retrieves latest courier locations.
+            -    (GET),  (POST): For courier history and ETA.
+            -    (POST): Handles simplified cargo pickup requests from operators, saving to .
+            -    (POST): Modified to accept requests from both  and , handling status updates and notifications.
+            -    (POST): Updated to handle  collection for cargo pickup status.
+            -    (POST): Updated to handle  and create notifications for operators on cargo delivery to warehouse.
+            -    (GET): New endpoint to fetch notifications for operators about cargo delivered to the warehouse.
+            -    (POST): Modified to mark notifications as 'processing_by' without immediately creating cargo.
+            -    (GET): New endpoint to fetch completed pickup requests for history.
+            -    (GET): Filtered to exclude 'completed' or 'delivered_to_warehouse' requests.
+            -    (GET): Modified to fetch cargo from  collection with  or  status, filtering by .
+        -   **ID Generation**: Fixed  to ensure unique IDs for notifications.
 
 -   **/app/frontend/src/App.js**:
     -   **Summary**: The central React component managing global state, routing, UI rendering, and all backend interactions.
-    -   **Changes Made**:
-        -   **State Management**: Added new states like  (for the enhanced cargo reception form),  (an array to manage multiple phone numbers for pickup requests), and  (to control courier's GPS functions).
-        -   **API Integration**: New functions were added to interact with the new backend endpoints: , , , , functions for fetching courier history/ETA, and  for the simplified pickup request form.
+    -   **Key Changes**:
+        -   **State Management**: Added , , , , , , , , , , , , .
+        -   **API Integration**: New functions: , , , , , , , , , , .
         -   **UI Modifications**:
-            -   **Yandex Map Integration**: Integrated  component into the Новые заявки (New Requests) section, displaying pickup addresses. The Yandex Maps API script was added to .
-            -   **Courier GPS Tracker**: The  component was integrated into the courier dashboard, providing controls for couriers to manage their GPS tracking.
-            -   **Admin/Operator Courier Map**: The  component was integrated into a newly created Курьеры (Couriers) section under the Пользователи menu, accessible by both admins and operators, allowing them to view real-time courier locations.
-            -   **Courier History/Analytics**: The  component was integrated into a new История и аналитика section in the courier menu.
-            -   **Enhanced Pickup Form**: In the Принимать новый груз (Receive New Cargo) section, a Забор груза (Cargo Pickup) button was added. When toggled, the form conditionally renders only the fields relevant to a simplified pickup request (sender name, multiple phones, address, date/time, designation, cost, payment status), and uses a new submission handler ().
-            -   **Bug Fixes**: Resolved JSX parsing errors encountered during form modification.
+            -   **Courier Dashboard**: Integrated , , .
+            -   **Cargo Pickup Form**: Added Забор груза toggle, conditionally renders simplified fields. Replaced Назначение груза with Наименование груза.
+            -   **Courier Requests Display**: Updated Новые заявки and Принятые заявки sections to correctly display different request types (pickup/delivery) with type indicators. Removed Edit and QR buttons from Новые заявки. Added map display and limited addresses (2) and cards (6) with Show All buttons in New and Accepted sections.
+            -   **Dynamic Status Updates**: Modified , ,  to reactively update frontend lists upon status changes.
+            -   **QR Scanner Fixes**: Resolved  DOM errors by ensuring unique IDs for  instances and implementing a  function, along with smart container ID handling in  and .
+            -   **Operator UI**: Added a notification container for Принимать новый груз page, showing delivered cargo notifications (limited to 2 with Показать всех button). Added new subcategory На Забор under Грузы to display pending pickup requests, and История забора груза for completed ones.
+            -   **Cargo Acceptance Form Modal**: Integrated a modal for a detailed cargo acceptance form, to be filled by operators after a courier delivers cargo to the warehouse.
+            -   **Placed Cargo Display**: Updated Размещенные грузы section to display cargo from pickup requests (status  or ) with a Груз на забор indicator.
 </code_architecture>
 
 <pending_tasks>
 -   Thoroughly test and verify the Insufficient permissions error and dashboard reappearance issues, especially for courier roles, to ensure complete resolution.
 -   Implement the full chat functionality for communication between couriers, admins, and operators.
 -   Fully verify the История операций (Operation History) feature on cargo cards for couriers.
+-   Frontend testing for the newly implemented enhanced cargo pickup request form (though much has been implicitly tested through subsequent features).
+-   Fix issues with saving data when editing/viewing requests from the Принятые заявки (Accepted Requests) category in the courier's personal account.
+-   Fix GPS tracking data not being received by operators/administrators and status not changing when a courier presses Начать отслеживание (Start Tracking).
 </pending_tasks>
 
 <current_work>
-Immediately before this summary request, the AI engineer completed implementing a significant feature: an **enhanced cargo pickup request form** for operators and administrators. This involved adding a Забор груза (Cargo Pickup) button to the Принимать новый груз (Receive New Cargo) page. When activated, this mode simplifies the form, allowing operators to fill only essential details for a courier pickup request: sender's full name, multiple sender phone numbers (a new feature), pickup address, date and time, cargo designation, courier service cost, and payment status for the courier service. All other non-relevant fields are hidden to streamline the process.
+Immediately before this summary request, the AI engineer was tasked with and is currently working on improving the courier's personal account and addressing issues related to saving edited request data and GPS tracking.
 
-To support this, a new backend endpoint, , was created in  to handle these simplified requests, routing them directly to couriers. Corresponding frontend logic, including state management for the , functions to manage multiple phone inputs (, , ), and a new submission handler , were implemented in . A JSX parsing error was also fixed during this implementation. Both backend and frontend servers were restarted after the changes.
+Specifically, the most recent work involves:
+1.  **Limiting display for Новые заявки (New Requests) and Принятые заявки (Accepted Requests) in the courier interface**:
+    *   The aim is to show only 2 addresses and 6 cargo cards by default, with a Показать всех (Show All) button to reveal the rest.
+    *   The AI engineer has added  and  states in  to manage this visibility.
+    *   Modifications have been made to the JSX rendering logic within  (around lines 18778 and 19070) to apply these limits, and the AI engineer has fixed a JSX parsing error encountered during this process.
 
-Prior to this, the AI engineer successfully implemented and tested:
-1.  **Yandex Map Integration**: Displaying pickup addresses on a map in the Новые заявки section for couriers ( component and  script).
-2.  **Courier GPS Tracking**: Real-time location updates for couriers ( endpoint and  component) and a map interface for admins/operators to view these locations ( endpoint and  component).
-3.  **Courier History & ETA**: Backend endpoints (, ) and frontend component () for viewing courier movement history and estimated arrival times.
-4.  **Restoring Cancelled Requests**: Backend () and frontend ( and Восстановить button) functionality was also previously completed and backend-tested.
+2.  **Addressing Ошибка при сохранении (Error on Save) when editing requests**:
+    *   This is the next explicit task confirmed by the user. The problem states that when a courier clicks Просмотр заявки (View Request) or Редактирование заявки (Edit Request) from the Принятые заявки section, filling fields, and attempting to save results in an error.
+    *   The AI engineer has just started diagnosing this problem, beginning by locating the Просмотр заявки and Редактирование заявки buttons in  (around lines 19221 and 19399) and noting the relevant modal windows (around line 27132). The next step is to examine the associated  and  functions.
 
-The current state is that the enhanced pickup request form is integrated, and the AI engineer is awaiting user confirmation for the next steps.
+The previous work included resolving several critical issues:
+*   Fixing the  DOM error by making  IDs unique and updating related QR scanner functions.
+*   Correcting  due to incorrect cargo status ( vs. valid enum values).
+*   Ensuring  is correctly assigned to cargo created from pickup requests, making them visible to warehouse operators.
+*   Implementing the Наименование груза field replacement for Назначение груза across frontend forms and backend processing.
+*   Filtering 'completed' pickup requests from the На Забор list.
+
+The current state is that the display limitation for courier requests has been implemented in the frontend, and the AI engineer is actively investigating the saving/editing issue for accepted courier requests.
+
 </current_work>
 
 <optional_next_step>
-Frontend testing for the newly implemented enhanced cargo pickup request form.
+Investigate and fix the error encountered when attempting to save edited courier request details from the Принятые заявки section.
 </optional_next_step>

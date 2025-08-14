@@ -7,7 +7,7 @@ import requests
 import json
 
 def verify_pickup_requests():
-    base_url = "https://pickup-express.preview.emergentagent.com"
+    base_url = "https://delivery-hub-58.preview.emergentagent.com"
     
     # Login as courier
     courier_login_data = {

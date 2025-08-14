@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 class PhoneImportFixTester:
-    def __init__(self, base_url="https://pickup-express.preview.emergentagent.com"):
+    def __init__(self, base_url="https://delivery-hub-58.preview.emergentagent.com"):
         self.base_url = base_url
         self.tokens = {}
         self.tests_run = 0
