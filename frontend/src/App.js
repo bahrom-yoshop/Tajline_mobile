@@ -534,19 +534,34 @@ function App() {
 
   const handleUpdateCargoInfo = async (e) => {
     e.preventDefault();
-    if (!selectedCargoForEdit || !selectedCargoForEdit.cargo_id) return;
+    if (!selectedCargoForEdit || !selectedCargoForEdit.id) return;
 
     try {
-      await apiCall(`/api/courier/cargo/${selectedCargoForEdit.cargo_id}/update`, 'PUT', courierCargoEditForm);
+      // Подготавливаем данные в формате, ожидаемом backend
+      const updateData = {
+        cargo_items: [{
+          name: courierCargoEditForm.cargo_name,
+          weight: courierCargoEditForm.weight,
+          total_price: courierCargoEditForm.declared_value || 0
+        }],
+        recipient_full_name: courierCargoEditForm.recipient_full_name,
+        recipient_phone: courierCargoEditForm.recipient_phone,
+        recipient_address: courierCargoEditForm.recipient_address,
+        delivery_method: courierCargoEditForm.delivery_method,
+        payment_method: courierCargoEditForm.payment_method
+      };
+
+      await apiCall(`/api/courier/requests/${selectedCargoForEdit.id}/update`, 'PUT', updateData);
       
-      showAlert('Информация о грузе обновлена!', 'success');
+      showAlert('Информация о заявке обновлена!', 'success');
       setCargoEditModal(false);
       
-      // Обновляем списки
+      // Обновляем списки заявок
+      fetchAcceptedRequests();
       fetchPickedRequests();
       
     } catch (error) {
-      console.error('Error updating cargo info:', error);
+      console.error('Error updating request info:', error);
       showAlert('Ошибка обновления информации: ' + error.message, 'error');
     }
   };
