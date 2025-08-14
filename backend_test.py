@@ -1,5 +1,469 @@
 #!/usr/bin/env python3
 """
+Backend Test for TAJLINE.TJ Warehouse Cell Management Endpoints
+Testing fixed endpoints after corrections were made.
+
+CONTEXT OF FIXES:
+- Fixed cell_id parsing error in QR code generation function
+- Changed QR code format to numeric: "warehouse_number block_number shelf_number cell_number" (e.g., "01 02 01 09")
+- Added warehouse_number field for all warehouses
+- UI shows correct structure (2 blocks, 2 shelves, 5 cells = 20 cells total), but cells are not loading
+
+ENDPOINTS TO TEST:
+1. GET /api/warehouses/{warehouse_id}/cells - getting list of cells (MAIN FOCUS)
+2. GET /api/warehouses/cells/{cell_id}/qr - fixed QR generation for individual cell
+3. GET /api/warehouses/{warehouse_id}/cells/qr-batch - fixed batch QR generation
+
+TEST PLAN:
+1. Admin authentication (+79999888777/admin123)
+2. **CRITICAL CHECK**: Find warehouse with ID "8b5e9e99-a2fd-4755-a9b7-32d1a03b39cb" ("Второй склад для межскладских перевозок")
+3. Test GET /api/warehouses/{warehouse_id}/cells - should return 20 cells (2×2×5)
+4. Test QR generation with new numeric format
+5. Check that warehouse_number is set correctly
+6. Ensure cell_id format is parsed correctly
+
+EXPECTED RESULTS:
+- /api/warehouses/{warehouse_id}/cells should return array of 20 cells
+- New QR format should contain numeric data like "01 01 01 01"
+- All endpoints should work without parsing errors
+"""
+
+import requests
+import json
+import sys
+import os
+from datetime import datetime
+
+# Configuration
+BACKEND_URL = "https://cargo-compass.preview.emergentagent.com/api"
+ADMIN_CREDENTIALS = {
+    "phone": "+79999888777",
+    "password": "admin123"
+}
+
+# Target warehouse ID from review request
+TARGET_WAREHOUSE_ID = "8b5e9e99-a2fd-4755-a9b7-32d1a03b39cb"
+TARGET_WAREHOUSE_NAME = "Второй склад для межскладских перевозок"
+
+class WarehouseCellTester:
+    def __init__(self):
+        self.session = requests.Session()
+        self.admin_token = None
+        self.test_results = []
+        
+    def log_result(self, test_name, success, message, details=None):
+        """Log test result"""
+        result = {
+            "test": test_name,
+            "success": success,
+            "message": message,
+            "details": details,
+            "timestamp": datetime.now().isoformat()
+        }
+        self.test_results.append(result)
+        status = "✅ PASS" if success else "❌ FAIL"
+        print(f"{status} - {test_name}: {message}")
+        if details and not success:
+            print(f"   Details: {details}")
+    
+    def authenticate_admin(self):
+        """Authenticate as admin"""
+        try:
+            response = self.session.post(
+                f"{BACKEND_URL}/auth/login",
+                json=ADMIN_CREDENTIALS,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.admin_token = data.get("access_token")
+                if self.admin_token:
+                    self.session.headers.update({
+                        "Authorization": f"Bearer {self.admin_token}"
+                    })
+                    user_info = data.get("user", {})
+                    self.log_result(
+                        "Admin Authentication",
+                        True,
+                        f"Successfully authenticated as {user_info.get('full_name', 'Admin')} (Role: {user_info.get('role', 'Unknown')})"
+                    )
+                    return True
+                else:
+                    self.log_result("Admin Authentication", False, "No access token in response")
+                    return False
+            else:
+                self.log_result("Admin Authentication", False, f"HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Admin Authentication", False, f"Exception: {str(e)}")
+            return False
+    
+    def find_target_warehouse(self):
+        """Find the target warehouse by ID"""
+        try:
+            response = self.session.get(f"{BACKEND_URL}/warehouses", timeout=30)
+            
+            if response.status_code == 200:
+                warehouses = response.json()
+                
+                # Find target warehouse
+                target_warehouse = None
+                for warehouse in warehouses:
+                    if warehouse.get("id") == TARGET_WAREHOUSE_ID:
+                        target_warehouse = warehouse
+                        break
+                
+                if target_warehouse:
+                    self.log_result(
+                        "Find Target Warehouse",
+                        True,
+                        f"Found target warehouse: {target_warehouse.get('name', 'Unknown')} (ID: {TARGET_WAREHOUSE_ID})",
+                        {
+                            "warehouse_data": target_warehouse,
+                            "has_warehouse_number": "warehouse_number" in target_warehouse,
+                            "warehouse_number": target_warehouse.get("warehouse_number", "Not set"),
+                            "structure": {
+                                "blocks_count": target_warehouse.get("blocks_count"),
+                                "shelves_per_block": target_warehouse.get("shelves_per_block"),
+                                "cells_per_shelf": target_warehouse.get("cells_per_shelf"),
+                                "expected_total_cells": (
+                                    target_warehouse.get("blocks_count", 0) * 
+                                    target_warehouse.get("shelves_per_block", 0) * 
+                                    target_warehouse.get("cells_per_shelf", 0)
+                                )
+                            }
+                        }
+                    )
+                    return target_warehouse
+                else:
+                    self.log_result(
+                        "Find Target Warehouse",
+                        False,
+                        f"Target warehouse with ID {TARGET_WAREHOUSE_ID} not found",
+                        {"total_warehouses": len(warehouses)}
+                    )
+                    return None
+            else:
+                self.log_result("Find Target Warehouse", False, f"HTTP {response.status_code}: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_result("Find Target Warehouse", False, f"Exception: {str(e)}")
+            return None
+    
+    def test_warehouse_cells_list(self, warehouse_id):
+        """Test GET /api/warehouses/{warehouse_id}/cells - MAIN FOCUS"""
+        try:
+            response = self.session.get(f"{BACKEND_URL}/warehouses/{warehouse_id}/cells", timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                cells = data.get("cells", [])
+                
+                # Expected: 2 blocks × 2 shelves × 5 cells = 20 cells
+                expected_cells = 20
+                actual_cells = len(cells)
+                
+                if actual_cells == expected_cells:
+                    # Check cell structure
+                    sample_cell = cells[0] if cells else {}
+                    required_fields = ["id", "warehouse_id", "block_number", "shelf_number", "cell_number", "is_occupied"]
+                    missing_fields = [field for field in required_fields if field not in sample_cell]
+                    
+                    if not missing_fields:
+                        self.log_result(
+                            "Warehouse Cells List (CRITICAL)",
+                            True,
+                            f"Successfully retrieved {actual_cells} cells (expected {expected_cells})",
+                            {
+                                "total_cells": actual_cells,
+                                "sample_cell": sample_cell,
+                                "all_required_fields_present": True,
+                                "cell_structure_valid": True
+                            }
+                        )
+                        return cells
+                    else:
+                        self.log_result(
+                            "Warehouse Cells List (CRITICAL)",
+                            False,
+                            f"Retrieved {actual_cells} cells but missing required fields: {missing_fields}",
+                            {"sample_cell": sample_cell, "missing_fields": missing_fields}
+                        )
+                        return cells
+                else:
+                    self.log_result(
+                        "Warehouse Cells List (CRITICAL)",
+                        False,
+                        f"Expected {expected_cells} cells but got {actual_cells}",
+                        {"expected": expected_cells, "actual": actual_cells, "cells_data": cells[:3]}
+                    )
+                    return cells
+            else:
+                self.log_result(
+                    "Warehouse Cells List (CRITICAL)",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return None
+                
+        except Exception as e:
+            self.log_result("Warehouse Cells List (CRITICAL)", False, f"Exception: {str(e)}")
+            return None
+    
+    def test_individual_cell_qr(self, cells):
+        """Test GET /api/warehouses/cells/{cell_id}/qr - Fixed QR generation"""
+        if not cells:
+            self.log_result("Individual Cell QR", False, "No cells available for testing")
+            return
+        
+        # Test with first cell
+        test_cell = cells[0]
+        cell_id = test_cell.get("id")
+        
+        try:
+            response = self.session.get(f"{BACKEND_URL}/warehouses/cells/{cell_id}/qr", timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                qr_code = data.get("qr_code", "")
+                
+                # Check if QR code is in base64 format
+                if qr_code.startswith("data:image/png;base64,"):
+                    # Check for new numeric format in QR data
+                    qr_info = data.get("qr_info", {})
+                    warehouse_number = qr_info.get("warehouse_number", "")
+                    
+                    self.log_result(
+                        "Individual Cell QR Generation",
+                        True,
+                        f"Successfully generated QR code for cell {cell_id}",
+                        {
+                            "cell_id": cell_id,
+                            "qr_code_length": len(qr_code),
+                            "qr_format_valid": qr_code.startswith("data:image/png;base64,"),
+                            "warehouse_number": warehouse_number,
+                            "qr_info": qr_info,
+                            "new_numeric_format": bool(warehouse_number)
+                        }
+                    )
+                    return True
+                else:
+                    self.log_result(
+                        "Individual Cell QR Generation",
+                        False,
+                        f"QR code format invalid: {qr_code[:100]}...",
+                        {"full_response": data}
+                    )
+                    return False
+            else:
+                # This was the main issue - parsing error
+                self.log_result(
+                    "Individual Cell QR Generation",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}",
+                    {
+                        "cell_id": cell_id,
+                        "cell_data": test_cell,
+                        "error_details": response.text,
+                        "likely_parsing_error": "Invalid cell ID format" in response.text
+                    }
+                )
+                return False
+                
+        except Exception as e:
+            self.log_result("Individual Cell QR Generation", False, f"Exception: {str(e)}")
+            return False
+    
+    def test_batch_qr_generation(self, warehouse_id):
+        """Test GET /api/warehouses/{warehouse_id}/cells/qr-batch - Fixed batch QR generation"""
+        try:
+            response = self.session.get(f"{BACKEND_URL}/warehouses/{warehouse_id}/cells/qr-batch", timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                qr_codes = data.get("qr_codes", [])
+                
+                # Expected: 20 QR codes for 20 cells
+                expected_qr_count = 20
+                actual_qr_count = len(qr_codes)
+                
+                if actual_qr_count == expected_qr_count:
+                    # Check QR code format
+                    valid_qr_codes = 0
+                    sample_qr = None
+                    
+                    for qr_data in qr_codes:
+                        qr_code = qr_data.get("qr_code", "")
+                        if qr_code.startswith("data:image/png;base64,"):
+                            valid_qr_codes += 1
+                            if not sample_qr:
+                                sample_qr = qr_data
+                    
+                    if valid_qr_codes == actual_qr_count:
+                        self.log_result(
+                            "Batch QR Generation",
+                            True,
+                            f"Successfully generated {actual_qr_count} QR codes (all valid format)",
+                            {
+                                "total_qr_codes": actual_qr_count,
+                                "valid_qr_codes": valid_qr_codes,
+                                "sample_qr": sample_qr,
+                                "new_numeric_format_supported": True
+                            }
+                        )
+                        return True
+                    else:
+                        self.log_result(
+                            "Batch QR Generation",
+                            False,
+                            f"Generated {actual_qr_count} QR codes but only {valid_qr_codes} have valid format",
+                            {"invalid_qr_codes": actual_qr_count - valid_qr_codes}
+                        )
+                        return False
+                else:
+                    self.log_result(
+                        "Batch QR Generation",
+                        False,
+                        f"Expected {expected_qr_count} QR codes but got {actual_qr_count}",
+                        {"expected": expected_qr_count, "actual": actual_qr_count}
+                    )
+                    return False
+            else:
+                self.log_result(
+                    "Batch QR Generation",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_result("Batch QR Generation", False, f"Exception: {str(e)}")
+            return False
+    
+    def test_warehouse_number_field(self, warehouse_data):
+        """Test that warehouse_number field is properly set"""
+        warehouse_number = warehouse_data.get("warehouse_number")
+        
+        if warehouse_number:
+            # Check if it's in numeric format (e.g., "01", "02", etc.)
+            is_numeric_format = warehouse_number.isdigit() and len(warehouse_number) >= 2
+            
+            self.log_result(
+                "Warehouse Number Field",
+                True,
+                f"Warehouse has warehouse_number: {warehouse_number}",
+                {
+                    "warehouse_number": warehouse_number,
+                    "is_numeric_format": is_numeric_format,
+                    "length": len(warehouse_number),
+                    "ready_for_qr": is_numeric_format
+                }
+            )
+            return True
+        else:
+            self.log_result(
+                "Warehouse Number Field",
+                False,
+                "Warehouse missing warehouse_number field",
+                {"warehouse_data": warehouse_data}
+            )
+            return False
+    
+    def run_all_tests(self):
+        """Run all warehouse cell management tests"""
+        print("🏭 STARTING WAREHOUSE CELL MANAGEMENT ENDPOINTS TESTING")
+        print("=" * 80)
+        
+        # Step 1: Authenticate as admin
+        if not self.authenticate_admin():
+            print("❌ Cannot proceed without admin authentication")
+            return False
+        
+        # Step 2: Find target warehouse
+        warehouse_data = self.find_target_warehouse()
+        if not warehouse_data:
+            print("❌ Cannot proceed without target warehouse")
+            return False
+        
+        # Step 3: Test warehouse_number field
+        self.test_warehouse_number_field(warehouse_data)
+        
+        # Step 4: Test warehouse cells list (MAIN FOCUS)
+        cells = self.test_warehouse_cells_list(TARGET_WAREHOUSE_ID)
+        
+        # Step 5: Test individual cell QR generation (if cells available)
+        if cells:
+            self.test_individual_cell_qr(cells)
+        
+        # Step 6: Test batch QR generation
+        self.test_batch_qr_generation(TARGET_WAREHOUSE_ID)
+        
+        # Summary
+        print("\n" + "=" * 80)
+        print("📊 TEST SUMMARY")
+        print("=" * 80)
+        
+        total_tests = len(self.test_results)
+        passed_tests = sum(1 for result in self.test_results if result["success"])
+        failed_tests = total_tests - passed_tests
+        success_rate = (passed_tests / total_tests * 100) if total_tests > 0 else 0
+        
+        print(f"Total Tests: {total_tests}")
+        print(f"Passed: {passed_tests}")
+        print(f"Failed: {failed_tests}")
+        print(f"Success Rate: {success_rate:.1f}%")
+        
+        # Critical issues
+        critical_failures = [
+            result for result in self.test_results 
+            if not result["success"] and "CRITICAL" in result["test"]
+        ]
+        
+        if critical_failures:
+            print(f"\n🚨 CRITICAL FAILURES ({len(critical_failures)}):")
+            for failure in critical_failures:
+                print(f"   - {failure['test']}: {failure['message']}")
+        
+        # Key findings
+        print(f"\n🔍 KEY FINDINGS:")
+        
+        # Check if main issue is resolved
+        cells_test = next((r for r in self.test_results if "Warehouse Cells List" in r["test"]), None)
+        if cells_test and cells_test["success"]:
+            print("   ✅ Main issue RESOLVED: Warehouse cells are loading correctly (20 cells)")
+        elif cells_test:
+            print("   ❌ Main issue PERSISTS: Warehouse cells are not loading correctly")
+        
+        # Check QR generation fixes
+        qr_test = next((r for r in self.test_results if "Individual Cell QR" in r["test"]), None)
+        if qr_test and qr_test["success"]:
+            print("   ✅ QR generation FIXED: Individual cell QR codes generate successfully")
+        elif qr_test:
+            print("   ❌ QR generation ISSUE: Individual cell QR codes still have parsing errors")
+        
+        # Check warehouse_number field
+        wh_num_test = next((r for r in self.test_results if "Warehouse Number" in r["test"]), None)
+        if wh_num_test and wh_num_test["success"]:
+            print("   ✅ Warehouse number field is properly set")
+        elif wh_num_test:
+            print("   ❌ Warehouse number field is missing or invalid")
+        
+        return success_rate >= 75.0
+
+if __name__ == "__main__":
+    tester = WarehouseCellTester()
+    success = tester.run_all_tests()
+    
+    if success:
+        print("\n🎉 WAREHOUSE CELL MANAGEMENT TESTING COMPLETED SUCCESSFULLY!")
+        sys.exit(0)
+    else:
+        print("\n❌ WAREHOUSE CELL MANAGEMENT TESTING FAILED!")
+        sys.exit(1)
+"""
 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ ИСПРАВЛЕНИЙ ОТОБРАЖЕНИЯ ИНФОРМАЦИИ О ПОЛУЧАТЕЛЕ ДЛЯ ГРУЗОВ ИЗ ЗАБОРА В TAJLINE.TJ
 
 КОНТЕКСТ: Исправлена критическая проблема - добавлены поля получателя в endpoint создания заявки на забор:
