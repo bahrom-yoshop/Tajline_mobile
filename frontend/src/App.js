@@ -8517,10 +8517,11 @@ function App() {
       
       const scheme = [];
       
-      // Создаем схему блоков
+      // Создаем схему блоков с правильной группировкой по полкам
       for (let block = 1; block <= blocks; block++) {
         const blockCells = [];
         
+        // Группируем ячейки по полкам для правильного отображения
         for (let shelf = 1; shelf <= shelves_per_block; shelf++) {
           for (let cell = 1; cell <= cells_per_shelf; cell++) {
             const cellNumber = (shelf - 1) * cells_per_shelf + cell;
@@ -8537,17 +8538,18 @@ function App() {
               cell_number: cell,
               cell_position: cellNumber,
               is_occupied: isOccupied,
-            position: {
-              row: shelf,
-              col: cell
-            }
-          };
+              position: {
+                row: shelf,
+                col: cell
+              },
+              location_name: `Б${block}-П${shelf}-Я${cell}`
+            };
 
-          if (isOccupied) {
-            // Выбираем случайный груз из доступных данных склада
-            const allCargo = warehouseCargoData.cargo || [];
-            
-            if (allCargo.length > 0) {
+            if (isOccupied) {
+              // Выбираем случайный груз из доступных данных склада
+              const allCargo = warehouseCargoData.cargo || [];
+              
+              if (allCargo.length > 0) {
               const randomCargo = allCargo[Math.floor(Math.random() * allCargo.length)];
               
               // Определяем группу клиента (отправитель или получатель)
