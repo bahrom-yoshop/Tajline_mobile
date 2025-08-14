@@ -13943,6 +13943,82 @@ function App() {
                         )}
                       </CardHeader>
                       <CardContent>
+                        {/* Контейнер уведомлений о поступивших грузах для операторов */}
+                        {(user?.role === 'warehouse_operator' || user?.role === 'admin') && warehouseNotifications.length > 0 && (
+                          <Card className="mb-6 border-blue-200 bg-blue-50">
+                            <CardHeader>
+                              <CardTitle className="flex items-center text-blue-700">
+                                <Bell className="mr-2 h-5 w-5" />
+                                Поступившие грузы на склад ({warehouseNotifications.length})
+                              </CardTitle>
+                              <CardDescription className="text-blue-600">
+                                Курьеры сдали следующие грузы на склад. Необходимо принять и оформить их в системе.
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-3">
+                                {warehouseNotifications.map((notification) => (
+                                  <div
+                                    key={notification.id}
+                                    className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm"
+                                  >
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1">
+                                        <div className="flex items-center space-x-4 mb-2">
+                                          <Badge className="bg-orange-100 text-orange-700 border-orange-200">
+                                            № {notification.request_number || 'N/A'}
+                                          </Badge>
+                                          <Badge className="bg-green-100 text-green-700 border-green-200">
+                                            {notification.courier_name}
+                                          </Badge>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                          <div>
+                                            <span className="font-medium text-gray-700">Отправитель:</span>
+                                            <span className="ml-1">{notification.sender_full_name}</span>
+                                          </div>
+                                          <div>
+                                            <span className="font-medium text-gray-700">Телефон:</span>
+                                            <span className="ml-1">{notification.sender_phone}</span>
+                                          </div>
+                                          <div>
+                                            <span className="font-medium text-gray-700">Адрес забора:</span>
+                                            <span className="ml-1">{notification.pickup_address}</span>
+                                          </div>
+                                          <div>
+                                            <span className="font-medium text-gray-700">Назначение:</span>
+                                            <span className="ml-1">{notification.destination || 'Не указано'}</span>
+                                          </div>
+                                          <div>
+                                            <span className="font-medium text-gray-700">Плата курьеру:</span>
+                                            <span className="ml-1 font-semibold text-green-600">{notification.courier_fee || 0} ₽</span>
+                                          </div>
+                                          <div>
+                                            <span className="font-medium text-gray-700">Сдан на склад:</span>
+                                            <span className="ml-1">{new Date(notification.delivered_at).toLocaleString('ru-RU')}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="ml-4">
+                                        <Button
+                                          onClick={() => handleAcceptWarehouseDelivery(notification.id)}
+                                          className="bg-blue-600 hover:bg-blue-700"
+                                          size="sm"
+                                        >
+                                          <CheckCircle className="mr-2 h-4 w-4" />
+                                          Принять груз
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                        
                         <form onSubmit={isPickupMode ? handlePickupCargoSubmit : handleAcceptCargo} className="space-y-4 max-w-2xl">
                           {isPickupMode ? (
                             /* РЕЖИМ ЗАБОРА ГРУЗА - только необходимые поля */
