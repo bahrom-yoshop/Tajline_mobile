@@ -924,6 +924,51 @@ function App() {
   const handleOpenCourierChat = () => {
     setCourierChatModal(true);
   };
+
+  // НОВЫЕ ФУНКЦИИ ДЛЯ УВЕДОМЛЕНИЙ О ПОСТУПИВШИХ ГРУЗАХ
+  const fetchWarehouseNotifications = async () => {
+    try {
+      const data = await apiCall('/api/operator/warehouse-notifications', 'GET');
+      setWarehouseNotifications(data.notifications || []);
+    } catch (error) {
+      console.error('Error fetching warehouse notifications:', error);
+      showAlert('Ошибка загрузки уведомлений о поступивших грузах: ' + error.message, 'error');
+    }
+  };
+
+  const handleAcceptWarehouseDelivery = async (notificationId) => {
+    try {
+      const response = await apiCall(`/api/operator/warehouse-notifications/${notificationId}/accept`, 'POST');
+      
+      showAlert('Груз принят на склад и добавлен в систему грузов!', 'success');
+      
+      // Обновляем уведомления и грузы
+      await Promise.all([
+        fetchWarehouseNotifications(),
+        fetchOperatorCargo()
+      ]);
+      
+      // Если создан новый груз, показываем дополнительную информацию
+      if (response?.cargo_number) {
+        showAlert(`Груз принят! Номер груза: ${response.cargo_number}`, 'success');
+      }
+      
+    } catch (error) {
+      console.error('Error accepting warehouse delivery:', error);
+      showAlert('Ошибка при приемке груза: ' + error.message, 'error');
+    }
+  };
+
+  // НОВАЯ ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ ВСЕХ ЗАЯВОК НА ЗАБОР
+  const fetchAllPickupRequests = async () => {
+    try {
+      const data = await apiCall('/api/operator/pickup-requests', 'GET');
+      setAllPickupRequests(data.pickup_requests || []);
+    } catch (error) {
+      console.error('Error fetching all pickup requests:', error);
+      showAlert('Ошибка загрузки заявок на забор: ' + error.message, 'error');
+    }
+  };
   
   // НОВЫЕ ФУНКЦИИ ДЛЯ МОДАЛЬНЫХ ОКОН ПРОСМОТРА И РЕДАКТИРОВАНИЯ ЗАЯВОК
   const handleViewRequest = (request) => {
