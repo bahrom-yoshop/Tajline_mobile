@@ -4110,10 +4110,45 @@ function App() {
   };
 
   const extractCargoNumber = (scannedData) => {
-    // Извлекаем номер груза из отсканированных данных
-    // Поддерживаем различные форматы: TEMP-123456, 2501999271, и т.д.
-    const match = scannedData.match(/(?:TEMP-)?(\d+)/);
-    return match ? match[0] : scannedData;
+    console.log('🔍 Извлечение номера груза из:', scannedData);
+    
+    // ИСПРАВЛЕНИЕ: Поддержка различных форматов QR кодов грузов
+    try {
+      // Если это JSON данные (например, из QR кода забора)
+      if (scannedData.includes('{') && scannedData.includes('}')) {
+        const parsed = JSON.parse(scannedData);
+        if (parsed.cargo_number) {
+          console.log('✅ Найден номер груза в JSON:', parsed.cargo_number);
+          return parsed.cargo_number;
+        }
+        if (parsed.request_number) {
+          console.log('✅ Найден номер заявки в JSON:', parsed.request_number);
+          return parsed.request_number;
+        }
+      }
+      
+      // Поддерживаем различные форматы номеров: TEMP-123456, REQ-123456, и т.д.
+      const tempMatch = scannedData.match(/(?:TEMP-|REQ-)?\d+/);
+      if (tempMatch) {
+        console.log('✅ Найден номер груза по паттерну:', tempMatch[0]);
+        return tempMatch[0];
+      }
+      
+      // Если это просто номер
+      const numberMatch = scannedData.match(/\d+/);
+      if (numberMatch) {
+        console.log('✅ Найден числовой номер:', numberMatch[0]);
+        return numberMatch[0];
+      }
+      
+      // Возвращаем исходные данные если не удалось распарсить
+      console.log('⚠️ Используем исходные данные как номер груза:', scannedData);
+      return scannedData;
+      
+    } catch (error) {
+      console.error('❌ Ошибка парсинга номера груза:', error);
+      return scannedData;
+    }
   };
 
   const parseCellQRCode = (qrData) => {
