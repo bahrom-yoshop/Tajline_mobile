@@ -44,6 +44,8 @@ function App() {
   const [showCargoAcceptanceModal, setShowCargoAcceptanceModal] = useState(false);
   const [currentCargoNotification, setCurrentCargoNotification] = useState(null);
   const [showAllNotifications, setShowAllNotifications] = useState(false);
+  const [showAllNewRequests, setShowAllNewRequests] = useState(false);
+  const [showAllAcceptedRequests, setShowAllAcceptedRequests] = useState(false);
   const [cargoAcceptanceForm, setCargoAcceptanceForm] = useState({
     sender_full_name: '',
     sender_phone: '',
