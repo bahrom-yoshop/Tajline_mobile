@@ -3189,14 +3189,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Pickup Mode Toggle Implementation"
-    - "Simplified Pickup Form Implementation"
-    - "Multiple Phone Numbers Feature"
-    - "Pickup Request Backend API Endpoints"
-    - "Notification System for Pickup Requests"
-    - "Frontend Form Submission Handler"
-    - "Form State Management Updates"
-    - "Backend Stability After Pickup Request Integration"
+    - "Fix Courier Request Editing Save Error"
+    - "Fix GPS Tracking Data Not Received by Operators/Admins"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
