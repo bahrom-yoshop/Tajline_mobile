@@ -307,7 +307,7 @@ class PickupRequestModalDataTester:
                         print(f"   ❌ Заявка {request_id}: recipient_data отсутствуют")
             
             diagnosis_results['other_requests'] = {
-                'total_checked': min(10, len(all_pickup_requests)),
+                'total_checked': len(requests_to_check),
                 'with_recipient_data': len(requests_with_recipient_data),
                 'without_recipient_data': len(requests_without_recipient_data),
                 'filled_requests': requests_with_recipient_data
