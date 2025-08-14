@@ -3209,7 +3209,6 @@ metadata:
 test_plan:
   current_focus:
     - "Fix Courier Request Editing Save Error"
-    - "Fix GPS Tracking Data Not Received by Operators/Admins"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
