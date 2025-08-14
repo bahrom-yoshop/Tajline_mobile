@@ -472,13 +472,24 @@ function App() {
 
   const handleDeliverToWarehouse = async (requestId) => {
     try {
-      await apiCall(`/api/courier/requests/${requestId}/deliver-to-warehouse`, 'POST');
+      const response = await apiCall(`/api/courier/requests/${requestId}/deliver-to-warehouse`, 'POST');
       
       showAlert('Груз сдан на склад! Заказ выполнен.', 'success');
       
-      // Обновляем списки
-      fetchPickedRequests();
-      fetchCourierRequestsHistory(); // Обновляем историю
+      // Автоматически обновляем все списки заявок для реактивного обновления
+      await Promise.all([
+        fetchPickedRequests(),         // Обновляем забранные заявки (заявка исчезнет отсюда)
+        fetchAcceptedRequests(),       // Обновляем принятые заявки
+        fetchCourierNewRequests(),     // Обновляем новые заявки
+        fetchCancelledRequests()       // Обновляем отмененные заявки
+      ]);
+      
+      // Если это заявка на забор груза, показываем дополнительную информацию
+      if (response?.request_type === 'pickup') {
+        showAlert('Груз по заявке на забор сдан на склад! Оператор получит уведомление о поступлении груза.', 'success');
+      } else {
+        showAlert('Груз сдан на склад! Заказ выполнен.', 'success');
+      }
       
     } catch (error) {
       console.error('Error delivering to warehouse:', error);
