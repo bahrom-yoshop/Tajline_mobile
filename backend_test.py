@@ -431,7 +431,8 @@ class WarehouseCellTester:
             self.test_individual_cell_qr(cells)
         
         # Step 6: Test batch QR generation
-        self.test_batch_qr_generation(warehouse_data.get("id"))
+        expected_qr_count = warehouse_data.get("blocks_count", 0) * warehouse_data.get("shelves_per_block", 0) * warehouse_data.get("cells_per_shelf", 0)
+        self.test_batch_qr_generation(warehouse_data.get("id"), expected_qr_count)
         
         # Summary
         print("\n" + "=" * 80)
