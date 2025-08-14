@@ -3979,6 +3979,8 @@ function App() {
         fetchPlacedCargo(); // Добавляем загрузку размещенных грузов для админа
         fetchDebtorsList(); // Загрузка списка задолжников
         fetchAdminDashboardAnalytics(); // Загрузка расширенной аналитики дашборда
+        fetchWarehouseNotifications(); // НОВОЕ: Загрузка уведомлений о поступивших грузах
+        fetchAllPickupRequests(); // НОВОЕ: Загрузка всех заявок на забор
       } else if (user.role === 'warehouse_operator') {
         fetchNotifications();
         fetchWarehouseCargo();
