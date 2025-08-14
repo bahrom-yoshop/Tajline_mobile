@@ -1001,12 +1001,13 @@ function App() {
           
           // Обработка данных о грузах - создаем отдельные контейнеры для каждого груза
           if (cargoInfo.cargo_items && cargoInfo.cargo_items.length > 0) {
-            // Если есть массив cargo_items, используем каждый элемент как отдельный груз
+            // ИСПРАВЛЕНИЕ: Если есть массив cargo_items из backend, используем его напрямую
             processedCargoItems = cargoInfo.cargo_items.map((item, index) => ({
               name: item.name || `Груз ${index + 1}`,
               weight: item.weight ? String(item.weight) : '',
               price: item.price || item.total_price || item.value || ''
             }));
+            console.log(`✅ Используем cargo_items из backend: ${processedCargoItems.length} грузов`);
           } else if (cargoInfo.cargo_name) {
             // Если есть cargo_name, попробуем разбить по запятым на отдельные грузы
             const cargoNames = cargoInfo.cargo_name.split(',').map(name => name.trim()).filter(name => name);
