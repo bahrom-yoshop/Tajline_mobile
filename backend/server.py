@@ -12905,15 +12905,25 @@ async def cancel_courier_request(
         raise HTTPException(status_code=403, detail="Request not available for cancellation")
     
     try:
-        # Обновляем статус заявки
-        db.courier_requests.update_one(
-            {"id": request_id},
-            {"$set": {
-                "request_status": "cancelled",
-                "courier_notes": cancel_data.get("reason", "Отменено курьером"),
-                "updated_at": datetime.utcnow()
-            }}
-        )
+        # Обновляем статус заявки (используем определенную ранее коллекцию)
+        if request_collection == "courier_requests":
+            db.courier_requests.update_one(
+                {"id": request_id},
+                {"$set": {
+                    "request_status": "cancelled",
+                    "courier_notes": cancel_data.get("reason", "Отменено курьером"),
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+        else:  # courier_pickup_requests
+            db.courier_pickup_requests.update_one(
+                {"id": request_id},
+                {"$set": {
+                    "request_status": "cancelled",
+                    "courier_notes": cancel_data.get("reason", "Отменено курьером"),
+                    "updated_at": datetime.utcnow()
+                }}
+            )
         
         # Обновляем груз если есть
         if request.get("cargo_id"):
