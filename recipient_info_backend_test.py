@@ -429,7 +429,11 @@ class RecipientInfoTester:
         if not self.create_pickup_request_with_recipient_data():
             return False
         
-        # Step 4: Process pickup request by courier
+        # Step 4: Verify pickup request data
+        if not self.verify_pickup_request_data():
+            return False
+        
+        # Step 5: Process pickup request by courier
         if not self.process_pickup_request_by_courier():
             return False
         
