@@ -148,6 +148,18 @@ function App() {
   
   // НОВОЕ: Состояние для интерактивной карты
   const [isMapOpen, setIsMapOpen] = useState(false);
+  
+  // НОВОЕ: Состояния для модального окна управления ячейками
+  const [cellManagementModal, setCellManagementModal] = useState(false);
+  const [selectedWarehouseForCells, setSelectedWarehouseForCells] = useState(null);
+  const [warehouseCells, setWarehouseCells] = useState([]);
+  const [cellsLoading, setCellsLoading] = useState(false);
+  const [selectedCells, setSelectedCells] = useState([]);
+  const [cellEditForm, setCellEditForm] = useState({
+    blocks_count: '',
+    shelves_per_block: '',
+    cells_per_shelf: ''
+  });
   const [isAcceptedMapOpen, setIsAcceptedMapOpen] = useState(false);
   
   // НОВОЕ: Состояние для GPS отслеживания курьера
