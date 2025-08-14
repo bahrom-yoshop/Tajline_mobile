@@ -14388,7 +14388,7 @@ function App() {
                                                   cargo_items: [{ name: notification.destination || 'Наименование груза не указано', weight: '', price: '' }],
                                                   payment_method: notification.payment_method || 'cash',
                                                   delivery_method: 'pickup',
-                                                  payment_status: 'not_paid',
+                                                  payment_status: notification.payment_status || 'not_paid', // ИСПРАВЛЕНИЕ: Используем статус из уведомления
                                                   amount_paid: '',
                                                   payment_notes: ''
                                                 });
