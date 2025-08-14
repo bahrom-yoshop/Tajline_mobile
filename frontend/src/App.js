@@ -8568,6 +8568,36 @@ function App() {
     }
     
     return scheme;
+    
+  } catch (error) {
+    console.error('Error generating warehouse scheme:', error);
+    // Fallback: генерируем схему без реальных данных при ошибке
+    const scheme = [];
+    for (let block = 1; block <= blocks; block++) {
+      const blockCells = [];
+      for (let shelf = 1; shelf <= shelves_per_block; shelf++) {
+        for (let cell = 1; cell <= cells_per_shelf; cell++) {
+          const cellNumber = (shelf - 1) * cells_per_shelf + cell;
+          blockCells.push({
+            id: `${warehouse.id}-${block}-${shelf}-${cell}`,
+            block_number: block,
+            shelf_number: shelf,
+            cell_number: cell,
+            cell_position: cellNumber,
+            is_occupied: false, // При ошибке показываем как свободные
+            hasRelatedCargo: false
+          });
+        }
+      }
+      scheme.push({
+        block_number: block,
+        cells: blockCells,
+        total_cells: shelves_per_block * cells_per_shelf,
+        occupied_cells: 0
+      });
+    }
+    return scheme;
+  }
   };
 
   // ФАЗА 4: ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ ГРУЗОМ
