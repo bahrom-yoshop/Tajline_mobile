@@ -16177,9 +16177,20 @@ function App() {
                                             <div className="space-y-2">
                                               <h4 className="font-semibold text-lg text-gray-700 mb-3">📍 Получатель</h4>
                                               <div className="space-y-1 text-sm">
-                                                <p><strong>Имя:</strong> {item.recipient_name}</p>
-                                                <p><strong>Телефон:</strong> {item.recipient_phone}</p>
-                                                <p><strong>Адрес:</strong> {item.recipient_address}</p>
+                                                {/* Улучшенное отображение ФИО получателя для грузов из забора */}
+                                                <p><strong>Имя:</strong> {
+                                                  item.recipient_full_name || 
+                                                  item.recipient_name || 
+                                                  (item.pickup_request_id ? 'Указывается при размещении' : 'Не указано')
+                                                }</p>
+                                                <p><strong>Телефон:</strong> {
+                                                  item.recipient_phone || 
+                                                  (item.pickup_request_id ? 'Указывается при размещении' : 'Не указан')
+                                                }</p>
+                                                <p><strong>Адрес:</strong> {
+                                                  item.recipient_address || 
+                                                  (item.pickup_request_id ? 'Указывается при размещении' : 'Не указан')
+                                                }</p>
                                               </div>
                                             </div>
                                             
