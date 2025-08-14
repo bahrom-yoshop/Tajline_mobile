@@ -29231,77 +29231,155 @@ function App() {
                     <p className="text-sm text-gray-400">Обновите структуру склада для создания ячеек</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     {/* Групповое выделение */}
-                    <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded">
-                      <Checkbox
-                        checked={selectedCells.length === warehouseCells.length}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedCells(warehouseCells.map(cell => cell.id));
-                          } else {
-                            setSelectedCells([]);
-                          }
-                        }}
-                      />
-                      <span className="text-sm font-medium">Выбрать все ячейки</span>
-                    </div>
-
-                    {/* Сетка ячеек */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                      {warehouseCells.map((cell) => (
-                        <div
-                          key={cell.id}
-                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                            selectedCells.includes(cell.id)
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                          onClick={() => {
-                            if (selectedCells.includes(cell.id)) {
-                              setSelectedCells(selectedCells.filter(id => id !== cell.id));
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={selectedCells.length === warehouseCells.length}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedCells(warehouseCells.map(cell => cell.id));
                             } else {
-                              setSelectedCells([...selectedCells, cell.id]);
+                              setSelectedCells([]);
                             }
                           }}
-                        >
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Checkbox
-                              checked={selectedCells.includes(cell.id)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setSelectedCells([...selectedCells, cell.id]);
-                                } else {
-                                  setSelectedCells(selectedCells.filter(id => id !== cell.id));
-                                }
-                              }}
-                            />
-                            <span className="text-xs font-medium">{cell.location}</span>
-                          </div>
-                          
-                          <div className="text-center mb-2">
-                            <div className={`w-8 h-8 mx-auto rounded ${
-                              cell.is_occupied ? 'bg-red-200' : 'bg-green-200'
-                            } flex items-center justify-center text-xs font-bold`}>
-                              {cell.is_occupied ? '📦' : '✅'}
-                            </div>
-                          </div>
-                          
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full text-xs"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleGenerateCellQR(cell.id, cell.location);
-                            }}
-                          >
-                            <QrCode className="mr-1 h-3 w-3" />
-                            QR
-                          </Button>
-                        </div>
-                      ))}
+                        />
+                        <span className="text-sm font-medium">Выбрать все ячейки</span>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Выбрано: {selectedCells.length} из {warehouseCells.length}
+                      </div>
                     </div>
+
+                    {/* Отображение ячеек по блокам в виде таблиц */}
+                    {(() => {
+                      // Группируем ячейки по блокам
+                      const cellsByBlock = warehouseCells.reduce((acc, cell) => {
+                        const blockKey = cell.block_number;
+                        if (!acc[blockKey]) {
+                          acc[blockKey] = [];
+                        }
+                        acc[blockKey].push(cell);
+                        return acc;
+                      }, {});
+
+                      return Object.keys(cellsByBlock)
+                        .sort((a, b) => parseInt(a) - parseInt(b))
+                        .map(blockNumber => {
+                          const blockCells = cellsByBlock[blockNumber];
+                          
+                          // Группируем ячейки по полкам внутри блока
+                          const cellsByShelf = blockCells.reduce((acc, cell) => {
+                            const shelfKey = cell.shelf_number;
+                            if (!acc[shelfKey]) {
+                              acc[shelfKey] = [];
+                            }
+                            acc[shelfKey].push(cell);
+                            return acc;
+                          }, {});
+
+                          return (
+                            <div key={blockNumber} className="border rounded-lg overflow-hidden">
+                              <div className="bg-blue-50 px-4 py-3 border-b">
+                                <h4 className="font-semibold text-blue-800 flex items-center">
+                                  <Grid3X3 className="mr-2 h-4 w-4" />
+                                  Блок {blockNumber}
+                                  <Badge variant="outline" className="ml-2">
+                                    {blockCells.length} ячеек
+                                  </Badge>
+                                </h4>
+                              </div>
+                              
+                              <div className="p-4 space-y-4">
+                                {Object.keys(cellsByShelf)
+                                  .sort((a, b) => parseInt(a) - parseInt(b))
+                                  .map(shelfNumber => {
+                                    const shelfCells = cellsByShelf[shelfNumber].sort((a, b) => a.cell_number - b.cell_number);
+                                    
+                                    return (
+                                      <div key={shelfNumber} className="bg-gray-50 rounded-lg p-3">
+                                        <div className="flex items-center justify-between mb-3">
+                                          <h5 className="font-medium text-gray-700 flex items-center">
+                                            <Package className="mr-1 h-3 w-3" />
+                                            Полка {shelfNumber}
+                                          </h5>
+                                          <span className="text-xs text-gray-500">{shelfCells.length} ячеек</span>
+                                        </div>
+                                        
+                                        {/* Таблица ячеек для данной полки */}
+                                        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                                          {shelfCells.map((cell) => (
+                                            <div
+                                              key={cell.id}
+                                              className={`aspect-square border-2 rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                                                selectedCells.includes(cell.id)
+                                                  ? 'border-blue-500 bg-blue-100'
+                                                  : cell.is_occupied
+                                                  ? 'border-red-300 bg-red-50'
+                                                  : 'border-green-300 bg-green-50 hover:border-green-400'
+                                              }`}
+                                              onClick={() => {
+                                                if (selectedCells.includes(cell.id)) {
+                                                  setSelectedCells(selectedCells.filter(id => id !== cell.id));
+                                                } else {
+                                                  setSelectedCells([...selectedCells, cell.id]);
+                                                }
+                                              }}
+                                              title={`Ячейка ${cell.cell_number} (${cell.is_occupied ? 'Занята' : 'Свободна'})`}
+                                            >
+                                              <div className="h-full flex flex-col items-center justify-center p-1">
+                                                {/* Чекбокс для выбора */}
+                                                <div className="mb-1">
+                                                  <Checkbox
+                                                    checked={selectedCells.includes(cell.id)}
+                                                    onCheckedChange={(checked) => {
+                                                      if (checked) {
+                                                        setSelectedCells([...selectedCells, cell.id]);
+                                                      } else {
+                                                        setSelectedCells(selectedCells.filter(id => id !== cell.id));
+                                                      }
+                                                    }}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="h-3 w-3"
+                                                  />
+                                                </div>
+                                                
+                                                {/* Номер ячейки */}
+                                                <div className="text-xs font-bold text-center leading-none mb-1">
+                                                  {cell.cell_number}
+                                                </div>
+                                                
+                                                {/* Иконка статуса */}
+                                                <div className="text-lg">
+                                                  {cell.is_occupied ? '📦' : '✅'}
+                                                </div>
+                                                
+                                                {/* Кнопка QR */}
+                                                <Button
+                                                  size="sm"
+                                                  variant="ghost"
+                                                  className="h-5 w-5 p-0 mt-1"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleGenerateCellQR(cell.id, cell.location);
+                                                  }}
+                                                  title="Генерировать QR код"
+                                                >
+                                                  <QrCode className="h-3 w-3" />
+                                                </Button>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                              </div>
+                            </div>
+                          );
+                        });
+                    })()}
                   </div>
                 )}
               </CardContent>
