@@ -35,7 +35,7 @@ import re
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://cargo-compass.preview.emergentagent.com/api"
+BACKEND_URL = "https://qrscan-cargo-2.preview.emergentagent.com/api"
 ADMIN_CREDENTIALS = {
     "phone": "+79999888777",
     "password": "admin123"

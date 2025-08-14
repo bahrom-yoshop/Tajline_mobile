@@ -7,7 +7,7 @@ import requests
 import json
 
 def test_debug_endpoint():
-    base_url = "https://cargo-compass.preview.emergentagent.com"
+    base_url = "https://qrscan-cargo-2.preview.emergentagent.com"
     
     print("🔧 TESTING DEBUG ENDPOINT")
     print("="*30)

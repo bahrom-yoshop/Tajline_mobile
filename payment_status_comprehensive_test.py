@@ -12,7 +12,7 @@ from typing import Dict, Any, Optional
 
 class ComprehensivePaymentStatusTester:
     def __init__(self):
-        self.base_url = "https://cargo-compass.preview.emergentagent.com/api"
+        self.base_url = "https://qrscan-cargo-2.preview.emergentagent.com/api"
         self.tokens = {}
         self.test_data = {}
         self.tests_run = 0

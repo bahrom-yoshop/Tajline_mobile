@@ -8,7 +8,7 @@ import requests
 import json
 
 def deep_diagnostic():
-    base_url = "https://cargo-compass.preview.emergentagent.com"
+    base_url = "https://qrscan-cargo-2.preview.emergentagent.com"
     
     # Login as admin
     admin_login = {

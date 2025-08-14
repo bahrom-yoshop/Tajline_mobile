@@ -6,7 +6,7 @@ DEBUG TEST: Check if recipient data is being saved and retrieved correctly
 import requests
 import json
 
-BACKEND_URL = "https://cargo-compass.preview.emergentagent.com/api"
+BACKEND_URL = "https://qrscan-cargo-2.preview.emergentagent.com/api"
 
 WAREHOUSE_OPERATOR = {
     "phone": "+79777888999",
