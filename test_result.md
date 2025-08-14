@@ -101,23 +101,20 @@ frontend:
         - working: "NA"
           agent: "testing"
           comment: "Frontend testing not applicable for backend endpoint fix testing"
-##
-## metadata:
-##   created_by: "main_agent"
-##   version: "1.0"
-##   test_sequence: 0
-##   run_ui: false
-##
-## test_plan:
-##   current_focus:
-##     - "Task name 1"
-##     - "Task name 2"
-##   stuck_tasks:
-##     - "Task name with persistent issues"
-##   test_all: false
-##   test_priority: "high_first"  # or "sequential" or "stuck_first"
-##
-## agent_communication:
+metadata:
+  created_by: "testing_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Endpoint /api/operator/warehouse-notifications/{id}/complete"
+    - "Processing status = 'paid' для появления в списке размещения"
+    - "Создание грузов с обязательными полями route и description"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
 ##     - agent: "main"
 ##       message: "Начинаю комплексное тестирование функции сканирования штрих-кодов для размещения груза. Бэкенд уже полностью реализован и протестирован (100% успешности). UI для сканера интегрирован в 'Cargo Placement' секцию согласно current_work. Проверю сначала бэкенд endpoints для подтверждения готовности, затем протестирую фронтенд интерфейс сканирования. Также нужно проверить отображение 'Номер пользователя' и систему разрешений админа."
 ##     - agent: "backend_testing" 
