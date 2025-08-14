@@ -6536,6 +6536,23 @@ function App() {
         fetchOperatorCargo();
       }
       
+      else if (type === 'pickup-request') {
+        if (isBulk) {
+          const ids = items.map(request => request.id);
+          const response = await apiCall('/api/admin/pickup-requests/bulk', 'DELETE', { ids });
+          showAlert(response.message, response.errors?.length > 0 ? 'warning' : 'success');
+          if (response.errors?.length > 0) {
+            response.errors.forEach(error => showAlert(error, 'error'));
+          }
+        } else {
+          const response = await apiCall(`/api/admin/pickup-requests/${items[0].id}`, 'DELETE');
+          showAlert(response.message, 'success');
+        }
+        setSelectedPickupRequests([]);
+        setSelectAllPickupRequests(false);
+        fetchPickupRequests();
+      }
+      
       else if (type === 'user') {
         if (isBulk) {
           const ids = items.map(user => user.id);
