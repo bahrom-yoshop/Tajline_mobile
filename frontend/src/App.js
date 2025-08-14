@@ -4282,9 +4282,31 @@ function App() {
 
     setPlacementInProgress(true);
     try {
+      // ИСПРАВЛЕНИЕ: Определяем warehouse_id в зависимости от формата QR кода
+      let warehouseId;
+      
+      if (scannedCellData.format === 'compact') {
+        // Для компактного формата нужно найти warehouse_id по warehouse_number
+        const warehouse = warehouses.find(w => w.warehouse_number === scannedCellData.warehouse_number);
+        if (!warehouse) {
+          showAlert(`Склад с номером ${scannedCellData.warehouse_number} не найден`, 'error');
+          return;
+        }
+        warehouseId = warehouse.id;
+        console.log(`✅ Найден склад для номера ${scannedCellData.warehouse_number}: ${warehouse.name} (ID: ${warehouseId})`);
+      } else {
+        // Для других форматов используем существующий warehouse_id
+        warehouseId = scannedCellData.warehouse_id;
+      }
+      
+      if (!warehouseId) {
+        showAlert('Не удалось определить склад для размещения груза', 'error');
+        return;
+      }
+
       await handlePlaceCargo(
         scannedCargoData.id,
-        scannedCellData.warehouse_id,
+        warehouseId,
         scannedCellData.block_number,
         scannedCellData.shelf_number,
         scannedCellData.cell_number
