@@ -16151,7 +16151,7 @@ function App() {
                                               )}
                                             </div>
                                           
-                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                             {/* Информация о грузе */}
                                             <div className="space-y-2">
                                               <h4 className="font-semibold text-lg text-gray-700 mb-3">📦 Информация о грузе</h4>
