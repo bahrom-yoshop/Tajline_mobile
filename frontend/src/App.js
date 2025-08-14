@@ -14376,33 +14376,7 @@ function App() {
                                             <div className="text-xs text-gray-500 mt-1">
                                               {notification.processing_by}
                                             </div>
-                                            <Button
-                                              onClick={() => {
-                                                // Найти это уведомление и открыть форму оформления
-                                                setCurrentCargoNotification(notification);
-                                                setCargoAcceptanceForm({
-                                                  sender_full_name: notification.sender_full_name || '',
-                                                  sender_phone: notification.sender_phone || '',
-                                                  sender_address: notification.pickup_address || '',
-                                                  recipient_full_name: '',
-                                                  recipient_phone: '',
-                                                  recipient_address: '',
-                                                  cargo_items: [{ name: notification.destination || 'Наименование груза не указано', weight: '', price: '' }],
-                                                  payment_method: notification.payment_method || 'cash',
-                                                  delivery_method: 'pickup',
-                                                  payment_status: notification.payment_status || 'not_paid', // ИСПРАВЛЕНИЕ: Используем статус из уведомления
-                                                  amount_paid: '',
-                                                  payment_notes: ''
-                                                });
-                                                setShowCargoAcceptanceModal(true);
-                                              }}
-                                              variant="outline"
-                                              size="sm"
-                                              className="mt-2 w-full"
-                                            >
-                                              <Edit className="mr-2 h-4 w-4" />
-                                              Продолжить оформление
-                                            </Button>
+                                            {/* ИСПРАВЛЕНИЕ: Убрана кнопка "Продолжить оформление" для избежания дублирования модальных окон */}
                                           </div>
                                         )}
                                       </div>
