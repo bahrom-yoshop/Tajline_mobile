@@ -13515,7 +13515,7 @@ async def get_pickup_request_by_id(
     request_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Получить полную информацию о заявке на забор груза по ID"""
+    """Получить полную информацию о заявке на забор груза по ID с расширенными данными для модального окна"""
     if current_user.role not in [UserRole.WAREHOUSE_OPERATOR, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Access denied: Only operators and admins")
     
@@ -13529,7 +13529,74 @@ async def get_pickup_request_by_id(
         # Добавляем тип заявки
         pickup_request['request_type'] = 'pickup'
         
-        return pickup_request
+        # Получаем информацию о курьере, если заявка назначена
+        courier_info = {}
+        if pickup_request.get('assigned_courier_id'):
+            courier = db.couriers.find_one({"id": pickup_request.get('assigned_courier_id')}, {"_id": 0})
+            if courier:
+                courier_info = {
+                    "courier_id": courier.get("id"),
+                    "courier_name": courier.get("full_name"),
+                    "courier_phone": courier.get("phone"),
+                    "transport_type": courier.get("transport_type"),
+                    "transport_number": courier.get("transport_number")
+                }
+        
+        # Структурированная информация для модального окна
+        modal_data = {
+            # Основная информация о заявке
+            "request_info": {
+                "id": pickup_request.get("id"),
+                "request_number": pickup_request.get("request_number"),
+                "status": pickup_request.get("request_status"),
+                "created_at": pickup_request.get("created_at"),
+                "updated_at": pickup_request.get("updated_at"),
+                "delivered_at": pickup_request.get("delivered_at")
+            },
+            
+            # Информация о курьере
+            "courier_info": courier_info,
+            
+            # Данные отправителя
+            "sender_data": {
+                "sender_full_name": pickup_request.get("sender_full_name"),
+                "sender_phone": pickup_request.get("sender_phone"),
+                "pickup_address": pickup_request.get("pickup_address"),
+                "pickup_date": pickup_request.get("pickup_date"),
+                "pickup_time_from": pickup_request.get("pickup_time_from"),
+                "pickup_time_to": pickup_request.get("pickup_time_to")
+            },
+            
+            # Данные получателя (заполненные курьером)
+            "recipient_data": {
+                "recipient_full_name": pickup_request.get("recipient_full_name", ""),
+                "recipient_phone": pickup_request.get("recipient_phone", ""),
+                "recipient_address": pickup_request.get("recipient_address", ""),
+                "delivery_method": pickup_request.get("delivery_method", "pickup")
+            },
+            
+            # Информация о грузе
+            "cargo_info": {
+                "destination": pickup_request.get("destination"),
+                "cargo_name": pickup_request.get("cargo_name"),
+                "weight": pickup_request.get("weight"),
+                "total_value": pickup_request.get("total_value"),
+                "declared_value": pickup_request.get("declared_value"),
+                "cargo_items": pickup_request.get("cargo_items", [])
+            },
+            
+            # Информация об оплате
+            "payment_info": {
+                "payment_method": pickup_request.get("payment_method"),
+                "courier_fee": pickup_request.get("courier_fee"),
+                "payment_status": pickup_request.get("payment_status", "not_paid")
+            },
+            
+            # Полные данные заявки для совместимости
+            "full_request": pickup_request
+        }
+        
+        return modal_data
         
     except HTTPException:
         raise
