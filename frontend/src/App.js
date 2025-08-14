@@ -976,25 +976,72 @@ function App() {
       
       showAlert('Уведомление принято для оформления!', 'success');
       
-      // Заполняем форму данными из уведомления
+      // Получаем данные уведомления
       const notification = response.notification_data || warehouseNotifications.find(n => n.id === notificationId);
+      
       if (notification) {
-        setCargoAcceptanceForm({
-          sender_full_name: notification.sender_full_name || '',
-          sender_phone: notification.sender_phone || '',
-          sender_address: notification.pickup_address || '',
-          recipient_full_name: '',
-          recipient_phone: '',
-          recipient_address: '',
-          cargo_items: [{ name: notification.destination || 'Наименование груза не указано', weight: '', price: '' }],
-          payment_method: notification.payment_method || 'cash',
-          delivery_method: 'pickup',
-          payment_status: 'not_paid'
-        });
+        // Получаем полную информацию о заявке на забор груза
+        try {
+          const requestResponse = await apiCall(`/api/operator/pickup-requests/${notification.pickup_request_id}`, 'GET');
+          const fullRequest = requestResponse;
+          
+          console.log('Full pickup request data:', fullRequest);
+          
+          // Заполняем форму полными данными из заявки
+          setCargoAcceptanceForm({
+            sender_full_name: fullRequest.sender_full_name || notification.sender_full_name || '',
+            sender_phone: fullRequest.sender_phone || notification.sender_phone || '',
+            sender_address: fullRequest.pickup_address || notification.pickup_address || '',
+            recipient_full_name: fullRequest.recipient_full_name || '',
+            recipient_phone: fullRequest.recipient_phone || '',
+            recipient_address: fullRequest.recipient_address || '',
+            cargo_items: fullRequest.cargo_items && fullRequest.cargo_items.length > 0 
+              ? fullRequest.cargo_items 
+              : [{ 
+                  name: fullRequest.destination || notification.destination || 'Наименование груза не указано', 
+                  weight: fullRequest.weight || '', 
+                  price: fullRequest.total_value || fullRequest.declared_value || '' 
+                }],
+            payment_method: fullRequest.payment_method || notification.payment_method || 'cash',
+            delivery_method: fullRequest.delivery_method || 'pickup',
+            payment_status: 'not_paid'
+          });
+          
+          // Сохраняем полные данные заявки в уведомление для отображения
+          const enrichedNotification = {
+            ...notification,
+            ...fullRequest,
+            // Сохраняем оригинальные поля уведомления
+            id: notification.id,
+            request_number: notification.request_number,
+            courier_name: notification.courier_name,
+            delivered_at: notification.delivered_at,
+            courier_fee: notification.courier_fee
+          };
+          
+          setCurrentCargoNotification(enrichedNotification);
+          
+        } catch (requestError) {
+          console.error('Error fetching full pickup request:', requestError);
+          // Если не удалось получить полную заявку, используем данные из уведомления
+          setCargoAcceptanceForm({
+            sender_full_name: notification.sender_full_name || '',
+            sender_phone: notification.sender_phone || '',
+            sender_address: notification.pickup_address || '',
+            recipient_full_name: '',
+            recipient_phone: '',
+            recipient_address: '',
+            cargo_items: [{ name: notification.destination || 'Наименование груза не указано', weight: '', price: '' }],
+            payment_method: notification.payment_method || 'cash',
+            delivery_method: 'pickup',
+            payment_status: 'not_paid'
+          });
+          
+          setCurrentCargoNotification(notification);
+        }
       }
       
       // Открываем форму полного оформления груза
-      setCurrentCargoNotification(notification);
       setShowCargoAcceptanceModal(true);
       
       // Обновляем уведомления
