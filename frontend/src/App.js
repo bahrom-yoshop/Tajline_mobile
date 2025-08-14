@@ -154,7 +154,6 @@ function App() {
   const [selectedWarehouseForCells, setSelectedWarehouseForCells] = useState(null);
   const [warehouseCells, setWarehouseCells] = useState([]);
   const [cellsLoading, setCellsLoading] = useState(false);
-  const [selectedCells, setSelectedCells] = useState([]);
   const [cellEditForm, setCellEditForm] = useState({
     blocks_count: '',
     shelves_per_block: '',
