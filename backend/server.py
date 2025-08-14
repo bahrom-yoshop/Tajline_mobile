@@ -13349,6 +13349,45 @@ async def complete_cargo_processing(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error completing cargo processing: {str(e)}")
 
+# НОВЫЙ ENDPOINT: История заявок на забор груза  
+@app.get("/api/operator/pickup-requests/history")
+async def get_pickup_requests_history(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить историю завершенных заявок на забор груза"""
+    if current_user.role not in [UserRole.WAREHOUSE_OPERATOR, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Access denied: Only operators and admins")
+    
+    try:
+        # Получаем завершенные заявки на забор груза
+        history_requests = list(db.courier_pickup_requests.find({
+            "request_status": "delivered_to_warehouse",
+            "completed": True
+        }, {"_id": 0}).sort("delivery_time", -1))
+        
+        # Добавляем информацию о созданных грузах
+        for request in history_requests:
+            # Ищем соответствующее уведомление
+            notification = db.warehouse_notifications.find_one({
+                "request_id": request.get("id"),
+                "status": "completed"
+            }, {"_id": 0})
+            
+            if notification:
+                request["created_cargos"] = notification.get("created_cargos", [])
+                request["processed_by"] = notification.get("completed_by")
+                request["processed_at"] = notification.get("completed_at")
+            
+            request['request_type'] = 'pickup'
+        
+        return {
+            "history_requests": history_requests,
+            "total_count": len(history_requests)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching pickup requests history: {str(e)}")
+
 # НОВЫЙ ENDPOINT: Получение всех заявок на забор для операторов и администраторов
 @app.get("/api/operator/pickup-requests")
 async def get_all_pickup_requests(
