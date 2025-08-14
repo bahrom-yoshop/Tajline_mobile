@@ -965,10 +965,23 @@ function App() {
   const fetchWarehouseNotifications = async () => {
     try {
       const data = await apiCall('/api/operator/warehouse-notifications', 'GET');
-      setWarehouseNotifications(data.notifications || []);
+      const notifications = data.notifications || [];
+      
+      // Фильтруем уведомления, чтобы исключить некорректные данные
+      const validNotifications = notifications.filter(notification => 
+        notification && 
+        notification.id && 
+        typeof notification.id === 'string' &&
+        notification.status !== 'sent_to_placement' // Исключаем уже отправленные на размещение
+      );
+      
+      setWarehouseNotifications(validNotifications);
     } catch (error) {
       console.error('Error fetching warehouse notifications:', error);
-      showAlert('Ошибка загрузки уведомлений о поступивших грузах: ' + error.message, 'error');
+      // В случае ошибки не очищаем состояние полностью
+      if (warehouseNotifications.length === 0) {
+        setWarehouseNotifications([]);
+      }
     }
   };
 
