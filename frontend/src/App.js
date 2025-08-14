@@ -5800,7 +5800,7 @@ function App() {
       const params = {
         page: page,
         per_page: perPage,
-        status: 'placed'
+        status: 'placed,placement_ready'  // Включаем оба статуса
       };
       
       const response = await apiCall('/api/warehouses/placed-cargo', 'GET', null, params);
