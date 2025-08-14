@@ -355,6 +355,21 @@ frontend:
           agent: "main"
           comment: "Добавлены 3 новых API endpoints для заявок на забор груза, новая функция generate_readable_request_number() (копия generate_courier_request_number), работа с новой MongoDB коллекцией courier_pickup_requests, интеграция с системой уведомлений. Backend и frontend сервисы перезапущены успешно. Существующая функциональность (прием груза, курьерские заявки) должна продолжать работать. Новая система заявок на забор готова к тестированию."
 
+  - task: "Improved Pickup Request Modal Backend"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Требуется реализация улучшенного модального окна принятия заявки на забор груза с полной информацией о курьере, получателе, грузе и секцией принятия оплаты"
+        - working: false
+          agent: "testing"
+          comment: "❌ ENDPOINT /api/operator/pickup-requests/{request_id} НЕ ВОЗВРАЩАЕТ ПОЛНУЮ ИНФОРМАЦИЮ ДЛЯ УЛУЧШЕННОГО МОДАЛЬНОГО ОКНА: Endpoint работает и возвращает базовую информацию заявки, НО отсутствуют критически важные поля для модального окна: courier_info (информация о курьере и дате доставки), recipient_data (данные получателя заполненные курьером), cargo_info (информация о грузе в улучшенном формате), payment_section (секция принятия оплаты), qr_buttons и label_buttons (кнопки для печати QR кодов и этикеток). Текущий ответ содержит только: id, request_number, request_type, request_status, sender_full_name, sender_phone, pickup_address, pickup_date, pickup_time_from, pickup_time_to, destination, route, courier_fee, payment_status, created_by, created_by_name, created_at, updated_at, assigned_courier_id, assigned_courier_name. ТРЕБУЕТСЯ: Расширение endpoint для возврата структурированной информации согласно review request для улучшенного модального окна."
+
   - task: "New Warehouse Notifications System"
     implemented: true
     working: true
