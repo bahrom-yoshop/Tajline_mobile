@@ -1386,11 +1386,23 @@ function App() {
       
       showAlert('Заявка успешно отправлена на размещение!', 'success');
       
-      // Обновляем список уведомлений (заявка должна исчезнуть из текущего списка)
-      await fetchWarehouseNotifications();
+      // Сначала обновляем состояние локально для мгновенной реакции
+      setWarehouseNotifications(prevNotifications => 
+        prevNotifications.filter(n => n.id !== notification.id)
+      );
       
-      // Обновляем список доступных грузов для размещения
-      await fetchAvailableCargoForPlacement();
+      // Затем делаем полное обновление с сервера
+      setTimeout(async () => {
+        try {
+          await Promise.all([
+            fetchWarehouseNotifications(),
+            fetchAvailableCargoForPlacement()
+          ]);
+        } catch (error) {
+          // В случае ошибки молча обновляем данные
+          console.error('Error refreshing data:', error);
+        }
+      }, 500);
       
     } catch (error) {
       console.error('Error sending to placement:', error);
