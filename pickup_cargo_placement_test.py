@@ -194,7 +194,7 @@ class PickupCargoPlacementTester:
         )
         
         if success:
-            self.test_data["pickup_request_id"] = response.get("id")
+            self.test_data["pickup_request_id"] = response.get("request_id")
             self.test_data["pickup_request_number"] = response.get("request_number")
             print(f"   📋 Pickup Request ID: {self.test_data['pickup_request_id']}")
             print(f"   🔢 Request Number: {self.test_data['pickup_request_number']}")
