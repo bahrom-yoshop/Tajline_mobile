@@ -18667,21 +18667,36 @@ function App() {
                 <div className="space-y-6">
                   {/* Убрали кнопку обновления */}
                   
-                  {/* НОВЫЙ БЛОК: Адреса всех заявок для навигации */}
+                  {/* ОБНОВЛЕННЫЙ БЛОК: Адреса заявок с ограничением отображения */}
                   {courierRequests.length > 0 && (
                     <Card className="border-blue-200 bg-blue-50">
                       <CardHeader>
-                        <CardTitle className="flex items-center text-blue-800">
-                          <MapPin className="mr-2 h-5 w-5" />
-                          Адреса заявок ({courierRequests.length})
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center text-blue-800">
+                            <MapPin className="mr-2 h-5 w-5" />
+                            Адреса заявок ({courierRequests.length})
+                          </div>
+                          {courierRequests.length > 2 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setShowAllNewRequests(!showAllNewRequests)}
+                              className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                            >
+                              {showAllNewRequests ? 'Скрыть' : `Показать все адреса (${courierRequests.length})`}
+                            </Button>
+                          )}
                         </CardTitle>
                         <CardDescription className="text-blue-600">
-                          Нажмите на адрес, чтобы открыть в Яндекс Картах
+                          Нажмите на адрес, чтобы открыть в Яндекс Картах.
+                          {!showAllNewRequests && courierRequests.length > 2 && 
+                            ` Показано ${Math.min(2, courierRequests.length)} из ${courierRequests.length} адресов.`
+                          }
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {courierRequests.map((request, index) => (
+                          {(showAllNewRequests ? courierRequests : courierRequests.slice(0, 2)).map((request, index) => (
                             <div 
                               key={request.id}
                               className="bg-white p-3 rounded-lg border border-blue-200 hover:shadow-md transition-shadow cursor-pointer"
