@@ -25560,6 +25560,10 @@ function App() {
                     variant="outline"
                     onClick={() => {
                       const printWindow = window.open('', '_blank');
+                      if (!printWindow) {
+                        showAlert('Не удалось открыть окно печати. Пожалуйста, разрешите всплывающие окна в настройках браузера.', 'error');
+                        return;
+                      }
                       printWindow.document.write(`
                         <html>
                           <head><title>QR код ${generatedSingleQR.cargo_number}</title></head>
