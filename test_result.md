@@ -114,17 +114,41 @@ backend:
           comment: "Найден рабочий endpoint /api/operator/pickup-requests для получения списка заявок на забор (47 заявок), структура ответа содержит pickup_requests array, by_status группировку, total_count и status_counts. Специальный admin endpoint /api/admin/pickup-requests/all не найден, но функциональность доступна через operator endpoint"
 
 frontend:
-  - task: "Frontend testing not required for backend bulk delete functionality"
+  - task: "Авторизация администратора (admin@emergent.com/admin123)"
     implemented: true
-    working: "NA"
-    file: "N/A"
+    working: true
+    file: "/app/frontend/src/App.js"
     stuck_count: 0
-    priority: "low"
+    priority: "high"
     needs_retesting: false
     status_history:
-        - working: "NA"
+        - working: true
           agent: "testing"
-          comment: "Frontend testing not applicable for backend bulk delete endpoint testing - focus is on backend API functionality"
+          comment: "Успешная авторизация администратора с корректными учетными данными +79999888777/admin123, отображается роль 'Администратор Системы' и номер пользователя USR648362, интерфейс загружается корректно"
+
+  - task: "Интерфейс массового удаления заявок на забор"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "КРИТИЧЕСКАЯ ПРОБЛЕМА: Интерфейс массового удаления заявок на забор реализован в коде (найдены функции handlePickupRequestSelect, handleSelectAllPickupRequests, состояния selectedPickupRequests, selectAllPickupRequests), но раздел 'Заявки на забор' не найден в UI. Обнаружен раздел 'На Забор' в подменю 'Грузы', но при попытке доступа возникает Internal Server Error. Backend полностью функционален (100% успешности), но frontend интерфейс недоступен для тестирования"
+
+  - task: "Навигация к разделу заявок на забор"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "Раздел 'cargo-pickup-requests' реализован в коде, но не найден в UI навигации. Обнаружен потенциальный раздел 'На Забор' в подменю 'Грузы', однако при попытке доступа возникает Internal Server Error, блокирующий тестирование функциональности массового удаления"
 metadata:
   created_by: "testing_agent"
   version: "1.0"
