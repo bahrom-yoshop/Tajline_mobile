@@ -25885,6 +25885,10 @@ function App() {
                     variant="outline"
                     onClick={() => {
                       const printWindow = window.open('', '_blank');
+                      if (!printWindow) {
+                        showAlert('Не удалось открыть окно печати. Пожалуйста, разрешите всплывающие окна в настройках браузера.', 'error');
+                        return;
+                      }
                       const successfulResults = bulkQRResults.filter(r => r.success);
                       const qrHtml = successfulResults.map(result => `
                         <div style="margin: 20px; text-align: center; page-break-inside: avoid;">
