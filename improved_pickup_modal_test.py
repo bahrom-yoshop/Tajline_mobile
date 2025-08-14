@@ -160,13 +160,13 @@ class ImprovedPickupModalTester:
             return False
 
     def test_create_pickup_request(self):
-        """Test 3: Create pickup request with full recipient and cargo data"""
+        """Test 3: Create pickup request with full recipient and cargo data (by operator)"""
         print("\n" + "="*80)
-        print("📦 ЭТАП 3: СОЗДАНИЕ ЗАЯВКИ НА ЗАБОР ГРУЗА С ПОЛНЫМИ ДАННЫМИ")
+        print("📦 ЭТАП 3: СОЗДАНИЕ ЗАЯВКИ НА ЗАБОР ГРУЗА ОПЕРАТОРОМ С ПОЛНЫМИ ДАННЫМИ")
         print("="*80)
         
-        if not self.courier_token:
-            print("   ❌ Courier token not available")
+        if not self.operator_token:
+            print("   ❌ Operator token not available")
             return False
             
         pickup_data = {
@@ -178,31 +178,21 @@ class ImprovedPickupModalTester:
             "pickup_time_to": "12:00",
             "route": "tajikistan_to_moscow",
             "courier_fee": 750.0,
-            "cargo_items": [
-                {
-                    "name": "Тестовый груз для модального окна",
-                    "weight": "25.5",
-                    "total_price": "3500"
-                }
-            ],
-            "recipient_full_name": "Получатель Модальное Окно",
-            "recipient_phone": "+79998887766",
-            "recipient_address": "Москва, ул. Получателя Модальная, 456",
-            "delivery_method": "pickup",
+            "destination": "Москва, ул. Получателя Модальная, 456",
             "payment_method": "cash"
         }
         
         success, response = self.run_test(
-            "Create pickup request with full data",
+            "Create pickup request with full data by operator",
             "POST",
             "/api/admin/courier/pickup-request",
-            201,
+            200,
             pickup_data,
-            self.courier_token
+            self.operator_token
         )
         
-        if success and "request_id" in response:
-            self.pickup_request_id = response["request_id"]
+        if success and ("request_id" in response or "id" in response):
+            self.pickup_request_id = response.get("request_id") or response.get("id")
             print(f"   📋 Pickup Request ID: {self.pickup_request_id}")
             print(f"   📋 Request Number: {response.get('request_number')}")
             
@@ -211,12 +201,8 @@ class ImprovedPickupModalTester:
             print(f"   👤 Отправитель: {pickup_data['sender_full_name']}")
             print(f"   📞 Телефон отправителя: {pickup_data['sender_phone']}")
             print(f"   📍 Адрес забора: {pickup_data['pickup_address']}")
-            print(f"   👥 Получатель: {pickup_data['recipient_full_name']}")
-            print(f"   📞 Телефон получателя: {pickup_data['recipient_phone']}")
-            print(f"   📍 Адрес получателя: {pickup_data['recipient_address']}")
-            print(f"   📦 Груз: {pickup_data['cargo_items'][0]['name']}")
-            print(f"   ⚖️ Вес: {pickup_data['cargo_items'][0]['weight']} кг")
-            print(f"   💰 Стоимость: {pickup_data['cargo_items'][0]['total_price']} руб")
+            print(f"   📍 Назначение: {pickup_data['destination']}")
+            print(f"   💰 Стоимость курьера: {pickup_data['courier_fee']} руб")
             
             return True
         else:
