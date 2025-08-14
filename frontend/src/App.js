@@ -957,8 +957,25 @@ function App() {
       
       showAlert('Уведомление принято для оформления!', 'success');
       
+      // Заполняем форму данными из уведомления
+      const notification = response.notification_data || warehouseNotifications.find(n => n.id === notificationId);
+      if (notification) {
+        setCargoAcceptanceForm({
+          sender_full_name: notification.sender_full_name || '',
+          sender_phone: notification.sender_phone || '',
+          sender_address: notification.pickup_address || '',
+          recipient_full_name: '',
+          recipient_phone: '',
+          recipient_address: '',
+          cargo_items: [{ name: notification.destination || 'Груз для забора', weight: '', price: '' }],
+          payment_method: notification.payment_method || 'cash',
+          delivery_method: 'pickup',
+          payment_status: 'not_paid'
+        });
+      }
+      
       // Открываем форму полного оформления груза
-      setCurrentCargoNotification(response.notification_data || { id: notificationId });
+      setCurrentCargoNotification(notification);
       setShowCargoAcceptanceModal(true);
       
       // Обновляем уведомления
