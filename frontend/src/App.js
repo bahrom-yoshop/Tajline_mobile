@@ -905,7 +905,7 @@ function App() {
         pickup_date: operatorCargoForm.pickup_date,
         pickup_time_from: operatorCargoForm.pickup_time_from,
         pickup_time_to: operatorCargoForm.pickup_time_to,
-        route: operatorCargoForm.route,
+        destination: operatorCargoForm.cargo_name || 'Не указано', // Используем cargo_name как destination
         courier_fee: operatorCargoForm.courier_fee,
         payment_method: operatorCargoForm.payment_method
       };
