@@ -200,7 +200,40 @@ class RecipientInfoTester:
         print(f"   Response: {response}")
         return False
 
-    def process_pickup_request_by_courier(self):
+    def verify_pickup_request_data(self):
+        """Verify that our pickup request has the correct recipient data"""
+        print("\n" + "="*50)
+        print("STEP 4.5: VERIFY PICKUP REQUEST DATA")
+        print("="*50)
+        
+        # Check the pickup request data directly
+        success, response = self.run_test(
+            "Get Courier New Requests",
+            "GET", "/courier/requests/new", 200,
+            token=self.tokens["courier"]
+        )
+        
+        if success:
+            new_requests = response.get("new_requests", [])
+            our_request = None
+            
+            for request in new_requests:
+                if request.get("id") == self.test_data["pickup_request_id"]:
+                    our_request = request
+                    break
+            
+            if our_request:
+                print(f"✅ Found our pickup request in courier's new requests")
+                print(f"   Request ID: {our_request.get('id')}")
+                print(f"   Sender: {our_request.get('sender_full_name')}")
+                print(f"   Recipient Name: {our_request.get('recipient_full_name', 'NOT SET')}")
+                print(f"   Recipient Phone: {our_request.get('recipient_phone', 'NOT SET')}")
+                print(f"   Recipient Address: {our_request.get('recipient_address', 'NOT SET')}")
+                return True
+            else:
+                print(f"❌ Could not find our pickup request in courier's new requests")
+        
+        return False
         """Step 4: Process pickup request by courier (accept and pickup)"""
         print("\n" + "="*50)
         print("STEP 4: PROCESS PICKUP REQUEST BY COURIER")
