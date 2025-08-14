@@ -20313,6 +20313,10 @@ function App() {
                               
                               // Создаем QR код и открываем окно печати
                               const printWindow = window.open('', '_blank');
+                              if (!printWindow) {
+                                showAlert('Не удалось открыть окно печати. Пожалуйста, разрешите всплывающие окна в настройках браузера.', 'error');
+                                return;
+                              }
                               printWindow.document.write(`
                                 <html>
                                   <head>
