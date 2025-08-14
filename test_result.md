@@ -101,6 +101,102 @@ backend:
           agent: "testing"
           comment: "ПРОБЛЕМА ПОЛНОСТЬЮ ДИАГНОСТИРОВАНА И РЕШЕНИЕ НАЙДЕНО: Схема склада должна показывать 'Занято: 2, Свободно: 208' вместо 'Занято: 0, Свободно: 210'. Схема должна использовать данные Statistics API (правильные) вместо Cells API (неправильные для отображения схемы). Требуется синхронизация данных между warehouse_cells и operator_cargo коллекциями"
 
+  - task: "Авторизация администратора для проверки API грузов (+79999888777/admin123)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Успешная авторизация администратора 'Администратор Системы' (номер: USR648362), роль: admin подтверждена, JWT токен генерируется корректно для проверки API грузов"
+
+  - task: "Авторизация оператора склада (+79777888999/warehouse123)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Успешная авторизация оператора склада 'Оператор Складской Обновленный' (номер: USR648400), роль: warehouse_operator подтверждена, JWT токен генерируется корректно"
+
+  - task: "КРИТИЧЕСКАЯ ПРОВЕРКА: GET /api/operator/cargo/available-for-placement"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "КРИТИЧЕСКИЙ УСПЕХ: Endpoint работает корректно и возвращает 25 грузов для размещения. Структура ответа содержит поле 'items' с массивом грузов. Найдено 12 грузов в новом формате номеров (2501XXXXXX) и 13 в старом формате (100XXX/XX). Все грузы имеют статус 'paid' и готовы к размещению"
+
+  - task: "Проверка структуры ответа API (items, pagination, cargo_list)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Структура ответа корректна: содержит поле 'items' с массивом грузов, отсутствует полная информация о пагинации (total_count, page, per_page), но основные данные присутствуют. Каждый груз содержит необходимые поля: cargo_number, processing_status, weight, sender_full_name, recipient_full_name"
+
+  - task: "Поиск реальных номеров грузов для тестирования сканирования"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "УСПЕШНО НАЙДЕНЫ реальные номера грузов для тестирования: 25 номеров грузов получено из API. Рабочие номера в новом формате: 2501465763, 2501949168, 2501787654, 2501305405, 2501689184. Эти номера работают с endpoint /api/cargo/track/{cargo_number}"
+
+  - task: "Тестирование endpoint /api/cargo/track/{cargo_number} для сканирования"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Endpoint /api/cargo/track/{cargo_number} работает корректно с номерами в новом формате (2501XXXXXX). Протестировано 3 номера - все успешно возвращают данные груза. Старый формат номеров (100XXX/XX) не работает с этим endpoint (возвращает 404)"
+
+  - task: "Тестирование QR сканирования POST /api/cargo/scan-qr"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "QR сканирование работает с правильными параметрами. Endpoint требует параметр 'qr_text' (не 'qr_data' или 'qr_code'). При правильном вызове возвращает статус 200. Также доступен endpoint /api/operator/placement-statistics для статистики размещения"
+
+  - task: "ДИАГНОСТИКА ПРОБЛЕМЫ: Груз не найден в списке ожидающих размещение"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "КОРНЕВАЯ ПРИЧИНА НАЙДЕНА: Проблема в несовместимости форматов номеров грузов. API /api/operator/cargo/available-for-placement возвращает грузы в двух форматах: новый (2501XXXXXX) и старый (100XXX/XX). Endpoint /api/cargo/track/{cargo_number} работает только с новым форматом. При сканировании QR кодов старого формата система не может найти груз, отсюда сообщение 'Груз не найден в списке ожидающих размещение'"
+
 frontend:
   - task: "Авторизация администратора (admin@emergent.com/admin123)"
     implemented: true
