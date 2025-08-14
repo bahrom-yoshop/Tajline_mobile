@@ -34386,7 +34386,7 @@ ID склада: {target_warehouse_id}"""
         success, cargo_response = self.run_test(
             "Get Operator Cargo (Check for New Cargo)",
             "GET",
-            "/api/operator/cargo",
+            "/api/operator/cargo/list",
             200,
             token=operator_token
         )
