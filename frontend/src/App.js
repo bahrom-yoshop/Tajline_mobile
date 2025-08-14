@@ -13710,7 +13710,7 @@ function App() {
                           <div className="space-y-4">
                             {/* Показываем контейнер камеры сначала */}
                             <div 
-                              id="qr-reader-placement" 
+                              id="qr-reader-placement-edit" 
                               className="w-full bg-black rounded-lg camera-placeholder"
                               style={{
                                 aspectRatio: '1',
