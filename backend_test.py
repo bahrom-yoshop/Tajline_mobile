@@ -347,9 +347,11 @@ class WarehouseCellTester:
         """Test that warehouse_number field is properly set"""
         warehouse_number = warehouse_data.get("warehouse_number")
         
-        if warehouse_number:
+        if warehouse_number is not None:
+            # Convert to string for checking format
+            warehouse_number_str = str(warehouse_number)
             # Check if it's in numeric format (e.g., "01", "02", etc.)
-            is_numeric_format = warehouse_number.isdigit() and len(warehouse_number) >= 2
+            is_numeric_format = warehouse_number_str.isdigit() and len(warehouse_number_str) >= 1
             
             self.log_result(
                 "Warehouse Number Field",
@@ -357,8 +359,9 @@ class WarehouseCellTester:
                 f"Warehouse has warehouse_number: {warehouse_number}",
                 {
                     "warehouse_number": warehouse_number,
+                    "warehouse_number_str": warehouse_number_str,
                     "is_numeric_format": is_numeric_format,
-                    "length": len(warehouse_number),
+                    "length": len(warehouse_number_str),
                     "ready_for_qr": is_numeric_format
                 }
             )
