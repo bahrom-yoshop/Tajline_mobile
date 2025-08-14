@@ -25313,6 +25313,10 @@ function App() {
                   className="flex-1" 
                   onClick={() => {
                     const printWindow = window.open('', '_blank');
+                    if (!printWindow) {
+                      showAlert('Не удалось открыть окно печати. Пожалуйста, разрешите всплывающие окна в настройках браузера.', 'error');
+                      return;
+                    }
                     const printContent = `
                       <html>
                         <head>
