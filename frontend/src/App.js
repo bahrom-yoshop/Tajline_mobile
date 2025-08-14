@@ -1219,13 +1219,19 @@ function App() {
   // НОВЫЕ ФУНКЦИИ ДЛЯ ОБРАБОТКИ ЗАЯВОК НА ЗАБОР ГРУЗА
   const handlePrintPickupQR = (notification) => {
     try {
-      // Создаем данные для QR кода
+      // Проверяем наличие необходимых данных
+      if (!notification || !notification.request_number) {
+        showAlert('Недостаточно данных для создания QR кода', 'error');
+        return;
+      }
+
+      // Создаем данные для QR кода с проверками на undefined
       const qrData = JSON.stringify({
-        request_number: notification.request_number,
-        sender_name: notification.sender_full_name,
-        pickup_address: notification.pickup_address,
-        courier_name: notification.courier_name,
-        delivered_at: notification.delivered_at,
+        request_number: notification.request_number || 'N/A',
+        sender_name: notification.sender_full_name || 'Не указан',
+        pickup_address: notification.pickup_address || 'Не указан',
+        courier_name: notification.courier_name || 'Не указан',
+        delivered_at: notification.delivered_at || new Date().toISOString(),
         type: 'pickup_request'
       });
 
@@ -1239,7 +1245,7 @@ function App() {
       printWindow.document.write(`
         <html>
           <head>
-            <title>QR код заявки ${notification.request_number}</title>
+            <title>QR код заявки ${notification.request_number || 'N/A'}</title>
             <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
             <style>
               body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
@@ -1251,24 +1257,34 @@ function App() {
           <body>
             <h2>QR код заявки на забор груза</h2>
             <div class="request-info">
-              <strong>Заявка №:</strong> ${notification.request_number}<br>
-              <strong>Отправитель:</strong> ${notification.sender_full_name}<br>
-              <strong>Адрес забора:</strong> ${notification.pickup_address}<br>
-              <strong>Курьер:</strong> ${notification.courier_name}<br>
-              <strong>Сдано на склад:</strong> ${new Date(notification.delivered_at).toLocaleString('ru-RU')}
+              <strong>Заявка №:</strong> ${notification.request_number || 'N/A'}<br>
+              <strong>Отправитель:</strong> ${notification.sender_full_name || 'Не указан'}<br>
+              <strong>Адрес забора:</strong> ${notification.pickup_address || 'Не указан'}<br>
+              <strong>Курьер:</strong> ${notification.courier_name || 'Не указан'}<br>
+              <strong>Сдано на склад:</strong> ${notification.delivered_at ? new Date(notification.delivered_at).toLocaleString('ru-RU') : 'Не указано'}
             </div>
             <div class="qr-container">
               <canvas id="qrcode"></canvas>
             </div>
             <script>
               const qrData = ${JSON.stringify(qrData)};
-              QRCode.toCanvas(document.getElementById('qrcode'), qrData, {
-                width: 200,
-                margin: 2
-              }, function(error) {
-                if (error) console.error(error);
-                else window.print();
-              });
+              
+              // Проверяем загрузку библиотеки QRCode
+              if (typeof QRCode !== 'undefined') {
+                QRCode.toCanvas(document.getElementById('qrcode'), qrData, {
+                  width: 200,
+                  margin: 2
+                }, function(error) {
+                  if (error) {
+                    console.error('QR Code generation error:', error);
+                    document.body.innerHTML += '<p style="color: red;">Ошибка создания QR кода: ' + error.message + '</p>';
+                  } else {
+                    setTimeout(() => window.print(), 500);
+                  }
+                });
+              } else {
+                document.body.innerHTML += '<p style="color: red;">Библиотека QRCode не загружена. Попробуйте еще раз.</p>';
+              }
             </script>
           </body>
         </html>
