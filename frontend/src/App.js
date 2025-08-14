@@ -38,6 +38,8 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentPage, setCurrentPage] = useState('main'); // 'main', 'cargo-placement'
   const [notifications, setNotifications] = useState([]);
+  const [warehouseNotifications, setWarehouseNotifications] = useState([]);
+  const [allPickupRequests, setAllPickupRequests] = useState([]);
   const [cargo, setCargo] = useState([]);
   const [users, setUsers] = useState([]);
   const [usersPagination, setUsersPagination] = useState({}); // Пагинация для пользователей
