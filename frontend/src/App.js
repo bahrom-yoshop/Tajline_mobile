@@ -7186,6 +7186,10 @@ function App() {
   const printInvoice = (cargo) => {
     // Попытка открыть новое окно
     const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showAlert('Не удалось открыть окно печати. Пожалуйста, разрешите всплывающие окна в настройках браузера.', 'error');
+      return;
+    }
     
     // Проверяем, удалось ли открыть окно (может быть заблокировано браузером)
     if (!printWindow) {
