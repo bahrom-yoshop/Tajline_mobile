@@ -43,6 +43,7 @@ function App() {
   const [pickupRequestsHistory, setPickupRequestsHistory] = useState([]);
   const [showCargoAcceptanceModal, setShowCargoAcceptanceModal] = useState(false);
   const [currentCargoNotification, setCurrentCargoNotification] = useState(null);
+  const [showAllNotifications, setShowAllNotifications] = useState(false);
   const [cargoAcceptanceForm, setCargoAcceptanceForm] = useState({
     sender_full_name: '',
     sender_phone: '',
