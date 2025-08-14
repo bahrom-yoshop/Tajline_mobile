@@ -3428,7 +3428,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Тестирование улучшений модального окна принятия груза"
+    - "Тестирование исправлений ошибок в категории складов TAJLINE.TJ"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
