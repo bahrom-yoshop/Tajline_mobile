@@ -328,12 +328,37 @@ class PickupCargoPlacementTester:
                 )
                 
                 if success:
-                    # Complete notification processing
+                    # Complete notification processing with cargo details
+                    cargo_completion_data = {
+                        "sender_full_name": "Тестовый Отправитель Забора",
+                        "sender_phone": "+79123456789",
+                        "sender_address": "Москва, ул. Тестовая Забора, 123",
+                        "recipient_full_name": "Тестовый Получатель",
+                        "recipient_phone": "+79987654321",
+                        "recipient_address": "Душанбе, ул. Получателя, 456",
+                        "payment_method": "cash",
+                        "payment_status": "not_paid",
+                        "delivery_method": "pickup",
+                        "cargo_items": [
+                            {
+                                "name": "Тестовый груз из заявки на забор",
+                                "weight": 15.5,
+                                "price": 2500.0
+                            },
+                            {
+                                "name": "Второй груз из заявки на забор",
+                                "weight": 8.3,
+                                "price": 1200.0
+                            }
+                        ]
+                    }
+                    
                     success, response = self.run_test(
                         "Complete Notification Processing",
                         "POST",
                         f"/api/operator/warehouse-notifications/{notification_id}/complete",
                         200,
+                        cargo_completion_data,
                         token=self.tokens["operator"]
                     )
                     
