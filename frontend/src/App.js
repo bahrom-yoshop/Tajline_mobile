@@ -18776,8 +18776,28 @@ function App() {
                   />
 
                   {courierRequests.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {courierRequests.map((request) => (
+                    <div className="space-y-4">
+                      {/* Кнопка для показа всех карточек */}
+                      {courierRequests.length > 6 && (
+                        <div className="text-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowAllNewRequests(!showAllNewRequests)}
+                            className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                          >
+                            {showAllNewRequests ? 'Показать только 6 заявок' : `Показать все заявки (${courierRequests.length})`}
+                          </Button>
+                          {!showAllNewRequests && (
+                            <p className="text-sm text-gray-600 mt-2">
+                              Показано 6 из {courierRequests.length} заявок
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {(showAllNewRequests ? courierRequests : courierRequests.slice(0, 6)).map((request) => (
                         <Card key={request.id} className="relative">
                           <CardHeader>
                             <div className="flex items-start justify-between">
