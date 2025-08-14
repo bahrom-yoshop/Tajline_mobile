@@ -14,32 +14,93 @@
 # Main and testing agents must follow this exact format to maintain testing data. 
 # The testing data must be entered in yaml format Below is the data structure:
 # 
-## user_problem_statement: {problem_statement}
-## backend:
-##   - task: "Task name"
-##     implemented: true
-##     working: true  # or false or "NA"
-##     file: "file_path.py"
-##     stuck_count: 0
-##     priority: "high"  # or "medium" or "low"
-##     needs_retesting: false
-##     status_history:
-##         -working: true  # or false or "NA"
-##         -agent: "main"  # or "testing" or "user"
-##         -comment: "Detailed comment about status"
-##
-## frontend:
-##   - task: "Task name"
-##     implemented: true
-##     working: true  # or false or "NA"
-##     file: "file_path.js"
-##     stuck_count: 0
-##     priority: "high"  # or "medium" or "low"
-##     needs_retesting: false
-##     status_history:
-##         -working: true  # or false or "NA"
-##         -agent: "main"  # or "testing" or "user"
-##         -comment: "Detailed comment about status"
+user_problem_statement: "Протестировать исправление ошибки 'завершение оформления' в модальном окне принятия груза TAJLINE.TJ. Исправлена проблема в функции complete_cargo_processing (endpoint /api/operator/warehouse-notifications/{id}/complete): 1) Исправлена логика получения warehouse_id - если у оператора нет привязок к складам, используется первый активный склад, 2) Добавлены обязательные поля 'route' и 'description' для создания груза, 3) Добавлен processing_status = 'paid' чтобы грузы появлялись в списке размещения, 4) Добавлены значения по умолчанию для всех полей."
+
+backend:
+  - task: "Авторизация оператора склада (+79777888999/warehouse123)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Успешная авторизация с корректным отображением роли 'Оператор Складской Обновленный', номера пользователя USR648400, JWT токен генерируется корректно, роль warehouse_operator подтверждена, сессии стабильны без преждевременных 401 ошибок"
+
+  - task: "Получение уведомлений со статусом 'in_processing'"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "GET /api/operator/warehouse-notifications работает корректно, найдено 17 уведомлений (6 со статусом 'in_processing'), найдено активное уведомление WN_1755190398865 с номером заявки 100063"
+
+  - task: "Endpoint /api/operator/warehouse-notifications/{id}/complete"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "КРИТИЧЕСКИЙ УСПЕХ - Endpoint завершения оформления работает идеально, протестирован с уведомлением WN_1755190398865, endpoint возвращает 200 OK с корректной структурой ответа (message: 'Cargo processing completed successfully', notification_id, cargo_id: '100005', cargo_number: '100063/01', notification_status: 'completed', created_cargos: 2 груза), статус уведомления корректно обновлен на 'completed', создано 2 грузов из заявки"
+
+  - task: "Создание грузов с обязательными полями route и description"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Созданный груз 100063/01 найден в списке оператора, route: 'moscow_to_tajikistan' ✅, description: 'Груз создан из заявки на забор №100063, позиция 1' ✅, processing_status: 'paid' ✅, warehouse_id: '1dded28d-0e72-4577-95e8-99c05f873905' ✅, все обязательные поля присутствуют и корректны"
+
+  - task: "Processing status = 'paid' для появления в списке размещения"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "КРИТИЧЕСКИЙ УСПЕХ - GET /api/operator/cargo/available-for-placement работает корректно, найдено 25 грузов доступных для размещения, созданный груз 100063/01 найден в списке размещения с processing_status: 'paid', все 25 грузов в списке размещения имеют статус 'paid', логика исправления warehouse_id работает корректно"
+
+  - task: "Обновление статуса уведомления на 'completed'"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Количество уведомлений в обработке уменьшилось с 6 до 5, обработанное уведомление исключено из активного списка, статус корректно обновлен на 'completed'"
+
+frontend:
+  - task: "Frontend testing not required for this backend fix"
+    implemented: true
+    working: "NA"
+    file: "N/A"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Frontend testing not applicable for backend endpoint fix testing"
 ##
 ## metadata:
 ##   created_by: "main_agent"
