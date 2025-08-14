@@ -13918,6 +13918,9 @@ async def update_courier_request(
         if "payment_received" in update_data:
             update_fields["payment_received"] = update_data["payment_received"]
             update_fields["payment_status"] = "paid" if update_data["payment_received"] else "not_paid"
+        # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем прямое обновление payment_status
+        if "payment_status" in update_data:
+            update_fields["payment_status"] = update_data["payment_status"]
         
         # Обновляем способ доставки
         if "delivery_method" in update_data:
