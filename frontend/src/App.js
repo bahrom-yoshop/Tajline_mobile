@@ -3982,13 +3982,31 @@ function App() {
       if (scannerMode === 'cargo-barcode') {
         // Ищем груз по отсканированному номеру
         const cargoNumber = extractCargoNumber(scannedData);
-        const cargo = availableCargoForPlacement.find(item => 
-          item.cargo_number === cargoNumber || 
-          item.id === cargoNumber ||
-          scannedData.includes(cargoNumber)
-        );
+        console.log('🔍 Поиск груза с номером:', cargoNumber);
+        
+        // ИСПРАВЛЕНИЕ: Улучшенный поиск груза с поддержкой различных форматов
+        const cargo = availableCargoForPlacement.find(item => {
+          // Точное совпадение номера груза
+          if (item.cargo_number === cargoNumber) return true;
+          
+          // Поиск по ID
+          if (item.id === cargoNumber) return true;
+          
+          // Поиск по номеру заявки (для грузов забора)
+          if (item.request_number === cargoNumber) return true;
+          
+          // Частичное совпадение в сканированных данных
+          if (scannedData.includes(item.cargo_number)) return true;
+          if (item.request_number && scannedData.includes(item.request_number)) return true;
+          
+          // Поиск в исходных JSON данных, если они есть
+          if (scannedData.includes(item.id)) return true;
+          
+          return false;
+        });
 
         if (cargo) {
+          console.log('✅ Груз найден:', cargo);
           setScannedCargoData(cargo);
           setScannerActive(false);
           showAlert(`Груз ${cargo.cargo_number} найден! Теперь отсканируйте QR-код ячейки для размещения.`, 'success');
@@ -3998,8 +4016,9 @@ function App() {
             startCellScanner();
           }, 1500);
         } else {
+          console.log('❌ Груз не найден. Доступные грузы:', availableCargoForPlacement.map(c => c.cargo_number));
           setScannerError('Груз не найден в списке ожидающих размещение');
-          showAlert('Груз не найден в списке ожидающих размещение. Проверьте номер груза.', 'error');
+          showAlert(`Груз с номером "${cargoNumber}" не найден в списке ожидающих размещение. Проверьте номер груза.`, 'error');
         }
       } else if (scannerMode === 'cell-qr') {
         // Парсим QR-код ячейки
