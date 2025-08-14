@@ -360,6 +360,7 @@ class CargoPlacementImprovementsTester:
         
         for i, cargo in enumerate(pickup_cargos[:3]):  # Тестируем первые 3 груза
             print(f"\n   🔍 Тестирование груза {i+1}: {cargo.get('cargo_number', 'N/A')}")
+            print(f"      📋 Полные данные груза: {json.dumps(cargo, indent=6, ensure_ascii=False)}")
             
             # 1. Проверяем ФИО ПОЛУЧАТЕЛЯ
             improvements_tested += 1
@@ -383,17 +384,20 @@ class CargoPlacementImprovementsTester:
             payment_fields = ["payment_method", "amount_paid", "payment_notes"]
             for field in payment_fields:
                 improvements_tested += 1
-                if field in cargo:
+                if field in cargo and cargo[field] is not None:
                     print(f"      ✅ Поле {field} присутствует: {cargo.get(field)}")
                     improvements_passed += 1
                 else:
-                    print(f"      ❌ Поле {field} отсутствует")
+                    print(f"      ❌ Поле {field} отсутствует или null")
             
             # 4. Проверяем дополнительные поля для полной информации об оплате
             additional_fields = ["processing_status", "created_by_operator", "warehouse_name"]
             for field in additional_fields:
                 if field in cargo:
                     print(f"      ℹ️ Дополнительное поле {field}: {cargo.get(field)}")
+                    
+            # Показываем все доступные поля для анализа
+            print(f"      📊 Все доступные поля: {list(cargo.keys())}")
         
         print(f"\n   📊 РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ УЛУЧШЕНИЙ:")
         print(f"   📈 Проверено улучшений: {improvements_tested}")
