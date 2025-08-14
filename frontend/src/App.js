@@ -16515,6 +16515,50 @@ function App() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
+                        {/* Интерфейс массового удаления заявок на забор */}
+                        {allPickupRequests.length > 0 && (
+                          <div className="mb-4 flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="selectAllPickupRequests"
+                                  checked={selectAllPickupRequests}
+                                  onCheckedChange={(checked) => 
+                                    handleSelectAllPickupRequests(checked, allPickupRequests)
+                                  }
+                                />
+                                <Label htmlFor="selectAllPickupRequests" className="text-sm font-medium">
+                                  Выбрать все
+                                </Label>
+                              </div>
+                              {selectedPickupRequests.length > 0 && (
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                                  {selectedPickupRequests.length} выбрано
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            {/* Кнопки массовых действий */}
+                            {selectedPickupRequests.length > 0 && (
+                              <div className="flex items-center space-x-2">
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => {
+                                    const requestsToDelete = allPickupRequests.filter(req => 
+                                      selectedPickupRequests.includes(req.id)
+                                    );
+                                    handleDeleteItems('pickup-request', requestsToDelete, true);
+                                  }}
+                                  className="flex items-center"
+                                >
+                                  <Trash2 className="mr-1 h-3 w-3" />
+                                  Удалить выбранные ({selectedPickupRequests.length})
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )}
                         {allPickupRequests.length === 0 ? (
                           <div className="text-center py-8">
                             <Truck className="mx-auto h-12 w-12 text-gray-400" />
