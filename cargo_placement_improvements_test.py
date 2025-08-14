@@ -258,6 +258,44 @@ class CargoPlacementImprovementsTester:
             return False
             
         print("   ✅ Тестовый груз из заявки на забор создан и готов для размещения")
+        
+        # Проверяем, появилось ли уведомление на складе
+        success, notifications = self.run_test(
+            "Проверка уведомлений склада",
+            "GET", "/api/operator/warehouse-notifications", 200,
+            token=self.tokens["warehouse_operator"]
+        )
+        
+        if success and "notifications" in notifications:
+            print(f"   📋 Найдено уведомлений склада: {len(notifications['notifications'])}")
+            
+            # Ищем наше уведомление и обрабатываем его
+            for notification in notifications["notifications"]:
+                if notification.get("request_number") == request_id:
+                    notification_id = notification.get("id")
+                    print(f"   📝 Найдено уведомление: {notification_id}")
+                    
+                    # Принимаем уведомление
+                    success, accept_response = self.run_test(
+                        "Принятие уведомления оператором",
+                        "POST", f"/api/operator/warehouse-notifications/{notification_id}/accept", 200,
+                        token=self.tokens["warehouse_operator"]
+                    )
+                    
+                    if success:
+                        # Завершаем оформление груза
+                        success, complete_response = self.run_test(
+                            "Завершение оформления груза",
+                            "POST", f"/api/operator/warehouse-notifications/{notification_id}/complete", 200,
+                            token=self.tokens["warehouse_operator"]
+                        )
+                        
+                        if success:
+                            print("   ✅ Груз из заявки на забор успешно оформлен и готов для размещения")
+                        else:
+                            print("   ❌ Не удалось завершить оформление груза")
+                    break
+        
         return True
 
     def test_pickup_cargo_improvements(self) -> bool:
