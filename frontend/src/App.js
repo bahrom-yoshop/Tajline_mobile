@@ -29485,6 +29485,68 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* МОДАЛЬНОЕ ОКНО QR КОДА ЯЧЕЙКИ */}
+      <Dialog open={cellQRModal} onOpenChange={setCellQRModal}>
+        <DialogContent className="w-full max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <QrCode className="mr-2 h-5 w-5" />
+              QR код ячейки
+            </DialogTitle>
+            <DialogDescription>
+              Просмотр и печать QR кода для ячейки {selectedCellQR?.cellLocation}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedCellQR && (
+            <div className="space-y-4">
+              {/* Информация о ячейке */}
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-bold text-gray-800 mb-2">
+                  {selectedCellQR.cellLocation}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {selectedCellQR.warehouseName}
+                </p>
+                {selectedCellQR.qrData && (
+                  <p className="text-xs text-gray-500 mt-1 font-mono">
+                    Код: {selectedCellQR.qrData}
+                  </p>
+                )}
+              </div>
+
+              {/* QR код */}
+              <div className="flex justify-center">
+                <div className="border border-gray-200 p-4 rounded-lg bg-white">
+                  <img 
+                    src={selectedCellQR.qrCode} 
+                    alt="QR код ячейки" 
+                    className="w-48 h-48 mx-auto"
+                  />
+                </div>
+              </div>
+
+              {/* Кнопки */}
+              <div className="flex space-x-2">
+                <Button 
+                  onClick={handlePrintCellQR}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Печать QR кода
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setCellQRModal(false)}
+                >
+                  Закрыть
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
