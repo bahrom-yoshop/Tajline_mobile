@@ -15615,6 +15615,12 @@ function App() {
                                               <Badge variant={getProcessingStatusBadgeVariant(item.processing_status)}>
                                                 {getProcessingStatusLabel(item.processing_status)}
                                               </Badge>
+                                              {/* Индикатор груза из заявки на забор */}
+                                              {item.pickup_request_id && (
+                                                <Badge className="bg-orange-100 text-orange-700 border-orange-200">
+                                                  🚚 Забор груза
+                                                </Badge>
+                                              )}
                                               {/* Бейдж с названием склада */}
                                               {item.warehouse_name && (
                                                 <Badge className={`${warehouseColors.badge} ${warehouseColors.text} border-0`}>
