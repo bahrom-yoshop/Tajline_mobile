@@ -39,7 +39,91 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "Получен список складов: 148 складов. Endpoint работает корректно и возвращает полную информацию о складах с необходимыми полями для расчета статистики"
+          comment: "Получен список складов: 133 складов. Endpoint работает корректно и возвращает полную информацию о складах с необходимыми полями для тестирования управления ячейками"
+
+  - task: "Получение списка ячеек склада GET /api/warehouses/{warehouse_id}/cells"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Endpoint работает корректно и возвращает структуру {'cells': [...]} с 20 ячейками. Каждая ячейка содержит поля: id, warehouse_id, block_number, shelf_number, cell_number, location, is_occupied. Структура данных корректна для дальнейшего тестирования QR генерации"
+
+  - task: "Генерация QR для отдельной ячейки GET /api/warehouses/cells/{cell_id}/qr"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "КРИТИЧЕСКАЯ ОШИБКА НАЙДЕНА: Endpoint возвращает 400 'Invalid cell ID format' для всех ячеек. ПРИЧИНА: Backend код ожидает cell_id в формате из 4 частей (warehouse_id-block-shelf-cell), но реальные cell_id содержат UUID с дефисами, что дает 8 частей при split('-'). Например: '8b5e9e99-a2fd-4755-a9b7-32d1a03b39cb-1-1-1' содержит 8 частей вместо ожидаемых 4. РЕШЕНИЕ: Исправить логику парсинга cell_id в строке 12684 server.py для корректной обработки UUID с дефисами"
+
+  - task: "Альтернативные QR endpoints для ячеек"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Найдены работающие альтернативные endpoints: 1) GET /api/warehouse/{warehouse_id}/cell-qr/{block}/{shelf}/{cell} - работает идеально, генерирует QR код длиной 430 символов в формате data:image/png;base64, 2) POST /api/warehouse/cell/generate-qr - работает с JSON payload, 3) GET /api/warehouse/{warehouse_id}/all-cells-qr - генерирует QR для всех ячеек. Эти endpoints могут использоваться как временное решение"
+
+  - task: "Массовая генерация QR GET /api/warehouses/{warehouse_id}/cells/qr-batch"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Endpoint работает идеально! Генерирует 20 QR кодов для всех ячеек склада. Структура ответа: {'warehouse_id', 'warehouse_name', 'total_cells', 'qr_codes'}. Все QR коды имеют корректный формат data:image/png;base64 и валидируются успешно. Массовая генерация функционирует без ошибок"
+
+  - task: "Обновление структуры склада PUT /api/warehouses/{warehouse_id}/structure"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Endpoint работает корректно, принимает JSON с полями blocks_count, shelves_per_block, cells_per_shelf и успешно обновляет структуру склада. Возвращает статус 200 при успешном обновлении"
+
+  - task: "Массовое удаление ячеек POST /api/warehouses/{warehouse_id}/cells/batch-delete"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Endpoint доступен и корректно обрабатывает запросы на массовое удаление. При тестировании с несуществующими cell_ids возвращает статус 200 с корректной обработкой ошибок, что указывает на правильную валидацию данных"
+
+  - task: "Валидация данных и обработка ошибок"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Все endpoints корректно обрабатывают ошибки: 1) Несуществующий warehouse_id возвращает 404, 2) Неверный cell_id возвращает 400, 3) Неверные данные структуры возвращают 400/422. Валидация работает правильно для всех протестированных сценариев"
 
   - task: "Новый endpoint GET /api/warehouses/{warehouse_id}/statistics"
     implemented: true
