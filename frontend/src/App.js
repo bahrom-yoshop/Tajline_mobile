@@ -15668,6 +15668,14 @@ function App() {
                                                 <p><strong>Описание:</strong> {item.description}</p>
                                                 <p><strong>Маршрут:</strong> {item.route}</p>
                                                 <p><strong>Создан:</strong> {new Date(item.created_at).toLocaleDateString('ru-RU')}</p>
+                                                {/* Информация о заявке на забор груза */}
+                                                {item.pickup_request_id && (
+                                                  <>
+                                                    <p><strong>🚚 Заявка на забор:</strong> №{item.pickup_request_number || 'N/A'}</p>
+                                                    <p><strong>📦 Доставил курьер:</strong> {item.courier_delivered_by || 'Не указано'}</p>
+                                                    <p><strong>📅 Сдано на склад:</strong> {item.courier_delivered_at ? new Date(item.courier_delivered_at).toLocaleString('ru-RU') : 'Не указано'}</p>
+                                                  </>
+                                                )}
                                               </div>
                                             </div>
                                           </div>
