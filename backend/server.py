@@ -14769,9 +14769,9 @@ async def create_courier_pickup_request(
             "pickup_time_from": request_data.get("pickup_time_from", ""),
             "pickup_time_to": request_data.get("pickup_time_to", ""),
             
-            # Назначение груза
-            "destination": request_data.get("route", ""),
-            "route": request_data.get("route", ""),
+            # Назначение груза (наименование груза)
+            "destination": request_data.get("destination", ""),
+            "route": request_data.get("route", ""),  # Сохраняем для совместимости
             
             # Курьерская служба
             "courier_fee": float(request_data.get("courier_fee", 0)),
