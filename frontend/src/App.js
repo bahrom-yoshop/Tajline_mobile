@@ -18962,15 +18962,30 @@ function App() {
                     </Badge>
                   </div>
 
-                  {/* Карта адресов принятых заявок */}
+                  {/* Карта адресов принятых заявок с ограничением */}
                   {acceptedRequests.length > 0 && (
                     <Card className="mb-6">
                       <CardHeader>
-                        <CardTitle className="text-lg text-green-700">
-                          📍 Адреса принятых заявок ({acceptedRequests.length})
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="text-lg text-green-700">
+                            📍 Адреса принятых заявок ({acceptedRequests.length})
+                          </div>
+                          {acceptedRequests.length > 2 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setShowAllAcceptedRequests(!showAllAcceptedRequests)}
+                              className="text-green-700 border-green-300 hover:bg-green-100"
+                            >
+                              {showAllAcceptedRequests ? 'Скрыть' : `Показать все адреса (${acceptedRequests.length})`}
+                            </Button>
+                          )}
                         </CardTitle>
                         <CardDescription className="text-green-600">
-                          Нажмите на адрес, чтобы открыть в Яндекс Картах
+                          Нажмите на адрес, чтобы открыть в Яндекс Картах.
+                          {!showAllAcceptedRequests && acceptedRequests.length > 2 && 
+                            ` Показано ${Math.min(2, acceptedRequests.length)} из ${acceptedRequests.length} адресов.`
+                          }
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
