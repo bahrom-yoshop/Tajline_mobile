@@ -2482,15 +2482,22 @@ function App() {
         // Обновляем статистику размещения
         await fetchPlacementStatistics();
         
-        // Сбрасываем для следующего размещения через 3 секунды
+        // УЛУЧШЕНИЕ: МГНОВЕННЫЙ переход к сканированию следующего груза для непрерывного процесса
+        // Сбрасываем состояние и сразу переходим к сканированию следующего груза
+        setExternalScannerStep('cargo');
+        setExternalCargoInput('');
+        setExternalCellInput('');
+        setExternalScannedCargo(null);
+        setExternalScannedCell(null);
+        setScannerMessage('🔄 Груз размещен! Отсканируйте следующий груз для размещения.');
+        
+        // Мгновенно фокусируемся на поле груза для непрерывной работы
         setTimeout(() => {
-          setExternalScannerStep('cargo');
-          setExternalCargoInput('');
-          setExternalCellInput('');
-          setExternalScannedCargo(null);
-          setExternalScannedCell(null);
-          setScannerMessage('Готов к размещению следующего груза. Отсканируйте QR код груза.');
-        }, 3000);
+          const cargoInput = document.querySelector('input[placeholder*="QR код груза"]');
+          if (cargoInput) {
+            cargoInput.focus();
+          }
+        }, 100);
       } else {
         throw new Error(response?.message || 'Неизвестная ошибка размещения');
       }
