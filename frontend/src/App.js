@@ -7244,6 +7244,29 @@ function App() {
         setTransportManagementModal(false); // Закрываем модальное окно если было открыто
       }
       
+      else if (type === 'cargo-placement') {
+        if (isBulk) {
+          const ids = items.map(cargo => cargo.id);
+          const response = await apiCall('/api/operator/cargo/bulk-remove-from-placement', 'DELETE', {
+            cargo_ids: ids
+          });
+          if (response.success) {
+            showAlert(`${response.deleted_count} грузов успешно удалено из списка размещения`, 'success');
+          } else {
+            showAlert(`Ошибка при массовом удалении: ${response.message}`, 'error');
+          }
+        } else {
+          const response = await apiCall(`/api/operator/cargo/${items[0].id}/remove-from-placement`, 'DELETE');
+          if (response.success) {
+            showAlert(`Груз ${items[0].cargo_number} успешно удален из списка размещения`, 'success');
+          } else {
+            showAlert(`Ошибка при удалении груза: ${response.message}`, 'error');
+          }
+        }
+        setSelectedCargoForDeletion([]);
+        await fetchAvailableCargoForPlacement();
+      }
+      
       setDeleteConfirmModal(false);
       setDeleteConfirmData(null);
       
