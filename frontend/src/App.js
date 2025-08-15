@@ -15721,19 +15721,36 @@ function App() {
                             <Plus className="mr-2 h-5 w-5" />
                             Принимать новый груз
                           </div>
-                          {/* Кнопка переключения режима забора */}
-                          <Button
-                            type="button"
-                            onClick={togglePickupMode}
-                            variant={isPickupMode ? "default" : "outline"}
-                            className={`${isPickupMode 
-                              ? 'bg-orange-600 hover:bg-orange-700 text-white' 
-                              : 'border-orange-300 text-orange-700 hover:bg-orange-100'
-                            }`}
-                          >
-                            <Truck className="mr-2 h-4 w-4" />
-                            {isPickupMode ? 'Режим забора груза' : 'Забор груза'}
-                          </Button>
+                          {/* УЛУЧШЕНИЕ: Две отдельные кнопки */}
+                          <div className="flex space-x-3">
+                            {/* Кнопка для забора груза */}
+                            <Button
+                              type="button"
+                              onClick={togglePickupMode}
+                              variant={isPickupMode ? "default" : "outline"}
+                              className={`${isPickupMode 
+                                ? 'bg-orange-600 hover:bg-orange-700 text-white' 
+                                : 'border-orange-300 text-orange-700 hover:bg-orange-100'
+                              }`}
+                            >
+                              <Truck className="mr-2 h-4 w-4" />
+                              Забор груза
+                            </Button>
+                            
+                            {/* НОВАЯ кнопка для приёма груза через оператора */}
+                            <Button
+                              type="button"
+                              onClick={() => setShowOperatorCargoForm(!showOperatorCargoForm)}
+                              variant={showOperatorCargoForm ? "default" : "outline"}
+                              className={`${showOperatorCargoForm 
+                                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                : 'border-blue-300 text-blue-700 hover:bg-blue-100'
+                              }`}
+                            >
+                              <Package className="mr-2 h-4 w-4" />
+                              Принимать Груз на склад
+                            </Button>
+                          </div>
                         </CardTitle>
                         <CardDescription>
                           {isPickupMode 
