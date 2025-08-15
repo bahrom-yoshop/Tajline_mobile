@@ -5630,7 +5630,7 @@ async def get_available_cargo_for_placement(
 # НОВОЕ: Endpoint для массового удаления грузов из списка размещения
 @app.delete("/api/operator/cargo/bulk-remove-from-placement")
 async def bulk_remove_cargo_from_placement(
-    request: dict,
+    request: BulkRemoveFromPlacementRequest,
     current_user: User = Depends(get_current_user)
 ):
     """Массовое удаление грузов из списка размещения"""
@@ -5638,7 +5638,7 @@ async def bulk_remove_cargo_from_placement(
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     try:
-        cargo_ids = request.get("cargo_ids", [])
+        cargo_ids = request.cargo_ids
         
         if not cargo_ids or len(cargo_ids) == 0:
             raise HTTPException(status_code=400, detail="No cargo IDs provided")
