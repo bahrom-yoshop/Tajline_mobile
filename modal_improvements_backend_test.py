@@ -15,7 +15,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 class ModalImprovementsBackendTester:
-    def __init__(self, base_url="https://qrscan-cargo-2.preview.emergentagent.com"):
+    def __init__(self, base_url="https://tajline-tracker.preview.emergentagent.com"):
         self.base_url = base_url
         self.tokens = {}
         self.users = {}

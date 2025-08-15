@@ -14,7 +14,7 @@ import json
 from datetime import datetime
 
 class DeclaredValueTester:
-    def __init__(self, base_url="https://qrscan-cargo-2.preview.emergentagent.com"):
+    def __init__(self, base_url="https://tajline-tracker.preview.emergentagent.com"):
         self.base_url = base_url
         self.user_token = None
         self.tests_run = 0

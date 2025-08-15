@@ -30,7 +30,7 @@ import os
 from datetime import datetime
 
 # Получаем URL backend из переменной окружения
-BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://788efa99-21d2-482d-bde4-bd95166aa572.preview.emergentagent.com')
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://tajline-tracker.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 def test_warehouse_operator_auth():
@@ -430,7 +430,7 @@ import os
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://qrscan-cargo-2.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-tracker.preview.emergentagent.com/api"
 ADMIN_CREDENTIALS = {
     "phone": "+79999888777",
     "password": "admin123"
@@ -916,7 +916,7 @@ import sys
 from datetime import datetime
 
 # Конфигурация
-BACKEND_URL = "https://qrscan-cargo-2.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-tracker.preview.emergentagent.com/api"
 
 # Тестовые данные
 WAREHOUSE_OPERATOR = {
@@ -1309,7 +1309,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 class CargoTransportAPITester:
-    def __init__(self, base_url="https://qrscan-cargo-2.preview.emergentagent.com"):
+    def __init__(self, base_url="https://tajline-tracker.preview.emergentagent.com"):
         self.base_url = base_url
         self.tokens = {}  # Store tokens for different users
         self.users = {}   # Store user data
@@ -39442,7 +39442,7 @@ def main():
 if __name__ == "__main__":
     # Get the backend URL from environment variable
     import os
-    backend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://qrscan-cargo-2.preview.emergentagent.com')
+    backend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://tajline-tracker.preview.emergentagent.com')
     
     # Initialize tester with the correct URL
     tester = CargoTransportAPITester(base_url=backend_url)

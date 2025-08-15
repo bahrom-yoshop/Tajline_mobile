@@ -7,7 +7,7 @@ import requests
 import json
 
 def test_cargo_verification():
-    base_url = "https://qrscan-cargo-2.preview.emergentagent.com"
+    base_url = "https://tajline-tracker.preview.emergentagent.com"
     
     # Login as warehouse operator
     login_data = {

@@ -7,7 +7,7 @@ import requests
 import json
 
 # Configuration
-BACKEND_URL = "https://qrscan-cargo-2.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-tracker.preview.emergentagent.com/api"
 WAREHOUSE_OPERATOR_CREDENTIALS = {
     "phone": "+79777888999",
     "password": "warehouse123"

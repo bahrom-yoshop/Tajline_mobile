@@ -7,7 +7,7 @@ import requests
 import json
 
 def debug_pickup_acceptance():
-    base_url = "https://qrscan-cargo-2.preview.emergentagent.com"
+    base_url = "https://tajline-tracker.preview.emergentagent.com"
     
     # Login as courier
     courier_login = {

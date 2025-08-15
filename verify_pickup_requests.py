@@ -7,7 +7,7 @@ import requests
 import json
 
 def verify_pickup_requests():
-    base_url = "https://qrscan-cargo-2.preview.emergentagent.com"
+    base_url = "https://tajline-tracker.preview.emergentagent.com"
     
     # Login as courier
     courier_login_data = {
