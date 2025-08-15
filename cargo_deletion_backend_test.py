@@ -240,7 +240,13 @@ class TajlineCargoDeleteTester:
             response = self.session.get(f"{BACKEND_URL}/admin/cargo-requests")
             
             if response.status_code == 200:
-                pickup_requests = response.json().get("items", [])
+                data = response.json()
+                if isinstance(data, dict) and "items" in data:
+                    pickup_requests = data["items"]
+                elif isinstance(data, list):
+                    pickup_requests = data
+                else:
+                    pickup_requests = []
                 
                 if pickup_requests:
                     # Берем первую заявку для тестирования
