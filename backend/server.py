@@ -1020,6 +1020,9 @@ class CargoOrderResponse(BaseModel):
     tracking_code: Optional[str] = None
     created_at: datetime
 
+class BulkRemoveFromPlacementRequest(BaseModel):
+    cargo_ids: List[str] = Field(..., min_items=1, max_items=100, description="Список ID грузов для удаления (максимум 100)")
+
 # Утилиты
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
