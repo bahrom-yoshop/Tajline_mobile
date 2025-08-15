@@ -22125,10 +22125,32 @@ function App() {
                           <Truck className="mr-2 h-5 w-5" />
                           Курьеры ({couriers.length})
                         </div>
-                        <Button onClick={() => setCourierCreateModal(true)}>
-                          <Plus className="mr-2 h-4 w-4" />
-                          Создать курьера
-                        </Button>
+                        <div className="flex items-center space-x-3">
+                          {/* НОВОЕ: Переключатель для показа неактивных курьеров (только для админов) */}
+                          {user?.role === 'admin' && (
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id="show-inactive-couriers"
+                                checked={showInactiveCouriers}
+                                onCheckedChange={(checked) => {
+                                  setShowInactiveCouriers(checked);
+                                  setCouriersPage(1); // Сбрасываем на первую страницу
+                                }}
+                              />
+                              <label
+                                htmlFor="show-inactive-couriers"
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                title="Показать удаленных/неактивных курьеров"
+                              >
+                                Показать удаленных
+                              </label>
+                            </div>
+                          )}
+                          <Button onClick={() => setCourierCreateModal(true)}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Создать курьера
+                          </Button>
+                        </div>
                       </CardTitle>
                       <CardDescription>Управление курьерами и службой доставки</CardDescription>
                     </CardHeader>
