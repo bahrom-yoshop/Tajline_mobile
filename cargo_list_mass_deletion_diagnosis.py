@@ -325,7 +325,7 @@ class CargoListMassDeleteDiagnoser:
                         processing_statuses[processing_status] = processing_statuses.get(processing_status, 0) + 1
                     
                     self.log_test(
-                        'Анализ операторского списка грузов - GET /api/operator/cargo',
+                        'Анализ операторского списка грузов - GET /api/operator/cargo/list',
                         True,
                         f"Найдено {cargo_count} грузов в операторском списке. Статусы: {statuses}. Статусы обработки: {processing_statuses}. Поля: {fields[:10]}..."
                     )
