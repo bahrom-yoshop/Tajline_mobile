@@ -5742,34 +5742,65 @@ async def remove_cargo_from_placement(
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     try:
-        # Ищем груз в operator_cargo коллекции
-        cargo = db.operator_cargo.find_one({"id": cargo_id})
+        # Ищем груз в нескольких коллекциях
+        cargo = None
+        collection_name = None
         
-        if not cargo:
-            # Ищем в основной коллекции cargo
-            cargo = db.cargo.find_one({"id": cargo_id})
-            collection_name = "cargo"
-        else:
+        # Сначала ищем в operator_cargo
+        cargo = db.operator_cargo.find_one({"id": cargo_id})
+        if cargo:
             collection_name = "operator_cargo"
-            
+        
+        # Если не найден, ищем в основной коллекции cargo  
+        if not cargo:
+            cargo = db.cargo.find_one({"id": cargo_id})
+            if cargo:
+                collection_name = "cargo"
+        
+        # НОВОЕ: Если не найден, ищем в заявках на забор
+        if not cargo:
+            request_with_cargo = db.cargo_requests.find_one({
+                "items.id": cargo_id
+            })
+            if request_with_cargo:
+                for item in request_with_cargo.get("items", []):
+                    if item.get("id") == cargo_id:
+                        cargo = item
+                        collection_name = "cargo_requests"
+                        cargo["request_id"] = request_with_cargo["id"]
+                        break
+        
         if not cargo:
             raise HTTPException(status_code=404, detail="Cargo not found")
         
-        # Получаем коллекцию
-        collection = getattr(db, collection_name)
-        
-        # Обновляем статус груза - убираем из списка размещения
-        update_result = collection.update_one(
-            {"id": cargo_id},
-            {
-                "$set": {
-                    "status": "removed_from_placement",
-                    "removed_from_placement_at": datetime.utcnow(),
-                    "removed_from_placement_by": current_user.id,
-                    "updated_at": datetime.utcnow()
+        # Обновляем статус в зависимости от типа коллекции
+        if collection_name == "cargo_requests":
+            # Для заявок на забор обновляем статус item'а в массиве
+            update_result = db.cargo_requests.update_one(
+                {"id": cargo["request_id"], "items.id": cargo_id},
+                {
+                    "$set": {
+                        "items.$.status": "removed_from_placement", 
+                        "items.$.removed_from_placement_at": datetime.utcnow(),
+                        "items.$.removed_from_placement_by": current_user.id,
+                        "updated_at": datetime.utcnow()
+                    }
                 }
-            }
-        )
+            )
+        else:
+            # Для обычных коллекций
+            collection = getattr(db, collection_name)
+            update_result = collection.update_one(
+                {"id": cargo_id},
+                {
+                    "$set": {
+                        "status": "removed_from_placement",
+                        "removed_from_placement_at": datetime.utcnow(),
+                        "removed_from_placement_by": current_user.id,
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
         
         if update_result.modified_count == 0:
             raise HTTPException(status_code=400, detail="Failed to remove cargo from placement")
