@@ -26936,8 +26936,8 @@ function App() {
               </div>
             )}
 
-            {/* Отладочная информация - ВРЕМЕННО ОТКЛЮЧЕНА ДЛЯ ДИАГНОСТИКИ */}
-            {false && (
+            {/* Отладочная информация - ВКЛЮЧАЕМ ДЛЯ ТЕСТИРОВАНИЯ */}
+            {true && (
               <div className="p-2 bg-gray-100 rounded text-xs">
                 <div>Modal Open: {showCargoPlacementModal ? 'true' : 'false'}</div>
                 <div>External Scanner Active: {externalScannerActive ? 'true' : 'false'}</div>
