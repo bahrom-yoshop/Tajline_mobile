@@ -14671,7 +14671,13 @@ function App() {
                                           <p>📦 Блоков: {warehouse.warehouse_structure?.blocks_count || 0}</p>
                                           <p>📚 Полок/блок: {warehouse.warehouse_structure?.shelves_per_block || 0}</p>
                                           <p>🔲 Ячеек/полка: {warehouse.warehouse_structure?.cells_per_shelf || 0}</p>
-                                          <p className="font-semibold">🎯 Всего ячеек: {warehouse.warehouse_structure?.total_cells || 0}</p>
+                                          <p className="font-semibold">
+                                            🎯 Всего ячеек: {(() => {
+                                              const total = warehouse.warehouse_structure?.total_cells || 0;
+                                              console.log(`🔧 Всего ячеек для склада ${warehouse.warehouse_name}:`, total);
+                                              return total;
+                                            })()}
+                                          </p>
                                         </div>
                                       </div>
 
