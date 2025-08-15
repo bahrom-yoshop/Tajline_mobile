@@ -342,11 +342,11 @@ class QRCargoPlacementTester:
         cargo_id = test_cargo.get("id")
         cargo_number = test_cargo.get("cargo_number")
         
-        if not cargo_id:
+        if not cargo_number:
             self.log_result(
                 "Тестирование QR кодов",
                 False,
-                "Не найден ID груза для тестирования"
+                "Не найден номер груза для тестирования"
             )
             return False
         
@@ -373,26 +373,22 @@ class QRCargoPlacementTester:
         print(f"Тестовый склад: {warehouse_name} (ID: {warehouse_id}, Number: {warehouse_number})")
         
         # Различные форматы QR кодов для тестирования
+        # Используем правильный API endpoint: /api/cargo/place-in-cell
         qr_test_cases = [
             {
-                "name": "Компактный формат (03010101)",
-                "qr_code": f"{warehouse_number.zfill(2)}010101",  # warehouse_number + block + shelf + cell
-                "description": "Формат: warehouse_number(2) + block(2) + shelf(2) + cell(2)"
+                "name": "ID-based формат с дефисами (003-01-01-001)",
+                "cell_code": f"{warehouse_number.zfill(3)}-01-01-001",
+                "description": "Формат: warehouse_number(3) + block(2) + shelf(2) + cell(3)"
             },
             {
-                "name": "Формат с разделителями (03-01-01-01)",
-                "qr_code": f"{warehouse_number.zfill(2)}-01-01-01",
-                "description": "Формат с дефисами"
-            },
-            {
-                "name": "Полный UUID формат",
-                "qr_code": f"{warehouse_id}-Б1-П1-Я1",
+                "name": "Полный UUID формат (UUID-Б1-П1-Я1)",
+                "cell_code": f"{warehouse_id}-Б1-П1-Я1",
                 "description": "Полный UUID склада + читаемый формат"
             },
             {
-                "name": "ID-based формат",
-                "qr_code": f"{warehouse_number.zfill(3)}-01-01-001",
-                "description": "Формат: warehouse_number(3) + block(2) + shelf(2) + cell(3)"
+                "name": "Компактный формат (без поддержки в backend)",
+                "cell_code": f"{warehouse_number.zfill(2)}010101",  # warehouse_number + block + shelf + cell
+                "description": "Формат: warehouse_number(2) + block(2) + shelf(2) + cell(2) - НЕ ПОДДЕРЖИВАЕТСЯ BACKEND"
             }
         ]
         
@@ -400,25 +396,25 @@ class QRCargoPlacementTester:
         
         for i, test_case in enumerate(qr_test_cases, 1):
             print(f"\n🔲 Тест {i}: {test_case['name']}")
-            print(f"   QR код: {test_case['qr_code']}")
+            print(f"   Cell код: {test_case['cell_code']}")
             print(f"   Описание: {test_case['description']}")
             
-            # Данные для размещения груза
+            # Данные для размещения груза - используем правильный API
             placement_data = {
-                "cargo_id": cargo_id,
-                "qr_code": test_case["qr_code"]
+                "cargo_number": cargo_number,
+                "cell_code": test_case["cell_code"]
             }
             
             try:
                 response = self.session.post(
-                    f"{BACKEND_URL}/operator/cargo/place",
+                    f"{BACKEND_URL}/cargo/place-in-cell",
                     json=placement_data,
                     timeout=30
                 )
                 
                 test_result = {
                     "format": test_case["name"],
-                    "qr_code": test_case["qr_code"],
+                    "cell_code": test_case["cell_code"],
                     "status_code": response.status_code,
                     "success": response.status_code == 200,
                     "response": None,
@@ -448,7 +444,7 @@ class QRCargoPlacementTester:
             except Exception as e:
                 test_result = {
                     "format": test_case["name"],
-                    "qr_code": test_case["qr_code"],
+                    "cell_code": test_case["cell_code"],
                     "status_code": None,
                     "success": False,
                     "response": None,
@@ -489,11 +485,12 @@ class QRCargoPlacementTester:
             self.log_result(
                 "КРИТИЧЕСКАЯ ПРОВЕРКА: Компактный формат QR (03010101)",
                 compact_format_test["success"],
-                f"Компактный формат QR {'работает корректно' if compact_format_test['success'] else 'не работает'}",
+                f"Компактный формат QR {'работает корректно' if compact_format_test['success'] else 'НЕ ПОДДЕРЖИВАЕТСЯ в backend (ожидаемо)'}",
                 {
-                    "qr_code": compact_format_test["qr_code"],
+                    "cell_code": compact_format_test["cell_code"],
                     "status_code": compact_format_test["status_code"],
-                    "error": compact_format_test["error"] if not compact_format_test["success"] else None
+                    "error": compact_format_test["error"] if not compact_format_test["success"] else None,
+                    "note": "Компактный формат должен обрабатываться на frontend и преобразовываться в поддерживаемый формат"
                 }
             )
         
