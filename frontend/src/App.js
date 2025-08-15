@@ -7279,33 +7279,66 @@ function App() {
       }
       
       else if (type === 'cargo-placement') {
-        if (isBulk) {
-          const ids = items.map(cargo => cargo.id);
-          const response = await apiCall('/api/admin/cargo/bulk', 'DELETE', {
-            ids: ids
-          });
-          if (response.success || response.message) {
-            showAlert(response.message || `${ids.length} грузов успешно удалено полностью из системы`, 'success');
+        try {
+          if (isBulk) {
+            const ids = items.map(cargo => cargo.id);
+            const response = await apiCall('/api/admin/cargo/bulk', 'DELETE', {
+              ids: ids
+            });
+            if (response.success || response.message) {
+              showAlert(response.message || `${ids.length} грузов успешно удалено полностью из системы`, 'success');
+              
+              // Сбрасываем состояния ПЕРЕД обновлением списков
+              setSelectedCargoForDeletion([]);
+              
+              // Обновляем ВСЕ списки грузов после полного удаления (с задержкой для стабильности)
+              setTimeout(async () => {
+                try {
+                  await Promise.all([
+                    fetchAvailableCargoForPlacement(),
+                    fetchAllCargo(),
+                    fetchOperatorCargo(),
+                    fetchUnpaidCargo(),
+                    fetchPaymentHistory(),
+                    fetchPlacedCargo(),
+                    fetchAllPickupRequests()
+                  ]);
+                } catch (error) {
+                  console.error('Ошибка обновления списков:', error);
+                }
+              }, 500);
+            } else {
+              showAlert(`Ошибка при массовом удалении: ${response.message || 'Неизвестная ошибка'}`, 'error');
+            }
           } else {
-            showAlert(`Ошибка при массовом удалении: ${response.message || 'Неизвестная ошибка'}`, 'error');
+            const response = await apiCall(`/api/admin/cargo/${items[0].id}`, 'DELETE');
+            if (response.success || response.message) {
+              showAlert(response.message || `Груз ${items[0].cargo_number} успешно удален полностью из системы`, 'success');
+              
+              // Обновляем ВСЕ списки грузов после полного удаления (с задержкой для стабильности)
+              setTimeout(async () => {
+                try {
+                  await Promise.all([
+                    fetchAvailableCargoForPlacement(),
+                    fetchAllCargo(),
+                    fetchOperatorCargo(),
+                    fetchUnpaidCargo(),
+                    fetchPaymentHistory(),
+                    fetchPlacedCargo(),
+                    fetchAllPickupRequests()
+                  ]);
+                } catch (error) {
+                  console.error('Ошибка обновления списков:', error);
+                }
+              }, 500);
+            } else {
+              showAlert(`Ошибка при удалении груза: ${response.message || 'Неизвестная ошибка'}`, 'error');
+            }
           }
-        } else {
-          const response = await apiCall(`/api/admin/cargo/${items[0].id}`, 'DELETE');
-          if (response.success || response.message) {
-            showAlert(response.message || `Груз ${items[0].cargo_number} успешно удален полностью из системы`, 'success');
-          } else {
-            showAlert(`Ошибка при удалении груза: ${response.message || 'Неизвестная ошибка'}`, 'error');
-          }
+        } catch (error) {
+          console.error('Ошибка удаления груза:', error);
+          showAlert(`Ошибка при удалении: ${error.message}`, 'error');
         }
-        setSelectedCargoForDeletion([]);
-        // Обновляем ВСЕ списки грузов после полного удаления
-        await fetchAvailableCargoForPlacement();
-        fetchAllCargo(); // Админский список
-        fetchOperatorCargo(); // Список оператора
-        fetchUnpaidCargo(); // Неоплаченные
-        fetchPaymentHistory(); // История платежей
-        fetchPlacedCargo(); // Размещенные
-        fetchAllPickupRequests(); // Заявки на забор
       }
       
       setDeleteConfirmModal(false);
