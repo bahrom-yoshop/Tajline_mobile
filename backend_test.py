@@ -89,7 +89,12 @@ def test_cargo_requests(admin_token):
     
     if response.status_code == 200:
         data = response.json()
-        requests_list = data.get('requests', [])
+        # Handle both list and dict responses
+        if isinstance(data, list):
+            requests_list = data
+        else:
+            requests_list = data.get('requests', [])
+        
         print(f"✅ Найдено заявок на забор: {len(requests_list)}")
         
         # Показываем первые несколько заявок для анализа
