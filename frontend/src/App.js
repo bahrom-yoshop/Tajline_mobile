@@ -4275,6 +4275,12 @@ function App() {
     }
   };
 
+  // Функция для открытия модального окна размещения груза
+  const openCargoPlacementModal = () => {
+    setSessionPlacedCount(0); // Сбрасываем счетчик размещенных грузов
+    setShowCargoPlacementModal(true);
+  };
+
   const performAutoPlacement = async () => {
     if (!scannedCargoData || !scannedCellData) {
       showAlert('Недостаточно данных для размещения груза', 'error');
