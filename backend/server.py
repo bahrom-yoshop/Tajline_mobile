@@ -5434,9 +5434,9 @@ async def get_available_cargo_for_placement(
             warehouses = list(db.warehouses.find({"is_active": True}))
             operator_warehouse_ids = [w["id"] for w in warehouses]
         
-        # Ищем грузы, готовые к размещению (только оплаченные, но не размещенные)
+        # ИСПРАВЛЕНИЕ: Ищем ВСЕ грузы готовые к размещению независимо от статуса оплаты
         placement_query = {
-            "processing_status": "paid",  # Только оплаченные грузы
+            # Убираем проверку processing_status - все грузы могут размещаться
             "status": {"$ne": "placed_in_warehouse"},  # Еще не размещенные
             "$and": [
                 {"$or": [
