@@ -2398,7 +2398,7 @@ async def place_cargo_in_cell(
             print(f"🔍 СТАРЫЙ компактный формат QR (8 цифр): {cell_code} -> Склад#{warehouse_number} Б{block} П{shelf} Я{cell}")
                 
         else:
-            raise HTTPException(status_code=400, detail="Invalid cell code format. Expected: '03010106', '001-01-01-001' or 'WAREHOUSE_ID-Б1-П1-Я1'")
+            raise HTTPException(status_code=400, detail="Invalid cell code format. Expected: '003010106' (9 digits), '03010106' (8 digits), '001-01-01-001' or 'WAREHOUSE_ID-Б1-П1-Я1'")
         
         # Ищем груз
         cargo = db.cargo.find_one({"cargo_number": cargo_number})
