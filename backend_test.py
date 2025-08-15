@@ -566,6 +566,89 @@ class WarehouseNotificationTester:
             )
             return False
     
+    def test_wrong_endpoint_usage(self, notifications):
+        """Test 8: Check if frontend is incorrectly sending modal data to /accept endpoint"""
+        try:
+            if not notifications:
+                self.log_result(
+                    "Проверка неправильного использования endpoint",
+                    False,
+                    "Нет уведомлений для тестирования",
+                    {}
+                )
+                return False
+            
+            # Find a suitable notification for testing
+            test_notification = None
+            for notification in notifications:
+                if notification.get('status') == 'pending_acceptance':
+                    test_notification = notification
+                    break
+            
+            if not test_notification:
+                # Try with any notification
+                test_notification = notifications[0]
+            
+            notification_id = test_notification.get('id')
+            
+            # Test what happens if frontend sends modal data to /accept endpoint (wrong usage)
+            modal_data_to_wrong_endpoint = {
+                "weight": 15.5,
+                "dimensions": {
+                    "length": 50,
+                    "width": 30,
+                    "height": 20
+                },
+                "description": "Тестовое описание груза из модального окна",
+                "special_instructions": "Осторожно, хрупкое",
+                "declared_value": 5000.0,
+                "packaging_type": "коробка",
+                "additional_notes": "Дополнительные заметки оператора"
+            }
+            
+            response = self.session.post(
+                f"{API_BASE}/operator/warehouse-notifications/{notification_id}/accept",
+                json=modal_data_to_wrong_endpoint
+            )
+            
+            if response.status_code == 200:
+                result_data = response.json()
+                self.log_result(
+                    "Проверка неправильного использования endpoint",
+                    True,
+                    f"НАЙДЕНА ПРОБЛЕМА: /accept endpoint принимает данные модального окна, но не обрабатывает их! Статус: {result_data.get('status', 'unknown')}. Это может быть причиной проблемы - данные отправляются, но игнорируются.",
+                    {
+                        "notification_id": notification_id,
+                        "request_data": modal_data_to_wrong_endpoint,
+                        "response": result_data,
+                        "issue": "Frontend может отправлять данные модального окна на неправильный endpoint"
+                    }
+                )
+                return True
+            else:
+                error_details = response.text
+                self.log_result(
+                    "Проверка неправильного использования endpoint",
+                    False,
+                    f"/accept endpoint корректно отклоняет данные модального окна: HTTP {response.status_code}. Это правильное поведение.",
+                    {
+                        "notification_id": notification_id,
+                        "request_data": modal_data_to_wrong_endpoint,
+                        "status_code": response.status_code,
+                        "error": error_details
+                    }
+                )
+                return False
+                
+        except Exception as e:
+            self.log_result(
+                "Проверка неправильного использования endpoint",
+                False,
+                f"Исключение при проверке неправильного использования endpoint: {str(e)}",
+                {"error": str(e)}
+            )
+            return False
+    
     def run_comprehensive_test(self):
         """Run comprehensive warehouse notification modal testing"""
         print("🎯 КРИТИЧЕСКАЯ ДИАГНОСТИКА: Проблема с модальным окном приемки груза в TAJLINE.TJ")
