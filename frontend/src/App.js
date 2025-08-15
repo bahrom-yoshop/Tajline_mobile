@@ -2665,6 +2665,15 @@ function App() {
   const [sessionPlacedCargo, setSessionPlacedCargo] = useState([]); // Список размещенных грузов в текущей сессии
   const [selectedCargoForDeletion, setSelectedCargoForDeletion] = useState([]); // Выбранные грузы для массового удаления
   
+  // НОВОЕ: Состояние для модального окна подтверждения удаления
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [deleteConfirmData, setDeleteConfirmData] = useState({
+    type: '', // 'single' или 'bulk'
+    count: 0,
+    cargoNumbers: [],
+    onConfirm: null
+  });
+  
   // Warehouse Management Modal states
   const [showWarehouseManagementModal, setShowWarehouseManagementModal] = useState(false);
   const [selectedWarehouseForManagement, setSelectedWarehouseForManagement] = useState(null);
