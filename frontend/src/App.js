@@ -5473,10 +5473,31 @@ function App() {
     
     setOperatorAnalyticsLoading(true);
     try {
+      console.log('🔄 Загрузка аналитики дашборда оператора...');
       const response = await apiCall('/api/operator/dashboard/analytics');
+      console.log('📊 Получена аналитика оператора:', response);
+      
+      // ОТЛАДКА: Детальный вывод статистики каждого склада
+      if (response?.warehouses_details) {
+        response.warehouses_details.forEach((warehouse, index) => {
+          console.log(`🏢 Склад ${index + 1}: ${warehouse.warehouse_name}`);
+          console.log('  📈 Статистика ячеек:', {
+            total: warehouse.warehouse_structure?.total_cells,
+            occupied: warehouse.cargo_stats?.occupied_cells,
+            free: warehouse.cargo_stats?.free_cells,
+            occupancy_rate: warehouse.cargo_stats?.occupancy_rate
+          });
+          console.log('  📦 Статистика грузов:', {
+            total_cargo: warehouse.cargo_stats?.total_cargo,
+            total_weight_kg: warehouse.cargo_stats?.total_weight_kg,
+            total_value_rub: warehouse.cargo_stats?.total_value_rub
+          });
+        });
+      }
+      
       setOperatorDashboardAnalytics(response);
     } catch (error) {
-      console.error('Error fetching operator dashboard analytics:', error);
+      console.error('❌ Error fetching operator dashboard analytics:', error);
       showAlert(`Ошибка загрузки аналитики: ${error.message}`, 'error');
     } finally {
       setOperatorAnalyticsLoading(false);
