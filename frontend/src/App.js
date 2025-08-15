@@ -67,6 +67,15 @@ function App() {
     amount_paid: '',
     payment_notes: ''
   });
+
+  // НОВОЕ: Состояние для информации о маршруте при оформлении груза
+  const [routeInfo, setRouteInfo] = useState({
+    distance: '',
+    duration: '',
+    distanceValue: 0,
+    durationValue: 0
+  });
+
   const [cargo, setCargo] = useState([]);
   const [users, setUsers] = useState([]);
   const [usersPagination, setUsersPagination] = useState({}); // Пагинация для пользователей
