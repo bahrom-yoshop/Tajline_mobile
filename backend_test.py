@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
 """
-КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Проблема с некорректным отображением статистики склада в личном кабинете оператора
-Тестирование GET /api/operator/dashboard/analytics и связанных endpoints для выявления источника некорректных данных
+КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Исправление адреса склада в TAJLINE.TJ
+Тестирование исправления адреса склада на правильный согласно review request.
+
+ЗАДАЧА:
+1. GET /api/operator/warehouses - получить текущие данные склада
+2. PATCH /api/admin/warehouses/{warehouse_id}/address - обновить адрес склада на ПРАВИЛЬНЫЙ
+3. GET /api/operator/warehouses - проверить что адрес обновлен на правильный
+
+ПРАВИЛЬНЫЙ АДРЕС: "Москва, новая улица 1а строение 2" (БЕЗ слова "Селигерская")
+АВТОРИЗАЦИЯ: phone: "+79999888777", password: "admin123"
 """
 
 import requests
@@ -11,117 +19,57 @@ from datetime import datetime
 
 # Конфигурация
 BACKEND_URL = "https://tajline-ops.preview.emergentagent.com/api"
+ADMIN_PHONE = "+79999888777"
+ADMIN_PASSWORD = "admin123"
+CORRECT_ADDRESS = "Москва, новая улица 1а строение 2"
 
-# Учетные данные для тестирования
-OPERATOR_CREDENTIALS = {
-    "phone": "+79777888999",
-    "password": "warehouse123"
-}
-
-ADMIN_CREDENTIALS = {
-    "phone": "+79999888777", 
-    "password": "admin123"
-}
-
-class WarehouseStatisticsTest:
+class WarehouseAddressTester:
     def __init__(self):
         self.session = requests.Session()
-        self.operator_token = None
         self.admin_token = None
-        self.operator_user_data = None
         self.test_results = []
         
     def log_result(self, test_name, success, details):
         """Логирование результатов тестирования"""
-        status = "✅ PASS" if success else "❌ FAIL"
+        status = "✅ УСПЕХ" if success else "❌ ОШИБКА"
         result = {
             "test": test_name,
-            "status": status,
             "success": success,
             "details": details,
             "timestamp": datetime.now().isoformat()
         }
         self.test_results.append(result)
         print(f"{status}: {test_name}")
-        if details:
-            print(f"   Details: {details}")
+        print(f"   Детали: {details}")
         print()
         
-    def authenticate_operator(self):
-        """Авторизация оператора склада"""
-        try:
-            response = self.session.post(
-                f"{BACKEND_URL}/auth/login",
-                json=OPERATOR_CREDENTIALS,
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                self.operator_token = data.get("access_token")
-                self.operator_user_data = data.get("user")
-                
-                if self.operator_token and self.operator_user_data:
-                    user_role = self.operator_user_data.get("role")
-                    user_name = self.operator_user_data.get("full_name")
-                    user_number = self.operator_user_data.get("user_number")
-                    
-                    self.log_result(
-                        "Авторизация оператора склада",
-                        True,
-                        f"Успешная авторизация '{user_name}' (номер: {user_number}), роль: {user_role}"
-                    )
-                    return True
-                else:
-                    self.log_result(
-                        "Авторизация оператора склада",
-                        False,
-                        "Токен или данные пользователя не получены"
-                    )
-                    return False
-            else:
-                self.log_result(
-                    "Авторизация оператора склада",
-                    False,
-                    f"HTTP {response.status_code}: {response.text}"
-                )
-                return False
-                
-        except Exception as e:
-            self.log_result(
-                "Авторизация оператора склада",
-                False,
-                f"Ошибка запроса: {str(e)}"
-            )
-            return False
-            
     def authenticate_admin(self):
-        """Авторизация администратора для сравнения данных"""
+        """Авторизация администратора"""
         try:
-            response = self.session.post(
-                f"{BACKEND_URL}/auth/login",
-                json=ADMIN_CREDENTIALS,
-                timeout=30
-            )
+            print("🔐 АВТОРИЗАЦИЯ АДМИНИСТРАТОРА...")
+            
+            auth_data = {
+                "phone": ADMIN_PHONE,
+                "password": ADMIN_PASSWORD
+            }
+            
+            response = self.session.post(f"{BACKEND_URL}/auth/login", json=auth_data)
             
             if response.status_code == 200:
                 data = response.json()
                 self.admin_token = data.get("access_token")
+                user_info = data.get("user", {})
                 
-                if self.admin_token:
-                    self.log_result(
-                        "Авторизация администратора",
-                        True,
-                        "Успешная авторизация администратора для сравнения данных"
-                    )
-                    return True
-                else:
-                    self.log_result(
-                        "Авторизация администратора",
-                        False,
-                        "Токен администратора не получен"
-                    )
-                    return False
+                self.session.headers.update({
+                    "Authorization": f"Bearer {self.admin_token}"
+                })
+                
+                self.log_result(
+                    "Авторизация администратора",
+                    True,
+                    f"Успешная авторизация '{user_info.get('full_name', 'N/A')}' (номер: {user_info.get('user_number', 'N/A')}), роль: {user_info.get('role', 'N/A')}"
+                )
+                return True
             else:
                 self.log_result(
                     "Авторизация администратора",
@@ -134,182 +82,47 @@ class WarehouseStatisticsTest:
             self.log_result(
                 "Авторизация администратора",
                 False,
-                f"Ошибка запроса: {str(e)}"
+                f"Исключение: {str(e)}"
             )
             return False
-
-    def test_operator_dashboard_analytics(self):
-        """КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: GET /api/operator/dashboard/analytics"""
+    
+    def get_current_warehouses(self):
+        """Получить текущие данные складов"""
         try:
-            headers = {"Authorization": f"Bearer {self.operator_token}"}
-            response = self.session.get(
-                f"{BACKEND_URL}/operator/dashboard/analytics",
-                headers=headers,
-                timeout=30
-            )
+            print("📦 ПОЛУЧЕНИЕ ТЕКУЩИХ ДАННЫХ СКЛАДОВ...")
+            
+            response = self.session.get(f"{BACKEND_URL}/operator/warehouses")
             
             if response.status_code == 200:
-                data = response.json()
+                warehouses = response.json()
                 
-                # Проверяем структуру ответа
-                required_sections = ["operator_info", "warehouses_details", "summary_stats"]
-                missing_sections = [section for section in required_sections if section not in data]
-                
-                if missing_sections:
+                if warehouses:
+                    warehouse_details = []
+                    for warehouse in warehouses:
+                        details = {
+                            "id": warehouse.get("id"),
+                            "name": warehouse.get("name"),
+                            "location": warehouse.get("location"),
+                            "address": warehouse.get("address")
+                        }
+                        warehouse_details.append(details)
+                    
                     self.log_result(
-                        "GET /api/operator/dashboard/analytics - Структура ответа",
-                        False,
-                        f"Отсутствуют секции: {missing_sections}"
+                        "Получение текущих данных складов",
+                        True,
+                        f"Найдено {len(warehouses)} складов. Детали: {json.dumps(warehouse_details, ensure_ascii=False, indent=2)}"
                     )
-                    return None
-                
-                # Анализируем данные складов
-                warehouses_details = data.get("warehouses_details", [])
-                summary_stats = data.get("summary_stats", {})
-                
-                self.log_result(
-                    "GET /api/operator/dashboard/analytics - Получение данных",
-                    True,
-                    f"Получены данные для {len(warehouses_details)} складов"
-                )
-                
-                # Детальный анализ каждого склада
-                total_cells_calculated = 0
-                total_occupied_calculated = 0
-                total_free_calculated = 0
-                
-                for i, warehouse in enumerate(warehouses_details):
-                    warehouse_name = warehouse.get("warehouse_name", f"Склад {i+1}")
-                    warehouse_id = warehouse.get("warehouse_id")
-                    
-                    # Проверяем наличие ключевых полей статистики
-                    # В dashboard API статистика находится в разных местах
-                    warehouse_structure = warehouse.get("warehouse_structure", {})
-                    cargo_stats = warehouse.get("cargo_stats", {})
-                    
-                    warehouse_stats = {}
-                    
-                    # Получаем total_cells из warehouse_structure
-                    if "total_cells" in warehouse_structure:
-                        warehouse_stats["total_cells"] = warehouse_structure["total_cells"]
-                    else:
-                        self.log_result(
-                            f"Статистика склада '{warehouse_name}' - Поле total_cells",
-                            False,
-                            f"Отсутствует поле total_cells в warehouse_structure"
-                        )
-                        continue
-                    
-                    # Получаем остальные поля из cargo_stats
-                    stats_fields = ["occupied_cells", "free_cells", "occupancy_rate"]
-                    for field in stats_fields:
-                        if field in cargo_stats:
-                            warehouse_stats[field] = cargo_stats[field]
-                        else:
-                            self.log_result(
-                                f"Статистика склада '{warehouse_name}' - Поле {field}",
-                                False,
-                                f"Отсутствует поле {field} в cargo_stats"
-                            )
-                            continue
-                    
-                    if len(warehouse_stats) == 4:  # Все поля найдены
-                        # Проверяем математическую корректность
-                        total_cells = warehouse_stats["total_cells"]
-                        occupied_cells = warehouse_stats["occupied_cells"]
-                        free_cells = warehouse_stats["free_cells"]
-                        occupancy_rate = warehouse_stats["occupancy_rate"]
-                        
-                        # Проверка: занятые + свободные = всего ячеек
-                        cells_sum_correct = (occupied_cells + free_cells == total_cells)
-                        
-                        # Проверка: процент загрузки рассчитывается правильно
-                        expected_occupancy = (occupied_cells / total_cells * 100) if total_cells > 0 else 0
-                        occupancy_correct = abs(occupancy_rate - expected_occupancy) < 0.1
-                        
-                        self.log_result(
-                            f"Математическая проверка склада '{warehouse_name}'",
-                            cells_sum_correct and occupancy_correct,
-                            f"Всего: {total_cells}, Занято: {occupied_cells}, Свободно: {free_cells}, "
-                            f"Загрузка: {occupancy_rate:.1f}% (ожидается: {expected_occupancy:.1f}%), "
-                            f"Сумма ячеек: {'✅' if cells_sum_correct else '❌'}, "
-                            f"Процент загрузки: {'✅' if occupancy_correct else '❌'}"
-                        )
-                        
-                        # Накапливаем для общей проверки
-                        total_cells_calculated += total_cells
-                        total_occupied_calculated += occupied_cells
-                        total_free_calculated += free_cells
-                
-                # Проверяем общую статистику
-                summary_total_cells = summary_stats.get("total_cells", 0)
-                summary_occupied_cells = summary_stats.get("occupied_cells", 0)
-                summary_free_cells = summary_stats.get("free_cells", 0)
-                summary_occupancy_rate = summary_stats.get("average_occupancy_rate", 0)  # Исправлено поле
-                
-                # Проверяем соответствие суммарной статистики
-                summary_correct = (
-                    summary_total_cells == total_cells_calculated and
-                    summary_occupied_cells == total_occupied_calculated and
-                    summary_free_cells == total_free_calculated
-                )
-                
-                expected_summary_occupancy = (total_occupied_calculated / total_cells_calculated * 100) if total_cells_calculated > 0 else 0
-                summary_occupancy_correct = abs(summary_occupancy_rate - expected_summary_occupancy) < 0.1
-                
-                self.log_result(
-                    "Проверка суммарной статистики",
-                    summary_correct and summary_occupancy_correct,
-                    f"Суммарно - Всего: {summary_total_cells} (расчет: {total_cells_calculated}), "
-                    f"Занято: {summary_occupied_cells} (расчет: {total_occupied_calculated}), "
-                    f"Свободно: {summary_free_cells} (расчет: {total_free_calculated}), "
-                    f"Загрузка: {summary_occupancy_rate:.1f}% (ожидается: {expected_summary_occupancy:.1f}%)"
-                )
-                
-                return data
-                
+                    return warehouses
+                else:
+                    self.log_result(
+                        "Получение текущих данных складов",
+                        False,
+                        "Список складов пуст"
+                    )
+                    return []
             else:
                 self.log_result(
-                    "GET /api/operator/dashboard/analytics",
-                    False,
-                    f"HTTP {response.status_code}: {response.text}"
-                )
-                return None
-                
-        except Exception as e:
-            self.log_result(
-                "GET /api/operator/dashboard/analytics",
-                False,
-                f"Ошибка запроса: {str(e)}"
-            )
-            return None
-
-    def test_operator_warehouses(self):
-        """Тестирование GET /api/operator/warehouses"""
-        try:
-            headers = {"Authorization": f"Bearer {self.operator_token}"}
-            response = self.session.get(
-                f"{BACKEND_URL}/operator/warehouses",
-                headers=headers,
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                warehouses = data if isinstance(data, list) else data.get("warehouses", [])
-                
-                self.log_result(
-                    "GET /api/operator/warehouses",
-                    True,
-                    f"Получено {len(warehouses)} складов оператора"
-                )
-                
-                # Возвращаем данные для дальнейшего анализа
-                return warehouses
-                
-            else:
-                self.log_result(
-                    "GET /api/operator/warehouses",
+                    "Получение текущих данных складов",
                     False,
                     f"HTTP {response.status_code}: {response.text}"
                 )
@@ -317,251 +130,317 @@ class WarehouseStatisticsTest:
                 
         except Exception as e:
             self.log_result(
-                "GET /api/operator/warehouses",
+                "Получение текущих данных складов",
                 False,
-                f"Ошибка запроса: {str(e)}"
+                f"Исключение: {str(e)}"
             )
             return []
-
-    def test_warehouse_statistics_individual(self, warehouse_id, warehouse_name):
-        """Тестирование GET /api/warehouses/{warehouse_id}/statistics"""
+    
+    def find_moscow_warehouse(self, warehouses):
+        """Найти московский склад для обновления адреса"""
         try:
-            headers = {"Authorization": f"Bearer {self.operator_token}"}
-            response = self.session.get(
-                f"{BACKEND_URL}/warehouses/{warehouse_id}/statistics",
-                headers=headers,
-                timeout=30
-            )
+            print("🔍 ПОИСК МОСКОВСКОГО СКЛАДА...")
             
-            if response.status_code == 200:
-                data = response.json()
+            moscow_warehouses = []
+            for warehouse in warehouses:
+                location = warehouse.get("location", "").lower()
+                name = warehouse.get("name", "").lower()
                 
-                # Проверяем наличие ключевых полей
-                required_fields = ["total_cells", "occupied_cells", "free_cells"]
-                stats = {}
-                
-                for field in required_fields:
-                    if field in data:
-                        stats[field] = data[field]
-                    else:
-                        self.log_result(
-                            f"GET /api/warehouses/{warehouse_id}/statistics - Поле {field}",
-                            False,
-                            f"Отсутствует поле {field} для склада '{warehouse_name}'"
-                        )
-                        return None
-                
-                # Для occupancy_rate проверяем оба возможных названия
-                if "occupancy_rate" in data:
-                    stats["occupancy_rate"] = data["occupancy_rate"]
-                elif "utilization_percent" in data:
-                    stats["occupancy_rate"] = data["utilization_percent"]
-                else:
-                    self.log_result(
-                        f"GET /api/warehouses/{warehouse_id}/statistics - Поле occupancy_rate",
-                        False,
-                        f"Отсутствует поле occupancy_rate/utilization_percent для склада '{warehouse_name}'"
-                    )
-                    return None
-                
-                # Проверяем математическую корректность
-                total_cells = stats["total_cells"]
-                occupied_cells = stats["occupied_cells"]
-                free_cells = stats["free_cells"]
-                occupancy_rate = stats["occupancy_rate"]
-                
-                cells_sum_correct = (occupied_cells + free_cells == total_cells)
-                expected_occupancy = (occupied_cells / total_cells * 100) if total_cells > 0 else 0
-                occupancy_correct = abs(occupancy_rate - expected_occupancy) < 0.1
+                if "москва" in location or "москва" in name:
+                    moscow_warehouses.append(warehouse)
+            
+            if moscow_warehouses:
+                # Берем первый найденный московский склад
+                target_warehouse = moscow_warehouses[0]
                 
                 self.log_result(
-                    f"GET /api/warehouses/{warehouse_id}/statistics - '{warehouse_name}'",
-                    cells_sum_correct and occupancy_correct,
-                    f"Всего: {total_cells}, Занято: {occupied_cells}, Свободно: {free_cells}, "
-                    f"Загрузка: {occupancy_rate:.1f}% (ожидается: {expected_occupancy:.1f}%), "
-                    f"Математика: {'✅' if cells_sum_correct and occupancy_correct else '❌'}"
+                    "Поиск московского склада",
+                    True,
+                    f"Найден московский склад: '{target_warehouse.get('name')}' (ID: {target_warehouse.get('id')}), текущий адрес: '{target_warehouse.get('address', target_warehouse.get('location'))}'"
                 )
-                
-                return stats
-                
+                return target_warehouse
             else:
                 self.log_result(
-                    f"GET /api/warehouses/{warehouse_id}/statistics",
+                    "Поиск московского склада",
                     False,
-                    f"HTTP {response.status_code}: {response.text}"
+                    "Московский склад не найден в списке"
                 )
                 return None
                 
         except Exception as e:
             self.log_result(
-                f"GET /api/warehouses/{warehouse_id}/statistics",
+                "Поиск московского склада",
                 False,
-                f"Ошибка запроса: {str(e)}"
+                f"Исключение: {str(e)}"
             )
             return None
-
-    def compare_statistics_sources(self, dashboard_data, warehouses_list):
-        """Сравнение данных из разных источников"""
+    
+    def update_warehouse_address(self, warehouse_id):
+        """Обновить адрес склада на правильный"""
         try:
-            dashboard_warehouses = dashboard_data.get("warehouses_details", [])
+            print("🏠 ОБНОВЛЕНИЕ АДРЕСА СКЛАДА НА ПРАВИЛЬНЫЙ...")
             
-            # Создаем словарь для быстрого поиска
-            dashboard_by_id = {w.get("warehouse_id"): w for w in dashboard_warehouses}
+            address_data = {
+                "address": CORRECT_ADDRESS
+            }
             
-            discrepancies_found = False
+            response = self.session.patch(
+                f"{BACKEND_URL}/admin/warehouses/{warehouse_id}/address",
+                json=address_data
+            )
             
-            for warehouse in warehouses_list:
-                warehouse_id = warehouse.get("id")
-                warehouse_name = warehouse.get("name", "Неизвестный склад")
+            if response.status_code == 200:
+                data = response.json()
                 
-                if not warehouse_id:
-                    continue
+                self.log_result(
+                    "Обновление адреса склада",
+                    True,
+                    f"Адрес склада успешно обновлен на '{CORRECT_ADDRESS}'. Ответ сервера: {json.dumps(data, ensure_ascii=False)}"
+                )
+                return True
+            else:
+                self.log_result(
+                    "Обновление адреса склада",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
                 
-                # Получаем статистику из индивидуального endpoint
-                individual_stats = self.test_warehouse_statistics_individual(warehouse_id, warehouse_name)
-                
-                if not individual_stats:
-                    continue
-                
-                # Сравниваем с данными из dashboard
-                dashboard_warehouse = dashboard_by_id.get(warehouse_id)
-                
-                if not dashboard_warehouse:
-                    self.log_result(
-                        f"Сравнение источников данных - '{warehouse_name}'",
-                        False,
-                        f"Склад отсутствует в dashboard analytics"
-                    )
-                    discrepancies_found = True
-                    continue
-                
-                # Сравниваем ключевые показатели
-                fields_to_compare = ["total_cells", "occupied_cells", "free_cells", "occupancy_rate"]
-                differences = []
-                
-                for field in fields_to_compare:
-                    if field == "total_cells":
-                        # total_cells берем из warehouse_structure в dashboard
-                        dashboard_value = dashboard_warehouse.get("warehouse_structure", {}).get(field, 0)
-                    else:
-                        # Остальные поля берем из cargo_stats в dashboard
-                        dashboard_value = dashboard_warehouse.get("cargo_stats", {}).get(field, 0)
-                    
-                    individual_value = individual_stats.get(field, 0)
-                    
-                    if field == "occupancy_rate":
-                        # Для процентов допускаем небольшую погрешность
-                        if abs(dashboard_value - individual_value) > 0.1:
-                            differences.append(f"{field}: dashboard={dashboard_value:.1f}%, individual={individual_value:.1f}%")
-                    else:
-                        if dashboard_value != individual_value:
-                            differences.append(f"{field}: dashboard={dashboard_value}, individual={individual_value}")
-                
-                if differences:
-                    self.log_result(
-                        f"Сравнение источников данных - '{warehouse_name}'",
-                        False,
-                        f"РАСХОЖДЕНИЯ НАЙДЕНЫ: {'; '.join(differences)}"
-                    )
-                    discrepancies_found = True
-                else:
-                    self.log_result(
-                        f"Сравнение источников данных - '{warehouse_name}'",
-                        True,
-                        "Данные из разных источников совпадают"
-                    )
-            
-            return not discrepancies_found
-            
         except Exception as e:
             self.log_result(
-                "Сравнение источников данных",
+                "Обновление адреса склада",
                 False,
-                f"Ошибка при сравнении: {str(e)}"
+                f"Исключение: {str(e)}"
             )
             return False
-
+    
+    def verify_address_update(self, warehouse_id):
+        """Проверить что адрес обновлен правильно"""
+        try:
+            print("✅ ПРОВЕРКА ОБНОВЛЕНИЯ АДРЕСА...")
+            
+            response = self.session.get(f"{BACKEND_URL}/operator/warehouses")
+            
+            if response.status_code == 200:
+                warehouses = response.json()
+                
+                # Найти обновленный склад
+                updated_warehouse = None
+                for warehouse in warehouses:
+                    if warehouse.get("id") == warehouse_id:
+                        updated_warehouse = warehouse
+                        break
+                
+                if updated_warehouse:
+                    current_address = updated_warehouse.get("address")
+                    
+                    if current_address == CORRECT_ADDRESS:
+                        self.log_result(
+                            "Проверка обновления адреса",
+                            True,
+                            f"✅ АДРЕС УСПЕШНО ОБНОВЛЕН! Текущий адрес: '{current_address}' соответствует правильному адресу: '{CORRECT_ADDRESS}'"
+                        )
+                        return True
+                    else:
+                        self.log_result(
+                            "Проверка обновления адреса",
+                            False,
+                            f"❌ АДРЕС НЕ СООТВЕТСТВУЕТ! Текущий адрес: '{current_address}', ожидаемый: '{CORRECT_ADDRESS}'"
+                        )
+                        return False
+                else:
+                    self.log_result(
+                        "Проверка обновления адреса",
+                        False,
+                        f"Склад с ID {warehouse_id} не найден после обновления"
+                    )
+                    return False
+            else:
+                self.log_result(
+                    "Проверка обновления адреса",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_result(
+                "Проверка обновления адреса",
+                False,
+                f"Исключение: {str(e)}"
+            )
+            return False
+    
+    def check_address_correctness(self, warehouses):
+        """Дополнительная проверка правильности адресов"""
+        try:
+            print("🔍 ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА ПРАВИЛЬНОСТИ АДРЕСОВ...")
+            
+            issues_found = []
+            correct_addresses = []
+            
+            for warehouse in warehouses:
+                name = warehouse.get("name", "")
+                address = warehouse.get("address", warehouse.get("location", ""))
+                
+                if "москва" in name.lower() or "москва" in address.lower():
+                    if "селигерская" in address.lower():
+                        issues_found.append({
+                            "warehouse": name,
+                            "id": warehouse.get("id"),
+                            "current_address": address,
+                            "issue": "Содержит слово 'Селигерская' - должно быть исправлено"
+                        })
+                    elif address == CORRECT_ADDRESS:
+                        correct_addresses.append({
+                            "warehouse": name,
+                            "id": warehouse.get("id"),
+                            "address": address
+                        })
+            
+            if issues_found:
+                self.log_result(
+                    "Проверка правильности адресов",
+                    False,
+                    f"Найдены проблемы с адресами: {json.dumps(issues_found, ensure_ascii=False, indent=2)}"
+                )
+                return False, issues_found
+            else:
+                self.log_result(
+                    "Проверка правильности адресов",
+                    True,
+                    f"Все московские склады имеют правильные адреса: {json.dumps(correct_addresses, ensure_ascii=False, indent=2)}"
+                )
+                return True, correct_addresses
+                
+        except Exception as e:
+            self.log_result(
+                "Проверка правильности адресов",
+                False,
+                f"Исключение: {str(e)}"
+            )
+            return False, []
+    
     def run_comprehensive_test(self):
-        """Запуск полного тестирования статистики склада"""
-        print("🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Проблема с некорректным отображением статистики склада")
+        """Запустить полное тестирование исправления адреса склада"""
+        print("🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: ИСПРАВЛЕНИЕ АДРЕСА СКЛАДА В TAJLINE.TJ")
+        print("=" * 80)
+        print(f"Правильный адрес: '{CORRECT_ADDRESS}'")
+        print(f"Авторизация: {ADMIN_PHONE}")
         print("=" * 80)
         print()
         
-        # Шаг 1: Авторизация оператора
-        if not self.authenticate_operator():
-            print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось авторизоваться как оператор склада")
-            return False
-        
-        # Шаг 2: Авторизация администратора для сравнения
+        # 1. Авторизация администратора
         if not self.authenticate_admin():
-            print("⚠️ ПРЕДУПРЕЖДЕНИЕ: Не удалось авторизоваться как администратор")
-        
-        # Шаг 3: Тестирование главного endpoint статистики оператора
-        dashboard_data = self.test_operator_dashboard_analytics()
-        if not dashboard_data:
-            print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось получить данные dashboard analytics")
+            print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось авторизоваться как администратор")
             return False
         
-        # Шаг 4: Получение списка складов оператора
-        warehouses_list = self.test_operator_warehouses()
-        if not warehouses_list:
-            print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось получить список складов оператора")
+        # 2. Получение текущих данных складов
+        warehouses = self.get_current_warehouses()
+        if not warehouses:
+            print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось получить данные складов")
             return False
         
-        # Шаг 5: Сравнение данных из разных источников
-        comparison_success = self.compare_statistics_sources(dashboard_data, warehouses_list)
+        # 3. Дополнительная проверка правильности адресов (до обновления)
+        print("📋 ПРОВЕРКА АДРЕСОВ ДО ОБНОВЛЕНИЯ:")
+        is_correct_before, details_before = self.check_address_correctness(warehouses)
         
-        # Подведение итогов
+        # 4. Поиск московского склада
+        moscow_warehouse = self.find_moscow_warehouse(warehouses)
+        if not moscow_warehouse:
+            print("❌ КРИТИЧЕСКАЯ ОШИБКА: Московский склад не найден")
+            return False
+        
+        warehouse_id = moscow_warehouse.get("id")
+        current_address = moscow_warehouse.get("address", moscow_warehouse.get("location"))
+        
+        # 5. Проверка, нужно ли обновление
+        if current_address == CORRECT_ADDRESS:
+            print(f"✅ АДРЕС УЖЕ ПРАВИЛЬНЫЙ: '{current_address}'")
+            self.log_result(
+                "Проверка необходимости обновления",
+                True,
+                f"Адрес склада уже соответствует правильному: '{CORRECT_ADDRESS}'"
+            )
+        else:
+            print(f"🔄 ТРЕБУЕТСЯ ОБНОВЛЕНИЕ: '{current_address}' → '{CORRECT_ADDRESS}'")
+            
+            # 6. Обновление адреса склада
+            if not self.update_warehouse_address(warehouse_id):
+                print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось обновить адрес склада")
+                return False
+            
+            # 7. Проверка обновления
+            if not self.verify_address_update(warehouse_id):
+                print("❌ КРИТИЧЕСКАЯ ОШИБКА: Адрес не был обновлен правильно")
+                return False
+        
+        # 8. Финальная проверка всех адресов
+        print("📋 ФИНАЛЬНАЯ ПРОВЕРКА АДРЕСОВ:")
+        final_warehouses = self.get_current_warehouses()
+        if final_warehouses:
+            is_correct_after, details_after = self.check_address_correctness(final_warehouses)
+            
+            if is_correct_after:
+                print("🎉 ВСЕ АДРЕСА ПРАВИЛЬНЫЕ!")
+            else:
+                print("⚠️ НАЙДЕНЫ ПРОБЛЕМЫ С АДРЕСАМИ")
+        
+        return True
+    
+    def print_summary(self):
+        """Вывести итоговый отчет"""
+        print("\n" + "=" * 80)
+        print("📊 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ")
         print("=" * 80)
-        print("📊 ИТОГИ ТЕСТИРОВАНИЯ:")
-        print()
         
         total_tests = len(self.test_results)
-        passed_tests = len([r for r in self.test_results if r["success"]])
-        failed_tests = total_tests - passed_tests
+        successful_tests = len([r for r in self.test_results if r["success"]])
+        failed_tests = total_tests - successful_tests
+        
+        success_rate = (successful_tests / total_tests * 100) if total_tests > 0 else 0
         
         print(f"Всего тестов: {total_tests}")
-        print(f"Успешных: {passed_tests} ✅")
-        print(f"Неудачных: {failed_tests} ❌")
-        print(f"Процент успеха: {(passed_tests/total_tests*100):.1f}%")
+        print(f"Успешных: {successful_tests}")
+        print(f"Неудачных: {failed_tests}")
+        print(f"Процент успеха: {success_rate:.1f}%")
         print()
         
-        # Анализ критических проблем
-        critical_issues = []
-        for result in self.test_results:
-            if not result["success"] and ("РАСХОЖДЕНИЯ НАЙДЕНЫ" in result["details"] or "математическая" in result["test"].lower()):
-                critical_issues.append(result)
-        
-        if critical_issues:
-            print("🚨 КРИТИЧЕСКИЕ ПРОБЛЕМЫ НАЙДЕНЫ:")
-            for issue in critical_issues:
-                print(f"   • {issue['test']}: {issue['details']}")
+        if failed_tests > 0:
+            print("❌ НЕУДАЧНЫЕ ТЕСТЫ:")
+            for result in self.test_results:
+                if not result["success"]:
+                    print(f"  • {result['test']}: {result['details']}")
             print()
         
-        # Рекомендации
-        print("💡 РЕКОМЕНДАЦИИ:")
-        if failed_tests == 0:
-            print("   ✅ Все тесты прошли успешно. Статистика склада работает корректно.")
+        if successful_tests == total_tests:
+            print("🎉 ВСЕ ТЕСТЫ ПРОЙДЕНЫ УСПЕШНО!")
+            print(f"✅ АДРЕС СКЛАДА ИСПРАВЛЕН НА ПРАВИЛЬНЫЙ: '{CORRECT_ADDRESS}'")
         else:
-            print("   🔧 Обнаружены проблемы в расчете или отображении статистики склада.")
-            print("   📋 Проверьте логику расчета в backend endpoints.")
-            print("   🔍 Убедитесь в синхронизации данных между коллекциями MongoDB.")
+            print("⚠️ НЕКОТОРЫЕ ТЕСТЫ НЕ ПРОЙДЕНЫ")
         
-        return failed_tests == 0
+        print("=" * 80)
 
 def main():
-    """Главная функция запуска тестирования"""
-    tester = WarehouseStatisticsTest()
+    """Основная функция"""
+    tester = WarehouseAddressTester()
     
     try:
         success = tester.run_comprehensive_test()
-        sys.exit(0 if success else 1)
+        tester.print_summary()
         
+        if success:
+            print("\n✅ ТЕСТИРОВАНИЕ ЗАВЕРШЕНО УСПЕШНО")
+            sys.exit(0)
+        else:
+            print("\n❌ ТЕСТИРОВАНИЕ ЗАВЕРШЕНО С ОШИБКАМИ")
+            sys.exit(1)
+            
     except KeyboardInterrupt:
-        print("\n⚠️ Тестирование прервано пользователем")
+        print("\n⚠️ ТЕСТИРОВАНИЕ ПРЕРВАНО ПОЛЬЗОВАТЕЛЕМ")
         sys.exit(1)
     except Exception as e:
-        print(f"\n❌ КРИТИЧЕСКАЯ ОШИБКА: {str(e)}")
+        print(f"\n💥 КРИТИЧЕСКАЯ ОШИБКА: {str(e)}")
         sys.exit(1)
 
 if __name__ == "__main__":
