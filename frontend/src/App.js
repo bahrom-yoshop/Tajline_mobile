@@ -4413,13 +4413,27 @@ function App() {
     setShowCargoPlacementModal(true);
   };
 
-  // НОВОЕ: Функция для удаления груза из списка размещения
-  const handleDeleteCargoFromPlacement = async (cargoId, cargoNumber) => {
-    const cargoItem = availableCargoForPlacement.find(item => item.id === cargoId);
+  // ОБНОВЛЕНО: Универсальная функция для удаления груза полностью из системы
+  const handleDeleteCargo = async (cargoId, cargoNumber, cargoList = null) => {
+    // Ищем груз в переданном списке или в доступных для размещения
+    let cargoItem = null;
+    if (cargoList) {
+      cargoItem = cargoList.find(item => item.id === cargoId);
+    } else {
+      cargoItem = availableCargoForPlacement.find(item => item.id === cargoId);
+    }
+    
     if (cargoItem) {
+      openDeleteConfirmModal('cargo-placement', cargoItem, false);
+    } else {
+      // Если не нашли в списках, создаем объект груза для удаления
+      cargoItem = { id: cargoId, cargo_number: cargoNumber };
       openDeleteConfirmModal('cargo-placement', cargoItem, false);
     }
   };
+
+  // Сохраняем старое название для совместимости
+  const handleDeleteCargoFromPlacement = handleDeleteCargo;
 
   // НОВОЕ: Функции для массового удаления грузов
   const handleSelectCargoForDeletion = (cargoId) => {
