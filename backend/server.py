@@ -13425,23 +13425,42 @@ async def create_courier(
 async def get_couriers_list(
     current_user: User = Depends(get_current_user),
     page: int = 1,
-    per_page: int = 25
+    per_page: int = 25,
+    show_inactive: bool = False  # Новый параметр для показа неактивных курьеров
 ):
-    """Получить список всех курьеров (админ/оператор)"""
+    """Получить список курьеров (админ/оператор)"""
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     try:
+        # Базовый фильтр - по умолчанию показываем только активных курьеров
+        if show_inactive:
+            # Показываем всех курьеров (только для админов)
+            if current_user.role != UserRole.ADMIN:
+                raise HTTPException(status_code=403, detail="Only admins can view inactive couriers")
+            active_filter = {}
+        else:
+            # Показываем только активных курьеров (не удаленных)
+            active_filter = {
+                "$and": [
+                    {"$or": [{"is_active": {"$ne": False}}, {"is_active": {"$exists": False}}]},
+                    {"$or": [{"deleted": {"$ne": True}}, {"deleted": {"$exists": False}}]}
+                ]
+            }
+        
         # Для операторов - только курьеры их складов
         if current_user.role == UserRole.WAREHOUSE_OPERATOR:
             operator_warehouses = get_operator_warehouse_ids(current_user.id)
             if not operator_warehouses:
                 return create_pagination_response([], 0, page, per_page)
             
-            couriers_query = {"assigned_warehouse_id": {"$in": operator_warehouses}}
+            couriers_query = {
+                "assigned_warehouse_id": {"$in": operator_warehouses},
+                **active_filter
+            }
         else:
-            # Админы видят всех курьеров
-            couriers_query = {}
+            # Админы видят курьеров согласно фильтру активности
+            couriers_query = active_filter
         
         # Получаем курьеров с пагинацией
         total_count = db.couriers.count_documents(couriers_query)
