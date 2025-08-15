@@ -17426,26 +17426,52 @@ function App() {
                                   Удалить заявки ({selectedPickupRequests.length})
                                 </Button>
                                 
-                                {/* НОВОЕ: Массовое удаление грузов */}
+                                {/* ИСПРАВЛЕНО: Массовое удаление заявок на груз */}
                                 <Button
                                   variant="destructive"
                                   size="sm"
-                                  onClick={() => {
-                                    const cargoItemsToDelete = allPickupRequests
-                                      .filter(req => selectedPickupRequests.includes(req.id))
-                                      .map(req => ({
-                                        id: req.id,
-                                        cargo_number: req.request_number || req.cargo_name,
-                                        sender_full_name: req.sender_full_name,
-                                        recipient_full_name: req.recipient_full_name,
-                                        weight: req.weight || 'Не указан'
-                                      }));
-                                    handleBulkDeleteCargoCompletely(selectedPickupRequests, cargoItemsToDelete);
+                                  onClick={async () => {
+                                    if (window.confirm(`Вы уверены, что хотите удалить ${selectedPickupRequests.length} заявок на груз? Это действие необратимо!`)) {
+                                      try {
+                                        // Delete each selected request individually
+                                        let successCount = 0;
+                                        let errorCount = 0;
+                                        
+                                        for (const requestId of selectedPickupRequests) {
+                                          try {
+                                            const response = await apiCall(`/api/admin/cargo-applications/${requestId}`, 'DELETE');
+                                            if (response.success || response.message) {
+                                              successCount++;
+                                            } else {
+                                              errorCount++;
+                                            }
+                                          } catch (error) {
+                                            console.error(`Ошибка удаления заявки ${requestId}:`, error);
+                                            errorCount++;
+                                          }
+                                        }
+                                        
+                                        if (successCount > 0) {
+                                          showAlert(`${successCount} заявок успешно удалено`, 'success');
+                                        }
+                                        if (errorCount > 0) {
+                                          showAlert(`${errorCount} заявок не удалось удалить`, 'error');
+                                        }
+                                        
+                                        // Очищаем выбранные заявки и обновляем список
+                                        setSelectedPickupRequests([]);
+                                        await fetchAllPickupRequests();
+                                        
+                                      } catch (error) {
+                                        console.error('Ошибка массового удаления заявок:', error);
+                                        showAlert(`Ошибка при массовом удалении: ${error.message}`, 'error');
+                                      }
+                                    }
                                   }}
                                   className="flex items-center bg-red-700 hover:bg-red-800"
                                 >
                                   <Trash2 className="mr-1 h-3 w-3" />
-                                  Удалить грузы ({selectedPickupRequests.length})
+                                  Удалить заявки ({selectedPickupRequests.length})
                                 </Button>
                               </div>
                             )}
