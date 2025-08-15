@@ -595,7 +595,7 @@ class CourierFilterTest:
         all_couriers = self.test_couriers_list_show_inactive()
         
         # Шаг 5: Проверка безопасности - оператор не может использовать show_inactive=true
-        if self.operator_token:
+        if operator_authenticated and self.operator_token:
             self.test_operator_security_show_inactive()
         
         # Шаг 6: Создание тестового курьера
