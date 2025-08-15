@@ -10,6 +10,7 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [mapReady, setMapReady] = useState(false);
+  const [initStatus, setInitStatus] = useState('Начинаем инициализацию...');
 
   // Инициализация карты
   useEffect(() => {
@@ -18,82 +19,93 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
     const initMap = async () => {
       try {
         console.log('🗺️ Начинаем инициализацию карты...');
+        setInitStatus('Проверяем API ключ...');
         
         // Проверяем наличие API ключа
         const apiKey = process.env.REACT_APP_YANDEX_MAPS_API_KEY;
+        console.log('🔑 API ключ:', apiKey ? 'найден' : 'НЕ НАЙДЕН');
+        
         if (!apiKey) {
           throw new Error('API ключ Yandex Maps не найден');
         }
 
-        // Загружаем Yandex Maps API если не загружен
+        setInitStatus('Загружаем Yandex Maps API...');
+
+        // Простая загрузка скрипта без сложной логики
         if (!window.ymaps) {
-          console.log('📡 Загружаем Yandex Maps API...');
-          await loadYandexMapsScript(apiKey);
+          console.log('📡 Загружаем скрипт Yandex Maps...');
+          
+          const script = document.createElement('script');
+          script.src = `https://api-maps.yandex.ru/2.1/?apikey=${apiKey}&lang=ru_RU`;
+          script.async = true;
+          
+          const scriptPromise = new Promise((resolve, reject) => {
+            script.onload = () => {
+              console.log('✅ Скрипт Yandex Maps загружен');
+              resolve();
+            };
+            script.onerror = () => {
+              console.error('❌ Ошибка загрузки скрипта');
+              reject(new Error('Не удалось загрузить Yandex Maps API'));
+            };
+          });
+          
+          document.head.appendChild(script);
+          await scriptPromise;
         }
 
-        // Ждем готовности API
+        setInitStatus('Ожидаем готовности API...');
+
+        // Ждем готовности API с таймаутом
         await new Promise((resolve, reject) => {
           const timeout = setTimeout(() => {
-            reject(new Error('Таймаут загрузки Yandex Maps API'));
-          }, 10000); // 10 секунд таймаут
+            console.error('❌ Таймаут загрузки Yandex Maps API');
+            reject(new Error('Таймаут загрузки Yandex Maps API (15 сек)'));
+          }, 15000);
 
-          window.ymaps.ready(() => {
+          if (window.ymaps) {
+            window.ymaps.ready(() => {
+              console.log('✅ Yandex Maps API готов');
+              clearTimeout(timeout);
+              resolve();
+            });
+          } else {
             clearTimeout(timeout);
-            resolve();
-          });
+            reject(new Error('Yandex Maps API недоступен после загрузки скрипта'));
+          }
         });
+
+        setInitStatus('Создаем карту...');
 
         // Создаем карту
         const ymaps = window.ymaps;
+        console.log('🗺️ Создаем карту в контейнере:', mapRef.current);
+        
         const newMap = new ymaps.Map(mapRef.current, {
-          center: [38.5736, 68.7870], // Центр Душанбе
+          center: [55.7558, 37.6173], // Москва
           zoom: 10,
           controls: ['zoomControl', 'fullscreenControl']
         });
 
+        console.log('✅ Карта создана успешно');
         setMap(newMap);
         setMapReady(true);
-        console.log('✅ Карта успешно инициализирована');
+        setInitStatus('Карта готова!');
 
       } catch (error) {
         console.error('❌ Ошибка инициализации карты:', error);
         setError(`Ошибка загрузки карты: ${error.message}`);
+        setInitStatus(`Ошибка: ${error.message}`);
       }
     };
 
     initMap();
   }, [map, mapReady]);
 
-  // Функция загрузки скрипта Yandex Maps
-  const loadYandexMapsScript = (apiKey) => {
-    return new Promise((resolve, reject) => {
-      // Проверяем, не загружен ли уже скрипт
-      if (document.querySelector('script[src*="api-maps.yandex.ru"]')) {
-        resolve();
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = `https://api-maps.yandex.ru/2.1/?apikey=${apiKey}&lang=ru_RU`;
-      script.async = true;
-      
-      script.onload = () => {
-        console.log('✅ Yandex Maps скрипт загружен');
-        resolve();
-      };
-      
-      script.onerror = () => {
-        reject(new Error('Не удалось загрузить Yandex Maps API'));
-      };
-      
-      document.head.appendChild(script);
-    });
-  };
-
   // Построение маршрута
   useEffect(() => {
     if (!map || !fromAddress || !toAddress || !mapReady) {
-      console.log('⏳ Ожидание готовности карты или адресов:', { 
+      console.log('⏳ Ожидание готовности для построения маршрута:', { 
         map: !!map, 
         fromAddress: !!fromAddress, 
         toAddress: !!toAddress, 
@@ -111,15 +123,15 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
       try {
         const ymaps = window.ymaps;
         if (!ymaps) {
-          throw new Error('Yandex Maps API не доступен');
+          throw new Error('Yandex Maps API недоступен');
         }
 
-        // Очищаем предыдущий маршрут и маркеры
+        // Очищаем карту
         map.geoObjects.removeAll();
 
         console.log(`🗺️ Строим маршрут от "${fromAddress}" до "${toAddress}"`);
 
-        // Создаем мультимаршрут с улучшенными настройками
+        // Создаем маршрут
         const multiRoute = new ymaps.multiRouter.MultiRoute({
           referencePoints: [fromAddress, toAddress],
           params: {
@@ -130,32 +142,25 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
           boundsAutoApply: true,
           routeActiveStrokeWidth: 4,
           routeActiveStrokeColor: '#3B82F6',
-          routeInactiveStrokeWidth: 3,
-          routeInactiveStrokeColor: '#94A3B8',
           wayPointDraggable: false
         });
 
-        // Добавляем маршрут на карту
         map.geoObjects.add(multiRoute);
         setRoute(multiRoute);
 
-        // Обработчик успешного построения маршрута
+        // Обработчик успеха
         multiRoute.model.events.add('requestsuccess', () => {
           try {
-            console.log('✅ Маршрут успешно построен');
+            console.log('✅ Маршрут построен');
             const activeRoute = multiRoute.getActiveRoute();
             
             if (activeRoute) {
-              // Получаем данные маршрута
               const distanceValue = activeRoute.properties.get('distance');
               const durationObj = activeRoute.properties.get('duration');
 
-              console.log('📊 Данные маршрута:', { 
-                distance: distanceValue, 
-                duration: durationObj 
-              });
+              console.log('📊 Данные маршрута:', { distance: distanceValue, duration: durationObj });
 
-              // Форматируем расстояние
+              // Форматирование расстояния
               let distanceText = 'Неизвестно';
               if (typeof distanceValue === 'number' && !isNaN(distanceValue) && distanceValue > 0) {
                 distanceText = distanceValue >= 1000 
@@ -163,28 +168,23 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
                   : `${Math.round(distanceValue)} м`;
               }
 
-              // Форматируем время
+              // Форматирование времени
               let durationText = 'Неизвестно';
               let durationValue = 0;
               
-              if (durationObj) {
-                if (typeof durationObj.value === 'number') {
-                  durationValue = durationObj.value;
-                  const totalMinutes = Math.round(durationValue / 60);
-                  const hours = Math.floor(totalMinutes / 60);
-                  const minutes = totalMinutes % 60;
-                  durationText = hours > 0 
-                    ? `${hours} ч ${minutes} мин`
-                    : `${minutes} мин`;
-                } else if (typeof durationObj.text === 'string') {
-                  durationText = durationObj.text;
-                }
+              if (durationObj && typeof durationObj.value === 'number') {
+                durationValue = durationObj.value;
+                const totalMinutes = Math.round(durationValue / 60);
+                const hours = Math.floor(totalMinutes / 60);
+                const minutes = totalMinutes % 60;
+                durationText = hours > 0 
+                  ? `${hours} ч ${minutes} мин`
+                  : `${minutes} мин`;
               }
 
               setDistance(distanceText);
               setDuration(durationText);
 
-              // Передаем данные родителю
               if (onRouteCalculated) {
                 onRouteCalculated({
                   distance: distanceText,
@@ -196,14 +196,13 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
 
               console.log(`✅ Результат: ${distanceText}, время: ${durationText}`);
 
-              // Добавляем кастомные маркеры
+              // Добавляем маркеры
               try {
                 const routeCoords = activeRoute.geometry.getCoordinates();
                 if (routeCoords && routeCoords.length > 0) {
                   const startCoord = routeCoords[0];
                   const endCoord = routeCoords[routeCoords.length - 1];
 
-                  // Маркер начальной точки
                   const startPlacemark = new ymaps.Placemark(startCoord, {
                     balloonContent: `<strong>Адрес забора:</strong><br/>${fromAddress}`,
                     iconContent: 'А'
@@ -211,7 +210,6 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
                     preset: 'islands#redStretchyIcon'
                   });
 
-                  // Маркер конечной точки  
                   const endPlacemark = new ymaps.Placemark(endCoord, {
                     balloonContent: `<strong>Склад:</strong><br/>${toAddress}`,
                     iconContent: 'Б'
@@ -225,7 +223,7 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
                   console.log('✅ Маркеры добавлены');
                 }
               } catch (markerError) {
-                console.error('⚠️ Ошибка добавления маркеров:', markerError);
+                console.error('⚠️ Ошибка маркеров:', markerError);
               }
             }
           } catch (routeError) {
@@ -234,10 +232,10 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
           }
         });
 
-        // Обработчик ошибок построения маршрута
+        // Обработчик ошибок
         multiRoute.model.events.add('requestfail', (e) => {
           console.error('❌ Ошибка построения маршрута:', e);
-          setError('Не удалось построить маршрут. Проверьте правильность адресов.');
+          setError('Не удалось построить маршрут. Проверьте адреса.');
         });
 
       } catch (error) {
@@ -248,7 +246,6 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
       }
     };
 
-    // Debounce для избежания частых запросов
     const debounceTimer = setTimeout(buildRoute, 1500);
     return () => clearTimeout(debounceTimer);
   }, [map, fromAddress, toAddress, mapReady]);
@@ -258,34 +255,53 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
     return (
       <div className="space-y-3">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center mb-2">
             <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent mr-3"></div>
-            <span className="text-blue-700">Загрузка карты...</span>
+            <span className="text-blue-700 font-medium">Загрузка карты...</span>
+          </div>
+          <div className="text-center text-sm text-blue-600">
+            {initStatus}
+          </div>
+          <div className="mt-3 text-xs text-gray-500 text-center">
+            🔧 Откройте консоль браузера (F12) для подробной отладки
           </div>
         </div>
         <div className="border border-gray-300 rounded-lg bg-gray-100 h-64 flex items-center justify-center">
-          <span className="text-gray-500">Инициализация карты</span>
+          <div className="text-center text-gray-500">
+            <div className="animate-pulse mb-2">🗺️</div>
+            <div>Инициализация карты</div>
+            <div className="text-xs mt-1">{initStatus}</div>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Показываем ошибку загрузки карты
+  // Показываем ошибку
   if (error && !mapReady) {
     return (
       <div className="space-y-3">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center">
+          <div className="flex items-center mb-2">
             <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
             <span className="text-red-700 font-medium">Ошибка загрузки карты</span>
           </div>
-          <p className="text-red-600 text-sm mt-1">{error}</p>
+          <p className="text-red-600 text-sm mb-3">{error}</p>
+          <div className="text-xs text-gray-600 mb-3">
+            Статус: {initStatus}
+          </div>
           <button 
             onClick={() => window.location.reload()} 
-            className="mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+            className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
           >
             Перезагрузить страницу
           </button>
+        </div>
+        <div className="border border-red-300 rounded-lg bg-red-50 h-64 flex items-center justify-center">
+          <div className="text-center text-red-600">
+            <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+            <div>Карта недоступна</div>
+          </div>
         </div>
       </div>
     );
