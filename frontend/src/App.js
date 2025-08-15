@@ -100,6 +100,7 @@ function App() {
   const [couriersPagination, setCouriersPagination] = useState({});
   const [couriersPage, setCouriersPage] = useState(1);
   const [couriersPerPage, setCouriersPerPage] = useState(25);
+  const [showInactiveCouriers, setShowInactiveCouriers] = useState(false); // Новое состояние для показа неактивных курьеров
   const [courierCreateForm, setCourierCreateForm] = useState({
     full_name: '',
     phone: '',
