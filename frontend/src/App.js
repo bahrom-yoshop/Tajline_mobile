@@ -17469,6 +17469,29 @@ function App() {
                                         </div>
                                       )}
                                         </div>
+                                        
+                                        {/* НОВОЕ: Кнопки действий для груза */}
+                                        <div className="mt-3 flex items-center space-x-2">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                              // Используем request как объект груза для удаления
+                                              const cargoItem = {
+                                                id: request.id,
+                                                cargo_number: request.request_number || request.cargo_name,
+                                                sender_full_name: request.sender_full_name,
+                                                recipient_full_name: request.recipient_full_name,
+                                                weight: request.weight || 'Не указан'
+                                              };
+                                              handleDeleteCargoCompletely(request.id, request.request_number || request.cargo_name, [cargoItem]);
+                                            }}
+                                            className="flex items-center text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
+                                          >
+                                            <Trash2 className="mr-1 h-3 w-3" />
+                                            Удалить груз
+                                          </Button>
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
