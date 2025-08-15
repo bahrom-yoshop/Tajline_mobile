@@ -17045,8 +17045,8 @@ function App() {
                                     <Card key={item.id} className={`${warehouseColors.border} ${warehouseColors.bg} border-l-4`}>
                                       <CardContent className="p-6">
                                         <div className="flex justify-between items-start">
+                                          {/* НОВОЕ: Чекбокс для выбора груза */}
                                           <div className="flex items-start space-x-4 flex-1">
-                                            {/* НОВОЕ: Чекбокс для выбора груза */}
                                             <label className="flex items-center mt-1">
                                               <input
                                                 type="checkbox"
@@ -17056,7 +17056,6 @@ function App() {
                                               />
                                             </label>
                                             
-                                            {/* Основная информация о грузе */}
                                             <div className="flex-1">
                                               <div className="flex items-center space-x-4 mb-4">
                                                 <h3 className="font-bold text-xl text-blue-600">{item.cargo_number}</h3>
