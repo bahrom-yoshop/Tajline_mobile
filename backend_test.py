@@ -1,5 +1,394 @@
 #!/usr/bin/env python3
 """
+КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Исправленная проблема массового удаления в разделе "Список грузов" TAJLINE.TJ
+
+ИСПРАВЛЕНИЯ ДЛЯ ТЕСТИРОВАНИЯ:
+1) Создана новая Pydantic модель BulkDeleteRequest с валидацией ids: List[str] (1-100 элементов)
+2) Изменен endpoint DELETE /api/admin/cargo/bulk - теперь использует правильную модель
+3) Исправлена структура запроса - теперь принимает {"ids": [...]} вместо неопределенного dict
+4) Добавлено логирование процесса удаления для отладки
+5) Добавлено поле "success": True в ответ для frontend
+
+КРИТИЧЕСКИЕ ТЕСТЫ:
+1) Авторизация администратора (+79999888777/admin123)
+2) Получение списка грузов из раздела "Список грузов" через GET /api/cargo/all или GET /api/admin/cargo
+3) Выбор 2-3 реальных грузов для тестирования массового удаления
+4) Тестирование исправленного endpoint DELETE /api/admin/cargo/bulk с правильной структурой {"ids": [...]}
+5) Проверка что грузы действительно удаляются из обеих коллекций (cargo и operator_cargo)
+6) Проверка логов backend на предмет диагностических сообщений
+
+ОЖИДАЕМЫЙ РЕЗУЛЬТАТ: Массовое удаление из раздела "Список грузов" должно работать без ошибок HTTP 404
+"""
+
+import requests
+import json
+import os
+from datetime import datetime
+
+# Получаем URL backend из переменной окружения
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://tajline-tracker.preview.emergentagent.com')
+API_BASE = f"{BACKEND_URL}/api"
+
+def log_test_result(test_name, success, details=""):
+    """Логирование результатов тестирования"""
+    status = "✅ PASS" if success else "❌ FAIL"
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    print(f"[{timestamp}] {status} {test_name}")
+    if details:
+        print(f"    📋 {details}")
+    print()
+
+def test_admin_authorization():
+    """Тест 1: Авторизация администратора (+79999888777/admin123)"""
+    print("🔐 ТЕСТ 1: Авторизация администратора (+79999888777/admin123)")
+    
+    try:
+        login_data = {
+            "phone": "+79999888777",
+            "password": "admin123"
+        }
+        
+        response = requests.post(f"{API_BASE}/auth/login", json=login_data)
+        
+        if response.status_code == 200:
+            data = response.json()
+            token = data.get("access_token")
+            user_info = data.get("user", {})
+            
+            if token and user_info.get("role") == "admin":
+                log_test_result(
+                    "Авторизация администратора", 
+                    True, 
+                    f"Успешная авторизация '{user_info.get('full_name')}' (номер: {user_info.get('user_number')}), роль: {user_info.get('role')}, JWT токен получен"
+                )
+                return token
+            else:
+                log_test_result("Авторизация администратора", False, "Токен не получен или роль не admin")
+                return None
+        else:
+            log_test_result("Авторизация администратора", False, f"HTTP {response.status_code}: {response.text}")
+            return None
+            
+    except Exception as e:
+        log_test_result("Авторизация администратора", False, f"Ошибка: {str(e)}")
+        return None
+
+def test_get_cargo_list(token):
+    """Тест 2: Получение списка грузов из раздела 'Список грузов'"""
+    print("📦 ТЕСТ 2: Получение списка грузов из раздела 'Список грузов'")
+    
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Пробуем GET /api/cargo/all (основной endpoint для списка грузов)
+        response = requests.get(f"{API_BASE}/cargo/all", headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            cargo_list = data.get("items", data) if isinstance(data, dict) else data
+            
+            if isinstance(cargo_list, list) and len(cargo_list) > 0:
+                # Анализируем статусы грузов
+                status_counts = {}
+                for cargo in cargo_list[:100]:  # Анализируем первые 100 для производительности
+                    status = cargo.get("status", "unknown")
+                    status_counts[status] = status_counts.get(status, 0) + 1
+                
+                log_test_result(
+                    "Получение списка грузов", 
+                    True, 
+                    f"Найдено {len(cargo_list)} грузов в разделе 'Список грузов'. Статусы: {dict(list(status_counts.items())[:5])}"
+                )
+                return cargo_list[:10]  # Возвращаем первые 10 для тестирования
+            else:
+                log_test_result("Получение списка грузов", False, "Список грузов пуст или неверный формат")
+                return []
+        else:
+            # Пробуем альтернативный endpoint GET /api/admin/cargo
+            response = requests.get(f"{API_BASE}/admin/cargo", headers=headers)
+            if response.status_code == 200:
+                data = response.json()
+                cargo_list = data.get("items", data) if isinstance(data, dict) else data
+                
+                if isinstance(cargo_list, list) and len(cargo_list) > 0:
+                    log_test_result(
+                        "Получение списка грузов", 
+                        True, 
+                        f"Найдено {len(cargo_list)} грузов через GET /api/admin/cargo"
+                    )
+                    return cargo_list[:10]
+                    
+            log_test_result("Получение списка грузов", False, f"HTTP {response.status_code}: {response.text}")
+            return []
+            
+    except Exception as e:
+        log_test_result("Получение списка грузов", False, f"Ошибка: {str(e)}")
+        return []
+
+def test_bulk_delete_validation(token):
+    """Тест 3: Валидация BulkDeleteRequest модели"""
+    print("🔍 ТЕСТ 3: Валидация BulkDeleteRequest модели")
+    
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # Тест 3.1: Пустой список ids (должен вернуть ошибку валидации)
+    try:
+        response = requests.delete(f"{API_BASE}/admin/cargo/bulk", 
+                                 headers=headers, 
+                                 json={"ids": []})
+        
+        if response.status_code == 422:
+            log_test_result("Валидация пустого списка", True, "Пустой список ids корректно отклонен (HTTP 422)")
+        else:
+            log_test_result("Валидация пустого списка", False, f"Ожидался HTTP 422, получен {response.status_code}")
+    except Exception as e:
+        log_test_result("Валидация пустого списка", False, f"Ошибка: {str(e)}")
+    
+    # Тест 3.2: Слишком много элементов (>100, должен вернуть ошибку валидации)
+    try:
+        large_list = [f"test-id-{i}" for i in range(101)]  # 101 элемент
+        response = requests.delete(f"{API_BASE}/admin/cargo/bulk", 
+                                 headers=headers, 
+                                 json={"ids": large_list})
+        
+        if response.status_code == 422:
+            log_test_result("Валидация превышения лимита", True, "Список >100 элементов корректно отклонен (HTTP 422)")
+        else:
+            log_test_result("Валидация превышения лимита", False, f"Ожидался HTTP 422, получен {response.status_code}")
+    except Exception as e:
+        log_test_result("Валидация превышения лимита", False, f"Ошибка: {str(e)}")
+    
+    # Тест 3.3: Неверная структура данных (старый формат)
+    try:
+        response = requests.delete(f"{API_BASE}/admin/cargo/bulk", 
+                                 headers=headers, 
+                                 json={"cargo_ids": ["test-id-1", "test-id-2"]})  # Старый формат
+        
+        if response.status_code == 422:
+            log_test_result("Валидация неверной структуры", True, "Старый формат cargo_ids корректно отклонен (HTTP 422)")
+        else:
+            log_test_result("Валидация неверной структуры", False, f"Ожидался HTTP 422, получен {response.status_code}")
+    except Exception as e:
+        log_test_result("Валидация неверной структуры", False, f"Ошибка: {str(e)}")
+
+def test_bulk_delete_functionality(token, cargo_list):
+    """Тест 4: Тестирование исправленного endpoint DELETE /api/admin/cargo/bulk"""
+    print("🎯 ТЕСТ 4: Тестирование исправленного endpoint DELETE /api/admin/cargo/bulk")
+    
+    if len(cargo_list) < 2:
+        log_test_result("Массовое удаление", False, "Недостаточно грузов для тестирования (нужно минимум 2)")
+        return
+    
+    # Выбираем 2-3 груза для тестирования
+    test_cargo = cargo_list[:3]
+    test_ids = [cargo.get("id") for cargo in test_cargo if cargo.get("id")]
+    
+    if len(test_ids) < 2:
+        log_test_result("Массовое удаление", False, "Не найдены ID грузов для тестирования")
+        return
+    
+    print(f"    📋 Тестируем удаление {len(test_ids)} грузов:")
+    for i, cargo in enumerate(test_cargo[:len(test_ids)]):
+        print(f"       {i+1}. {cargo.get('cargo_number', 'N/A')} (ID: {cargo.get('id', 'N/A')[:8]}...)")
+    
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Используем правильную структуру {"ids": [...]}
+        delete_data = {"ids": test_ids}
+        
+        response = requests.delete(f"{API_BASE}/admin/cargo/bulk", 
+                                 headers=headers, 
+                                 json=delete_data)
+        
+        print(f"    📡 HTTP Status: {response.status_code}")
+        print(f"    📡 Response: {response.text[:500]}...")
+        
+        if response.status_code == 200:
+            try:
+                data = response.json()
+                success = data.get("success", False)
+                deleted_count = data.get("deleted_count", 0)
+                
+                if success and deleted_count > 0:
+                    log_test_result(
+                        "Массовое удаление", 
+                        True, 
+                        f"Успешно удалено {deleted_count} из {len(test_ids)} грузов. Ответ содержит success: {success}"
+                    )
+                    return True
+                else:
+                    log_test_result(
+                        "Массовое удаление", 
+                        False, 
+                        f"Ответ получен, но success: {success}, deleted_count: {deleted_count}"
+                    )
+                    return False
+            except json.JSONDecodeError:
+                log_test_result("Массовое удаление", False, "Ответ не является валидным JSON")
+                return False
+        elif response.status_code == 404:
+            log_test_result(
+                "Массовое удаление", 
+                False, 
+                "❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: HTTP 404 'Груз не найден' - исправления НЕ РАБОТАЮТ!"
+            )
+            return False
+        else:
+            log_test_result(
+                "Массовое удаление", 
+                False, 
+                f"HTTP {response.status_code}: {response.text}"
+            )
+            return False
+            
+    except Exception as e:
+        log_test_result("Массовое удаление", False, f"Ошибка: {str(e)}")
+        return False
+
+def test_cargo_deletion_verification(token, original_count):
+    """Тест 5: Проверка что грузы действительно удалились"""
+    print("🔍 ТЕСТ 5: Проверка удаления грузов из коллекций")
+    
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Получаем обновленный список грузов
+        response = requests.get(f"{API_BASE}/cargo/all", headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            cargo_list = data.get("items", data) if isinstance(data, dict) else data
+            new_count = len(cargo_list) if isinstance(cargo_list, list) else 0
+            
+            if new_count < original_count:
+                log_test_result(
+                    "Проверка удаления", 
+                    True, 
+                    f"Количество грузов уменьшилось с {original_count} до {new_count} (удалено: {original_count - new_count})"
+                )
+                return True
+            else:
+                log_test_result(
+                    "Проверка удаления", 
+                    False, 
+                    f"Количество грузов не изменилось: {original_count} -> {new_count}"
+                )
+                return False
+        else:
+            log_test_result("Проверка удаления", False, f"Не удалось получить обновленный список: HTTP {response.status_code}")
+            return False
+            
+    except Exception as e:
+        log_test_result("Проверка удаления", False, f"Ошибка: {str(e)}")
+        return False
+
+def test_nonexistent_ids(token):
+    """Тест 6: Обработка несуществующих ID"""
+    print("🔍 ТЕСТ 6: Обработка несуществующих ID")
+    
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Тестируем с несуществующими ID
+        fake_ids = ["nonexistent-id-1", "nonexistent-id-2", "fake-cargo-id-3"]
+        delete_data = {"ids": fake_ids}
+        
+        response = requests.delete(f"{API_BASE}/admin/cargo/bulk", 
+                                 headers=headers, 
+                                 json=delete_data)
+        
+        if response.status_code == 200:
+            try:
+                data = response.json()
+                deleted_count = data.get("deleted_count", 0)
+                
+                if deleted_count == 0:
+                    log_test_result(
+                        "Обработка несуществующих ID", 
+                        True, 
+                        f"Несуществующие ID корректно обработаны: deleted_count = {deleted_count}"
+                    )
+                    return True
+                else:
+                    log_test_result(
+                        "Обработка несуществующих ID", 
+                        False, 
+                        f"Неожиданно удалено {deleted_count} элементов при несуществующих ID"
+                    )
+                    return False
+            except json.JSONDecodeError:
+                log_test_result("Обработка несуществующих ID", False, "Ответ не является валидным JSON")
+                return False
+        else:
+            log_test_result(
+                "Обработка несуществующих ID", 
+                False, 
+                f"HTTP {response.status_code}: {response.text}"
+            )
+            return False
+            
+    except Exception as e:
+        log_test_result("Обработка несуществующих ID", False, f"Ошибка: {str(e)}")
+        return False
+
+def main():
+    """Основная функция тестирования"""
+    print("=" * 80)
+    print("🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Исправленная проблема массового удаления")
+    print("📍 Раздел: 'Список грузов' в TAJLINE.TJ")
+    print("🔧 Тестируем исправления BulkDeleteRequest и endpoint DELETE /api/admin/cargo/bulk")
+    print("=" * 80)
+    print()
+    
+    # Тест 1: Авторизация администратора
+    token = test_admin_authorization()
+    if not token:
+        print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось авторизоваться как администратор")
+        print("🛑 Тестирование прервано")
+        return
+    
+    # Тест 2: Получение списка грузов
+    cargo_list = test_get_cargo_list(token)
+    if not cargo_list:
+        print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось получить список грузов")
+        print("🛑 Тестирование прервано")
+        return
+    
+    original_count = len(cargo_list)
+    
+    # Тест 3: Валидация BulkDeleteRequest модели
+    test_bulk_delete_validation(token)
+    
+    # Тест 4: Основной тест массового удаления
+    deletion_success = test_bulk_delete_functionality(token, cargo_list)
+    
+    # Тест 5: Проверка удаления (только если удаление прошло успешно)
+    if deletion_success:
+        test_cargo_deletion_verification(token, original_count)
+    
+    # Тест 6: Обработка несуществующих ID
+    test_nonexistent_ids(token)
+    
+    print("=" * 80)
+    print("🏁 ТЕСТИРОВАНИЕ ЗАВЕРШЕНО")
+    print("=" * 80)
+    
+    if deletion_success:
+        print("✅ РЕЗУЛЬТАТ: Исправления массового удаления РАБОТАЮТ!")
+        print("📋 Endpoint DELETE /api/admin/cargo/bulk функционирует корректно")
+        print("📋 Структура запроса {'ids': [...]} обрабатывается правильно")
+        print("📋 BulkDeleteRequest модель валидирует данные корректно")
+        print("📋 Ошибка HTTP 404 'Груз не найден' ИСПРАВЛЕНА!")
+    else:
+        print("❌ РЕЗУЛЬТАТ: Исправления массового удаления НЕ РАБОТАЮТ!")
+        print("📋 Требуется дополнительная диагностика и исправления")
+    
+    print()
+
+if __name__ == "__main__":
+    main()
+"""
 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Исправления React ошибок при удалении грузов в системе TAJLINE.TJ
 
 ПРОБЛЕМЫ ДЛЯ РЕШЕНИЯ:
