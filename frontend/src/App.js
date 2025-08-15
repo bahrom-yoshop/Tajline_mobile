@@ -4448,30 +4448,11 @@ function App() {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Вы уверены, что хотите удалить ${selectedCargoForDeletion.length} грузов из списка размещения? Это действие нельзя отменить.`
+    const selectedCargoItems = availableCargoForPlacement.filter(cargo => 
+      selectedCargoForDeletion.includes(cargo.id)
     );
-
-    if (!confirmed) return;
-
-    try {
-      const response = await apiCall('/api/operator/cargo/bulk-remove-from-placement', 'DELETE', {
-        cargo_ids: selectedCargoForDeletion
-      });
-      
-      if (response.success) {
-        showAlert(`${response.deleted_count} грузов успешно удалено из списка размещения`, 'success');
-        
-        // Сбрасываем выбранные грузы и обновляем список
-        setSelectedCargoForDeletion([]);
-        await fetchAvailableCargoForPlacement();
-      } else {
-        showAlert(`Ошибка при массовом удалении: ${response.message}`, 'error');
-      }
-    } catch (error) {
-      console.error('Ошибка массового удаления:', error);
-      showAlert(`Ошибка при массовом удалении: ${error.message}`, 'error');
-    }
+    
+    openDeleteConfirmModal('cargo-placement', selectedCargoItems, true);
   };
 
   const performAutoPlacement = async () => {
