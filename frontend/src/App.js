@@ -4333,6 +4333,7 @@ function App() {
     
     setSessionPlacedCount(0); // Сбрасываем счетчик размещенных грузов
     setTargetWarehouseStats(null); // Сбрасываем статистику целевого склада
+    setPlacementStatistics(null); // ИСПРАВЛЕНИЕ: Очищаем статистику размещения для избежания конфликтов
     setShowCargoPlacementModal(true);
   };
 
