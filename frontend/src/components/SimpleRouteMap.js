@@ -5,41 +5,70 @@ const SimpleRouteMap = ({ fromAddress, toAddress, warehouseName }) => {
   const mapRef = useRef(null);
   const [status, setStatus] = useState('Инициализация...');
   const [error, setError] = useState('');
+  const mountedRef = useRef(true); // Отслеживаем mounted состояние
+
+  // Cleanup при размонтировании
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      console.log('🧹 Cleanup SimpleRouteMap component');
+      
+      // Очищаем контейнер
+      if (mapRef.current) {
+        mapRef.current.innerHTML = '';
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const initSimpleMap = async () => {
       try {
+        if (!mountedRef.current) return;
+        
         setStatus('Проверяем API ключ...');
         
         const apiKey = process.env.REACT_APP_YANDEX_MAPS_API_KEY;
-        console.log('🔑 API ключ Yandex Maps:', apiKey ? `${apiKey.substring(0, 8)}...` : 'НЕ НАЙДЕН');
+        console.log('🔑 SimpleMap API ключ:', apiKey ? `${apiKey.substring(0, 8)}...` : 'НЕ НАЙДЕН');
         
         if (!apiKey) {
           throw new Error('API ключ Yandex Maps не найден в переменных окружения');
         }
 
+        if (!mountedRef.current) return;
         setStatus('Загружаем скрипт...');
         
         // Проверяем доступность Yandex Maps
         const testUrl = `https://api-maps.yandex.ru/2.1/?apikey=${apiKey}&lang=ru_RU`;
-        console.log('🌐 URL скрипта:', testUrl);
+        console.log('🌐 SimpleMap URL скрипта:', testUrl);
 
-        // Простая загрузка скрипта
-        const script = document.createElement('script');
-        script.src = testUrl;
-        script.async = true;
+        // Простая загрузка скрипта если еще не загружен
+        if (!window.ymaps) {
+          const script = document.createElement('script');
+          script.src = testUrl;
+          script.async = true;
+          
+          const loadPromise = new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error('Таймаут загрузки скрипта (20 сек)'));
+            }, 20000);
+            
+            script.onload = () => {
+              clearTimeout(timeout);
+              resolve();
+            };
+            script.onerror = () => {
+              clearTimeout(timeout);
+              reject(new Error('Скрипт не загружается'));
+            };
+          });
+          
+          document.head.appendChild(script);
+          await loadPromise;
+        }
         
-        const loadPromise = new Promise((resolve, reject) => {
-          script.onload = resolve;
-          script.onerror = () => reject(new Error('Скрипт не загружается'));
-          setTimeout(() => reject(new Error('Таймаут загрузки скрипта (20 сек)')), 20000);
-        });
-        
-        document.head.appendChild(script);
-        await loadPromise;
-        
+        if (!mountedRef.current) return;
         setStatus('Скрипт загружен, ждем API...');
-        console.log('✅ Скрипт загружен, window.ymaps:', !!window.ymaps);
+        console.log('✅ SimpleMap скрипт загружен, window.ymaps:', !!window.ymaps);
 
         // Ждем готовности API
         await new Promise((resolve, reject) => {
@@ -50,7 +79,7 @@ const SimpleRouteMap = ({ fromAddress, toAddress, warehouseName }) => {
           if (window.ymaps) {
             window.ymaps.ready(() => {
               clearTimeout(timeout);
-              console.log('✅ Yandex Maps API готов');
+              console.log('✅ SimpleMap Yandex Maps API готов');
               resolve();
             });
           } else {
@@ -59,6 +88,7 @@ const SimpleRouteMap = ({ fromAddress, toAddress, warehouseName }) => {
           }
         });
 
+        if (!mountedRef.current || !mapRef.current) return;
         setStatus('Создаем карту...');
         
         // Создаем карту
@@ -69,41 +99,61 @@ const SimpleRouteMap = ({ fromAddress, toAddress, warehouseName }) => {
           controls: []
         });
 
+        if (!mountedRef.current) {
+          // Если размонтирован, уничтожаем карту
+          map.destroy();
+          return;
+        }
+
         setStatus('✅ Карта создана успешно!');
-        console.log('✅ Простая карта создана');
+        console.log('✅ SimpleMap карта создана');
 
         // Если есть адреса, добавляем маркеры
-        if (fromAddress && toAddress) {
+        if (fromAddress && toAddress && mountedRef.current) {
           setStatus('Добавляем маркеры...');
           
-          // Геокодируем адреса
-          const geocoder = ymaps.geocode(fromAddress);
-          geocoder.then((res) => {
-            const firstGeoObject = res.geoObjects.get(0);
-            const coords = firstGeoObject.geometry.getCoordinates();
-            
-            const placemark = new ymaps.Placemark(coords, {
-              balloonContent: `Адрес забора: ${fromAddress}`
-            }, {
-              preset: 'islands#redIcon'
+          try {
+            // Геокодируем адреса
+            const geocoder = ymaps.geocode(fromAddress);
+            geocoder.then((res) => {
+              if (!mountedRef.current) return;
+              
+              const firstGeoObject = res.geoObjects.get(0);
+              if (firstGeoObject) {
+                const coords = firstGeoObject.geometry.getCoordinates();
+                
+                const placemark = new ymaps.Placemark(coords, {
+                  balloonContent: `Адрес забора: ${fromAddress}`
+                }, {
+                  preset: 'islands#redIcon'
+                });
+                
+                if (mountedRef.current && map) {
+                  map.geoObjects.add(placemark);
+                  setStatus('✅ Карта готова с маркерами!');
+                }
+              }
+            }).catch((error) => {
+              if (!mountedRef.current) return;
+              console.error('Ошибка геокодирования:', error);
+              setStatus('⚠️ Карта создана, но без маркеров');
             });
-            
-            map.geoObjects.add(placemark);
-            setStatus('✅ Карта готова с маркерами!');
-          }).catch((error) => {
-            console.error('Ошибка геокодирования:', error);
+          } catch (geocodeError) {
+            console.error('Ошибка при добавлении маркеров:', geocodeError);
             setStatus('⚠️ Карта создана, но без маркеров');
-          });
+          }
         }
 
       } catch (error) {
+        if (!mountedRef.current) return;
+        
         console.error('❌ Ошибка простой карты:', error);
         setError(`Ошибка: ${error.message}`);
         setStatus(`❌ ${error.message}`);
       }
     };
 
-    if (mapRef.current) {
+    if (mapRef.current && mountedRef.current) {
       initSimpleMap();
     }
   }, [fromAddress, toAddress]);
