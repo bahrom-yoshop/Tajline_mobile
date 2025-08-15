@@ -17099,6 +17099,16 @@ function App() {
                                             <Grid3X3 className="mr-2 h-4 w-4" />
                                             Разместить
                                           </Button>
+                                          
+                                          {/* НОВОЕ: Кнопка удаления груза из списка размещения */}
+                                          <Button
+                                            onClick={() => handleDeleteCargoFromPlacement(item.id, item.cargo_number)}
+                                            variant="outline"
+                                            className="flex items-center text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
+                                          >
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Удалить
+                                          </Button>
                                         </div>
                                       </div>
                                     </CardContent>
