@@ -153,10 +153,9 @@ class CargoRemovalTester:
                 # Проверяем структуру ответа
                 success = data.get("success", False)
                 message = data.get("message", "")
-                cargo_status = data.get("cargo_status", "")
-                removed_at = data.get("removed_at", "")
+                returned_cargo_number = data.get("cargo_number", "")
                 
-                if success and cargo_status == "removed_from_placement":
+                if success and returned_cargo_number == cargo_number:
                     self.log_result(
                         "КРИТИЧЕСКИЙ ТЕСТ: Удаление груза из размещения",
                         True,
@@ -164,8 +163,7 @@ class CargoRemovalTester:
                         {
                             "cargo_id": cargo_id,
                             "cargo_number": cargo_number,
-                            "new_status": cargo_status,
-                            "removed_at": removed_at,
+                            "returned_cargo_number": returned_cargo_number,
                             "api_message": message,
                             "response_data": data
                         }
@@ -175,7 +173,7 @@ class CargoRemovalTester:
                     self.log_result(
                         "КРИТИЧЕСКИЙ ТЕСТ: Удаление груза из размещения",
                         False,
-                        f"Неожиданный ответ API: success={success}, status={cargo_status}",
+                        f"Неожиданный ответ API: success={success}, cargo_number={returned_cargo_number}",
                         {"response_data": data}
                     )
                     return False
