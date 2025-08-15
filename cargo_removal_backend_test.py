@@ -390,10 +390,13 @@ class CargoRemovalTester:
             print("❌ КРИТИЧЕСКИЙ ТЕСТ ПРОВАЛЕН: Не удалось удалить груз из размещения")
             return False
         
-        # Шаг 4: Проверить что груз исчез из списка
+        # Шаг 4: Проверить что статус груза изменился
+        status_changed = self.verify_cargo_status_changed(cargo_id, cargo_number)
+        
+        # Шаг 5: Проверить что груз исчез из списка
         cargo_removed_from_list = self.verify_cargo_removed_from_list(cargo_id)
         
-        # Шаг 5: Проверить создание уведомления (опционально)
+        # Шаг 6: Проверить создание уведомления (опционально)
         notification_created = self.check_removal_notification(cargo_number)
         
         # Итоговый отчет
