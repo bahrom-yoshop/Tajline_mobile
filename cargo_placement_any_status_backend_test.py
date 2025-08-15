@@ -209,7 +209,7 @@ class CargoPlacementAnyStatusTester:
             
             # Пытаемся разместить груз в тестовую ячейку
             placement_data = {
-                "cargo_id": cargo_id,
+                "cargo_number": cargo_number,
                 "cell_code": "001-01-01-001"  # Тестовая ячейка
             }
             
