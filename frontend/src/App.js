@@ -4030,9 +4030,16 @@ function App() {
           setScannedCellData(cellData);
           setScannerActive(false);
           
-          // ИСПРАВЛЕНИЕ: Улучшенное сообщение с поддержкой нового формата
+          // НОВОЕ: Получаем статистику целевого склада
+          if (cellData.warehouse_id) {
+            await fetchWarehouseStatistics(cellData.warehouse_id);
+          }
+          
+          // ИСПРАВЛЕНИЕ: Улучшенное сообщение с информацией о складе
           let successMessage = '';
-          if (cellData.format === 'compact') {
+          if (cellData.format === 'compact' && cellData.full_address) {
+            successMessage = `Ячейка найдена: ${cellData.full_address}`;
+          } else if (cellData.format === 'compact') {
             successMessage = `Ячейка найдена: ${cellData.readable_name} (склад №${cellData.warehouse_number})`;
           } else {
             successMessage = `Ячейка найдена: ${cellData.readable_name}`;
