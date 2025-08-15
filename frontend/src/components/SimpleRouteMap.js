@@ -3,6 +3,7 @@ import { Navigation, AlertCircle } from 'lucide-react';
 
 const SimpleRouteMap = ({ fromAddress, toAddress, warehouseName }) => {
   const mapRef = useRef(null);
+  const [map, setMap] = useState(null);
   const [status, setStatus] = useState('Инициализация...');
   const [error, setError] = useState('');
   const mountedRef = useRef(true); // Отслеживаем mounted состояние
@@ -13,12 +14,25 @@ const SimpleRouteMap = ({ fromAddress, toAddress, warehouseName }) => {
       mountedRef.current = false;
       console.log('🧹 Cleanup SimpleRouteMap component');
       
-      // Очищаем контейнер
+      // Уничтожаем карту перед размонтированием
+      if (map) {
+        try {
+          map.destroy();
+        } catch (e) {
+          console.warn('Ошибка при destroy карты в SimpleRouteMap:', e);
+        }
+      }
+      
+      // Очищаем контейнер только после уничтожения карты
       if (mapRef.current) {
-        mapRef.current.innerHTML = '';
+        try {
+          mapRef.current.innerHTML = '';
+        } catch (e) {
+          console.warn('Ошибка при очистке контейнера SimpleRouteMap:', e);
+        }
       }
     };
-  }, []);
+  }, [map]);
 
   useEffect(() => {
     const initSimpleMap = async () => {
