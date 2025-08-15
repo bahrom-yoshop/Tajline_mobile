@@ -6511,11 +6511,15 @@ function App() {
       
       // Проверяем новый формат ответа с пагинацией
       if (response.items) {
-        setAvailableCargoForPlacement(response.items);
+        // Фильтруем невалидные элементы для предотвращения React ошибок
+        const validItems = response.items.filter(item => item && item.id);
+        setAvailableCargoForPlacement(validItems);
         setAvailableCargoPagination(response.pagination);
       } else {
         // Обратная совместимость со старым форматом
-        setAvailableCargoForPlacement(response.cargo_list || response);
+        const cargoData = response.cargo_list || response || [];
+        const validItems = cargoData.filter(item => item && item.id);
+        setAvailableCargoForPlacement(validItems);
         setAvailableCargoPagination({});
       }
     } catch (error) {
