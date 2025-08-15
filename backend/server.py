@@ -255,6 +255,7 @@ class CargoStatus(str, Enum):
     IN_TRANSIT = "in_transit"
     ARRIVED_DESTINATION = "arrived_destination"
     COMPLETED = "completed"
+    REMOVED_FROM_PLACEMENT = "removed_from_placement"  # ДОБАВЛЕНО: Удален из размещения
 
 class RouteType(str, Enum):
     MOSCOW_TO_TAJIKISTAN = "moscow_to_tajikistan"
