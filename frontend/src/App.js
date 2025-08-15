@@ -6495,6 +6495,208 @@ function App() {
     }
   };
 
+  // НОВЫЙ КОМПОНЕНТ: Статистика склада с lazy loading
+  const WarehouseStatistics = ({ warehouse }) => {
+    const [statistics, setStatistics] = useState(null);
+    const [loading, setLoading] = useState(false);
+    
+    // Загружаем статистику при монтировании компонента
+    useEffect(() => {
+      const loadStatistics = async () => {
+        // Проверяем, есть ли уже загруженная статистика
+        if (warehousesStatistics[warehouse.id]) {
+          setStatistics(warehousesStatistics[warehouse.id]);
+          return;
+        }
+        
+        setLoading(true);
+        try {
+          const stats = await fetchWarehouseStatisticsLazy(warehouse.id);
+          setStatistics(stats);
+        } catch (error) {
+          console.error(`Error loading statistics for warehouse ${warehouse.id}:`, error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      loadStatistics();
+    }, [warehouse.id]);
+    
+    // Если загрузка идет, показываем placeholder
+    if (loading || !statistics) {
+      return (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-white p-3 rounded-lg border shadow-sm animate-pulse">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="h-3 bg-gray-200 rounded w-16 mb-2"></div>
+                  <div className="h-6 bg-gray-200 rounded w-8"></div>
+                </div>
+                <div className="h-6 w-6 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="bg-white p-3 rounded-lg border shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-500">Всего ячеек</p>
+              <p className="text-xl font-bold text-blue-600">
+                {statistics?.total_cells || 
+                 (warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)}
+              </p>
+            </div>
+            <Grid3X3 className="h-6 w-6 text-blue-500" />
+          </div>
+        </div>
+        
+        <div className="bg-white p-3 rounded-lg border shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-500">Занято</p>
+              <p className="text-xl font-bold text-red-600">
+                {statistics?.occupied_cells || 0}
+              </p>
+            </div>
+            <Package className="h-6 w-6 text-red-500" />
+          </div>
+        </div>
+        
+        <div className="bg-white p-3 rounded-lg border shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-500">Свободно</p>
+              <p className="text-xl font-bold text-green-600">
+                {statistics?.free_cells || 
+                 ((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0))}
+              </p>
+            </div>
+            <CheckCircle className="h-6 w-6 text-green-500" />
+          </div>
+        </div>
+        
+        <div className="bg-white p-3 rounded-lg border shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-500">Загрузка</p>
+              <p className="text-xl font-bold text-orange-600">
+                {statistics?.utilization_percent?.toFixed(1) || '0.0'}%
+              </p>
+            </div>
+            <DollarSign className="h-6 w-6 text-orange-500" />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // НОВЫЙ КОМПОНЕНТ: Дополнительная статистика склада с lazy loading
+  const WarehouseExtendedStatistics = ({ warehouse }) => {
+    const [statistics, setStatistics] = useState(null);
+    const [loading, setLoading] = useState(false);
+    
+    // Загружаем статистику при монтировании компонента
+    useEffect(() => {
+      const loadStatistics = async () => {
+        // Проверяем, есть ли уже загруженная статистика
+        if (warehousesStatistics[warehouse.id]) {
+          setStatistics(warehousesStatistics[warehouse.id]);
+          return;
+        }
+        
+        setLoading(true);
+        try {
+          const stats = await fetchWarehouseStatisticsLazy(warehouse.id);
+          setStatistics(stats);
+        } catch (error) {
+          console.error(`Error loading statistics for warehouse ${warehouse.id}:`, error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      loadStatistics();
+    }, [warehouse.id]);
+    
+    // Если загрузка идет, показываем placeholder
+    if (loading || !statistics) {
+      return (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-gradient-to-r from-gray-50 to-gray-100 p-3 rounded-lg border animate-pulse">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="h-3 bg-gray-200 rounded w-12 mb-2"></div>
+                  <div className="h-5 bg-gray-200 rounded w-10"></div>
+                </div>
+                <div className="h-5 w-5 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-3 rounded-lg border border-purple-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-purple-700">Вес (кг)</p>
+              <p className="text-lg font-bold text-purple-900">
+                {statistics?.total_weight || 0}
+              </p>
+            </div>
+            <Package2 className="h-5 w-5 text-purple-600" />
+          </div>
+        </div>
+        
+        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-3 rounded-lg border border-blue-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-blue-700">Кол-во грузов</p>
+              <p className="text-lg font-bold text-blue-900">
+                {statistics?.total_cargo_count || 0}
+              </p>
+            </div>
+            <FileText className="h-5 w-5 text-blue-600" />
+          </div>
+        </div>
+        
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border border-green-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-green-700">Всего грузов</p>
+              <p className="text-lg font-bold text-green-900">
+                {statistics?.total_cargo_count || 0}
+              </p>
+            </div>
+            <Package className="h-5 w-5 text-green-600" />
+          </div>
+        </div>
+        
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-3 rounded-lg border border-yellow-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-yellow-700">Общий вес (кг)</p>
+              <p className="text-lg font-bold text-yellow-900">
+                {statistics?.total_weight || 0}
+              </p>
+            </div>
+            <Package2 className="h-5 w-5 text-yellow-600" />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // НОВАЯ ФУНКЦИЯ: Ленивая загрузка статистики склада по требованию
   const fetchWarehouseStatisticsLazy = async (warehouseId) => {
     // Проверяем, есть ли уже загруженная статистика
