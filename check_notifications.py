@@ -16,7 +16,7 @@ if admin_response.status_code == 200:
     if notifications_response.status_code == 200:
         notifications = notifications_response.json()
         print(f'Found {len(notifications)} warehouse notifications')
-        if notifications:
+        if notifications and len(notifications) > 0:
             sample = notifications[0]
             print('Sample notification fields:')
             for key in sorted(sample.keys()):
