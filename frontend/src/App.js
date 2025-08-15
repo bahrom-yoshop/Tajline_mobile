@@ -4010,12 +4010,12 @@ function App() {
           console.log('✅ Груз найден:', cargo);
           setScannedCargoData(cargo);
           setScannerActive(false);
-          showAlert(`Груз ${cargo.cargo_number} найден! Теперь отсканируйте QR-код ячейки для размещения.`, 'success');
+          showAlert(`Груз ${cargo.cargo_number} найден! Автоматический переход к сканированию ячейки...`, 'success');
           
-          // Автоматически переходим к сканированию ячейки
+          // УЛУЧШЕНИЕ: Более быстрый автоматический переход к сканированию ячейки
           setTimeout(() => {
             startCellScanner();
-          }, 1500);
+          }, 800); // Уменьшили задержку с 1500 до 800мс
         } else {
           console.log('❌ Груз не найден. Доступные грузы:', availableCargoForPlacement.map(c => c.cargo_number));
           setScannerError('Груз не найден в списке ожидающих размещение');
