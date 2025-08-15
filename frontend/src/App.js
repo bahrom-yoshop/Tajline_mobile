@@ -30190,7 +30190,6 @@ function App() {
                                                 </Button>
                                               </div>
                                             </div>
-                                          </div>
                                           </React.Fragment>
                                           ))}
                                         </div>
