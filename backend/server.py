@@ -8351,6 +8351,43 @@ async def get_operator_warehouses(current_user: User = Depends(get_current_user)
         for w in warehouses
     ]
 
+@app.patch("/api/admin/warehouses/{warehouse_id}/address")
+async def update_warehouse_address(
+    warehouse_id: str,
+    address_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Обновить адрес склада (только для админов)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only administrators can update warehouse address")
+    
+    try:
+        # Проверяем существование склада
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        
+        # Обновляем адрес
+        new_address = address_data.get("address", "").strip()
+        if not new_address:
+            raise HTTPException(status_code=400, detail="Address is required")
+        
+        db.warehouses.update_one(
+            {"id": warehouse_id},
+            {"$set": {"address": new_address, "updated_at": datetime.utcnow()}}
+        )
+        
+        return {
+            "message": f"Warehouse address updated successfully",
+            "warehouse_id": warehouse_id,
+            "warehouse_name": warehouse["name"],
+            "old_location": warehouse.get("location", ""),
+            "new_address": new_address
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating warehouse address: {str(e)}")
+
 @app.get("/api/warehouses/by-route/{route}")
 async def get_warehouses_by_route(route: str, current_user: User = Depends(get_current_user)):
     """Получить список складов по маршруту для операторов и админов"""
