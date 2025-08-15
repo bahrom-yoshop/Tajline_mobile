@@ -17261,7 +17261,7 @@ function App() {
                                             className="flex items-center text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
                                           >
                                             <Trash2 className="mr-2 h-4 w-4" />
-                                            Удалить
+                                            Удалить ПОЛНОСТЬЮ
                                           </Button>
                                         </div>
                                       </div>
