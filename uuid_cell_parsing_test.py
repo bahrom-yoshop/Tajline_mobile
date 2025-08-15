@@ -186,13 +186,13 @@ class UUIDCellParsingTester:
             return False
         
         test_cargo = self.available_cargo[0]
-        cargo_id = test_cargo.get("id")
+        cargo_number = test_cargo.get("cargo_number")
         
         # Простой формат без warehouse_id
         simple_cell_code = "Б1-П1-Я3"
         
         placement_data = {
-            "cargo_id": cargo_id,
+            "cargo_number": cargo_number,
             "cell_code": simple_cell_code
         }
         
@@ -211,7 +211,7 @@ class UUIDCellParsingTester:
                     f"Простой формат '{simple_cell_code}' корректно обработан и преобразован в полный формат",
                     {
                         "cell_code": simple_cell_code,
-                        "cargo_id": cargo_id,
+                        "cargo_number": cargo_number,
                         "response": data
                     }
                 )
@@ -263,7 +263,7 @@ class UUIDCellParsingTester:
             return False
         
         test_cargo = self.available_cargo[0]
-        cargo_id = test_cargo.get("id")
+        cargo_number = test_cargo.get("cargo_number")
         
         # Используем реальный UUID склада из списка
         target_warehouse_id = "492505e9-51d1-4304-a09a-ae3d77bf0bf0"
@@ -282,7 +282,7 @@ class UUIDCellParsingTester:
         uuid_cell_code = f"{target_warehouse_id}-Б1-П1-Я1"
         
         placement_data = {
-            "cargo_id": cargo_id,
+            "cargo_number": cargo_number,
             "cell_code": uuid_cell_code
         }
         
@@ -302,7 +302,7 @@ class UUIDCellParsingTester:
                     {
                         "cell_code": uuid_cell_code,
                         "warehouse_id": target_warehouse_id,
-                        "cargo_id": cargo_id,
+                        "cargo_number": cargo_number,
                         "response": data,
                         "uuid_parsing_fixed": True
                     }
@@ -374,13 +374,13 @@ class UUIDCellParsingTester:
             return False
         
         test_cargo = self.available_cargo[0]
-        cargo_id = test_cargo.get("id")
+        cargo_number = test_cargo.get("cargo_number")
         
         # ID-based формат
         id_based_cell_code = "001-01-01-001"
         
         placement_data = {
-            "cargo_id": cargo_id,
+            "cargo_number": cargo_number,
             "cell_code": id_based_cell_code
         }
         
@@ -399,7 +399,7 @@ class UUIDCellParsingTester:
                     f"ID-based формат '{id_based_cell_code}' корректно обработан",
                     {
                         "cell_code": id_based_cell_code,
-                        "cargo_id": cargo_id,
+                        "cargo_number": cargo_number,
                         "response": data
                     }
                 )
