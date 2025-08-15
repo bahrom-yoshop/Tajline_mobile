@@ -4226,14 +4226,26 @@ function App() {
       const simpleFormatMatch = qrData.match(/^Б(\d+)-П(\d+)-Я(\d+)$/);
       if (simpleFormatMatch) {
         console.log('✅ Найден простой формат QR кода:', simpleFormatMatch);
+        
+        // ИСПРАВЛЕНИЕ: Для простого формата нужно определить warehouse_id из контекста
+        // Используем первый доступный склад оператора как warehouse_id по умолчанию
+        let defaultWarehouseId = null;
+        if (operatorWarehouses && operatorWarehouses.length > 0) {
+          defaultWarehouseId = operatorWarehouses[0].id;
+          console.log(`🏢 Используем склад по умолчанию для простого формата: ${operatorWarehouses[0].name} (ID: ${defaultWarehouseId})`);
+        } else if (warehouses && warehouses.length > 0) {
+          defaultWarehouseId = warehouses[0].id;
+          console.log(`🏢 Используем первый склад для простого формата: ${warehouses[0].name} (ID: ${defaultWarehouseId})`);
+        }
+        
         return {
           format: 'simple',
-          warehouse_id: 'default', // Используем default для простого формата
+          warehouse_id: defaultWarehouseId, // Используем реальный warehouse_id
           block_number: parseInt(simpleFormatMatch[1]),
           shelf_number: parseInt(simpleFormatMatch[2]),
           cell_number: parseInt(simpleFormatMatch[3]),
           readable_name: qrData, // Уже в читаемом формате
-          cell_code: qrData
+          cell_code: defaultWarehouseId ? `${defaultWarehouseId}-${qrData}` : qrData // Формируем правильный cell_code для backend
         };
       }
 
