@@ -252,12 +252,12 @@ def test_cargo_search_in_collections(operator_token, admin_token):
         data = response.json()
         # Handle both list and dict responses
         if isinstance(data, list):
-            requests = data
+            cargo_requests_list = data
         else:
-            requests = data.get('requests', [])
-        cargo_requests_count = len(requests)
+            cargo_requests_list = data.get('requests', [])
+        cargo_requests_count = len(cargo_requests_list)
         
-        for request in requests:
+        for request in cargo_requests_list:
             if 'items' in request:
                 cargo_requests_items_count += len(request['items'])
     
