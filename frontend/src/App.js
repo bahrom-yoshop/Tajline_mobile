@@ -26958,21 +26958,66 @@ function App() {
               </div>
             )}
 
-            {/* Отладочная информация - РАСШИРЕННАЯ ДИАГНОСТИКА */}
-            {true && (
-              <div className="p-2 bg-gray-100 rounded text-xs">
-                <div>Modal Open: {showCargoPlacementModal ? 'true' : 'false'}</div>
-                <div>External Scanner Active: {externalScannerActive ? 'true' : 'false'}</div>
-                <div>Scanner Step: {externalScannerStep}</div>
-                <div>Scanner Mode: {scannerMode}</div>
-                <div>Placement Statistics: {typeof placementStatistics} {placementStatistics && 'location_code' in placementStatistics ? '(HAS location_code!)' : ''}</div>
-                <div>Target Warehouse Stats: {typeof targetWarehouseStats}</div>
-                <div>Scanned Cargo Data: {typeof scannedCargoData}</div>
-                <div>Scanned Cell Data: {typeof scannedCellData}</div>
-                <div>External Scanned Cargo: {typeof externalScannedCargo}</div>
-                <div>External Scanned Cell: {typeof externalScannedCell}</div>
+            {/* НОВОЕ: Статистика размещения и список размещенных грузов */}
+            <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-gray-700 flex items-center">
+                  📊 Статистика размещения
+                </h3>
+                <div className="text-xs text-indigo-600 font-medium">
+                  {sessionPlacedCount > 0 && `${Math.round((sessionPlacedCount / (availableCargoForPlacement.length + sessionPlacedCount)) * 100)}% завершено`}
+                </div>
               </div>
-            )}
+              
+              <div className="grid grid-cols-3 gap-3 mb-3">
+                <div className="text-center p-2 bg-white rounded border">
+                  <div className="text-lg font-bold text-blue-600">{sessionPlacedCount}</div>
+                  <div className="text-xs text-gray-600">В сессии</div>
+                </div>
+                <div className="text-center p-2 bg-white rounded border">
+                  <div className="text-lg font-bold text-green-600">
+                    {placementStatistics?.today_placements || 0}
+                  </div>
+                  <div className="text-xs text-gray-600">За сегодня</div>
+                </div>
+                <div className="text-center p-2 bg-white rounded border">
+                  <div className="text-lg font-bold text-orange-600">{availableCargoForPlacement.length}</div>
+                  <div className="text-xs text-gray-600">Осталось</div>
+                </div>
+              </div>
+              
+              {/* Список размещенных грузов в текущей сессии */}
+              {sessionPlacedCargo.length > 0 && (
+                <div className="mt-3">
+                  <div className="text-xs font-medium text-gray-700 mb-2">
+                    📦 Размещенные грузы в сессии:
+                  </div>
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {sessionPlacedCargo.slice(-5).reverse().map((item, index) => (
+                      <div key={index} className="flex justify-between items-center text-xs bg-white p-2 rounded border">
+                        <div className="flex-1">
+                          <span className="font-medium text-gray-800">
+                            Груз № {item.cargo_number}
+                          </span>
+                          <span className="text-gray-600 ml-2">
+                            - {item.location}
+                          </span>
+                        </div>
+                        <div className="text-gray-500 text-right">
+                          <div>{item.placed_at}</div>
+                          <div className="text-xs">{item.warehouse_name}</div>
+                        </div>
+                      </div>
+                    ))}
+                    {sessionPlacedCargo.length > 5 && (
+                      <div className="text-xs text-gray-500 text-center py-1">
+                        ... и еще {sessionPlacedCargo.length - 5} грузов
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Старый контент модального окна заменен на UI внешнего сканера */}
             {externalScannerActive ? (
