@@ -183,17 +183,33 @@ class WarehouseStatisticsTest:
                     warehouse_id = warehouse.get("warehouse_id")
                     
                     # Проверяем наличие ключевых полей статистики
-                    stats_fields = ["total_cells", "occupied_cells", "free_cells", "occupancy_rate"]
+                    # В dashboard API статистика находится в разных местах
+                    warehouse_structure = warehouse.get("warehouse_structure", {})
+                    cargo_stats = warehouse.get("cargo_stats", {})
+                    
                     warehouse_stats = {}
                     
+                    # Получаем total_cells из warehouse_structure
+                    if "total_cells" in warehouse_structure:
+                        warehouse_stats["total_cells"] = warehouse_structure["total_cells"]
+                    else:
+                        self.log_result(
+                            f"Статистика склада '{warehouse_name}' - Поле total_cells",
+                            False,
+                            f"Отсутствует поле total_cells в warehouse_structure"
+                        )
+                        continue
+                    
+                    # Получаем остальные поля из cargo_stats
+                    stats_fields = ["occupied_cells", "free_cells", "occupancy_rate"]
                     for field in stats_fields:
-                        if field in warehouse:
-                            warehouse_stats[field] = warehouse[field]
+                        if field in cargo_stats:
+                            warehouse_stats[field] = cargo_stats[field]
                         else:
                             self.log_result(
                                 f"Статистика склада '{warehouse_name}' - Поле {field}",
                                 False,
-                                f"Отсутствует поле {field} в данных склада"
+                                f"Отсутствует поле {field} в cargo_stats"
                             )
                             continue
                     
