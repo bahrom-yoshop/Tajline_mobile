@@ -2353,11 +2353,33 @@ async def place_cargo_in_cell(
             if not warehouse:
                 raise HTTPException(status_code=404, detail="Warehouse not found")
                 
-        # НОВОЕ: Проверяем компактный формат без дефисов: 03010106 (8 цифр)
+        # НОВОЕ: Проверяем компактный формат 9 цифр: 003010106 (склад блок полка ячейка)
+        elif len(cell_code) == 9 and cell_code.isdigit():
+            is_id_format = False
+            
+            # Парсим НОВЫЙ компактный формат: WWWBBSSCC
+            warehouse_number = int(cell_code[:3])  # Первые 3 цифры - номер склада
+            block_number = int(cell_code[3:5])     # Следующие 2 цифры - номер блока  
+            shelf_number = int(cell_code[5:7])     # Следующие 2 цифры - номер полки
+            cell_number = int(cell_code[7:9])      # Последние 2 цифры - номер ячейки
+            
+            # Найдем склад по warehouse_number
+            warehouse = db.warehouses.find_one({"warehouse_number": warehouse_number})
+            if not warehouse:
+                raise HTTPException(status_code=404, detail=f"Warehouse with number {warehouse_number} not found")
+            
+            warehouse_id = warehouse["id"]
+            block = block_number
+            shelf = shelf_number
+            cell = cell_number
+            
+            print(f"🔍 НОВЫЙ компактный формат QR (9 цифр): {cell_code} -> Склад#{warehouse_number} Б{block} П{shelf} Я{cell}")
+                
+        # СТАРЫЙ: Проверяем компактный формат 8 цифр: 03010106 (для обратной совместимости)
         elif len(cell_code) == 8 and cell_code.isdigit():
             is_id_format = False
             
-            # Парсим компактный формат: WWBBSSCC
+            # Парсим СТАРЫЙ компактный формат: WWBBSSCC
             warehouse_number = int(cell_code[:2])  # Первые 2 цифры - номер склада
             block_number = int(cell_code[2:4])     # Следующие 2 цифры - номер блока  
             shelf_number = int(cell_code[4:6])     # Следующие 2 цифры - номер полки
@@ -2373,7 +2395,7 @@ async def place_cargo_in_cell(
             shelf = shelf_number
             cell = cell_number
             
-            print(f"🔍 Компактный формат QR: {cell_code} -> Склад#{warehouse_number} Б{block} П{shelf} Я{cell}")
+            print(f"🔍 СТАРЫЙ компактный формат QR (8 цифр): {cell_code} -> Склад#{warehouse_number} Б{block} П{shelf} Я{cell}")
                 
         else:
             raise HTTPException(status_code=400, detail="Invalid cell code format. Expected: '03010106', '001-01-01-001' or 'WAREHOUSE_ID-Б1-П1-Я1'")
