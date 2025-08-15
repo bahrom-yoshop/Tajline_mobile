@@ -1220,6 +1220,81 @@ function App() {
     }
   };
 
+  // НОВАЯ ФУНКЦИЯ: Обработка отправки формы приёма груза через оператора
+  const handleOperatorCargoSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      console.log('🏢 Отправка формы приёма груза через оператора');
+      
+      // Подготовить данные для приёма груза напрямую на склад
+      const operatorCargoData = {
+        // Основные данные груза
+        sender_full_name: operatorCargoForm.sender_full_name,
+        sender_phone: operatorCargoForm.sender_phone,
+        sender_address: operatorCargoForm.sender_address,
+        recipient_full_name: operatorCargoForm.recipient_full_name,
+        recipient_phone: operatorCargoForm.recipient_phone,
+        recipient_address: operatorCargoForm.recipient_address,
+        
+        // Данные грузов
+        cargo_items: operatorCargoForm.cargo_items,
+        total_weight: parseFloat(operatorCargoForm.total_weight) || 0,
+        total_cost: parseFloat(operatorCargoForm.total_cost) || 0,
+        
+        // Специфичные данные для приёма через оператора
+        warehouse_id: operatorCargoForm.warehouse_id || user?.warehouse_id,
+        processing_status: 'paid', // Статус оплаченного груза
+        status: 'awaiting_placement', // Готов к размещению
+        received_by_operator: user?.full_name || user?.user_number,
+        received_at: new Date().toISOString(),
+        
+        // Дополнительные данные
+        route: operatorCargoForm.route,
+        special_instructions: operatorCargoForm.special_instructions || 'Принят через оператора на складе'
+      };
+      
+      console.log('📦 Данные для приёма груза через оператора:', operatorCargoData);
+      
+      // Отправляем запрос на создание груза напрямую через оператора
+      const response = await apiCall('/api/operator/cargo/direct-accept', 'POST', operatorCargoData);
+      
+      if (response.success) {
+        showAlert(`Груз успешно принят через оператора! Номер груза: ${response.cargo_number}`, 'success');
+        
+        // Сбрасываем форму
+        setOperatorCargoForm({
+          sender_full_name: '',
+          sender_phone: '',
+          sender_address: '',
+          recipient_full_name: '',
+          recipient_phone: '',
+          recipient_address: '',
+          cargo_items: [{ name: '', weight: '', size: '', declared_value: '' }],
+          total_weight: 0,
+          total_cost: 0,
+          warehouse_id: user?.warehouse_id || '',
+          route: 'moscow_to_tajikistan',
+          special_instructions: ''
+        });
+        
+        // Закрываем форму оператора
+        setShowOperatorCargoForm(false);
+        
+        // Обновляем списки
+        await fetchAvailableCargoForPlacement();
+        await fetchOperatorCargo();
+        
+      } else {
+        showAlert(`Ошибка при приёме груза: ${response.message}`, 'error');
+      }
+      
+    } catch (error) {
+      console.error('❌ Ошибка при приёме груза через оператора:', error);
+      showAlert(`Ошибка при приёме груза: ${error.message}`, 'error');
+    }
+  };
+
   const handleOpenCourierChat = () => {
     setCourierChatModal(true);
   };
