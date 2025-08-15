@@ -4620,6 +4620,7 @@ async def create_warehouse(
         "warehouse_id_number": warehouse_id_number,  # Новое поле
         "name": warehouse_data.name,
         "location": warehouse_data.location,
+        "address": warehouse_data.address,  # НОВОЕ: Полный адрес для навигации
         "blocks_count": warehouse_data.blocks_count,
         "shelves_per_block": warehouse_data.shelves_per_block,
         "cells_per_shelf": warehouse_data.cells_per_shelf,
