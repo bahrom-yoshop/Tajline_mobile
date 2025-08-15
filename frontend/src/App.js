@@ -22170,9 +22170,29 @@ function App() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {couriers.map((courier) => (
-                                <TableRow key={courier.id}>
-                                  <TableCell className="font-medium">{courier.full_name}</TableCell>
+                              {couriers.map((courier) => {
+                                // Определяем является ли курьер удаленным/неактивным
+                                const isDeleted = courier.deleted === true;
+                                const isInactive = courier.is_active === false;
+                                const isDeletedOrInactive = isDeleted || isInactive;
+                                
+                                return (
+                                  <TableRow key={courier.id} className={isDeletedOrInactive ? 'opacity-60 bg-gray-50' : ''}>
+                                    <TableCell className="font-medium">
+                                      <div className="flex items-center">
+                                        {courier.full_name}
+                                        {isDeleted && (
+                                          <Badge variant="secondary" className="ml-2 text-xs bg-red-100 text-red-700">
+                                            Удален
+                                          </Badge>
+                                        )}
+                                        {isInactive && !isDeleted && (
+                                          <Badge variant="secondary" className="ml-2 text-xs bg-orange-100 text-orange-700">
+                                            Неактивен
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </TableCell>
                                   <TableCell>{courier.phone}</TableCell>
                                   <TableCell>
                                     <div className="flex items-center">
