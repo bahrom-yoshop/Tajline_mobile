@@ -291,11 +291,11 @@ class CargoListMassDeleteDiagnoser:
             return False
 
     def test_analyze_operator_cargo_list(self):
-        """Тест 5: Анализ операторского списка грузов - GET /api/operator/cargo"""
+        """Тест 5: Анализ операторского списка грузов - GET /api/operator/cargo/list"""
         try:
             # Используем токен оператора
             headers = {"Authorization": f"Bearer {self.operator_token}"}
-            response = self.session.get(f"{API_BASE}/operator/cargo", headers=headers)
+            response = self.session.get(f"{API_BASE}/operator/cargo/list", headers=headers)
             
             if response.status_code == 200:
                 data = response.json()
