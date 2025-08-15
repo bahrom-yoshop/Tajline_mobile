@@ -16405,6 +16405,14 @@ function App() {
                                       full_address="{operatorWarehouses[0]?.full_address}"
                                     </p>
                                   </div>
+                                  {/* ТЕСТОВАЯ ПРОСТАЯ КАРТА */}
+                                  <SimpleRouteMap
+                                    fromAddress={operatorCargoForm.pickup_address}
+                                    toAddress={operatorWarehouses[0]?.address || operatorWarehouses[0]?.location || 'Душанбе'}
+                                    warehouseName={`Склад: ${operatorWarehouses[0]?.name || 'Склад'}`}
+                                  />
+                                  
+                                  {/* ОСНОВНАЯ КАРТА */}
                                   <RouteMap
                                     fromAddress={operatorCargoForm.pickup_address}
                                     toAddress={operatorWarehouses[0]?.address || operatorWarehouses[0]?.location || 'Душанбе'}
