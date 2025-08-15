@@ -5462,7 +5462,7 @@ async def get_available_cargo_for_placement(
         # ИСПРАВЛЕНИЕ: Ищем ВСЕ грузы готовые к размещению независимо от статуса оплаты
         placement_query = {
             # Убираем проверку processing_status - все грузы могут размещаться
-            "status": {"$ne": "placed_in_warehouse"},  # Еще не размещенные
+            "status": {"$nin": ["placed_in_warehouse", "removed_from_placement"]},  # Еще не размещенные и не удаленные из размещения
             "$and": [
                 {"$or": [
                     {"warehouse_location": {"$exists": False}},
