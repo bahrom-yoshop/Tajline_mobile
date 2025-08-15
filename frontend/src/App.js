@@ -27046,8 +27046,8 @@ function App() {
                   </ol>
                 </div>
 
-                {/* Статистика - ВРЕМЕННО ОТКЛЮЧЕНА ДЛЯ ДИАГНОСТИКИ */}
-                {false && placementStatistics && (
+                {/* Статистика - ВКЛЮЧАЕМ ДЛЯ ТЕСТИРОВАНИЯ */}
+                {true && placementStatistics && (
                   <div className="mt-4 grid grid-cols-3 gap-4 text-center">
                     <div>
                       <div className="text-lg font-bold text-blue-600">{placementStatistics.today_placements || 0}</div>
