@@ -33,7 +33,7 @@ if admin_response.status_code == 200:
     if pickup_response.status_code == 200:
         pickup_data = pickup_response.json()
         print(f'Pickup requests: {pickup_data.get("total_count", 0)}')
-        if pickup_data.get('pickup_requests'):
+        if pickup_data.get('pickup_requests') and len(pickup_data.get('pickup_requests', [])) > 0:
             print('Sample pickup request fields:')
             sample = pickup_data['pickup_requests'][0]
             for key in sorted(sample.keys()):
