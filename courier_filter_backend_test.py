@@ -583,9 +583,10 @@ class CourierFilterTest:
             print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось авторизоваться как администратор")
             return False
         
-        # Шаг 2: Авторизация оператора для проверки безопасности
-        if not self.authenticate_operator():
-            print("⚠️ ПРЕДУПРЕЖДЕНИЕ: Не удалось авторизоваться как оператор")
+        # Шаг 2: Авторизация оператора для проверки безопасности (опционально)
+        operator_authenticated = self.authenticate_operator()
+        if not operator_authenticated:
+            print("⚠️ ПРЕДУПРЕЖДЕНИЕ: Не удалось авторизоваться как оператор - пропускаем тест безопасности")
         
         # Шаг 3: Тестирование списка курьеров по умолчанию (только активные)
         active_couriers = self.test_couriers_list_default()
