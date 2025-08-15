@@ -5144,24 +5144,53 @@ function App() {
   };
 
   useEffect(() => {
+    console.log('🔄 App initialization useEffect triggered');
+    
     if (token && !isLoggingOut && !isLoggingIn) {
       // Проверяем валидность токена перед использованием
       if (isTokenValid(token)) {
+        console.log('✅ Valid token found, initializing app...');
+        
+        // Устанавливаем флаг инициализации
+        setIsInitializing(true);
+        setDataLoaded(false);
+        
+        // Очищаем старые данные чтобы избежать показа устаревшей информации
+        clearAllAppData();
+        
         // Попытка получить информацию о пользователе при загрузке только если у нас нет пользователя
         if (!user) {
+          console.log('👤 No user data, fetching user info...');
           // Добавляем небольшую задержку, чтобы избежать race condition
           setTimeout(() => {
             if (token && !isLoggingIn && !user && !isLoggingOut) {
-              fetchUserData();
+              fetchUserData().then(() => {
+                console.log('✅ User data loaded, initialization complete');
+                setIsInitializing(false);
+              }).catch(error => {
+                console.error('❌ Error loading user data:', error);
+                setIsInitializing(false);
+                handleLogout();
+              });
             }
-          }, 1000); // Увеличили задержку с 500ms до 1s
+          }, 100);
+        } else {
+          console.log('👤 User data already available, skipping fetch');
+          setIsInitializing(false);
         }
       } else {
         // Токен истек, очищаем его
-        console.log('Token expired on startup, clearing session');
+        console.log('❌ Token expired on startup, clearing session');
+        setIsInitializing(false);
+        clearAllAppData();
         handleLogout();
         showAlert('Ваша сессия истекла. Пожалуйста, войдите в систему снова.', 'warning');
       }
+    } else if (!token) {
+      console.log('🚫 No token found, showing login screen');
+      setIsInitializing(false);
+      setDataLoaded(false);
+      clearAllAppData();
     }
   }, [token]); // Убираем user из зависимостей чтобы избежать цикла
 
