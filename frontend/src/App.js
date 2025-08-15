@@ -4316,6 +4316,13 @@ function App() {
         showAlert('Не удалось определить склад для размещения груза', 'error');
         return;
       }
+      
+      console.log('🚀 Отправляем запрос на размещение груза:');
+      console.log('- Cargo ID:', scannedCargoData.id);
+      console.log('- Warehouse ID:', warehouseId);
+      console.log('- Block Number:', scannedCellData.block_number);
+      console.log('- Shelf Number:', scannedCellData.shelf_number);
+      console.log('- Cell Number:', scannedCellData.cell_number);
 
       await handlePlaceCargo(
         scannedCargoData.id,
