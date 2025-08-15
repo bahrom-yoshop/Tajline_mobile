@@ -141,7 +141,8 @@ class WarehouseNotificationTester:
             response = self.session.get(f"{API_BASE}/operator/warehouse-notifications")
             
             if response.status_code == 200:
-                notifications = response.json()
+                data = response.json()
+                notifications = data.get('notifications', [])
                 
                 # Analyze notifications
                 total_notifications = len(notifications)
@@ -166,7 +167,8 @@ class WarehouseNotificationTester:
                         "in_processing": in_processing_count,
                         "completed": completed_count,
                         "request_100021_found": bool(request_100021),
-                        "sample_notification": notifications[0] if notifications else None
+                        "sample_notification": notifications[0] if notifications else None,
+                        "response_structure": data
                     }
                 )
                 return notifications
