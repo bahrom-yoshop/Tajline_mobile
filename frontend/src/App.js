@@ -4301,6 +4301,20 @@ function App() {
     }
   };
 
+  // Функция для получения статистики склада при сканировании ячейки
+  const fetchWarehouseStatistics = async (warehouseId) => {
+    try {
+      console.log(`📊 Получение статистики склада: ${warehouseId}`);
+      const stats = await apiCall(`/api/warehouses/${warehouseId}/statistics`);
+      setTargetWarehouseStats(stats);
+      console.log('✅ Статистика склада получена:', stats);
+      return stats;
+    } catch (error) {
+      console.error('❌ Ошибка получения статистики склада:', error);
+      return null;
+    }
+  };
+
   // Функция для открытия модального окна размещения груза
   const openCargoPlacementModal = () => {
     setSessionPlacedCount(0); // Сбрасываем счетчик размещенных грузов
