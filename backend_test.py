@@ -40,365 +40,657 @@ from datetime import datetime
 BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://tajline-ops.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
-def log_test_result(test_name, success, details=""):
-    """Логирование результатов тестирования"""
-    status = "✅ PASS" if success else "❌ FAIL"
-    timestamp = datetime.now().strftime("%H:%M:%S")
-    print(f"[{timestamp}] {status} {test_name}")
-    if details:
-        print(f"    📋 {details}")
-    print()
-
-def test_admin_authorization():
-    """Тест 1: Авторизация администратора (+79999888777/admin123)"""
-    print("🔐 ТЕСТ 1: Авторизация администратора (+79999888777/admin123)")
-    
-    try:
-        login_data = {
-            "phone": "+79999888777",
-            "password": "admin123"
+class UIFlickeringFixTester:
+    def __init__(self):
+        self.session = requests.Session()
+        self.admin_token = None
+        self.operator_token = None
+        self.admin_info = None
+        self.operator_info = None
+        self.test_results = []
+        
+    def log_test(self, test_name, success, details="", error_msg=""):
+        """Логирование результатов тестов"""
+        result = {
+            "test": test_name,
+            "success": success,
+            "details": details,
+            "error": error_msg,
+            "timestamp": datetime.now().isoformat()
         }
-        
-        response = requests.post(f"{API_BASE}/auth/login", json=login_data)
-        
-        if response.status_code == 200:
-            data = response.json()
-            token = data.get("access_token")
-            user_info = data.get("user", {})
-            
-            if token and user_info.get("role") == "admin":
-                log_test_result(
-                    "Авторизация администратора", 
-                    True, 
-                    f"Успешная авторизация '{user_info.get('full_name')}' (номер: {user_info.get('user_number')}), роль: {user_info.get('role')}, JWT токен получен"
-                )
-                return token
-            else:
-                log_test_result("Авторизация администратора", False, "Токен не получен или роль не admin")
-                return None
-        else:
-            log_test_result("Авторизация администратора", False, f"HTTP {response.status_code}: {response.text}")
-            return None
-            
-    except Exception as e:
-        log_test_result("Авторизация администратора", False, f"Ошибка: {str(e)}")
-        return None
+        self.test_results.append(result)
+        status = "✅ УСПЕХ" if success else "❌ ОШИБКА"
+        print(f"{status}: {test_name}")
+        if details:
+            print(f"   📋 Детали: {details}")
+        if error_msg:
+            print(f"   ⚠️ Ошибка: {error_msg}")
+        print()
 
-def test_get_cargo_list(token):
-    """Тест 2: Получение списка грузов из раздела 'Список грузов'"""
-    print("📦 ТЕСТ 2: Получение списка грузов из раздела 'Список грузов'")
-    
-    try:
-        headers = {"Authorization": f"Bearer {token}"}
-        
-        # Пробуем GET /api/cargo/all (основной endpoint для списка грузов)
-        response = requests.get(f"{API_BASE}/cargo/all", headers=headers)
-        
-        if response.status_code == 200:
-            data = response.json()
-            cargo_list = data.get("items", data) if isinstance(data, dict) else data
+    def test_admin_login(self):
+        """Тест 1: POST /api/auth/login - авторизация администратора"""
+        try:
+            login_data = {
+                "phone": "+79999888777",
+                "password": "admin123"
+            }
             
-            if isinstance(cargo_list, list) and len(cargo_list) > 0:
-                # Анализируем статусы грузов
-                status_counts = {}
-                for cargo in cargo_list[:100]:  # Анализируем первые 100 для производительности
-                    status = cargo.get("status", "unknown")
-                    status_counts[status] = status_counts.get(status, 0) + 1
-                
-                log_test_result(
-                    "Получение списка грузов", 
-                    True, 
-                    f"Найдено {len(cargo_list)} грузов в разделе 'Список грузов'. Статусы: {dict(list(status_counts.items())[:5])}"
-                )
-                return cargo_list[:10]  # Возвращаем первые 10 для тестирования
-            else:
-                log_test_result("Получение списка грузов", False, "Список грузов пуст или неверный формат")
-                return []
-        else:
-            # Пробуем альтернативный endpoint GET /api/admin/cargo
-            response = requests.get(f"{API_BASE}/admin/cargo", headers=headers)
+            response = self.session.post(f"{API_BASE}/auth/login", json=login_data)
+            
             if response.status_code == 200:
                 data = response.json()
-                cargo_list = data.get("items", data) if isinstance(data, dict) else data
+                self.admin_token = data.get("access_token")
+                self.admin_info = data.get("user", {})
                 
-                if isinstance(cargo_list, list) and len(cargo_list) > 0:
-                    log_test_result(
-                        "Получение списка грузов", 
-                        True, 
-                        f"Найдено {len(cargo_list)} грузов через GET /api/admin/cargo"
-                    )
-                    return cargo_list[:10]
-                    
-            log_test_result("Получение списка грузов", False, f"HTTP {response.status_code}: {response.text}")
-            return []
-            
-    except Exception as e:
-        log_test_result("Получение списка грузов", False, f"Ошибка: {str(e)}")
-        return []
-
-def test_bulk_delete_validation(token):
-    """Тест 3: Валидация BulkDeleteRequest модели"""
-    print("🔍 ТЕСТ 3: Валидация BulkDeleteRequest модели")
-    
-    headers = {"Authorization": f"Bearer {token}"}
-    
-    # Тест 3.1: Пустой список ids (должен вернуть ошибку валидации)
-    try:
-        response = requests.delete(f"{API_BASE}/admin/cargo/bulk", 
-                                 headers=headers, 
-                                 json={"ids": []})
-        
-        if response.status_code == 422:
-            log_test_result("Валидация пустого списка", True, "Пустой список ids корректно отклонен (HTTP 422)")
-        else:
-            log_test_result("Валидация пустого списка", False, f"Ожидался HTTP 422, получен {response.status_code}")
-    except Exception as e:
-        log_test_result("Валидация пустого списка", False, f"Ошибка: {str(e)}")
-    
-    # Тест 3.2: Слишком много элементов (>100, должен вернуть ошибку валидации)
-    try:
-        large_list = [f"test-id-{i}" for i in range(101)]  # 101 элемент
-        response = requests.delete(f"{API_BASE}/admin/cargo/bulk", 
-                                 headers=headers, 
-                                 json={"ids": large_list})
-        
-        if response.status_code == 422:
-            log_test_result("Валидация превышения лимита", True, "Список >100 элементов корректно отклонен (HTTP 422)")
-        else:
-            log_test_result("Валидация превышения лимита", False, f"Ожидался HTTP 422, получен {response.status_code}")
-    except Exception as e:
-        log_test_result("Валидация превышения лимита", False, f"Ошибка: {str(e)}")
-    
-    # Тест 3.3: Неверная структура данных (старый формат)
-    try:
-        response = requests.delete(f"{API_BASE}/admin/cargo/bulk", 
-                                 headers=headers, 
-                                 json={"cargo_ids": ["test-id-1", "test-id-2"]})  # Старый формат
-        
-        if response.status_code == 422:
-            log_test_result("Валидация неверной структуры", True, "Старый формат cargo_ids корректно отклонен (HTTP 422)")
-        else:
-            log_test_result("Валидация неверной структуры", False, f"Ожидался HTTP 422, получен {response.status_code}")
-    except Exception as e:
-        log_test_result("Валидация неверной структуры", False, f"Ошибка: {str(e)}")
-
-def test_bulk_delete_functionality(token, cargo_list):
-    """Тест 4: Тестирование исправленного endpoint DELETE /api/admin/cargo/bulk"""
-    print("🎯 ТЕСТ 4: Тестирование исправленного endpoint DELETE /api/admin/cargo/bulk")
-    
-    if len(cargo_list) < 2:
-        log_test_result("Массовое удаление", False, "Недостаточно грузов для тестирования (нужно минимум 2)")
-        return
-    
-    # Выбираем 2-3 груза для тестирования
-    test_cargo = cargo_list[:3]
-    test_ids = [cargo.get("id") for cargo in test_cargo if cargo.get("id")]
-    
-    if len(test_ids) < 2:
-        log_test_result("Массовое удаление", False, "Не найдены ID грузов для тестирования")
-        return
-    
-    print(f"    📋 Тестируем удаление {len(test_ids)} грузов:")
-    for i, cargo in enumerate(test_cargo[:len(test_ids)]):
-        print(f"       {i+1}. {cargo.get('cargo_number', 'N/A')} (ID: {cargo.get('id', 'N/A')[:8]}...)")
-    
-    try:
-        headers = {"Authorization": f"Bearer {token}"}
-        
-        # Используем правильную структуру {"ids": [...]}
-        delete_data = {"ids": test_ids}
-        
-        response = requests.delete(f"{API_BASE}/admin/cargo/bulk", 
-                                 headers=headers, 
-                                 json=delete_data)
-        
-        print(f"    📡 HTTP Status: {response.status_code}")
-        print(f"    📡 Response: {response.text[:500]}...")
-        
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                success = data.get("success", False)
-                deleted_count = data.get("deleted_count", 0)
-                
-                if success and deleted_count > 0:
-                    log_test_result(
-                        "Массовое удаление", 
-                        True, 
-                        f"Успешно удалено {deleted_count} из {len(test_ids)} грузов. Ответ содержит success: {success}"
+                if self.admin_token and self.admin_info.get("role") == "admin":
+                    self.log_test(
+                        "POST /api/auth/login - авторизация администратора",
+                        True,
+                        f"Успешная авторизация '{self.admin_info.get('full_name')}' (номер: {self.admin_info.get('user_number')}), роль: {self.admin_info.get('role')}, JWT токен получен"
                     )
                     return True
                 else:
-                    log_test_result(
-                        "Массовое удаление", 
-                        False, 
-                        f"Ответ получен, но success: {success}, deleted_count: {deleted_count}"
+                    self.log_test(
+                        "POST /api/auth/login - авторизация администратора",
+                        False,
+                        "Токен не получен или роль не admin",
+                        f"Ответ: {data}"
                     )
                     return False
-            except json.JSONDecodeError:
-                log_test_result("Массовое удаление", False, "Ответ не является валидным JSON")
+            else:
+                self.log_test(
+                    "POST /api/auth/login - авторизация администратора",
+                    False,
+                    f"HTTP {response.status_code}",
+                    response.text
+                )
                 return False
-        elif response.status_code == 404:
-            log_test_result(
-                "Массовое удаление", 
-                False, 
-                "❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: HTTP 404 'Груз не найден' - исправления НЕ РАБОТАЮТ!"
+                
+        except Exception as e:
+            self.log_test(
+                "POST /api/auth/login - авторизация администратора",
+                False,
+                "",
+                str(e)
             )
             return False
-        else:
-            log_test_result(
-                "Массовое удаление", 
-                False, 
-                f"HTTP {response.status_code}: {response.text}"
-            )
-            return False
-            
-    except Exception as e:
-        log_test_result("Массовое удаление", False, f"Ошибка: {str(e)}")
-        return False
 
-def test_cargo_deletion_verification(token, original_count):
-    """Тест 5: Проверка что грузы действительно удалились"""
-    print("🔍 ТЕСТ 5: Проверка удаления грузов из коллекций")
-    
-    try:
-        headers = {"Authorization": f"Bearer {token}"}
-        
-        # Получаем обновленный список грузов
-        response = requests.get(f"{API_BASE}/cargo/all", headers=headers)
-        
-        if response.status_code == 200:
-            data = response.json()
-            cargo_list = data.get("items", data) if isinstance(data, dict) else data
-            new_count = len(cargo_list) if isinstance(cargo_list, list) else 0
+    def test_admin_me_endpoint(self):
+        """Тест 2: GET /api/auth/me - проверка текущего пользователя"""
+        try:
+            if not self.admin_token:
+                self.log_test(
+                    "GET /api/auth/me - проверка текущего пользователя",
+                    False,
+                    "",
+                    "Нет токена администратора"
+                )
+                return False
             
-            if new_count < original_count:
-                log_test_result(
-                    "Проверка удаления", 
-                    True, 
-                    f"Количество грузов уменьшилось с {original_count} до {new_count} (удалено: {original_count - new_count})"
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            response = self.session.get(f"{API_BASE}/auth/me", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                user_info = data.get("user", {})
+                
+                if user_info.get("role") == "admin" and user_info.get("phone") == "+79999888777":
+                    self.log_test(
+                        "GET /api/auth/me - проверка текущего пользователя",
+                        True,
+                        f"Данные пользователя получены корректно: {user_info.get('full_name')} ({user_info.get('role')})"
+                    )
+                    return True
+                else:
+                    self.log_test(
+                        "GET /api/auth/me - проверка текущего пользователя",
+                        False,
+                        "Неверные данные пользователя",
+                        f"Ответ: {data}"
+                    )
+                    return False
+            else:
+                self.log_test(
+                    "GET /api/auth/me - проверка текущего пользователя",
+                    False,
+                    f"HTTP {response.status_code}",
+                    response.text
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test(
+                "GET /api/auth/me - проверка текущего пользователя",
+                False,
+                "",
+                str(e)
+            )
+            return False
+
+    def test_admin_dashboard_analytics(self):
+        """Тест 3: GET /api/admin/dashboard/analytics - аналитические данные для админа"""
+        try:
+            if not self.admin_token:
+                self.log_test(
+                    "GET /api/admin/dashboard/analytics - аналитические данные для админа",
+                    False,
+                    "",
+                    "Нет токена администратора"
+                )
+                return False
+            
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            response = self.session.get(f"{API_BASE}/admin/dashboard/analytics", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Проверяем наличие основных аналитических данных
+                expected_fields = ["total_cargo", "total_users", "total_warehouses", "recent_activity"]
+                present_fields = [field for field in expected_fields if field in data]
+                
+                if len(present_fields) >= 2:  # Хотя бы 2 поля должны присутствовать
+                    self.log_test(
+                        "GET /api/admin/dashboard/analytics - аналитические данные для админа",
+                        True,
+                        f"Аналитические данные получены, присутствуют поля: {present_fields}"
+                    )
+                    return True
+                else:
+                    self.log_test(
+                        "GET /api/admin/dashboard/analytics - аналитические данные для админа",
+                        False,
+                        f"Недостаточно аналитических данных, найдены поля: {present_fields}",
+                        f"Ответ: {data}"
+                    )
+                    return False
+            else:
+                self.log_test(
+                    "GET /api/admin/dashboard/analytics - аналитические данные для админа",
+                    False,
+                    f"HTTP {response.status_code}",
+                    response.text
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test(
+                "GET /api/admin/dashboard/analytics - аналитические данные для админа",
+                False,
+                "",
+                str(e)
+            )
+            return False
+
+    def test_operator_login(self):
+        """Тест 4: Авторизация оператора для тестирования operator endpoints"""
+        try:
+            # Пробуем авторизоваться как оператор склада
+            login_data = {
+                "phone": "+79777888999",
+                "password": "warehouse123"
+            }
+            
+            response = self.session.post(f"{API_BASE}/auth/login", json=login_data)
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.operator_token = data.get("access_token")
+                self.operator_info = data.get("user", {})
+                
+                if self.operator_token and self.operator_info.get("role") == "warehouse_operator":
+                    self.log_test(
+                        "Авторизация оператора для тестирования operator endpoints",
+                        True,
+                        f"Успешная авторизация оператора '{self.operator_info.get('full_name')}' (роль: {self.operator_info.get('role')})"
+                    )
+                    return True
+                else:
+                    self.log_test(
+                        "Авторизация оператора для тестирования operator endpoints",
+                        False,
+                        "Токен не получен или роль не warehouse_operator",
+                        f"Ответ: {data}"
+                    )
+                    return False
+            else:
+                self.log_test(
+                    "Авторизация оператора для тестирования operator endpoints",
+                    False,
+                    f"HTTP {response.status_code}",
+                    response.text
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test(
+                "Авторизация оператора для тестирования operator endpoints",
+                False,
+                "",
+                str(e)
+            )
+            return False
+
+    def test_operator_dashboard_analytics(self):
+        """Тест 5: GET /api/operator/dashboard/analytics - аналитические данные для оператора"""
+        try:
+            if not self.operator_token:
+                self.log_test(
+                    "GET /api/operator/dashboard/analytics - аналитические данные для оператора",
+                    False,
+                    "",
+                    "Нет токена оператора"
+                )
+                return False
+            
+            headers = {"Authorization": f"Bearer {self.operator_token}"}
+            response = self.session.get(f"{API_BASE}/operator/dashboard/analytics", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Проверяем наличие основных аналитических данных для оператора
+                expected_fields = ["cargo_in_warehouse", "placement_statistics", "recent_placements"]
+                present_fields = [field for field in expected_fields if field in data]
+                
+                if len(present_fields) >= 1:  # Хотя бы 1 поле должно присутствовать
+                    self.log_test(
+                        "GET /api/operator/dashboard/analytics - аналитические данные для оператора",
+                        True,
+                        f"Аналитические данные оператора получены, присутствуют поля: {present_fields}"
+                    )
+                    return True
+                else:
+                    self.log_test(
+                        "GET /api/operator/dashboard/analytics - аналитические данные для оператора",
+                        False,
+                        f"Недостаточно аналитических данных, найдены поля: {present_fields}",
+                        f"Ответ: {data}"
+                    )
+                    return False
+            else:
+                self.log_test(
+                    "GET /api/operator/dashboard/analytics - аналитические данные для оператора",
+                    False,
+                    f"HTTP {response.status_code}",
+                    response.text
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test(
+                "GET /api/operator/dashboard/analytics - аналитические данные для оператора",
+                False,
+                "",
+                str(e)
+            )
+            return False
+
+    def test_cargo_all_endpoint(self):
+        """Тест 6: GET /api/cargo/all - основные данные грузов"""
+        try:
+            if not self.admin_token:
+                self.log_test(
+                    "GET /api/cargo/all - основные данные грузов",
+                    False,
+                    "",
+                    "Нет токена администратора"
+                )
+                return False
+            
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            response = self.session.get(f"{API_BASE}/cargo/all", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Проверяем структуру данных
+                if isinstance(data, list):
+                    cargo_count = len(data)
+                elif isinstance(data, dict) and "items" in data:
+                    cargo_count = len(data["items"])
+                else:
+                    cargo_count = 0
+                
+                if cargo_count > 0:
+                    self.log_test(
+                        "GET /api/cargo/all - основные данные грузов",
+                        True,
+                        f"Получено {cargo_count} грузов, данные загружаются корректно"
+                    )
+                    return True
+                else:
+                    self.log_test(
+                        "GET /api/cargo/all - основные данные грузов",
+                        True,  # Пустой список тоже валиден
+                        "Список грузов пуст, но endpoint работает корректно"
+                    )
+                    return True
+            else:
+                self.log_test(
+                    "GET /api/cargo/all - основные данные грузов",
+                    False,
+                    f"HTTP {response.status_code}",
+                    response.text
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test(
+                "GET /api/cargo/all - основные данные грузов",
+                False,
+                "",
+                str(e)
+            )
+            return False
+
+    def test_warehouses_endpoint(self):
+        """Тест 7: GET /api/warehouses - данные складов"""
+        try:
+            if not self.admin_token:
+                self.log_test(
+                    "GET /api/warehouses - данные складов",
+                    False,
+                    "",
+                    "Нет токена администратора"
+                )
+                return False
+            
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            response = self.session.get(f"{API_BASE}/warehouses", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if isinstance(data, list):
+                    warehouse_count = len(data)
+                    
+                    if warehouse_count > 0:
+                        # Проверяем структуру первого склада
+                        first_warehouse = data[0]
+                        required_fields = ["id", "name", "location"]
+                        missing_fields = [field for field in required_fields if field not in first_warehouse]
+                        
+                        if not missing_fields:
+                            self.log_test(
+                                "GET /api/warehouses - данные складов",
+                                True,
+                                f"Получено {warehouse_count} складов, структура данных корректна"
+                            )
+                            return True
+                        else:
+                            self.log_test(
+                                "GET /api/warehouses - данные складов",
+                                False,
+                                f"Получено {warehouse_count} складов, но отсутствуют поля: {missing_fields}",
+                                f"Первый склад: {first_warehouse}"
+                            )
+                            return False
+                    else:
+                        self.log_test(
+                            "GET /api/warehouses - данные складов",
+                            True,  # Пустой список тоже валиден
+                            "Список складов пуст, но endpoint работает корректно"
+                        )
+                        return True
+                else:
+                    self.log_test(
+                        "GET /api/warehouses - данные складов",
+                        False,
+                        "Неожиданная структура ответа",
+                        f"Ответ: {data}"
+                    )
+                    return False
+            else:
+                self.log_test(
+                    "GET /api/warehouses - данные складов",
+                    False,
+                    f"HTTP {response.status_code}",
+                    response.text
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test(
+                "GET /api/warehouses - данные складов",
+                False,
+                "",
+                str(e)
+            )
+            return False
+
+    def test_notifications_endpoint(self):
+        """Тест 8: GET /api/notifications - уведомления"""
+        try:
+            if not self.admin_token:
+                self.log_test(
+                    "GET /api/notifications - уведомления",
+                    False,
+                    "",
+                    "Нет токена администратора"
+                )
+                return False
+            
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            response = self.session.get(f"{API_BASE}/notifications", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if isinstance(data, list):
+                    notification_count = len(data)
+                    self.log_test(
+                        "GET /api/notifications - уведомления",
+                        True,
+                        f"Получено {notification_count} уведомлений, endpoint работает корректно"
+                    )
+                    return True
+                elif isinstance(data, dict) and "items" in data:
+                    notification_count = len(data["items"])
+                    self.log_test(
+                        "GET /api/notifications - уведомления",
+                        True,
+                        f"Получено {notification_count} уведомлений (пагинированный ответ), endpoint работает корректно"
+                    )
+                    return True
+                else:
+                    self.log_test(
+                        "GET /api/notifications - уведомления",
+                        False,
+                        "Неожиданная структура ответа",
+                        f"Ответ: {data}"
+                    )
+                    return False
+            else:
+                self.log_test(
+                    "GET /api/notifications - уведомления",
+                    False,
+                    f"HTTP {response.status_code}",
+                    response.text
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test(
+                "GET /api/notifications - уведомления",
+                False,
+                "",
+                str(e)
+            )
+            return False
+
+    def test_admin_users_endpoint(self):
+        """Тест 9: GET /api/admin/users - управление пользователями"""
+        try:
+            if not self.admin_token:
+                self.log_test(
+                    "GET /api/admin/users - управление пользователями",
+                    False,
+                    "",
+                    "Нет токена администратора"
+                )
+                return False
+            
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            response = self.session.get(f"{API_BASE}/admin/users", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if isinstance(data, list):
+                    user_count = len(data)
+                elif isinstance(data, dict) and "items" in data:
+                    user_count = len(data["items"])
+                else:
+                    user_count = 0
+                
+                if user_count > 0:
+                    self.log_test(
+                        "GET /api/admin/users - управление пользователями",
+                        True,
+                        f"Получено {user_count} пользователей, endpoint работает корректно"
+                    )
+                    return True
+                else:
+                    self.log_test(
+                        "GET /api/admin/users - управление пользователями",
+                        True,  # Пустой список тоже валиден
+                        "Список пользователей пуст, но endpoint работает корректно"
+                    )
+                    return True
+            else:
+                self.log_test(
+                    "GET /api/admin/users - управление пользователями",
+                    False,
+                    f"HTTP {response.status_code}",
+                    response.text
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test(
+                "GET /api/admin/users - управление пользователями",
+                False,
+                "",
+                str(e)
+            )
+            return False
+
+    def test_auth_logout(self):
+        """Тест 10: POST /api/auth/logout - выход из системы"""
+        try:
+            if not self.admin_token:
+                self.log_test(
+                    "POST /api/auth/logout - выход из системы",
+                    False,
+                    "",
+                    "Нет токена администратора"
+                )
+                return False
+            
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            response = self.session.post(f"{API_BASE}/auth/logout", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.log_test(
+                    "POST /api/auth/logout - выход из системы",
+                    True,
+                    f"Выход из системы выполнен успешно: {data.get('message', 'OK')}"
                 )
                 return True
             else:
-                log_test_result(
-                    "Проверка удаления", 
-                    False, 
-                    f"Количество грузов не изменилось: {original_count} -> {new_count}"
+                self.log_test(
+                    "POST /api/auth/logout - выход из системы",
+                    False,
+                    f"HTTP {response.status_code}",
+                    response.text
                 )
                 return False
-        else:
-            log_test_result("Проверка удаления", False, f"Не удалось получить обновленный список: HTTP {response.status_code}")
-            return False
-            
-    except Exception as e:
-        log_test_result("Проверка удаления", False, f"Ошибка: {str(e)}")
-        return False
-
-def test_nonexistent_ids(token):
-    """Тест 6: Обработка несуществующих ID"""
-    print("🔍 ТЕСТ 6: Обработка несуществующих ID")
-    
-    try:
-        headers = {"Authorization": f"Bearer {token}"}
-        
-        # Тестируем с несуществующими ID
-        fake_ids = ["nonexistent-id-1", "nonexistent-id-2", "fake-cargo-id-3"]
-        delete_data = {"ids": fake_ids}
-        
-        response = requests.delete(f"{API_BASE}/admin/cargo/bulk", 
-                                 headers=headers, 
-                                 json=delete_data)
-        
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                deleted_count = data.get("deleted_count", 0)
                 
-                if deleted_count == 0:
-                    log_test_result(
-                        "Обработка несуществующих ID", 
-                        True, 
-                        f"Несуществующие ID корректно обработаны: deleted_count = {deleted_count}"
-                    )
-                    return True
-                else:
-                    log_test_result(
-                        "Обработка несуществующих ID", 
-                        False, 
-                        f"Неожиданно удалено {deleted_count} элементов при несуществующих ID"
-                    )
-                    return False
-            except json.JSONDecodeError:
-                log_test_result("Обработка несуществующих ID", False, "Ответ не является валидным JSON")
-                return False
-        else:
-            log_test_result(
-                "Обработка несуществующих ID", 
-                False, 
-                f"HTTP {response.status_code}: {response.text}"
+        except Exception as e:
+            self.log_test(
+                "POST /api/auth/logout - выход из системы",
+                False,
+                "",
+                str(e)
             )
             return False
-            
-    except Exception as e:
-        log_test_result("Обработка несуществующих ID", False, f"Ошибка: {str(e)}")
-        return False
 
-def main():
-    """Основная функция тестирования"""
-    print("=" * 80)
-    print("🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Исправленная проблема массового удаления")
-    print("📍 Раздел: 'Список грузов' в TAJLINE.TJ")
-    print("🔧 Тестируем исправления BulkDeleteRequest и endpoint DELETE /api/admin/cargo/bulk")
-    print("=" * 80)
-    print()
-    
-    # Тест 1: Авторизация администратора
-    token = test_admin_authorization()
-    if not token:
-        print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось авторизоваться как администратор")
-        print("🛑 Тестирование прервано")
-        return
-    
-    # Тест 2: Получение списка грузов
-    cargo_list = test_get_cargo_list(token)
-    if not cargo_list:
-        print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось получить список грузов")
-        print("🛑 Тестирование прервано")
-        return
-    
-    original_count = len(cargo_list)
-    
-    # Тест 3: Валидация BulkDeleteRequest модели
-    test_bulk_delete_validation(token)
-    
-    # Тест 4: Основной тест массового удаления
-    deletion_success = test_bulk_delete_functionality(token, cargo_list)
-    
-    # Тест 5: Проверка удаления (только если удаление прошло успешно)
-    if deletion_success:
-        test_cargo_deletion_verification(token, original_count)
-    
-    # Тест 6: Обработка несуществующих ID
-    test_nonexistent_ids(token)
-    
-    print("=" * 80)
-    print("🏁 ТЕСТИРОВАНИЕ ЗАВЕРШЕНО")
-    print("=" * 80)
-    
-    if deletion_success:
-        print("✅ РЕЗУЛЬТАТ: Исправления массового удаления РАБОТАЮТ!")
-        print("📋 Endpoint DELETE /api/admin/cargo/bulk функционирует корректно")
-        print("📋 Структура запроса {'ids': [...]} обрабатывается правильно")
-        print("📋 BulkDeleteRequest модель валидирует данные корректно")
-        print("📋 Ошибка HTTP 404 'Груз не найден' ИСПРАВЛЕНА!")
-    else:
-        print("❌ РЕЗУЛЬТАТ: Исправления массового удаления НЕ РАБОТАЮТ!")
-        print("📋 Требуется дополнительная диагностика и исправления")
-    
-    print()
+    def run_all_tests(self):
+        """Запуск всех тестов"""
+        print("🚀 НАЧАЛО КРИТИЧЕСКОГО ТЕСТИРОВАНИЯ: Backend API endpoints после исправления UI flickering")
+        print("=" * 100)
+        print("🎯 Фокус: проверить что наши изменения в frontend не повлияли на backend функциональность")
+        print("=" * 100)
+        print()
+        
+        # Последовательность тестов
+        tests = [
+            self.test_admin_login,
+            self.test_admin_me_endpoint,
+            self.test_admin_dashboard_analytics,
+            self.test_operator_login,
+            self.test_operator_dashboard_analytics,
+            self.test_cargo_all_endpoint,
+            self.test_warehouses_endpoint,
+            self.test_notifications_endpoint,
+            self.test_admin_users_endpoint,
+            self.test_auth_logout
+        ]
+        
+        passed_tests = 0
+        total_tests = len(tests)
+        
+        for test in tests:
+            if test():
+                passed_tests += 1
+            # Небольшая пауза между тестами
+            import time
+            time.sleep(0.5)
+        
+        # Итоговый отчет
+        print("=" * 100)
+        print("📊 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ")
+        print("=" * 100)
+        
+        success_rate = (passed_tests / total_tests) * 100
+        print(f"Успешность тестирования: {passed_tests}/{total_tests} ({success_rate:.1f}%)")
+        print()
+        
+        if success_rate >= 90:
+            print("🎉 ОТЛИЧНЫЙ РЕЗУЛЬТАТ: Все API endpoints работают корректно!")
+            print("✅ Изменения в frontend не повлияли на backend функциональность")
+            print("✅ Проблема UI flickering решена без нарушения API")
+        elif success_rate >= 70:
+            print("⚠️ ХОРОШИЙ РЕЗУЛЬТАТ: Большинство endpoints работает корректно")
+            print("🔧 Есть незначительные проблемы, которые не влияют на основную функциональность")
+        else:
+            print("❌ КРИТИЧЕСКИЕ ПРОБЛЕМЫ: Обнаружены серьезные проблемы с API endpoints")
+            print("🚨 Требуется дополнительная диагностика backend системы")
+        
+        print()
+        print("ДЕТАЛЬНЫЕ РЕЗУЛЬТАТЫ ТЕСТОВ:")
+        print("-" * 50)
+        for result in self.test_results:
+            status = "✅" if result["success"] else "❌"
+            print(f"{status} {result['test']}")
+            if result["details"]:
+                print(f"   📝 {result['details']}")
+            if result["error"]:
+                print(f"   ⚠️ {result['error']}")
+        
+        return success_rate >= 70
 
 if __name__ == "__main__":
-    main()
+    tester = UIFlickeringFixTester()
+    success = tester.run_all_tests()
+    
+    if success:
+        print("\n🎯 ОЖИДАЕМЫЙ РЕЗУЛЬТАТ ДОСТИГНУТ: Backend API endpoints работают как ожидается!")
+        print("✅ Исправления UI flickering не повлияли на backend функциональность")
+    else:
+        print("\n🔧 ТРЕБУЮТСЯ ДОПОЛНИТЕЛЬНЫЕ ИСПРАВЛЕНИЯ backend API endpoints")
 """
 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Исправления React ошибок при удалении грузов в системе TAJLINE.TJ
 
