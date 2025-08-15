@@ -1,6 +1,76 @@
-#====================================================================================================
+#===================================================
+# TESTING RESULTS & COMMUNICATION LOG
+#===================================================
+
+## OVERVIEW
+This document tracks testing results, fixes, and communication between the main agent and testing sub-agents for the TAJLINE.TJ cargo management system.
+
+## Current Status: UI Flickering Fix Implementation
+- Дата: 2025-08-15 18:36
+- Проблема: При обновлении страницы на несколько секунд показывается старый аналитический дашборд перед загрузкой актуальных данных
+- Реализованное решение:
+  1. Добавлена проверка `isInitializing` состояния с показом экрана загрузки
+  2. Обновлены функции `fetchUserData` и `clearAllAppData` для корректного управления `dataLoaded` состоянием
+  3. Добавлен красивый экран загрузки с логотипом TAJLINE и анимированным spinner
+
+## ИСПРАВЛЕНИЯ В КОДЕ:
+### 1. Добавлен экран загрузки при инициализации (/app/frontend/src/App.js):
+```jsx
+// ИСПРАВЛЕНИЕ: Показ экрана загрузки при инициализации для предотвращения показа старых данных
+if (isInitializing && token) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="flex items-center justify-center mb-6">
+          <div className="bg-blue-600 rounded-2xl p-4 shadow-2xl">
+            <img src="..." alt="TAJLINE.TJ" className="h-12 w-auto" />
+          </div>
+        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">Загрузка...</h2>
+        <p className="text-gray-600">Получение данных пользователя</p>
+      </div>
+    </div>
+  );
+}
+```
+
+### 2. Обновлена функция fetchUserData для правильного управления состоянием:
+```jsx
+// ИСПРАВЛЕНИЕ: Устанавливаем флаг завершения загрузки данных
+setDataLoaded(true);
+```
+
+### 3. Добавлено управление dataLoaded в useEffect после загрузки всех данных:
+```jsx
+// ИСПРАВЛЕНИЕ: Устанавливаем флаг завершения загрузки всех данных
+setDataLoaded(true);
+```
+
+## TESTING PROTOCOL
+When invoking testing agents, follow these rules:
+
+### Backend Testing (`deep_testing_backend_v2`):
+- Test all API endpoints and business logic
+- Focus on functionality, not UI
+- Report specific issues with HTTP status codes and error messages
+
+### Frontend Testing (Manual verification required):
+- Ask user permission before running automated frontend tests
+- Focus on UI/UX functionality and user workflows
+- Include visual validation and cross-browser compatibility
+
+## Incorporate User Feedback
+- Always prioritize user-reported issues
+- Test exactly the scenarios described by users
+- Verify fixes match user expectations, not just technical requirements
+
+## ТРЕБУЕТСЯ ТЕСТИРОВАНИЕ:
+1. Backend testing для проверки что API endpoints работают корректно
+2. User manual testing для проверки исправления UI flickering при обновлении страницы
+
 # START - Testing Protocol - DO NOT EDIT OR REMOVE THIS SECTION
-#====================================================================================================
+#===================================================
 
 # THIS SECTION CONTAINS CRITICAL TESTING INSTRUCTIONS FOR BOTH AGENTS
 # BOTH MAIN_AGENT AND TESTING_AGENT MUST PRESERVE THIS ENTIRE BLOCK
