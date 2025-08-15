@@ -4325,6 +4325,12 @@ function App() {
 
   // Функция для открытия модального окна размещения груза
   const openCargoPlacementModal = () => {
+    console.log('🔍 ОТЛАДКА: Открытие модального окна размещения');
+    console.log('- placementStatistics:', placementStatistics);
+    console.log('- targetWarehouseStats:', targetWarehouseStats);
+    console.log('- scannedCargoData:', scannedCargoData);
+    console.log('- scannedCellData:', scannedCellData);
+    
     setSessionPlacedCount(0); // Сбрасываем счетчик размещенных грузов
     setTargetWarehouseStats(null); // Сбрасываем статистику целевого склада
     setShowCargoPlacementModal(true);
