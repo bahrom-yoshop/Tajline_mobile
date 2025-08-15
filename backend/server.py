@@ -791,6 +791,10 @@ class SystemNotification(BaseModel):
 
 # === НОВЫЕ МОДЕЛИ ДЛЯ ЭТАПА 1 ===
 
+# МОДЕЛЬ ДЛЯ МАССОВОГО УДАЛЕНИЯ ГРУЗОВ
+class BulkDeleteRequest(BaseModel):
+    ids: List[str] = Field(..., min_items=1, max_items=100, description="Список ID для удаления (от 1 до 100 элементов)")
+
 # Модели для фото груза
 class CargoPhoto(BaseModel):
     id: str
