@@ -9988,7 +9988,7 @@ async def get_warehouse_detailed_structure(
 
 @app.delete("/api/admin/warehouses/bulk")
 async def delete_warehouses_bulk(
-    warehouse_ids: dict,
+    request: BulkDeleteRequest,
     current_user: User = Depends(get_current_user)
 ):
     """Массовое удаление складов"""
@@ -9999,12 +9999,14 @@ async def delete_warehouses_bulk(
         )
     
     try:
-        ids_to_delete = warehouse_ids.get("ids", [])
+        ids_to_delete = request.ids
         if not ids_to_delete:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Список ID для удаления не может быть пустым"
             )
+        
+        print(f"🗑️ Массовое удаление складов: {len(ids_to_delete)} ID: {ids_to_delete}")
         
         deleted_count = 0
         errors = []
@@ -10030,20 +10032,28 @@ async def delete_warehouses_bulk(
                 result = db.warehouses.delete_one({"id": warehouse_id})
                 if result.deleted_count > 0:
                     deleted_count += 1
+                    print(f"✅ Удален склад: {warehouse_id}")
+                else:
+                    errors.append(f"Склад {warehouse_id}: не найден")
                     
             except Exception as e:
+                print(f"❌ Ошибка удаления склада {warehouse_id}: {str(e)}")
                 errors.append(f"Склад {warehouse_id}: {str(e)}")
+        
+        print(f"✅ Итого удалено складов: {deleted_count} из {len(ids_to_delete)}")
         
         return {
             "message": f"Успешно удалено складов: {deleted_count}",
             "deleted_count": deleted_count,
             "total_requested": len(ids_to_delete),
-            "errors": errors
+            "errors": errors,
+            "success": True
         }
         
     except HTTPException:
         raise
     except Exception as e:
+        print(f"❌ Ошибка массового удаления складов: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка массового удаления складов: {str(e)}"
