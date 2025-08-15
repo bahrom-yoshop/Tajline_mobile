@@ -5,7 +5,77 @@
 ## OVERVIEW
 This document tracks testing results, fixes, and communication between the main agent and testing sub-agents for the TAJLINE.TJ cargo management system.
 
-## Current Status: ИСПРАВЛЕНА проблема с некорректной статистикой склада в личном кабинете оператора
+## Current Status: РЕАЛИЗОВАНА функциональность удаления курьера из списка курьеров
+- Дата: 2025-08-15 19:30
+- Задача: Добавить кнопку для удаления курьера из списка курьеров в категории "Курьеры"
+- **НАЙДЕНА КРИТИЧЕСКАЯ ПРОБЛЕМА**: Backend не имел DELETE endpoint для удаления курьеров
+- Реализованное решение:
+  1. **Создан новый DELETE endpoint** `/api/admin/couriers/{courier_id}` в backend
+  2. **Добавлена кнопка удаления** с красивой иконкой корзины в frontend
+  3. **Реализована функция удаления** `handleDeleteCourier` с подтверждением
+  4. **Backend тестирование подтвердило** - endpoint работает корректно и безопасно
+
+## BACKEND ИСПРАВЛЕНИЯ:
+### 1. Добавлен DELETE endpoint в /app/backend/server.py:
+```python
+@app.delete("/api/admin/couriers/{courier_id}")
+async def delete_courier(courier_id: str, current_user: User = Depends(get_current_user)):
+    # БЕЗОПАСНОСТЬ: Только администраторы могут удалять курьеров
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only administrators can delete couriers")
+    
+    # Проверка активных заявок
+    active_requests = db.courier_requests.count_documents({
+        "assigned_courier_id": courier_id,
+        "status": {"$in": ["new", "accepted", "picked_up"]}
+    })
+    
+    # SOFT DELETE для сохранения истории
+    db.couriers.update_one({"id": courier_id}, {"$set": {"is_active": False, "deleted": True}})
+```
+
+### 2. Функциональности endpoint:
+- ✅ **Безопасность**: Только админы могут удалять курьеров
+- ✅ **Проверка активных заявок**: Нельзя удалить курьера с активными заявками
+- ✅ **Soft Delete**: Курьер деактивируется, не удаляется физически
+- ✅ **Логирование**: Операции удаления записываются в admin_logs
+- ✅ **Обработка ошибок**: 404 для несуществующих курьеров, 400 для курьеров с активными заявками
+
+## FRONTEND ИСПРАВЛЕНИЯ:
+### 1. Добавлена функция удаления в /app/frontend/src/App.js:
+```jsx
+const handleDeleteCourier = async (courier) => {
+  const confirmDelete = window.confirm(
+    `Вы уверены, что хотите удалить курьера "${courier.full_name}"?...`
+  );
+  if (!confirmDelete) return;
+  
+  await apiCall(`/api/admin/couriers/${courier.id}`, 'DELETE');
+  showAlert(`Курьер "${courier.full_name}" успешно удален!`, 'success');
+  await fetchCouriers(couriersPage, couriersPerPage);
+};
+```
+
+### 2. Добавлена кнопка удаления в таблицу курьеров:
+```jsx
+<Button
+  size="sm"
+  variant="outline"
+  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+  onClick={() => handleDeleteCourier(courier)}
+  title={`Удалить курьера ${courier.full_name}`}
+>
+  <Trash2 className="h-4 w-4" />
+</Button>
+```
+
+## BACKEND ТЕСТИРОВАНИЕ ПОДТВЕРДИЛО:
+- ✅ DELETE /api/admin/couriers/{courier_id} endpoint работает корректно  
+- ✅ Авторизация работает (403 для не-админов)
+- ✅ Обработка ошибок работает (404 для несуществующих курьеров)
+- ✅ Soft delete реализован правильно (is_active=false, deleted=true)
+- ✅ Создание и удаление тестовых курьеров функционально
+- ✅ Endpoint готов к использованию
 - Дата: 2025-08-15 19:00
 - Проблема: В разделе "Склад" - "список складов" показывались фейковые данные вместо реальной статистики
 - **НАЙДЕНА ПРИЧИНА**: Frontend код использовал жестко прописанные фейковые данные и случайные числа
