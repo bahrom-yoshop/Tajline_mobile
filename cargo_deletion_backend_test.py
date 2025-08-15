@@ -208,20 +208,21 @@ class TajlineCargoDeleteTester:
                 return False
             
             # Тестируем новый админский endpoint для массового полного удаления
+            # Используем правильный формат: {"ids": [...]}
             response = self.session.delete(f"{BACKEND_URL}/admin/cargo/bulk", json={
-                "cargo_ids": cargo_ids
+                "ids": cargo_ids
             })
             
             if response.status_code == 200:
                 result = response.json()
                 deleted_count = result.get("deleted_count", 0)
                 total_requested = result.get("total_requested", 0)
-                deleted_numbers = result.get("deleted_cargo_numbers", [])
+                message = result.get("message", "")
                 
                 self.log_test(
                     "Полное массовое удаление грузов", 
                     True, 
-                    f"Массовое удаление выполнено: {deleted_count}/{total_requested} грузов ПОЛНОСТЬЮ удалено из системы. Удаленные номера: {deleted_numbers}"
+                    f"Массовое удаление выполнено: {deleted_count}/{total_requested} грузов ПОЛНОСТЬЮ удалено из системы. Ответ: {message}"
                 )
                 return True
             else:
