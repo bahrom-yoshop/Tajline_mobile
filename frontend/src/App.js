@@ -7329,7 +7329,7 @@ function App() {
             if (response.success) {
               showAlert(`Груз ${items[0].cargo_number} успешно удален из размещения`, 'success');
               
-              // Обновляем ВСЕ списки грузов после полного удаления (с задержкой для стабильности)
+              // Обновляем ВСЕ списки грузов после полного удаления (с увеличенной задержкой для стабильности)
               setTimeout(async () => {
                 try {
                   await Promise.all([
@@ -7338,13 +7338,17 @@ function App() {
                     fetchOperatorCargo(),
                     fetchUnpaidCargo(),
                     fetchPaymentHistory(),
-                    fetchPlacedCargo(),
-                    fetchAllPickupRequests()
+                    fetchPlacedCargo()
                   ]);
+                  
+                  // Обновляем заявки на забор отдельно с дополнительной задержкой
+                  setTimeout(() => {
+                    fetchAllPickupRequests();
+                  }, 1000);
                 } catch (error) {
                   console.error('Ошибка обновления списков:', error);
                 }
-              }, 500);
+              }, 800);
             } else {
               showAlert(`Ошибка при удалении груза: ${response.message}`, 'error');
             }
