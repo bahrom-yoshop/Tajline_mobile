@@ -195,6 +195,58 @@ class CargoRemovalTester:
             self.log_result("КРИТИЧЕСКИЙ ТЕСТ: Удаление груза из размещения", False, f"Exception: {str(e)}")
             return False
     
+    def verify_cargo_status_changed(self, cargo_id, cargo_number):
+        """Проверить что статус груза изменился на 'removed_from_placement'"""
+        print(f"\n🔍 Проверка изменения статуса груза {cargo_number}...")
+        
+        try:
+            headers = {"Authorization": f"Bearer {self.operator_token}"}
+            # Попробуем найти груз через поиск по номеру
+            response = requests.get(f"{BACKEND_URL}/cargo/track/{cargo_number}", headers=headers, timeout=30)
+            
+            if response.status_code == 200:
+                cargo_data = response.json()
+                cargo_status = cargo_data.get("status", "")
+                
+                if cargo_status == "removed_from_placement":
+                    self.log_result(
+                        "Проверка изменения статуса груза",
+                        True,
+                        f"Статус груза {cargo_number} изменен на 'removed_from_placement'",
+                        {
+                            "cargo_id": cargo_id,
+                            "cargo_number": cargo_number,
+                            "new_status": cargo_status,
+                            "cargo_data": cargo_data
+                        }
+                    )
+                    return True
+                else:
+                    self.log_result(
+                        "Проверка изменения статуса груза",
+                        False,
+                        f"Статус груза {cargo_number} не изменился: {cargo_status}",
+                        {
+                            "cargo_id": cargo_id,
+                            "cargo_number": cargo_number,
+                            "current_status": cargo_status,
+                            "expected_status": "removed_from_placement"
+                        }
+                    )
+                    return False
+            else:
+                self.log_result(
+                    "Проверка изменения статуса груза",
+                    False,
+                    f"Не удалось получить данные груза: HTTP {response.status_code}",
+                    {"response_text": response.text}
+                )
+                return False
+                
+        except Exception as e:
+            self.log_result("Проверка изменения статуса груза", False, f"Exception: {str(e)}")
+            return False
+    
     def verify_cargo_removed_from_list(self, removed_cargo_id):
         """Проверить что груз исчез из списка доступных для размещения"""
         print(f"\n🔍 Проверка что груз исчез из списка размещения...")
