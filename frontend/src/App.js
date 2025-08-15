@@ -4426,16 +4426,11 @@ function App() {
       console.log('- Данные ячейки:', scannedCellData);
       console.log('- Доступные склады:', warehouses.map(w => ({id: w.id, name: w.name, warehouse_number: w.warehouse_number})));
       
-      if (scannedCellData.format === 'compact') {
-        // Для компактного формата нужно найти warehouse_id по warehouse_number
-        const warehouse = warehouses.find(w => w.warehouse_number === scannedCellData.warehouse_number);
-        if (!warehouse) {
-          console.error(`❌ Склад с номером ${scannedCellData.warehouse_number} не найден среди:`, warehouses.map(w => `${w.name} (№${w.warehouse_number})`));
-          showAlert(`Склад с номером ${scannedCellData.warehouse_number} не найден`, 'error');
-          return;
-        }
-        warehouseId = warehouse.id;
-        console.log(`✅ Найден склад для номера ${scannedCellData.warehouse_number}: ${warehouse.name} (ID: ${warehouseId})`);
+      if (scannedCellData.format === 'compact-new' || scannedCellData.format === 'compact-old' || scannedCellData.format === 'compact') {
+        // Для всех компактных форматов используем уже определенный warehouse_id
+        warehouseId = scannedCellData.warehouse_id;
+        const formatType = scannedCellData.format === 'compact-new' ? 'НОВЫЙ (9 цифр)' : 'СТАРЫЙ (8 цифр)';
+        console.log(`✅ Используем ${formatType} компактный формат - склад: ${scannedCellData.warehouse_name} (ID: ${warehouseId})`);
       } else if (scannedCellData.format === 'simple') {
         // Для простого формата уже определен warehouse_id в parseCellQRCode
         warehouseId = scannedCellData.warehouse_id;
