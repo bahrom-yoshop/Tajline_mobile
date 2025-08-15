@@ -245,7 +245,7 @@ class WarehouseStatisticsTest:
                 summary_total_cells = summary_stats.get("total_cells", 0)
                 summary_occupied_cells = summary_stats.get("occupied_cells", 0)
                 summary_free_cells = summary_stats.get("free_cells", 0)
-                summary_occupancy_rate = summary_stats.get("occupancy_rate", 0)
+                summary_occupancy_rate = summary_stats.get("average_occupancy_rate", 0)  # Исправлено поле
                 
                 # Проверяем соответствие суммарной статистики
                 summary_correct = (
