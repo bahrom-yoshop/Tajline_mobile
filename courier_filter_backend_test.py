@@ -549,7 +549,11 @@ class CourierFilterTest:
             
             if response.status_code == 200:
                 data = response.json()
-                couriers = data if isinstance(data, list) else data.get("couriers", [])
+                # Handle pagination structure
+                if isinstance(data, dict) and "items" in data:
+                    couriers = data["items"]
+                else:
+                    couriers = data if isinstance(data, list) else data.get("couriers", [])
                 
                 # Ищем нашего тестового курьера
                 test_courier_found = False
