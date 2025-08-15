@@ -226,11 +226,11 @@ class CargoListMassDeleteDiagnoser:
             return False
 
     def test_analyze_admin_cargo_list(self):
-        """Тест 4: Анализ раздела "Список грузов" (админ) - GET /api/admin/cargo"""
+        """Тест 4: Анализ раздела "Список грузов" (админ) - GET /api/cargo/all"""
         try:
             # Используем токен администратора
             headers = {"Authorization": f"Bearer {self.admin_token}"}
-            response = self.session.get(f"{API_BASE}/admin/cargo", headers=headers)
+            response = self.session.get(f"{API_BASE}/cargo/all", headers=headers)
             
             if response.status_code == 200:
                 data = response.json()
