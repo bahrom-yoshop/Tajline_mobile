@@ -14685,10 +14685,28 @@ function App() {
                                       <div className="bg-blue-50 p-3 rounded-lg">
                                         <h5 className="font-semibold text-blue-700 mb-2">Грузы</h5>
                                         <div className="text-sm space-y-1">
-                                          <p className="text-blue-900 font-bold text-lg">{warehouse.cargo_stats?.total_cargo || 0}</p>
+                                          <p className="text-blue-900 font-bold text-lg">
+                                            {(() => {
+                                              const total = warehouse.cargo_stats?.total_cargo || 0;
+                                              console.log(`🔧 Всего грузов для склада ${warehouse.warehouse_name}:`, total);
+                                              return total;
+                                            })()}
+                                          </p>
                                           <p className="text-blue-600">📦 Всего грузов</p>
-                                          <p className="text-blue-600">⚖️ {warehouse.cargo_stats?.total_weight_kg?.toLocaleString() || 0} кг</p>
-                                          <p className="text-blue-600">💰 {warehouse.cargo_stats?.total_value_rub?.toLocaleString() || 0} ₽</p>
+                                          <p className="text-blue-600">
+                                            ⚖️ {(() => {
+                                              const weight = warehouse.cargo_stats?.total_weight_kg?.toLocaleString() || 0;
+                                              console.log(`🔧 Общий вес для склада ${warehouse.warehouse_name}:`, warehouse.cargo_stats?.total_weight_kg);
+                                              return weight;
+                                            })()} кг
+                                          </p>
+                                          <p className="text-blue-600">
+                                            💰 {(() => {
+                                              const value = warehouse.cargo_stats?.total_value_rub?.toLocaleString() || 0;
+                                              console.log(`🔧 Общая стоимость для склада ${warehouse.warehouse_name}:`, warehouse.cargo_stats?.total_value_rub);
+                                              return value;
+                                            })()} ₽
+                                          </p>
                                         </div>
                                       </div>
 
