@@ -2456,6 +2456,17 @@ function App() {
         
         showAlert(`🎉 Груз ${cargo.cargo_number} размещен на ${cell.readable_name}!`, 'success');
         
+        // НОВОЕ: Добавляем информацию о размещенном грузе в список сессии
+        const placedCargoInfo = {
+          cargo_number: cargo.cargo_number,
+          location: cell.readable_name,
+          warehouse_name: cell.warehouse_name || `Склад №${cell.warehouse_number}`,
+          placed_at: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+        };
+        
+        setSessionPlacedCargo(prev => [...prev, placedCargoInfo]);
+        setSessionPlacedCount(prev => prev + 1);
+        
         // Обновляем статистику размещения
         await fetchPlacementStatistics();
         
