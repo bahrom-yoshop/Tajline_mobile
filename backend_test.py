@@ -250,7 +250,11 @@ def test_cargo_search_in_collections(operator_token, admin_token):
     cargo_requests_items_count = 0
     if response.status_code == 200:
         data = response.json()
-        requests = data.get('requests', [])
+        # Handle both list and dict responses
+        if isinstance(data, list):
+            requests = data
+        else:
+            requests = data.get('requests', [])
         cargo_requests_count = len(requests)
         
         for request in requests:
