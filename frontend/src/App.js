@@ -15757,7 +15757,9 @@ function App() {
                         <CardDescription>
                           {isPickupMode 
                             ? 'Упрощенная форма для заявки на забор груза курьером'
-                            : 'Заполните форму для приема нового груза от клиента'
+                            : showOperatorCargoForm
+                              ? 'Форма для приёма груза на склад через оператора'
+                              : 'Заполните форму для приема нового груза от клиента'
                           }
                         </CardDescription>
                         {isFilledFromProfile && profileSourceUser && (
