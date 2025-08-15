@@ -15,6 +15,22 @@ ENDPOINT СУЩЕСТВУЕТ: В коде найден @app.post("/api/operator
 5. Завершить оформление через POST /api/operator/warehouse-notifications/{notification_id}/complete с данными модального окна
 6. Проверить создание грузов и изменение статуса на 'completed'
 
+ДАННЫЕ МОДАЛЬНОГО ОКНА ДЛЯ ТЕСТИРОВАНИЯ:
+{
+  "sender_full_name": "Тестовый отправитель",
+  "sender_phone": "+79777777777", 
+  "sender_address": "Москва, тестовый адрес",
+  "recipient_full_name": "Тестовый получатель",
+  "recipient_phone": "+79888888888",
+  "recipient_address": "Душанбе, тестовый адрес",
+  "cargo_items": [
+    {"name": "Тестовый груз", "weight": "10", "price": "5000"}
+  ],
+  "payment_method": "cash",
+  "delivery_method": "standard",
+  "payment_status": "not_paid"
+}
+
 ОЖИДАЕМЫЙ РЕЗУЛЬТАТ: Полный workflow работает, заявка обрабатывается, грузы создаются, статус меняется на 'completed'.
 """
 
@@ -212,17 +228,37 @@ class CompleteEndpointTester:
                 )
                 return pending_notification
             else:
-                # If no pending, try to use any notification for testing
+                # If no pending, try to find in_processing for direct /complete testing
+                in_processing_notification = None
+                for notification in self.notifications:
+                    if notification.get('status') == 'in_processing':
+                        in_processing_notification = notification
+                        break
+                
+                if in_processing_notification:
+                    self.log_result(
+                        "Поиск pending уведомления",
+                        True,
+                        f"Нет pending уведомлений, найдено in_processing для прямого тестирования /complete: ID {in_processing_notification.get('id')}, статус: {in_processing_notification.get('status')}",
+                        {
+                            "notification_id": in_processing_notification.get('id'),
+                            "status": in_processing_notification.get('status'),
+                            "note": "Using in_processing notification for direct /complete testing"
+                        }
+                    )
+                    return in_processing_notification
+                
+                # If no pending or in_processing, try to use any notification for testing
                 test_notification = self.notifications[0] if self.notifications else None
                 if test_notification:
                     self.log_result(
                         "Поиск pending уведомления",
                         True,
-                        f"Нет pending уведомлений, используем для тестирования: ID {test_notification.get('id')}, статус: {test_notification.get('status')}",
+                        f"Нет подходящих уведомлений, используем для тестирования: ID {test_notification.get('id')}, статус: {test_notification.get('status')}",
                         {
                             "notification_id": test_notification.get('id'),
                             "status": test_notification.get('status'),
-                            "note": "Using non-pending notification for testing"
+                            "note": "Using any available notification for testing"
                         }
                     )
                     return test_notification
@@ -230,7 +266,7 @@ class CompleteEndpointTester:
                     self.log_result(
                         "Поиск pending уведомления",
                         False,
-                        "Нет уведомлений со статусом 'pending_acceptance' и нет других уведомлений для тестирования",
+                        "Нет уведомлений для тестирования",
                         {}
                     )
                     return None
@@ -257,6 +293,21 @@ class CompleteEndpointTester:
                 return False
             
             notification_id = notification.get('id')
+            current_status = notification.get('status')
+            
+            # Skip if already in processing
+            if current_status == 'in_processing':
+                self.log_result(
+                    "Принятие уведомления",
+                    True,
+                    f"Уведомление уже в статусе 'in_processing', пропускаем шаг принятия",
+                    {
+                        "notification_id": notification_id,
+                        "current_status": current_status,
+                        "note": "Already in processing status"
+                    }
+                )
+                return True
             
             # Accept notification
             response = self.session.post(f"{API_BASE}/operator/warehouse-notifications/{notification_id}/accept")
@@ -337,19 +388,19 @@ class CompleteEndpointTester:
             
             if response.status_code == 200:
                 result_data = response.json()
-                created_cargo_count = result_data.get('created_count', 0)
-                cargo_numbers = result_data.get('cargo_numbers', [])
+                created_cargo_count = result_data.get('total_items', 0)
+                cargo_numbers = [cargo.get('cargo_number') for cargo in result_data.get('created_cargos', [])]
                 
                 self.log_result(
                     "Завершение оформления с данными модального окна",
                     True,
-                    f"🎉 КРИТИЧЕСКИЙ УСПЕХ! Уведомление успешно завершено с данными модального окна. Создано грузов: {created_cargo_count}, номера: {', '.join(cargo_numbers) if cargo_numbers else 'N/A'}. Статус: {result_data.get('status', 'unknown')}",
+                    f"🎉 КРИТИЧЕСКИЙ УСПЕХ! Уведомление успешно завершено с данными модального окна. Создано грузов: {created_cargo_count}, номера: {', '.join(cargo_numbers) if cargo_numbers else 'N/A'}. Статус: {result_data.get('notification_status', 'unknown')}",
                     {
                         "notification_id": notification_id,
                         "modal_data": modal_data,
                         "created_count": created_cargo_count,
                         "cargo_numbers": cargo_numbers,
-                        "new_status": result_data.get('status'),
+                        "new_status": result_data.get('notification_status'),
                         "response": result_data
                     }
                 )
