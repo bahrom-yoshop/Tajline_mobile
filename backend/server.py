@@ -5640,12 +5640,6 @@ async def bulk_remove_cargo_from_placement(
     try:
         cargo_ids = request.cargo_ids
         
-        if not cargo_ids or len(cargo_ids) == 0:
-            raise HTTPException(status_code=400, detail="No cargo IDs provided")
-        
-        if len(cargo_ids) > 100:  # Ограничение на количество для безопасности
-            raise HTTPException(status_code=400, detail="Too many cargo items. Maximum 100 allowed")
-        
         deleted_count = 0
         deleted_cargo_numbers = []
         
