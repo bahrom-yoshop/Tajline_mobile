@@ -4411,6 +4411,29 @@ function App() {
     setShowCargoPlacementModal(true);
   };
 
+  // НОВОЕ: Функция для удаления груза из списка размещения
+  const handleDeleteCargoFromPlacement = async (cargoId, cargoNumber) => {
+    if (!window.confirm(`Вы уверены, что хотите удалить груз ${cargoNumber} из списка размещения?`)) {
+      return;
+    }
+
+    try {
+      const response = await apiCall(`/api/operator/cargo/${cargoId}/remove-from-placement`, 'DELETE');
+      
+      if (response.success) {
+        showAlert(`Груз ${cargoNumber} успешно удален из списка размещения`, 'success');
+        
+        // Обновляем список доступных грузов для размещения
+        await fetchAvailableCargoForPlacement();
+      } else {
+        showAlert(`Ошибка при удалении груза: ${response.message}`, 'error');
+      }
+    } catch (error) {
+      console.error('Ошибка удаления груза:', error);
+      showAlert(`Ошибка при удалении груза: ${error.message}`, 'error');
+    }
+  };
+
   const performAutoPlacement = async () => {
     if (!scannedCargoData || !scannedCellData) {
       showAlert('Недостаточно данных для размещения груза', 'error');
