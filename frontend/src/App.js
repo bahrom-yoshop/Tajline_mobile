@@ -26942,6 +26942,9 @@ function App() {
               <div>External Scanner Active: {externalScannerActive ? 'true' : 'false'}</div>
               <div>Scanner Step: {externalScannerStep}</div>
               <div>Scanner Mode: {scannerMode}</div>
+              <div>Placement Statistics Type: {typeof placementStatistics}</div>
+              <div>Target Warehouse Stats Type: {typeof targetWarehouseStats}</div>
+              <div>Has Problem Object: {placementStatistics && typeof placementStatistics === 'object' && 'location_code' in placementStatistics ? 'YES' : 'NO'}</div>
             </div>
 
             {/* Старый контент модального окна заменен на UI внешнего сканера */}
