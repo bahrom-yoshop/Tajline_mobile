@@ -598,6 +598,9 @@ class WarehouseNotificationTester:
         # Test 7: Verify status changes
         self.verify_status_changes(notifications)
         
+        # Test 8: Check if frontend is calling wrong endpoint
+        self.test_wrong_endpoint_usage(notifications)
+        
         # Summary
         self.print_summary()
     
