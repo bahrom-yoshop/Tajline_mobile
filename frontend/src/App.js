@@ -4226,14 +4226,14 @@ function App() {
     try {
       console.log('🔍 Парсинг QR кода ячейки:', qrData);
       
-      // ИСПРАВЛЕНИЕ: Новый формат без дефисов: 03010101 (склад блок полка ячейка)
-      const compactFormatMatch = qrData.match(/^(\d{2})(\d{2})(\d{2})(\d{2})$/);
-      if (compactFormatMatch) {
-        console.log('✅ Найден компактный формат QR кода:', compactFormatMatch);
-        const warehouseNum = parseInt(compactFormatMatch[1]);
-        const blockNum = parseInt(compactFormatMatch[2]);
-        const shelfNum = parseInt(compactFormatMatch[3]);
-        const cellNum = parseInt(compactFormatMatch[4]);
+      // ОБНОВЛЕНИЕ: Новый формат 9 цифр: 003010101 (склад блок полка ячейка)
+      const newCompactFormatMatch = qrData.match(/^(\d{3})(\d{2})(\d{2})(\d{2})$/);
+      if (newCompactFormatMatch) {
+        console.log('✅ Найден НОВЫЙ компактный формат QR кода (9 цифр):', newCompactFormatMatch);
+        const warehouseNum = parseInt(newCompactFormatMatch[1]);
+        const blockNum = parseInt(newCompactFormatMatch[2]);
+        const shelfNum = parseInt(newCompactFormatMatch[3]);
+        const cellNum = parseInt(newCompactFormatMatch[4]);
         
         // Находим склад по warehouse_number
         const targetWarehouse = warehouses.find(w => w.warehouse_number === warehouseNum);
@@ -4245,7 +4245,40 @@ function App() {
         console.log(`🏢 Найден целевой склад: ${targetWarehouse.name} (ID: ${targetWarehouse.id})`);
         
         return {
-          format: 'compact',
+          format: 'compact-new',
+          warehouse_number: warehouseNum,
+          warehouse_id: targetWarehouse.id,
+          warehouse_name: targetWarehouse.name,
+          warehouse_location: targetWarehouse.location,
+          block_number: blockNum,
+          shelf_number: shelfNum,
+          cell_number: cellNum,
+          readable_name: `Б${blockNum}-П${shelfNum}-Я${cellNum}`,
+          full_address: `${targetWarehouse.name} - Б${blockNum}-П${shelfNum}-Я${cellNum}`,
+          cell_code: qrData // Полный код для размещения
+        };
+      }
+
+      // СТАРЫЙ: Формат 8 цифр: 03010101 (для обратной совместимости)
+      const oldCompactFormatMatch = qrData.match(/^(\d{2})(\d{2})(\d{2})(\d{2})$/);
+      if (oldCompactFormatMatch) {
+        console.log('✅ Найден СТАРЫЙ компактный формат QR кода (8 цифр):', oldCompactFormatMatch);
+        const warehouseNum = parseInt(oldCompactFormatMatch[1]);
+        const blockNum = parseInt(oldCompactFormatMatch[2]);
+        const shelfNum = parseInt(oldCompactFormatMatch[3]);
+        const cellNum = parseInt(oldCompactFormatMatch[4]);
+        
+        // Находим склад по warehouse_number
+        const targetWarehouse = warehouses.find(w => w.warehouse_number === warehouseNum);
+        if (!targetWarehouse) {
+          console.error(`❌ Склад с номером ${warehouseNum} не найден`);
+          return null;
+        }
+        
+        console.log(`🏢 Найден целевой склад: ${targetWarehouse.name} (ID: ${targetWarehouse.id})`);
+        
+        return {
+          format: 'compact-old',
           warehouse_number: warehouseNum,
           warehouse_id: targetWarehouse.id,
           warehouse_name: targetWarehouse.name,
