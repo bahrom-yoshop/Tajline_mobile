@@ -14364,8 +14364,10 @@ async def accept_warehouse_delivery(
         if not notification:
             raise HTTPException(status_code=404, detail="Notification not found")
         
-        if notification.get("status") != "pending_acceptance":
-            raise HTTPException(status_code=400, detail=f"Notification already processed. Current status: {notification.get('status')}")
+        # Проверяем статус уведомления (разрешаем повторную обработку для completed)
+        allowed_statuses = ["pending_acceptance", "completed"]
+        if notification.get("status") not in allowed_statuses:
+            raise HTTPException(status_code=400, detail=f"Notification cannot be processed. Current status: {notification.get('status')}. Allowed statuses: {allowed_statuses}")
         
         current_time = datetime.utcnow()
         
