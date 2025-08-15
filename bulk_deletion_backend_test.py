@@ -342,7 +342,7 @@ class BulkDeletionTester:
                     self.log_result(
                         "Валидация пустого списка cargo_ids",
                         False,
-                        f"Неожиданное сообщение об ошибке: {detail}",
+                        f"Неожиданная структура ошибки валидации: {detail}",
                         error_data
                     )
                     return False
@@ -350,7 +350,7 @@ class BulkDeletionTester:
                 self.log_result(
                     "Валидация пустого списка cargo_ids",
                     False,
-                    f"Ожидался HTTP 400, получен {response.status_code}: {response.text}"
+                    f"Ожидался HTTP 422, получен {response.status_code}: {response.text}"
                 )
                 return False
                 
