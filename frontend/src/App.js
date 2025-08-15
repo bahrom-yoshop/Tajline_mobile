@@ -7323,7 +7323,7 @@ function App() {
           } else {
             const response = await apiCall(`/api/operator/cargo/${items[0].id}/remove-from-placement`, 'DELETE');
             if (response.success) {
-              showAlert(`Груз ${items[0].cargo_number} успешно удален полностью из системы`, 'success');
+              showAlert(`Груз ${items[0].cargo_number} успешно удален из размещения`, 'success');
               
               // Обновляем ВСЕ списки грузов после полного удаления (с задержкой для стабильности)
               setTimeout(async () => {
