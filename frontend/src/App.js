@@ -1673,7 +1673,11 @@ function App() {
   // НОВАЯ ФУНКЦИЯ ДЛЯ ЗАВЕРШЕНИЯ ОФОРМЛЕНИЯ ГРУЗА
   const handleCompleteCargoProcessing = async (notificationId, cargoDetails) => {
     try {
+      console.log('🚀 Starting cargo processing completion:', { notificationId, cargoDetails });
+      
       const response = await apiCall(`/api/operator/warehouse-notifications/${notificationId}/complete`, 'POST', cargoDetails);
+      
+      console.log('✅ Server response:', response);
       
       showAlert('Груз успешно оформлен и добавлен в систему!', 'success');
       
@@ -1695,6 +1699,8 @@ function App() {
         payment_status: 'not_paid'
       });
       
+      console.log('🔄 Starting data refresh...');
+      
       // Обновляем данные
       await Promise.all([
         fetchWarehouseNotifications(),
@@ -1703,6 +1709,8 @@ function App() {
         fetchAvailableCargoForPlacement() // Обновляем список для размещения
       ]);
       
+      console.log('✅ Data refresh completed');
+      
       // Показываем информацию о созданных грузах
       if (response?.created_cargos?.length > 0) {
         const cargoNumbers = response.created_cargos.map(c => c.cargo_number).join(', ');
@@ -1710,7 +1718,7 @@ function App() {
       }
       
     } catch (error) {
-      console.error('Error completing cargo processing:', error);
+      console.error('❌ Error completing cargo processing:', error);
       showAlert('Ошибка при завершении оформления: ' + error.message, 'error');
     }
   };
