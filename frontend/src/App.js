@@ -7247,24 +7247,31 @@ function App() {
       else if (type === 'cargo-placement') {
         if (isBulk) {
           const ids = items.map(cargo => cargo.id);
-          const response = await apiCall('/api/operator/cargo/bulk-remove-from-placement', 'DELETE', {
-            cargo_ids: ids
+          const response = await apiCall('/api/admin/cargo/bulk', 'DELETE', {
+            ids: ids
           });
-          if (response.success) {
-            showAlert(`${response.deleted_count} грузов успешно удалено из списка размещения`, 'success');
+          if (response.success || response.message) {
+            showAlert(response.message || `${ids.length} грузов успешно удалено полностью из системы`, 'success');
           } else {
-            showAlert(`Ошибка при массовом удалении: ${response.message}`, 'error');
+            showAlert(`Ошибка при массовом удалении: ${response.message || 'Неизвестная ошибка'}`, 'error');
           }
         } else {
-          const response = await apiCall(`/api/operator/cargo/${items[0].id}/remove-from-placement`, 'DELETE');
-          if (response.success) {
-            showAlert(`Груз ${items[0].cargo_number} успешно удален из списка размещения`, 'success');
+          const response = await apiCall(`/api/admin/cargo/${items[0].id}`, 'DELETE');
+          if (response.success || response.message) {
+            showAlert(response.message || `Груз ${items[0].cargo_number} успешно удален полностью из системы`, 'success');
           } else {
-            showAlert(`Ошибка при удалении груза: ${response.message}`, 'error');
+            showAlert(`Ошибка при удалении груза: ${response.message || 'Неизвестная ошибка'}`, 'error');
           }
         }
         setSelectedCargoForDeletion([]);
+        // Обновляем ВСЕ списки грузов после полного удаления
         await fetchAvailableCargoForPlacement();
+        fetchAllCargo(); // Админский список
+        fetchOperatorCargo(); // Список оператора
+        fetchUnpaidCargo(); // Неоплаченные
+        fetchPaymentHistory(); // История платежей
+        fetchPlacedCargo(); // Размещенные
+        fetchAllPickupRequests(); // Заявки на забор
       }
       
       setDeleteConfirmModal(false);
