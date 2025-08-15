@@ -288,7 +288,7 @@ class BulkDeletionTester:
                     self.log_result(
                         "Проверка ограничения (максимум 100 грузов)",
                         False,
-                        f"Неожиданное сообщение об ошибке: {detail}",
+                        f"Неожиданная структура ошибки валидации: {detail}",
                         error_data
                     )
                     return False
@@ -296,7 +296,7 @@ class BulkDeletionTester:
                 self.log_result(
                     "Проверка ограничения (максимум 100 грузов)",
                     False,
-                    f"Ожидался HTTP 400, получен {response.status_code}: {response.text}"
+                    f"Ожидался HTTP 422, получен {response.status_code}: {response.text}"
                 )
                 return False
                 
