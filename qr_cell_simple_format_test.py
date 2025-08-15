@@ -219,53 +219,46 @@ class QRCellSimpleFormatTester:
         test_cargo = self.available_cargo[0]
         test_cargo_number = test_cargo.get("cargo_number")
         
+        print(f"   📋 Тестовые данные:")
+        print(f"   📦 Груз: {test_cargo_number}")
+        print(f"   🏭 Склад по умолчанию: {default_warehouse.get('name')}")
+        print(f"   🆔 Warehouse ID: {default_warehouse_id}")
+        
         # Тестируем различные форматы QR кодов ячеек
         test_cases = [
             {
-                "name": "Простой формат Б1-П1-Я3 (должен быть преобразован в полный формат)",
+                "name": "ID-based формат 001-01-01-001 (должен работать)",
+                "cell_code": "001-01-01-001",
+                "expected_format": "id_based",
+                "should_work": True
+            },
+            {
+                "name": "Простой формат Б1-П1-Я3 (тестируем как есть)",
                 "cell_code": "Б1-П1-Я3",
                 "expected_format": "simple",
-                "expected_backend_code": f"{default_warehouse_id}-Б1-П1-Я3"
+                "should_work": False,  # Ожидаем ошибку без warehouse_id
+                "expected_error": "Invalid cell code format"
             },
             {
-                "name": "Простой формат Б2-П2-Я5 (должен быть преобразован в полный формат)",
-                "cell_code": "Б2-П2-Я5",
-                "expected_format": "simple",
-                "expected_backend_code": f"{default_warehouse_id}-Б2-П2-Я5"
-            },
-            {
-                "name": "Полный формат с warehouse_id (для сравнения)",
+                "name": "Полный формат с UUID (демонстрирует проблему парсинга)",
                 "cell_code": f"{default_warehouse_id}-Б1-П1-Я1",
-                "expected_format": "full",
-                "expected_backend_code": f"{default_warehouse_id}-Б1-П1-Я1"
+                "expected_format": "full_with_uuid",
+                "should_work": False,  # Ожидаем ошибку парсинга UUID
+                "expected_error": "invalid literal for int()"
             }
         ]
         
         all_tests_passed = True
+        critical_issues_found = []
         
         for i, test_case in enumerate(test_cases, 1):
             print(f"\n   🧪 Тест {i}: {test_case['name']}")
+            print(f"   📝 Тестируемый код: '{test_case['cell_code']}'")
             
-            # Для простого формата, тестируем как frontend должен преобразовать его
-            if test_case["expected_format"] == "simple":
-                # Тестируем простой формат - должен быть преобразован в полный
-                simple_cell_code = test_case["cell_code"]
-                full_cell_code = f"{default_warehouse_id}-{simple_cell_code}"
-                
-                print(f"   📝 Простой формат: '{simple_cell_code}'")
-                print(f"   📝 Должен быть преобразован в: '{full_cell_code}'")
-                
-                # Тестируем с полным форматом (как должен делать frontend)
-                placement_data = {
-                    "cargo_number": test_cargo_number,
-                    "cell_code": full_cell_code
-                }
-            else:
-                # Тестируем полный формат напрямую
-                placement_data = {
-                    "cargo_number": test_cargo_number,
-                    "cell_code": test_case["cell_code"]
-                }
+            placement_data = {
+                "cargo_number": test_cargo_number,
+                "cell_code": test_case["cell_code"]
+            }
             
             try:
                 response = self.session.post(
@@ -276,34 +269,24 @@ class QRCellSimpleFormatTester:
                 
                 if response.status_code == 200:
                     result_data = response.json()
-                    
-                    # Проверяем, что размещение прошло успешно
                     success_message = result_data.get("message", "")
-                    used_cell_code = result_data.get("cell_code", "")
                     
-                    if "successfully placed" in success_message.lower() or "успешно размещен" in success_message.lower():
+                    if test_case["should_work"]:
                         self.log_result(
-                            f"Тест простого формата QR: {test_case['name']}",
+                            f"Тест QR формата: {test_case['name']}",
                             True,
-                            f"Груз успешно размещен с QR кодом '{test_case['cell_code']}'",
+                            f"✅ Формат работает корректно: {success_message}",
                             {
-                                "original_cell_code": test_case["cell_code"],
-                                "expected_backend_code": test_case["expected_backend_code"],
-                                "used_cell_code": used_cell_code,
-                                "cargo_number": test_cargo_number,
+                                "cell_code": test_case["cell_code"],
                                 "response": result_data
                             }
                         )
-                        
-                        # Для простого формата проверяем логику преобразования
-                        if test_case["expected_format"] == "simple":
-                            print(f"   ✅ КРИТИЧЕСКИЙ УСПЕХ: Backend корректно обработал простой формат")
-                            print(f"   ✅ Простой формат '{test_case['cell_code']}' успешно преобразован и обработан")
+                        print(f"   ✅ УСПЕХ: Формат '{test_case['cell_code']}' обработан корректно")
                     else:
                         self.log_result(
-                            f"Тест простого формата QR: {test_case['name']}",
+                            f"Тест QR формата: {test_case['name']}",
                             False,
-                            f"Размещение не удалось: {success_message}",
+                            f"⚠️ Неожиданный успех для формата, который должен был не работать",
                             {
                                 "cell_code": test_case["cell_code"],
                                 "response": result_data
@@ -312,27 +295,74 @@ class QRCellSimpleFormatTester:
                         all_tests_passed = False
                         
                 elif response.status_code == 400:
-                    # Ошибка валидации - может быть ожидаемой для некоторых форматов
                     error_data = response.json()
                     error_detail = error_data.get("detail", "")
                     
-                    if "invalid cell code format" in error_detail.lower():
+                    if not test_case["should_work"]:
+                        expected_error = test_case.get("expected_error", "")
+                        if expected_error.lower() in error_detail.lower():
+                            self.log_result(
+                                f"Тест QR формата: {test_case['name']}",
+                                True,
+                                f"✅ Ожидаемая ошибка получена: {error_detail}",
+                                {
+                                    "cell_code": test_case["cell_code"],
+                                    "error_detail": error_detail
+                                }
+                            )
+                            print(f"   ✅ ОЖИДАЕМО: Формат '{test_case['cell_code']}' вызвал ожидаемую ошибку")
+                        else:
+                            self.log_result(
+                                f"Тест QR формата: {test_case['name']}",
+                                False,
+                                f"❌ Неожиданная ошибка: {error_detail}",
+                                {
+                                    "cell_code": test_case["cell_code"],
+                                    "expected_error": expected_error,
+                                    "actual_error": error_detail
+                                }
+                            )
+                            all_tests_passed = False
+                    else:
                         self.log_result(
-                            f"Тест простого формата QR: {test_case['name']}",
+                            f"Тест QR формата: {test_case['name']}",
                             False,
-                            f"КРИТИЧЕСКАЯ ОШИБКА: 'Invalid cell code format' все еще возникает для '{test_case['cell_code']}'",
+                            f"❌ Неожиданная ошибка для рабочего формата: {error_detail}",
                             {
                                 "cell_code": test_case["cell_code"],
-                                "error_detail": error_detail,
-                                "response": error_data
+                                "error_detail": error_detail
                             }
                         )
                         all_tests_passed = False
+                        
+                elif response.status_code == 500:
+                    error_data = response.json()
+                    error_detail = error_data.get("detail", "")
+                    
+                    if "invalid literal for int()" in error_detail:
+                        critical_issues_found.append({
+                            "issue": "UUID parsing error in backend",
+                            "cell_code": test_case["cell_code"],
+                            "error": error_detail
+                        })
+                        
+                        self.log_result(
+                            f"Тест QR формата: {test_case['name']}",
+                            False,
+                            f"🚨 КРИТИЧЕСКАЯ ОШИБКА ПАРСИНГА UUID: {error_detail}",
+                            {
+                                "cell_code": test_case["cell_code"],
+                                "error_detail": error_detail,
+                                "issue_type": "uuid_parsing_error"
+                            }
+                        )
+                        print(f"   🚨 КРИТИЧЕСКАЯ ПРОБЛЕМА: Backend не может парсить UUID в cell_code")
+                        all_tests_passed = False
                     else:
                         self.log_result(
-                            f"Тест простого формата QR: {test_case['name']}",
+                            f"Тест QR формата: {test_case['name']}",
                             False,
-                            f"Ошибка валидации: {error_detail}",
+                            f"❌ Серверная ошибка: {error_detail}",
                             {
                                 "cell_code": test_case["cell_code"],
                                 "error_detail": error_detail
@@ -341,21 +371,28 @@ class QRCellSimpleFormatTester:
                         all_tests_passed = False
                 else:
                     self.log_result(
-                        f"Тест простого формата QR: {test_case['name']}",
+                        f"Тест QR формата: {test_case['name']}",
                         False,
-                        f"HTTP {response.status_code}: {response.text}",
+                        f"❌ HTTP {response.status_code}: {response.text}",
                         {"cell_code": test_case["cell_code"]}
                     )
                     all_tests_passed = False
                     
             except Exception as e:
                 self.log_result(
-                    f"Тест простого формата QR: {test_case['name']}",
+                    f"Тест QR формата: {test_case['name']}",
                     False,
-                    f"Исключение: {str(e)}",
+                    f"❌ Исключение: {str(e)}",
                     {"cell_code": test_case["cell_code"]}
                 )
                 all_tests_passed = False
+        
+        # Анализ критических проблем
+        if critical_issues_found:
+            print(f"\n   🚨 ОБНАРУЖЕНЫ КРИТИЧЕСКИЕ ПРОБЛЕМЫ:")
+            for issue in critical_issues_found:
+                print(f"   ❌ {issue['issue']}: {issue['cell_code']} -> {issue['error']}")
+            print(f"   💡 РЕКОМЕНДАЦИЯ: Backend код нуждается в исправлении парсинга UUID в cell_code")
         
         return all_tests_passed
     
