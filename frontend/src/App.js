@@ -26936,16 +26936,18 @@ function App() {
               </div>
             )}
 
-            {/* Отладочная информация */}
-            <div className="p-2 bg-gray-100 rounded text-xs">
-              <div>Modal Open: {showCargoPlacementModal ? 'true' : 'false'}</div>
-              <div>External Scanner Active: {externalScannerActive ? 'true' : 'false'}</div>
-              <div>Scanner Step: {externalScannerStep}</div>
-              <div>Scanner Mode: {scannerMode}</div>
-              <div>Placement Statistics Type: {typeof placementStatistics}</div>
-              <div>Target Warehouse Stats Type: {typeof targetWarehouseStats}</div>
-              <div>Has Problem Object: {placementStatistics && typeof placementStatistics === 'object' && 'location_code' in placementStatistics ? 'YES' : 'NO'}</div>
-            </div>
+            {/* Отладочная информация - ВРЕМЕННО ОТКЛЮЧЕНА ДЛЯ ДИАГНОСТИКИ */}
+            {false && (
+              <div className="p-2 bg-gray-100 rounded text-xs">
+                <div>Modal Open: {showCargoPlacementModal ? 'true' : 'false'}</div>
+                <div>External Scanner Active: {externalScannerActive ? 'true' : 'false'}</div>
+                <div>Scanner Step: {externalScannerStep}</div>
+                <div>Scanner Mode: {scannerMode}</div>
+                <div>Placement Statistics Type: {typeof placementStatistics}</div>
+                <div>Target Warehouse Stats Type: {typeof targetWarehouseStats}</div>
+                <div>Has Problem Object: {placementStatistics && typeof placementStatistics === 'object' && 'location_code' in placementStatistics ? 'YES' : 'NO'}</div>
+              </div>
+            )}
 
             {/* Старый контент модального окна заменен на UI внешнего сканера */}
             {externalScannerActive ? (
