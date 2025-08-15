@@ -132,7 +132,9 @@ class UIFlickeringFixTester:
             
             if response.status_code == 200:
                 data = response.json()
-                user_info = data.get("user", {})
+                
+                # Проверяем, что данные пользователя присутствуют (могут быть как в корне, так и в user)
+                user_info = data.get("user", data)
                 
                 if user_info.get("role") == "admin" and user_info.get("phone") == "+79999888777":
                     self.log_test(
@@ -146,7 +148,7 @@ class UIFlickeringFixTester:
                         "GET /api/auth/me - проверка текущего пользователя",
                         False,
                         "Неверные данные пользователя",
-                        f"Ответ: {data}"
+                        f"Ожидался admin с телефоном +79999888777, получен: роль={user_info.get('role')}, телефон={user_info.get('phone')}"
                     )
                     return False
             else:
