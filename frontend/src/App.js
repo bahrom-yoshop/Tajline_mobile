@@ -4456,18 +4456,38 @@ function App() {
     }
   };
 
-  const handleBulkDeleteCargoFromPlacement = async () => {
-    if (selectedCargoForDeletion.length === 0) {
+  // ОБНОВЛЕНО: Универсальная функция массового удаления грузов полностью из системы
+  const handleBulkDeleteCargoCompletely = async (selectedIds = null, cargoList = null) => {
+    const idsToDelete = selectedIds || selectedCargoForDeletion;
+    
+    if (idsToDelete.length === 0) {
       showAlert('Выберите грузы для удаления', 'warning');
       return;
     }
 
-    const selectedCargoItems = availableCargoForPlacement.filter(cargo => 
-      selectedCargoForDeletion.includes(cargo.id)
-    );
+    // Найдем грузы для удаления из переданного списка или из доступных для размещения
+    let selectedCargoItems = [];
+    if (cargoList) {
+      selectedCargoItems = cargoList.filter(cargo => idsToDelete.includes(cargo.id));
+    } else {
+      selectedCargoItems = availableCargoForPlacement.filter(cargo => idsToDelete.includes(cargo.id));
+    }
+    
+    // Если не все грузы найдены в списке, дополняем недостающие
+    if (selectedCargoItems.length < idsToDelete.length) {
+      const foundIds = selectedCargoItems.map(item => item.id);
+      const missingIds = idsToDelete.filter(id => !foundIds.includes(id));
+      
+      missingIds.forEach(id => {
+        selectedCargoItems.push({ id: id, cargo_number: `ID: ${id}` });
+      });
+    }
     
     openDeleteConfirmModal('cargo-placement', selectedCargoItems, true);
   };
+
+  // Сохраняем старое название для совместимости
+  const handleBulkDeleteCargoFromPlacement = () => handleBulkDeleteCargoCompletely();
 
   const performAutoPlacement = async () => {
     if (!scannedCargoData || !scannedCellData) {
