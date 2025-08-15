@@ -17188,7 +17188,6 @@ function App() {
                                               </div>
                                             </div>
                                           </div>
-                                          </div>
                                         
                                         {/* Кнопки действий */}
                                         <div className="ml-6 flex flex-col space-y-2">
