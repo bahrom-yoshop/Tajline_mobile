@@ -17235,7 +17235,6 @@ function App() {
                                         </div>
                                       </div>
                                       </div>
-                                      </div>
                                       </CardContent>
                                   </Card>
                                 )})}
