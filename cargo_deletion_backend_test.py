@@ -288,7 +288,13 @@ class TajlineCargoDeleteTester:
             response = self.session.get(f"{BACKEND_URL}/admin/cargo")
             
             if response.status_code == 200:
-                all_cargo = response.json().get("items", [])
+                data = response.json()
+                if isinstance(data, dict) and "items" in data:
+                    all_cargo = data["items"]
+                elif isinstance(data, list):
+                    all_cargo = data
+                else:
+                    all_cargo = []
                 
                 # Группируем грузы по статусам
                 status_groups = {}
@@ -304,7 +310,7 @@ class TajlineCargoDeleteTester:
                 for status, cargo_list in status_groups.items():
                     if cargo_list:
                         cargo = cargo_list[0]  # Берем первый груз этого статуса
-                        cargo_id = cargo.get("id")
+                        cargo_id = cargo.get("id") or cargo.get("_id")
                         cargo_number = cargo.get("cargo_number")
                         
                         if cargo_id:
