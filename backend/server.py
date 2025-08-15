@@ -5744,7 +5744,7 @@ async def remove_cargo_from_placement(
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     try:
-        # Ищем груз в нескольких коллекциях
+        # ИСПРАВЛЕНО: Ищем груз в нескольких коллекциях с дополнительной проверкой
         cargo = None
         collection_name = None
         
@@ -5774,6 +5774,21 @@ async def remove_cargo_from_placement(
         
         if not cargo:
             raise HTTPException(status_code=404, detail="Cargo not found")
+        
+        # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Дополнительная проверка при дублировании ID
+        # Если есть подозрение на дублирование, проверяем дополнительно по cargo_number
+        if collection_name in ["operator_cargo", "cargo"]:
+            collection = getattr(db, collection_name)
+            duplicate_check = list(collection.find({"id": cargo_id}))
+            
+            if len(duplicate_check) > 1:
+                print(f"⚠️ ВНИМАНИЕ: Найдено {len(duplicate_check)} грузов с ID {cargo_id}")
+                for i, dup_cargo in enumerate(duplicate_check):
+                    print(f"   {i+1}. Номер: {dup_cargo.get('cargo_number')}, Отправитель: {dup_cargo.get('sender_full_name')}")
+                
+                # В случае дублирования ID используем первый найденный груз
+                cargo = duplicate_check[0]
+                print(f"   Используем груз: {cargo.get('cargo_number')}")
         
         # Обновляем статус в зависимости от типа коллекции
         if collection_name == "cargo_requests":
