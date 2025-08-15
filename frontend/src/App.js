@@ -38,6 +38,11 @@ function App() {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentPage, setCurrentPage] = useState('main'); // 'main', 'cargo-placement'
+  
+  // НОВОЕ: Состояние для предотвращения показа старых данных при перезагрузке
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  
   const [notifications, setNotifications] = useState([]);
   const [warehouseNotifications, setWarehouseNotifications] = useState([]);
   const [allPickupRequests, setAllPickupRequests] = useState([]);
