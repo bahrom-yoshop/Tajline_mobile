@@ -2630,6 +2630,7 @@ function App() {
   const [scannedCargoForPlacement, setScannedCargoForPlacement] = useState(null);
   const [placementStatistics, setPlacementStatistics] = useState(null);
   const [sessionPlacedCount, setSessionPlacedCount] = useState(0); // Счетчик размещенных грузов в текущей сессии
+  const [targetWarehouseStats, setTargetWarehouseStats] = useState(null); // Статистика целевого склада для размещения
   
   // Warehouse Management Modal states
   const [showWarehouseManagementModal, setShowWarehouseManagementModal] = useState(false);
