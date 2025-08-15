@@ -193,7 +193,7 @@ class TajlineCargoDeleteTester:
             
             for cargo_data in cargo_list[:3]:  # Берем максимум 3 груза
                 cargo = cargo_data["cargo"]
-                cargo_id = cargo.get("id")
+                cargo_id = cargo.get("id") or cargo.get("_id")
                 if cargo_id:
                     cargo_ids.append(cargo_id)
                     cargo_info.append({
