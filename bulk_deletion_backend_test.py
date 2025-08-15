@@ -318,21 +318,26 @@ class BulkDeletionTester:
                 timeout=30
             )
             
-            if response.status_code == 400:
+            if response.status_code == 422:
                 error_data = response.json()
-                detail = error_data.get("detail", "")
+                detail = error_data.get("detail", [])
                 
-                if "No cargo IDs provided" in detail:
-                    self.log_result(
-                        "Валидация пустого списка cargo_ids",
-                        True,
-                        "Корректно отклонен запрос с пустым списком",
-                        {
-                            "status_code": response.status_code,
-                            "error_detail": detail
-                        }
-                    )
-                    return True
+                # Check if it's a Pydantic validation error for empty list
+                if isinstance(detail, list) and len(detail) > 0:
+                    first_error = detail[0]
+                    if (first_error.get("type") == "too_short" and 
+                        "cargo_ids" in first_error.get("loc", []) and
+                        first_error.get("ctx", {}).get("min_length") == 1):
+                        self.log_result(
+                            "Валидация пустого списка cargo_ids",
+                            True,
+                            "Корректно отклонен запрос с пустым списком (Pydantic validation)",
+                            {
+                                "status_code": response.status_code,
+                                "validation_error": first_error
+                            }
+                        )
+                        return True
                 else:
                     self.log_result(
                         "Валидация пустого списка cargo_ids",
