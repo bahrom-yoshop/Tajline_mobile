@@ -19719,17 +19719,6 @@ function App() {
                               
                               return <WarehouseCard key={warehouse.id} warehouse={warehouse} />;
                             })}
-                                    <Button 
-                                      variant="outline"
-                                      onClick={() => openCellManagement(warehouse)}
-                                    >
-                                      <Settings className="mr-2 h-4 w-4" />
-                                      Управление ячейками
-                                    </Button>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))}
                           </div>
                         )}
                       </CardContent>
