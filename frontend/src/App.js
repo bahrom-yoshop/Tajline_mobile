@@ -17571,26 +17571,35 @@ function App() {
                                       )}
                                         </div>
                                         
-                                        {/* НОВОЕ: Кнопки действий для груза */}
+                                        {/* ИСПРАВЛЕНО: Кнопки действий для груза */}
                                         <div className="mt-3 flex items-center space-x-2">
                                           <Button
                                             size="sm"
                                             variant="outline"
-                                            onClick={() => {
-                                              // Используем request как объект груза для удаления
-                                              const cargoItem = {
-                                                id: request.id,
-                                                cargo_number: request.request_number || request.cargo_name,
-                                                sender_full_name: request.sender_full_name,
-                                                recipient_full_name: request.recipient_full_name,
-                                                weight: request.weight || 'Не указан'
-                                              };
-                                              handleDeleteCargoCompletely(request.id, request.request_number || request.cargo_name, [cargoItem]);
+                                            onClick={async () => {
+                                              // Для заявок на забор нужно найти связанный груз и удалить его
+                                              // Используем admin endpoint для удаления заявки на груз
+                                              if (window.confirm(`Вы уверены, что хотите удалить заявку на груз "${request.cargo_name}"? Это действие необратимо!`)) {
+                                                try {
+                                                  const response = await apiCall(`/api/admin/cargo-applications/${request.id}`, 'DELETE');
+                                                  
+                                                  if (response.success || response.message) {
+                                                    showAlert(`Заявка на груз "${request.cargo_name}" успешно удалена`, 'success');
+                                                    // Обновляем список заявок на забор
+                                                    await fetchAllPickupRequests();
+                                                  } else {
+                                                    showAlert(`Ошибка при удалении заявки: ${response.message || 'Неизвестная ошибка'}`, 'error');
+                                                  }
+                                                } catch (error) {
+                                                  console.error('Ошибка удаления заявки на груз:', error);
+                                                  showAlert(`Ошибка при удалении: ${error.message}`, 'error');
+                                                }
+                                              }
                                             }}
                                             className="flex items-center text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
                                           >
                                             <Trash2 className="mr-1 h-3 w-3" />
-                                            Удалить груз
+                                            Удалить заявку
                                           </Button>
                                         </div>
                                       </div>
