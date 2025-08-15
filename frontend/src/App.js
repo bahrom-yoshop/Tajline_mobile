@@ -26937,16 +26937,19 @@ function App() {
               </div>
             )}
 
-            {/* Отладочная информация - ВКЛЮЧАЕМ ДЛЯ ТЕСТИРОВАНИЯ */}
+            {/* Отладочная информация - РАСШИРЕННАЯ ДИАГНОСТИКА */}
             {true && (
               <div className="p-2 bg-gray-100 rounded text-xs">
                 <div>Modal Open: {showCargoPlacementModal ? 'true' : 'false'}</div>
                 <div>External Scanner Active: {externalScannerActive ? 'true' : 'false'}</div>
                 <div>Scanner Step: {externalScannerStep}</div>
                 <div>Scanner Mode: {scannerMode}</div>
-                <div>Placement Statistics Type: {typeof placementStatistics}</div>
-                <div>Target Warehouse Stats Type: {typeof targetWarehouseStats}</div>
-                <div>Has Problem Object: {placementStatistics && typeof placementStatistics === 'object' && 'location_code' in placementStatistics ? 'YES' : 'NO'}</div>
+                <div>Placement Statistics: {typeof placementStatistics} {placementStatistics && 'location_code' in placementStatistics ? '(HAS location_code!)' : ''}</div>
+                <div>Target Warehouse Stats: {typeof targetWarehouseStats}</div>
+                <div>Scanned Cargo Data: {typeof scannedCargoData}</div>
+                <div>Scanned Cell Data: {typeof scannedCellData}</div>
+                <div>External Scanned Cargo: {typeof externalScannedCargo}</div>
+                <div>External Scanned Cell: {typeof externalScannedCell}</div>
               </div>
             )}
 
