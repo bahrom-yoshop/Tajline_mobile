@@ -267,7 +267,11 @@ def test_cargo_search_in_collections(operator_token, admin_token):
     main_cargo_count = 0
     if response.status_code == 200:
         data = response.json()
-        main_cargo_count = len(data.get('cargo', []))
+        # Handle both list and dict responses
+        if isinstance(data, list):
+            main_cargo_count = len(data)
+        else:
+            main_cargo_count = len(data.get('cargo', []))
     
     print(f"📊 СТАТИСТИКА ГРУЗОВ ПО КОЛЛЕКЦИЯМ:")
     print(f"  operator_cargo: {operator_cargo_count} грузов")
