@@ -4403,6 +4403,7 @@ function App() {
       setScannedCargoData(null);
       setScannedCellData(null);
       setScannerError(null);
+      setTargetWarehouseStats(null); // Сбрасываем статистику склада для следующего размещения
       
       // Обновляем списки
       await fetchAvailableCargoForPlacement();
