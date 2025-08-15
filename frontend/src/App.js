@@ -17112,10 +17112,10 @@ function App() {
                               </div>
                             ) : (
                               <div className="grid gap-6">
-                                {availableCargoForPlacement.map((item) => {
+                                {availableCargoForPlacement.filter(item => item && item.id).map((item) => {
                                   const warehouseColors = getWarehouseColor(item.warehouse_name);
                                   return (
-                                    <Card key={item.id} className={`${warehouseColors.border} ${warehouseColors.bg} border-l-4`}>
+                                    <Card key={`cargo-${item.id}`} className={`${warehouseColors.border} ${warehouseColors.bg} border-l-4`}>
                                       <CardContent className="p-6">
                                         <div className="flex justify-between items-start">
                                           {/* НОВОЕ: Чекбокс для выбора груза */}
