@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MapPin, Navigation, Clock, Calculator } from 'lucide-react';
+import { MapPin, Navigation, Clock, Calculator, AlertCircle } from 'lucide-react';
 
 const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) => {
   const mapRef = useRef(null);
@@ -9,26 +9,38 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
   const [duration, setDuration] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [mapReady, setMapReady] = useState(false);
 
   // Инициализация карты
   useEffect(() => {
-    if (!mapRef.current || map) return;
+    if (!mapRef.current || map || mapReady) return;
 
     const initMap = async () => {
       try {
-        // Ждем загрузки Yandex Maps API
-        await new Promise((resolve) => {
-          if (window.ymaps && window.ymaps.ready) {
-            window.ymaps.ready(resolve);
-          } else {
-            // Если API еще не загружен, загружаем его
-            const script = document.createElement('script');
-            script.src = `https://api-maps.yandex.ru/2.1/?apikey=${process.env.REACT_APP_YANDEX_MAPS_API_KEY}&lang=ru_RU`;
-            script.onload = () => {
-              window.ymaps.ready(resolve);
-            };
-            document.head.appendChild(script);
-          }
+        console.log('🗺️ Начинаем инициализацию карты...');
+        
+        // Проверяем наличие API ключа
+        const apiKey = process.env.REACT_APP_YANDEX_MAPS_API_KEY;
+        if (!apiKey) {
+          throw new Error('API ключ Yandex Maps не найден');
+        }
+
+        // Загружаем Yandex Maps API если не загружен
+        if (!window.ymaps) {
+          console.log('📡 Загружаем Yandex Maps API...');
+          await loadYandexMapsScript(apiKey);
+        }
+
+        // Ждем готовности API
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Таймаут загрузки Yandex Maps API'));
+          }, 10000); // 10 секунд таймаут
+
+          window.ymaps.ready(() => {
+            clearTimeout(timeout);
+            resolve();
+          });
         });
 
         // Создаем карту
@@ -40,19 +52,55 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
         });
 
         setMap(newMap);
-        console.log('✅ Карта инициализирована');
+        setMapReady(true);
+        console.log('✅ Карта успешно инициализирована');
+
       } catch (error) {
         console.error('❌ Ошибка инициализации карты:', error);
-        setError('Ошибка загрузки карты');
+        setError(`Ошибка загрузки карты: ${error.message}`);
       }
     };
 
     initMap();
-  }, []);
+  }, [map, mapReady]);
+
+  // Функция загрузки скрипта Yandex Maps
+  const loadYandexMapsScript = (apiKey) => {
+    return new Promise((resolve, reject) => {
+      // Проверяем, не загружен ли уже скрипт
+      if (document.querySelector('script[src*="api-maps.yandex.ru"]')) {
+        resolve();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = `https://api-maps.yandex.ru/2.1/?apikey=${apiKey}&lang=ru_RU`;
+      script.async = true;
+      
+      script.onload = () => {
+        console.log('✅ Yandex Maps скрипт загружен');
+        resolve();
+      };
+      
+      script.onerror = () => {
+        reject(new Error('Не удалось загрузить Yandex Maps API'));
+      };
+      
+      document.head.appendChild(script);
+    });
+  };
 
   // Построение маршрута
   useEffect(() => {
-    if (!map || !fromAddress || !toAddress) return;
+    if (!map || !fromAddress || !toAddress || !mapReady) {
+      console.log('⏳ Ожидание готовности карты или адресов:', { 
+        map: !!map, 
+        fromAddress: !!fromAddress, 
+        toAddress: !!toAddress, 
+        mapReady 
+      });
+      return;
+    }
 
     const buildRoute = async () => {
       setLoading(true);
@@ -62,11 +110,12 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
 
       try {
         const ymaps = window.ymaps;
-
-        // Очищаем предыдущий маршрут
-        if (route) {
-          map.geoObjects.remove(route);
+        if (!ymaps) {
+          throw new Error('Yandex Maps API не доступен');
         }
+
+        // Очищаем предыдущий маршрут и маркеры
+        map.geoObjects.removeAll();
 
         console.log(`🗺️ Строим маршрут от "${fromAddress}" до "${toAddress}"`);
 
@@ -74,125 +123,173 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
         const multiRoute = new ymaps.multiRouter.MultiRoute({
           referencePoints: [fromAddress, toAddress],
           params: {
-            routingMode: 'auto', // Автомобильный маршрут
+            routingMode: 'auto',
             avoidTrafficJams: false
           }
         }, {
-          // Настройки внешнего вида маршрута
           boundsAutoApply: true,
           routeActiveStrokeWidth: 4,
-          routeActiveStrokeColor: '#3B82F6', // Синий цвет маршрута
+          routeActiveStrokeColor: '#3B82F6',
           routeInactiveStrokeWidth: 3,
-          routeInactiveStrokeColor: '#94A3B8', // Серый цвет неактивного маршрута
-          wayPointDraggable: false,
-          
-          // Настройки маркеров точек
-          wayPointIconLayout: 'default#imageWithContent',
-          wayPointIconImageHref: '', // Используем стандартные маркеры
-          wayPointIconImageSize: [30, 42],
-          wayPointIconImageOffset: [-15, -42],
-          
-          // Настройки подписей маркеров
-          wayPointIconContentLayout: ymaps.templateLayoutFactory.createClass(
-            '<div style="color: #fff; font-weight: bold; text-align: center; margin-top: 5px;">{{ properties.iconContent }}</div>'
-          )
+          routeInactiveStrokeColor: '#94A3B8',
+          wayPointDraggable: false
         });
 
         // Добавляем маршрут на карту
         map.geoObjects.add(multiRoute);
         setRoute(multiRoute);
 
-        // Обработчик готовности маршрута
+        // Обработчик успешного построения маршрута
         multiRoute.model.events.add('requestsuccess', () => {
-          console.log('✅ Маршрут успешно построен');
-          const activeRoute = multiRoute.getActiveRoute();
-          if (activeRoute) {
-            // Получаем свойства маршрута
-            const distanceValue = activeRoute.properties.get('distance');
-            const durationObj = activeRoute.properties.get('duration');
+          try {
+            console.log('✅ Маршрут успешно построен');
+            const activeRoute = multiRoute.getActiveRoute();
+            
+            if (activeRoute) {
+              // Получаем данные маршрута
+              const distanceValue = activeRoute.properties.get('distance');
+              const durationObj = activeRoute.properties.get('duration');
 
-            console.log('📏 Данные маршрута:', { 
-              distance: distanceValue, 
-              duration: durationObj 
-            });
-
-            // ИСПРАВЛЕНИЕ: Правильное форматирование расстояния
-            let distanceText = 'Неизвестно';
-            if (typeof distanceValue === 'number' && !isNaN(distanceValue)) {
-              distanceText = distanceValue >= 1000 
-                ? `${(distanceValue / 1000).toFixed(1)} км`
-                : `${Math.round(distanceValue)} м`;
-            }
-
-            // ИСПРАВЛЕНИЕ: Правильное форматирование времени
-            let durationText = 'Неизвестно';
-            if (durationObj && typeof durationObj.value === 'number') {
-              const totalMinutes = Math.round(durationObj.value / 60);
-              const hours = Math.floor(totalMinutes / 60);
-              const minutes = totalMinutes % 60;
-              durationText = hours > 0 
-                ? `${hours} ч ${minutes} мин`
-                : `${minutes} мин`;
-            } else if (durationObj && typeof durationObj.text === 'string') {
-              durationText = durationObj.text;
-            }
-
-            setDistance(distanceText);
-            setDuration(durationText);
-
-            // Передаем данные родительскому компоненту
-            if (onRouteCalculated) {
-              onRouteCalculated({
-                distance: distanceText,
-                duration: durationText,
-                distanceValue: distanceValue || 0,
-                durationValue: durationObj?.value || 0
+              console.log('📊 Данные маршрута:', { 
+                distance: distanceValue, 
+                duration: durationObj 
               });
+
+              // Форматируем расстояние
+              let distanceText = 'Неизвестно';
+              if (typeof distanceValue === 'number' && !isNaN(distanceValue) && distanceValue > 0) {
+                distanceText = distanceValue >= 1000 
+                  ? `${(distanceValue / 1000).toFixed(1)} км`
+                  : `${Math.round(distanceValue)} м`;
+              }
+
+              // Форматируем время
+              let durationText = 'Неизвестно';
+              let durationValue = 0;
+              
+              if (durationObj) {
+                if (typeof durationObj.value === 'number') {
+                  durationValue = durationObj.value;
+                  const totalMinutes = Math.round(durationValue / 60);
+                  const hours = Math.floor(totalMinutes / 60);
+                  const minutes = totalMinutes % 60;
+                  durationText = hours > 0 
+                    ? `${hours} ч ${minutes} мин`
+                    : `${minutes} мин`;
+                } else if (typeof durationObj.text === 'string') {
+                  durationText = durationObj.text;
+                }
+              }
+
+              setDistance(distanceText);
+              setDuration(durationText);
+
+              // Передаем данные родителю
+              if (onRouteCalculated) {
+                onRouteCalculated({
+                  distance: distanceText,
+                  duration: durationText,
+                  distanceValue: distanceValue || 0,
+                  durationValue: durationValue
+                });
+              }
+
+              console.log(`✅ Результат: ${distanceText}, время: ${durationText}`);
+
+              // Добавляем кастомные маркеры
+              try {
+                const routeCoords = activeRoute.geometry.getCoordinates();
+                if (routeCoords && routeCoords.length > 0) {
+                  const startCoord = routeCoords[0];
+                  const endCoord = routeCoords[routeCoords.length - 1];
+
+                  // Маркер начальной точки
+                  const startPlacemark = new ymaps.Placemark(startCoord, {
+                    balloonContent: `<strong>Адрес забора:</strong><br/>${fromAddress}`,
+                    iconContent: 'А'
+                  }, {
+                    preset: 'islands#redStretchyIcon'
+                  });
+
+                  // Маркер конечной точки  
+                  const endPlacemark = new ymaps.Placemark(endCoord, {
+                    balloonContent: `<strong>Склад:</strong><br/>${toAddress}`,
+                    iconContent: 'Б'
+                  }, {
+                    preset: 'islands#greenStretchyIcon'
+                  });
+
+                  map.geoObjects.add(startPlacemark);
+                  map.geoObjects.add(endPlacemark);
+                  
+                  console.log('✅ Маркеры добавлены');
+                }
+              } catch (markerError) {
+                console.error('⚠️ Ошибка добавления маркеров:', markerError);
+              }
             }
-
-            console.log(`✅ Маршрут: ${distanceText}, время: ${durationText}`);
-
-            // Добавляем кастомные маркеры для лучшей видимости
-            const startPlacemark = new ymaps.Placemark(activeRoute.geometry.get(0), {
-              balloonContent: `<strong>Точка А:</strong><br/>${fromAddress}`,
-              iconContent: 'А'
-            }, {
-              preset: 'islands#redStretchyIcon',
-              iconColor: '#ff0000'
-            });
-
-            const endPoint = activeRoute.geometry.get(activeRoute.geometry.getLength() - 1);
-            const endPlacemark = new ymaps.Placemark(endPoint, {
-              balloonContent: `<strong>Точка Б:</strong><br/>${toAddress}`,
-              iconContent: 'Б'
-            }, {
-              preset: 'islands#greenStretchyIcon', 
-              iconColor: '#00ff00'
-            });
-
-            map.geoObjects.add(startPlacemark);
-            map.geoObjects.add(endPlacemark);
+          } catch (routeError) {
+            console.error('❌ Ошибка обработки маршрута:', routeError);
+            setError('Ошибка обработки данных маршрута');
           }
         });
 
-        // Обработчик ошибок
+        // Обработчик ошибок построения маршрута
         multiRoute.model.events.add('requestfail', (e) => {
           console.error('❌ Ошибка построения маршрута:', e);
           setError('Не удалось построить маршрут. Проверьте правильность адресов.');
         });
 
       } catch (error) {
-        console.error('❌ Ошибка построения маршрута:', error);
-        setError('Ошибка построения маршрута');
+        console.error('❌ Ошибка при построении маршрута:', error);
+        setError(`Ошибка: ${error.message}`);
       } finally {
         setLoading(false);
       }
     };
 
-    // Задержка для избежания частых запросов
-    const debounceTimer = setTimeout(buildRoute, 1000);
+    // Debounce для избежания частых запросов
+    const debounceTimer = setTimeout(buildRoute, 1500);
     return () => clearTimeout(debounceTimer);
-  }, [map, fromAddress, toAddress, route]);
+  }, [map, fromAddress, toAddress, mapReady]);
+
+  // Показываем состояние загрузки карты
+  if (!mapReady && !error) {
+    return (
+      <div className="space-y-3">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent mr-3"></div>
+            <span className="text-blue-700">Загрузка карты...</span>
+          </div>
+        </div>
+        <div className="border border-gray-300 rounded-lg bg-gray-100 h-64 flex items-center justify-center">
+          <span className="text-gray-500">Инициализация карты</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Показываем ошибку загрузки карты
+  if (error && !mapReady) {
+    return (
+      <div className="space-y-3">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+            <span className="text-red-700 font-medium">Ошибка загрузки карты</span>
+          </div>
+          <p className="text-red-600 text-sm mt-1">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+          >
+            Перезагрузить страницу
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -205,7 +302,7 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
         
         <div className="space-y-2 text-sm">
           <div className="flex items-start">
-            <div className="bg-red-100 text-red-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-2 mt-0.5">
+            <div className="bg-red-100 text-red-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-2 mt-0.5 flex-shrink-0">
               А
             </div>
             <div>
@@ -215,7 +312,7 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
           </div>
           
           <div className="flex items-start">
-            <div className="bg-green-100 text-green-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-2 mt-0.5">
+            <div className="bg-green-100 text-green-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-2 mt-0.5 flex-shrink-0">
               Б
             </div>
             <div>
@@ -232,9 +329,10 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
           </div>
         )}
 
-        {error && (
+        {error && mapReady && (
           <div className="mt-3 text-red-600 text-sm">
-            ⚠️ {error}
+            <AlertCircle className="h-4 w-4 inline mr-1" />
+            {error}
           </div>
         )}
 
