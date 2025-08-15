@@ -17045,13 +17045,24 @@ function App() {
                                     <Card key={item.id} className={`${warehouseColors.border} ${warehouseColors.bg} border-l-4`}>
                                       <CardContent className="p-6">
                                         <div className="flex justify-between items-start">
-                                          {/* Основная информация о грузе */}
-                                          <div className="flex-1">
-                                            <div className="flex items-center space-x-4 mb-4">
-                                              <h3 className="font-bold text-xl text-blue-600">{item.cargo_number}</h3>
-                                              <Badge variant={getProcessingStatusBadgeVariant(item.processing_status)}>
-                                                {getProcessingStatusLabel(item.processing_status)}
-                                              </Badge>
+                                          {/* НОВОЕ: Чекбокс для выбора груза */}
+                                          <div className="flex items-start space-x-4">
+                                            <label className="flex items-center mt-1">
+                                              <input
+                                                type="checkbox"
+                                                checked={selectedCargoForDeletion.includes(item.id)}
+                                                onChange={() => handleSelectCargoForDeletion(item.id)}
+                                                className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                                              />
+                                            </label>
+                                            
+                                            {/* Основная информация о грузе */}
+                                            <div className="flex-1">
+                                              <div className="flex items-center space-x-4 mb-4">
+                                                <h3 className="font-bold text-xl text-blue-600">{item.cargo_number}</h3>
+                                                <Badge variant={getProcessingStatusBadgeVariant(item.processing_status)}>
+                                                  {getProcessingStatusLabel(item.processing_status)}
+                                                </Badge>
                                               {/* Индикатор груза из заявки на забор */}
                                               {item.pickup_request_id && (
                                                 <Badge className="bg-orange-100 text-orange-700 border-orange-200">
