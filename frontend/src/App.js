@@ -6569,6 +6569,9 @@ function App() {
       console.log('User data received:', userData.full_name, userData.role);
       setUser(userData);
       
+      // ИСПРАВЛЕНИЕ: Устанавливаем флаг завершения загрузки данных
+      setDataLoaded(true);
+      
       // Сбрасываем флаг логина если он был установлен
       if (isLoggingIn) {
         setIsLoggingIn(false);
