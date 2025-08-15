@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 class AutoFillTester:
-    def __init__(self, base_url="https://tajline-tracker.preview.emergentagent.com"):
+    def __init__(self, base_url="https://tajline-ops.preview.emergentagent.com"):
         self.base_url = base_url
         self.tokens = {}
         self.users = {}

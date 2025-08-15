@@ -11,7 +11,7 @@ import json
 from datetime import datetime
 
 # Конфигурация
-BACKEND_URL = "https://tajline-tracker.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-ops.preview.emergentagent.com/api"
 
 # Учетные данные администратора
 ADMIN_CREDENTIALS = {

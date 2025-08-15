@@ -7,7 +7,7 @@ import requests
 import json
 
 def minimal_tracking_test():
-    base_url = "https://tajline-tracker.preview.emergentagent.com"
+    base_url = "https://tajline-ops.preview.emergentagent.com"
     
     # Login as admin
     admin_login = {
