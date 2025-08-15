@@ -5493,6 +5493,14 @@ function App() {
     }
   }, [user, activeSection]);
 
+  // НОВЫЙ USEEFFECT: Обновляем список курьеров при изменении фильтра неактивных
+  useEffect(() => {
+    if (user && (user.role === 'admin' || user.role === 'warehouse_operator')) {
+      console.log(`🔄 Обновляем список курьеров - показать неактивных: ${showInactiveCouriers}`);
+      fetchCouriers(couriersPage, couriersPerPage);
+    }
+  }, [showInactiveCouriers, user]);
+
   // НОВЫЙ USEEFFECT: Очистка QR сканеров при переключении вкладок/секций
   useEffect(() => {
     console.log(`🔄 Переключение на секцию: ${activeSection}, вкладка: ${activeTab}`);
