@@ -177,6 +177,8 @@ function App() {
 
   // НОВОЕ: Состояние для режима забора груза
   const [isPickupMode, setIsPickupMode] = useState(false);
+  // НОВОЕ: Состояние для формы приёма груза через оператора
+  const [showOperatorCargoForm, setShowOperatorCargoForm] = useState(false);
   const [senderPhones, setSenderPhones] = useState(['']); // Массив телефонов отправителя
   
   // НОВЫЕ СОСТОЯНИЯ ДЛЯ УЛУЧШЕНИЙ ИНТЕРФЕЙСА КУРЬЕРА
