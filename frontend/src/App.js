@@ -16406,7 +16406,7 @@ function App() {
                                   </div>
                                   <RouteMap
                                     fromAddress={operatorCargoForm.pickup_address}
-                                    toAddress={operatorWarehouses[0]?.address || operatorWarehouses[0]?.full_address || operatorWarehouses[0]?.location || 'Душанбе'}
+                                    toAddress={operatorWarehouses[0]?.address || operatorWarehouses[0]?.location || 'Душанбе'}
                                     warehouseName={`Склад: ${operatorWarehouses[0]?.name || 'Склад'}`}
                                     onRouteCalculated={(routeData) => {
                                       setRouteInfo(routeData);
