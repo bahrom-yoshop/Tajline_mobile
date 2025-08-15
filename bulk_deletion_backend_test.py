@@ -263,22 +263,27 @@ class BulkDeletionTester:
                 timeout=30
             )
             
-            if response.status_code == 400:
+            if response.status_code == 422:
                 error_data = response.json()
-                detail = error_data.get("detail", "")
+                detail = error_data.get("detail", [])
                 
-                if "Too many cargo items" in detail or "Maximum 100 allowed" in detail:
-                    self.log_result(
-                        "Проверка ограничения (максимум 100 грузов)",
-                        True,
-                        f"Корректно отклонен запрос с {len(fake_cargo_ids)} грузами",
-                        {
-                            "status_code": response.status_code,
-                            "error_detail": detail,
-                            "requested_count": len(fake_cargo_ids)
-                        }
-                    )
-                    return True
+                # Check if it's a Pydantic validation error for too many items
+                if isinstance(detail, list) and len(detail) > 0:
+                    first_error = detail[0]
+                    if (first_error.get("type") == "too_long" and 
+                        "cargo_ids" in first_error.get("loc", []) and
+                        first_error.get("ctx", {}).get("max_length") == 100):
+                        self.log_result(
+                            "Проверка ограничения (максимум 100 грузов)",
+                            True,
+                            f"Корректно отклонен запрос с {len(fake_cargo_ids)} грузами (Pydantic validation)",
+                            {
+                                "status_code": response.status_code,
+                                "validation_error": first_error,
+                                "requested_count": len(fake_cargo_ids)
+                            }
+                        )
+                        return True
                 else:
                     self.log_result(
                         "Проверка ограничения (максимум 100 грузов)",
