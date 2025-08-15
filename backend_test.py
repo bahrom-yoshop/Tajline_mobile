@@ -213,7 +213,7 @@ class WarehouseStatisticsTest:
                             )
                             continue
                     
-                    if len(warehouse_stats) == len(stats_fields):
+                    if len(warehouse_stats) == 4:  # Все поля найдены
                         # Проверяем математическую корректность
                         total_cells = warehouse_stats["total_cells"]
                         occupied_cells = warehouse_stats["occupied_cells"]
