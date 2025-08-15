@@ -19,6 +19,7 @@ import YandexMap from './components/YandexMap'; // Компонент Яндек
 import CourierGPSTracker from './components/CourierGPSTracker'; // Компонент GPS отслеживания
 import CourierTrackingMap from './components/CourierTrackingMap'; // Компонент карты отслеживания курьеров
 import CourierHistoryAnalytics from './components/CourierHistoryAnalytics'; // Компонент истории и аналитики курьеров
+import RouteMap from './components/RouteMap'; // Компонент карты маршрута для оформления груза
 import { 
   Truck, Package, Users, Bell, Search, Plus, Edit, Trash2, CheckCircle, 
   Clock, MapPin, User, Shield, Warehouse, Menu, X, Building, 
