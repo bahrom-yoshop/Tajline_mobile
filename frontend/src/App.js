@@ -17233,6 +17233,7 @@ function App() {
                                             Удалить
                                           </Button>
                                         </div>
+                                        </div>
                                       </CardContent>
                                   </Card>
                                 )})}
