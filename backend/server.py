@@ -2326,14 +2326,27 @@ async def place_cargo_in_cell(
         # Проверяем старый формат: СКЛАД_ID-Б_номер-П_номер-Я_номер
         elif "-Б" in cell_code and "-П" in cell_code and "-Я" in cell_code:
             is_id_format = False
-            parts = cell_code.split("-")
-            if len(parts) < 4:
+            
+            # ИСПРАВЛЕНИЕ: Правильно извлекаем warehouse_id, учитывая что он может содержать дефисы (UUID)
+            # Ищем первое вхождение "-Б" чтобы отделить warehouse_id от координат ячейки
+            b_index = cell_code.find("-Б")
+            if b_index == -1:
                 raise HTTPException(status_code=400, detail="Invalid cell code format")
             
-            warehouse_id = parts[0]
-            block = int(parts[1][1:])  # Убираем "Б"
-            shelf = int(parts[2][1:])  # Убираем "П" 
-            cell = int(parts[3][1:])   # Убираем "Я"
+            warehouse_id = cell_code[:b_index]  # Всё до "-Б" это warehouse_id
+            coordinates_part = cell_code[b_index+1:]  # Всё после "-Б" это координаты (Б_номер-П_номер-Я_номер)
+            
+            # Парсим координаты: Б_номер-П_номер-Я_номер
+            coord_parts = coordinates_part.split("-")
+            if len(coord_parts) != 3:
+                raise HTTPException(status_code=400, detail="Invalid cell code format")
+            
+            try:
+                block = int(coord_parts[0][1:])  # Убираем "Б" и парсим номер
+                shelf = int(coord_parts[1][1:])  # Убираем "П" и парсим номер 
+                cell = int(coord_parts[2][1:])   # Убираем "Я" и парсим номер
+            except (ValueError, IndexError) as e:
+                raise HTTPException(status_code=400, detail=f"Invalid cell coordinates format: {str(e)}")
             
             # Проверяем существование склада
             warehouse = db.warehouses.find_one({"id": warehouse_id})
