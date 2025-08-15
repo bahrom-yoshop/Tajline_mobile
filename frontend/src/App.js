@@ -4336,16 +4336,15 @@ function App() {
   };
 
   // Функция для открытия модального окна размещения груза
-  const openCargoPlacementModal = () => {
-    console.log('🔍 ОТЛАДКА: Открытие модального окна размещения');
-    console.log('- placementStatistics:', placementStatistics);
-    console.log('- targetWarehouseStats:', targetWarehouseStats);
-    console.log('- scannedCargoData:', scannedCargoData);
-    console.log('- scannedCellData:', scannedCellData);
+  const openCargoPlacementModal = async () => {
+    setSessionPlacedCount(0); // Счетчик размещенных грузов в сессии
+    setTargetWarehouseStats(null); // Статистика целевого склада
+    setPlacementStatistics(null); // Очищаем статистику размещения
+    setSessionPlacedCargo([]); // Очищаем список размещенных грузов в сессии
     
-    setSessionPlacedCount(0); // Сбрасываем счетчик размещенных грузов
-    setTargetWarehouseStats(null); // Сбрасываем статистику целевого склада
-    setPlacementStatistics(null); // ИСПРАВЛЕНИЕ: Очищаем статистику размещения для избежания конфликтов
+    // Загружаем актуальную статистику размещения
+    await fetchPlacementStatistics();
+    
     setShowCargoPlacementModal(true);
   };
 
