@@ -26992,7 +26992,7 @@ function App() {
                       className={`mt-1 ${externalScannerStep === 'cargo' ? 'bg-yellow-50 border-yellow-300' : 'bg-gray-100'}`}
                       autoFocus={externalScannerStep === 'cargo'}
                     />
-                    {externalScannedCargo && (
+                    {false && externalScannedCargo && (
                       <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
                         <div className="font-medium text-green-800">
                           Груз: {externalScannedCargo.cargo_number}
