@@ -327,7 +327,7 @@ class WarehouseNotificationTester:
             return False
     
     def test_full_modal_acceptance(self, notifications):
-        """Test 5: Test notification acceptance with full modal data"""
+        """Test 5: Test notification acceptance with full modal data using /complete endpoint"""
         try:
             if not notifications:
                 self.log_result(
@@ -351,32 +351,55 @@ class WarehouseNotificationTester:
             
             notification_id = test_notification.get('id')
             
-            # Test with full modal data (as the modal window would send)
+            # Step 1: First accept the notification (this should change status to in_processing)
+            accept_response = self.session.post(
+                f"{API_BASE}/operator/warehouse-notifications/{notification_id}/accept"
+            )
+            
+            if accept_response.status_code != 200:
+                self.log_result(
+                    "Тестирование полной приемки модального окна - Шаг 1 (Accept)",
+                    False,
+                    f"Ошибка при принятии уведомления: HTTP {accept_response.status_code}. Детали: {accept_response.text[:200]}",
+                    {
+                        "notification_id": notification_id,
+                        "status_code": accept_response.status_code,
+                        "error": accept_response.text
+                    }
+                )
+                return False
+            
+            # Step 2: Complete with full modal data (as the modal window would send)
             full_modal_data = {
-                "weight": 15.5,
-                "dimensions": {
-                    "length": 50,
-                    "width": 30,
-                    "height": 20
-                },
-                "description": "Тестовое описание груза из модального окна",
-                "special_instructions": "Осторожно, хрупкое",
-                "declared_value": 5000.0,
-                "packaging_type": "коробка",
-                "additional_notes": "Дополнительные заметки оператора"
+                "sender_full_name": test_notification.get('sender_full_name', 'Тестовый Отправитель'),
+                "sender_phone": test_notification.get('sender_phone', '+79999999999'),
+                "sender_address": test_notification.get('pickup_address', 'Тестовый адрес отправителя'),
+                "recipient_full_name": "Тестовый Получатель",
+                "recipient_phone": "+79888888888",
+                "recipient_address": "Тестовый адрес получателя",
+                "payment_method": "cash",
+                "payment_status": "paid",
+                "delivery_method": "pickup",
+                "cargo_items": [
+                    {
+                        "name": "Тестовый груз из модального окна",
+                        "weight": 15.5,
+                        "price": 5000.0
+                    }
+                ]
             }
             
-            response = self.session.post(
-                f"{API_BASE}/operator/warehouse-notifications/{notification_id}/accept",
+            complete_response = self.session.post(
+                f"{API_BASE}/operator/warehouse-notifications/{notification_id}/complete",
                 json=full_modal_data
             )
             
-            if response.status_code == 200:
-                result_data = response.json()
+            if complete_response.status_code == 200:
+                result_data = complete_response.json()
                 self.log_result(
                     "Тестирование полной приемки модального окна",
                     True,
-                    f"Успешная приемка уведомления с полными данными модального окна. Статус: {result_data.get('status', 'unknown')}",
+                    f"Успешная приемка уведомления с полными данными модального окна. Создано грузов: {result_data.get('created_count', 0)}",
                     {
                         "notification_id": notification_id,
                         "request_data": full_modal_data,
@@ -385,15 +408,15 @@ class WarehouseNotificationTester:
                 )
                 return True
             else:
-                error_details = response.text
+                error_details = complete_response.text
                 self.log_result(
                     "Тестирование полной приемки модального окна",
                     False,
-                    f"Ошибка приемки с полными данными модального окна: HTTP {response.status_code}. Детали: {error_details[:200]}",
+                    f"Ошибка завершения оформления с полными данными модального окна: HTTP {complete_response.status_code}. Детали: {error_details[:200]}",
                     {
                         "notification_id": notification_id,
                         "request_data": full_modal_data,
-                        "status_code": response.status_code,
+                        "status_code": complete_response.status_code,
                         "error": error_details
                     }
                 )
