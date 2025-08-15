@@ -16218,6 +16218,220 @@ function App() {
                                 </p>
                               </div>
                             </>
+                          ) : showOperatorCargoForm ? (
+                            /* НОВЫЙ РЕЖИМ - Форма приёма груза через оператора */
+                            <>
+                              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
+                                <h3 className="font-semibold text-blue-800 mb-2 flex items-center">
+                                  <Package className="mr-2 h-5 w-5" />
+                                  Приём груза на склад через оператора
+                                </h3>
+                                <p className="text-sm text-blue-700">
+                                  Форма для прямого приёма груза на склад без использования курьерских услуг
+                                </p>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* ФИО отправителя */}
+                                <div>
+                                  <Label htmlFor="operator_sender_name" className="text-blue-700 font-medium">
+                                    ФИО отправителя *
+                                  </Label>
+                                  <Input
+                                    id="operator_sender_name"
+                                    value={operatorCargoForm.sender_full_name}
+                                    onChange={(e) => setOperatorCargoForm({...operatorCargoForm, sender_full_name: e.target.value})}
+                                    placeholder="Иванов Иван Иванович"
+                                    className="border-blue-200 focus:border-blue-400"
+                                    required
+                                  />
+                                </div>
+                                
+                                {/* Телефон отправителя */}
+                                <div>
+                                  <Label htmlFor="operator_sender_phone" className="text-blue-700 font-medium">
+                                    Телефон отправителя *
+                                  </Label>
+                                  <Input
+                                    id="operator_sender_phone"
+                                    type="tel"
+                                    value={operatorCargoForm.sender_phone}
+                                    onChange={(e) => setOperatorCargoForm({...operatorCargoForm, sender_phone: e.target.value})}
+                                    placeholder="+7XXXXXXXXXX"
+                                    className="border-blue-200 focus:border-blue-400"
+                                    required
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Адрес отправителя */}
+                              <div>
+                                <Label htmlFor="operator_sender_address" className="text-blue-700 font-medium">
+                                  Адрес отправителя *
+                                </Label>
+                                <Input
+                                  id="operator_sender_address"
+                                  value={operatorCargoForm.sender_address}
+                                  onChange={(e) => setOperatorCargoForm({...operatorCargoForm, sender_address: e.target.value})}
+                                  placeholder="Москва, ул. Тверская, 10, кв. 5"
+                                  className="border-blue-200 focus:border-blue-400"
+                                  required
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* ФИО получателя */}
+                                <div>
+                                  <Label htmlFor="operator_recipient_name" className="text-blue-700 font-medium">
+                                    ФИО получателя *
+                                  </Label>
+                                  <Input
+                                    id="operator_recipient_name"
+                                    value={operatorCargoForm.recipient_full_name}
+                                    onChange={(e) => setOperatorCargoForm({...operatorCargoForm, recipient_full_name: e.target.value})}
+                                    placeholder="Петров Петр Петрович"
+                                    className="border-blue-200 focus:border-blue-400"
+                                    required
+                                  />
+                                </div>
+                                
+                                {/* Телефон получателя */}
+                                <div>
+                                  <Label htmlFor="operator_recipient_phone" className="text-blue-700 font-medium">
+                                    Телефон получателя *
+                                  </Label>
+                                  <Input
+                                    id="operator_recipient_phone"
+                                    type="tel"
+                                    value={operatorCargoForm.recipient_phone}
+                                    onChange={(e) => setOperatorCargoForm({...operatorCargoForm, recipient_phone: e.target.value})}
+                                    placeholder="+992XXXXXXXXX"
+                                    className="border-blue-200 focus:border-blue-400"
+                                    required
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Адрес получателя */}
+                              <div>
+                                <Label htmlFor="operator_recipient_address" className="text-blue-700 font-medium">
+                                  Адрес получателя *
+                                </Label>
+                                <Input
+                                  id="operator_recipient_address"
+                                  value={operatorCargoForm.recipient_address}
+                                  onChange={(e) => setOperatorCargoForm({...operatorCargoForm, recipient_address: e.target.value})}
+                                  placeholder="Душанбе, ул. Рудаки, 10, кв. 5"
+                                  className="border-blue-200 focus:border-blue-400"
+                                  required
+                                />
+                              </div>
+
+                              {/* Грузы - упрощенная версия */}
+                              <div className="space-y-4">
+                                <Label className="text-blue-700 font-medium">Информация о грузах *</Label>
+                                {operatorCargoForm.cargo_items.map((item, index) => (
+                                  <div key={index} className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                      <div>
+                                        <Label className="text-xs text-blue-600">Наименование</Label>
+                                        <Input
+                                          value={item.name}
+                                          onChange={(e) => {
+                                            const newItems = [...operatorCargoForm.cargo_items];
+                                            newItems[index] = { ...newItems[index], name: e.target.value };
+                                            setOperatorCargoForm({...operatorCargoForm, cargo_items: newItems});
+                                          }}
+                                          placeholder="Документы"
+                                          className="border-blue-200 focus:border-blue-400"
+                                          required
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs text-blue-600">Вес (кг)</Label>
+                                        <Input
+                                          type="number"
+                                          step="0.1"
+                                          value={item.weight}
+                                          onChange={(e) => {
+                                            const newItems = [...operatorCargoForm.cargo_items];
+                                            newItems[index] = { ...newItems[index], weight: e.target.value };
+                                            setOperatorCargoForm({...operatorCargoForm, cargo_items: newItems});
+                                          }}
+                                          placeholder="1.5"
+                                          className="border-blue-200 focus:border-blue-400"
+                                          required
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs text-blue-600">Размер</Label>
+                                        <Input
+                                          value={item.size}
+                                          onChange={(e) => {
+                                            const newItems = [...operatorCargoForm.cargo_items];
+                                            newItems[index] = { ...newItems[index], size: e.target.value };
+                                            setOperatorCargoForm({...operatorCargoForm, cargo_items: newItems});
+                                          }}
+                                          placeholder="30x20x10"
+                                          className="border-blue-200 focus:border-blue-400"
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs text-blue-600">Стоимость (₽)</Label>
+                                        <Input
+                                          type="number"
+                                          step="0.01"
+                                          value={item.declared_value}
+                                          onChange={(e) => {
+                                            const newItems = [...operatorCargoForm.cargo_items];
+                                            newItems[index] = { ...newItems[index], declared_value: e.target.value };
+                                            setOperatorCargoForm({...operatorCargoForm, cargo_items: newItems});
+                                          }}
+                                          placeholder="5000"
+                                          className="border-blue-200 focus:border-blue-400"
+                                          required
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Дополнительные инструкции */}
+                              <div>
+                                <Label htmlFor="operator_instructions" className="text-blue-700 font-medium">
+                                  Особые инструкции
+                                </Label>
+                                <Textarea
+                                  id="operator_instructions"
+                                  value={operatorCargoForm.special_instructions}
+                                  onChange={(e) => setOperatorCargoForm({...operatorCargoForm, special_instructions: e.target.value})}
+                                  placeholder="Дополнительная информация о грузе или инструкции по обработке..."
+                                  className="border-blue-200 focus:border-blue-400"
+                                  rows={3}
+                                />
+                              </div>
+
+                              {/* Кнопка отправки */}
+                              <div className="pt-6 border-t border-blue-200">
+                                <Button
+                                  type="submit"
+                                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                                  disabled={!operatorCargoForm.sender_full_name || 
+                                           !operatorCargoForm.sender_phone || 
+                                           !operatorCargoForm.recipient_full_name ||
+                                           !operatorCargoForm.recipient_phone ||
+                                           !operatorCargoForm.cargo_items[0]?.name ||
+                                           !operatorCargoForm.cargo_items[0]?.weight}
+                                >
+                                  <Package className="mr-2 h-4 w-4" />
+                                  Принять груз на склад
+                                </Button>
+                                <p className="text-xs text-blue-600 text-center mt-2">
+                                  Груз будет принят напрямую на склад и готов к размещению
+                                </p>
+                              </div>
+                            </>
                           ) : (
                             /* ОБЫЧНЫЙ РЕЖИМ - все поля как было */
                             <>
