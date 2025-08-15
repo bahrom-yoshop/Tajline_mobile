@@ -300,9 +300,134 @@ def analyze_pickup_request_structure(pickup_requests_before, pickup_requests_aft
             else:
                 log_info(f"  sender_full_name: '{sender_name}'")
 
+def check_admin_cargo_requests(token):
+    """Проверка заявок на грузы через админский API"""
+    log_test_step("ПРОВЕРКА ЗАЯВОК НА ГРУЗЫ ЧЕРЕЗ АДМИНСКИЙ API", "GET /api/admin/cargo-requests")
+    
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.get(f"{BACKEND_URL}/admin/cargo-requests", headers=headers)
+        
+        if response.status_code == 200:
+            cargo_requests = response.json()
+            log_success(f"Найдено {len(cargo_requests)} заявок на грузы")
+            
+            if cargo_requests:
+                # Анализируем структуру заявок
+                sample_request = cargo_requests[0]
+                log_info("Структура заявки на груз:")
+                for key, value in sample_request.items():
+                    if isinstance(value, str) and len(value) > 50:
+                        value = value[:50] + "..."
+                    log_info(f"  {key}: {value}")
+                
+                # Ищем заявки с номером 000000/00
+                zero_requests = [req for req in cargo_requests if req.get("request_number") == "000000/00"]
+                if zero_requests:
+                    log_warning(f"НАЙДЕНО {len(zero_requests)} заявок с номером 000000/00!")
+                    for req in zero_requests[:3]:
+                        log_info(f"  Заявка 000000/00: cargo_name='{req.get('cargo_name', 'N/A')}', sender='{req.get('sender_full_name', 'N/A')}'")
+                else:
+                    log_info("Заявок с номером 000000/00 не найдено в admin/cargo-requests")
+                    
+            return cargo_requests
+        else:
+            log_error(f"Ошибка получения заявок на грузы: {response.status_code} - {response.text}")
+            return []
+            
+    except Exception as e:
+        log_error(f"Исключение при получении заявок на грузы: {str(e)}")
+        return []
+
+def check_warehouse_notifications(token):
+    """Проверка уведомлений склада"""
+    log_test_step("ПРОВЕРКА УВЕДОМЛЕНИЙ СКЛАДА", "GET /api/operator/warehouse-notifications")
+    
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.get(f"{BACKEND_URL}/operator/warehouse-notifications", headers=headers)
+        
+        if response.status_code == 200:
+            notifications = response.json()
+            log_success(f"Найдено {len(notifications)} уведомлений склада")
+            
+            if notifications:
+                # Анализируем структуру уведомлений
+                sample_notification = notifications[0]
+                log_info("Структура уведомления склада:")
+                for key, value in sample_notification.items():
+                    if isinstance(value, str) and len(value) > 50:
+                        value = value[:50] + "..."
+                    log_info(f"  {key}: {value}")
+                
+                # Ищем уведомления с pickup_request_id
+                pickup_notifications = [notif for notif in notifications if notif.get("pickup_request_id")]
+                log_info(f"Уведомлений с pickup_request_id: {len(pickup_notifications)}")
+                
+                # Ищем уведомления с номером 000000/00
+                zero_notifications = [notif for notif in notifications if notif.get("request_number") == "000000/00"]
+                if zero_notifications:
+                    log_warning(f"НАЙДЕНО {len(zero_notifications)} уведомлений с номером 000000/00!")
+                    for notif in zero_notifications[:3]:
+                        log_info(f"  Уведомление 000000/00: status='{notif.get('status', 'N/A')}', pickup_request_id='{notif.get('pickup_request_id', 'N/A')}'")
+                else:
+                    log_info("Уведомлений с номером 000000/00 не найдено")
+                    
+            return notifications
+        else:
+            log_error(f"Ошибка получения уведомлений склада: {response.status_code} - {response.text}")
+            return []
+            
+    except Exception as e:
+        log_error(f"Исключение при получении уведомлений склада: {str(e)}")
+        return []
+
+def create_test_pickup_request(token):
+    """Создание тестовой заявки на забор для диагностики"""
+    log_test_step("СОЗДАНИЕ ТЕСТОВОЙ ЗАЯВКИ НА ЗАБОР", "Для воспроизведения проблемы")
+    
+    try:
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        
+        # Создаем тестовую заявку на груз
+        cargo_request_data = {
+            "recipient_full_name": "Тестовый Получатель Диагностики",
+            "recipient_phone": "+992123456789",
+            "recipient_address": "Тестовый адрес получателя",
+            "pickup_address": "Тестовый адрес забора",
+            "cargo_name": "Тестовый груз для диагностики",
+            "weight": 5.0,
+            "declared_value": 1000.0,
+            "description": "Тестовый груз для диагностики проблемы с заявками на забор",
+            "route": "moscow_to_tajikistan"
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/cargo-requests", headers=headers, json=cargo_request_data)
+        
+        if response.status_code == 201:
+            request_data = response.json()
+            log_success(f"Создана тестовая заявка: {request_data.get('request_number', 'N/A')}")
+            return request_data
+        else:
+            log_error(f"Ошибка создания тестовой заявки: {response.status_code} - {response.text}")
+            return None
+            
+    except Exception as e:
+        log_error(f"Исключение при создании тестовой заявки: {str(e)}")
+        return None
+
 def check_cargo_pickup_connection(token):
     """Проверка связи между грузами и заявками на забор"""
     log_test_step("ПРОВЕРКА СВЯЗИ МЕЖДУ ГРУЗАМИ И ЗАЯВКАМИ НА ЗАБОР", "Поиск связующих полей")
+    
+    # Проверяем заявки на грузы через админский API
+    cargo_requests = check_admin_cargo_requests(token)
+    
+    # Проверяем уведомления склада
+    warehouse_notifications = check_warehouse_notifications(token)
+    
+    # Пытаемся создать тестовую заявку
+    test_request = create_test_pickup_request(token)
     
     try:
         # Получаем заявки на забор
