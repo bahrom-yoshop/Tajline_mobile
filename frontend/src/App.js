@@ -16913,6 +16913,21 @@ function App() {
                             />
                           </div>
 
+                          {/* НОВОЕ: Карта маршрута доставки */}
+                          {operatorCargoForm.recipient_address && operatorWarehouses.length > 0 && (
+                            <div className="mt-4">
+                              <RouteMap
+                                fromAddress={`${operatorWarehouses[0]?.location || 'Душанбе'}`}
+                                toAddress={operatorCargoForm.recipient_address}
+                                warehouseName={operatorWarehouses[0]?.name || 'Склад'}
+                                onRouteCalculated={(routeData) => {
+                                  setRouteInfo(routeData);
+                                  console.log('📍 Информация о маршруте:', routeData);
+                                }}
+                              />
+                            </div>
+                          )}
+
                           {/* НОВЫЕ ПОЛЯ ДЛЯ КУРЬЕРСКОЙ СЛУЖБЫ */}
                           <div className="space-y-4 border-t pt-4">
                             <h3 className="text-lg font-semibold text-gray-900">Курьерская служба</h3>
