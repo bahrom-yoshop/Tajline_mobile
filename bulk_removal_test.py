@@ -22,7 +22,7 @@ import sys
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://tajline-ops.preview.emergentagent.com/api"
+BACKEND_URL = "https://cargo-route-map.preview.emergentagent.com/api"
 
 class BulkRemovalTester:
     def __init__(self):

@@ -18,7 +18,7 @@ import sys
 from datetime import datetime
 
 # Конфигурация
-BACKEND_URL = "https://tajline-ops.preview.emergentagent.com/api"
+BACKEND_URL = "https://cargo-route-map.preview.emergentagent.com/api"
 ADMIN_PHONE = "+79999888777"
 ADMIN_PASSWORD = "admin123"
 CORRECT_ADDRESS = "Москва, новая улица 1а строение 2"

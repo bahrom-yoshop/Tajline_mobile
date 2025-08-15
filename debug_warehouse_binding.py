@@ -7,7 +7,7 @@ import requests
 import json
 
 def debug_operator_warehouse_binding():
-    base_url = "https://tajline-ops.preview.emergentagent.com"
+    base_url = "https://cargo-route-map.preview.emergentagent.com"
     
     # Login as admin
     admin_login = {

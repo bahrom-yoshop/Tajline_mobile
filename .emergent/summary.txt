@@ -1,64 +1,56 @@
 <analysis>
-The provided trajectory details the iterative development by a previous AI engineer on the TAJLINE.TJ cargo management system. The engineer focused on critical bug fixes and feature enhancements, primarily within the cargo placement, deletion, and warehouse management modules. A recurring theme was the systematic debugging of frontend React rendering issues (e.g., , ) and backend data consistency problems, including Pydantic validation errors and incorrect API endpoint usage.
+The previous AI engineer effectively navigated a series of critical bug fixes and feature enhancements for the TAJLINE.TJ cargo management system. The initial focus was on resolving UI flickering and stale data, which involved state management (, ) and  refinements in . This quickly expanded to addressing user-reported issues: a warehouse selection bug during operator registration, incorrect warehouse statistics on the operator dashboard (traced to hardcoded frontend values), and the absence of a courier deletion feature (requiring new backend endpoints and frontend UI).
 
-Key achievements included implementing a mini-modal for deletion confirmation, universalizing cargo deletion across Placement and Pickup sections, resolving an N+1 query problem for warehouse statistics, and adding a new Accept Cargo at Warehouse form. The engineer demonstrated strong problem-solving skills by diagnosing issues like duplicate IDs and frontend-backend data mismatches, adapting the codebase to new QR formats, and streamlining operator workflows. The final task in progress involves addressing UI flickering and stale data on page refresh by refining data loading and adding loading indicators.
+A significant portion of work then centered on a new Route Map feature for cargo pickup, which required creating a new React component (), integrating it into , and debugging issues with map initialization, marker display, distance calculation, and crucially, resolving React  errors caused by direct DOM manipulation by the Yandex Maps API. The engineer also corrected an issue where the map used an incorrect warehouse address, leading to schema changes in the backend and data updates. The final issue in the trajectory is a persistent  error, indicating ongoing work on the map component's cleanup and rendering lifecycle.
 </analysis>
 
 <product_requirements>
-The TAJLINE.TJ application is a full-stack cargo management system for Moscow-Tajikistan routes, supporting Admin, Warehouse Operator, and User roles. It features unique cargo numbering, QR scanning for tracking, Role-Based Access Control (RBAC), financial tracking, and real-time notifications.
+The TAJLINE.TJ application is a full-stack cargo management system designed for Moscow-Tajikistan cargo routes, supporting Admin, Warehouse Operator, and User roles with features like cargo numbering, QR scanning, RBAC, financial tracking, and real-time notifications.
 
-Current development aimed to enhance:
-1.  **Warehouse Management**: Improve real-time statistics, enable detailed cell management (add/edit/delete blocks/shelves/cells, QR generation), and ensure data consistency.
-2.  **Cargo Placement Workflow**: Refine the two-step scanning process, support diverse QR formats (compact numeric, JSON), implement continuous scanning, and display real-time placement statistics (session/today counts, progress, list of placed items) in the modal. Placement should occur irrespective of payment status.
-3.  **Cargo Deletion**: Implement single and mass deletion of cargo items from Placement list, ensuring updates across , , and  collections. This was extended to also handle cargo associated with Pickup requests and from the general Cargo List.
-4.  **UI/UX Improvements**: General refinements, addressing display bugs, streamlining operator workflows, correct display of numeric cell QR codes, and adding a mini-modal for deletion confirmation. A new Accept Cargo at Warehouse form for operators was also requested and implemented. The most recent focus is on resolving UI flickering/stale data display on page refresh.
+Recent development focused on:
+1.  **UI Stability**: Resolve UI flickering and stale analytical dashboard data upon page refresh, ensuring data is only rendered once fully loaded and authorized.
+2.  **Operator Registration**: Fix errors in the warehouse selection dropdown during operator registration.
+3.  **Warehouse Operator Dashboard**: Correctly display real-time warehouse statistics (total cells, occupied, free, occupancy rate, weight, cargo count, clients, total amount) on the operator's personal account dashboard and the Warehouse List section.
+4.  **Courier Management**: Add functionality to delete couriers from the list and implement soft delete to hide inactive couriers from the default view, with an option for admins to view all.
+5.  **Cargo Pickup Workflow**: Integrate a map feature into the Cargo Pickup form. When an operator enters the pickup address, the map should display a route and distance from the operator's assigned warehouse to the pickup address, with visible markers for both points. This route information should also be saved with the cargo data.
 </product_requirements>
 
 <key_technical_concepts>
 -   **Full-stack Development**: React.js (frontend), FastAPI (backend), MongoDB (database).
--   **Authentication/Authorization**: JWT, Role-Based Access Control (RBAC).
--   **UI/UX**: Tailwind CSS, Shadcn UI, React Hooks for state management.
--   **API Interaction**: Standardized  wrapper, RESTful API design.
--   **Data Modeling**: Pydantic for data validation and serialization.
--   **QR Code Handling**: Generation, parsing, and validation of custom numeric and structured formats.
+-   **State Management**: React Hooks (, ) for UI state and data loading.
+-   **API Interaction**: RESTful API design,  wrapper.
+-   **Frontend Routing**: Managed within  for different user roles.
+-   **Mapping Integration**: Yandex Maps API for route calculation and display.
+-   **Soft Deletion**: Backend logic to deactivate records rather than permanently delete.
 </key_technical_concepts>
 
 <code_architecture>
-The application uses a standard full-stack architecture with a FastAPI backend and a React frontend, interacting with a MongoDB database.
+The application utilizes a standard full-stack setup: FastAPI backend, React frontend, and MongoDB.
 
 
 
 -   **/app/backend/server.py**:
-    -   **Summary**: The core FastAPI application handling API routes, MongoDB interactions, authentication, and business logic.
-    -   **Key Changes**:
-        -   : Enhanced QR code parsing.
-        -   : Updated response structure.
-        -   : Modified to correctly parse 8-digit and 9-digit compact numeric cell QR formats, and UUIDs.
-        -   : Removed  filter.
-        -    (DELETE): New endpoint for single cargo deletion, updating , , . Changed to find by  AND .
-        -    (DELETE): New endpoint for bulk cargo deletion, updating relevant collections. Changed to find by  AND .
-        -    (DELETE): Fixed parameter parsing by introducing  Pydantic model for consistency.
-        -    (DELETE): Fixed parameter parsing by introducing  Pydantic model for consistency.
-        -    (POST): New endpoint for accepting cargo via operator.
-        -    enum: Added  status to resolve Pydantic validation errors.
-        -   Warehouse statistics endpoints: Implicitly modified or optimized to support lazy loading of statistics, addressing N+1 query problem.
+    -   **Summary**: Core FastAPI logic, API routes, and MongoDB interactions.
+    -   **Changes**:
+        -   **Courier Management**: Added  to soft delete couriers by setting  to . Modified  to filter for  by default, adding an optional  query parameter.
+        -   **Warehouse Management**: Added  field to  Pydantic model and  model for full warehouse address. Updated  to save the . Modified  to return the  field. Added a temporary  endpoint to update existing warehouse addresses for migration/correction.
 
 -   **/app/frontend/src/App.js**:
-    -   **Summary**: The main React component handling global state, routing, and all major UI interactions.
-    -   **Key Changes**:
-        -   : Updated for 8-digit and new 9-digit cell QR formats.
-        -   : Improved for diverse QR data structures.
-        -   **Cargo Placement Modal**: Added , , , . Refined ,  for auto-transition.
-        -   **Cargo Deletion**:
-            -   Implemented a mini-modal for deletion confirmation (using  and  states) replacing .
-            -   Unified single () and bulk () deletion functions to work with both Placement and Pickup cargo.
-            -   Updated  to handle different deletion types, including  and .
-            -   Added Delete buttons and bulk action panel to Placement and На Забор (Pickup) sections, including Select All functionality.
-            -   Addressed React rendering errors (, ) by clearing  state and ensuring asynchronous updates.
-            -   Improved display logic for На Забор section by ensuring  is prioritized and validating  data.
-        -   **Warehouse Management**: Modified  to remove immediate loading of all warehouse statistics, instead introducing  for on-demand lazy loading. Integrated a new  component for this.
-        -   **Cargo Acceptance**: Added Принимать Груз на склад button and  state, linking to a new operator cargo acceptance form ( was probably integrated here directly or its logic merged).  was added.
-        -   **UI Stability (Flickering)**: Introduced  and  states within  hooks to manage data loading and prevent stale data display upon page refresh. Began implementing loading indicators.
+    -   **Summary**: Main React component managing global state, routing, and UI.
+    -   **Changes**:
+        -   **UI Flickering**: Introduced  and  states. Modified the primary  (around line 5185) and  to manage these states, ensuring UI renders only after data is loaded.  also resets . Conditional rendering added to the main return statement () to show a loading screen or login instead of stale data.
+        -   **Operator Registration Form**: Added debug  statements for  array and  data to diagnose warehouse selection issues.
+        -   **Warehouse Operator Dashboard**: Added extensive  statements within the operator dashboard statistics display (lines 14640-14690) to debug data discrepancies.  was updated to reset . Hardcoded, fake data for Занято, Свободно, Загрузка, Вес, Количество грузов, Клиенты, Сумма in the  section (lines 19552-19600) was replaced with actual data from .
+        -   **Courier Management**: Added  state and a  to trigger  when this state changes. Modified  to accept a  parameter for the backend API call. Implemented  for soft deleting couriers. Added a Delete button to the courier list table ( section around line 22240) and a  component for admins to toggle viewing inactive couriers. Visual indication (opacity) added for inactive couriers in the table.
+        -   **Route Map Integration**: Imported  and  components. Added  state to store map data. Integrated  into the Cargo Pickup form (around line 16374), specifically after the Адрес места нахождения груза field in . Removed previous incorrect  integrations. Modified  to include  in the payload and  to clear . Updated  component call to pass  using .
+
+-   **/app/frontend/src/components/RouteMap.js** (New File):
+    -   **Summary**: React component responsible for rendering a Yandex Map, displaying a route between two points, and showing distance.
+    -   **Changes**: Initial creation and subsequent significant refactoring to handle Yandex Maps API loading, map initialization, marker rendering (A and B points), route calculation, distance display, and robust error handling (e.g.,  errors, API key issues, NaN m distance). Uses  for map interaction. Includes  cleanup for map objects.
+
+-   **/app/frontend/src/components/SimpleRouteMap.js** (New File):
+    -   **Summary**: A simplified version of  used for debugging Yandex Maps API initialization issues.
+    -   **Changes**: Created to isolate and test basic map loading, with minimal routing/marker logic, focusing on resolving API loading problems and  errors through  cleanup.
 </code_architecture>
 
 <pending_tasks>
@@ -66,17 +58,18 @@ The application uses a standard full-stack architecture with a FastAPI backend a
 -   Implement the full chat functionality for communication between couriers, admins, and operators.
 -   Fully verify the История операций (Operation History) feature on cargo cards for couriers.
 -   Frontend testing for the newly implemented enhanced cargo pickup request form (explicitly mentioned as needing further testing).
+-   Continue implementing the loading indicators on the main application page to prevent UI flickering on refresh (though significant work has been done, the trajectory ends with a persistent map-related error).
+-   Resolve the persistent  error in the  components.
 </pending_tasks>
 
 <current_work>
-Immediately before this summary request, the AI engineer was actively working on resolving the issue of the application displaying stale analytical dashboard data and flickering upon page refresh. This problem was identified as being related to the asynchronous loading of authentication and user data, where old UI elements would briefly appear before the new, correct data was loaded.
+Immediately before this summary request, the AI engineer was actively working on resolving persistent  errors occurring when the Забор груза (pickup cargo) button was clicked, specifically related to the Yandex Maps integration. This error indicates a conflict where React attempts to remove a DOM node that Yandex Maps API has manipulated directly or removed itself, leading to React losing track of the DOM tree.
 
-The engineer's approach involved:
-1.  **State Management**: Introducing new  and  states to manage the loading process of critical application data.
-2.  ** Refinement**: Modifying the main  hook in  that handles token validation and initial data fetching. The goal is to ensure that data is only rendered once it's fully loaded and authorized.
-3.  **Loading Indicators**: The engineer was in the process of implementing loading indicators on both the login screen and the main application page to provide a smoother user experience and prevent the display of outdated information. The last few messages in the trajectory indicate the engineer was specifically searching for the main component's return statement to insert these loading indicators and ensure proper rendering logic.
+The engineer's most recent actions were:
+1.  **Diagnosing **: Identified the error as a classic React/direct DOM manipulation conflict, specifically with Yandex Maps API.
+2.  **Implementing Cleanup**: Updated the  component (and likely  as the next step) to include proper cleanup functions within  hooks. This involves ensuring that Yandex Map instances and their elements are correctly destroyed or unmounted when the component unmounts or re-renders, preventing React from attempting to remove already-gone elements. The last message confirms the edit was successful for  and the next intended step is to apply the same fix to .
 </current_work>
 
 <optional_next_step>
-Continue implementing the loading indicators on the main application page to prevent UI flickering on refresh.
+The next step is to fix the  error in the  component, similar to the fix applied to .
 </optional_next_step>

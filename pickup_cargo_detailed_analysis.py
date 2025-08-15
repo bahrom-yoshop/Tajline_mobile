@@ -14,7 +14,7 @@ import json
 from datetime import datetime
 
 # Конфигурация
-BACKEND_URL = "https://tajline-ops.preview.emergentagent.com/api"
+BACKEND_URL = "https://cargo-route-map.preview.emergentagent.com/api"
 
 class PickupCargoDetailedAnalysis:
     def __init__(self):
