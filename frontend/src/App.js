@@ -22174,6 +22174,16 @@ function App() {
                                       >
                                         <Eye className="h-4 w-4" />
                                       </Button>
+                                      {/* НОВАЯ КНОПКА: Удаление курьера */}
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                        onClick={() => handleDeleteCourier(courier)}
+                                        title={`Удалить курьера ${courier.full_name}`}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
                                     </div>
                                   </TableCell>
                                 </TableRow>
