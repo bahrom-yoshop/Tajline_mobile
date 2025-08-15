@@ -7341,8 +7341,11 @@ function App() {
         }
       }
       
-      setDeleteConfirmModal(false);
-      setDeleteConfirmData(null);
+      // Закрываем модальное окно только ПОСЛЕ завершения всех операций
+      setTimeout(() => {
+        setDeleteConfirmModal(false);
+        setDeleteConfirmData(null);
+      }, 100);
       
     } catch (error) {
       console.error('Delete error:', error);
