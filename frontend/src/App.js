@@ -16640,7 +16640,7 @@ function App() {
                                     Размещение (Камера)
                                   </Button>
                                   <Button 
-                                    onClick={() => setShowCargoPlacementModal(true)}
+                                    onClick={openCargoPlacementModal}
                                     className="bg-blue-600 hover:bg-blue-700"
                                     size="sm"
                                   >
