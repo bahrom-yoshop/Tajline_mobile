@@ -25771,6 +25771,11 @@ function App() {
                       ? `Вы уверены, что хотите удалить ${deleteConfirmData.count} заявк(и) на забор? ВНИМАНИЕ: Завершенные заявки удалить нельзя. Это действие необратимо.`
                       : `Вы уверены, что хотите удалить заявку на забор "${deleteConfirmData.items[0]?.request_number}"? Это действие необратимо.`
                   )}
+                  {deleteConfirmData.type === 'cargo-placement' && (
+                    deleteConfirmData.isBulk 
+                      ? `Вы уверены, что хотите удалить ${deleteConfirmData.count} груз(ов) из списка размещения? Это действие нельзя отменить.`
+                      : `Вы уверены, что хотите удалить груз "${deleteConfirmData.items[0]?.cargo_number}" из списка размещения? Это действие нельзя отменить.`
+                  )}
                 </p>
               </div>
 
