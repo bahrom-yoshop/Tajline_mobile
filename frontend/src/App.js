@@ -4195,13 +4195,26 @@ function App() {
         const shelfNum = parseInt(compactFormatMatch[3]);
         const cellNum = parseInt(compactFormatMatch[4]);
         
+        // Находим склад по warehouse_number
+        const targetWarehouse = warehouses.find(w => w.warehouse_number === warehouseNum);
+        if (!targetWarehouse) {
+          console.error(`❌ Склад с номером ${warehouseNum} не найден`);
+          return null;
+        }
+        
+        console.log(`🏢 Найден целевой склад: ${targetWarehouse.name} (ID: ${targetWarehouse.id})`);
+        
         return {
           format: 'compact',
           warehouse_number: warehouseNum,
+          warehouse_id: targetWarehouse.id,
+          warehouse_name: targetWarehouse.name,
+          warehouse_location: targetWarehouse.location,
           block_number: blockNum,
           shelf_number: shelfNum,
           cell_number: cellNum,
           readable_name: `Б${blockNum}-П${shelfNum}-Я${cellNum}`,
+          full_address: `${targetWarehouse.name} - Б${blockNum}-П${shelfNum}-Я${cellNum}`,
           cell_code: qrData // Полный код для размещения
         };
       }
