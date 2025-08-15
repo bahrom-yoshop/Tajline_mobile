@@ -14,8 +14,8 @@ BACKEND_URL = "https://tajline-ops.preview.emergentagent.com/api"
 
 # Учетные данные для тестирования
 OPERATOR_CREDENTIALS = {
-    "phone": "+79686827303",
-    "password": "warehouse123"  # Попробуем стандартный пароль
+    "phone": "+79777888999",
+    "password": "warehouse123"
 }
 
 ADMIN_CREDENTIALS = {
