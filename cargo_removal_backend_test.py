@@ -436,9 +436,13 @@ class CargoRemovalTester:
         
         if removal_success:
             print("   ✅ НОВЫЙ API ENDPOINT РАБОТАЕТ: DELETE /api/operator/cargo/{cargo_id}/remove-from-placement")
-            print("   ✅ Статус груза изменяется на 'removed_from_placement'")
         else:
             print("   ❌ НОВЫЙ API ENDPOINT НЕ РАБОТАЕТ: Требуется реализация")
+        
+        if status_changed:
+            print("   ✅ Статус груза изменяется на 'removed_from_placement'")
+        else:
+            print("   ❌ Статус груза не изменяется корректно")
         
         if cargo_removed_from_list:
             print("   ✅ Груз корректно исчезает из списка размещения")
@@ -451,7 +455,7 @@ class CargoRemovalTester:
             print("   ⚠️ Уведомление об удалении не создается (может быть не критично)")
         
         # Финальная оценка
-        if success_rate >= 75.0 and removal_success:
+        if success_rate >= 75.0 and removal_success and status_changed:
             print("\n🎉 ТЕСТИРОВАНИЕ ЗАВЕРШЕНО УСПЕШНО!")
             print("✅ ОЖИДАЕМЫЙ РЕЗУЛЬТАТ ДОСТИГНУТ:")
             print("   - API успешно удаляет груз из списка размещения")
@@ -463,7 +467,8 @@ class CargoRemovalTester:
             print("🔧 ТРЕБУЕТСЯ ДОРАБОТКА:")
             if not removal_success:
                 print("   - Реализовать API endpoint DELETE /api/operator/cargo/{cargo_id}/remove-from-placement")
-                print("   - Добавить изменение статуса груза на 'removed_from_placement'")
+            if not status_changed:
+                print("   - Исправить изменение статуса груза на 'removed_from_placement'")
                 print("   - Добавить временные метки удаления")
             if not cargo_removed_from_list:
                 print("   - Исправить логику фильтрации в /api/operator/cargo/available-for-placement")
