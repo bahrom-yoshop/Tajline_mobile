@@ -20,7 +20,7 @@ ADMIN_CREDENTIALS = {
 }
 
 OPERATOR_CREDENTIALS = {
-    "phone": "+79777888999", 
+    "phone": "+992807766666", 
     "password": "warehouse123"
 }
 
