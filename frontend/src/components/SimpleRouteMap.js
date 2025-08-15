@@ -107,7 +107,7 @@ const SimpleRouteMap = ({ fromAddress, toAddress, warehouseName }) => {
         
         // Создаем карту
         const ymaps = window.ymaps;
-        const map = new ymaps.Map(mapRef.current, {
+        const newMap = new ymaps.Map(mapRef.current, {
           center: [55.7558, 37.6173], // Москва
           zoom: 10,
           controls: []
@@ -115,10 +115,11 @@ const SimpleRouteMap = ({ fromAddress, toAddress, warehouseName }) => {
 
         if (!mountedRef.current) {
           // Если размонтирован, уничтожаем карту
-          map.destroy();
+          newMap.destroy();
           return;
         }
 
+        setMap(newMap);
         setStatus('✅ Карта создана успешно!');
         console.log('✅ SimpleMap карта создана');
 
@@ -130,7 +131,7 @@ const SimpleRouteMap = ({ fromAddress, toAddress, warehouseName }) => {
             // Геокодируем адреса
             const geocoder = ymaps.geocode(fromAddress);
             geocoder.then((res) => {
-              if (!mountedRef.current) return;
+              if (!mountedRef.current || !newMap) return;
               
               const firstGeoObject = res.geoObjects.get(0);
               if (firstGeoObject) {
@@ -142,8 +143,8 @@ const SimpleRouteMap = ({ fromAddress, toAddress, warehouseName }) => {
                   preset: 'islands#redIcon'
                 });
                 
-                if (mountedRef.current && map) {
-                  map.geoObjects.add(placemark);
+                if (mountedRef.current && newMap) {
+                  newMap.geoObjects.add(placemark);
                   setStatus('✅ Карта готова с маркерами!');
                 }
               }
