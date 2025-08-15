@@ -94,19 +94,37 @@ class TajlineCargoDeleteTester:
             # 1. Грузы из размещения
             response = self.session.get(f"{BACKEND_URL}/operator/cargo/available-for-placement")
             if response.status_code == 200:
-                placement_cargo = response.json().get("items", [])
+                data = response.json()
+                if isinstance(data, dict) and "items" in data:
+                    placement_cargo = data["items"]
+                elif isinstance(data, list):
+                    placement_cargo = data
+                else:
+                    placement_cargo = []
                 cargo_sources.extend([{"source": "placement", "cargo": c} for c in placement_cargo[:3]])
             
-            # 2. Грузы из operator_cargo
+            # 2. Грузы из operator_cargo (используем admin/cargo endpoint)
             response = self.session.get(f"{BACKEND_URL}/admin/cargo")
             if response.status_code == 200:
-                admin_cargo = response.json().get("items", [])
+                data = response.json()
+                if isinstance(data, dict) and "items" in data:
+                    admin_cargo = data["items"]
+                elif isinstance(data, list):
+                    admin_cargo = data
+                else:
+                    admin_cargo = []
                 cargo_sources.extend([{"source": "operator_cargo", "cargo": c} for c in admin_cargo[:3]])
             
             # 3. Заявки на забор (cargo_requests)
             response = self.session.get(f"{BACKEND_URL}/admin/cargo-requests")
             if response.status_code == 200:
-                pickup_requests = response.json().get("items", [])
+                data = response.json()
+                if isinstance(data, dict) and "items" in data:
+                    pickup_requests = data["items"]
+                elif isinstance(data, list):
+                    pickup_requests = data
+                else:
+                    pickup_requests = []
                 cargo_sources.extend([{"source": "cargo_requests", "cargo": c} for c in pickup_requests[:2]])
             
             if cargo_sources:
