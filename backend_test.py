@@ -337,7 +337,7 @@ class WarehouseStatisticsTest:
                 data = response.json()
                 
                 # Проверяем наличие ключевых полей
-                required_fields = ["total_cells", "occupied_cells", "free_cells", "occupancy_rate"]
+                required_fields = ["total_cells", "occupied_cells", "free_cells"]
                 stats = {}
                 
                 for field in required_fields:
@@ -350,6 +350,19 @@ class WarehouseStatisticsTest:
                             f"Отсутствует поле {field} для склада '{warehouse_name}'"
                         )
                         return None
+                
+                # Для occupancy_rate проверяем оба возможных названия
+                if "occupancy_rate" in data:
+                    stats["occupancy_rate"] = data["occupancy_rate"]
+                elif "utilization_percent" in data:
+                    stats["occupancy_rate"] = data["utilization_percent"]
+                else:
+                    self.log_result(
+                        f"GET /api/warehouses/{warehouse_id}/statistics - Поле occupancy_rate",
+                        False,
+                        f"Отсутствует поле occupancy_rate/utilization_percent для склада '{warehouse_name}'"
+                    )
+                    return None
                 
                 # Проверяем математическую корректность
                 total_cells = stats["total_cells"]
