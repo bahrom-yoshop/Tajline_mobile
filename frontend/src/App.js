@@ -17450,7 +17450,9 @@ function App() {
                                         <div className="flex-1">
                                       <div className="flex items-center space-x-3 mb-2">
                                         <Badge className="bg-orange-100 text-orange-700 border-orange-200">
-                                          № {request.request_number || request.id.slice(0, 6)}
+                                          № {request.request_number && request.request_number !== 'undefined' && request.request_number !== '' 
+                                              ? request.request_number 
+                                              : `ID-${request.id.slice(0, 8)}`}
                                         </Badge>
                                         <Badge variant={
                                           request.request_status === 'pending' ? 'secondary' :
