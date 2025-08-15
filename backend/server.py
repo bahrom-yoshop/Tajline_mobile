@@ -8340,7 +8340,8 @@ async def get_operator_warehouses(current_user: User = Depends(get_current_user)
         {
             "id": w["id"],
             "name": w["name"], 
-            "location": w["location"],
+            "location": w["location"],  # Город/регион  
+            "address": w.get("address") or w["location"],  # ИСПРАВЛЕНИЕ: Используем полный адрес если есть, иначе location
             "blocks_count": w.get("blocks_count", 0),
             "shelves_per_block": w.get("shelves_per_block", 0),
             "cells_per_shelf": w.get("cells_per_shelf", 0),
