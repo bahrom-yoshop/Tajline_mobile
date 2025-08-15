@@ -26776,6 +26776,36 @@ function App() {
           </DialogHeader>
           
           <div className="space-y-4">
+            {/* Информационная панель с прогрессом */}
+            <div className="p-3 bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-700">Прогресс размещения</h3>
+                <div className="text-xs text-gray-500">
+                  Осталось: {availableCargoForPlacement.length} грузов
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="flex-1">
+                  <div className="flex justify-between text-xs text-gray-600 mb-1">
+                    <span>Всего для размещения</span>
+                    <span>{availableCargoForPlacement.length + sessionPlacedCount}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${sessionPlacedCount > 0 ? (sessionPlacedCount / (availableCargoForPlacement.length + sessionPlacedCount)) * 100 : 0}%`
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-lg font-bold text-green-600">{sessionPlacedCount}</div>
+                  <div className="text-xs text-gray-500">размещено</div>
+                </div>
+              </div>
+            </div>
+
             {/* Отладочная информация */}
             <div className="p-2 bg-gray-100 rounded text-xs">
               <div>Modal Open: {showCargoPlacementModal ? 'true' : 'false'}</div>
