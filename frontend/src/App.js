@@ -26749,9 +26749,20 @@ function App() {
       <Dialog open={showCargoPlacementModal} onOpenChange={setShowCargoPlacementModal}>
         <DialogContent className="w-full max-w-[95vw] max-h-[95vh] p-3 sm:p-6 overflow-y-auto">
           <DialogHeader className="pb-2">
-            <DialogTitle className="flex items-center text-lg">
-              <Scan className="mr-2 h-5 w-5" />
-              Размещение груза - Внешний сканер
+            <DialogTitle className="flex items-center justify-between text-lg">
+              <div className="flex items-center">
+                <Scan className="mr-2 h-5 w-5" />
+                Размещение груза - Внешний сканер
+              </div>
+              {/* Счетчик грузов */}
+              <div className="flex items-center space-x-2 text-sm bg-blue-50 px-3 py-1 rounded-full border">
+                <span className="text-blue-600 font-medium">
+                  📦 {availableCargoForPlacement.length}/{sessionPlacedCount}
+                </span>
+                <span className="text-gray-500 text-xs">
+                  (к размещению / размещено)
+                </span>
+              </div>
             </DialogTitle>
             <DialogDescription className="text-sm">
               Используйте внешний сканер штрих-кодов/QR-кодов для размещения груза
