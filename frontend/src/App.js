@@ -4428,11 +4428,12 @@ function App() {
       }
       
       // ИСПРАВЛЕНИЕ: Автоматический переход к сканированию следующего груза
-      // Сбрасываем состояние предыдущего сканирования
+      // Сбрасываем состояние предыдущего сканирования, но сохраняем список размещенных грузов
       setScannedCargoData(null);
       setScannedCellData(null);
       setScannerError(null);
       setTargetWarehouseStats(null); // Сбрасываем статистику склада для следующего размещения
+      // НЕ сбрасываем sessionPlacedCargo - он накапливается в течение сессии
       
       // Обновляем списки
       await fetchAvailableCargoForPlacement();
