@@ -7292,11 +7292,11 @@ function App() {
         try {
           if (isBulk) {
             const ids = items.map(cargo => cargo.id);
-            const response = await apiCall('/api/admin/cargo/bulk', 'DELETE', {
-              ids: ids
+            const response = await apiCall('/api/operator/cargo/bulk-remove-from-placement', 'DELETE', {
+              cargo_ids: ids
             });
-            if (response.success || response.message) {
-              showAlert(response.message || `${ids.length} грузов успешно удалено полностью из системы`, 'success');
+            if (response.success) {
+              showAlert(`${response.deleted_count} грузов успешно удалено полностью из системы`, 'success');
               
               // Сбрасываем состояния ПЕРЕД обновлением списков
               setSelectedCargoForDeletion([]);
@@ -7318,12 +7318,12 @@ function App() {
                 }
               }, 500);
             } else {
-              showAlert(`Ошибка при массовом удалении: ${response.message || 'Неизвестная ошибка'}`, 'error');
+              showAlert(`Ошибка при массовом удалении: ${response.message}`, 'error');
             }
           } else {
-            const response = await apiCall(`/api/admin/cargo/${items[0].id}`, 'DELETE');
-            if (response.success || response.message) {
-              showAlert(response.message || `Груз ${items[0].cargo_number} успешно удален полностью из системы`, 'success');
+            const response = await apiCall(`/api/operator/cargo/${items[0].id}/remove-from-placement`, 'DELETE');
+            if (response.success) {
+              showAlert(`Груз ${items[0].cargo_number} успешно удален полностью из системы`, 'success');
               
               // Обновляем ВСЕ списки грузов после полного удаления (с задержкой для стабильности)
               setTimeout(async () => {
@@ -7342,7 +7342,7 @@ function App() {
                 }
               }, 500);
             } else {
-              showAlert(`Ошибка при удалении груза: ${response.message || 'Неизвестная ошибка'}`, 'error');
+              showAlert(`Ошибка при удалении груза: ${response.message}`, 'error');
             }
           }
         } catch (error) {
