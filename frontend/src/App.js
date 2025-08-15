@@ -6495,6 +6495,30 @@ function App() {
     }
   };
 
+  // НОВАЯ ФУНКЦИЯ: Ленивая загрузка статистики склада по требованию
+  const fetchWarehouseStatisticsLazy = async (warehouseId) => {
+    // Проверяем, есть ли уже загруженная статистика
+    if (warehousesStatistics[warehouseId]) {
+      return warehousesStatistics[warehouseId];
+    }
+    
+    try {
+      console.log(`📊 Загрузка статистики склада: ${warehouseId}`);
+      const stats = await apiCall(`/api/warehouses/${warehouseId}/statistics`, 'GET');
+      
+      // Обновляем общий объект статистики
+      setWarehousesStatistics(prev => ({
+        ...prev,
+        [warehouseId]: stats
+      }));
+      
+      return stats;
+    } catch (error) {
+      console.error(`Error loading statistics for warehouse ${warehouseId}:`, error);
+      return null;
+    }
+  };
+
   const fetchWarehouses = async () => {
     try {
       console.log('📦 Загрузка списка складов...');
