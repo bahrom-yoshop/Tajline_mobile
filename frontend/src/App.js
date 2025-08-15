@@ -16963,6 +16963,66 @@ function App() {
                             </div>
                           )}
                           
+                          {/* НОВОЕ: Панель массового удаления */}
+                          {availableCargoForPlacement.length > 0 && (
+                            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                              <h4 className="font-semibold text-sm text-red-700 mb-3 flex items-center">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Массовое удаление грузов из размещения
+                              </h4>
+                              
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-4">
+                                  <label className="flex items-center space-x-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedCargoForDeletion.length === availableCargoForPlacement.length && availableCargoForPlacement.length > 0}
+                                      onChange={handleSelectAllCargoForDeletion}
+                                      className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                                    />
+                                    <span className="text-sm text-gray-700">
+                                      Выбрать все ({availableCargoForPlacement.length})
+                                    </span>
+                                  </label>
+                                  
+                                  {selectedCargoForDeletion.length > 0 && (
+                                    <span className="text-sm text-red-600 font-medium">
+                                      Выбrano: {selectedCargoForDeletion.length}
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                <div className="flex space-x-2">
+                                  {selectedCargoForDeletion.length > 0 && (
+                                    <>
+                                      <Button
+                                        onClick={() => setSelectedCargoForDeletion([])}
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-gray-600 border-gray-300"
+                                      >
+                                        Снять выделение
+                                      </Button>
+                                      
+                                      <Button
+                                        onClick={handleBulkDeleteCargoFromPlacement}
+                                        size="sm"
+                                        className="bg-red-600 hover:bg-red-700 text-white"
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Удалить ({selectedCargoForDeletion.length})
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <p className="text-xs text-red-600 mt-2">
+                                ⚠️ Удаленные грузы будут исключены из списка размещения и получат статус "removed_from_placement"
+                              </p>
+                            </div>
+                          )}
+                          
                           <div className="space-y-4">
                             {availableCargoForPlacement.length === 0 ? (
                               <div className="text-center py-8">
