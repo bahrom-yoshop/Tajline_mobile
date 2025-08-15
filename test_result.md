@@ -784,7 +784,7 @@ metadata:
 
 test_plan:
   current_focus: 
-    - "КРИТИЧЕСКАЯ ДИАГНОСТИКА: Ошибка 'Pickup request ID not found in notification' при отправке груза на размещение в TAJLINE.TJ"
+    - "КРИТИЧЕСКАЯ ДИАГНОСТИКА: Ошибка 'Pickup request not found' на строке 14547 в TAJLINE.TJ"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
