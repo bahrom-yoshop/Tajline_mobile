@@ -26880,6 +26880,39 @@ function App() {
               </div>
             </div>
 
+            {/* НОВОЕ: Информационная панель целевого склада */}
+            {targetWarehouseStats && scannedCellData && (
+              <div className="p-3 bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-gray-700 flex items-center">
+                    🏢 Целевой склад для размещения
+                  </h3>
+                  <div className="text-xs text-orange-600 font-medium">
+                    {scannedCellData.full_address || `${scannedCellData.readable_name} (Склад №${scannedCellData.warehouse_number})`}
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center p-2 bg-white rounded border">
+                    <div className="text-lg font-bold text-blue-600">{targetWarehouseStats.total_cells || 0}</div>
+                    <div className="text-xs text-gray-600">Всего ячеек</div>
+                  </div>
+                  <div className="text-center p-2 bg-white rounded border">
+                    <div className="text-lg font-bold text-red-600">{targetWarehouseStats.occupied_cells || 0}</div>
+                    <div className="text-xs text-gray-600">Занято</div>
+                  </div>
+                  <div className="text-center p-2 bg-white rounded border">
+                    <div className="text-lg font-bold text-green-600">{targetWarehouseStats.free_cells || 0}</div>
+                    <div className="text-xs text-gray-600">Свободно</div>
+                  </div>
+                </div>
+                {targetWarehouseStats.warehouse_name && (
+                  <div className="mt-2 text-xs text-gray-600 text-center">
+                    📍 {targetWarehouseStats.warehouse_name}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Отладочная информация */}
             <div className="p-2 bg-gray-100 rounded text-xs">
               <div>Modal Open: {showCargoPlacementModal ? 'true' : 'false'}</div>
