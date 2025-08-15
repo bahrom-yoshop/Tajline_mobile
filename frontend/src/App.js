@@ -17045,7 +17045,7 @@ function App() {
                             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                               <h4 className="font-semibold text-sm text-red-700 mb-3 flex items-center">
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Массовое удаление грузов (ПОЛНОЕ УДАЛЕНИЕ ИЗ СИСТЕМЫ)
+                                Массовое удаление грузов из размещения
                               </h4>
                               
                               <div className="flex items-center justify-between">
