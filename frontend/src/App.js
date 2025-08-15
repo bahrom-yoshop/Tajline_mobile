@@ -19101,19 +19101,33 @@ function App() {
                             <Label htmlFor="operator-warehouse">Назначить на склад</Label>
                             <Select 
                               value={operatorCreateForm.warehouse_id} 
-                              onValueChange={(value) => setOperatorCreateForm({...operatorCreateForm, warehouse_id: value})}
+                              onValueChange={(value) => {
+                                console.log('Выбран склад:', value);
+                                setOperatorCreateForm({...operatorCreateForm, warehouse_id: value});
+                              }}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="Выберите склад" />
                               </SelectTrigger>
                               <SelectContent>
-                                {warehouses.map((warehouse) => (
-                                  <SelectItem key={warehouse.id} value={warehouse.id}>
-                                    {warehouse.name} - {warehouse.location}
+                                {warehouses && warehouses.length > 0 ? (
+                                  warehouses.map((warehouse) => (
+                                    <SelectItem key={warehouse.id} value={warehouse.id}>
+                                      {warehouse.name} - {warehouse.location}
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="" disabled>
+                                    {warehouses ? 'Нет доступных складов' : 'Загрузка складов...'}
                                   </SelectItem>
-                                ))}
+                                )}
                               </SelectContent>
                             </Select>
+                            {warehouses && warehouses.length === 0 && (
+                              <p className="text-sm text-red-600 mt-1">
+                                ⚠️ Склады не загружены. Проверьте подключение к серверу.
+                              </p>
+                            )}
                           </div>
                           <Button type="submit" className="w-full">
                             <Plus className="mr-2 h-4 w-4" />
