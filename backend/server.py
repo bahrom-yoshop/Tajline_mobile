@@ -2386,9 +2386,9 @@ async def place_cargo_in_cell(
         if not cargo:
             raise HTTPException(status_code=404, detail=f"Cargo {cargo_number} not found")
         
-        # Проверяем статус груза (должен быть оплачен)
-        if cargo.get("processing_status") != "paid":
-            raise HTTPException(status_code=400, detail="Cargo must be paid before placement")
+        # ИСПРАВЛЕНИЕ: Убираем проверку статуса оплаты - все грузы в разделе "Размещение" могут размещаться
+        # Это позволяет размещать грузы с любым статусом оплаты
+        print(f"📦 Размещаем груз {cargo_number} со статусом: {cargo.get('processing_status', 'unknown')}")
         
         # Проверяем, свободна ли ячейка
         if is_id_format:
