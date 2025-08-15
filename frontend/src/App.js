@@ -1407,6 +1407,14 @@ function App() {
           special_instructions: ''
         });
         
+        // НОВОЕ: Сбрасываем информацию о маршруте
+        setRouteInfo({
+          distance: '',
+          duration: '',
+          distanceValue: 0,
+          durationValue: 0
+        });
+        
         // Закрываем форму оператора
         setShowOperatorCargoForm(false);
         
