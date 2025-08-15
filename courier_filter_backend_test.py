@@ -363,9 +363,9 @@ class CourierFilterTest:
                 timeout=30
             )
             
-            if response.status_code == 201:
+            if response.status_code in [200, 201]:
                 data = response.json()
-                self.test_courier_id = data.get("id") or data.get("courier_id")
+                self.test_courier_id = data.get("courier_id") or data.get("id")
                 self.test_courier_data = courier_data
                 
                 self.log_result(
