@@ -17087,7 +17087,7 @@ function App() {
                                         className="bg-red-600 hover:bg-red-700 text-white"
                                       >
                                         <Trash2 className="mr-2 h-4 w-4" />
-                                        Удалить ПОЛНОСТЬЮ ({selectedCargoForDeletion.length})
+                                        Удалить ({selectedCargoForDeletion.length})
                                       </Button>
                                     </>
                                   )}
