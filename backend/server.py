@@ -14542,9 +14542,22 @@ async def send_pickup_request_to_placement(
         if not pickup_request_id:
             raise HTTPException(status_code=400, detail="Pickup request ID not found in notification (neither pickup_request_id nor request_id)")
         
+        # Пытаемся найти pickup_request в базе данных
         pickup_request = db.courier_pickup_requests.find_one({"id": pickup_request_id}, {"_id": 0})
+        
+        # Если pickup_request не найден, используем данные из уведомления
         if not pickup_request:
-            raise HTTPException(status_code=404, detail="Pickup request not found")
+            # Используем данные прямо из уведомления
+            pickup_request = {
+                "id": pickup_request_id,
+                "sender_full_name": notification.get("sender_full_name", ""),
+                "sender_phone": notification.get("sender_phone", ""),
+                "pickup_address": notification.get("pickup_address", ""),
+                "destination": notification.get("destination", ""),
+                "courier_fee": notification.get("courier_fee", 0),
+                "payment_method": notification.get("payment_method", "not_paid")
+            }
+            print(f"INFO: Pickup request {pickup_request_id} not found in courier_pickup_requests, using notification data")
         
         # Получаем склады оператора для назначения грузу
         operator_warehouses = get_operator_warehouse_ids(current_user.id)
