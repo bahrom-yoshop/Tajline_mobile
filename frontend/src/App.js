@@ -16389,7 +16389,7 @@ function App() {
                               {console.log('🔧 Отладка карты (режим забора):', {
                                 pickup_address: operatorCargoForm.pickup_address,
                                 operatorWarehouses: operatorWarehouses.length,
-                                warehouses: operatorWarehouses
+                                warehouseData: operatorWarehouses[0] // ОТЛАДКА: все данные склада
                               })}
                               {operatorCargoForm.pickup_address && operatorWarehouses.length > 0 && (
                                 <div className="mt-4">
@@ -16398,10 +16398,15 @@ function App() {
                                       🗺️ <strong>Карта маршрута забора груза!</strong><br/>
                                       Маршрут: от <strong>{operatorCargoForm.pickup_address}</strong> до склада <strong>{operatorWarehouses[0]?.name}</strong>
                                     </p>
+                                    <p className="text-xs text-gray-600 mt-1">
+                                      🔧 Отладка адреса склада: location="{operatorWarehouses[0]?.location}", 
+                                      address="{operatorWarehouses[0]?.address}",
+                                      full_address="{operatorWarehouses[0]?.full_address}"
+                                    </p>
                                   </div>
                                   <RouteMap
                                     fromAddress={operatorCargoForm.pickup_address}
-                                    toAddress={`${operatorWarehouses[0]?.location || 'Душанбе'}`}
+                                    toAddress={operatorWarehouses[0]?.address || operatorWarehouses[0]?.full_address || operatorWarehouses[0]?.location || 'Душанбе'}
                                     warehouseName={`Склад: ${operatorWarehouses[0]?.name || 'Склад'}`}
                                     onRouteCalculated={(routeData) => {
                                       setRouteInfo(routeData);
