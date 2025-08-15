@@ -1369,7 +1369,18 @@ function App() {
         
         // Дополнительные данные
         route: operatorCargoForm.route,
-        special_instructions: operatorCargoForm.special_instructions || 'Принят через оператора на складе'
+        special_instructions: operatorCargoForm.special_instructions || 'Принят через оператора на складе',
+        
+        // НОВОЕ: Информация о маршруте доставки
+        delivery_route_info: routeInfo.distance ? {
+          distance: routeInfo.distance,
+          duration: routeInfo.duration,
+          distance_value: routeInfo.distanceValue,
+          duration_value: routeInfo.durationValue,
+          calculated_at: new Date().toISOString(),
+          warehouse_location: operatorWarehouses[0]?.location || 'Душанбе',
+          warehouse_name: operatorWarehouses[0]?.name || 'Склад'
+        } : null
       };
       
       console.log('📦 Данные для приёма груза через оператора:', operatorCargoData);
