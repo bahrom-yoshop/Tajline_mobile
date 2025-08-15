@@ -14537,10 +14537,10 @@ async def send_pickup_request_to_placement(
         
         current_time = datetime.utcnow()
         
-        # Получаем данные заявки на забор груза
-        pickup_request_id = notification.get("pickup_request_id")
+        # Получаем данные заявки на забор груза (поддержка обратной совместимости)
+        pickup_request_id = notification.get("pickup_request_id") or notification.get("request_id")
         if not pickup_request_id:
-            raise HTTPException(status_code=400, detail="Pickup request ID not found in notification")
+            raise HTTPException(status_code=400, detail="Pickup request ID not found in notification (neither pickup_request_id nor request_id)")
         
         pickup_request = db.courier_pickup_requests.find_one({"id": pickup_request_id}, {"_id": 0})
         if not pickup_request:
