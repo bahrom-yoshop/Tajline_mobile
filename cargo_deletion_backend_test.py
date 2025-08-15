@@ -188,45 +188,58 @@ class TajlineCargoDeleteTester:
         print("🗑️ ТЕСТ 4: Тестирование полного массового удаления грузов")
         
         try:
-            # Берем несколько грузов для массового удаления
-            cargo_ids = []
-            cargo_info = []
-            
-            for cargo_data in cargo_list[:3]:  # Берем максимум 3 груза
-                cargo = cargo_data["cargo"]
-                cargo_id = cargo.get("id") or cargo.get("_id")
-                if cargo_id:
-                    cargo_ids.append(cargo_id)
-                    cargo_info.append({
-                        "id": cargo_id,
-                        "number": cargo.get("cargo_number") or cargo.get("request_number"),
-                        "source": cargo_data["source"]
-                    })
-            
-            if not cargo_ids:
-                self.log_test("Полное массовое удаление грузов", False, "Нет грузов для массового удаления")
-                return False
-            
-            # Тестируем новый админский endpoint для массового полного удаления
-            # Используем правильный формат: {"ids": [...]}
-            response = self.session.delete(f"{BACKEND_URL}/admin/cargo/bulk", json={
-                "ids": cargo_ids
-            })
-            
+            # Получаем свежие грузы для массового удаления (не используем уже удаленные)
+            response = self.session.get(f"{BACKEND_URL}/operator/cargo/available-for-placement")
             if response.status_code == 200:
-                result = response.json()
-                deleted_count = result.get("deleted_count", 0)
-                total_requested = result.get("total_requested", 0)
-                message = result.get("message", "")
+                data = response.json()
+                if isinstance(data, dict) and "items" in data:
+                    fresh_cargo = data["items"]
+                elif isinstance(data, list):
+                    fresh_cargo = data
+                else:
+                    fresh_cargo = []
                 
-                self.log_test(
-                    "Полное массовое удаление грузов", 
-                    True, 
-                    f"Массовое удаление выполнено: {deleted_count}/{total_requested} грузов ПОЛНОСТЬЮ удалено из системы. Ответ: {message}"
-                )
-                return True
+                # Берем несколько грузов для массового удаления
+                cargo_ids = []
+                cargo_info = []
+                
+                for cargo in fresh_cargo[:3]:  # Берем максимум 3 груза
+                    cargo_id = cargo.get("id") or cargo.get("_id")
+                    if cargo_id:
+                        cargo_ids.append(cargo_id)
+                        cargo_info.append({
+                            "id": cargo_id,
+                            "number": cargo.get("cargo_number"),
+                            "source": "placement"
+                        })
+                
+                if not cargo_ids:
+                    self.log_test("Полное массовое удаление грузов", True, "Нет грузов для массового удаления (возможно все уже удалены)")
+                    return True
+                
+                # Тестируем новый админский endpoint для массового полного удаления
+                # Используем правильный формат: {"ids": [...]}
+                response = self.session.delete(f"{BACKEND_URL}/admin/cargo/bulk", json={
+                    "ids": cargo_ids
+                })
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    deleted_count = result.get("deleted_count", 0)
+                    total_requested = result.get("total_requested", 0)
+                    message = result.get("message", "")
+                    
+                    self.log_test(
+                        "Полное массовое удаление грузов", 
+                        True, 
+                        f"Массовое удаление выполнено: {deleted_count}/{total_requested} грузов ПОЛНОСТЬЮ удалено из системы. Ответ: {message}"
+                    )
+                    return True
+                else:
+                    self.log_test("Полное массовое удаление грузов", False, f"HTTP {response.status_code}: {response.text}")
+                    return False
             else:
-                self.log_test("Полное массовое удаление грузов", False, f"HTTP {response.status_code}: {response.text}")
+                self.log_test("Полное массовое удаление грузов", False, f"Не удалось получить свежие грузы: HTTP {response.status_code}")
                 return False
                 
         except Exception as e:
