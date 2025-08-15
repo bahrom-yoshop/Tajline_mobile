@@ -10159,7 +10159,7 @@ async def delete_cargo(
 
 @app.delete("/api/admin/cargo/bulk")
 async def delete_cargo_bulk(
-    cargo_ids: dict,
+    request: BulkDeleteRequest,
     current_user: User = Depends(get_current_user)
 ):
     """Массовое удаление грузов"""
@@ -10170,12 +10170,14 @@ async def delete_cargo_bulk(
         )
     
     try:
-        ids_to_delete = cargo_ids.get("ids", [])
+        ids_to_delete = request.ids
         if not ids_to_delete:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Список ID для удаления не может быть пустым"
             )
+        
+        print(f"🗑️ Массовое удаление грузов: {len(ids_to_delete)} ID: {ids_to_delete}")
         
         # Массовое удаление из обеих коллекций
         result_user = db.cargo.delete_many({"id": {"$in": ids_to_delete}})
@@ -10183,17 +10185,21 @@ async def delete_cargo_bulk(
         
         total_deleted = result_user.deleted_count + result_operator.deleted_count
         
+        print(f"✅ Удалено грузов: {total_deleted} (user: {result_user.deleted_count}, operator: {result_operator.deleted_count})")
+        
         return {
             "message": f"Успешно удалено грузов: {total_deleted}",
             "deleted_count": total_deleted,
             "total_requested": len(ids_to_delete),
             "deleted_from_user_collection": result_user.deleted_count,
-            "deleted_from_operator_collection": result_operator.deleted_count
+            "deleted_from_operator_collection": result_operator.deleted_count,
+            "success": True
         }
         
     except HTTPException:
         raise
     except Exception as e:
+        print(f"❌ Ошибка массового удаления грузов: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка массового удаления грузов: {str(e)}"
