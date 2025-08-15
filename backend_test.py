@@ -440,7 +440,13 @@ class WarehouseStatisticsTest:
                 differences = []
                 
                 for field in fields_to_compare:
-                    dashboard_value = dashboard_warehouse.get(field, 0)
+                    if field == "total_cells":
+                        # total_cells берем из warehouse_structure в dashboard
+                        dashboard_value = dashboard_warehouse.get("warehouse_structure", {}).get(field, 0)
+                    else:
+                        # Остальные поля берем из cargo_stats в dashboard
+                        dashboard_value = dashboard_warehouse.get("cargo_stats", {}).get(field, 0)
+                    
                     individual_value = individual_stats.get(field, 0)
                     
                     if field == "occupancy_rate":
