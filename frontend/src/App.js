@@ -10856,53 +10856,42 @@ function App() {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
-    setCargo([]);
-    setUsers([]);
-    setWarehouses([]);
-    setOperatorCargo([]);
-    setAvailableCargo([]);
-    setCargoHistory([]);
-    setUnpaidCargo([]);
-    setPaymentHistory([]);
-    setNotifications([]);
-    setUsersByRole({ user: [], admin: [], warehouse_operator: [] });
-    // Clear transport states
-    setTransports([]);
-    setSelectedTransport(null);
-    setTransportCargoList([]);
-    setAvailableCargoForTransport([]);
-    setSelectedCargoForPlacement([]);
-    setContactModal(false);
-    // Clear operator-warehouse binding states
-    setOperatorWarehouseBindings([]);
-    setOperatorBindingModal(false);
-    setSelectedOperatorForBinding('');
-    setSelectedWarehouseForBinding('');
-    // Clear warehouse cell management states
-    setSelectedCellCargo(null);
-    setCargoDetailModal(false);
-    setCargoEditModal(false);
-    setCargoMoveModal(false);
+    
+    // Очищаем все данные приложения
+    clearAllAppData();
+    
+    // Сбрасываем состояния инициализации
+    setIsInitializing(false);
+    setDataLoaded(false);
+    
+    // Сбрасываем все остальные состояния
+    setActiveTab('dashboard');
+    setActiveSection('dashboard');
+    setSidebarOpen(true);
+    setCurrentPage('main');
+    setShowCargoForm(false);
+    setShowEditUserModal(false);
+    setEditingUser(null);
+    setShowAlert(false);
+    setAlertMessage('');
+    setAlertType('info');
+    setShowWarehouseModal(false);
+    setShowCreateTransportModal(false);
+    setEditingTransport(null);
+    setShowEditTransportModal(false);
+    setScannerActive(false);
+    setScannedData('');
+    setShowCargoModal(false);
     setEditingCargo(null);
-    setCargoEditForm({});
-    setCargoMoveForm({
-      warehouse_id: '',
-      block_number: '',
-      shelf_number: '',
-      cell_number: ''
-    });
+    setShowTracking(false);
+    setSelectedCargo(null);
+    setSelectedRequest(null);
+    setSelectedTransportCargo(null);
+    setSelectedWarehouseForManagement(null);
+    setShowWarehouseManagementModal(false);
     
-    // Перенаправляем на страницу входа
-    setActiveTab('login');
-    setActiveSection('login');
-    
-    showAlert('Вы вышли из системы', 'info');
-    
-    // Сбрасываем флаг логаута через небольшую задержку
-    setTimeout(() => {
-      setIsLoggingOut(false);
-      console.log('Logout process completed');
-    }, 1000);
+    console.log('Logout completed');
+    setIsLoggingOut(false);
   };
 
   const getStatusBadge = (status) => {
