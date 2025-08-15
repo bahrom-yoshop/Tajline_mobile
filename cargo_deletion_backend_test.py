@@ -256,15 +256,16 @@ class TajlineCargoDeleteTester:
                     request_id = request.get("id")
                     request_number = request.get("request_number")
                     
-                    # Удаляем заявку на забор (что должно удалить связанный груз)
-                    delete_response = self.session.delete(f"{BACKEND_URL}/admin/cargo-requests/{request_id}")
+                    # Удаляем заявку на забор через правильный endpoint
+                    delete_response = self.session.delete(f"{BACKEND_URL}/admin/cargo-applications/{request_id}")
                     
                     if delete_response.status_code == 200:
                         result = delete_response.json()
+                        message = result.get("message", "")
                         self.log_test(
                             "Удаление грузов из секции 'На Забор'", 
                             True, 
-                            f"Заявка на забор {request_number} успешно удалена, связанный груз удален из системы"
+                            f"Заявка на забор {request_number} успешно удалена через endpoint cargo-applications. Ответ: {message}"
                         )
                         return True
                     else:
