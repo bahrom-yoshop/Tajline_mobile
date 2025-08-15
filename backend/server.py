@@ -523,7 +523,8 @@ class Notification(BaseModel):
 
 class WarehouseCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
-    location: str = Field(..., min_length=5, max_length=200)
+    location: str = Field(..., min_length=5, max_length=200)  # Город/регион
+    address: Optional[str] = Field(None, max_length=500)  # НОВОЕ: Полный адрес для навигации
     blocks_count: int = Field(..., ge=1, le=9)
     shelves_per_block: int = Field(..., ge=1, le=3)
     cells_per_shelf: int = Field(..., ge=1, le=50)
