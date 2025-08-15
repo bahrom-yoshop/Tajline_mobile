@@ -26903,8 +26903,8 @@ function App() {
               </div>
             </div>
 
-            {/* НОВОЕ: Информационная панель целевого склада */}
-            {targetWarehouseStats && scannedCellData && (
+            {/* НОВОЕ: Информационная панель целевого склада - ВРЕМЕННО ОТКЛЮЧЕНА */}
+            {false && targetWarehouseStats && scannedCellData && (
               <div className="p-3 bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-medium text-gray-700 flex items-center">
