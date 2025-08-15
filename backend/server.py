@@ -5624,6 +5624,81 @@ async def get_available_cargo_for_placement(
             detail=f"Ошибка получения грузов для размещения: {str(e)}"
         )
 
+# НОВОЕ: Endpoint для массового удаления грузов из списка размещения
+@app.delete("/api/operator/cargo/bulk-remove-from-placement")
+async def bulk_remove_cargo_from_placement(
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Массовое удаление грузов из списка размещения"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        cargo_ids = request.get("cargo_ids", [])
+        
+        if not cargo_ids or len(cargo_ids) == 0:
+            raise HTTPException(status_code=400, detail="No cargo IDs provided")
+        
+        if len(cargo_ids) > 100:  # Ограничение на количество для безопасности
+            raise HTTPException(status_code=400, detail="Too many cargo items. Maximum 100 allowed")
+        
+        deleted_count = 0
+        deleted_cargo_numbers = []
+        
+        for cargo_id in cargo_ids:
+            # Ищем груз в обеих коллекциях  
+            cargo = db.operator_cargo.find_one({"id": cargo_id})
+            collection_name = "operator_cargo"
+            
+            if not cargo:
+                cargo = db.cargo.find_one({"id": cargo_id})
+                collection_name = "cargo"
+            
+            if cargo:
+                # Получаем коллекцию
+                collection = getattr(db, collection_name)
+                
+                # Обновляем статус груза
+                update_result = collection.update_one(
+                    {"id": cargo_id},
+                    {
+                        "$set": {
+                            "status": "removed_from_placement",
+                            "removed_from_placement_at": datetime.utcnow(),
+                            "removed_from_placement_by": current_user.id,
+                            "updated_at": datetime.utcnow()
+                        }
+                    }
+                )
+                
+                if update_result.modified_count > 0:
+                    deleted_count += 1
+                    deleted_cargo_numbers.append(cargo['cargo_number'])
+        
+        # Создаем уведомление о массовом удалении
+        if deleted_count > 0:
+            create_notification(
+                current_user.id,
+                f"Массово удалено {deleted_count} грузов из списка размещения: {', '.join(deleted_cargo_numbers[:5])}{'...' if len(deleted_cargo_numbers) > 5 else ''}",
+                None
+            )
+        
+        return {
+            "success": True,
+            "deleted_count": deleted_count,
+            "total_requested": len(cargo_ids),
+            "deleted_cargo_numbers": deleted_cargo_numbers,
+            "message": f"Успешно удалено {deleted_count} из {len(cargo_ids)} грузов из списка размещения"
+        }
+        
+    except Exception as e:
+        print(f"❌ Ошибка массового удаления грузов: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка массового удаления грузов: {str(e)}"
+        )
+
 # НОВОЕ: Endpoint для удаления груза из списка размещения
 @app.delete("/api/operator/cargo/{cargo_id}/remove-from-placement")
 async def remove_cargo_from_placement(
