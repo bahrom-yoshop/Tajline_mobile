@@ -9984,6 +9984,92 @@ async def get_warehouse_detailed_structure(
             detail=f"Ошибка получения структуры склада: {str(e)}"
         )
 
+# ===== НОВЫЙ ENDPOINT: ПРЯМОЙ ПРИЁМ ГРУЗА ЧЕРЕЗ ОПЕРАТОРА =====
+
+@app.post("/api/operator/cargo/direct-accept")
+async def direct_accept_cargo_by_operator(
+    cargo_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Прямой приём груза на склад через оператора (без курьера)"""
+    if current_user.role not in [UserRole.WAREHOUSE_OPERATOR, UserRole.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для приёма грузов"
+        )
+    
+    try:
+        print(f"🏢 Прямой приём груза через оператора: {current_user.full_name}")
+        
+        # Генерируем номер груза
+        cargo_number = generate_cargo_number()
+        cargo_id = str(uuid.uuid4())
+        
+        # Подготавливаем данные груза
+        cargo_document = {
+            "id": cargo_id,
+            "cargo_number": cargo_number,
+            "sender_full_name": cargo_data.get("sender_full_name"),
+            "sender_phone": cargo_data.get("sender_phone"),
+            "sender_address": cargo_data.get("sender_address"),
+            "recipient_full_name": cargo_data.get("recipient_full_name"),
+            "recipient_phone": cargo_data.get("recipient_phone"),
+            "recipient_address": cargo_data.get("recipient_address"),
+            
+            # Данные грузов
+            "cargo_items": cargo_data.get("cargo_items", []),
+            "total_weight": float(cargo_data.get("total_weight", 0)),
+            "total_cost": float(cargo_data.get("total_cost", 0)),
+            
+            # Статусы и мета-данные
+            "status": "awaiting_placement",  # Готов к размещению
+            "processing_status": "paid",     # Считается оплаченным
+            "warehouse_id": cargo_data.get("warehouse_id") or current_user.warehouse_id,
+            "route": cargo_data.get("route", "moscow_to_tajikistan"),
+            
+            # Информация о приёме
+            "received_by_operator": current_user.full_name,
+            "received_by_operator_id": current_user.id,
+            "received_at": datetime.utcnow(),
+            "acceptance_method": "direct_operator",  # Метод приёма
+            
+            # Системные поля
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "special_instructions": cargo_data.get("special_instructions", "Принят напрямую через оператора")
+        }
+        
+        # Сохраняем в основную коллекцию cargo
+        db.cargo.insert_one(cargo_document)
+        
+        # Также добавляем в operator_cargo для отображения в списках оператора
+        operator_cargo_document = {
+            **cargo_document,
+            "operator_id": current_user.id,
+            "assigned_at": datetime.utcnow()
+        }
+        db.operator_cargo.insert_one(operator_cargo_document)
+        
+        print(f"✅ Груз {cargo_number} успешно принят через оператора {current_user.full_name}")
+        
+        return {
+            "success": True,
+            "message": f"Груз успешно принят на склад через оператора",
+            "cargo_id": cargo_id,
+            "cargo_number": cargo_number,
+            "status": "awaiting_placement",
+            "warehouse_id": cargo_document["warehouse_id"],
+            "received_by": current_user.full_name,
+            "received_at": cargo_document["received_at"].isoformat()
+        }
+        
+    except Exception as e:
+        print(f"❌ Ошибка при приёме груза через оператора: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при приёме груза: {str(e)}"
+        )
+
 # ===== АДМИНИСТРАТИВНЫЕ ФУНКЦИИ УДАЛЕНИЯ =====
 
 @app.delete("/api/admin/warehouses/bulk")
