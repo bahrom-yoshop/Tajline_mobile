@@ -533,7 +533,8 @@ class Warehouse(BaseModel):
     id: str
     warehouse_id_number: str  # Автогенерируемый ID номер склада (001, 002, 003...)
     name: str
-    location: str
+    location: str  # Город/регион
+    address: Optional[str] = None  # НОВОЕ: Полный адрес
     blocks_count: int
     shelves_per_block: int
     cells_per_shelf: int
