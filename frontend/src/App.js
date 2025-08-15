@@ -4483,6 +4483,12 @@ function App() {
       });
     }
     
+    // КРИТИЧЕСКИ ВАЖНО: Очищаем выбранные элементы ПЕРЕД открытием модального окна
+    // чтобы избежать React ошибок с DOM манипуляциями
+    if (!selectedIds) { // Только если используем глобальное состояние
+      setSelectedCargoForDeletion([]);
+    }
+    
     openDeleteConfirmModal('cargo-placement', selectedCargoItems, true);
   };
 
