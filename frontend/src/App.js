@@ -278,6 +278,9 @@ function App() {
     setDebtorsList([]);
     setWarehouseSchemeData([]);
     setWarehouseCells([]);
+    // ИСПРАВЛЕНИЕ: Очистка аналитики оператора для предотвращения показа старых данных
+    setOperatorDashboardAnalytics(null);
+    setAdminDashboardAnalytics(null);
     setDataLoaded(false);
   };
 
