@@ -5806,16 +5806,17 @@ async def remove_cargo_from_placement(
             raise HTTPException(status_code=400, detail="Failed to remove cargo from placement")
         
         # Создаем уведомление
+        cargo_number = cargo.get('cargo_number', cargo.get('id', 'Unknown'))
         create_notification(
             current_user.id,
-            f"Груз {cargo['cargo_number']} удален из списка размещения",
+            f"Груз {cargo_number} удален из списка размещения",
             cargo_id
         )
         
         return {
             "success": True,
-            "message": f"Груз {cargo['cargo_number']} успешно удален из списка размещения",
-            "cargo_number": cargo['cargo_number']
+            "message": f"Груз {cargo_number} успешно удален из списка размещения",
+            "cargo_number": cargo_number
         }
         
     except Exception as e:
