@@ -339,7 +339,7 @@ class CargoListMassDeleteDiagnoser:
                     return True
             else:
                 self.log_test(
-                    'Анализ операторского списка грузов - GET /api/operator/cargo',
+                    'Анализ операторского списка грузов - GET /api/operator/cargo/list',
                     False,
                     f"HTTP {response.status_code}",
                     response.text
