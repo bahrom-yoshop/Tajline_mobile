@@ -30,7 +30,7 @@ from datetime import datetime
 
 # Конфигурация
 BACKEND_URL = "https://cargo-route-map.preview.emergentagent.com/api"
-WAREHOUSE_OPERATOR_PHONE = "+79777888999"
+WAREHOUSE_OPERATOR_PHONE = "+79686827303"
 WAREHOUSE_OPERATOR_PASSWORD = "warehouse123"
 
 class RouteMapBackendTester:
