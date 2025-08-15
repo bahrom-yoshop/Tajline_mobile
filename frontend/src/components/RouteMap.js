@@ -35,13 +35,14 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
         const ymaps = window.ymaps;
         const newMap = new ymaps.Map(mapRef.current, {
           center: [38.5736, 68.7870], // Центр Душанбе
-          zoom: 12,
+          zoom: 10,
           controls: ['zoomControl', 'fullscreenControl']
         });
 
         setMap(newMap);
+        console.log('✅ Карта инициализирована');
       } catch (error) {
-        console.error('Ошибка инициализации карты:', error);
+        console.error('❌ Ошибка инициализации карты:', error);
         setError('Ошибка загрузки карты');
       }
     };
@@ -56,6 +57,8 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
     const buildRoute = async () => {
       setLoading(true);
       setError('');
+      setDistance('');
+      setDuration('');
 
       try {
         const ymaps = window.ymaps;
@@ -67,7 +70,7 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
 
         console.log(`🗺️ Строим маршрут от "${fromAddress}" до "${toAddress}"`);
 
-        // Создаем мультимаршрут
+        // Создаем мультимаршрут с улучшенными настройками
         const multiRoute = new ymaps.multiRouter.MultiRoute({
           referencePoints: [fromAddress, toAddress],
           params: {
@@ -75,12 +78,23 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
             avoidTrafficJams: false
           }
         }, {
+          // Настройки внешнего вида маршрута
           boundsAutoApply: true,
-          routeActiveStrokeWidth: 6,
+          routeActiveStrokeWidth: 4,
           routeActiveStrokeColor: '#3B82F6', // Синий цвет маршрута
+          routeInactiveStrokeWidth: 3,
+          routeInactiveStrokeColor: '#94A3B8', // Серый цвет неактивного маршрута
           wayPointDraggable: false,
+          
+          // Настройки маркеров точек
+          wayPointIconLayout: 'default#imageWithContent',
+          wayPointIconImageHref: '', // Используем стандартные маркеры
+          wayPointIconImageSize: [30, 42],
+          wayPointIconImageOffset: [-15, -42],
+          
+          // Настройки подписей маркеров
           wayPointIconContentLayout: ymaps.templateLayoutFactory.createClass(
-            '<div style="color: #fff; font-weight: bold;">{{ properties.iconContent }}</div>'
+            '<div style="color: #fff; font-weight: bold; text-align: center; margin-top: 5px;">{{ properties.iconContent }}</div>'
           )
         });
 
@@ -90,22 +104,38 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
 
         // Обработчик готовности маршрута
         multiRoute.model.events.add('requestsuccess', () => {
+          console.log('✅ Маршрут успешно построен');
           const activeRoute = multiRoute.getActiveRoute();
           if (activeRoute) {
-            const distance = activeRoute.properties.get('distance');
-            const duration = activeRoute.properties.get('duration');
+            // Получаем свойства маршрута
+            const distanceValue = activeRoute.properties.get('distance');
+            const durationObj = activeRoute.properties.get('duration');
 
-            // Форматируем расстояние
-            const distanceText = distance > 1000 
-              ? `${(distance / 1000).toFixed(1)} км`
-              : `${Math.round(distance)} м`;
+            console.log('📏 Данные маршрута:', { 
+              distance: distanceValue, 
+              duration: durationObj 
+            });
 
-            // Форматируем время
-            const hours = Math.floor(duration.value / 3600);
-            const minutes = Math.floor((duration.value % 3600) / 60);
-            const durationText = hours > 0 
-              ? `${hours} ч ${minutes} мин`
-              : `${minutes} мин`;
+            // ИСПРАВЛЕНИЕ: Правильное форматирование расстояния
+            let distanceText = 'Неизвестно';
+            if (typeof distanceValue === 'number' && !isNaN(distanceValue)) {
+              distanceText = distanceValue >= 1000 
+                ? `${(distanceValue / 1000).toFixed(1)} км`
+                : `${Math.round(distanceValue)} м`;
+            }
+
+            // ИСПРАВЛЕНИЕ: Правильное форматирование времени
+            let durationText = 'Неизвестно';
+            if (durationObj && typeof durationObj.value === 'number') {
+              const totalMinutes = Math.round(durationObj.value / 60);
+              const hours = Math.floor(totalMinutes / 60);
+              const minutes = totalMinutes % 60;
+              durationText = hours > 0 
+                ? `${hours} ч ${minutes} мин`
+                : `${minutes} мин`;
+            } else if (durationObj && typeof durationObj.text === 'string') {
+              durationText = durationObj.text;
+            }
 
             setDistance(distanceText);
             setDuration(durationText);
@@ -115,23 +145,44 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
               onRouteCalculated({
                 distance: distanceText,
                 duration: durationText,
-                distanceValue: distance,
-                durationValue: duration.value
+                distanceValue: distanceValue || 0,
+                durationValue: durationObj?.value || 0
               });
             }
 
-            console.log(`✅ Маршрут построен: ${distanceText}, ${durationText}`);
+            console.log(`✅ Маршрут: ${distanceText}, время: ${durationText}`);
+
+            // Добавляем кастомные маркеры для лучшей видимости
+            const startPlacemark = new ymaps.Placemark(activeRoute.geometry.get(0), {
+              balloonContent: `<strong>Точка А:</strong><br/>${fromAddress}`,
+              iconContent: 'А'
+            }, {
+              preset: 'islands#redStretchyIcon',
+              iconColor: '#ff0000'
+            });
+
+            const endPoint = activeRoute.geometry.get(activeRoute.geometry.getLength() - 1);
+            const endPlacemark = new ymaps.Placemark(endPoint, {
+              balloonContent: `<strong>Точка Б:</strong><br/>${toAddress}`,
+              iconContent: 'Б'
+            }, {
+              preset: 'islands#greenStretchyIcon', 
+              iconColor: '#00ff00'
+            });
+
+            map.geoObjects.add(startPlacemark);
+            map.geoObjects.add(endPlacemark);
           }
         });
 
         // Обработчик ошибок
         multiRoute.model.events.add('requestfail', (e) => {
-          console.error('Ошибка построения маршрута:', e);
-          setError('Не удалось построить маршрут');
+          console.error('❌ Ошибка построения маршрута:', e);
+          setError('Не удалось построить маршрут. Проверьте правильность адресов.');
         });
 
       } catch (error) {
-        console.error('Ошибка построения маршрута:', error);
+        console.error('❌ Ошибка построения маршрута:', error);
         setError('Ошибка построения маршрута');
       } finally {
         setLoading(false);
@@ -154,18 +205,22 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
         
         <div className="space-y-2 text-sm">
           <div className="flex items-start">
-            <MapPin className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+            <div className="bg-red-100 text-red-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-2 mt-0.5">
+              А
+            </div>
             <div>
-              <span className="font-medium text-green-800">Склад:</span>
-              <p className="text-gray-700">{warehouseName} ({fromAddress})</p>
+              <span className="font-medium text-red-800">Адрес забора:</span>
+              <p className="text-gray-700">{fromAddress}</p>
             </div>
           </div>
           
           <div className="flex items-start">
-            <MapPin className="h-4 w-4 text-red-600 mr-2 mt-0.5 flex-shrink-0" />
+            <div className="bg-green-100 text-green-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-2 mt-0.5">
+              Б
+            </div>
             <div>
-              <span className="font-medium text-red-800">Адрес получения:</span>
-              <p className="text-gray-700">{toAddress || 'Введите адрес'}</p>
+              <span className="font-medium text-green-800">{warehouseName}:</span>
+              <p className="text-gray-700">{toAddress}</p>
             </div>
           </div>
         </div>
@@ -183,7 +238,7 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
           </div>
         )}
 
-        {distance && duration && !loading && (
+        {distance && duration && !loading && !error && (
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-blue-200">
             <div className="flex items-center text-blue-700">
               <Calculator className="h-4 w-4 mr-1" />
