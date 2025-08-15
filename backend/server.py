@@ -2353,8 +2353,30 @@ async def place_cargo_in_cell(
             if not warehouse:
                 raise HTTPException(status_code=404, detail="Warehouse not found")
                 
+        # НОВОЕ: Проверяем компактный формат без дефисов: 03010106 (8 цифр)
+        elif len(cell_code) == 8 and cell_code.isdigit():
+            is_id_format = False
+            
+            # Парсим компактный формат: WWBBSSCC
+            warehouse_number = int(cell_code[:2])  # Первые 2 цифры - номер склада
+            block_number = int(cell_code[2:4])     # Следующие 2 цифры - номер блока  
+            shelf_number = int(cell_code[4:6])     # Следующие 2 цифры - номер полки
+            cell_number = int(cell_code[6:8])      # Последние 2 цифры - номер ячейки
+            
+            # Найдем склад по warehouse_number
+            warehouse = db.warehouses.find_one({"warehouse_number": warehouse_number})
+            if not warehouse:
+                raise HTTPException(status_code=404, detail=f"Warehouse with number {warehouse_number} not found")
+            
+            warehouse_id = warehouse["id"]
+            block = block_number
+            shelf = shelf_number
+            cell = cell_number
+            
+            print(f"🔍 Компактный формат QR: {cell_code} -> Склад#{warehouse_number} Б{block} П{shelf} Я{cell}")
+                
         else:
-            raise HTTPException(status_code=400, detail="Invalid cell code format. Expected: '001-01-01-001' or 'WAREHOUSE_ID-Б1-П1-Я1'")
+            raise HTTPException(status_code=400, detail="Invalid cell code format. Expected: '03010106', '001-01-01-001' or 'WAREHOUSE_ID-Б1-П1-Я1'")
         
         # Ищем груз
         cargo = db.cargo.find_one({"cargo_number": cargo_number})
