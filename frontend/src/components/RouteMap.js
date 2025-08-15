@@ -11,17 +11,41 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
   const [error, setError] = useState('');
   const [mapReady, setMapReady] = useState(false);
   const [initStatus, setInitStatus] = useState('Начинаем инициализацию...');
+  const mountedRef = useRef(true); // Отслеживаем mounted состояние
+
+  // Cleanup при размонтировании
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      console.log('🧹 Cleanup RouteMap component');
+      
+      // Очищаем карту перед размонтированием
+      if (map) {
+        try {
+          map.destroy();
+        } catch (e) {
+          console.warn('Ошибка при destroy карты:', e);
+        }
+      }
+      
+      // Очищаем mapRef
+      if (mapRef.current) {
+        mapRef.current.innerHTML = '';
+      }
+    };
+  }, [map]);
 
   // Инициализация карты
   useEffect(() => {
-    if (!mapRef.current || map || mapReady) return;
+    if (!mapRef.current || map || mapReady || !mountedRef.current) return;
 
     const initMap = async () => {
       try {
+        if (!mountedRef.current) return;
+        
         console.log('🗺️ Начинаем инициализацию карты...');
         setInitStatus('Проверяем API ключ...');
         
-        // Проверяем наличие API ключа
         const apiKey = process.env.REACT_APP_YANDEX_MAPS_API_KEY;
         console.log('🔑 API ключ:', apiKey ? 'найден' : 'НЕ НАЙДЕН');
         
@@ -29,9 +53,10 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
           throw new Error('API ключ Yandex Maps не найден');
         }
 
+        if (!mountedRef.current) return;
         setInitStatus('Загружаем Yandex Maps API...');
 
-        // Простая загрузка скрипта без сложной логики
+        // Простая загрузка скрипта
         if (!window.ymaps) {
           console.log('📡 Загружаем скрипт Yandex Maps...');
           
@@ -40,12 +65,17 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
           script.async = true;
           
           const scriptPromise = new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error('Таймаут загрузки скрипта (20 сек)'));
+            }, 20000);
+            
             script.onload = () => {
+              clearTimeout(timeout);
               console.log('✅ Скрипт Yandex Maps загружен');
               resolve();
             };
             script.onerror = () => {
-              console.error('❌ Ошибка загрузки скрипта');
+              clearTimeout(timeout);
               reject(new Error('Не удалось загрузить Yandex Maps API'));
             };
           });
@@ -54,32 +84,38 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
           await scriptPromise;
         }
 
+        if (!mountedRef.current) return;
         setInitStatus('Ожидаем готовности API...');
 
-        // Ждем готовности API с таймаутом
+        // Ждем готовности API
         await new Promise((resolve, reject) => {
           const timeout = setTimeout(() => {
-            console.error('❌ Таймаут загрузки Yandex Maps API');
-            reject(new Error('Таймаут загрузки Yandex Maps API (15 сек)'));
+            reject(new Error('Таймаут готовности API (15 сек)'));
           }, 15000);
 
           if (window.ymaps) {
             window.ymaps.ready(() => {
-              console.log('✅ Yandex Maps API готов');
               clearTimeout(timeout);
+              console.log('✅ Yandex Maps API готов');
               resolve();
             });
           } else {
             clearTimeout(timeout);
-            reject(new Error('Yandex Maps API недоступен после загрузки скрипта'));
+            reject(new Error('window.ymaps недоступен'));
           }
         });
 
+        if (!mountedRef.current) return;
         setInitStatus('Создаем карту...');
+
+        // Проверяем что контейнер еще существует
+        if (!mapRef.current) {
+          throw new Error('Контейнер карты недоступен');
+        }
 
         // Создаем карту
         const ymaps = window.ymaps;
-        console.log('🗺️ Создаем карту в контейнере:', mapRef.current);
+        console.log('🗺️ Создаем карту в контейнере');
         
         const newMap = new ymaps.Map(mapRef.current, {
           center: [55.7558, 37.6173], // Москва
@@ -87,12 +123,20 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
           controls: ['zoomControl', 'fullscreenControl']
         });
 
+        if (!mountedRef.current) {
+          // Если компонент размонтирован, уничтожаем карту
+          newMap.destroy();
+          return;
+        }
+
         console.log('✅ Карта создана успешно');
         setMap(newMap);
         setMapReady(true);
         setInitStatus('Карта готова!');
 
       } catch (error) {
+        if (!mountedRef.current) return;
+        
         console.error('❌ Ошибка инициализации карты:', error);
         setError(`Ошибка загрузки карты: ${error.message}`);
         setInitStatus(`Ошибка: ${error.message}`);
@@ -104,17 +148,13 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
 
   // Построение маршрута
   useEffect(() => {
-    if (!map || !fromAddress || !toAddress || !mapReady) {
-      console.log('⏳ Ожидание готовности для построения маршрута:', { 
-        map: !!map, 
-        fromAddress: !!fromAddress, 
-        toAddress: !!toAddress, 
-        mapReady 
-      });
+    if (!map || !fromAddress || !toAddress || !mapReady || !mountedRef.current) {
       return;
     }
 
     const buildRoute = async () => {
+      if (!mountedRef.current) return;
+      
       setLoading(true);
       setError('');
       setDistance('');
@@ -122,9 +162,7 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
 
       try {
         const ymaps = window.ymaps;
-        if (!ymaps) {
-          throw new Error('Yandex Maps API недоступен');
-        }
+        if (!ymaps || !mountedRef.current) return;
 
         // Очищаем карту
         map.geoObjects.removeAll();
@@ -145,22 +183,24 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
           wayPointDraggable: false
         });
 
+        if (!mountedRef.current) return;
+
         map.geoObjects.add(multiRoute);
         setRoute(multiRoute);
 
         // Обработчик успеха
         multiRoute.model.events.add('requestsuccess', () => {
+          if (!mountedRef.current) return;
+          
           try {
             console.log('✅ Маршрут построен');
             const activeRoute = multiRoute.getActiveRoute();
             
-            if (activeRoute) {
+            if (activeRoute && mountedRef.current) {
               const distanceValue = activeRoute.properties.get('distance');
               const durationObj = activeRoute.properties.get('duration');
 
-              console.log('📊 Данные маршрута:', { distance: distanceValue, duration: durationObj });
-
-              // Форматирование расстояния
+              // Форматирование данных
               let distanceText = 'Неизвестно';
               if (typeof distanceValue === 'number' && !isNaN(distanceValue) && distanceValue > 0) {
                 distanceText = distanceValue >= 1000 
@@ -168,7 +208,6 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
                   : `${Math.round(distanceValue)} м`;
               }
 
-              // Форматирование времени
               let durationText = 'Неизвестно';
               let durationValue = 0;
               
@@ -182,67 +221,80 @@ const RouteMap = ({ fromAddress, toAddress, warehouseName, onRouteCalculated }) 
                   : `${minutes} мин`;
               }
 
-              setDistance(distanceText);
-              setDuration(durationText);
+              if (mountedRef.current) {
+                setDistance(distanceText);
+                setDuration(durationText);
 
-              if (onRouteCalculated) {
-                onRouteCalculated({
-                  distance: distanceText,
-                  duration: durationText,
-                  distanceValue: distanceValue || 0,
-                  durationValue: durationValue
-                });
+                if (onRouteCalculated) {
+                  onRouteCalculated({
+                    distance: distanceText,
+                    duration: durationText,
+                    distanceValue: distanceValue || 0,
+                    durationValue: durationValue
+                  });
+                }
+
+                console.log(`✅ Результат: ${distanceText}, время: ${durationText}`);
               }
 
-              console.log(`✅ Результат: ${distanceText}, время: ${durationText}`);
-
               // Добавляем маркеры
-              try {
-                const routeCoords = activeRoute.geometry.getCoordinates();
-                if (routeCoords && routeCoords.length > 0) {
-                  const startCoord = routeCoords[0];
-                  const endCoord = routeCoords[routeCoords.length - 1];
+              if (mountedRef.current) {
+                try {
+                  const routeCoords = activeRoute.geometry.getCoordinates();
+                  if (routeCoords && routeCoords.length > 0) {
+                    const startCoord = routeCoords[0];
+                    const endCoord = routeCoords[routeCoords.length - 1];
 
-                  const startPlacemark = new ymaps.Placemark(startCoord, {
-                    balloonContent: `<strong>Адрес забора:</strong><br/>${fromAddress}`,
-                    iconContent: 'А'
-                  }, {
-                    preset: 'islands#redStretchyIcon'
-                  });
+                    const startPlacemark = new ymaps.Placemark(startCoord, {
+                      balloonContent: `<strong>Адрес забора:</strong><br/>${fromAddress}`,
+                      iconContent: 'А'
+                    }, {
+                      preset: 'islands#redStretchyIcon'
+                    });
 
-                  const endPlacemark = new ymaps.Placemark(endCoord, {
-                    balloonContent: `<strong>Склад:</strong><br/>${toAddress}`,
-                    iconContent: 'Б'
-                  }, {
-                    preset: 'islands#greenStretchyIcon'
-                  });
+                    const endPlacemark = new ymaps.Placemark(endCoord, {
+                      balloonContent: `<strong>Склад:</strong><br/>${toAddress}`,
+                      iconContent: 'Б'
+                    }, {
+                      preset: 'islands#greenStretchyIcon'
+                    });
 
-                  map.geoObjects.add(startPlacemark);
-                  map.geoObjects.add(endPlacemark);
-                  
-                  console.log('✅ Маркеры добавлены');
+                    if (mountedRef.current && map) {
+                      map.geoObjects.add(startPlacemark);
+                      map.geoObjects.add(endPlacemark);
+                      console.log('✅ Маркеры добавлены');
+                    }
+                  }
+                } catch (markerError) {
+                  console.error('⚠️ Ошибка маркеров:', markerError);
                 }
-              } catch (markerError) {
-                console.error('⚠️ Ошибка маркеров:', markerError);
               }
             }
           } catch (routeError) {
-            console.error('❌ Ошибка обработки маршрута:', routeError);
-            setError('Ошибка обработки данных маршрута');
+            if (mountedRef.current) {
+              console.error('❌ Ошибка обработки маршрута:', routeError);
+              setError('Ошибка обработки данных маршрута');
+            }
           }
         });
 
         // Обработчик ошибок
         multiRoute.model.events.add('requestfail', (e) => {
-          console.error('❌ Ошибка построения маршрута:', e);
-          setError('Не удалось построить маршрут. Проверьте адреса.');
+          if (mountedRef.current) {
+            console.error('❌ Ошибка построения маршрута:', e);
+            setError('Не удалось построить маршрут. Проверьте адреса.');
+          }
         });
 
       } catch (error) {
-        console.error('❌ Ошибка при построении маршрута:', error);
-        setError(`Ошибка: ${error.message}`);
+        if (mountedRef.current) {
+          console.error('❌ Ошибка при построении маршрута:', error);
+          setError(`Ошибка: ${error.message}`);
+        }
       } finally {
-        setLoading(false);
+        if (mountedRef.current) {
+          setLoading(false);
+        }
       }
     };
 
