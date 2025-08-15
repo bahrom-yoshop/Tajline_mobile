@@ -243,6 +243,44 @@ function App() {
     }
   };
 
+  // ФУНКЦИЯ ОЧИСТКИ ВСЕХ ДАННЫХ ПРИЛОЖЕНИЯ
+  const clearAllAppData = () => {
+    console.log('🧹 Clearing all app data...');
+    setCargo([]);
+    setUsers([]);
+    setWarehouses([]);
+    setOperatorCargo([]);
+    setAvailableCargo([]);
+    setCargoHistory([]);
+    setUnpaidCargo([]);
+    setPaymentHistory([]);
+    setNotifications([]);
+    setWarehouseNotifications([]);
+    setAllPickupRequests([]);
+    setPickupRequestsHistory([]);
+    setUsersByRole({ user: [], admin: [], warehouse_operator: [] });
+    setTransports([]);
+    setSelectedTransport(null);
+    setTransportCargoList([]);
+    setAvailableCargoForTransport([]);
+    setSelectedCargoForPlacement([]);
+    setOperatorWarehouseBindings([]);
+    setCouriers([]);
+    setAcceptedRequests([]);
+    setPickedRequests([]);
+    setCancelledRequests([]);
+    setAvailableCouriers([]);
+    setCourierRequests([]);
+    setClientCargo([]);
+    setClientDashboard(null);
+    setAllOperators([]);
+    setCargoBreakdown([]);
+    setDebtorsList([]);
+    setWarehouseSchemeData([]);
+    setWarehouseCells([]);
+    setDataLoaded(false);
+  };
+
   // ФУНКЦИИ УПРАВЛЕНИЯ ЯЧЕЙКАМИ СКЛАДА
   const openCellManagement = (warehouse) => {
     setSelectedWarehouseForCells(warehouse);
