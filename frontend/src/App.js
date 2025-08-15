@@ -4318,10 +4318,14 @@ function App() {
         }
         warehouseId = warehouse.id;
         console.log(`✅ Найден склад для номера ${scannedCellData.warehouse_number}: ${warehouse.name} (ID: ${warehouseId})`);
+      } else if (scannedCellData.format === 'simple') {
+        // Для простого формата уже определен warehouse_id в parseCellQRCode
+        warehouseId = scannedCellData.warehouse_id;
+        console.log(`✅ Используем warehouse_id для простого формата: ${warehouseId}`);
       } else {
         // Для других форматов используем существующий warehouse_id
         warehouseId = scannedCellData.warehouse_id;
-        console.log(`✅ Используем warehouse_id из данных ячейки: ${warehouseId}`);
+        console.log(`✅ Используем warehouse_id из данных ячейки (${scannedCellData.format}): ${warehouseId}`);
       }
       
       if (!warehouseId) {
