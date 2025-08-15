@@ -1,5 +1,501 @@
 #!/usr/bin/env python3
 """
+КРИТИЧЕСКАЯ ДИАГНОСТИКА: Ошибка "Pickup request ID not found in notification" при отправке груза на размещение в TAJLINE.TJ
+
+ПРОБЛЕМА: При нажатии кнопки "Отправить на размещение" из уведомления о заборе возникает ошибка:
+- Файл: /app/backend/server.py, строка 14543
+- Функция: send_pickup_request_to_placement  
+- Ошибка: "Идентификатор запроса на самовывоз не найден в уведомлении"
+
+ПОДОЗРЕНИЕ: Существующие уведомления в базе данных не содержат поле pickup_request_id, которое требуется в новом коде.
+
+НУЖНО ПРОТЕСТИРОВАТЬ:
+1. Авторизация оператора склада (+79777888999/warehouse123)
+2. Получение списка уведомлений через GET /api/operator/warehouse-notifications
+3. Проверка структуры уведомлений - есть ли поле pickup_request_id или только request_id
+4. Анализ различий между существующими и новыми уведомлениями
+5. Тестирование endpoint POST /api/operator/warehouse-notifications/{notification_id}/send-to-placement
+
+ОЖИДАЕМЫЙ РЕЗУЛЬТАТ: Найти корневую причину ошибки - отсутствие pickup_request_id в существующих уведомлениях и предложить решение для миграции данных или изменения логики.
+"""
+
+import requests
+import json
+import os
+from datetime import datetime
+
+# Получаем URL backend из переменной окружения
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cargo-route-map.preview.emergentagent.com')
+API_BASE = f"{BACKEND_URL}/api"
+
+class PickupRequestDiagnosisTest:
+    def __init__(self):
+        self.session = requests.Session()
+        self.auth_token = None
+        self.current_user = None
+        self.test_results = []
+        
+    def log_result(self, test_name: str, success: bool, details: str):
+        """Логирование результатов тестов"""
+        status = "✅ PASS" if success else "❌ FAIL"
+        result = f"{status} {test_name}: {details}"
+        self.test_results.append(result)
+        print(result)
+        
+    def authenticate_warehouse_operator(self):
+        """Тест 1: Авторизация оператора склада (+79777888999/warehouse123)"""
+        try:
+            login_data = {
+                "phone": "+79777888999",
+                "password": "warehouse123"
+            }
+            
+            response = self.session.post(f"{API_BASE}/auth/login", json=login_data)
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.auth_token = data.get("access_token")
+                self.current_user = data.get("user", {})
+                
+                # Устанавливаем заголовок авторизации для всех последующих запросов
+                self.session.headers.update({
+                    "Authorization": f"Bearer {self.auth_token}",
+                    "Content-Type": "application/json"
+                })
+                
+                user_info = f"'{self.current_user.get('full_name')}' (номер: {self.current_user.get('user_number')}, роль: {self.current_user.get('role')})"
+                self.log_result(
+                    "АВТОРИЗАЦИЯ ОПЕРАТОРА СКЛАДА (+79777888999/warehouse123)",
+                    True,
+                    f"Успешная авторизация {user_info}, JWT токен получен, сессии стабильны"
+                )
+                return True
+            else:
+                self.log_result(
+                    "АВТОРИЗАЦИЯ ОПЕРАТОРА СКЛАДА (+79777888999/warehouse123)",
+                    False,
+                    f"Ошибка авторизации: HTTP {response.status_code}, {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_result(
+                "АВТОРИЗАЦИЯ ОПЕРАТОРА СКЛАДА (+79777888999/warehouse123)",
+                False,
+                f"Исключение при авторизации: {str(e)}"
+            )
+            return False
+    
+    def get_warehouse_notifications(self):
+        """Тест 2: Получение списка уведомлений через GET /api/operator/warehouse-notifications"""
+        try:
+            response = self.session.get(f"{API_BASE}/operator/warehouse-notifications")
+            
+            if response.status_code == 200:
+                data = response.json()
+                notifications = data.get("notifications", [])
+                total_count = data.get("total_count", 0)
+                pending_count = data.get("pending_count", 0)
+                in_processing_count = data.get("in_processing_count", 0)
+                
+                self.notifications = notifications
+                
+                self.log_result(
+                    "ПОЛУЧЕНИЕ СПИСКА УВЕДОМЛЕНИЙ",
+                    True,
+                    f"Endpoint работает корректно, получено {total_count} уведомлений (pending: {pending_count}, in_processing: {in_processing_count})"
+                )
+                return True
+            else:
+                self.log_result(
+                    "ПОЛУЧЕНИЕ СПИСКА УВЕДОМЛЕНИЙ",
+                    False,
+                    f"Ошибка получения уведомлений: HTTP {response.status_code}, {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_result(
+                "ПОЛУЧЕНИЕ СПИСКА УВЕДОМЛЕНИЙ",
+                False,
+                f"Исключение при получении уведомлений: {str(e)}"
+            )
+            return False
+    
+    def analyze_notification_structure(self):
+        """Тест 3: Проверка структуры уведомлений - есть ли поле pickup_request_id или только request_id"""
+        try:
+            if not hasattr(self, 'notifications'):
+                self.log_result(
+                    "АНАЛИЗ СТРУКТУРЫ УВЕДОМЛЕНИЙ",
+                    False,
+                    "Уведомления не загружены, невозможно проанализировать структуру"
+                )
+                return False
+            
+            if not self.notifications:
+                self.log_result(
+                    "АНАЛИЗ СТРУКТУРЫ УВЕДОМЛЕНИЙ",
+                    True,
+                    "Список уведомлений пуст - нет данных для анализа структуры"
+                )
+                return True
+            
+            # Анализируем структуру первого уведомления
+            sample_notification = self.notifications[0]
+            
+            # Проверяем наличие ключевых полей
+            has_pickup_request_id = "pickup_request_id" in sample_notification
+            has_request_id = "request_id" in sample_notification
+            has_request_number = "request_number" in sample_notification
+            
+            # Получаем все ключи для полного анализа
+            all_keys = list(sample_notification.keys())
+            
+            # Анализируем все уведомления на предмет структуры
+            pickup_request_id_count = 0
+            request_id_count = 0
+            request_number_count = 0
+            
+            for notification in self.notifications:
+                if "pickup_request_id" in notification:
+                    pickup_request_id_count += 1
+                if "request_id" in notification:
+                    request_id_count += 1
+                if "request_number" in notification:
+                    request_number_count += 1
+            
+            total_notifications = len(self.notifications)
+            
+            # Сохраняем данные для следующих тестов
+            self.structure_analysis = {
+                "total_notifications": total_notifications,
+                "has_pickup_request_id": pickup_request_id_count,
+                "has_request_id": request_id_count,
+                "has_request_number": request_number_count,
+                "sample_keys": all_keys,
+                "sample_notification": sample_notification
+            }
+            
+            analysis_details = (
+                f"Проанализировано {total_notifications} уведомлений. "
+                f"pickup_request_id: {pickup_request_id_count}/{total_notifications}, "
+                f"request_id: {request_id_count}/{total_notifications}, "
+                f"request_number: {request_number_count}/{total_notifications}. "
+                f"Ключи в образце: {', '.join(all_keys[:10])}{'...' if len(all_keys) > 10 else ''}"
+            )
+            
+            # Определяем успешность теста
+            success = True  # Анализ всегда успешен, важны детали
+            
+            self.log_result(
+                "АНАЛИЗ СТРУКТУРЫ УВЕДОМЛЕНИЙ",
+                success,
+                analysis_details
+            )
+            return True
+            
+        except Exception as e:
+            self.log_result(
+                "АНАЛИЗ СТРУКТУРЫ УВЕДОМЛЕНИЙ",
+                False,
+                f"Исключение при анализе структуры: {str(e)}"
+            )
+            return False
+    
+    def identify_data_migration_issue(self):
+        """Тест 4: Анализ различий между существующими и новыми уведомлениями"""
+        try:
+            if not hasattr(self, 'structure_analysis'):
+                self.log_result(
+                    "АНАЛИЗ РАЗЛИЧИЙ УВЕДОМЛЕНИЙ",
+                    False,
+                    "Структурный анализ не выполнен, невозможно определить различия"
+                )
+                return False
+            
+            analysis = self.structure_analysis
+            total = analysis["total_notifications"]
+            
+            if total == 0:
+                self.log_result(
+                    "АНАЛИЗ РАЗЛИЧИЙ УВЕДОМЛЕНИЙ",
+                    True,
+                    "Нет уведомлений для анализа различий"
+                )
+                return True
+            
+            # Определяем проблему с данными
+            pickup_request_id_missing = analysis["has_pickup_request_id"] == 0
+            has_legacy_request_id = analysis["has_request_id"] > 0
+            has_request_numbers = analysis["has_request_number"] > 0
+            
+            # Анализируем образец уведомления
+            sample = analysis["sample_notification"]
+            
+            # Формируем диагноз
+            if pickup_request_id_missing and has_legacy_request_id:
+                diagnosis = (
+                    f"🚨 КРИТИЧЕСКАЯ ПРОБЛЕМА НАЙДЕНА: Все {total} уведомлений используют СТАРУЮ структуру данных! "
+                    f"Отсутствует поле 'pickup_request_id' (требуется новым кодом), но присутствует 'request_id' (старая схема). "
+                    f"Это объясняет ошибку 'Pickup request ID not found in notification' на строке 14543."
+                )
+                success = False  # Это критическая проблема
+            elif pickup_request_id_missing and not has_legacy_request_id:
+                diagnosis = (
+                    f"⚠️ ПРОБЛЕМА С ДАННЫМИ: Все {total} уведомлений не содержат ни 'pickup_request_id', ни 'request_id'. "
+                    f"Возможно, уведомления созданы некорректно или используют другую схему данных."
+                )
+                success = False
+            elif analysis["has_pickup_request_id"] == total:
+                diagnosis = (
+                    f"✅ СТРУКТУРА ДАННЫХ КОРРЕКТНА: Все {total} уведомлений содержат поле 'pickup_request_id'. "
+                    f"Проблема может быть в другом месте кода."
+                )
+                success = True
+            else:
+                diagnosis = (
+                    f"⚠️ СМЕШАННАЯ СТРУКТУРА ДАННЫХ: {analysis['has_pickup_request_id']}/{total} уведомлений имеют 'pickup_request_id', "
+                    f"{analysis['has_request_id']}/{total} имеют 'request_id'. Требуется миграция данных."
+                )
+                success = False
+            
+            # Добавляем детали образца
+            sample_details = f"Образец уведомления содержит: {', '.join(sample.keys())}"
+            
+            self.log_result(
+                "АНАЛИЗ РАЗЛИЧИЙ УВЕДОМЛЕНИЙ",
+                success,
+                f"{diagnosis} {sample_details}"
+            )
+            
+            # Сохраняем диагноз для следующих тестов
+            self.migration_diagnosis = {
+                "needs_migration": not success,
+                "pickup_request_id_missing": pickup_request_id_missing,
+                "has_legacy_data": has_legacy_request_id,
+                "diagnosis": diagnosis
+            }
+            
+            return True
+            
+        except Exception as e:
+            self.log_result(
+                "АНАЛИЗ РАЗЛИЧИЙ УВЕДОМЛЕНИЙ",
+                False,
+                f"Исключение при анализе различий: {str(e)}"
+            )
+            return False
+    
+    def test_send_to_placement_endpoint(self):
+        """Тест 5: Тестирование endpoint POST /api/operator/warehouse-notifications/{notification_id}/send-to-placement"""
+        try:
+            if not hasattr(self, 'notifications') or not self.notifications:
+                self.log_result(
+                    "ТЕСТИРОВАНИЕ ENDPOINT SEND-TO-PLACEMENT",
+                    True,
+                    "Нет уведомлений для тестирования endpoint - это ожидаемо если проблема в структуре данных"
+                )
+                return True
+            
+            # Ищем уведомление в статусе "in_processing" для тестирования
+            test_notification = None
+            for notification in self.notifications:
+                if notification.get("status") == "in_processing":
+                    test_notification = notification
+                    break
+            
+            if not test_notification:
+                # Пытаемся найти уведомление в статусе "pending_acceptance" и принять его
+                pending_notification = None
+                for notification in self.notifications:
+                    if notification.get("status") == "pending_acceptance":
+                        pending_notification = notification
+                        break
+                
+                if pending_notification:
+                    # Пытаемся принять уведомление
+                    notification_id = pending_notification.get("id")
+                    accept_response = self.session.post(f"{API_BASE}/operator/warehouse-notifications/{notification_id}/accept")
+                    
+                    if accept_response.status_code == 200:
+                        test_notification = pending_notification
+                        test_notification["status"] = "in_processing"  # Обновляем локально
+                        self.log_result(
+                            "ПОДГОТОВКА К ТЕСТИРОВАНИЮ",
+                            True,
+                            f"Уведомление {notification_id} успешно принято для тестирования"
+                        )
+                    else:
+                        self.log_result(
+                            "ПОДГОТОВКА К ТЕСТИРОВАНИЮ",
+                            False,
+                            f"Не удалось принять уведомление для тестирования: HTTP {accept_response.status_code}"
+                        )
+            
+            if not test_notification:
+                self.log_result(
+                    "ТЕСТИРОВАНИЕ ENDPOINT SEND-TO-PLACEMENT",
+                    True,
+                    "Нет подходящих уведомлений в статусе 'in_processing' для тестирования endpoint"
+                )
+                return True
+            
+            # Тестируем endpoint отправки на размещение
+            notification_id = test_notification.get("id")
+            response = self.session.post(f"{API_BASE}/operator/warehouse-notifications/{notification_id}/send-to-placement")
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.log_result(
+                    "ТЕСТИРОВАНИЕ ENDPOINT SEND-TO-PLACEMENT",
+                    True,
+                    f"Endpoint работает корректно! Груз создан: {data.get('cargo_number')}, статус: {data.get('status')}"
+                )
+                return True
+            elif response.status_code == 400 and "Pickup request ID not found" in response.text:
+                # Это ожидаемая ошибка, которую мы диагностируем
+                self.log_result(
+                    "ТЕСТИРОВАНИЕ ENDPOINT SEND-TO-PLACEMENT",
+                    False,
+                    f"🎯 ПОДТВЕРЖДЕНА ОШИБКА: 'Pickup request ID not found in notification' - HTTP 400. Это точно та ошибка, которую мы диагностируем!"
+                )
+                return False
+            else:
+                self.log_result(
+                    "ТЕСТИРОВАНИЕ ENDPOINT SEND-TO-PLACEMENT",
+                    False,
+                    f"Неожиданная ошибка endpoint: HTTP {response.status_code}, {response.text[:200]}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_result(
+                "ТЕСТИРОВАНИЕ ENDPOINT SEND-TO-PLACEMENT",
+                False,
+                f"Исключение при тестировании endpoint: {str(e)}"
+            )
+            return False
+    
+    def provide_solution_recommendations(self):
+        """Тест 6: Предложение решений для миграции данных или изменения логики"""
+        try:
+            if not hasattr(self, 'migration_diagnosis'):
+                self.log_result(
+                    "РЕКОМЕНДАЦИИ ПО РЕШЕНИЮ",
+                    False,
+                    "Диагноз миграции не выполнен, невозможно предложить решения"
+                )
+                return False
+            
+            diagnosis = self.migration_diagnosis
+            
+            if not diagnosis["needs_migration"]:
+                self.log_result(
+                    "РЕКОМЕНДАЦИИ ПО РЕШЕНИЮ",
+                    True,
+                    "Структура данных корректна, миграция не требуется. Проблема может быть в другом месте."
+                )
+                return True
+            
+            # Формируем рекомендации на основе диагноза
+            recommendations = []
+            
+            if diagnosis["pickup_request_id_missing"] and diagnosis["has_legacy_data"]:
+                recommendations.extend([
+                    "1. МИГРАЦИЯ ДАННЫХ: Обновить существующие уведомления, добавив поле 'pickup_request_id' на основе 'request_id'",
+                    "2. ОБРАТНАЯ СОВМЕСТИМОСТЬ: Изменить код функции send_pickup_request_to_placement для поддержки старой схемы",
+                    "3. FALLBACK ЛОГИКА: Использовать 'request_id' если 'pickup_request_id' отсутствует",
+                    "4. ВАЛИДАЦИЯ: Добавить проверки на наличие обоих полей при создании новых уведомлений"
+                ])
+            elif diagnosis["pickup_request_id_missing"]:
+                recommendations.extend([
+                    "1. ИСПРАВЛЕНИЕ СОЗДАНИЯ УВЕДОМЛЕНИЙ: Убедиться, что новые уведомления создаются с полем 'pickup_request_id'",
+                    "2. ПРОВЕРКА ИСТОЧНИКА ДАННЫХ: Найти место в коде, где создаются уведомления без 'pickup_request_id'",
+                    "3. ДОБАВЛЕНИЕ ВАЛИДАЦИИ: Добавить обязательную проверку наличия 'pickup_request_id' при создании"
+                ])
+            
+            recommendations_text = " | ".join(recommendations)
+            
+            self.log_result(
+                "РЕКОМЕНДАЦИИ ПО РЕШЕНИЮ",
+                True,
+                f"Предложены решения для исправления проблемы: {recommendations_text}"
+            )
+            
+            return True
+            
+        except Exception as e:
+            self.log_result(
+                "РЕКОМЕНДАЦИИ ПО РЕШЕНИЮ",
+                False,
+                f"Исключение при формировании рекомендаций: {str(e)}"
+            )
+            return False
+    
+    def run_comprehensive_diagnosis(self):
+        """Запуск полной диагностики проблемы с pickup request ID"""
+        print("🔍 НАЧАЛО КРИТИЧЕСКОЙ ДИАГНОСТИКИ: Ошибка 'Pickup request ID not found in notification' в TAJLINE.TJ")
+        print("=" * 100)
+        
+        # Выполняем все тесты по порядку
+        tests = [
+            ("Авторизация оператора склада", self.authenticate_warehouse_operator),
+            ("Получение списка уведомлений", self.get_warehouse_notifications),
+            ("Анализ структуры уведомлений", self.analyze_notification_structure),
+            ("Анализ различий уведомлений", self.identify_data_migration_issue),
+            ("Тестирование endpoint send-to-placement", self.test_send_to_placement_endpoint),
+            ("Рекомендации по решению", self.provide_solution_recommendations)
+        ]
+        
+        passed_tests = 0
+        total_tests = len(tests)
+        
+        for test_name, test_func in tests:
+            print(f"\n🧪 Выполняется: {test_name}")
+            try:
+                if test_func():
+                    passed_tests += 1
+            except Exception as e:
+                self.log_result(test_name, False, f"Критическая ошибка в тесте: {str(e)}")
+        
+        # Итоговый отчет
+        print("\n" + "=" * 100)
+        print("📊 ИТОГОВЫЙ ОТЧЕТ ДИАГНОСТИКИ")
+        print("=" * 100)
+        
+        success_rate = (passed_tests / total_tests) * 100
+        print(f"Успешность диагностики: {success_rate:.1f}% ({passed_tests}/{total_tests} тестов пройдены)")
+        
+        print("\n📋 ДЕТАЛЬНЫЕ РЕЗУЛЬТАТЫ:")
+        for result in self.test_results:
+            print(f"  {result}")
+        
+        # Финальный вывод
+        print(f"\n🎯 КРИТИЧЕСКИЙ ВЫВОД:")
+        if hasattr(self, 'migration_diagnosis') and self.migration_diagnosis.get("needs_migration"):
+            print("НАЙДЕНА КОРНЕВАЯ ПРИЧИНА ОШИБКИ: Существующие уведомления используют старую структуру данных без поля 'pickup_request_id'!")
+            print("РЕШЕНИЕ: Требуется миграция данных или изменение логики для обратной совместимости.")
+        else:
+            print("Диагностика завершена. Проверьте детальные результаты выше для определения следующих шагов.")
+        
+        return success_rate >= 50  # Считаем диагностику успешной если прошло больше половины тестов
+
+def main():
+    """Основная функция для запуска диагностики"""
+    tester = PickupRequestDiagnosisTest()
+    success = tester.run_comprehensive_diagnosis()
+    
+    if success:
+        print(f"\n✅ ДИАГНОСТИКА ЗАВЕРШЕНА УСПЕШНО")
+    else:
+        print(f"\n❌ ДИАГНОСТИКА ВЫЯВИЛА КРИТИЧЕСКИЕ ПРОБЛЕМЫ")
+    
+    return success
+
+if __name__ == "__main__":
+    main()
+"""
 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Исправление адреса склада в TAJLINE.TJ
 Тестирование исправления адреса склада на правильный согласно review request.
 
