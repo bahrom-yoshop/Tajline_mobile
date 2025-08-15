@@ -5052,8 +5052,29 @@ function App() {
 
   const handleCreateOperator = async (e) => {
     e.preventDefault();
+    
+    // ОТЛАДКА: Проверяем данные формы перед отправкой
+    console.log('🔧 Создание оператора - данные формы:', operatorCreateForm);
+    console.log('🔧 Список складов:', warehouses?.length || 0, warehouses);
+    
+    // Проверяем, что выбран склад
+    if (!operatorCreateForm.warehouse_id) {
+      showAlert('Выберите склад для оператора', 'error');
+      return;
+    }
+    
+    // Проверяем, что склад существует в списке
+    const selectedWarehouse = warehouses.find(w => w.id === operatorCreateForm.warehouse_id);
+    if (!selectedWarehouse) {
+      showAlert('Выбранный склад не найден в списке доступных складов', 'error');
+      console.error('🔧 Склад не найден:', operatorCreateForm.warehouse_id, 'в списке:', warehouses);
+      return;
+    }
+    
     try {
-      await apiCall('/api/admin/create-operator', 'POST', operatorCreateForm);
+      console.log('📤 Отправка запроса создания оператора:', operatorCreateForm);
+      const response = await apiCall('/api/admin/create-operator', 'POST', operatorCreateForm);
+      console.log('✅ Ответ сервера:', response);
       
       // Сброс формы
       setOperatorCreateForm({
@@ -5070,11 +5091,11 @@ function App() {
       fetchUsersByRole();
       
       // Показать уведомление об успехе
-      alert('Оператор успешно создан!');
+      showAlert('Оператор успешно создан!', 'success');
       
     } catch (error) {
-      console.error('Error creating operator:', error);
-      alert(error.message || 'Ошибка создания оператора');
+      console.error('❌ Error creating operator:', error);
+      showAlert(error.message || 'Ошибка создания оператора', 'error');
     }
   };
 
