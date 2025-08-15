@@ -4310,6 +4310,17 @@ function App() {
     }
   };
 
+  // Функция для получения статистики размещения за сегодня
+  const fetchTodayPlacementStats = async () => {
+    try {
+      const stats = await apiCall('/api/operator/placement-statistics/today');
+      return stats?.today_placements || 0;
+    } catch (error) {
+      console.error('Ошибка получения статистики за сегодня:', error);
+      return 0;
+    }
+  };
+
   // Функция для получения статистики склада при сканировании ячейки
   const fetchWarehouseStatistics = async (warehouseId) => {
     try {
