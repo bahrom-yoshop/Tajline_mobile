@@ -1,5 +1,638 @@
 #!/usr/bin/env python3
 """
+КРИТИЧЕСКАЯ ДИАГНОСТИКА: Проблема с модальным окном приемки груза в TAJLINE.TJ
+Backend API Testing Script
+
+ПРОБЛЕМА: Когда оператор склада:
+1. Получает список уведомлений о поступлении нового груза
+2. Нажимает кнопку "Принять" - открывается модальное окно
+3. Заполняет остальные поля (вес, размеры, описание и т.д.)
+4. Нажимает кнопку "Оформить и отправить"
+5. НИЧЕГО НЕ ПРОИСХОДИТ - заявка остается на месте
+
+ПОДОЗРЕНИЯ:
+- Endpoint POST /api/operator/warehouse-notifications/{notification_id}/accept может не обрабатывать дополнительные поля из модального окна
+- Возможны проблемы с валидацией данных
+- Frontend может неправильно отправлять данные модального окна
+
+НУЖНО ПРОТЕСТИРОВАТЬ:
+1. Авторизация оператора склада
+2. Получение списка уведомлений (найти заявку № 100021)
+3. Тестирование приемки через POST /api/operator/warehouse-notifications/{notification_id}/accept с минимальными данными
+4. Тестирование приемки с полными данными из модального окна (вес, размеры, описание)
+5. Проверка обработки и изменения статуса заявки
+6. Анализ структуры данных, которые должны отправляться из модального окна
+"""
+
+import requests
+import json
+import os
+from datetime import datetime
+
+# Configuration
+BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://cargo-route-map.preview.emergentagent.com')
+API_BASE = f"{BACKEND_URL}/api"
+
+# Test credentials - warehouse operator
+WAREHOUSE_OPERATOR_PHONE = "+79777888999"
+WAREHOUSE_OPERATOR_PASSWORD = "warehouse123"
+
+# Admin credentials as fallback
+ADMIN_PHONE = "+79999888777"
+ADMIN_PASSWORD = "admin123"
+
+class WarehouseNotificationTester:
+    def __init__(self):
+        self.session = requests.Session()
+        self.auth_token = None
+        self.current_user = None
+        self.test_results = []
+        
+    def log_result(self, test_name, success, details, data=None):
+        """Log test result"""
+        result = {
+            "test": test_name,
+            "success": success,
+            "details": details,
+            "timestamp": datetime.now().isoformat(),
+            "data": data
+        }
+        self.test_results.append(result)
+        status = "✅ УСПЕХ" if success else "❌ ОШИБКА"
+        print(f"{status}: {test_name}")
+        print(f"   Детали: {details}")
+        if data:
+            print(f"   Данные: {json.dumps(data, ensure_ascii=False, indent=2)[:200]}...")
+        print()
+        
+    def authenticate_warehouse_operator(self):
+        """Test 1: Authenticate warehouse operator"""
+        try:
+            # Try warehouse operator first
+            login_data = {
+                "phone": WAREHOUSE_OPERATOR_PHONE,
+                "password": WAREHOUSE_OPERATOR_PASSWORD
+            }
+            
+            response = self.session.post(f"{API_BASE}/auth/login", json=login_data)
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.auth_token = data.get("access_token")
+                self.session.headers.update({"Authorization": f"Bearer {self.auth_token}"})
+                
+                # Get user info
+                user_response = self.session.get(f"{API_BASE}/auth/me")
+                if user_response.status_code == 200:
+                    self.current_user = user_response.json()
+                    self.log_result(
+                        "Авторизация оператора склада",
+                        True,
+                        f"Успешная авторизация '{self.current_user.get('full_name')}' (номер: {self.current_user.get('user_number')}, роль: {self.current_user.get('role')})",
+                        {"phone": WAREHOUSE_OPERATOR_PHONE, "role": self.current_user.get('role')}
+                    )
+                    return True
+                    
+            # Fallback to admin if warehouse operator fails
+            admin_login_data = {
+                "phone": ADMIN_PHONE,
+                "password": ADMIN_PASSWORD
+            }
+            
+            response = self.session.post(f"{API_BASE}/auth/login", json=admin_login_data)
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.auth_token = data.get("access_token")
+                self.session.headers.update({"Authorization": f"Bearer {self.auth_token}"})
+                
+                # Get user info
+                user_response = self.session.get(f"{API_BASE}/auth/me")
+                if user_response.status_code == 200:
+                    self.current_user = user_response.json()
+                    self.log_result(
+                        "Авторизация администратора (fallback)",
+                        True,
+                        f"Успешная авторизация '{self.current_user.get('full_name')}' (номер: {self.current_user.get('user_number')}, роль: {self.current_user.get('role')}) как fallback для тестирования",
+                        {"phone": ADMIN_PHONE, "role": self.current_user.get('role')}
+                    )
+                    return True
+                    
+            self.log_result(
+                "Авторизация пользователя",
+                False,
+                f"Ошибка авторизации: HTTP {response.status_code}",
+                {"response": response.text[:500]}
+            )
+            return False
+            
+        except Exception as e:
+            self.log_result(
+                "Авторизация пользователя",
+                False,
+                f"Исключение при авторизации: {str(e)}",
+                {"error": str(e)}
+            )
+            return False
+    
+    def get_warehouse_notifications(self):
+        """Test 2: Get warehouse notifications list"""
+        try:
+            response = self.session.get(f"{API_BASE}/operator/warehouse-notifications")
+            
+            if response.status_code == 200:
+                notifications = response.json()
+                
+                # Analyze notifications
+                total_notifications = len(notifications)
+                pending_count = len([n for n in notifications if n.get('status') == 'pending_acceptance'])
+                in_processing_count = len([n for n in notifications if n.get('status') == 'in_processing'])
+                completed_count = len([n for n in notifications if n.get('status') == 'completed'])
+                
+                # Look for request #100021
+                request_100021 = None
+                for notification in notifications:
+                    if notification.get('request_number') == '100021' or notification.get('request_id') == '100021':
+                        request_100021 = notification
+                        break
+                
+                self.log_result(
+                    "Получение списка уведомлений",
+                    True,
+                    f"Получено {total_notifications} уведомлений (pending: {pending_count}, in_processing: {in_processing_count}, completed: {completed_count}). Заявка №100021: {'найдена' if request_100021 else 'не найдена'}",
+                    {
+                        "total": total_notifications,
+                        "pending": pending_count,
+                        "in_processing": in_processing_count,
+                        "completed": completed_count,
+                        "request_100021_found": bool(request_100021),
+                        "sample_notification": notifications[0] if notifications else None
+                    }
+                )
+                return notifications
+                
+            else:
+                self.log_result(
+                    "Получение списка уведомлений",
+                    False,
+                    f"Ошибка получения уведомлений: HTTP {response.status_code}",
+                    {"response": response.text[:500]}
+                )
+                return []
+                
+        except Exception as e:
+            self.log_result(
+                "Получение списка уведомлений",
+                False,
+                f"Исключение при получении уведомлений: {str(e)}",
+                {"error": str(e)}
+            )
+            return []
+    
+    def analyze_notification_structure(self, notifications):
+        """Test 3: Analyze notification data structure"""
+        try:
+            if not notifications:
+                self.log_result(
+                    "Анализ структуры уведомлений",
+                    False,
+                    "Нет уведомлений для анализа",
+                    {}
+                )
+                return
+            
+            # Analyze first notification structure
+            sample_notification = notifications[0]
+            
+            # Check for key fields
+            key_fields = [
+                'id', 'request_id', 'request_number', 'pickup_request_id',
+                'sender_full_name', 'sender_phone', 'pickup_address',
+                'cargo_name', 'weight', 'description', 'courier_fee',
+                'status', 'created_at'
+            ]
+            
+            present_fields = []
+            missing_fields = []
+            
+            for field in key_fields:
+                if field in sample_notification:
+                    present_fields.append(field)
+                else:
+                    missing_fields.append(field)
+            
+            # Check for request #100021 specifically
+            request_100021 = None
+            for notification in notifications:
+                if (notification.get('request_number') == '100021' or 
+                    notification.get('request_id') == '100021' or
+                    str(notification.get('request_id')) == '100021'):
+                    request_100021 = notification
+                    break
+            
+            self.log_result(
+                "Анализ структуры уведомлений",
+                True,
+                f"Проанализировано {len(notifications)} уведомлений. Присутствующие поля: {len(present_fields)}, Отсутствующие поля: {len(missing_fields)}. Заявка №100021: {'найдена' if request_100021 else 'не найдена'}",
+                {
+                    "total_notifications": len(notifications),
+                    "present_fields": present_fields,
+                    "missing_fields": missing_fields,
+                    "sample_structure": {k: type(v).__name__ for k, v in sample_notification.items()},
+                    "request_100021": request_100021
+                }
+            )
+            
+            return request_100021
+            
+        except Exception as e:
+            self.log_result(
+                "Анализ структуры уведомлений",
+                False,
+                f"Исключение при анализе структуры: {str(e)}",
+                {"error": str(e)}
+            )
+            return None
+    
+    def test_minimal_acceptance(self, notifications):
+        """Test 4: Test notification acceptance with minimal data"""
+        try:
+            if not notifications:
+                self.log_result(
+                    "Тестирование минимальной приемки",
+                    False,
+                    "Нет уведомлений для тестирования",
+                    {}
+                )
+                return False
+            
+            # Find a suitable notification for testing
+            test_notification = None
+            for notification in notifications:
+                if notification.get('status') == 'pending_acceptance':
+                    test_notification = notification
+                    break
+            
+            if not test_notification:
+                # Try with any notification
+                test_notification = notifications[0]
+            
+            notification_id = test_notification.get('id')
+            
+            # Test with minimal data (just as the modal might send)
+            minimal_data = {}
+            
+            response = self.session.post(
+                f"{API_BASE}/operator/warehouse-notifications/{notification_id}/accept",
+                json=minimal_data
+            )
+            
+            if response.status_code == 200:
+                result_data = response.json()
+                self.log_result(
+                    "Тестирование минимальной приемки",
+                    True,
+                    f"Успешная приемка уведомления с минимальными данными. Статус: {result_data.get('status', 'unknown')}",
+                    {
+                        "notification_id": notification_id,
+                        "request_data": minimal_data,
+                        "response": result_data
+                    }
+                )
+                return True
+            else:
+                error_details = response.text
+                self.log_result(
+                    "Тестирование минимальной приемки",
+                    False,
+                    f"Ошибка приемки с минимальными данными: HTTP {response.status_code}. Детали: {error_details[:200]}",
+                    {
+                        "notification_id": notification_id,
+                        "request_data": minimal_data,
+                        "status_code": response.status_code,
+                        "error": error_details
+                    }
+                )
+                return False
+                
+        except Exception as e:
+            self.log_result(
+                "Тестирование минимальной приемки",
+                False,
+                f"Исключение при тестировании минимальной приемки: {str(e)}",
+                {"error": str(e)}
+            )
+            return False
+    
+    def test_full_modal_acceptance(self, notifications):
+        """Test 5: Test notification acceptance with full modal data"""
+        try:
+            if not notifications:
+                self.log_result(
+                    "Тестирование полной приемки модального окна",
+                    False,
+                    "Нет уведомлений для тестирования",
+                    {}
+                )
+                return False
+            
+            # Find a suitable notification for testing
+            test_notification = None
+            for notification in notifications:
+                if notification.get('status') == 'pending_acceptance':
+                    test_notification = notification
+                    break
+            
+            if not test_notification:
+                # Try with any notification
+                test_notification = notifications[0]
+            
+            notification_id = test_notification.get('id')
+            
+            # Test with full modal data (as the modal window would send)
+            full_modal_data = {
+                "weight": 15.5,
+                "dimensions": {
+                    "length": 50,
+                    "width": 30,
+                    "height": 20
+                },
+                "description": "Тестовое описание груза из модального окна",
+                "special_instructions": "Осторожно, хрупкое",
+                "declared_value": 5000.0,
+                "packaging_type": "коробка",
+                "additional_notes": "Дополнительные заметки оператора"
+            }
+            
+            response = self.session.post(
+                f"{API_BASE}/operator/warehouse-notifications/{notification_id}/accept",
+                json=full_modal_data
+            )
+            
+            if response.status_code == 200:
+                result_data = response.json()
+                self.log_result(
+                    "Тестирование полной приемки модального окна",
+                    True,
+                    f"Успешная приемка уведомления с полными данными модального окна. Статус: {result_data.get('status', 'unknown')}",
+                    {
+                        "notification_id": notification_id,
+                        "request_data": full_modal_data,
+                        "response": result_data
+                    }
+                )
+                return True
+            else:
+                error_details = response.text
+                self.log_result(
+                    "Тестирование полной приемки модального окна",
+                    False,
+                    f"Ошибка приемки с полными данными модального окна: HTTP {response.status_code}. Детали: {error_details[:200]}",
+                    {
+                        "notification_id": notification_id,
+                        "request_data": full_modal_data,
+                        "status_code": response.status_code,
+                        "error": error_details
+                    }
+                )
+                return False
+                
+        except Exception as e:
+            self.log_result(
+                "Тестирование полной приемки модального окна",
+                False,
+                f"Исключение при тестировании полной приемки: {str(e)}",
+                {"error": str(e)}
+            )
+            return False
+    
+    def test_request_100021_specifically(self, notifications):
+        """Test 6: Test request #100021 specifically"""
+        try:
+            # Find request #100021
+            request_100021 = None
+            for notification in notifications:
+                if (notification.get('request_number') == '100021' or 
+                    notification.get('request_id') == '100021' or
+                    str(notification.get('request_id')) == '100021'):
+                    request_100021 = notification
+                    break
+            
+            if not request_100021:
+                self.log_result(
+                    "Тестирование заявки №100021",
+                    False,
+                    "Заявка №100021 не найдена в списке уведомлений",
+                    {"available_requests": [n.get('request_number') or n.get('request_id') for n in notifications[:5]]}
+                )
+                return False
+            
+            notification_id = request_100021.get('id')
+            
+            # Test with realistic modal data for request #100021
+            modal_data_100021 = {
+                "weight": request_100021.get('weight', 10.0),
+                "dimensions": {
+                    "length": 40,
+                    "width": 25,
+                    "height": 15
+                },
+                "description": request_100021.get('description', 'Описание груза №100021'),
+                "special_instructions": "Проверить содержимое при приемке",
+                "declared_value": request_100021.get('declared_value', 3000.0),
+                "packaging_type": "упаковка",
+                "operator_notes": "Принято оператором склада через модальное окно"
+            }
+            
+            response = self.session.post(
+                f"{API_BASE}/operator/warehouse-notifications/{notification_id}/accept",
+                json=modal_data_100021
+            )
+            
+            if response.status_code == 200:
+                result_data = response.json()
+                self.log_result(
+                    "Тестирование заявки №100021",
+                    True,
+                    f"Успешная приемка заявки №100021 с данными модального окна. Статус: {result_data.get('status', 'unknown')}",
+                    {
+                        "notification_id": notification_id,
+                        "request_number": "100021",
+                        "request_data": modal_data_100021,
+                        "response": result_data
+                    }
+                )
+                return True
+            else:
+                error_details = response.text
+                self.log_result(
+                    "Тестирование заявки №100021",
+                    False,
+                    f"Ошибка приемки заявки №100021: HTTP {response.status_code}. Детали: {error_details[:200]}",
+                    {
+                        "notification_id": notification_id,
+                        "request_number": "100021",
+                        "request_data": modal_data_100021,
+                        "status_code": response.status_code,
+                        "error": error_details
+                    }
+                )
+                return False
+                
+        except Exception as e:
+            self.log_result(
+                "Тестирование заявки №100021",
+                False,
+                f"Исключение при тестировании заявки №100021: {str(e)}",
+                {"error": str(e)}
+            )
+            return False
+    
+    def verify_status_changes(self, notifications):
+        """Test 7: Verify that notifications status changes after acceptance"""
+        try:
+            # Get updated notifications list
+            response = self.session.get(f"{API_BASE}/operator/warehouse-notifications")
+            
+            if response.status_code == 200:
+                updated_notifications = response.json()
+                
+                # Compare with original notifications
+                original_count = len(notifications)
+                updated_count = len(updated_notifications)
+                
+                # Count status changes
+                status_changes = 0
+                for orig_notif in notifications:
+                    for upd_notif in updated_notifications:
+                        if orig_notif.get('id') == upd_notif.get('id'):
+                            if orig_notif.get('status') != upd_notif.get('status'):
+                                status_changes += 1
+                            break
+                
+                self.log_result(
+                    "Проверка изменения статусов",
+                    True,
+                    f"Проверка изменений статусов завершена. Исходно: {original_count} уведомлений, Обновлено: {updated_count} уведомлений, Изменений статуса: {status_changes}",
+                    {
+                        "original_count": original_count,
+                        "updated_count": updated_count,
+                        "status_changes": status_changes,
+                        "updated_statuses": [n.get('status') for n in updated_notifications[:5]]
+                    }
+                )
+                return True
+                
+            else:
+                self.log_result(
+                    "Проверка изменения статусов",
+                    False,
+                    f"Ошибка получения обновленных уведомлений: HTTP {response.status_code}",
+                    {"response": response.text[:500]}
+                )
+                return False
+                
+        except Exception as e:
+            self.log_result(
+                "Проверка изменения статусов",
+                False,
+                f"Исключение при проверке изменения статусов: {str(e)}",
+                {"error": str(e)}
+            )
+            return False
+    
+    def run_comprehensive_test(self):
+        """Run comprehensive warehouse notification modal testing"""
+        print("🎯 КРИТИЧЕСКАЯ ДИАГНОСТИКА: Проблема с модальным окном приемки груза в TAJLINE.TJ")
+        print("=" * 80)
+        print()
+        
+        # Test 1: Authentication
+        if not self.authenticate_warehouse_operator():
+            print("❌ Критическая ошибка: Не удалось авторизоваться. Тестирование прервано.")
+            return
+        
+        # Test 2: Get notifications
+        notifications = self.get_warehouse_notifications()
+        if not notifications:
+            print("❌ Критическая ошибка: Не удалось получить уведомления. Тестирование прервано.")
+            return
+        
+        # Test 3: Analyze structure
+        request_100021 = self.analyze_notification_structure(notifications)
+        
+        # Test 4: Test minimal acceptance
+        self.test_minimal_acceptance(notifications)
+        
+        # Test 5: Test full modal acceptance
+        self.test_full_modal_acceptance(notifications)
+        
+        # Test 6: Test request #100021 specifically
+        self.test_request_100021_specifically(notifications)
+        
+        # Test 7: Verify status changes
+        self.verify_status_changes(notifications)
+        
+        # Summary
+        self.print_summary()
+    
+    def print_summary(self):
+        """Print comprehensive test summary"""
+        print("\n" + "=" * 80)
+        print("📊 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ")
+        print("=" * 80)
+        
+        total_tests = len(self.test_results)
+        successful_tests = len([r for r in self.test_results if r['success']])
+        failed_tests = total_tests - successful_tests
+        success_rate = (successful_tests / total_tests * 100) if total_tests > 0 else 0
+        
+        print(f"Всего тестов: {total_tests}")
+        print(f"Успешных: {successful_tests}")
+        print(f"Неудачных: {failed_tests}")
+        print(f"Процент успеха: {success_rate:.1f}%")
+        print()
+        
+        # Print detailed results
+        for result in self.test_results:
+            status = "✅" if result['success'] else "❌"
+            print(f"{status} {result['test']}")
+            print(f"   {result['details']}")
+            print()
+        
+        # Print critical findings
+        print("🔍 КРИТИЧЕСКИЕ ВЫВОДЫ:")
+        
+        # Check if we found the core issue
+        modal_tests = [r for r in self.test_results if 'модальн' in r['test'].lower()]
+        if modal_tests:
+            modal_success = all(r['success'] for r in modal_tests)
+            if modal_success:
+                print("✅ Модальное окно приемки работает корректно с полными данными")
+            else:
+                print("❌ НАЙДЕНА ПРОБЛЕМА: Модальное окно приемки не работает корректно")
+                for test in modal_tests:
+                    if not test['success']:
+                        print(f"   - {test['details']}")
+        
+        # Check for request #100021
+        request_100021_tests = [r for r in self.test_results if '100021' in r['test']]
+        if request_100021_tests:
+            if any(r['success'] for r in request_100021_tests):
+                print("✅ Заявка №100021 найдена и протестирована")
+            else:
+                print("❌ ПРОБЛЕМА: Заявка №100021 не найдена или не работает")
+        
+        print("\n" + "=" * 80)
+
+def main():
+    """Main testing function"""
+    tester = WarehouseNotificationTester()
+    tester.run_comprehensive_test()
+
+if __name__ == "__main__":
+    main()
+"""
 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Исправление ошибки "Pickup request ID not found in notification" в TAJLINE.TJ
 
 ИСПРАВЛЕНИЕ ПРИМЕНЕНО: 
