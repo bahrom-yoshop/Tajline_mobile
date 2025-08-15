@@ -5193,7 +5193,15 @@ async def place_cargo_in_warehouse(
         placement_data.cargo_id
     )
     
-    return {"message": "Cargo placed successfully", "location": location_code, "warehouse": warehouse["name"]}
+    # ИСПРАВЛЕНИЕ: Возвращаем правильную структуру для frontend
+    return {
+        "message": "Cargo placed successfully",
+        "warehouse_name": warehouse["name"],
+        "location_code": location_code,
+        "cargo_number": cargo["cargo_number"],
+        "cargo_name": cargo.get("cargo_name", ""),
+        "placed_at": datetime.utcnow().isoformat()
+    }
 
 @app.post("/api/operator/cargo/place-auto")
 async def place_cargo_in_warehouse_auto(
