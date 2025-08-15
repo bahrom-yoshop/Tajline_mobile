@@ -9981,8 +9981,22 @@ function App() {
       console.log('Данные запроса:', requestData);
       
       const response = await apiCall('/api/operator/cargo/place', 'POST', requestData);
+      
+      console.log('✅ Ответ от API размещения:', response);
 
-      showAlert(`✅ Груз успешно размещен на ${response.warehouse_name}`, 'success');
+      // ИСПРАВЛЕНИЕ: Правильно обрабатываем объект ответа от API
+      let successMessage = '✅ Груз успешно размещен';
+      if (response && typeof response === 'object') {
+        if (response.warehouse_name && response.location_code) {
+          successMessage = `✅ Груз успешно размещен в ${response.warehouse_name} (${response.location_code})`;
+        } else if (response.warehouse_name) {
+          successMessage = `✅ Груз успешно размещен в ${response.warehouse_name}`;
+        } else if (response.location_code) {
+          successMessage = `✅ Груз успешно размещен в ячейке ${response.location_code}`;
+        }
+      }
+      
+      showAlert(successMessage, 'success');
       
       // Обновляем статус груза на "размещен" во ВСЕХ таблицах
       await updateCargoProcessingStatus(cargoId, 'placed');
