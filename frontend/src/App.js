@@ -9910,13 +9910,17 @@ function App() {
 
   const handlePlaceCargo = async (cargoId, warehouseId, blockNumber, shelfNumber, cellNumber) => {
     try {
-      const response = await apiCall('/api/operator/cargo/place', 'POST', {
+      console.log('📤 API запрос на размещение груза:');
+      const requestData = {
         cargo_id: cargoId,
         warehouse_id: warehouseId,
         block_number: parseInt(blockNumber),
         shelf_number: parseInt(shelfNumber),
         cell_number: parseInt(cellNumber)
-      });
+      };
+      console.log('Данные запроса:', requestData);
+      
+      const response = await apiCall('/api/operator/cargo/place', 'POST', requestData);
 
       showAlert(`✅ Груз успешно размещен на ${response.warehouse_name}`, 'success');
       
