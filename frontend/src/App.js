@@ -1414,7 +1414,30 @@ function App() {
   const fetchAllPickupRequests = async () => {
     try {
       const data = await apiCall('/api/operator/pickup-requests', 'GET');
-      setAllPickupRequests(data.pickup_requests || []);
+      const pickupRequests = data.pickup_requests || [];
+      
+      // Валидация и очистка данных заявок на забор
+      const validatedRequests = pickupRequests.filter(request => {
+        // Фильтруем заявки с некорректными данными
+        if (!request || !request.id) {
+          console.warn('Найдена заявка без ID, пропускаем:', request);
+          return false;
+        }
+        
+        // Исправляем некорректные номера заявок
+        if (!request.request_number || 
+            request.request_number === 'undefined' || 
+            request.request_number === 'null' ||
+            request.request_number === '000000/00') {
+          console.warn(`Заявка ${request.id} имеет некорректный номер: ${request.request_number}, исправляем`);
+          request.request_number = `REQ-${request.id.slice(0, 8)}`;
+        }
+        
+        return true;
+      });
+      
+      setAllPickupRequests(validatedRequests);
+      console.log(`Загружено ${validatedRequests.length} валидных заявок на забор`);
     } catch (error) {
       console.error('Error fetching all pickup requests:', error);
       showAlert('Ошибка загрузки заявок на забор: ' + error.message, 'error');
