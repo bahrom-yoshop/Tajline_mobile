@@ -5644,34 +5644,69 @@ async def bulk_remove_cargo_from_placement(
         deleted_cargo_numbers = []
         
         for cargo_id in cargo_ids:
-            # Ищем груз в обеих коллекциях  
-            cargo = db.operator_cargo.find_one({"id": cargo_id})
-            collection_name = "operator_cargo"
+            # Ищем груз в нескольких коллекциях
+            cargo = None
+            collection_name = None
             
+            # Сначала ищем в operator_cargo  
+            cargo = db.operator_cargo.find_one({"id": cargo_id})
+            if cargo:
+                collection_name = "operator_cargo"
+            
+            # Если не найден, ищем в основной коллекции cargo
             if not cargo:
                 cargo = db.cargo.find_one({"id": cargo_id})
-                collection_name = "cargo"
+                if cargo:
+                    collection_name = "cargo"
+            
+            # НОВОЕ: Если не найден, ищем в заявках на забор (cargo_requests)
+            if not cargo:
+                # Ищем груз по cargo_id в items массиве заявок на забор
+                request_with_cargo = db.cargo_requests.find_one({
+                    "items.id": cargo_id
+                })
+                if request_with_cargo:
+                    # Находим конкретный item в массиве
+                    for item in request_with_cargo.get("items", []):
+                        if item.get("id") == cargo_id:
+                            cargo = item
+                            collection_name = "cargo_requests"
+                            cargo["request_id"] = request_with_cargo["id"]  # Сохраняем ID заявки
+                            break
             
             if cargo:
-                # Получаем коллекцию
-                collection = getattr(db, collection_name)
-                
-                # Обновляем статус груза
-                update_result = collection.update_one(
-                    {"id": cargo_id},
-                    {
-                        "$set": {
-                            "status": "removed_from_placement",
-                            "removed_from_placement_at": datetime.utcnow(),
-                            "removed_from_placement_by": current_user.id,
-                            "updated_at": datetime.utcnow()
+                if collection_name == "cargo_requests":
+                    # Для грузов из заявок на забор обновляем статус item'а в массиве
+                    update_result = db.cargo_requests.update_one(
+                        {"id": cargo["request_id"], "items.id": cargo_id},
+                        {
+                            "$set": {
+                                "items.$.status": "removed_from_placement",
+                                "items.$.removed_from_placement_at": datetime.utcnow(),
+                                "items.$.removed_from_placement_by": current_user.id,
+                                "updated_at": datetime.utcnow()
+                            }
                         }
-                    }
-                )
+                    )
+                else:
+                    # Для обычных коллекций обновляем документ целиком
+                    collection = getattr(db, collection_name)
+                    update_result = collection.update_one(
+                        {"id": cargo_id},
+                        {
+                            "$set": {
+                                "status": "removed_from_placement",
+                                "removed_from_placement_at": datetime.utcnow(),
+                                "removed_from_placement_by": current_user.id,
+                                "updated_at": datetime.utcnow()
+                            }
+                        }
+                    )
                 
                 if update_result.modified_count > 0:
                     deleted_count += 1
-                    deleted_cargo_numbers.append(cargo['cargo_number'])
+                    cargo_number = cargo.get('cargo_number', cargo.get('id', 'Unknown'))
+                    deleted_cargo_numbers.append(cargo_number)
         
         # Создаем уведомление о массовом удалении
         if deleted_count > 0:
