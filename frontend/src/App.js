@@ -19502,150 +19502,223 @@ function App() {
                           </div>
                         ) : (
                           <div className="space-y-6">
-                            {operatorWarehouses.map((warehouse) => (
-                              <Card key={warehouse.id} className="border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50 to-white">
-                                <CardContent className="p-6">
-                                  {/* Заголовок склада */}
-                                  <div className="flex items-start justify-between mb-6">
-                                    <div>
-                                      <h3 className="font-bold text-xl text-gray-900 mb-2">
-                                        🏭 {warehouse.name}
-                                      </h3>
-                                      <p className="text-gray-600 flex items-center mb-1">
-                                        <MapPin className="inline h-4 w-4 mr-2" />
-                                        {warehouse.location}
-                                      </p>
-                                      <div className="flex flex-wrap gap-3 text-sm text-gray-500">
-                                        <span>Блоков: {warehouse.blocks_count || 'Не указано'}</span>
-                                        <span>Полок/блок: {warehouse.shelves_per_block || 'Не указано'}</span>
-                                        <span>Ячеек/полка: {warehouse.cells_per_shelf || 'Не указано'}</span>
+                            {operatorWarehouses.map((warehouse) => {
+                              // ИСПРАВЛЕНИЕ: Компонент карточки склада с реальными данными
+                              const WarehouseCard = ({ warehouse }) => {
+                                const [statistics, setStatistics] = useState(null);
+                                const [loading, setLoading] = useState(false);
+                                
+                                useEffect(() => {
+                                  const loadStatistics = async () => {
+                                    // Проверяем, есть ли уже загруженная статистика
+                                    if (warehousesStatistics[warehouse.id]) {
+                                      setStatistics(warehousesStatistics[warehouse.id]);
+                                      return;
+                                    }
+                                    
+                                    setLoading(true);
+                                    try {
+                                      const stats = await fetchWarehouseStatisticsLazy(warehouse.id);
+                                      setStatistics(stats);
+                                    } catch (error) {
+                                      console.error(`Error loading statistics for warehouse ${warehouse.id}:`, error);
+                                    } finally {
+                                      setLoading(false);
+                                    }
+                                  };
+                                  
+                                  loadStatistics();
+                                }, [warehouse.id]);
+                                
+                                if (loading) {
+                                  return (
+                                    <Card key={warehouse.id} className="border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50 to-white">
+                                      <CardContent className="p-6">
+                                        <div className="text-center py-8">
+                                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                                          <p className="text-gray-500">Загрузка статистики склада...</p>
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                  );
+                                }
+                                
+                                return (
+                                  <Card key={warehouse.id} className="border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50 to-white">
+                                    <CardContent className="p-6">
+                                      {/* Заголовок склада */}
+                                      <div className="flex items-start justify-between mb-6">
+                                        <div>
+                                          <h3 className="font-bold text-xl text-gray-900 mb-2">
+                                            🏭 {warehouse.name}
+                                          </h3>
+                                          <p className="text-gray-600 flex items-center mb-1">
+                                            <MapPin className="inline h-4 w-4 mr-2" />
+                                            {warehouse.location}
+                                          </p>
+                                          <div className="flex flex-wrap gap-3 text-sm text-gray-500">
+                                            <span>Блоков: {warehouse.blocks_count || 'Не указано'}</span>
+                                            <span>Полок/блок: {warehouse.shelves_per_block || 'Не указано'}</span>
+                                            <span>Ячеек/полка: {warehouse.cells_per_shelf || 'Не указано'}</span>
+                                          </div>
+                                          <p className="text-sm text-blue-600 font-medium mt-1">
+                                            Общее количество ячеек: {statistics?.total_cells || 
+                                             (warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)}
+                                          </p>
+                                        </div>
+                                        <Badge className="bg-green-100 text-green-800 border-green-200">
+                                          <CheckCircle className="w-3 h-3 mr-1" />
+                                          Активный
+                                        </Badge>
                                       </div>
-                                      <p className="text-sm text-blue-600 font-medium mt-1">
-                                        Общее количество ячеек: {warehouse.total_cells || ((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)) || 'Не рассчитано'}
-                                      </p>
-                                    </div>
-                                    <Badge className="bg-green-100 text-green-800 border-green-200">
-                                      <CheckCircle className="w-3 h-3 mr-1" />
-                                      Активный
-                                    </Badge>
-                                  </div>
 
-                                  {/* Расширенная аналитика склада */}
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                                    <div className="bg-white p-3 rounded-lg border shadow-sm">
-                                      <div className="flex items-center justify-between">
-                                        <div>
-                                          <p className="text-xs font-medium text-gray-500">Всего ячеек</p>
-                                          <p className="text-xl font-bold text-blue-600">
-                                            {warehouse.total_cells || ((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)) || 0}
-                                          </p>
+                                      {/* ИСПРАВЛЕНО: Реальная статистика ячеек */}
+                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                                        <div className="bg-white p-3 rounded-lg border shadow-sm">
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <p className="text-xs font-medium text-gray-500">Всего ячеек</p>
+                                              <p className="text-xl font-bold text-blue-600">
+                                                {statistics?.total_cells || 
+                                                 (warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0)}
+                                              </p>
+                                            </div>
+                                            <Grid3X3 className="h-6 w-6 text-blue-500" />
+                                          </div>
                                         </div>
-                                        <Grid3X3 className="h-6 w-6 text-blue-500" />
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="bg-white p-3 rounded-lg border shadow-sm">
-                                      <div className="flex items-center justify-between">
-                                        <div>
-                                          <p className="text-xs font-medium text-gray-500">Занято</p>
-                                          <p className="text-xl font-bold text-red-600">
-                                            {Math.floor(((warehouse.total_cells || ((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0))) || 0) * 0.6)}
-                                          </p>
+                                        
+                                        <div className="bg-white p-3 rounded-lg border shadow-sm">
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <p className="text-xs font-medium text-gray-500">Занято</p>
+                                              <p className="text-xl font-bold text-red-600">
+                                                {statistics?.occupied_cells || 0}
+                                              </p>
+                                            </div>
+                                            <Package className="h-6 w-6 text-red-500" />
+                                          </div>
                                         </div>
-                                        <Package className="h-6 w-6 text-red-500" />
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="bg-white p-3 rounded-lg border shadow-sm">
-                                      <div className="flex items-center justify-between">
-                                        <div>
-                                          <p className="text-xs font-medium text-gray-500">Свободно</p>
-                                          <p className="text-xl font-bold text-green-600">
-                                            {Math.floor(((warehouse.total_cells || ((warehouse.blocks_count || 0) * (warehouse.shelves_per_block || 0) * (warehouse.cells_per_shelf || 0))) || 0) * 0.4)}
-                                          </p>
+                                        
+                                        <div className="bg-white p-3 rounded-lg border shadow-sm">
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <p className="text-xs font-medium text-gray-500">Свободно</p>
+                                              <p className="text-xl font-bold text-green-600">
+                                                {statistics?.free_cells || ((statistics?.total_cells || 0) - (statistics?.occupied_cells || 0))}
+                                              </p>
+                                            </div>
+                                            <CheckCircle className="h-6 w-6 text-green-500" />
+                                          </div>
                                         </div>
-                                        <CheckCircle className="h-6 w-6 text-green-500" />
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="bg-white p-3 rounded-lg border shadow-sm">
-                                      <div className="flex items-center justify-between">
-                                        <div>
-                                          <p className="text-xs font-medium text-gray-500">Загрузка</p>
-                                          <p className="text-xl font-bold text-purple-600">60%</p>
+                                        
+                                        <div className="bg-white p-3 rounded-lg border shadow-sm">
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <p className="text-xs font-medium text-gray-500">Загрузка</p>
+                                              <p className="text-xl font-bold text-purple-600">
+                                                {statistics?.occupancy_rate || Math.round(((statistics?.occupied_cells || 0) / (statistics?.total_cells || 1)) * 100)}%
+                                              </p>
+                                            </div>
+                                            <Calculator className="h-6 w-6 text-purple-500" />
+                                          </div>
                                         </div>
-                                        <Calculator className="h-6 w-6 text-purple-500" />
                                       </div>
-                                    </div>
-                                  </div>
 
-                                  {/* Дополнительная аналитика */}
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-3 rounded-lg border border-purple-200">
-                                      <div className="flex items-center justify-between">
-                                        <div>
-                                          <p className="text-xs font-medium text-purple-700">Вес (кг)</p>
-                                          <p className="text-lg font-bold text-purple-900">
-                                            {Math.floor(Math.random() * 1000) + 500}
-                                          </p>
+                                      {/* ИСПРАВЛЕНО: Реальная статистика грузов */}
+                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-3 rounded-lg border border-purple-200">
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <p className="text-xs font-medium text-purple-700">Вес (кг)</p>
+                                              <p className="text-lg font-bold text-purple-900">
+                                                {statistics?.total_weight_kg?.toLocaleString() || 0}
+                                              </p>
+                                            </div>
+                                            <Package2 className="h-5 w-5 text-purple-600" />
+                                          </div>
                                         </div>
-                                        <Package2 className="h-5 w-5 text-purple-600" />
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-3 rounded-lg border border-blue-200">
-                                      <div className="flex items-center justify-between">
-                                        <div>
-                                          <p className="text-xs font-medium text-blue-700">Кол-во грузов</p>
-                                          <p className="text-lg font-bold text-blue-900">
-                                            {Math.floor(((warehouse.blocks_count || 3) * 20) * 0.6) + Math.floor(Math.random() * 10)}
-                                          </p>
+                                        
+                                        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-3 rounded-lg border border-blue-200">
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <p className="text-xs font-medium text-blue-700">Кол-во грузов</p>
+                                              <p className="text-lg font-bold text-blue-900">
+                                                {statistics?.total_cargo || 0}
+                                              </p>
+                                            </div>
+                                            <FileText className="h-5 w-5 text-blue-600" />
+                                          </div>
                                         </div>
-                                        <FileText className="h-5 w-5 text-blue-600" />
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border border-green-200">
-                                      <div className="flex items-center justify-between">
-                                        <div>
-                                          <p className="text-xs font-medium text-green-700">Клиентов</p>
-                                          <p className="text-lg font-bold text-green-900">
-                                            {Math.floor((Math.floor(((warehouse.blocks_count || 3) * 20) * 0.6) + Math.floor(Math.random() * 10)) * 0.7)}
-                                          </p>
+                                        
+                                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border border-green-200">
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <p className="text-xs font-medium text-green-700">Клиентов</p>
+                                              <p className="text-lg font-bold text-green-900">
+                                                {statistics?.unique_clients || 0}
+                                              </p>
+                                            </div>
+                                            <Users className="h-5 w-5 text-green-600" />
+                                          </div>
                                         </div>
-                                        <Users className="h-5 w-5 text-green-600" />
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-3 rounded-lg border border-yellow-200">
-                                      <div className="flex items-center justify-between">
-                                        <div>
-                                          <p className="text-xs font-medium text-yellow-700">Сумма (₽)</p>
-                                          <p className="text-lg font-bold text-yellow-900">
-                                            {(Math.floor(Math.random() * 100000) + 50000).toLocaleString()}
-                                          </p>
+                                        
+                                        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-3 rounded-lg border border-yellow-200">
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <p className="text-xs font-medium text-yellow-700">Сумма (₽)</p>
+                                              <p className="text-lg font-bold text-yellow-900">
+                                                {statistics?.total_value_rub?.toLocaleString() || 0}
+                                              </p>
+                                            </div>
+                                            <CreditCard className="h-5 w-5 text-yellow-600" />
+                                          </div>
                                         </div>
-                                        <CreditCard className="h-5 w-5 text-yellow-600" />
                                       </div>
-                                    </div>
-                                  </div>
 
-                                  {/* Кнопки управления */}
-                                  <div className="flex flex-wrap gap-3">
-                                    <Button 
-                                      onClick={() => setShowWarehouseScheme(warehouse.id)}
-                                      className="bg-blue-600 hover:bg-blue-700"
-                                    >
-                                      <Grid3X3 className="mr-2 h-4 w-4" />
-                                      Просмотр схемы склада
-                                    </Button>
-                                    <Button 
-                                      variant="outline"
-                                      onClick={() => openWarehouseReport(warehouse)}
-                                    >
-                                      <FileText className="mr-2 h-4 w-4" />
-                                      Отчет по складу
-                                    </Button>
+                                      {/* Кнопки управления */}
+                                      <div className="flex flex-wrap gap-3">
+                                        <Button 
+                                          onClick={() => setShowWarehouseScheme(warehouse.id)}
+                                          className="bg-blue-600 hover:bg-blue-700"
+                                        >
+                                          <Grid3X3 className="mr-2 h-4 w-4" />
+                                          Просмотр схемы склада
+                                        </Button>
+                                        <Button 
+                                          variant="outline"
+                                          onClick={() => openWarehouseReport(warehouse)}
+                                        >
+                                          <FileText className="mr-2 h-4 w-4" />
+                                          Отчет по складу
+                                        </Button>
+                                        <Button 
+                                          variant="outline"
+                                          onClick={async () => {
+                                            setLoading(true);
+                                            try {
+                                              const stats = await fetchWarehouseStatisticsLazy(warehouse.id);
+                                              setStatistics(stats);
+                                              showAlert('Статистика склада обновлена!', 'success');
+                                            } catch (error) {
+                                              console.error('Error refreshing statistics:', error);
+                                              showAlert('Ошибка обновления статистики', 'error');
+                                            } finally {
+                                              setLoading(false);
+                                            }
+                                          }}
+                                          disabled={loading}
+                                        >
+                                          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                                          Обновить
+                                        </Button>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                );
+                              };
+                              
+                              return <WarehouseCard key={warehouse.id} warehouse={warehouse} />;
+                            })}
                                     <Button 
                                       variant="outline"
                                       onClick={() => openCellManagement(warehouse)}
