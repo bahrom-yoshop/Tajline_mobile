@@ -246,6 +246,7 @@ class CargoStatus(str, Enum):
     PAID = "paid"  # Оплачен
     INVOICE_PRINTED = "invoice_printed"  # Накладная напечатана
     AWAITING_PLACEMENT = "awaiting_placement"  # Ожидает размещения
+    PLACEMENT_READY = "placement_ready"  # ДОБАВЛЕНО: Готов к размещению
     IN_WAREHOUSE = "in_warehouse"
     PLACED_IN_WAREHOUSE = "placed_in_warehouse"  # Размещен на складе
     PICKUP_REQUESTED = "pickup_requested"  # Заявка на забор груза
