@@ -1,22 +1,20 @@
 #!/usr/bin/env python3
 """
-КРИТИЧЕСКАЯ ДИАГНОСТИКА: Ошибка "Pickup request ID not found in notification" при отправке груза на размещение в TAJLINE.TJ
+КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Исправление ошибки "Pickup request ID not found in notification" в TAJLINE.TJ
 
-ПРОБЛЕМА: При нажатии кнопки "Отправить на размещение" из уведомления о заборе возникает ошибка:
-- Файл: /app/backend/server.py, строка 14543
-- Функция: send_pickup_request_to_placement  
-- Ошибка: "Идентификатор запроса на самовывоз не найден в уведомлении"
-
-ПОДОЗРЕНИЕ: Существующие уведомления в базе данных не содержат поле pickup_request_id, которое требуется в новом коде.
+ИСПРАВЛЕНИЕ ПРИМЕНЕНО: 
+- В функции send_pickup_request_to_placement добавлена поддержка обратной совместимости
+- Теперь код ищет pickup_request_id ИЛИ request_id: pickup_request_id = notification.get("pickup_request_id") or notification.get("request_id")
+- Это должно исправить ошибку для существующих уведомлений в базе данных
 
 НУЖНО ПРОТЕСТИРОВАТЬ:
-1. Авторизация оператора склада (+79777888999/warehouse123)
-2. Получение списка уведомлений через GET /api/operator/warehouse-notifications
-3. Проверка структуры уведомлений - есть ли поле pickup_request_id или только request_id
-4. Анализ различий между существующими и новыми уведомлениями
-5. Тестирование endpoint POST /api/operator/warehouse-notifications/{notification_id}/send-to-placement
+1. Авторизация пользователя (любого с доступом к уведомлениям)
+2. Получение списка уведомлений с существующими данными
+3. Попытка отправить существующее уведомление на размещение через POST /api/operator/warehouse-notifications/{notification_id}/send-to-placement  
+4. Проверка что ошибка "Pickup request ID not found in notification" ИСПРАВЛЕНА
+5. Проверка что обработка проходит успешно с полем request_id
 
-ОЖИДАЕМЫЙ РЕЗУЛЬТАТ: Найти корневую причину ошибки - отсутствие pickup_request_id в существующих уведомлениях и предложить решение для миграции данных или изменения логики.
+ОЖИДАЕМЫЙ РЕЗУЛЬТАТ: Кнопка "Отправить на размещение" теперь работает корректно для существующих уведомлений, ошибка HTTP 400 исправлена.
 """
 
 import requests
