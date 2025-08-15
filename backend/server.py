@@ -5624,6 +5624,69 @@ async def get_available_cargo_for_placement(
             detail=f"Ошибка получения грузов для размещения: {str(e)}"
         )
 
+# НОВОЕ: Endpoint для удаления груза из списка размещения
+@app.delete("/api/operator/cargo/{cargo_id}/remove-from-placement")
+async def remove_cargo_from_placement(
+    cargo_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Удалить груз из списка размещения"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        # Ищем груз в operator_cargo коллекции
+        cargo = db.operator_cargo.find_one({"id": cargo_id})
+        
+        if not cargo:
+            # Ищем в основной коллекции cargo
+            cargo = db.cargo.find_one({"id": cargo_id})
+            collection_name = "cargo"
+        else:
+            collection_name = "operator_cargo"
+            
+        if not cargo:
+            raise HTTPException(status_code=404, detail="Cargo not found")
+        
+        # Получаем коллекцию
+        collection = getattr(db, collection_name)
+        
+        # Обновляем статус груза - убираем из списка размещения
+        update_result = collection.update_one(
+            {"id": cargo_id},
+            {
+                "$set": {
+                    "status": "removed_from_placement",
+                    "removed_from_placement_at": datetime.utcnow(),
+                    "removed_from_placement_by": current_user.id,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        if update_result.modified_count == 0:
+            raise HTTPException(status_code=400, detail="Failed to remove cargo from placement")
+        
+        # Создаем уведомление
+        create_notification(
+            current_user.id,
+            f"Груз {cargo['cargo_number']} удален из списка размещения",
+            cargo_id
+        )
+        
+        return {
+            "success": True,
+            "message": f"Груз {cargo['cargo_number']} успешно удален из списка размещения",
+            "cargo_number": cargo['cargo_number']
+        }
+        
+    except Exception as e:
+        print(f"❌ Ошибка удаления груза из размещения: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка удаления груза из списка размещения: {str(e)}"
+        )
+
 @app.post("/api/cargo/{cargo_id}/quick-placement")
 async def quick_cargo_placement(
     cargo_id: str,
