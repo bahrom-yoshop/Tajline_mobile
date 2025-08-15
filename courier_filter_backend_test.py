@@ -357,7 +357,7 @@ class CourierFilterTest:
             
             headers = {"Authorization": f"Bearer {self.admin_token}"}
             response = self.session.post(
-                f"{BACKEND_URL}/admin/couriers",
+                f"{BACKEND_URL}/admin/couriers/create",
                 json=courier_data,
                 headers=headers,
                 timeout=30
