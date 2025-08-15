@@ -14690,9 +14690,27 @@ function App() {
                                       <div className="bg-green-50 p-3 rounded-lg">
                                         <h5 className="font-semibold text-green-700 mb-2">Заполненность</h5>
                                         <div className="text-sm space-y-1">
-                                          <p className="text-green-900 font-bold text-lg">{warehouse.cargo_stats?.occupancy_rate || 0}%</p>
-                                          <p className="text-green-600">🟢 Занято: {warehouse.cargo_stats?.occupied_cells || 0}</p>
-                                          <p className="text-green-600">⚪ Свободно: {warehouse.cargo_stats?.free_cells || 0}</p>
+                                          <p className="text-green-900 font-bold text-lg">
+                                            {(() => {
+                                              const rate = warehouse.cargo_stats?.occupancy_rate || 0;
+                                              console.log(`🔧 Отображение заполненности для склада ${warehouse.warehouse_name}:`, rate);
+                                              return rate;
+                                            })()}%
+                                          </p>
+                                          <p className="text-green-600">
+                                            🟢 Занято: {(() => {
+                                              const occupied = warehouse.cargo_stats?.occupied_cells || 0;
+                                              console.log(`🔧 Занято ячеек для склада ${warehouse.warehouse_name}:`, occupied);
+                                              return occupied;
+                                            })()}
+                                          </p>
+                                          <p className="text-green-600">
+                                            ⚪ Свободно: {(() => {
+                                              const free = warehouse.cargo_stats?.free_cells || 0;
+                                              console.log(`🔧 Свободно ячеек для склада ${warehouse.warehouse_name}:`, free);
+                                              return free;
+                                            })()}
+                                          </p>
                                         </div>
                                       </div>
 
