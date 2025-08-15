@@ -534,9 +534,22 @@ function App() {
   // НОВЫЕ ФУНКЦИИ ДЛЯ КУРЬЕРСКОЙ СЛУЖБЫ (ЭТАП 2)
   const fetchCouriers = async (page = 1, perPage = 25) => {
     try {
-      const data = await apiCall(`/api/admin/couriers/list?page=${page}&per_page=${perPage}`);
+      // ОБНОВЛЕНО: Добавляем параметр show_inactive для показа неактивных курьеров
+      const params = new URLSearchParams({
+        page: page.toString(),
+        per_page: perPage.toString()
+      });
+      
+      // Только админы могут видеть неактивных курьеров
+      if (showInactiveCouriers && user?.role === 'admin') {
+        params.append('show_inactive', 'true');
+      }
+      
+      const data = await apiCall(`/api/admin/couriers/list?${params.toString()}`);
       setCouriers(data.items || []);
       setCouriersPagination(data.pagination || {});
+      
+      console.log(`📋 Загружены курьеры (стр. ${page}): ${(data.items || []).length} курьеров${showInactiveCouriers ? ' (включая неактивных)' : ' (только активные)'}`);
     } catch (error) {
       console.error('Error fetching couriers:', error);
       showAlert('Ошибка загрузки курьеров: ' + error.message, 'error');
