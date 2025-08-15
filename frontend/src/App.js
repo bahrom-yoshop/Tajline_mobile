@@ -26992,13 +26992,13 @@ function App() {
                       className={`mt-1 ${externalScannerStep === 'cargo' ? 'bg-yellow-50 border-yellow-300' : 'bg-gray-100'}`}
                       autoFocus={externalScannerStep === 'cargo'}
                     />
-                    {false && externalScannedCargo && (
+                    {externalScannedCargo && (
                       <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
                         <div className="font-medium text-green-800">
-                          Груз: {externalScannedCargo.cargo_number}
+                          Груз: {typeof externalScannedCargo === 'object' && externalScannedCargo.cargo_number ? externalScannedCargo.cargo_number : 'Неизвестный груз'}
                         </div>
                         <div className="text-green-600">
-                          {externalScannedCargo.cargo_name || 'Груз готов к размещению'}
+                          {typeof externalScannedCargo === 'object' && externalScannedCargo.cargo_name ? externalScannedCargo.cargo_name : 'Груз готов к размещению'}
                         </div>
                       </div>
                     )}
