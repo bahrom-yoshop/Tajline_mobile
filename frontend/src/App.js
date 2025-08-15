@@ -17346,7 +17346,29 @@ function App() {
                                   className="flex items-center"
                                 >
                                   <Trash2 className="mr-1 h-3 w-3" />
-                                  Удалить выбранные ({selectedPickupRequests.length})
+                                  Удалить заявки ({selectedPickupRequests.length})
+                                </Button>
+                                
+                                {/* НОВОЕ: Массовое удаление грузов */}
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => {
+                                    const cargoItemsToDelete = allPickupRequests
+                                      .filter(req => selectedPickupRequests.includes(req.id))
+                                      .map(req => ({
+                                        id: req.id,
+                                        cargo_number: req.request_number || req.cargo_name,
+                                        sender_full_name: req.sender_full_name,
+                                        recipient_full_name: req.recipient_full_name,
+                                        weight: req.weight || 'Не указан'
+                                      }));
+                                    handleBulkDeleteCargoCompletely(selectedPickupRequests, cargoItemsToDelete);
+                                  }}
+                                  className="flex items-center bg-red-700 hover:bg-red-800"
+                                >
+                                  <Trash2 className="mr-1 h-3 w-3" />
+                                  Удалить грузы ({selectedPickupRequests.length})
                                 </Button>
                               </div>
                             )}
