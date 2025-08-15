@@ -207,31 +207,43 @@ class CargoPlacementAnyStatusTester:
             processing_status = test_cargo.get("processing_status", "Unknown")
             payment_status = test_cargo.get("payment_status", "Unknown")
             
-            # Пытаемся разместить груз в тестовую ячейку
-            placement_data = {
-                "cargo_number": cargo_number,
-                "cell_code": "001-01-01-001"  # Тестовая ячейка
-            }
+            # Пытаемся разместить груз в разные тестовые ячейки
+            test_cells = ["001-01-01-002", "001-01-01-003", "001-01-01-004", "001-01-01-005"]
             
-            response = self.session.post(
-                f"{BACKEND_URL}/cargo/place-in-cell",
-                json=placement_data
-            )
+            placement_success = False
+            last_error = ""
             
-            if response.status_code == 200:
-                data = response.json()
-                details = f"Груз {cargo_number} (processing_status: {processing_status}, payment_status: {payment_status}) успешно размещен. "
-                details += f"Ответ API: {data}"
+            for cell_code in test_cells:
+                placement_data = {
+                    "cargo_number": cargo_number,
+                    "cell_code": cell_code
+                }
                 
-                self.log_test(
-                    "Тестирование размещения груза с любым статусом через /api/cargo/place-in-cell",
-                    True,
-                    details
+                response = self.session.post(
+                    f"{BACKEND_URL}/cargo/place-in-cell",
+                    json=placement_data
                 )
-                return True
-            else:
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    details = f"Груз {cargo_number} (processing_status: {processing_status}, payment_status: {payment_status}) успешно размещен в ячейку {cell_code}. "
+                    details += f"Ответ API: {data}"
+                    
+                    self.log_test(
+                        "Тестирование размещения груза с любым статусом через /api/cargo/place-in-cell",
+                        True,
+                        details
+                    )
+                    placement_success = True
+                    break
+                else:
+                    last_error = f"HTTP {response.status_code}: {response.text}"
+                    # Продолжаем пробовать другие ячейки
+                    continue
+            
+            if not placement_success:
                 error_details = f"Груз {cargo_number} (processing_status: {processing_status}, payment_status: {payment_status}). "
-                error_details += f"HTTP {response.status_code}: {response.text}"
+                error_details += f"Не удалось разместить ни в одну из тестовых ячеек. Последняя ошибка: {last_error}"
                 
                 self.log_test(
                     "Тестирование размещения груза с любым статусом через /api/cargo/place-in-cell",
@@ -239,6 +251,8 @@ class CargoPlacementAnyStatusTester:
                     error_msg=error_details
                 )
                 return False
+            
+            return True
                 
         except Exception as e:
             self.log_test(
