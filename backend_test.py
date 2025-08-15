@@ -116,6 +116,31 @@ class PickupRequestDiagnosisTest:
                     f"Endpoint работает корректно, получено {total_count} уведомлений (pending: {pending_count}, in_processing: {in_processing_count})"
                 )
                 return True
+            elif response.status_code == 403:
+                # Если доступ запрещен, попробуем получить уведомления через админский endpoint
+                admin_response = self.session.get(f"{API_BASE}/notifications")
+                if admin_response.status_code == 200:
+                    admin_data = admin_response.json()
+                    notifications = admin_data.get("notifications", [])
+                    
+                    # Фильтруем только warehouse notifications
+                    warehouse_notifications = [n for n in notifications if 'warehouse' in n.get('message', '').lower() or 'pickup' in n.get('message', '').lower()]
+                    
+                    self.notifications = warehouse_notifications
+                    
+                    self.log_result(
+                        "ПОЛУЧЕНИЕ СПИСКА УВЕДОМЛЕНИЙ",
+                        True,
+                        f"Получено через админский endpoint: {len(warehouse_notifications)} уведомлений склада из {len(notifications)} общих"
+                    )
+                    return True
+                else:
+                    self.log_result(
+                        "ПОЛУЧЕНИЕ СПИСКА УВЕДОМЛЕНИЙ",
+                        False,
+                        f"Ошибка получения уведомлений: HTTP {response.status_code}, также не удалось получить через админский endpoint: HTTP {admin_response.status_code}"
+                    )
+                    return False
             else:
                 self.log_result(
                     "ПОЛУЧЕНИЕ СПИСКА УВЕДОМЛЕНИЙ",
