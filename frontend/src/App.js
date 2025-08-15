@@ -2362,7 +2362,8 @@ function App() {
       const cellInfo = parseCellQRCode(cellData);
       if (cellInfo) {
         // Используем читаемое имя ячейки для отображения
-        const cellDisplayFormat = cellInfo.readable_name;
+        // ИСПРАВЛЕНИЕ: Отображаем цифровой код QR вместо читаемого формата
+        const cellDisplayFormat = cellInfo.cell_code || cellInfo.readable_name;
         
         // Вводим данные в поле для сканирования ячейки
         setExternalCellInput(cellDisplayFormat);
