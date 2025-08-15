@@ -350,19 +350,37 @@ class TajlineCargoDeleteTester:
             # 1. Проверяем список размещения
             response = self.session.get(f"{BACKEND_URL}/operator/cargo/available-for-placement")
             if response.status_code == 200:
-                placement_count = len(response.json().get("items", []))
+                data = response.json()
+                if isinstance(data, dict) and "items" in data:
+                    placement_count = len(data["items"])
+                elif isinstance(data, list):
+                    placement_count = len(data)
+                else:
+                    placement_count = 0
                 checks.append(f"Размещение: {placement_count} грузов")
             
             # 2. Проверяем админский список грузов
             response = self.session.get(f"{BACKEND_URL}/admin/cargo")
             if response.status_code == 200:
-                admin_count = len(response.json().get("items", []))
+                data = response.json()
+                if isinstance(data, dict) and "items" in data:
+                    admin_count = len(data["items"])
+                elif isinstance(data, list):
+                    admin_count = len(data)
+                else:
+                    admin_count = 0
                 checks.append(f"Админские грузы: {admin_count} грузов")
             
             # 3. Проверяем заявки на забор
             response = self.session.get(f"{BACKEND_URL}/admin/cargo-requests")
             if response.status_code == 200:
-                requests_count = len(response.json().get("items", []))
+                data = response.json()
+                if isinstance(data, dict) and "items" in data:
+                    requests_count = len(data["items"])
+                elif isinstance(data, list):
+                    requests_count = len(data)
+                else:
+                    requests_count = 0
                 checks.append(f"Заявки на забор: {requests_count} заявок")
             
             self.log_test(
