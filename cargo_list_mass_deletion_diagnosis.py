@@ -348,7 +348,7 @@ class CargoListMassDeleteDiagnoser:
                 
         except Exception as e:
             self.log_test(
-                'Анализ операторского списка грузов - GET /api/operator/cargo',
+                'Анализ операторского списка грузов - GET /api/operator/cargo/list',
                 False,
                 "",
                 str(e)
