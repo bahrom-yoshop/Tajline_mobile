@@ -5471,10 +5471,16 @@ function App() {
   const fetchOperatorDashboardAnalytics = async () => {
     if (!user || user.role !== 'warehouse_operator') return;
     
+    // ИСПРАВЛЕНИЕ: Принудительная очистка старых данных перед загрузкой новых
+    setOperatorDashboardAnalytics(null);
+    
     setOperatorAnalyticsLoading(true);
     try {
       console.log('🔄 Загрузка аналитики дашборда оператора...');
-      const response = await apiCall('/api/operator/dashboard/analytics');
+      
+      // ИСПРАВЛЕНИЕ: Добавляем timestamp для избежания кэширования
+      const timestamp = new Date().getTime();
+      const response = await apiCall(`/api/operator/dashboard/analytics?_t=${timestamp}`);
       console.log('📊 Получена аналитика оператора:', response);
       
       // ОТЛАДКА: Детальный вывод статистики каждого склада
