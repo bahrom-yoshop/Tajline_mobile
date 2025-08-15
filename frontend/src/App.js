@@ -12224,6 +12224,35 @@ function App() {
     );
   };
 
+  // ИСПРАВЛЕНИЕ: Показ экрана загрузки при инициализации для предотвращения показа старых данных
+  if (isInitializing && token) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="flex items-center justify-center mb-6">
+            <div className="bg-blue-600 rounded-2xl p-4 shadow-2xl">
+              <img 
+                src="https://customer-assets.emergentagent.com/job_tajline-courier/artifacts/st3odbr7_Logo_line.png" 
+                alt="TAJLINE.TJ" 
+                className="h-12 w-auto"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'block';
+                }}
+              />
+              <div className="hidden">
+                <Truck className="h-12 w-12 text-white" />
+              </div>
+            </div>
+          </div>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Загрузка...</h2>
+          <p className="text-gray-600">Получение данных пользователя</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 flex items-center justify-center p-4">
