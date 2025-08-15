@@ -651,6 +651,54 @@ function App() {
     }
   };
 
+  // Функция удаления курьера
+  const handleDeleteCourier = async (courier) => {
+    try {
+      console.log('🗑️ Начинаем удаление курьера:', courier.full_name);
+      
+      // Подтверждение удаления
+      const confirmDelete = window.confirm(
+        `Вы уверены, что хотите удалить курьера "${courier.full_name}"?\n\n` +
+        `Телефон: ${courier.phone}\n` +
+        `Транспорт: ${courier.transport_type} ${courier.transport_number}\n` +
+        `Склад: ${courier.assigned_warehouse_name}\n\n` +
+        `Это действие нельзя отменить.`
+      );
+      
+      if (!confirmDelete) {
+        console.log('❌ Удаление курьера отменено пользователем');
+        return;
+      }
+      
+      console.log('🔄 Выполняем запрос удаления курьера с ID:', courier.id);
+      
+      // Выполняем удаление
+      await apiCall(`/api/admin/couriers/${courier.id}`, 'DELETE');
+      
+      console.log('✅ Курьер успешно удален:', courier.full_name);
+      showAlert(`Курьер "${courier.full_name}" успешно удален!`, 'success');
+      
+      // Обновляем список курьеров
+      await fetchCouriers(couriersPage, couriersPerPage);
+      
+      // Если был открыт профиль удаленного курьера, закрываем его
+      if (courierProfileModal && selectedCourier?.id === courier.id) {
+        setCourierProfileModal(false);
+        setSelectedCourier(null);
+      }
+      
+      // Если был открыт редактор удаленного курьера, закрываем его
+      if (courierEditModal && selectedCourier?.id === courier.id) {
+        setCourierEditModal(false);
+        setSelectedCourier(null);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error deleting courier:', error);
+      showAlert(`Ошибка удаления курьера: ${error.message}`, 'error');
+    }
+  };
+
   const fetchAvailableCouriersForWarehouse = async (warehouseId) => {
     try {
       const data = await apiCall(`/api/admin/couriers/available/${warehouseId}`);
