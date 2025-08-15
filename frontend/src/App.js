@@ -4411,6 +4411,16 @@ function App() {
       // Увеличиваем счетчик размещенных грузов в сессии
       setSessionPlacedCount(prev => prev + 1);
       
+      // НОВОЕ: Добавляем информацию о размещенном грузе в список сессии
+      const placedCargoInfo = {
+        cargo_number: scannedCargoData.cargo_number,
+        location: scannedCellData.readable_name || `Б${scannedCellData.block_number}-П${scannedCellData.shelf_number}-Я${scannedCellData.cell_number}`,
+        warehouse_name: scannedCellData.warehouse_name || `Склад №${scannedCellData.warehouse_number}`,
+        placed_at: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+      };
+      
+      setSessionPlacedCargo(prev => [...prev, placedCargoInfo]);
+      
       // НОВОЕ: Обновляем статистику склада после размещения
       if (scannedCellData.warehouse_id) {
         console.log('🔄 Обновляем статистику склада после размещения...');
