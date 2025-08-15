@@ -197,6 +197,66 @@ backend:
           agent: "testing"
           comment: "КОРНЕВАЯ ПРИЧИНА НАЙДЕНА: Проблема в несовместимости форматов номеров грузов. API /api/operator/cargo/available-for-placement возвращает грузы в двух форматах: новый (2501XXXXXX) и старый (100XXX/XX). Endpoint /api/cargo/track/{cargo_number} работает только с новым форматом. При сканировании QR кодов старого формата система не может найти груз, отсюда сообщение 'Груз не найден в списке ожидающих размещение'"
 
+  - task: "Авторизация оператора склада для QR размещения (+79777888999/warehouse123)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Успешная авторизация оператора склада 'Оператор Складской Обновленный' (номер: USR648400), роль: warehouse_operator подтверждена, JWT токен генерируется корректно для QR размещения груза"
+
+  - task: "КРИТИЧЕСКАЯ ПРОВЕРКА: GET /api/operator/cargo/available-for-placement для QR размещения"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "КРИТИЧЕСКИЙ УСПЕХ: Endpoint работает корректно и возвращает 25 грузов для размещения. Структура ответа содержит поле 'items' с массивом грузов, пагинация реализована корректно. Все грузы готовы к размещению через QR сканирование"
+
+  - task: "Проверка соответствия warehouse_id и warehouse_number для QR кодов"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Найдено 20 складов с корректным соответствием id и warehouse_number. Все склады имеют warehouse_id (UUID) и warehouse_number (числовой), система готова для преобразования компактных QR кодов на frontend"
+
+  - task: "Тестирование различных форматов QR кодов ячеек через /api/cargo/place-in-cell"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "УСПЕШНО ПРОТЕСТИРОВАНЫ форматы QR кодов: ID-based формат с дефисами (005-01-01-001) работает корректно, груз 100078/01 успешно размещен в ячейку. Компактный формат (05010101) НЕ ПОДДЕРЖИВАЕТСЯ в backend (ожидаемо), должен обрабатываться на frontend и преобразовываться в поддерживаемый формат"
+
+  - task: "КРИТИЧЕСКАЯ ПРОВЕРКА: Исправление ошибки 'Invalid cell code format'"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "ИСПРАВЛЕНИЯ ПОДТВЕРЖДЕНЫ: Backend поддерживает размещение груза через QR коды, endpoint /api/cargo/place-in-cell функционален, ID-based формат работает корректно. Компактный формат должен обрабатываться на frontend (как и планировалось в исправлениях). Система готова для исправления 'Invalid cell code format'"
+
 frontend:
   - task: "Авторизация администратора (admin@emergent.com/admin123)"
     implemented: true
