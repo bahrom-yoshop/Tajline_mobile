@@ -4413,8 +4413,8 @@ function App() {
     setShowCargoPlacementModal(true);
   };
 
-  // ОБНОВЛЕНО: Универсальная функция для удаления груза полностью из системы
-  const handleDeleteCargo = async (cargoId, cargoNumber, cargoList = null) => {
+  // ОБНОВЛЕНО: Универсальная функция для полного удаления груза из системы
+  const handleDeleteCargoCompletely = async (cargoId, cargoNumber, cargoList = null) => {
     // Ищем груз в переданном списке или в доступных для размещения
     let cargoItem = null;
     if (cargoList) {
@@ -4433,7 +4433,7 @@ function App() {
   };
 
   // Сохраняем старое название для совместимости
-  const handleDeleteCargoFromPlacement = handleDeleteCargo;
+  const handleDeleteCargoFromPlacement = handleDeleteCargoCompletely;
 
   // НОВОЕ: Функции для массового удаления грузов
   const handleSelectCargoForDeletion = (cargoId) => {
