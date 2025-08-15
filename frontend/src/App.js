@@ -30130,8 +30130,8 @@ function App() {
                                         {/* Таблица ячеек для данной полки */}
                                         <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
                                           {shelfCells.map((cell) => (
+                                            <React.Fragment key={cell.id}>
                                             <div
-                                              key={cell.id}
                                               className={`aspect-square border-2 rounded-lg cursor-pointer transition-all hover:shadow-md ${
                                                 selectedCells.includes(cell.id)
                                                   ? 'border-blue-500 bg-blue-100'
