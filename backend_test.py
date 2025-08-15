@@ -201,7 +201,12 @@ def test_cargo_requests_with_items(admin_token):
     
     if response.status_code == 200:
         data = response.json()
-        all_requests = data.get('requests', [])
+        # Handle both list and dict responses
+        if isinstance(data, list):
+            all_requests = data
+        else:
+            all_requests = data.get('requests', [])
+        
         print(f"✅ Всего заявок найдено: {len(all_requests)}")
         
         # Ищем заявки с items
