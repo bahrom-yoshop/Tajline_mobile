@@ -474,6 +474,33 @@ def check_cargo_pickup_connection(token):
     except Exception as e:
         log_error(f"Исключение при проверке связи: {str(e)}")
 
+def authorize_admin():
+    """Авторизация администратора для полного доступа"""
+    log_test_step("АВТОРИЗАЦИЯ АДМИНИСТРАТОРА", "+79999888777/admin123")
+    
+    try:
+        response = requests.post(f"{BACKEND_URL}/auth/login", json={
+            "phone": "+79999888777",
+            "password": "admin123"
+        })
+        
+        if response.status_code == 200:
+            data = response.json()
+            token = data.get("access_token")
+            user_info = data.get("user", {})
+            
+            log_success(f"Успешная авторизация: {user_info.get('full_name', 'Unknown')} (номер: {user_info.get('user_number', 'N/A')})")
+            log_info(f"Роль: {user_info.get('role', 'Unknown')}")
+            
+            return token
+        else:
+            log_error(f"Ошибка авторизации: {response.status_code} - {response.text}")
+            return None
+            
+    except Exception as e:
+        log_error(f"Исключение при авторизации: {str(e)}")
+        return None
+
 def main():
     """Основная функция диагностики"""
     print("=" * 80)
@@ -481,37 +508,57 @@ def main():
     print("   после массового удаления грузов в TAJLINE.TJ")
     print("=" * 80)
     
-    # 1. Авторизация оператора склада
-    token = authorize_warehouse_operator()
-    if not token:
-        print("\n❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось авторизоваться")
+    # 1. Авторизация администратора для полного доступа
+    admin_token = authorize_admin()
+    if not admin_token:
+        print("\n❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось авторизоваться как администратор")
         return
     
-    # 2. Получение заявок на забор ДО удаления
-    pickup_requests_before = get_pickup_requests_before_deletion(token)
+    # 2. Авторизация оператора склада
+    operator_token = authorize_warehouse_operator()
+    if not operator_token:
+        print("\n❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось авторизоваться как оператор склада")
+        return
     
-    # 3. Анализ структуры заявок на забор - поиск связи с грузами
-    check_cargo_pickup_connection(token)
+    # 3. Анализ структуры заявок на забор - поиск связи с грузами (используем админский токен)
+    check_cargo_pickup_connection(admin_token)
     
-    # 4. Получение доступных грузов для размещения
-    cargo_items = get_available_cargo_for_placement(token)
+    # 4. Получение заявок на забор ДО удаления (используем операторский токен)
+    pickup_requests_before = get_pickup_requests_before_deletion(operator_token)
+    
+    # 5. Получение доступных грузов для размещения
+    cargo_items = get_available_cargo_for_placement(operator_token)
     
     if not cargo_items:
         log_warning("Нет грузов для удаления - диагностика ограничена")
+        
+        # Попробуем создать тестовые данные
+        log_test_step("ПОПЫТКА СОЗДАНИЯ ТЕСТОВЫХ ДАННЫХ", "Для воспроизведения проблемы")
+        test_request = create_test_pickup_request(admin_token)
+        
+        if test_request:
+            # Повторно проверяем заявки на забор
+            pickup_requests_before = get_pickup_requests_before_deletion(operator_token)
+        
         return
     
-    # 5. Выполнение массового удаления грузов из размещения
-    deletion_success = perform_bulk_cargo_deletion(token, cargo_items)
+    # 6. Выполнение массового удаления грузов из размещения
+    deletion_success = perform_bulk_cargo_deletion(operator_token, cargo_items)
     
     if not deletion_success:
         log_error("Массовое удаление не выполнено - диагностика прервана")
         return
     
-    # 6. Получение заявок на забор ПОСЛЕ удаления
-    pickup_requests_after = get_pickup_requests_after_deletion(token)
+    # 7. Получение заявок на забор ПОСЛЕ удаления
+    pickup_requests_after = get_pickup_requests_after_deletion(operator_token)
     
-    # 7. Анализ изменений
+    # 8. Анализ изменений
     analyze_pickup_request_structure(pickup_requests_before, pickup_requests_after)
+    
+    # 9. Повторная проверка админских данных после удаления
+    log_test_step("ПОВТОРНАЯ ПРОВЕРКА АДМИНСКИХ ДАННЫХ ПОСЛЕ УДАЛЕНИЯ", "Поиск изменений")
+    check_admin_cargo_requests(admin_token)
+    check_warehouse_notifications(admin_token)
     
     # Финальные выводы
     print("\n" + "=" * 80)
