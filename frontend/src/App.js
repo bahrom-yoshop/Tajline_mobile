@@ -7296,7 +7296,7 @@ function App() {
               cargo_ids: ids
             });
             if (response.success) {
-              showAlert(`${response.deleted_count} грузов успешно удалено полностью из системы`, 'success');
+              showAlert(`${response.deleted_count} грузов успешно удалено из размещения`, 'success');
               
               // Сбрасываем состояния ПЕРЕД обновлением списков
               setSelectedCargoForDeletion([]);
