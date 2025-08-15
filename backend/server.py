@@ -5646,7 +5646,7 @@ async def bulk_remove_cargo_from_placement(
         deleted_cargo_numbers = []
         
         for cargo_id in cargo_ids:
-            # Ищем груз в нескольких коллекциях
+            # ИСПРАВЛЕНО: Ищем груз с дополнительной диагностикой дублирующихся ID
             cargo = None
             collection_name = None
             
@@ -5675,6 +5675,20 @@ async def bulk_remove_cargo_from_placement(
                             collection_name = "cargo_requests"
                             cargo["request_id"] = request_with_cargo["id"]  # Сохраняем ID заявки
                             break
+            
+            # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Дополнительная проверка при дублировании ID
+            if cargo and collection_name in ["operator_cargo", "cargo"]:
+                collection = getattr(db, collection_name)
+                duplicate_check = list(collection.find({"id": cargo_id}))
+                
+                if len(duplicate_check) > 1:
+                    print(f"⚠️ МАССОВОЕ УДАЛЕНИЕ: Найдено {len(duplicate_check)} грузов с ID {cargo_id}")
+                    for i, dup_cargo in enumerate(duplicate_check):
+                        print(f"   {i+1}. Номер: {dup_cargo.get('cargo_number')}, Отправитель: {dup_cargo.get('sender_full_name')}")
+                    
+                    # В случае дублирования ID используем первый найденный груз
+                    cargo = duplicate_check[0]
+                    print(f"   Используем груз: {cargo.get('cargo_number')}")
             
             if cargo:
                 if collection_name == "cargo_requests":
