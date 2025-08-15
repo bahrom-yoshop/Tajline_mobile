@@ -16960,8 +16960,18 @@ function App() {
                           </div>
 
                           {/* НОВОЕ: Карта маршрута доставки */}
+                          {console.log('🔧 Отладка карты (место 2):', {
+                            recipient_address: operatorCargoForm.recipient_address,
+                            operatorWarehouses: operatorWarehouses.length,
+                            warehouses: operatorWarehouses
+                          })}
                           {operatorCargoForm.recipient_address && operatorWarehouses.length > 0 && (
                             <div className="mt-4">
+                              <div className="mb-2 p-2 bg-blue-50 rounded border">
+                                <p className="text-sm text-blue-700">
+                                  🗺️ <strong>Карта маршрута появилась!</strong> От: {operatorWarehouses[0]?.name} ({operatorWarehouses[0]?.location}) до: {operatorCargoForm.recipient_address}
+                                </p>
+                              </div>
                               <RouteMap
                                 fromAddress={`${operatorWarehouses[0]?.location || 'Душанбе'}`}
                                 toAddress={operatorCargoForm.recipient_address}
@@ -16971,6 +16981,23 @@ function App() {
                                   console.log('📍 Информация о маршруте:', routeData);
                                 }}
                               />
+                            </div>
+                          )}
+                          
+                          {/* Показываем почему карта не отображается */}
+                          {!operatorCargoForm.recipient_address && (
+                            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                              <p className="text-sm text-yellow-800">
+                                ℹ️ Заполните "Адрес получения груза" чтобы увидеть карту маршрута
+                              </p>
+                            </div>
+                          )}
+                          
+                          {operatorCargoForm.recipient_address && operatorWarehouses.length === 0 && (
+                            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
+                              <p className="text-sm text-red-800">
+                                ⚠️ Не найдены склады оператора. Склады: {operatorWarehouses.length}
+                              </p>
                             </div>
                           )}
 
