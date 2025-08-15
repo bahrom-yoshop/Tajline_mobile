@@ -4292,10 +4292,15 @@ function App() {
       // ИСПРАВЛЕНИЕ: Определяем warehouse_id в зависимости от формата QR кода
       let warehouseId;
       
+      console.log('🔍 Отладка размещения груза:');
+      console.log('- Данные ячейки:', scannedCellData);
+      console.log('- Доступные склады:', warehouses.map(w => ({id: w.id, name: w.name, warehouse_number: w.warehouse_number})));
+      
       if (scannedCellData.format === 'compact') {
         // Для компактного формата нужно найти warehouse_id по warehouse_number
         const warehouse = warehouses.find(w => w.warehouse_number === scannedCellData.warehouse_number);
         if (!warehouse) {
+          console.error(`❌ Склад с номером ${scannedCellData.warehouse_number} не найден среди:`, warehouses.map(w => `${w.name} (№${w.warehouse_number})`));
           showAlert(`Склад с номером ${scannedCellData.warehouse_number} не найден`, 'error');
           return;
         }
@@ -4304,6 +4309,7 @@ function App() {
       } else {
         // Для других форматов используем существующий warehouse_id
         warehouseId = scannedCellData.warehouse_id;
+        console.log(`✅ Используем warehouse_id из данных ячейки: ${warehouseId}`);
       }
       
       if (!warehouseId) {
