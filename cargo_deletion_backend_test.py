@@ -148,7 +148,7 @@ class TajlineCargoDeleteTester:
         
         try:
             cargo = cargo_data["cargo"]
-            cargo_id = cargo.get("id")
+            cargo_id = cargo.get("id") or cargo.get("_id")
             cargo_number = cargo.get("cargo_number") or cargo.get("request_number")
             source = cargo_data["source"]
             
