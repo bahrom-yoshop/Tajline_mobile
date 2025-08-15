@@ -161,18 +161,19 @@ class TajlineCargoDeleteTester:
             
             if response.status_code == 200:
                 result = response.json()
-                success = result.get("success", False)
                 message = result.get("message", "")
+                deleted_count = result.get("deleted_from_collections", 0)
                 
-                if success:
+                # Проверяем что груз действительно удален (message содержит "успешно удален")
+                if "успешно удален" in message and deleted_count > 0:
                     self.log_test(
                         "Полное удаление одного груза", 
                         True, 
-                        f"Груз {cargo_number} (источник: {source}) успешно ПОЛНОСТЬЮ удален из системы. Ответ: {message}"
+                        f"Груз {cargo_number} (источник: {source}) успешно ПОЛНОСТЬЮ удален из системы. Удалено из {deleted_count} коллекций. Ответ: {message}"
                     )
                     return True
                 else:
-                    self.log_test("Полное удаление одного груза", False, f"Удаление не выполнено: {message}")
+                    self.log_test("Полное удаление одного груза", False, f"Удаление не выполнено корректно: {message}")
                     return False
             else:
                 self.log_test("Полное удаление одного груза", False, f"HTTP {response.status_code}: {response.text}")
