@@ -13586,6 +13586,94 @@ async def update_courier_profile(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating courier: {str(e)}")
 
+@app.delete("/api/admin/couriers/{courier_id}")
+async def delete_courier(
+    courier_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Удалить курьера (только для админов)"""
+    # БЕЗОПАСНОСТЬ: Только администраторы могут удалять курьеров
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only administrators can delete couriers")
+    
+    try:
+        # Находим курьера
+        courier = db.couriers.find_one({"id": courier_id})
+        if not courier:
+            raise HTTPException(status_code=404, detail="Courier not found")
+        
+        # Проверяем есть ли активные заявки у курьера
+        active_requests = db.courier_requests.count_documents({
+            "assigned_courier_id": courier_id,
+            "status": {"$in": ["new", "accepted", "picked_up"]}
+        })
+        
+        if active_requests > 0:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Нельзя удалить курьера с активными заявками ({active_requests}). Завершите или отмените заявки сначала."
+            )
+        
+        # Получаем информацию о курьере для логирования
+        courier_name = courier.get("full_name", "Unknown")
+        courier_phone = courier.get("phone", "Unknown")
+        user_id = courier.get("user_id")
+        
+        # SOFT DELETE: Деактивируем курьера вместо физического удаления
+        # Это сохраняет историю для аудита
+        db.couriers.update_one(
+            {"id": courier_id},
+            {
+                "$set": {
+                    "is_active": False,
+                    "deleted": True,
+                    "deleted_at": datetime.utcnow(),
+                    "deleted_by": current_user.id,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        # Деактивируем пользователя-курьера
+        if user_id:
+            db.users.update_one(
+                {"id": user_id},
+                {
+                    "$set": {
+                        "is_active": False,
+                        "deleted": True,
+                        "deleted_at": datetime.utcnow(),
+                        "deleted_by": current_user.id,
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+        
+        # Логируем операцию удаления
+        db.admin_logs.insert_one({
+            "id": str(uuid.uuid4()),
+            "action": "courier_deleted",
+            "admin_id": current_user.id,
+            "admin_name": current_user.full_name,
+            "target_courier_id": courier_id,
+            "target_courier_name": courier_name,
+            "target_courier_phone": courier_phone,
+            "reason": "Админ удалил курьера через интерфейс",
+            "created_at": datetime.utcnow()
+        })
+        
+        return {
+            "message": f"Курьер '{courier_name}' успешно удален",
+            "courier_id": courier_id,
+            "courier_name": courier_name,
+            "deleted_at": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting courier: {str(e)}")
+
 @app.post("/api/operator/courier-requests/create")
 async def create_courier_request_for_pickup(
     cargo_id: str,
