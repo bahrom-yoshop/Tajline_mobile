@@ -6497,25 +6497,20 @@ function App() {
 
   const fetchWarehouses = async () => {
     try {
+      console.log('📦 Загрузка списка складов...');
+      const startTime = performance.now();
+      
       const data = await apiCall('/api/warehouses', 'GET');
       // ИСПРАВЛЕНИЕ: API возвращает прямой массив складов, а не объект с полем warehouses
       const warehousesArray = Array.isArray(data) ? data : (data.warehouses || []);
       setWarehouses(warehousesArray);
       
-      // Загружаем статистику для каждого склада
-      const statisticsPromises = warehousesArray.map(async (warehouse) => {
-        try {
-          const stats = await apiCall(`/api/warehouses/${warehouse.id}/statistics`, 'GET');
-          return { [warehouse.id]: stats };
-        } catch (error) {
-          console.error(`Error loading statistics for warehouse ${warehouse.id}:`, error);
-          return { [warehouse.id]: null };
-        }
-      });
+      const endTime = performance.now();
+      console.log(`✅ Загружено ${warehousesArray.length} складов за ${Math.round(endTime - startTime)}ms`);
       
-      const statisticsResults = await Promise.all(statisticsPromises);
-      const statistics = statisticsResults.reduce((acc, stat) => ({ ...acc, ...stat }), {});
-      setWarehousesStatistics(statistics);
+      // ОПТИМИЗАЦИЯ: Убрали автоматическую загрузку статистики для всех складов
+      // Статистика будет загружаться по требованию (lazy loading)
+      console.log('⚡ Статистика складов будет загружаться по требованию для улучшения производительности');
       
     } catch (error) {
       console.error('Error fetching warehouses:', error);
