@@ -16385,6 +16385,49 @@ function App() {
                                 />
                               </div>
 
+                              {/* НОВОЕ: Карта маршрута для забора груза */}
+                              {console.log('🔧 Отладка карты (режим забора):', {
+                                pickup_address: operatorCargoForm.pickup_address,
+                                operatorWarehouses: operatorWarehouses.length,
+                                warehouses: operatorWarehouses
+                              })}
+                              {operatorCargoForm.pickup_address && operatorWarehouses.length > 0 && (
+                                <div className="mt-4">
+                                  <div className="mb-2 p-2 bg-orange-50 rounded border">
+                                    <p className="text-sm text-orange-700">
+                                      🗺️ <strong>Карта маршрута забора груза!</strong><br/>
+                                      Маршрут: от <strong>{operatorCargoForm.pickup_address}</strong> до склада <strong>{operatorWarehouses[0]?.name}</strong>
+                                    </p>
+                                  </div>
+                                  <RouteMap
+                                    fromAddress={operatorCargoForm.pickup_address}
+                                    toAddress={`${operatorWarehouses[0]?.location || 'Душанбе'}`}
+                                    warehouseName={`Склад: ${operatorWarehouses[0]?.name || 'Склад'}`}
+                                    onRouteCalculated={(routeData) => {
+                                      setRouteInfo(routeData);
+                                      console.log('📍 Информация о маршруте забора:', routeData);
+                                    }}
+                                  />
+                                </div>
+                              )}
+                              
+                              {/* Показываем почему карта не отображается */}
+                              {!operatorCargoForm.pickup_address && (
+                                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                                  <p className="text-sm text-yellow-800">
+                                    ℹ️ Заполните "Адрес места нахождения груза" чтобы увидеть карту маршрута забора
+                                  </p>
+                                </div>
+                              )}
+                              
+                              {operatorCargoForm.pickup_address && operatorWarehouses.length === 0 && (
+                                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
+                                  <p className="text-sm text-red-800">
+                                    ⚠️ Не найдены склады оператора для маршрута. Склады: {operatorWarehouses.length}
+                                  </p>
+                                </div>
+                              )}
+
                               {/* Дата и время забора груза */}
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
