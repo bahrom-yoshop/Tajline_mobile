@@ -420,7 +420,11 @@ class CompleteEndpointTester:
                     
                     if cargo_response.status_code == 200:
                         cargo_data = cargo_response.json()
-                        all_cargo = cargo_data.get('cargo', [])
+                        # Handle different response formats
+                        if isinstance(cargo_data, list):
+                            all_cargo = cargo_data
+                        else:
+                            all_cargo = cargo_data.get('cargo', [])
                         
                         # Look for recently created cargo (last 10 minutes)
                         from datetime import datetime, timedelta
