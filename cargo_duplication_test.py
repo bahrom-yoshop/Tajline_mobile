@@ -69,15 +69,30 @@ class CargoDuplicationTester:
             response = self.session.get(f"{API_BASE}/operator/warehouse-notifications")
             
             if response.status_code == 200:
-                notifications = response.json()
+                data = response.json()
+                notifications = data.get('notifications', [])
                 self.log(f"✅ Получено {len(notifications)} уведомлений")
+                
+                # Анализируем дублирование ID
+                id_counts = {}
+                for notif in notifications:
+                    notif_id = notif.get('id')
+                    if notif_id in id_counts:
+                        id_counts[notif_id] += 1
+                    else:
+                        id_counts[notif_id] = 1
+                
+                duplicated_ids = {k: v for k, v in id_counts.items() if v > 1}
+                if duplicated_ids:
+                    self.log(f"🚨 НАЙДЕНО ДУБЛИРОВАНИЕ ID УВЕДОМЛЕНИЙ:")
+                    for notif_id, count in duplicated_ids.items():
+                        self.log(f"   - ID {notif_id}: {count} копий")
                 
                 # Показываем структуру первого уведомления
                 if notifications and len(notifications) > 0:
                     first_notif = notifications[0]
-                    if isinstance(first_notif, dict):
-                        self.log(f"📊 Структура уведомления: {list(first_notif.keys())}")
-                        self.log(f"🎯 Пример уведомления: ID={first_notif.get('id')}, статус={first_notif.get('status')}, номер={first_notif.get('request_number')}")
+                    self.log(f"📊 Структура уведомления: {list(first_notif.keys())}")
+                    self.log(f"🎯 Пример уведомления: ID={first_notif.get('id')}, статус={first_notif.get('status')}, номер={first_notif.get('request_number')}")
                 
                 return notifications
             else:
