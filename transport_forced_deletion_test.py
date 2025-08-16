@@ -383,7 +383,7 @@ class TransportForcedDeletionTester:
         """Проверка что транспорт реально удален из базы данных"""
         try:
             # Пытаемся получить список транспортов и проверить, что удаленного транспорта нет
-            response = self.session.get(f"{BACKEND_URL}/admin/transports")
+            response = self.session.get(f"{BACKEND_URL}/transport/list")
             
             if response.status_code == 200:
                 data = response.json()
