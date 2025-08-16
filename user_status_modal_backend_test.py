@@ -138,13 +138,8 @@ class UserStatusModalTester:
             return False
     
     def create_test_blocked_user(self, role="user"):
-        """Создание тестового заблокированного пользователя"""
+        """Создание тестового заблокированного пользователя через регистрацию"""
         try:
-            if not self.admin_token:
-                return None
-                
-            headers = {"Authorization": f"Bearer {self.admin_token}"}
-            
             # Генерируем уникальные данные для тестового пользователя
             unique_id = str(uuid.uuid4())[:8]
             test_phone = f"+7999{unique_id[:7]}"
@@ -156,22 +151,40 @@ class UserStatusModalTester:
                 "role": role
             }
             
-            # Создаем пользователя
-            response = self.session.post(f"{BACKEND_URL}/admin/users", json=user_data, headers=headers)
+            # Создаем пользователя через регистрацию
+            response = self.session.post(f"{BACKEND_URL}/auth/register", json=user_data)
             
             if response.status_code == 201:
                 created_user = response.json()
-                user_id = created_user.get("id")
+                user_info = created_user.get("user", {})
+                user_id = user_info.get("id")
                 
-                # Блокируем пользователя (is_active: false)
-                block_data = {"is_active": False}
-                block_response = self.session.patch(
-                    f"{BACKEND_URL}/admin/users/{user_id}/status", 
-                    json=block_data, 
-                    headers=headers
+                if not user_id:
+                    self.log_result(
+                        f"Создание тестового заблокированного пользователя ({role})",
+                        False,
+                        f"Пользователь создан, но ID не найден в ответе: {created_user}"
+                    )
+                    return None
+                
+                # Теперь блокируем пользователя напрямую в базе данных через MongoDB
+                # Поскольку у нас нет endpoint для блокировки, используем прямое обновление
+                import pymongo
+                from pymongo import MongoClient
+                
+                # Подключаемся к MongoDB
+                mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+                db_name = os.environ.get('DB_NAME', 'test_database')
+                client = MongoClient(mongo_url)
+                db = client[db_name]
+                
+                # Блокируем пользователя
+                result = db.users.update_one(
+                    {"id": user_id},
+                    {"$set": {"is_active": False}}
                 )
                 
-                if block_response.status_code == 200:
+                if result.modified_count > 0:
                     self.test_users.append({
                         "id": user_id,
                         "phone": test_phone,
@@ -190,7 +203,7 @@ class UserStatusModalTester:
                     self.log_result(
                         f"Создание тестового заблокированного пользователя ({role})",
                         False,
-                        f"Не удалось заблокировать пользователя: HTTP {block_response.status_code}"
+                        f"Не удалось заблокировать пользователя в базе данных"
                     )
                     return None
             else:
