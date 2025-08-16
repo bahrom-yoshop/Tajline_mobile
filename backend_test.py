@@ -46,7 +46,7 @@ OPERATOR_CREDENTIALS = {
     "password": "warehouse123"
 }
 
-class CourierModalDataTester:
+class PricePerKgModalTester:
     def __init__(self):
         self.session = requests.Session()
         self.admin_token = None
@@ -55,7 +55,6 @@ class CourierModalDataTester:
         self.operator_user = None
         self.test_results = []
         self.test_pickup_request_id = None
-        self.test_notification_id = None
         
     def log_test(self, test_name, success, details=""):
         """Логирование результатов тестов"""
@@ -131,29 +130,30 @@ class CourierModalDataTester:
             self.log_test("АВТОРИЗАЦИЯ ОПЕРАТОРА СКЛАДА", False, f"Ошибка: {str(e)}")
             return False
     
-    def create_test_pickup_request(self):
-        """Создать тестовую заявку на забор груза с полными данными курьера"""
+    def create_test_pickup_request_with_price_per_kg(self):
+        """Создать тестовую заявку на забор груза с данными price_per_kg согласно review request"""
         try:
             # Используем токен администратора для создания заявки
             headers = {"Authorization": f"Bearer {self.admin_token}"}
             
-            # Данные заявки с полной информацией от курьера
+            # Данные заявки согласно примеру из review request
             pickup_data = {
-                "sender_full_name": "Тестовый Отправитель Курьерских Данных",
+                "sender_full_name": "Тестовый Отправитель Холодильника",
                 "sender_phone": "+79111222333",
                 "pickup_address": "Москва, ул. Тестовая, д. 123, кв. 45",
                 "pickup_date": "2025-01-20",
                 "pickup_time_from": "10:00",
                 "pickup_time_to": "12:00",
                 "destination": "Душанбе, ул. Рудаки, д. 100",
-                "cargo_name": "Тестовый груз для проверки данных курьера",
-                "weight": 5.5,
-                "total_value": 2500.0,  # Цена груза от курьера
-                "declared_value": 2500.0,  # Дублируем для совместимости
-                "payment_method": "cash",  # Способ оплаты выбранный курьером
+                "cargo_name": "Холодильник",  # Согласно примеру
+                "weight": 30.0,  # 30 кг согласно примеру
+                "price_per_kg": 80.0,  # 80 ₽ за кг согласно примеру - КЛЮЧЕВОЕ ПОЛЕ ДЛЯ ТЕСТИРОВАНИЯ
+                "total_value": 2400.0,  # 30 × 80 = 2400 ₽ согласно примеру
+                "declared_value": 2400.0,  # Дублируем для совместимости
+                "payment_method": "cash",
                 "courier_fee": 500.0,
                 "delivery_method": "pickup",
-                "description": "Тестовая заявка для проверки отображения данных курьера в модальном окне"
+                "description": "Тестовая заявка для проверки отображения price_per_kg в модальном окне"
             }
             
             response = self.session.post(
@@ -167,29 +167,89 @@ class CourierModalDataTester:
                 self.test_pickup_request_id = data.get("request_id")
                 
                 self.log_test(
-                    "СОЗДАНИЕ ТЕСТОВОЙ ЗАЯВКИ НА ЗАБОР ГРУЗА",
+                    "СОЗДАНИЕ ТЕСТОВОЙ ЗАЯВКИ С PRICE_PER_KG",
                     True,
-                    f"Заявка создана с ID: {self.test_pickup_request_id}, номер: {data.get('request_number')}"
+                    f"Заявка создана с ID: {self.test_pickup_request_id}, номер: {data.get('request_number')}, груз: Холодильник, вес: 30 кг, цена за кг: 80 ₽"
                 )
                 return True
             else:
                 self.log_test(
-                    "СОЗДАНИЕ ТЕСТОВОЙ ЗАЯВКИ НА ЗАБОР ГРУЗА",
+                    "СОЗДАНИЕ ТЕСТОВОЙ ЗАЯВКИ С PRICE_PER_KG",
                     False,
                     f"HTTP {response.status_code}: {response.text}"
                 )
                 return False
                 
         except Exception as e:
-            self.log_test("СОЗДАНИЕ ТЕСТОВОЙ ЗАЯВКИ НА ЗАБОР ГРУЗА", False, f"Ошибка: {str(e)}")
+            self.log_test("СОЗДАНИЕ ТЕСТОВОЙ ЗАЯВКИ С PRICE_PER_KG", False, f"Ошибка: {str(e)}")
             return False
     
-    def test_pickup_request_endpoint(self):
-        """Тестировать endpoint GET /api/operator/pickup-requests/{request_id}"""
+    def test_price_per_kg_field_saved(self):
+        """Проверить, что поле price_per_kg правильно сохраняется в заявке на забор груза"""
         try:
             if not self.test_pickup_request_id:
                 self.log_test(
-                    "ТЕСТИРОВАНИЕ ENDPOINT PICKUP-REQUESTS",
+                    "ПРОВЕРКА СОХРАНЕНИЯ PRICE_PER_KG",
+                    False,
+                    "Нет ID тестовой заявки"
+                )
+                return False
+            
+            # Используем токен оператора для получения данных
+            headers = {"Authorization": f"Bearer {self.operator_token}"}
+            
+            response = self.session.get(
+                f"{BACKEND_URL}/operator/pickup-requests/{self.test_pickup_request_id}",
+                headers=headers
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                cargo_info = data.get("cargo_info", {})
+                
+                # Проверяем наличие поля price_per_kg
+                price_per_kg = cargo_info.get("price_per_kg")
+                
+                if price_per_kg is not None:
+                    if price_per_kg == 80.0:  # Ожидаемое значение согласно примеру
+                        self.log_test(
+                            "ПРОВЕРКА СОХРАНЕНИЯ PRICE_PER_KG",
+                            True,
+                            f"Поле price_per_kg корректно сохранено: {price_per_kg} ₽/кг"
+                        )
+                        return True
+                    else:
+                        self.log_test(
+                            "ПРОВЕРКА СОХРАНЕНИЯ PRICE_PER_KG",
+                            False,
+                            f"Неверное значение price_per_kg: ожидалось 80.0, получено {price_per_kg}"
+                        )
+                        return False
+                else:
+                    self.log_test(
+                        "ПРОВЕРКА СОХРАНЕНИЯ PRICE_PER_KG",
+                        False,
+                        f"Поле price_per_kg отсутствует в cargo_info. Доступные поля: {list(cargo_info.keys())}"
+                    )
+                    return False
+            else:
+                self.log_test(
+                    "ПРОВЕРКА СОХРАНЕНИЯ PRICE_PER_KG",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test("ПРОВЕРКА СОХРАНЕНИЯ PRICE_PER_KG", False, f"Ошибка: {str(e)}")
+            return False
+    
+    def test_modal_data_structure(self):
+        """Убедиться, что в modal_data.cargo_info есть поле price_per_kg"""
+        try:
+            if not self.test_pickup_request_id:
+                self.log_test(
+                    "ПРОВЕРКА СТРУКТУРЫ MODAL_DATA",
                     False,
                     "Нет ID тестовой заявки"
                 )
@@ -207,7 +267,7 @@ class CourierModalDataTester:
                 data = response.json()
                 
                 # Проверяем структуру modal_data
-                required_sections = ["sender_data", "payment_info", "cargo_info"]
+                required_sections = ["cargo_info", "sender_data", "payment_info"]
                 missing_sections = []
                 present_sections = []
                 
@@ -218,64 +278,131 @@ class CourierModalDataTester:
                         missing_sections.append(section)
                 
                 if not missing_sections:
-                    # Проверяем конкретные поля в каждой секции
-                    sender_data = data.get("sender_data", {})
-                    payment_info = data.get("payment_info", {})
                     cargo_info = data.get("cargo_info", {})
                     
-                    # Проверяем sender_data
-                    sender_fields = ["pickup_date", "pickup_time_from", "pickup_time_to"]
-                    sender_present = [f for f in sender_fields if f in sender_data and sender_data[f] is not None]
+                    # Проверяем наличие всех необходимых полей в cargo_info
+                    required_cargo_fields = ["price_per_kg", "weight", "total_value", "cargo_name"]
+                    cargo_fields_present = []
+                    cargo_fields_missing = []
                     
-                    # Проверяем payment_info
-                    payment_fields = ["payment_method"]
-                    payment_present = [f for f in payment_fields if f in payment_info and payment_info[f] is not None]
+                    for field in required_cargo_fields:
+                        if field in cargo_info and cargo_info[field] is not None:
+                            cargo_fields_present.append(f"{field}={cargo_info[field]}")
+                        else:
+                            cargo_fields_missing.append(field)
                     
-                    # Проверяем cargo_info
-                    cargo_fields = ["total_value", "declared_value"]
-                    cargo_present = [f for f in cargo_fields if f in cargo_info and cargo_info[f] is not None]
-                    
-                    details = f"sender_data: {sender_present}, payment_info: {payment_present}, cargo_info: {cargo_present}"
-                    
-                    if sender_present and payment_present and cargo_present:
+                    if not cargo_fields_missing:
                         self.log_test(
-                            "ТЕСТИРОВАНИЕ ENDPOINT PICKUP-REQUESTS",
+                            "ПРОВЕРКА СТРУКТУРЫ MODAL_DATA",
                             True,
-                            f"Структура modal_data корректна. {details}"
+                            f"Структура modal_data корректна. cargo_info содержит: {', '.join(cargo_fields_present)}"
                         )
                         return True
                     else:
                         self.log_test(
-                            "ТЕСТИРОВАНИЕ ENDPOINT PICKUP-REQUESTS",
+                            "ПРОВЕРКА СТРУКТУРЫ MODAL_DATA",
                             False,
-                            f"Отсутствуют некоторые поля в структуре. {details}"
+                            f"Отсутствуют поля в cargo_info: {', '.join(cargo_fields_missing)}. Присутствуют: {', '.join(cargo_fields_present)}"
                         )
                         return False
                 else:
                     self.log_test(
-                        "ТЕСТИРОВАНИЕ ENDPOINT PICKUP-REQUESTS",
+                        "ПРОВЕРКА СТРУКТУРЫ MODAL_DATA",
                         False,
                         f"Отсутствуют секции: {', '.join(missing_sections)}. Присутствуют: {', '.join(present_sections)}"
                     )
                     return False
             else:
                 self.log_test(
-                    "ТЕСТИРОВАНИЕ ENDPOINT PICKUP-REQUESTS",
+                    "ПРОВЕРКА СТРУКТУРЫ MODAL_DATA",
                     False,
                     f"HTTP {response.status_code}: {response.text}"
                 )
                 return False
                 
         except Exception as e:
-            self.log_test("ТЕСТИРОВАНИЕ ENDPOINT PICKUP-REQUESTS", False, f"Ошибка: {str(e)}")
+            self.log_test("ПРОВЕРКА СТРУКТУРЫ MODAL_DATA", False, f"Ошибка: {str(e)}")
             return False
     
-    def test_courier_data_accuracy(self):
-        """Проверить точность данных курьера в модальном окне"""
+    def test_price_calculation(self):
+        """Проверить расчет общей суммы: вес × price_per_kg = total_value"""
         try:
             if not self.test_pickup_request_id:
                 self.log_test(
-                    "ПРОВЕРКА ТОЧНОСТИ ДАННЫХ КУРЬЕРА",
+                    "ПРОВЕРКА РАСЧЕТА ОБЩЕЙ СУММЫ",
+                    False,
+                    "Нет ID тестовой заявки"
+                )
+                return False
+            
+            # Используем токен оператора
+            headers = {"Authorization": f"Bearer {self.operator_token}"}
+            
+            response = self.session.get(
+                f"{BACKEND_URL}/operator/pickup-requests/{self.test_pickup_request_id}",
+                headers=headers
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                cargo_info = data.get("cargo_info", {})
+                
+                # Получаем значения для расчета
+                weight = cargo_info.get("weight")
+                price_per_kg = cargo_info.get("price_per_kg")
+                total_value = cargo_info.get("total_value")
+                
+                if weight is not None and price_per_kg is not None and total_value is not None:
+                    # Рассчитываем ожидаемую общую стоимость
+                    expected_total = weight * price_per_kg
+                    
+                    if abs(total_value - expected_total) < 0.01:  # Учитываем погрешность float
+                        self.log_test(
+                            "ПРОВЕРКА РАСЧЕТА ОБЩЕЙ СУММЫ",
+                            True,
+                            f"Расчет корректен: {weight} кг × {price_per_kg} ₽/кг = {total_value} ₽ (ожидалось {expected_total} ₽)"
+                        )
+                        return True
+                    else:
+                        self.log_test(
+                            "ПРОВЕРКА РАСЧЕТА ОБЩЕЙ СУММЫ",
+                            False,
+                            f"Неверный расчет: {weight} кг × {price_per_kg} ₽/кг = {expected_total} ₽, но получено {total_value} ₽"
+                        )
+                        return False
+                else:
+                    missing_fields = []
+                    if weight is None:
+                        missing_fields.append("weight")
+                    if price_per_kg is None:
+                        missing_fields.append("price_per_kg")
+                    if total_value is None:
+                        missing_fields.append("total_value")
+                    
+                    self.log_test(
+                        "ПРОВЕРКА РАСЧЕТА ОБЩЕЙ СУММЫ",
+                        False,
+                        f"Отсутствуют поля для расчета: {', '.join(missing_fields)}"
+                    )
+                    return False
+            else:
+                self.log_test(
+                    "ПРОВЕРКА РАСЧЕТА ОБЩЕЙ СУММЫ",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test("ПРОВЕРКА РАСЧЕТА ОБЩЕЙ СУММЫ", False, f"Ошибка: {str(e)}")
+            return False
+    
+    def test_endpoint_response_structure(self):
+        """Протестировать endpoint GET /api/operator/pickup-requests/{request_id} для получения данных"""
+        try:
+            if not self.test_pickup_request_id:
+                self.log_test(
+                    "ТЕСТИРОВАНИЕ ENDPOINT RESPONSE",
                     False,
                     "Нет ID тестовой заявки"
                 )
@@ -292,84 +419,63 @@ class CourierModalDataTester:
             if response.status_code == 200:
                 data = response.json()
                 
-                # Ожидаемые данные курьера
-                expected_data = {
-                    "pickup_date": "2025-01-20",
-                    "pickup_time_from": "10:00",
-                    "pickup_time_to": "12:00",
-                    "payment_method": "cash",
-                    "total_value": 2500.0,
-                    "declared_value": 2500.0
-                }
+                # Проверяем основные секции ответа
+                expected_sections = [
+                    "request_info", "courier_info", "sender_data", 
+                    "recipient_data", "cargo_info", "payment_info", "full_request"
+                ]
                 
-                # Проверяем соответствие данных
-                sender_data = data.get("sender_data", {})
-                payment_info = data.get("payment_info", {})
+                present_sections = []
+                missing_sections = []
+                
+                for section in expected_sections:
+                    if section in data:
+                        present_sections.append(section)
+                    else:
+                        missing_sections.append(section)
+                
+                # Проверяем конкретные поля в cargo_info
                 cargo_info = data.get("cargo_info", {})
+                cargo_fields = ["cargo_name", "weight", "price_per_kg", "total_value", "declared_value"]
+                cargo_present = []
+                cargo_missing = []
                 
-                checks = []
+                for field in cargo_fields:
+                    if field in cargo_info and cargo_info[field] is not None:
+                        cargo_present.append(f"{field}={cargo_info[field]}")
+                    else:
+                        cargo_missing.append(field)
                 
-                # Проверяем дату и время забора
-                if sender_data.get("pickup_date") == expected_data["pickup_date"]:
-                    checks.append("✅ pickup_date корректна")
-                else:
-                    checks.append(f"❌ pickup_date: ожидалось {expected_data['pickup_date']}, получено {sender_data.get('pickup_date')}")
-                
-                if sender_data.get("pickup_time_from") == expected_data["pickup_time_from"]:
-                    checks.append("✅ pickup_time_from корректна")
-                else:
-                    checks.append(f"❌ pickup_time_from: ожидалось {expected_data['pickup_time_from']}, получено {sender_data.get('pickup_time_from')}")
-                
-                if sender_data.get("pickup_time_to") == expected_data["pickup_time_to"]:
-                    checks.append("✅ pickup_time_to корректна")
-                else:
-                    checks.append(f"❌ pickup_time_to: ожидалось {expected_data['pickup_time_to']}, получено {sender_data.get('pickup_time_to')}")
-                
-                # Проверяем способ оплаты
-                if payment_info.get("payment_method") == expected_data["payment_method"]:
-                    checks.append("✅ payment_method корректен")
-                else:
-                    checks.append(f"❌ payment_method: ожидалось {expected_data['payment_method']}, получено {payment_info.get('payment_method')}")
-                
-                # Проверяем цену груза
-                if cargo_info.get("total_value") == expected_data["total_value"]:
-                    checks.append("✅ total_value корректна")
-                else:
-                    checks.append(f"❌ total_value: ожидалось {expected_data['total_value']}, получено {cargo_info.get('total_value')}")
-                
-                if cargo_info.get("declared_value") == expected_data["declared_value"]:
-                    checks.append("✅ declared_value корректна")
-                else:
-                    checks.append(f"❌ declared_value: ожидалось {expected_data['declared_value']}, получено {cargo_info.get('declared_value')}")
-                
-                # Подсчитываем успешные проверки
-                successful_checks = len([c for c in checks if c.startswith("✅")])
-                total_checks = len(checks)
-                
-                if successful_checks == total_checks:
+                if not missing_sections and not cargo_missing:
                     self.log_test(
-                        "ПРОВЕРКА ТОЧНОСТИ ДАННЫХ КУРЬЕРА",
+                        "ТЕСТИРОВАНИЕ ENDPOINT RESPONSE",
                         True,
-                        f"Все данные курьера корректны ({successful_checks}/{total_checks}): {'; '.join(checks)}"
+                        f"Структура ответа корректна. Секции: {len(present_sections)}/{len(expected_sections)}, cargo_info: {', '.join(cargo_present)}"
                     )
                     return True
                 else:
+                    issues = []
+                    if missing_sections:
+                        issues.append(f"отсутствуют секции: {', '.join(missing_sections)}")
+                    if cargo_missing:
+                        issues.append(f"отсутствуют поля cargo_info: {', '.join(cargo_missing)}")
+                    
                     self.log_test(
-                        "ПРОВЕРКА ТОЧНОСТИ ДАННЫХ КУРЬЕРА",
+                        "ТЕСТИРОВАНИЕ ENDPOINT RESPONSE",
                         False,
-                        f"Некоторые данные некорректны ({successful_checks}/{total_checks}): {'; '.join(checks)}"
+                        f"Проблемы со структурой: {'; '.join(issues)}"
                     )
                     return False
             else:
                 self.log_test(
-                    "ПРОВЕРКА ТОЧНОСТИ ДАННЫХ КУРЬЕРА",
+                    "ТЕСТИРОВАНИЕ ENDPOINT RESPONSE",
                     False,
                     f"HTTP {response.status_code}: {response.text}"
                 )
                 return False
                 
         except Exception as e:
-            self.log_test("ПРОВЕРКА ТОЧНОСТИ ДАННЫХ КУРЬЕРА", False, f"Ошибка: {str(e)}")
+            self.log_test("ТЕСТИРОВАНИЕ ENDPOINT RESPONSE", False, f"Ошибка: {str(e)}")
             return False
     
     def cleanup_test_data(self):
@@ -407,7 +513,7 @@ class CourierModalDataTester:
     
     def run_all_tests(self):
         """Запустить все тесты"""
-        print("🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Исправления отображения данных курьера в модальном окне")
+        print("🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Исправления для отображения цены за кг от курьера в модальном окне")
         print("=" * 100)
         
         # Авторизация всех пользователей
@@ -417,11 +523,13 @@ class CourierModalDataTester:
         if not self.authenticate_operator():
             return False
         
-        # Основные тесты
+        # Основные тесты согласно review request
         tests = [
-            self.create_test_pickup_request,
-            self.test_pickup_request_endpoint,
-            self.test_courier_data_accuracy
+            self.create_test_pickup_request_with_price_per_kg,
+            self.test_price_per_kg_field_saved,
+            self.test_endpoint_response_structure,
+            self.test_modal_data_structure,
+            self.test_price_calculation
         ]
         
         success_count = 0
@@ -454,6 +562,6 @@ class CourierModalDataTester:
         return successful_tests == total_tests
 
 if __name__ == "__main__":
-    tester = CourierModalDataTester()
+    tester = PricePerKgModalTester()
     success = tester.run_all_tests()
     sys.exit(0 if success else 1)
