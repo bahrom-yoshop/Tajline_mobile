@@ -16354,6 +16354,38 @@ async def accept_pickup_request(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error accepting pickup request: {str(e)}")
 
+# ВРЕМЕННЫЙ ENDPOINT: Очистка дублированных уведомлений
+@app.post("/api/admin/cleanup-duplicate-notifications")
+async def cleanup_duplicate_notifications(current_user: User = Depends(get_current_user)):
+    if current_user.role not in ["admin"]:
+        raise HTTPException(status_code=403, detail="Access denied: Only admins")
+    
+    try:
+        # Находим и удаляем дублированные уведомления
+        pipeline = [
+            {"$group": {"_id": "$id", "count": {"$sum": 1}, "docs": {"$push": "$$ROOT"}}},
+            {"$match": {"count": {"$gt": 1}}}
+        ]
+        
+        duplicates = list(db.warehouse_notifications.aggregate(pipeline))
+        removed_count = 0
+        
+        for duplicate_group in duplicates:
+            docs_to_remove = duplicate_group["docs"][1:]  # Оставляем первый документ
+            for doc in docs_to_remove:
+                db.warehouse_notifications.delete_one({"_id": doc["_id"]})
+                removed_count += 1
+        
+        return {
+            "message": f"Cleanup completed: removed {removed_count} duplicate notifications",
+            "duplicates_found": len(duplicates),
+            "notifications_removed": removed_count
+        }
+        
+    except Exception as e:
+        print(f"Error cleaning up duplicates: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
