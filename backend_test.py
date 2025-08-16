@@ -94,15 +94,20 @@ class TajlineCargoTester:
                 # Ищем заявки с номерами 100021, 100020
                 target_requests = []
                 for notification in notifications:
-                    request_number = notification.get('request_number', '')
-                    if '100021' in request_number or '100020' in request_number:
-                        target_requests.append(notification)
-                        self.log(f"🎯 Найдена целевая заявка: {request_number} (ID: {notification.get('id')}, статус: {notification.get('status')})")
+                    if isinstance(notification, dict):
+                        request_number = notification.get('request_number', '')
+                        if '100021' in str(request_number) or '100020' in str(request_number):
+                            target_requests.append(notification)
+                            self.log(f"🎯 Найдена целевая заявка: {request_number} (ID: {notification.get('id')}, статус: {notification.get('status')})")
                 
                 if not target_requests:
                     self.log("⚠️ Заявки 100021/100020 не найдены, используем первую доступную заявку")
                     if notifications:
-                        target_requests = [notifications[0]]
+                        # Берем первое уведомление, которое является словарем
+                        for notif in notifications:
+                            if isinstance(notif, dict):
+                                target_requests = [notif]
+                                break
                 
                 return notifications, target_requests
             else:
