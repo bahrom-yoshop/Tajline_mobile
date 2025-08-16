@@ -91,6 +91,7 @@ class TransportDeletionTester:
         
         # Список возможных endpoints для получения транспортов
         possible_endpoints = [
+            "/transport/list",  # Найденный рабочий endpoint
             "/admin/transport",
             "/admin/transports", 
             "/transport",
