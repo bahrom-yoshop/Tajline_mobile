@@ -32744,6 +32744,75 @@ function App() {
         </DialogContent>
       </Dialog>
 
+      {/* НОВОЕ МОДАЛЬНОЕ ОКНО: Выбор склада для генерации QR кодов */}
+      <Dialog open={warehouseSelectionModal} onOpenChange={setWarehouseSelectionModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Building className="h-6 w-6 text-blue-600" />
+              <span>Выберите склад для генерации QR кодов</span>
+            </DialogTitle>
+            <DialogDescription>
+              Выберите склад для которого хотите сгенерировать QR коды ячеек
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {warehouses.length === 0 ? (
+              <div className="text-center py-8">
+                <Building className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <p className="text-gray-500">Нет доступных складов для генерации QR кодов</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {warehouses.map(warehouse => (
+                  <div
+                    key={warehouse.id}
+                    className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={() => {
+                      setSelectedWarehouseForQR(warehouse);
+                      setWarehouseSelectionModal(false);
+                      setQrGenerationModal(true);
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="bg-blue-100 p-2 rounded-lg">
+                          <Building className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">{warehouse.name}</h4>
+                          <p className="text-sm text-gray-500">{warehouse.address}</p>
+                          {warehouse.warehouse_id_number && (
+                            <p className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-1 rounded mt-1 inline-block">
+                              Номер: {warehouse.warehouse_id_number}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <QrCode className="h-5 w-5 text-orange-600" />
+                        <p className="text-xs text-gray-400 mt-1">Нажмите для выбора</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Кнопка закрытия */}
+            <div className="flex justify-end pt-4 border-t">
+              <Button 
+                variant="outline" 
+                onClick={() => setWarehouseSelectionModal(false)}
+              >
+                Отмена
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* НОВОЕ МОДАЛЬНОЕ ОКНО: Генерация QR кодов для складов */}
       <Dialog open={qrGenerationModal} onOpenChange={setQrGenerationModal}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
