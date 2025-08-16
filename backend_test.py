@@ -188,7 +188,13 @@ class CourierListUpdateTester:
             )
             
             if response.status_code == 200:
-                courier = response.json()
+                result = response.json()
+                # Создаем объект курьера с нужными полями для тестирования
+                courier = {
+                    "id": result["courier_id"],
+                    "full_name": courier_data["full_name"],
+                    "phone": courier_data["phone"]
+                }
                 self.log_test(
                     f"СОЗДАНИЕ ТЕСТОВОГО КУРЬЕРА{name_suffix}",
                     True,
