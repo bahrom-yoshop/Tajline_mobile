@@ -3330,6 +3330,8 @@ function App() {
   const [cargoDetailsModal, setCargoDetailsModal] = useState(false); // Модальное окно деталей груза
   const [quickPlacementModal, setQuickPlacementModal] = useState(false); // Быстрое размещение
   const [warehouseNumbersUpdated, setWarehouseNumbersUpdated] = useState(false); // Флаг обновления номеров складов
+  const [qrGenerationModal, setQrGenerationModal] = useState(false); // Модальное окно генерации QR кодов
+  const [selectedWarehouseForQR, setSelectedWarehouseForQR] = useState(null); // Выбранный склад для генерации QR
   
   // ИСПРАВЛЕНИЕ: Глобальный обработчик ошибок removeChild
   useEffect(() => {
