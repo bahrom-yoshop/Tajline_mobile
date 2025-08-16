@@ -33022,19 +33022,77 @@ function App() {
                   <Button 
                     onClick={() => generateAllCellsQR()}
                     className="bg-blue-600 hover:bg-blue-700"
+                    disabled={massQRGeneration.isGenerating}
                   >
                     <QrCode className="mr-2 h-4 w-4" />
-                    Генерировать для всех ячеек
+                    {massQRGeneration.isGenerating ? 'Генерирую...' : 'Генерировать для всех ячеек'}
                   </Button>
                   <Button 
                     onClick={() => generateRangeQR()}
                     variant="outline"
                     className="text-green-600 border-green-300 hover:bg-green-50"
+                    disabled={massQRGeneration.isGenerating}
                   >
                     <Settings className="mr-2 h-4 w-4" />
                     Генерировать по диапазону
                   </Button>
                 </div>
+
+                {/* Индикатор прогресса массовой генерации */}
+                {massQRGeneration.isGenerating && (
+                  <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-blue-800">
+                        Генерация QR кодов: {massQRGeneration.current} из {massQRGeneration.total}
+                      </span>
+                      <span className="text-sm text-blue-600">
+                        {massQRGeneration.progress}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-blue-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${massQRGeneration.progress}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-blue-600 mt-2">
+                      Пожалуйста, подождите. Генерация QR кодов может занять несколько минут...
+                    </p>
+                  </div>
+                )}
+
+                {/* Результаты массовой генерации */}
+                {!massQRGeneration.isGenerating && massQRGeneration.results.length > 0 && (
+                  <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h6 className="font-medium text-green-700 mb-3 flex items-center">
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Результаты массовой генерации ({massQRGeneration.results.length} QR кодов)
+                    </h6>
+                    <div className="max-h-48 overflow-y-auto space-y-2">
+                      {massQRGeneration.results.slice(0, 10).map((result, index) => (
+                        <div key={index} className="flex items-center justify-between text-sm bg-white rounded p-2 border">
+                          <span className="font-mono text-green-700">{result.code}</span>
+                          <span className="text-gray-600">{result.location}</span>
+                        </div>
+                      ))}
+                      {massQRGeneration.results.length > 10 && (
+                        <p className="text-xs text-gray-500 text-center">
+                          ... и еще {massQRGeneration.results.length - 10} QR кодов
+                        </p>
+                      )}
+                    </div>
+                    <div className="mt-3 flex justify-center">
+                      <Button 
+                        onClick={() => downloadAllQRCodes(massQRGeneration.results)}
+                        variant="outline"
+                        className="text-green-600 border-green-300 hover:bg-green-50"
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Скачать все QR коды
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Результат генерации */}
