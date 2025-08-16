@@ -22921,7 +22921,33 @@ function App() {
           {currentCargoNotification && (
             <form onSubmit={(e) => { 
               e.preventDefault(); 
-              handleCompleteCargoProcessing(currentCargoNotification.id, cargoAcceptanceForm); 
+              
+              // Создаем расширенные данные с информацией о складах
+              const extendedCargoDetails = {
+                ...cargoAcceptanceForm,
+                // Добавляем информацию о маршруте складования
+                source_warehouse_id: operatorWarehouses[0]?.id, // Склад оператора (откуда)
+                source_warehouse_name: operatorWarehouses[0]?.name,
+                destination_warehouse_id: cargoAcceptanceForm.warehouse_id, // Выбранный склад (куда)
+                destination_warehouse_name: warehouses.find(w => w.id === cargoAcceptanceForm.warehouse_id)?.name,
+                // Указываем, что это маршрутная доставка
+                is_route_delivery: true,
+                route_info: {
+                  from: {
+                    warehouse_id: operatorWarehouses[0]?.id,
+                    warehouse_name: operatorWarehouses[0]?.name,
+                    location: operatorWarehouses[0]?.location
+                  },
+                  to: {
+                    warehouse_id: cargoAcceptanceForm.warehouse_id,
+                    warehouse_name: warehouses.find(w => w.id === cargoAcceptanceForm.warehouse_id)?.name,
+                    location: warehouses.find(w => w.id === cargoAcceptanceForm.warehouse_id)?.location
+                  }
+                }
+              };
+              
+              console.log('📍 Расширенные данные груза с маршрутом:', extendedCargoDetails);
+              handleCompleteCargoProcessing(currentCargoNotification.id, extendedCargoDetails); 
             }} className="space-y-6">
               
               {/* Информация о заявке */}
