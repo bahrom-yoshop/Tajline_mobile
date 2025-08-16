@@ -3610,7 +3610,7 @@ function App() {
   
   // Генерация QR кодов
   const [qrCargoNumber, setQrCargoNumber] = useState('');
-  const [qrCellCode, setQrCellCode] = useState('');
+  const [qrCellCode, setQrCellCode] = useState({ block: '', shelf: '', cell: '', code: '' }); // Поддержка объектов и строк
   const [generatedCargoQR, setGeneratedCargoQR] = useState(null);
   const [generatedCellQR, setGeneratedCellQR] = useState(null);
   
