@@ -10215,6 +10215,20 @@ function App() {
       else if (error.status === 401 && error.detail?.error_type) {
         console.log('🚫 Handling login error:', error.detail.error_type);
         const errorInfo = error.detail;
+        
+        // Добавляем отладочную информацию
+        console.log('📊 Setting loginErrorData:', {
+          errorType: errorInfo.error_type,
+          message: errorInfo.message,
+          details: errorInfo.details,
+          userRole: errorInfo.user_role,
+          userName: errorInfo.user_name,
+          userPhone: errorInfo.user_phone,
+          phoneFormat: errorInfo.phone_format,
+          passwordRequirements: errorInfo.password_requirements,
+          availableActions: errorInfo.available_actions || []
+        });
+        
         setLoginErrorData({
           errorType: errorInfo.error_type,
           message: errorInfo.message,
@@ -10226,7 +10240,16 @@ function App() {
           passwordRequirements: errorInfo.password_requirements,
           availableActions: errorInfo.available_actions || []
         });
+        
+        console.log('🔍 Setting loginErrorModal to TRUE');
         setLoginErrorModal(true);
+        
+        // Проверяем состояние через небольшую задержку
+        setTimeout(() => {
+          console.log('🎯 Current loginErrorModal state:', loginErrorModal);
+          console.log('🎯 Current loginErrorData state:', loginErrorData);
+        }, 100);
+        
         console.log('✅ LoginError modal should be shown');
       } else {
         // Обычная ошибка авторизации (fallback)
