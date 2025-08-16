@@ -10166,6 +10166,23 @@ function App() {
     } catch (error) {
       console.error('Login error:', error);
       setIsLoggingIn(false);
+      
+      // Обработка заблокированного/удаленного пользователя
+      if (error.status === 403 && error.detail?.error_type === 'account_disabled') {
+        const statusInfo = error.detail;
+        setUserStatusData({
+          statusMessage: statusInfo.status_message,
+          statusDetails: statusInfo.status_details,
+          userRole: statusInfo.user_role,
+          userName: statusInfo.user_name,
+          userPhone: statusInfo.user_phone,
+          isDeleted: statusInfo.is_deleted
+        });
+        setUserStatusModal(true);
+      } else {
+        // Обычная ошибка авторизации
+        showAlert(error.message || 'Ошибка входа в систему', 'error');
+      }
     }
   };
 
