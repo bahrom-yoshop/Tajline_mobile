@@ -14440,7 +14440,7 @@ async def complete_cargo_processing(
         created_cargos = []
         
         for index, item in enumerate(cargo_items):
-            cargo_id = generate_readable_request_number()
+            cargo_id = str(uuid.uuid4())  # Используем UUID для гарантированной уникальности
             # Создаем уникальный номер груза на основе cargo_id для предотвращения дубликатов
             cargo_number = f"{cargo_id[:6]}/{str(index + 1).zfill(2)}"
             
