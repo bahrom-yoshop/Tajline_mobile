@@ -18450,16 +18450,16 @@ function App() {
                                   variant="destructive"
                                   size="sm"
                                   onClick={async () => {
-                                    if (window.confirm(`Вы уверены, что хотите удалить ${selectedPickupRequests.length} заявок на груз? Это действие необратимо!`)) {
+                                    if (window.confirm(`Вы уверены, что хотите удалить ${selectedPickupRequests.length} заявок на забор? Это действие необратимо!`)) {
                                       try {
-                                        // Delete each selected request individually
+                                        // Delete each selected request individually using new pickup endpoint
                                         let successCount = 0;
                                         let errorCount = 0;
                                         
                                         for (const requestId of selectedPickupRequests) {
                                           try {
-                                            const response = await apiCall(`/api/admin/cargo-applications/${requestId}`, 'DELETE');
-                                            if (response.success || response.message) {
+                                            const response = await apiCall(`/api/admin/pickup-requests/${requestId}`, 'DELETE');
+                                            if (response.message || response.success !== false) {
                                               successCount++;
                                             } else {
                                               errorCount++;
@@ -18471,7 +18471,7 @@ function App() {
                                         }
                                         
                                         if (successCount > 0) {
-                                          showAlert(`${successCount} заявок успешно удалено`, 'success');
+                                          showAlert(`${successCount} заявок на забор успешно удалено`, 'success');
                                         }
                                         if (errorCount > 0) {
                                           showAlert(`${errorCount} заявок не удалось удалить`, 'error');
