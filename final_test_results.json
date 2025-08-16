@@ -1,0 +1,92 @@
+{
+  "total_tests": 12,
+  "successful_tests": 10,
+  "failed_tests": 2,
+  "success_rate": 83.33333333333334,
+  "test_results": [
+    {
+      "test": "Авторизация администратора",
+      "success": true,
+      "details": "Успешная авторизация 'Администратор Системы' (номер: USR648362), роль: admin",
+      "error": "",
+      "timestamp": "2025-08-16T11:55:03.300746"
+    },
+    {
+      "test": "Получение заявок на забор для тестирования",
+      "success": true,
+      "details": "Найдено 5 заявок, тестовая заявка: 100084 (ID: 100084)",
+      "error": "",
+      "timestamp": "2025-08-16T11:55:03.313655"
+    },
+    {
+      "test": "DELETE /api/admin/pickup-requests/{request_id}",
+      "success": true,
+      "details": "Заявка 100084 успешно удалена. Ответ: Заявка на забор груза успешно удалена, ID: ",
+      "error": "",
+      "timestamp": "2025-08-16T11:55:03.365387"
+    },
+    {
+      "test": "DELETE /api/admin/courier/pickup-requests/{request_id}",
+      "success": true,
+      "details": "Заявка 100083 успешно удалена. Ответ: Заявка на забор груза успешно удалена, ID: ",
+      "error": "",
+      "timestamp": "2025-08-16T11:55:03.418432"
+    },
+    {
+      "test": "Получение списка транспорта",
+      "success": true,
+      "details": "Найдено 37 транспортов, тестовый: LIB364561 (ID: 28d7517e-a05b-4fc7-a243-d1bb430cee4b, грузов: 2)",
+      "error": "",
+      "timestamp": "2025-08-16T11:55:03.430382"
+    },
+    {
+      "test": "DELETE /api/admin/transports/{transport_id} (строгие правила)",
+      "success": true,
+      "details": "Корректная блокировка удаления транспорта с грузом (2 грузов). Ошибка: {\"detail\":\"Невозможно удалить транспорт. В транспорте находится 2 груз(ов). Сначала удалите или переместите груз\"}",
+      "error": "",
+      "timestamp": "2025-08-16T11:55:03.438792"
+    },
+    {
+      "test": "DELETE /api/transport/{transport_id} (менее строгие правила)",
+      "success": true,
+      "details": "Транспорт TEST001 успешно удален. Ответ: Transport deleted and moved to history",
+      "error": "",
+      "timestamp": "2025-08-16T11:55:03.489575"
+    },
+    {
+      "test": "GET /api/admin/couriers/inactive",
+      "success": false,
+      "details": "",
+      "error": "Endpoint не найден (404) - возможно не реализован",
+      "timestamp": "2025-08-16T11:55:03.540764"
+    },
+    {
+      "test": "Создание тестового курьера для управления",
+      "success": true,
+      "details": "Создан курьер ID: 89fe71e7-3783-4918-96aa-062d90aca90b",
+      "error": "",
+      "timestamp": "2025-08-16T11:55:03.891267"
+    },
+    {
+      "test": "Деактивация тестового курьера",
+      "success": true,
+      "details": "Курьер 89fe71e7-3783-4918-96aa-062d90aca90b деактивирован для тестирования активации",
+      "error": "",
+      "timestamp": "2025-08-16T11:55:03.909814"
+    },
+    {
+      "test": "POST /api/admin/couriers/{courier_id}/activate",
+      "success": true,
+      "details": "Курьер 89fe71e7-3783-4918-96aa-062d90aca90b успешно активирован. Ответ: Курьер успешно активирован, ID: 89fe71e7-3783-4918-96aa-062d90aca90b",
+      "error": "",
+      "timestamp": "2025-08-16T11:55:03.960955"
+    },
+    {
+      "test": "DELETE /api/admin/couriers/{courier_id}/permanent",
+      "success": false,
+      "details": "",
+      "error": "Неожиданная ошибка: 500 - {\"detail\":\"Ошибка при полном удалении курьера\"}",
+      "timestamp": "2025-08-16T11:55:03.970127"
+    }
+  ]
+}
