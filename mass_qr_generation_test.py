@@ -106,8 +106,21 @@ class MassQRGenerationTester:
                         self.log(f"   Структура: {blocks} блоков × {shelves} полок × {cells} ячеек = {total_cells} ячеек")
                         return True
                 
-                # Если не найден подходящий, создаем тестовый склад
-                return self.create_test_warehouse()
+                # Если не найден подходящий, используем первый доступный
+                if warehouses:
+                    self.test_warehouse = warehouses[0]
+                    self.log(f"✅ Выбран первый доступный склад: '{warehouses[0].get('name')}'")
+                    self.log(f"   ID: {warehouses[0].get('id')}")
+                    self.log(f"   Номер склада: {warehouses[0].get('warehouse_id_number')}")
+                    blocks = warehouses[0].get('blocks_count', 0)
+                    shelves = warehouses[0].get('shelves_per_block', 0)
+                    cells = warehouses[0].get('cells_per_shelf', 0)
+                    total_cells = blocks * shelves * cells
+                    self.log(f"   Структура: {blocks} блоков × {shelves} полок × {cells} ячеек = {total_cells} ячеек")
+                    return True
+                
+                self.log("❌ Не найдено складов для тестирования", "ERROR")
+                return False
                 
             else:
                 self.log(f"❌ Ошибка получения складов: {response.status_code} - {response.text}", "ERROR")
