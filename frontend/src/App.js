@@ -10245,13 +10245,18 @@ function App() {
         });
         
         console.log('🔍 Setting loginErrorModal to TRUE');
-        setLoginErrorModal(true);
         
-        // Проверяем состояние через небольшую задержку
+        // Используем setTimeout для предотвращения React state batching
         setTimeout(() => {
-          console.log('🎯 Current loginErrorModal state:', loginErrorModal);
-          console.log('🎯 Current loginErrorData state:', loginErrorData);
-        }, 100);
+          setLoginErrorModal(true);
+          console.log('⏰ TIMEOUT: loginErrorModal set to TRUE');
+          
+          // Дополнительная проверка через небольшую задержку
+          setTimeout(() => {
+            console.log('🎯 DELAYED CHECK: Current loginErrorModal state:', loginErrorModal);
+            console.log('🎯 DELAYED CHECK: Current loginErrorData state:', loginErrorData);
+          }, 50);
+        }, 10);
         
         console.log('✅ LoginError modal should be shown');
       } else {
