@@ -10181,10 +10181,13 @@ function App() {
       
     } catch (error) {
       console.error('Login error:', error);
+      console.log('Error status:', error.status);
+      console.log('Error detail:', error.detail);
       setIsLoggingIn(false);
       
       // Обработка заблокированного/удаленного пользователя
       if (error.status === 403 && error.detail?.error_type === 'account_disabled') {
+        console.log('🔒 Handling account_disabled error');
         const statusInfo = error.detail;
         setUserStatusData({
           statusMessage: statusInfo.status_message,
@@ -10195,9 +10198,11 @@ function App() {
           isDeleted: statusInfo.is_deleted
         });
         setUserStatusModal(true);
+        console.log('✅ UserStatus modal should be shown');
       } 
       // Обработка ошибок авторизации (неправильный номер или пароль)
       else if (error.status === 401 && error.detail?.error_type) {
+        console.log('🚫 Handling login error:', error.detail.error_type);
         const errorInfo = error.detail;
         setLoginErrorData({
           errorType: errorInfo.error_type,
@@ -10211,8 +10216,10 @@ function App() {
           availableActions: errorInfo.available_actions || []
         });
         setLoginErrorModal(true);
+        console.log('✅ LoginError modal should be shown');
       } else {
         // Обычная ошибка авторизации (fallback)
+        console.log('❌ Fallback error handling:', error.message);
         showAlert(error.message || 'Ошибка входа в систему', 'error');
       }
     }
