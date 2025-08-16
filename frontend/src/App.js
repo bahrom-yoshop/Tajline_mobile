@@ -5091,8 +5091,9 @@ function App() {
           throw new Error('Unauthorized access');
         }
         
-        // Правильная обработка detail - может быть строкой или массивом объектов
+        // Правильная обработка detail - может быть строкой, объектом или массивом
         let errorMessage = 'Произошла ошибка';
+        let errorDetails = null;
         
         if (result.detail) {
           if (Array.isArray(result.detail)) {
@@ -5102,14 +5103,21 @@ function App() {
             // Если detail - строка, используем как есть
             errorMessage = result.detail;
           } else {
-            // Если detail - объект, попытаемся получить message или преобразуем в строку
-            errorMessage = result.detail.message || JSON.stringify(result.detail);
+            // Если detail - объект (новые структурированные ошибки), сохраняем всю структуру
+            errorDetails = result.detail;
+            errorMessage = result.detail.message || result.detail.status_message || JSON.stringify(result.detail);
           }
         } else if (result.message) {
           errorMessage = result.message;
         }
         
-        throw new Error(errorMessage);
+        // Создаем расширенную ошибку с дополнительными деталями
+        const enhancedError = new Error(errorMessage);
+        enhancedError.status = response.status;
+        enhancedError.detail = errorDetails || result.detail;
+        enhancedError.response = result;
+        
+        throw enhancedError;
       }
 
       return result;
