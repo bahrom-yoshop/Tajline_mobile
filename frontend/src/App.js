@@ -715,11 +715,27 @@ function App() {
       const response = await apiCall(`/api/admin/couriers/${courierId}/activate`, 'POST');
       showAlert(response.message || `Курьер "${courierName}" успешно активирован`, 'success');
       
-      // Обновляем списки курьеров
-      await Promise.all([
-        fetchCouriers(),
-        fetchInactiveCouriers()
-      ]);
+      // ИСПРАВЛЕНИЕ: Принудительно обновляем список активных курьеров без неактивных
+      const currentShowInactive = showInactiveCouriers;
+      if (currentShowInactive) {
+        // Временно отключаем показ неактивных для загрузки только активных
+        setShowInactiveCouriers(false);
+        
+        // Ждем обновления состояния, затем загружаем активных курьеров
+        setTimeout(async () => {
+          await fetchCouriers();
+          // Восстанавливаем предыдущую настройку
+          setShowInactiveCouriers(currentShowInactive);
+        }, 100);
+      } else {
+        // Если неактивные не показывались, просто обновляем список
+        await fetchCouriers();
+      }
+      
+      // Обновляем список неактивных курьеров
+      await fetchInactiveCouriers();
+      
+      console.log(`✅ Курьер ${courierName} активирован и списки обновлены`);
     } catch (error) {
       console.error('Ошибка при активации курьера:', error);
       showAlert(`Ошибка при активации курьера: ${error.message}`, 'error');
