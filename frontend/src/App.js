@@ -23501,7 +23501,7 @@ function App() {
                     </div>
                     <div>
                       <div className="text-lg font-bold text-green-600">
-                        {cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0).toFixed(2)} ₽
+                        {cargoAcceptanceForm.cargo_items.reduce((sum, item) => sum + ((parseFloat(item.weight) || 0) * (parseFloat(item.price) || 0)), 0).toFixed(2)} ₽
                       </div>
                       <div className="text-sm text-gray-600">Общая сумма</div>
                     </div>
