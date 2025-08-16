@@ -23918,21 +23918,60 @@ function App() {
                   Отмена
                 </Button>
                 <div className="space-x-3">
-                  <Button 
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      // TODO: Печать накладной
-                      showAlert('Функция печати накладной будет реализована', 'info');
-                    }}
-                  >
-                    <Printer className="mr-2 h-4 w-4" />
-                    Печать накладной
-                  </Button>
-                  <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Оформить и создать грузы
-                  </Button>
+                  {currentCargoNotification?.isViewMode ? (
+                    // Кнопки для режима просмотра
+                    <Button 
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={async () => {
+                        try {
+                          // Сохранить изменения в уведомлении
+                          const updateData = {
+                            sender_full_name: cargoAcceptanceForm.sender_full_name,
+                            sender_phone: cargoAcceptanceForm.sender_phone,
+                            pickup_address: cargoAcceptanceForm.sender_address,
+                            destination: cargoAcceptanceForm.cargo_items[0]?.name || '',
+                            courier_fee: currentCargoNotification.courier_fee,
+                            payment_method: cargoAcceptanceForm.payment_method
+                          };
+                          
+                          await apiCall(`/api/operator/warehouse-notifications/${currentCargoNotification.id}`, 'PUT', updateData);
+                          
+                          showAlert('Изменения сохранены успешно!', 'success');
+                          setShowCargoAcceptanceModal(false);
+                          setCurrentCargoNotification(null);
+                          
+                          // Обновить список уведомлений
+                          fetchWarehouseNotifications();
+                          
+                        } catch (error) {
+                          console.error('Error updating notification:', error);
+                          showAlert('Ошибка при сохранении: ' + error.message, 'error');
+                        }
+                      }}
+                    >
+                      <Save className="mr-2 h-4 w-4" />
+                      Сохранить изменения
+                    </Button>
+                  ) : (
+                    // Кнопки для режима оформления груза
+                    <>
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          // TODO: Печать накладной
+                          showAlert('Функция печати накладной будет реализована', 'info');
+                        }}
+                      >
+                        <Printer className="mr-2 h-4 w-4" />
+                        Печать накладной
+                      </Button>
+                      <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Оформить и создать грузы
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </form>
