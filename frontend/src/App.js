@@ -31584,6 +31584,106 @@ function App() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Модальное окно статуса пользователя */}
+      <Dialog open={userStatusModal} onOpenChange={setUserStatusModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              {userStatusData?.isDeleted ? (
+                <UserX className="h-5 w-5 text-red-600" />
+              ) : (
+                <Lock className="h-5 w-5 text-orange-600" />
+              )}
+              <span>Статус пользователя</span>
+            </DialogTitle>
+            <DialogDescription>
+              Информация о доступе к аккаунту
+            </DialogDescription>
+          </DialogHeader>
+          
+          {userStatusData && (
+            <div className="space-y-4">
+              {/* Основное сообщение о статусе */}
+              <div className={`p-4 rounded-lg border ${
+                userStatusData.isDeleted 
+                  ? 'bg-red-50 border-red-200' 
+                  : 'bg-orange-50 border-orange-200'
+              }`}>
+                <h4 className={`font-semibold mb-2 ${
+                  userStatusData.isDeleted ? 'text-red-800' : 'text-orange-800'
+                }`}>
+                  {userStatusData.statusMessage}
+                </h4>
+                <p className={`text-sm ${
+                  userStatusData.isDeleted ? 'text-red-700' : 'text-orange-700'
+                }`}>
+                  {userStatusData.statusDetails}
+                </p>
+              </div>
+
+              {/* Информация о пользователе */}
+              <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-600">Имя:</span>
+                  <span className="text-sm text-gray-800">{userStatusData.userName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-600">Роль:</span>
+                  <span className="text-sm text-gray-800">{userStatusData.userRole}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-600">Телефон:</span>
+                  <span className="text-sm text-gray-800">{userStatusData.userPhone}</span>
+                </div>
+              </div>
+
+              {/* Дополнительная информация */}
+              <div className={`p-3 rounded-lg text-sm ${
+                userStatusData.isDeleted 
+                  ? 'bg-red-100 text-red-800' 
+                  : 'bg-orange-100 text-orange-800'
+              }`}>
+                {userStatusData.isDeleted ? (
+                  <>
+                    <strong>Аккаунт удален:</strong> Доступ к системе полностью заблокирован. 
+                    Обратитесь к администратору для восстановления доступа или создания нового аккаунта.
+                  </>
+                ) : (
+                  <>
+                    <strong>Аккаунт заблокирован:</strong> Временно ограничен доступ к системе. 
+                    Свяжитесь с администратором для разблокировки вашего аккаунта.
+                  </>
+                )}
+              </div>
+
+              {/* Контактная информация */}
+              <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+                <h5 className="text-sm font-semibold text-blue-800 mb-2">
+                  📞 Служба поддержки TAJLINE.TJ
+                </h5>
+                <div className="text-sm text-blue-700 space-y-1">
+                  <p>Телефон: +992 123 456 789</p>
+                  <p>Email: support@tajline.tj</p>
+                  <p>Время работы: 9:00 - 18:00 (пн-пт)</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-2 mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setUserStatusModal(false);
+                setUserStatusData(null);
+              }}
+            >
+              Понятно
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
