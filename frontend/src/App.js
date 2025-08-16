@@ -93,6 +93,10 @@ function App() {
   // Состояние для модального окна статуса пользователя
   const [userStatusModal, setUserStatusModal] = useState(false);
   const [userStatusData, setUserStatusData] = useState(null);
+  
+  // Состояние для модального окна ошибок авторизации
+  const [loginErrorModal, setLoginErrorModal] = useState(false);
+  const [loginErrorData, setLoginErrorData] = useState(null);
 
   // Новые состояния для клиентского дашборда (Функция 1)
   const [clientDashboard, setClientDashboard] = useState(null);
