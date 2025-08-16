@@ -6375,22 +6375,27 @@ function App() {
       'qr-reader-placement-isolated'
     ];
     
-    // Остановка всех активных сканеров
+    // Остановка всех активных сканеров с таймаутом
     if (html5QrCodePlacement) {
-      safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement-main", "Tab Switch Cleanup");
-      setHtml5QrCodePlacement(null);
+      try {
+        safeStopQrScanner(html5QrCodePlacement, "qr-reader-placement-main", "Tab Switch Cleanup");
+        setHtml5QrCodePlacement(null);
+      } catch (e) {
+        console.warn('Ошибка при остановке QR сканера:', e);
+      }
     }
     
-    // Очистка DOM элементов всех сканеров
+    // Очистка DOM элементов всех сканеров с защитой от ошибок
     scannerIds.forEach(scannerId => {
       try {
         const element = document.getElementById(scannerId);
-        if (element) {
+        if (element && element.parentNode) {
+          // ИСПРАВЛЕНИЕ: Проверяем, что элемент все еще в DOM
           element.innerHTML = '';
           console.log(`✅ Очищен сканер: ${scannerId}`);
         }
-      } catch (error) {
-        console.warn(`⚠️ Ошибка очистки сканера ${scannerId}:`, error);
+      } catch (e) {
+        console.warn(`⚠️ Ошибка при очистке сканера ${scannerId}:`, e);
       }
     });
     
