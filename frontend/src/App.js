@@ -29715,6 +29715,18 @@ function App() {
                     <Trash2 className="mr-2 h-4 w-4" />
                     Удалить блок
                   </Button>
+
+                  {/* НОВАЯ КНОПКА: Генерация QR кодов */}
+                  <Button
+                    onClick={() => {
+                      setSelectedWarehouseForQR(selectedWarehouseForManagement);
+                      setQrGenerationModal(true);
+                    }}
+                    className="bg-orange-600 hover:bg-orange-700"
+                  >
+                    <QrCode className="mr-2 h-4 w-4" />
+                    Генерация QR кодов
+                  </Button>
                 </div>
 
                 {/* QR Generation Results */}
