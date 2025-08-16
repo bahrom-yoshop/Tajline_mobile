@@ -421,6 +421,70 @@ class PricePerKgModalTester:
             self.log_test("ПРОВЕРКА РАСЧЕТА ОБЩЕЙ СУММЫ", False, f"Ошибка: {str(e)}")
             return False
     
+    def test_critical_modal_price_display_logic(self):
+        """КРИТИЧЕСКИЙ ТЕСТ: Убедиться что модальное окно должно показывать price_per_kg (50), а НЕ total_value (500)"""
+        try:
+            if not self.test_pickup_request_id:
+                self.log_test(
+                    "КРИТИЧЕСКИЙ ТЕСТ ОТОБРАЖЕНИЯ ЦЕНЫ В МОДАЛЬНОМ ОКНЕ",
+                    False,
+                    "Нет ID тестовой заявки"
+                )
+                return False
+            
+            # Используем токен оператора
+            headers = {"Authorization": f"Bearer {self.operator_token}"}
+            
+            response = self.session.get(
+                f"{BACKEND_URL}/operator/pickup-requests/{self.test_pickup_request_id}",
+                headers=headers
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                cargo_info = data.get("cargo_info", {})
+                
+                # Получаем критические значения
+                price_per_kg = cargo_info.get("price_per_kg")
+                total_value = cargo_info.get("total_value")
+                declared_value = cargo_info.get("declared_value")
+                
+                # КРИТИЧЕСКАЯ ПРОВЕРКА: убеждаемся что значения разные
+                if price_per_kg == 50.0 and total_value == 500.0:
+                    # Проверяем что значения действительно отличаются в 10 раз
+                    if total_value == price_per_kg * 10:
+                        self.log_test(
+                            "КРИТИЧЕСКИЙ ТЕСТ ОТОБРАЖЕНИЯ ЦЕНЫ В МОДАЛЬНОМ ОКНЕ",
+                            True,
+                            f"✅ КРИТИЧЕСКИЙ УСПЕХ: Backend корректно сохраняет price_per_kg={price_per_kg}₽ и total_value={total_value}₽. В модальном окне поле 'Цена (₽)' должно показывать {price_per_kg}, а НЕ {total_value}!"
+                        )
+                        return True
+                    else:
+                        self.log_test(
+                            "КРИТИЧЕСКИЙ ТЕСТ ОТОБРАЖЕНИЯ ЦЕНЫ В МОДАЛЬНОМ ОКНЕ",
+                            False,
+                            f"Неверное соотношение: price_per_kg={price_per_kg}, total_value={total_value}, но ожидалось 10-кратное различие"
+                        )
+                        return False
+                else:
+                    self.log_test(
+                        "КРИТИЧЕСКИЙ ТЕСТ ОТОБРАЖЕНИЯ ЦЕНЫ В МОДАЛЬНОМ ОКНЕ",
+                        False,
+                        f"Неверные значения: price_per_kg={price_per_kg} (ожидалось 50.0), total_value={total_value} (ожидалось 500.0)"
+                    )
+                    return False
+            else:
+                self.log_test(
+                    "КРИТИЧЕСКИЙ ТЕСТ ОТОБРАЖЕНИЯ ЦЕНЫ В МОДАЛЬНОМ ОКНЕ",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test("КРИТИЧЕСКИЙ ТЕСТ ОТОБРАЖЕНИЯ ЦЕНЫ В МОДАЛЬНОМ ОКНЕ", False, f"Ошибка: {str(e)}")
+            return False
+    
     def test_endpoint_response_structure(self):
         """Протестировать endpoint GET /api/operator/pickup-requests/{request_id} для получения данных"""
         try:
