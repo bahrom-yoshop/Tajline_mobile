@@ -14575,9 +14575,9 @@ async def send_pickup_request_to_placement(
         else:
             warehouse_id = operator_warehouses[0]
         
-        # Создаем базовый груз на основе данных заявки
-        cargo_id = generate_readable_request_number()
-        cargo_number = f"{notification.get('request_number', '000000')}/01"
+        # Создаем базовый груз на основе данных заявки с UUID для уникальности
+        cargo_id = str(uuid.uuid4())  # ИСПРАВЛЕНИЕ: используем UUID вместо generate_readable_request_number()
+        cargo_number = f"{cargo_id[:6]}/01"  # ИСПРАВЛЕНИЕ: номер груза основан на UUID, не на request_number
         
         cargo_data = {
             "id": cargo_id,
