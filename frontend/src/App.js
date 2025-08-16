@@ -10183,8 +10183,24 @@ function App() {
           isDeleted: statusInfo.is_deleted
         });
         setUserStatusModal(true);
+      } 
+      // Обработка ошибок авторизации (неправильный номер или пароль)
+      else if (error.status === 401 && error.detail?.error_type) {
+        const errorInfo = error.detail;
+        setLoginErrorData({
+          errorType: errorInfo.error_type,
+          message: errorInfo.message,
+          details: errorInfo.details,
+          userRole: errorInfo.user_role,
+          userName: errorInfo.user_name,
+          userPhone: errorInfo.user_phone,
+          phoneFormat: errorInfo.phone_format,
+          passwordRequirements: errorInfo.password_requirements,
+          availableActions: errorInfo.available_actions || []
+        });
+        setLoginErrorModal(true);
       } else {
-        // Обычная ошибка авторизации
+        // Обычная ошибка авторизации (fallback)
         showAlert(error.message || 'Ошибка входа в систему', 'error');
       }
     }
