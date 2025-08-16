@@ -3329,6 +3329,7 @@ function App() {
   const [selectedCargoForDetailView, setSelectedCargoForDetailView] = useState(null); // Выбранный груз для просмотра деталей
   const [cargoDetailsModal, setCargoDetailsModal] = useState(false); // Модальное окно деталей груза
   const [quickPlacementModal, setQuickPlacementModal] = useState(false); // Быстрое размещение
+  const [warehouseNumbersUpdated, setWarehouseNumbersUpdated] = useState(false); // Флаг обновления номеров складов
   const [quickPlacementForm, setQuickPlacementForm] = useState({
     block_number: 1,
     shelf_number: 1,
