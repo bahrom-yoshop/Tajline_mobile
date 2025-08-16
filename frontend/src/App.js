@@ -18781,15 +18781,12 @@ function App() {
                                         {/* Кнопки действий */}
                                         <div className="ml-6 flex flex-col space-y-2">
                                           <Button
-                                            onClick={() => {
-                                              setSelectedCargoForDetailView(item);
-                                              setCargoDetailsModal(true);
-                                            }}
+                                            onClick={() => handleViewCargo(item)}
                                             variant="outline"
-                                            className="flex items-center"
+                                            className="flex items-center text-orange-600 border-orange-300 hover:bg-orange-50"
                                           >
                                             <Eye className="mr-2 h-4 w-4" />
-                                            Подробнее
+                                            Просмотр груза
                                           </Button>
                                           
                                           <Button
