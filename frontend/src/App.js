@@ -18622,21 +18622,21 @@ function App() {
                                             size="sm"
                                             variant="outline"
                                             onClick={async () => {
-                                              // Для заявок на забор нужно найти связанный груз и удалить его
-                                              // Используем admin endpoint для удаления заявки на груз
-                                              if (window.confirm(`Вы уверены, что хотите удалить заявку на груз "${request.cargo_name}"? Это действие необратимо!`)) {
+                                              // Используем новый admin endpoint для удаления заявки на забор
+                                              if (window.confirm(`Вы уверены, что хотите удалить заявку на забор "${request.request_number || request.cargo_name}"? Это действие необратимо!`)) {
                                                 try {
-                                                  const response = await apiCall(`/api/admin/cargo-applications/${request.id}`, 'DELETE');
+                                                  // Используем новый endpoint для удаления pickup requests
+                                                  const response = await apiCall(`/api/admin/pickup-requests/${request.id}`, 'DELETE');
                                                   
-                                                  if (response.success || response.message) {
-                                                    showAlert(`Заявка на груз "${request.cargo_name}" успешно удалена`, 'success');
+                                                  if (response.message || response.success !== false) {
+                                                    showAlert(`Заявка на забор успешно удалена`, 'success');
                                                     // Обновляем список заявок на забор
                                                     await fetchAllPickupRequests();
                                                   } else {
                                                     showAlert(`Ошибка при удалении заявки: ${response.message || 'Неизвестная ошибка'}`, 'error');
                                                   }
                                                 } catch (error) {
-                                                  console.error('Ошибка удаления заявки на груз:', error);
+                                                  console.error('Ошибка удаления заявки на забор:', error);
                                                   showAlert(`Ошибка при удалении: ${error.message}`, 'error');
                                                 }
                                               }
