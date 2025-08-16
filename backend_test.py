@@ -1,5 +1,425 @@
 #!/usr/bin/env python3
 """
+КРИТИЧЕСКАЯ ДИАГНОСТИКА: Дублирование заявок при обработке груза в TAJLINE.TJ
+
+ПРОБЛЕМА: При нажатии кнопки "Принять груз":
+1. Заявка дублируется вместо удаления из списка уведомлений
+2. Создается несколько одинаковых грузов с номером 100012/01 
+3. В списке размещения груза появляется множество копий одной заявки
+4. Номер создаваемого груза не соответствует номеру принятой заявки
+
+НУЖНО ПРОТЕСТИРОВАТЬ:
+1. Авторизация оператора
+2. Получение списка уведомлений (найти заявки типа 100021, 100020)
+3. Тестирование полного workflow:
+   - Принятие заявки (/accept)
+   - Завершение оформления (/complete) 
+4. Проверка сколько грузов создается за один вызов /complete
+5. Проверка правильности номеров создаваемых грузов
+6. Проверка изменения статуса заявки после обработки
+7. Анализ логики генерации номеров грузов в функции complete_cargo_processing
+"""
+
+import requests
+import json
+import os
+from datetime import datetime
+import time
+
+# Получаем URL backend из переменных окружения
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cargo-route-map.preview.emergentagent.com')
+API_BASE = f"{BACKEND_URL}/api"
+
+class TajlineCargoTester:
+    def __init__(self):
+        self.session = requests.Session()
+        self.auth_token = None
+        self.user_info = None
+        
+    def log(self, message, level="INFO"):
+        """Логирование с временной меткой"""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        print(f"[{timestamp}] {level}: {message}")
+        
+    def authenticate_operator(self, phone="+79777888999", password="warehouse123"):
+        """Авторизация оператора склада"""
+        try:
+            self.log("🔐 Попытка авторизации оператора склада...")
+            
+            response = self.session.post(f"{API_BASE}/auth/login", json={
+                "phone": phone,
+                "password": password
+            })
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.auth_token = data.get("access_token")
+                self.session.headers.update({"Authorization": f"Bearer {self.auth_token}"})
+                
+                # Получаем информацию о пользователе
+                user_response = self.session.get(f"{API_BASE}/auth/me")
+                if user_response.status_code == 200:
+                    self.user_info = user_response.json()
+                    self.log(f"✅ Успешная авторизация: {self.user_info.get('full_name')} (роль: {self.user_info.get('role')})")
+                    return True
+                else:
+                    self.log(f"❌ Ошибка получения данных пользователя: {user_response.status_code}", "ERROR")
+                    return False
+            else:
+                self.log(f"❌ Ошибка авторизации: {response.status_code} - {response.text}", "ERROR")
+                return False
+                
+        except Exception as e:
+            self.log(f"❌ Исключение при авторизации: {str(e)}", "ERROR")
+            return False
+    
+    def get_warehouse_notifications(self):
+        """Получение списка уведомлений склада"""
+        try:
+            self.log("📋 Получение списка уведомлений склада...")
+            
+            response = self.session.get(f"{API_BASE}/operator/warehouse-notifications")
+            
+            if response.status_code == 200:
+                notifications = response.json()
+                self.log(f"✅ Получено {len(notifications)} уведомлений")
+                
+                # Анализируем уведомления
+                pending_count = len([n for n in notifications if n.get('status') == 'pending_acceptance'])
+                in_processing_count = len([n for n in notifications if n.get('status') == 'in_processing'])
+                completed_count = len([n for n in notifications if n.get('status') == 'completed'])
+                
+                self.log(f"📊 Статистика уведомлений: pending: {pending_count}, in_processing: {in_processing_count}, completed: {completed_count}")
+                
+                # Ищем заявки с номерами 100021, 100020
+                target_requests = []
+                for notification in notifications:
+                    request_number = notification.get('request_number', '')
+                    if '100021' in request_number or '100020' in request_number:
+                        target_requests.append(notification)
+                        self.log(f"🎯 Найдена целевая заявка: {request_number} (ID: {notification.get('id')}, статус: {notification.get('status')})")
+                
+                if not target_requests:
+                    self.log("⚠️ Заявки 100021/100020 не найдены, используем первую доступную заявку")
+                    if notifications:
+                        target_requests = [notifications[0]]
+                
+                return notifications, target_requests
+            else:
+                self.log(f"❌ Ошибка получения уведомлений: {response.status_code} - {response.text}", "ERROR")
+                return [], []
+                
+        except Exception as e:
+            self.log(f"❌ Исключение при получении уведомлений: {str(e)}", "ERROR")
+            return [], []
+    
+    def accept_notification(self, notification_id):
+        """Принятие уведомления (первый этап)"""
+        try:
+            self.log(f"✋ Принятие уведомления {notification_id}...")
+            
+            response = self.session.post(f"{API_BASE}/operator/warehouse-notifications/{notification_id}/accept")
+            
+            if response.status_code == 200:
+                result = response.json()
+                self.log(f"✅ Уведомление принято: {result}")
+                return True, result
+            else:
+                self.log(f"❌ Ошибка принятия уведомления: {response.status_code} - {response.text}", "ERROR")
+                return False, None
+                
+        except Exception as e:
+            self.log(f"❌ Исключение при принятии уведомления: {str(e)}", "ERROR")
+            return False, None
+    
+    def complete_cargo_processing(self, notification_id, cargo_data):
+        """Завершение оформления груза (второй этап) - КРИТИЧЕСКАЯ ФУНКЦИЯ"""
+        try:
+            self.log(f"🎯 КРИТИЧЕСКИЙ ТЕСТ: Завершение оформления груза для уведомления {notification_id}...")
+            
+            # Подготавливаем данные для завершения оформления
+            complete_data = {
+                "cargo_items": [
+                    {
+                        "cargo_name": cargo_data.get("cargo_name", "Тестовый груз"),
+                        "weight": cargo_data.get("weight", 10.0),
+                        "price_per_kg": cargo_data.get("price_per_kg", 100.0)
+                    }
+                ],
+                "description": cargo_data.get("description", "Тестовое описание груза"),
+                "payment_method": cargo_data.get("payment_method", "cash"),
+                "payment_amount": cargo_data.get("payment_amount", 1000.0)
+            }
+            
+            self.log(f"📦 Данные для оформления: {json.dumps(complete_data, ensure_ascii=False, indent=2)}")
+            
+            # Получаем количество грузов ДО вызова complete
+            before_cargo_count = self.get_cargo_count()
+            self.log(f"📊 Количество грузов ДО complete: {before_cargo_count}")
+            
+            response = self.session.post(
+                f"{API_BASE}/operator/warehouse-notifications/{notification_id}/complete",
+                json=complete_data
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                self.log(f"✅ Груз оформлен: {result}")
+                
+                # Получаем количество грузов ПОСЛЕ вызова complete
+                time.sleep(1)  # Небольшая задержка для обновления данных
+                after_cargo_count = self.get_cargo_count()
+                self.log(f"📊 Количество грузов ПОСЛЕ complete: {after_cargo_count}")
+                
+                created_count = after_cargo_count - before_cargo_count
+                self.log(f"🎯 КРИТИЧЕСКИЙ РЕЗУЛЬТАТ: Создано грузов за один вызов /complete: {created_count}")
+                
+                if created_count > 1:
+                    self.log(f"🚨 ПРОБЛЕМА НАЙДЕНА: Создано {created_count} грузов вместо 1!", "ERROR")
+                elif created_count == 1:
+                    self.log("✅ Корректно: создан 1 груз")
+                else:
+                    self.log("⚠️ Грузы не созданы или не найдены", "WARNING")
+                
+                # Проверяем созданные грузы
+                created_cargos = result.get('created_cargos', [])
+                if created_cargos:
+                    self.log(f"📦 Созданные грузы:")
+                    for cargo in created_cargos:
+                        cargo_number = cargo.get('cargo_number', 'N/A')
+                        self.log(f"   - Номер груза: {cargo_number}")
+                        
+                        # Проверяем соответствие номера груза номеру заявки
+                        if 'request_number' in result:
+                            request_number = result['request_number']
+                            if request_number not in cargo_number and cargo_number not in request_number:
+                                self.log(f"⚠️ НЕСООТВЕТСТВИЕ: Номер груза {cargo_number} не соответствует номеру заявки {request_number}", "WARNING")
+                
+                return True, result
+            else:
+                self.log(f"❌ Ошибка завершения оформления: {response.status_code} - {response.text}", "ERROR")
+                return False, None
+                
+        except Exception as e:
+            self.log(f"❌ Исключение при завершении оформления: {str(e)}", "ERROR")
+            return False, None
+    
+    def get_cargo_count(self):
+        """Получение общего количества грузов в системе"""
+        try:
+            # Проверяем operator_cargo коллекцию
+            response = self.session.get(f"{API_BASE}/operator/cargo/list?per_page=1")
+            if response.status_code == 200:
+                data = response.json()
+                return data.get('pagination', {}).get('total_count', 0)
+            return 0
+        except:
+            return 0
+    
+    def check_notification_status_change(self, notification_id, original_status):
+        """Проверка изменения статуса уведомления после обработки"""
+        try:
+            self.log(f"🔍 Проверка изменения статуса уведомления {notification_id}...")
+            
+            notifications, _ = self.get_warehouse_notifications()
+            
+            for notification in notifications:
+                if notification.get('id') == notification_id:
+                    current_status = notification.get('status')
+                    self.log(f"📊 Статус уведомления: {original_status} → {current_status}")
+                    
+                    if current_status != original_status:
+                        self.log("✅ Статус уведомления изменился корректно")
+                        return True, current_status
+                    else:
+                        self.log("⚠️ Статус уведомления НЕ изменился", "WARNING")
+                        return False, current_status
+            
+            self.log("❌ Уведомление не найдено после обработки", "ERROR")
+            return False, None
+            
+        except Exception as e:
+            self.log(f"❌ Исключение при проверке статуса: {str(e)}", "ERROR")
+            return False, None
+    
+    def test_cargo_duplication_workflow(self):
+        """ОСНОВНОЙ ТЕСТ: Полный workflow обработки груза с диагностикой дублирования"""
+        try:
+            self.log("🎯 НАЧАЛО КРИТИЧЕСКОГО ТЕСТА ДУБЛИРОВАНИЯ ГРУЗОВ")
+            self.log("=" * 80)
+            
+            # 1. Авторизация
+            if not self.authenticate_operator():
+                return False
+            
+            # 2. Получение уведомлений
+            notifications, target_requests = self.get_warehouse_notifications()
+            if not target_requests:
+                self.log("❌ Нет доступных заявок для тестирования", "ERROR")
+                return False
+            
+            # 3. Выбираем первую доступную заявку
+            test_notification = target_requests[0]
+            notification_id = test_notification.get('id')
+            original_status = test_notification.get('status')
+            request_number = test_notification.get('request_number', 'N/A')
+            
+            self.log(f"🎯 Тестируем заявку: {request_number} (ID: {notification_id}, статус: {original_status})")
+            
+            # 4. Принятие заявки (если еще не принята)
+            if original_status == 'pending_acceptance':
+                success, accept_result = self.accept_notification(notification_id)
+                if not success:
+                    self.log("❌ Не удалось принять заявку", "ERROR")
+                    return False
+                
+                # Проверяем изменение статуса после принятия
+                time.sleep(1)
+                self.check_notification_status_change(notification_id, original_status)
+            
+            # 5. КРИТИЧЕСКИЙ ТЕСТ: Завершение оформления
+            cargo_data = {
+                "cargo_name": f"Тест груз {request_number}",
+                "weight": 15.0,
+                "price_per_kg": 120.0,
+                "description": f"Тестовый груз для диагностики дублирования {request_number}",
+                "payment_method": "cash",
+                "payment_amount": 1800.0
+            }
+            
+            success, complete_result = self.complete_cargo_processing(notification_id, cargo_data)
+            if not success:
+                self.log("❌ Не удалось завершить оформление груза", "ERROR")
+                return False
+            
+            # 6. Финальная проверка статуса уведомления
+            time.sleep(2)
+            status_changed, final_status = self.check_notification_status_change(notification_id, original_status)
+            
+            # 7. Проверка на дублирование в списке размещения
+            self.log("🔍 Проверка списка грузов для размещения...")
+            placement_response = self.session.get(f"{API_BASE}/operator/cargo/available-for-placement")
+            if placement_response.status_code == 200:
+                placement_data = placement_response.json()
+                placement_items = placement_data.get('items', [])
+                
+                # Ищем дубликаты по номеру заявки
+                duplicates = []
+                for item in placement_items:
+                    item_number = item.get('cargo_number', '')
+                    if request_number in item_number or item_number in request_number:
+                        duplicates.append(item)
+                
+                if len(duplicates) > 1:
+                    self.log(f"🚨 ДУБЛИРОВАНИЕ НАЙДЕНО: {len(duplicates)} копий заявки {request_number} в списке размещения!", "ERROR")
+                    for i, dup in enumerate(duplicates, 1):
+                        self.log(f"   Копия {i}: {dup.get('cargo_number')} (ID: {dup.get('id')})")
+                elif len(duplicates) == 1:
+                    self.log(f"✅ Корректно: найдена 1 копия заявки {request_number} в списке размещения")
+                else:
+                    self.log(f"⚠️ Заявка {request_number} не найдена в списке размещения", "WARNING")
+            
+            self.log("=" * 80)
+            self.log("🎯 КРИТИЧЕСКИЙ ТЕСТ ЗАВЕРШЕН")
+            return True
+            
+        except Exception as e:
+            self.log(f"❌ Критическое исключение в тесте: {str(e)}", "ERROR")
+            return False
+    
+    def analyze_cargo_generation_logic(self):
+        """Анализ логики генерации номеров грузов"""
+        try:
+            self.log("🔍 АНАЛИЗ ЛОГИКИ ГЕНЕРАЦИИ НОМЕРОВ ГРУЗОВ")
+            self.log("-" * 60)
+            
+            # Получаем последние созданные грузы
+            response = self.session.get(f"{API_BASE}/operator/cargo/list?per_page=10&sort_by=created_at&sort_order=desc")
+            if response.status_code == 200:
+                data = response.json()
+                recent_cargos = data.get('items', [])
+                
+                self.log(f"📦 Последние {len(recent_cargos)} грузов:")
+                cargo_numbers = []
+                for cargo in recent_cargos:
+                    cargo_number = cargo.get('cargo_number', 'N/A')
+                    created_at = cargo.get('created_at', 'N/A')
+                    cargo_numbers.append(cargo_number)
+                    self.log(f"   - {cargo_number} (создан: {created_at})")
+                
+                # Анализируем паттерны номеров
+                self.log("\n🔍 Анализ паттернов номеров:")
+                
+                # Группируем по форматам
+                format_2501 = [n for n in cargo_numbers if n.startswith('2501')]
+                format_100 = [n for n in cargo_numbers if n.startswith('100') and '/' in n]
+                other_formats = [n for n in cargo_numbers if not n.startswith('2501') and not (n.startswith('100') and '/' in n)]
+                
+                self.log(f"   - Формат 2501XXXXXX: {len(format_2501)} грузов")
+                self.log(f"   - Формат 100XXX/XX: {len(format_100)} грузов")
+                self.log(f"   - Другие форматы: {len(other_formats)} грузов")
+                
+                # Проверяем на дубликаты
+                duplicates = {}
+                for number in cargo_numbers:
+                    if number in duplicates:
+                        duplicates[number] += 1
+                    else:
+                        duplicates[number] = 1
+                
+                duplicate_numbers = {k: v for k, v in duplicates.items() if v > 1}
+                if duplicate_numbers:
+                    self.log(f"\n🚨 НАЙДЕНЫ ДУБЛИРОВАННЫЕ НОМЕРА:")
+                    for number, count in duplicate_numbers.items():
+                        self.log(f"   - {number}: {count} копий")
+                else:
+                    self.log("\n✅ Дублированных номеров не найдено")
+                
+            else:
+                self.log(f"❌ Ошибка получения списка грузов: {response.status_code}", "ERROR")
+                
+        except Exception as e:
+            self.log(f"❌ Исключение при анализе генерации номеров: {str(e)}", "ERROR")
+
+def main():
+    """Главная функция тестирования"""
+    print("🚀 КРИТИЧЕСКАЯ ДИАГНОСТИКА ДУБЛИРОВАНИЯ ЗАЯВОК В TAJLINE.TJ")
+    print("=" * 80)
+    print("ПРОБЛЕМА: При нажатии кнопки 'Принять груз' создаются дубликаты вместо корректной обработки")
+    print("ЦЕЛЬ: Найти корневую причину дублирования и проанализировать workflow")
+    print("=" * 80)
+    
+    tester = TajlineCargoTester()
+    
+    try:
+        # Основной тест дублирования
+        success = tester.test_cargo_duplication_workflow()
+        
+        if success:
+            print("\n" + "=" * 80)
+            print("📊 ДОПОЛНИТЕЛЬНЫЙ АНАЛИЗ")
+            print("=" * 80)
+            
+            # Анализ логики генерации номеров
+            tester.analyze_cargo_generation_logic()
+        
+        print("\n" + "=" * 80)
+        print("🎯 ДИАГНОСТИКА ЗАВЕРШЕНА")
+        print("=" * 80)
+        
+        if success:
+            print("✅ Тест выполнен успешно. Проверьте логи выше на наличие проблем с дублированием.")
+        else:
+            print("❌ Тест завершился с ошибками. Проверьте логи для диагностики проблем.")
+            
+    except KeyboardInterrupt:
+        print("\n⚠️ Тест прерван пользователем")
+    except Exception as e:
+        print(f"\n❌ Критическая ошибка: {str(e)}")
+
+if __name__ == "__main__":
+    main()
+"""
 КРИТИЧЕСКАЯ ДИАГНОСТИКА: Проблема с модальным окном приемки груза в TAJLINE.TJ
 Backend API Testing Script
 
