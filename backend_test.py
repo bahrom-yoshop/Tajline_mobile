@@ -330,6 +330,49 @@ class PickupRequestDeletionTester:
             )
             return False
     
+    def create_test_pickup_request(self):
+        """Создание тестовой заявки на забор для тестирования удаления"""
+        try:
+            # Данные для создания тестовой заявки на забор
+            request_data = {
+                "sender_full_name": "Тестовый Отправитель Заявки",
+                "sender_phone": "+79999123456",
+                "cargo_name": "Тестовый груз для удаления",
+                "pickup_address": "Москва, ул. Тестовая, д. 123",
+                "pickup_date": "2025-01-16",
+                "pickup_time_from": "10:00",
+                "pickup_time_to": "18:00",
+                "delivery_method": "pickup",
+                "courier_fee": 500.0
+            }
+            
+            response = self.session.post(f"{BACKEND_URL}/admin/courier/pickup-request", json=request_data)
+            
+            if response.status_code == 200:
+                data = response.json()
+                request_id = data.get('request_id') or data.get('id')
+                self.log_result(
+                    "Создание тестовой заявки на забор",
+                    True,
+                    f"Создана тестовая заявка ID: {request_id}. Ответ: {data}"
+                )
+                return request_id
+            else:
+                self.log_result(
+                    "Создание тестовой заявки на забор",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return None
+                
+        except Exception as e:
+            self.log_result(
+                "Создание тестовой заявки на забор",
+                False,
+                f"Ошибка запроса: {str(e)}"
+            )
+            return None
+
     def run_comprehensive_test(self):
         """Запуск полного комплексного тестирования"""
         print("🎯 НАЧАЛО КРИТИЧЕСКОГО ТЕСТИРОВАНИЯ: Удаление заявок на забор после frontend исправлений")
@@ -343,10 +386,22 @@ class PickupRequestDeletionTester:
         # 2. Получение списка заявок на забор
         pickup_requests = self.get_pickup_requests_list()
         
-        # 3. Проверка структуры ответа
+        # 3. Создание тестовых заявок если их нет
+        created_request_ids = []
+        if len(pickup_requests) < 3:
+            print("🔧 Создание тестовых заявок на забор для полного тестирования...")
+            for i in range(3):
+                request_id = self.create_test_pickup_request()
+                if request_id:
+                    created_request_ids.append(request_id)
+            
+            # Обновляем список заявок после создания
+            pickup_requests = self.get_pickup_requests_list()
+        
+        # 4. Проверка структуры ответа
         self.test_response_structure(None)
         
-        # 4. Тестирование индивидуального удаления (если есть заявки)
+        # 5. Тестирование индивидуального удаления (если есть заявки)
         if pickup_requests:
             # Берем первую заявку для тестирования
             test_request = pickup_requests[0]
@@ -368,7 +423,7 @@ class PickupRequestDeletionTester:
                         self.test_individual_deletion_alternative_endpoint(alt_request_id)
                         self.verify_deletion_from_database(alt_request_id)
         
-        # 5. Тестирование массового удаления (если есть заявки)
+        # 6. Тестирование массового удаления (если есть заявки)
         if len(pickup_requests) > 2:
             remaining_ids = [req.get('id') for req in pickup_requests[2:] if req.get('id')]
             self.test_bulk_deletion_endpoint(remaining_ids)
