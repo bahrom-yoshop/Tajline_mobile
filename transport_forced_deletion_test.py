@@ -106,7 +106,7 @@ class TransportForcedDeletionTester:
     def get_transports_list(self):
         """Получение списка транспортов"""
         try:
-            response = self.session.get(f"{BACKEND_URL}/admin/transports")
+            response = self.session.get(f"{BACKEND_URL}/transport/list")
             
             if response.status_code == 200:
                 data = response.json()
@@ -115,7 +115,7 @@ class TransportForcedDeletionTester:
                 self.log_result(
                     "Получение списка транспортов",
                     True,
-                    f"Получено {len(transports)} транспортов. Endpoint /api/admin/transports работает корректно"
+                    f"Получено {len(transports)} транспортов. Endpoint /api/transport/list работает корректно"
                 )
                 return transports
             else:
