@@ -89,6 +89,10 @@ function App() {
   const [searchResults, setSearchResults] = useState([]);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingResult, setTrackingResult] = useState(null);
+  
+  // Состояние для модального окна статуса пользователя
+  const [userStatusModal, setUserStatusModal] = useState(false);
+  const [userStatusData, setUserStatusData] = useState(null);
 
   // Новые состояния для клиентского дашборда (Функция 1)
   const [clientDashboard, setClientDashboard] = useState(null);
