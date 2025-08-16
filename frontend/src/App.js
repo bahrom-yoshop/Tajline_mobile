@@ -3776,6 +3776,13 @@ function App() {
     try {
       console.log(`🛑 ${context}: Safely stopping QR scanner...`);
       
+      // ИСПРАВЛЕНИЕ: Дополнительная проверка DOM элемента перед работой со сканером
+      const element = document.getElementById(elementId);
+      if (!element || !element.parentNode) {
+        console.warn(`⚠️ ${context}: DOM element not found or not attached, skipping cleanup`);
+        return;
+      }
+      
       // Check if scanner is actually running
       const state = qrCodeInstance.getState();
       console.log(`📊 ${context}: Scanner state before stop: ${state}`);
@@ -3788,12 +3795,16 @@ function App() {
         console.log(`ℹ️ ${context}: Scanner not running (state: ${state}), no stop needed`);
       }
       
-      // Clear the scanner instance to avoid React conflicts
+      // Clear the scanner instance to avoid React conflicts - с дополнительной защитой
       setTimeout(() => {
         try {
-          if (qrCodeInstance) {
+          // ИСПРАВЛЕНИЕ: Проверяем, что элемент все еще существует перед clear
+          const currentElement = document.getElementById(elementId);
+          if (qrCodeInstance && currentElement && currentElement.parentNode) {
             qrCodeInstance.clear();
             console.log(`🧹 ${context}: Scanner cleared successfully`);
+          } else {
+            console.log(`ℹ️ ${context}: Element removed from DOM, skipping clear`);
           }
         } catch (clearError) {
           console.warn(`⚠️ ${context}: Error during clear (non-critical):`, clearError);
@@ -3807,20 +3818,27 @@ function App() {
       if (error.message.includes('removeChild') || error.message.includes('Node')) {
         console.log(`🔧 ${context}: React DOM conflict detected, forcing cleanup`);
         try {
-          // Force cleanup the DOM element to avoid React conflicts
+          // Force cleanup the DOM element to avoid React conflicts - с дополнительной защитой
           const element = document.getElementById(elementId);
-          if (element) {
-            // Remove all Html5Qrcode added children safely without React DOM conflicts
+          if (element && element.parentNode) {
+            // ИСПРАВЛЕНИЕ: Проверяем parentNode перед удалением дочерних элементов
             const children = element.querySelectorAll('video, canvas, div[id*="qr-"]');
             children.forEach(child => {
               try {
-                // Use React-safe removal method
-                child.remove();
+                // Use React-safe removal method - проверяем что элемент все еще в DOM
+                if (child.parentNode) {
+                  child.remove();
+                }
               } catch (childError) {
                 console.debug(`Debug: Child removal handled:`, childError);
               }
             });
-            console.log(`🔧 ${context}: Forced DOM cleanup completed`);
+            
+            // Safely clear the container
+            if (element.parentNode) {
+              element.innerHTML = '';
+            }
+            console.log(`🧹 ${context}: Forced DOM cleanup completed`);
           }
         } catch (forceError) {
           console.debug(`Debug: Force cleanup handled:`, forceError);
