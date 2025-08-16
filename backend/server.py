@@ -16505,15 +16505,15 @@ async def permanently_delete_courier(courier_id: str, current_user: User = Depen
         user_id = courier.get("user_id")
         
         # Проверяем, есть ли активные заявки у курьера
-        active_requests = db.courier_requests.find({
+        active_requests = list(db.courier_requests.find({
             "assigned_courier_id": courier_id,
             "request_status": {"$in": ["assigned", "accepted"]}
-        }).count()
+        }))
         
-        if active_requests > 0:
+        if len(active_requests) > 0:
             raise HTTPException(
                 status_code=400, 
-                detail=f"Невозможно удалить курьера. У него есть {active_requests} активных заявок. Сначала завершите или переназначьте заявки."
+                detail=f"Невозможно удалить курьера. У него есть {len(active_requests)} активных заявок. Сначала завершите или переназначьте заявки."
             )
         
         # Удаляем курьера из базы данных
