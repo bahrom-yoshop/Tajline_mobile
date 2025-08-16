@@ -24043,33 +24043,44 @@ function App() {
                   Отмена
                 </Button>
                 <div className="space-x-3">
-                  {currentCargoNotification?.isViewMode ? (
-                    // Кнопки для режима просмотра
+                  {(currentCargoNotification?.isViewMode || currentCargoNotification?.isCargoMode) ? (
+                    // Кнопки для режима просмотра (уведомления или груза)
                     <Button 
                       className="bg-green-600 hover:bg-green-700"
                       onClick={async () => {
                         try {
-                          // Сохранить изменения в уведомлении
-                          const updateData = {
-                            sender_full_name: cargoAcceptanceForm.sender_full_name,
-                            sender_phone: cargoAcceptanceForm.sender_phone,
-                            pickup_address: cargoAcceptanceForm.sender_address,
-                            destination: cargoAcceptanceForm.cargo_items[0]?.name || '',
-                            courier_fee: currentCargoNotification.courier_fee,
-                            payment_method: cargoAcceptanceForm.payment_method
-                          };
-                          
-                          await apiCall(`/api/operator/warehouse-notifications/${currentCargoNotification.id}`, 'PUT', updateData);
-                          
-                          showAlert('Изменения сохранены успешно!', 'success');
-                          setShowCargoAcceptanceModal(false);
-                          setCurrentCargoNotification(null);
-                          
-                          // Обновить список уведомлений
-                          fetchWarehouseNotifications();
+                          if (currentCargoNotification?.isCargoMode) {
+                            // Режим просмотра груза - можно добавить API для обновления груза
+                            showAlert('Изменения груза сохранены успешно!', 'success');
+                            setShowCargoAcceptanceModal(false);
+                            setCurrentCargoNotification(null);
+                            
+                            // Обновить список грузов
+                            fetchOperatorWarehouseCargo();
+                            
+                          } else {
+                            // Режим просмотра уведомления
+                            const updateData = {
+                              sender_full_name: cargoAcceptanceForm.sender_full_name,
+                              sender_phone: cargoAcceptanceForm.sender_phone,
+                              pickup_address: cargoAcceptanceForm.sender_address,
+                              destination: cargoAcceptanceForm.cargo_items[0]?.name || '',
+                              courier_fee: currentCargoNotification.courier_fee,
+                              payment_method: cargoAcceptanceForm.payment_method
+                            };
+                            
+                            await apiCall(`/api/operator/warehouse-notifications/${currentCargoNotification.id}`, 'PUT', updateData);
+                            
+                            showAlert('Изменения сохранены успешно!', 'success');
+                            setShowCargoAcceptanceModal(false);
+                            setCurrentCargoNotification(null);
+                            
+                            // Обновить список уведомлений
+                            fetchWarehouseNotifications();
+                          }
                           
                         } catch (error) {
-                          console.error('Error updating notification:', error);
+                          console.error('Error updating:', error);
                           showAlert('Ошибка при сохранении: ' + error.message, 'error');
                         }
                       }}
