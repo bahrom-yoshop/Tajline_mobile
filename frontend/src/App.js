@@ -2046,6 +2046,23 @@ function App() {
     }
   };
 
+  // Функция для открытия модального окна просмотра/редактирования уведомления
+  const handleViewNotification = async (notification) => {
+    try {
+      // Устанавливаем выбранное уведомление
+      setSelectedNotificationForView(notification);
+      setViewNotificationModal(true);
+      
+      // Можно также загрузить дополнительные данные с сервера если нужно
+      // const response = await apiCall(`/api/notifications/${notification.id}`, 'GET');
+      // setSelectedNotificationForView(response);
+      
+    } catch (error) {
+      console.error('Error opening notification view:', error);
+      showAlert('Ошибка при открытии просмотра уведомления: ' + error.message, 'error');
+    }
+  };
+
   const handleSendToPlacement = async (notification) => {
     try {
       // Подтверждение действия
