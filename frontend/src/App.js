@@ -2192,6 +2192,58 @@ function App() {
     }
   };
 
+  // Функция для открытия модального окна просмотра/редактирования груза
+  const handleViewCargo = async (cargoItem) => {
+    try {
+      console.log('🔍 Открываем просмотр груза:', cargoItem);
+      
+      // Создаем объект, похожий на уведомление, но с данными груза
+      const mockNotification = {
+        id: cargoItem.id || cargoItem.cargo_number,
+        request_number: cargoItem.cargo_number,
+        courier_name: cargoItem.courier_name || 'Не указан',
+        delivered_at: cargoItem.created_at || new Date().toISOString(),
+        pickup_address: cargoItem.sender_address || 'Не указан',
+        sender_full_name: cargoItem.sender_name || cargoItem.sender_full_name || '',
+        sender_phone: cargoItem.sender_phone || '',
+        recipient_full_name: cargoItem.recipient_name || cargoItem.recipient_full_name || '',
+        recipient_phone: cargoItem.recipient_phone || '',
+        destination: cargoItem.destination || cargoItem.recipient_address || '',
+        courier_fee: cargoItem.courier_fee || 0,
+        payment_method: cargoItem.payment_method || 'cash',
+        isViewMode: true,
+        isCargoMode: true // Флаг для указания, что это просмотр груза (не уведомления)
+      };
+      
+      // Заполняем форму данными груза
+      setCargoAcceptanceForm({
+        sender_full_name: cargoItem.sender_name || cargoItem.sender_full_name || '',
+        sender_phone: cargoItem.sender_phone || '',
+        sender_address: cargoItem.sender_address || cargoItem.pickup_address || '',
+        recipient_full_name: cargoItem.recipient_name || cargoItem.recipient_full_name || '',
+        recipient_phone: cargoItem.recipient_phone || '',
+        recipient_address: cargoItem.recipient_address || cargoItem.destination || '',
+        cargo_items: [{
+          name: cargoItem.cargo_name || cargoItem.destination || 'Груз',
+          weight: cargoItem.weight ? String(cargoItem.weight) : '',
+          price: cargoItem.price_per_kg || cargoItem.declared_value || ''
+        }],
+        payment_method: cargoItem.payment_method || 'cash',
+        delivery_method: cargoItem.delivery_method || 'pickup',
+        payment_status: cargoItem.payment_status || 'not_paid',
+        amount_paid: cargoItem.amount_paid || '',
+        payment_notes: cargoItem.notes || ''
+      });
+      
+      setCurrentCargoNotification(mockNotification);
+      setShowCargoAcceptanceModal(true);
+      
+    } catch (error) {
+      console.error('Error opening cargo view:', error);
+      showAlert('Ошибка при открытии просмотра груза: ' + error.message, 'error');
+    }
+  };
+
   const handleSendToPlacement = async (notification) => {
     try {
       // Подтверждение действия
