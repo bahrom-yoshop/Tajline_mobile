@@ -16371,6 +16371,7 @@ async def create_courier_pickup_request(
             "weight": float(request_data.get("weight", 0)) if request_data.get("weight") else None,
             "total_value": float(request_data.get("total_value", 0)) if request_data.get("total_value") else None,
             "declared_value": float(request_data.get("declared_value", 0)) if request_data.get("declared_value") else None,
+            "price_per_kg": float(request_data.get("price_per_kg", 0)) if request_data.get("price_per_kg") else None,  # Добавлено: цена за кг от курьера
             
             # Курьерская служба
             "courier_fee": float(request_data.get("courier_fee", 0)),
