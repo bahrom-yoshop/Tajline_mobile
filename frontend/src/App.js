@@ -23525,44 +23525,6 @@ function App() {
                 </div>
               </div>
 
-              {/* Карта маршрута от склада до получателя */}
-              {cargoAcceptanceForm.recipient_address && operatorWarehouses && operatorWarehouses.length > 0 && (
-                <div className="border rounded-lg p-4 bg-blue-50">
-                  <h3 className="font-medium text-lg flex items-center mb-4">
-                    <MapPin className="mr-2 h-5 w-5 text-blue-600" />
-                    Маршрут доставки
-                  </h3>
-                  <RouteMap
-                    fromAddress={operatorWarehouses[0]?.address || operatorWarehouses[0]?.location || 'Душанбе'}
-                    toAddress={cargoAcceptanceForm.recipient_address}
-                    warehouseName={`Склад: ${operatorWarehouses[0]?.name || 'Склад'}`}
-                    recipientAddress={cargoAcceptanceForm.recipient_address}
-                    onRouteCalculated={(routeData) => {
-                      console.log('🗺️ Информация о маршруте доставки:', routeData);
-                      // Можно сохранить информацию о маршруте для использования при создании груза
-                      setRouteInfo(routeData);
-                    }}
-                  />
-                </div>
-              )}
-              
-              {/* Показываем почему карта не отображается */}
-              {!cargoAcceptanceForm.recipient_address && (
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
-                  <p className="text-sm text-yellow-800">
-                    ℹ️ Заполните "Адрес получателя" чтобы увидеть карту маршрута доставки
-                  </p>
-                </div>
-              )}
-              
-              {cargoAcceptanceForm.recipient_address && (!operatorWarehouses || operatorWarehouses.length === 0) && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded">
-                  <p className="text-sm text-red-800">
-                    ⚠️ Не найдены склады оператора для построения маршрута доставки
-                  </p>
-                </div>
-              )}
-
               {/* Список грузов */}
               <div className="border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
