@@ -5628,6 +5628,13 @@ function App() {
     }
   }, [user, activeSection]);
 
+  // Effect для автоматической загрузки неактивных курьеров при переключении на вкладку
+  useEffect(() => {
+    if (activeSection === 'couriers-tracking' && activeTab === 'couriers-inactive' && user?.role === 'admin') {
+      fetchInactiveCouriers();
+    }
+  }, [activeSection, activeTab, user?.role]);
+
   // НОВЫЙ USEEFFECT: Обновляем список курьеров при изменении фильтра неактивных
   useEffect(() => {
     if (user && (user.role === 'admin' || user.role === 'warehouse_operator')) {
