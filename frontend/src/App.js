@@ -2071,33 +2071,34 @@ function App() {
         const cargoInfo = modalData.cargo_info || {};
         const paymentInfo = modalData.payment_info || {};
         
-        // Обработка данных о грузах - правильно извлекаем цену от курьера
+        // Обработка данных о грузах - правильно извлекаем цену ЗА КГ от курьера
         let processedCargoItems = [];
         if (cargoInfo.cargo_items && cargoInfo.cargo_items.length > 0) {
           processedCargoItems = cargoInfo.cargo_items.map((item, index) => ({
-            name: item.name || `Груз ${index + 1}`,
+            name: item.name || item.cargo_name || `Груз ${index + 1}`,
             weight: item.weight ? String(item.weight) : '',
-            price: item.price || item.total_price || item.value || item.declared_value || ''
+            // ИСПРАВЛЕНИЕ: Используем price_per_kg (цену за кг), а не общую стоимость
+            price: item.price_per_kg ? String(item.price_per_kg) : (item.price || '')
           }));
-          console.log('✅ Используем cargo_items из backend:', processedCargoItems);
+          console.log('✅ Используем cargo_items с price_per_kg от курьера:', processedCargoItems);
         } else {
           // Создаем один элемент груза из доступных данных
           const cargoName = cargoInfo.cargo_name || cargoInfo.destination || notification.destination || 'Наименование груза не указано';
           const cargoWeight = cargoInfo.weight ? String(cargoInfo.weight) : '';
-          // ИСПРАВЛЕНИЕ: Правильно извлекаем цену, которую заполнил курьер
-          const cargoPrice = cargoInfo.total_value || cargoInfo.declared_value || '';
+          // ИСПРАВЛЕНИЕ: Используем price_per_kg (цену за кг), которую заполнил курьер
+          const cargoPricePerKg = cargoInfo.price_per_kg || '';
           
           processedCargoItems = [{
             name: cargoName,
             weight: cargoWeight,
-            price: cargoPrice ? String(cargoPrice) : ''
+            price: cargoPricePerKg ? String(cargoPricePerKg) : ''
           }];
           
-          console.log('✅ Создан груз из данных курьера:', {
+          console.log('✅ Создан груз из данных курьера с price_per_kg:', {
             name: cargoName,
             weight: cargoWeight, 
-            price: cargoPrice,
-            source: 'cargoInfo.total_value или cargoInfo.declared_value'
+            price_per_kg: cargoPricePerKg,
+            source: 'cargoInfo.price_per_kg от курьера'
           });
         }
         
