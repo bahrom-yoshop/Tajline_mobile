@@ -16354,7 +16354,61 @@ async def accept_pickup_request(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error accepting pickup request: {str(e)}")
 
-# ВРЕМЕННЫЙ ENDPOINT: Очистка дублированных уведомлений
+# ИСПРАВЛЕНИЕ: Индивидуальное удаление заявки на забор груза
+@app.delete("/api/admin/pickup-requests/{request_id}")
+async def delete_pickup_request(request_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role not in ["admin"]:
+        raise HTTPException(status_code=403, detail="Access denied: Only admins")
+    
+    try:
+        # Удаляем заявку на забор по ID
+        result = db.courier_pickup_requests.delete_one({"id": request_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Заявка не найдена")
+        
+        # Удаляем связанные уведомления
+        db.warehouse_notifications.delete_many({"pickup_request_id": request_id})
+        db.warehouse_notifications.delete_many({"request_id": request_id})
+        
+        return {
+            "message": "Заявка на забор груза успешно удалена",
+            "deleted_request_id": request_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error deleting pickup request: {str(e)}")
+        raise HTTPException(status_code=500, detail="Ошибка при удалении заявки")
+
+# ИСПРАВЛЕНИЕ: Индивидуальное удаление заявки на забор через courier endpoint (альтернативный доступ)
+@app.delete("/api/admin/courier/pickup-requests/{request_id}")
+async def delete_courier_pickup_request(request_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role not in ["admin"]:
+        raise HTTPException(status_code=403, detail="Access denied: Only admins")
+    
+    try:
+        # Удаляем заявку на забор по ID
+        result = db.courier_pickup_requests.delete_one({"id": request_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Заявка не найдена")
+        
+        # Удаляем связанные уведомления
+        db.warehouse_notifications.delete_many({"pickup_request_id": request_id})
+        db.warehouse_notifications.delete_many({"request_id": request_id})
+        
+        return {
+            "message": "Заявка на забор груза успешно удалена",
+            "deleted_request_id": request_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error deleting courier pickup request: {str(e)}")
+        raise HTTPException(status_code=500, detail="Ошибка при удалении заявки")
 @app.post("/api/admin/cleanup-duplicate-notifications")
 async def cleanup_duplicate_notifications(current_user: User = Depends(get_current_user)):
     if current_user.role not in ["admin"]:
