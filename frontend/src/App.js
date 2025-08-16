@@ -97,6 +97,9 @@ function App() {
   // Состояние для модального окна ошибок авторизации
   const [loginErrorModal, setLoginErrorModal] = useState(false);
   const [loginErrorData, setLoginErrorData] = useState(null);
+  
+  // Тестовое состояние для простого модального окна (для диагностики)
+  const [testModal, setTestModal] = useState(false);
 
   // Новые состояния для клиентского дашборда (Функция 1)
   const [clientDashboard, setClientDashboard] = useState(null);
