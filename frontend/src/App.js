@@ -2049,13 +2049,121 @@ function App() {
   // Функция для открытия модального окна просмотра/редактирования уведомления
   const handleViewNotification = async (notification) => {
     try {
-      // Устанавливаем выбранное уведомление
-      setSelectedNotificationForView(notification);
-      setViewNotificationModal(true);
+      console.log('🔍 Открываем просмотр принятого уведомления:', notification);
       
-      // Можно также загрузить дополнительные данные с сервера если нужно
-      // const response = await apiCall(`/api/notifications/${notification.id}`, 'GET');
-      // setSelectedNotificationForView(response);
+      // Получаем полную информацию о заявке на забор груза (если есть pickup_request_id)
+      let modalData = null;
+      if (notification.pickup_request_id) {
+        try {
+          const modalResponse = await apiCall(`/api/operator/pickup-requests/${notification.pickup_request_id}`, 'GET');
+          modalData = modalResponse;
+          console.log('📋 Получены данные заявки на забор:', modalData);
+        } catch (requestError) {
+          console.error('Ошибка при получении данных заявки:', requestError);
+        }
+      }
+      
+      // Заполняем форму принятия груза данными из уведомления
+      if (modalData) {
+        // Используем структурированные данные из modal_data
+        const senderData = modalData.sender_data || {};
+        const recipientData = modalData.recipient_data || {};
+        const cargoInfo = modalData.cargo_info || {};
+        const paymentInfo = modalData.payment_info || {};
+        
+        // Обработка данных о грузах
+        let processedCargoItems = [];
+        if (cargoInfo.cargo_items && cargoInfo.cargo_items.length > 0) {
+          processedCargoItems = cargoInfo.cargo_items.map((item, index) => ({
+            name: item.name || `Груз ${index + 1}`,
+            weight: item.weight ? String(item.weight) : '',
+            price: item.price || item.total_price || item.value || ''
+          }));
+        } else if (cargoInfo.cargo_name) {
+          const cargoNames = cargoInfo.cargo_name.split(',').map(name => name.trim()).filter(name => name);
+          if (cargoNames.length > 1) {
+            processedCargoItems = cargoNames.map((name, index) => ({
+              name: name,
+              weight: index === 0 && cargoInfo.weight ? String(cargoInfo.weight) : '',
+              price: index === 0 && (cargoInfo.total_value || cargoInfo.declared_value) ? String(cargoInfo.total_value || cargoInfo.declared_value) : ''
+            }));
+          } else {
+            processedCargoItems = [{
+              name: cargoInfo.cargo_name,
+              weight: cargoInfo.weight ? String(cargoInfo.weight) : '',
+              price: cargoInfo.total_value ? String(cargoInfo.total_value) : cargoInfo.declared_value ? String(cargoInfo.declared_value) : ''
+            }];
+          }
+        } else if (cargoInfo.destination || notification.destination) {
+          processedCargoItems = [{
+            name: cargoInfo.destination || notification.destination || 'Наименование груза не указано',
+            weight: cargoInfo.weight ? String(cargoInfo.weight) : '',
+            price: cargoInfo.total_value ? String(cargoInfo.total_value) : cargoInfo.declared_value ? String(cargoInfo.declared_value) : ''
+          }];
+        } else {
+          processedCargoItems = [{
+            name: 'Наименование груза не указано',
+            weight: '',
+            price: ''
+          }];
+        }
+        
+        setCargoAcceptanceForm({
+          sender_full_name: senderData.sender_full_name || notification.sender_full_name || '',
+          sender_phone: senderData.sender_phone || notification.sender_phone || '',
+          sender_address: senderData.pickup_address || notification.pickup_address || '',
+          recipient_full_name: recipientData.recipient_full_name || '',
+          recipient_phone: recipientData.recipient_phone || '',
+          recipient_address: recipientData.recipient_address || '',
+          cargo_items: processedCargoItems,
+          payment_method: paymentInfo.payment_method || notification.payment_method || 'cash',
+          delivery_method: recipientData.delivery_method || 'pickup',
+          payment_status: paymentInfo.payment_status || 'not_paid',
+          amount_paid: '',
+          payment_notes: ''
+        });
+        
+        // Сохраняем обогащенные данные уведомления
+        const enrichedNotification = {
+          ...notification,
+          modal_data: modalData,
+          sender_data: senderData,
+          recipient_data: recipientData,
+          cargo_info: cargoInfo,
+          payment_info: paymentInfo,
+          isViewMode: true // Флаг для указания режима просмотра
+        };
+        
+        setCurrentCargoNotification(enrichedNotification);
+      } else {
+        // Используем данные из уведомления напрямую
+        setCargoAcceptanceForm({
+          sender_full_name: notification.sender_full_name || '',
+          sender_phone: notification.sender_phone || '',
+          sender_address: notification.pickup_address || '',
+          recipient_full_name: '',
+          recipient_phone: '',
+          recipient_address: '',
+          cargo_items: [{ 
+            name: notification.destination || 'Наименование груза не указано', 
+            weight: '', 
+            price: '' 
+          }],
+          payment_method: notification.payment_method || 'cash',
+          delivery_method: 'pickup',
+          payment_status: notification.payment_status || 'not_paid',
+          amount_paid: '',
+          payment_notes: ''
+        });
+        
+        setCurrentCargoNotification({
+          ...notification,
+          isViewMode: true // Флаг для указания режима просмотра
+        });
+      }
+      
+      // Открываем существующее модальное окно принятия груза
+      setShowCargoAcceptanceModal(true);
       
     } catch (error) {
       console.error('Error opening notification view:', error);
