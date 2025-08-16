@@ -691,7 +691,66 @@ function App() {
     }
   };
 
-  // Функция удаления курьера
+  // Функция для получения неактивных курьеров
+  const fetchInactiveCouriers = async () => {
+    try {
+      console.log('📋 Загружаем список неактивных курьеров...');
+      const data = await apiCall('/api/admin/couriers/inactive');
+      setInactiveCouriers(data.inactive_couriers || []);
+      console.log(`📋 Загружены неактивные курьеры: ${(data.inactive_couriers || []).length} курьеров`);
+    } catch (error) {
+      console.error('Ошибка при загрузке неактивных курьеров:', error);
+      setInactiveCouriers([]);
+      showAlert('Ошибка при загрузке неактивных курьеров', 'error');
+    }
+  };
+
+  // Функция активации курьера
+  const handleActivateCourier = async (courierId, courierName) => {
+    if (!window.confirm(`Вы уверены, что хотите активировать курьера "${courierName}"? После активации курьер сможет снова принимать заявки.`)) {
+      return;
+    }
+
+    try {
+      const response = await apiCall(`/api/admin/couriers/${courierId}/activate`, 'POST');
+      showAlert(response.message || `Курьер "${courierName}" успешно активирован`, 'success');
+      
+      // Обновляем списки курьеров
+      await Promise.all([
+        fetchCouriers(),
+        fetchInactiveCouriers()
+      ]);
+    } catch (error) {
+      console.error('Ошибка при активации курьера:', error);
+      showAlert(`Ошибка при активации курьера: ${error.message}`, 'error');
+    }
+  };
+
+  // Функция полного удаления курьера
+  const handlePermanentDeleteCourier = async (courierId, courierName) => {
+    if (!window.confirm(`⚠️ ВНИМАНИЕ: Полное удаление курьера "${courierName}"!\n\nЭто действие НЕОБРАТИМО и полностью удалит:\n• Данные курьера из системы\n• Связанного пользователя\n• Историю местоположений\n\nВы уверены?`)) {
+      return;
+    }
+
+    // Двойное подтверждение для критического действия
+    if (!window.confirm(`Последнее подтверждение: удалить курьера "${courierName}" НАВСЕГДА?`)) {
+      return;
+    }
+
+    try {
+      const response = await apiCall(`/api/admin/couriers/${courierId}/permanent`, 'DELETE');
+      showAlert(response.message || `Курьер "${courierName}" полностью удален из системы`, 'success');
+      
+      // Обновляем списки курьеров
+      await Promise.all([
+        fetchCouriers(),
+        fetchInactiveCouriers()
+      ]);
+    } catch (error) {
+      console.error('Ошибка при удалении курьера:', error);
+      showAlert(`Ошибка при удалении курьера: ${error.message}`, 'error');
+    }
+  };
   const handleDeleteCourier = async (courier) => {
     try {
       console.log('🗑️ Начинаем удаление курьера:', courier.full_name);
