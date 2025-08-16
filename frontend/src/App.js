@@ -12650,6 +12650,19 @@ function App() {
                       'Войти в систему'
                     )}
                   </Button>
+                  
+                  {/* Тестовая кнопка для проверки модальных окон */}
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    className="w-full h-10 rounded-xl"
+                    onClick={() => {
+                      console.log('🧪 TEST: Opening test modal');
+                      setTestModal(true);
+                    }}
+                  >
+                    🧪 Тест модального окна
+                  </Button>
                 </form>
               </TabsContent>
               
