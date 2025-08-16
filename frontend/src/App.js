@@ -757,11 +757,27 @@ function App() {
       const response = await apiCall(`/api/admin/couriers/${courierId}/permanent`, 'DELETE');
       showAlert(response.message || `Курьер "${courierName}" полностью удален из системы`, 'success');
       
-      // Обновляем списки курьеров
-      await Promise.all([
-        fetchCouriers(),
-        fetchInactiveCouriers()
-      ]);
+      // ИСПРАВЛЕНИЕ: Корректное обновление списков
+      const currentShowInactive = showInactiveCouriers;
+      if (currentShowInactive) {
+        // Временно отключаем показ неактивных для загрузки только активных
+        setShowInactiveCouriers(false);
+        
+        // Ждем обновления состояния, затем загружаем активных курьеров
+        setTimeout(async () => {
+          await fetchCouriers();
+          // Восстанавливаем предыдущую настройку
+          setShowInactiveCouriers(currentShowInactive);
+        }, 100);
+      } else {
+        // Если неактивные не показывались, просто обновляем список
+        await fetchCouriers();
+      }
+      
+      // Обновляем список неактивных курьеров
+      await fetchInactiveCouriers();
+      
+      console.log(`✅ Курьер ${courierName} полностью удален и списки обновлены`);
     } catch (error) {
       console.error('Ошибка при удалении курьера:', error);
       showAlert(`Ошибка при удалении курьера: ${error.message}`, 'error');
