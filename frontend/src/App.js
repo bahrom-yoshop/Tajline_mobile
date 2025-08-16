@@ -2244,6 +2244,21 @@ function App() {
     }
   };
 
+  // Функция для автоматического обновления номеров складов при загрузке приложения
+  const ensureWarehouseNumbers = async () => {
+    if (user?.role === 'admin') {
+      try {
+        console.log('🔧 Проверяем и обновляем номера складов для уникальности QR кодов...');
+        const response = await apiCall('/api/admin/warehouses/update-id-numbers', 'POST');
+        if (response.updated_count > 0) {
+          console.log(`✅ Обновлены номера ${response.updated_count} складов для уникальности QR кодов`);
+        }
+      } catch (error) {
+        console.warn('Не удалось обновить номера складов:', error.message);
+      }
+    }
+  };
+
   const handleSendToPlacement = async (notification) => {
     try {
       // Подтверждение действия
