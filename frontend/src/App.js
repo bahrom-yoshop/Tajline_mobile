@@ -24056,7 +24056,7 @@ function App() {
                             setCurrentCargoNotification(null);
                             
                             // Обновить список грузов
-                            fetchOperatorWarehouseCargo();
+                            fetchOperatorCargo();
                             
                           } else {
                             // Режим просмотра уведомления
