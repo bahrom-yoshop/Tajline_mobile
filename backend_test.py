@@ -170,13 +170,15 @@ class CourierListUpdateTester:
             
             warehouse_id = warehouses[0]["id"]
             
+            import random
+            phone_suffix = random.randint(1000, 9999)
             courier_data = {
                 "full_name": f"Тестовый Курьер Синхронизации{name_suffix}",
-                "phone": f"+79991234{567 + len(name_suffix):03d}",
+                "phone": f"+7999{phone_suffix}{random.randint(100, 999)}",
                 "password": "courier123",
                 "address": "Москва, ул. Тестовая Синхронизации, 123",
                 "transport_type": "car",
-                "transport_number": f"TEST{567 + len(name_suffix):03d}",
+                "transport_number": f"TEST{phone_suffix}",
                 "transport_capacity": 500.0,
                 "assigned_warehouse_id": warehouse_id
             }
