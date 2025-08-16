@@ -214,20 +214,30 @@ class PricePerKgModalTester:
                 
                 # Проверяем наличие поля price_per_kg
                 price_per_kg = cargo_info.get("price_per_kg")
+                total_value = cargo_info.get("total_value")
                 
                 if price_per_kg is not None:
-                    if price_per_kg == 80.0:  # Ожидаемое значение согласно примеру
-                        self.log_test(
-                            "ПРОВЕРКА СОХРАНЕНИЯ PRICE_PER_KG",
-                            True,
-                            f"Поле price_per_kg корректно сохранено: {price_per_kg} ₽/кг"
-                        )
-                        return True
+                    if price_per_kg == 50.0:  # Ожидаемое значение согласно примеру
+                        # Дополнительная проверка: убеждаемся что total_value отличается от price_per_kg
+                        if total_value == 500.0 and total_value != price_per_kg:
+                            self.log_test(
+                                "ПРОВЕРКА СОХРАНЕНИЯ PRICE_PER_KG",
+                                True,
+                                f"Поле price_per_kg корректно сохранено: {price_per_kg} ₽/кг (отличается от total_value: {total_value} ₽)"
+                            )
+                            return True
+                        else:
+                            self.log_test(
+                                "ПРОВЕРКА СОХРАНЕНИЯ PRICE_PER_KG",
+                                False,
+                                f"Проблема с total_value: ожидалось 500.0, получено {total_value}"
+                            )
+                            return False
                     else:
                         self.log_test(
                             "ПРОВЕРКА СОХРАНЕНИЯ PRICE_PER_KG",
                             False,
-                            f"Неверное значение price_per_kg: ожидалось 80.0, получено {price_per_kg}"
+                            f"Неверное значение price_per_kg: ожидалось 50.0, получено {price_per_kg}"
                         )
                         return False
                 else:
