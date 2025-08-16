@@ -2294,11 +2294,103 @@ function App() {
     }
 
     try {
+      // Сбрасываем состояние
+      setMassQRGeneration({
+        isGenerating: true,
+        progress: 0,
+        total: 0,
+        current: 0,
+        results: []
+      });
+
       showAlert('Начинается генерация QR кодов для всех ячеек склада...', 'info');
-      // Можно вызвать существующую функцию или создать новую
-      await generateCellQRCodes();
+      
+      // Получаем структуру склада
+      console.log('🏗️ Получаем структуру склада для массовой генерации...');
+      const structureResponse = await apiCall(`/api/warehouses/${selectedWarehouseForQR.id}/structure`, 'GET');
+      
+      if (!structureResponse || !structureResponse.blocks) {
+        throw new Error('Не удалось получить структуру склада');
+      }
+
+      const { blocks, shelves_per_block, cells_per_shelf } = structureResponse;
+      const totalCells = blocks * shelves_per_block * cells_per_shelf;
+      
+      console.log(`📊 Структура склада: ${blocks} блоков, ${shelves_per_block} полок на блок, ${cells_per_shelf} ячеек на полку`);
+      console.log(`🎯 Всего ячеек для генерации: ${totalCells}`);
+
+      setMassQRGeneration(prev => ({
+        ...prev,
+        total: totalCells
+      }));
+
+      const results = [];
+      let currentCell = 0;
+
+      // Генерируем QR коды для всех ячеек
+      for (let block = 1; block <= blocks; block++) {
+        for (let shelf = 1; shelf <= shelves_per_block; shelf++) {
+          for (let cell = 1; cell <= cells_per_shelf; cell++) {
+            currentCell++;
+            
+            try {
+              console.log(`🔄 Генерируем QR код ${currentCell}/${totalCells}: Блок ${block}, Полка ${shelf}, Ячейка ${cell}`);
+              
+              const response = await apiCall('/api/warehouse/cell/generate-qr', 'POST', {
+                warehouse_id: selectedWarehouseForQR.id,
+                block: block,
+                shelf: shelf,
+                cell: cell,
+                format: 'id' // Используем ID формат с уникальными номерами складов
+              });
+
+              if (response && response.success) {
+                results.push({
+                  location: `Б${block}-П${shelf}-Я${cell}`,
+                  code: response.cell_code,
+                  qr_image: response.qr_code,
+                  readable_name: response.readable_name
+                });
+                
+                console.log(`✅ QR код сгенерирован: ${response.cell_code}`);
+              } else {
+                console.warn(`⚠️ Ошибка генерации QR для Б${block}-П${shelf}-Я${cell}`);
+              }
+
+            } catch (cellError) {
+              console.error(`❌ Ошибка при генерации QR для Б${block}-П${shelf}-Я${cell}:`, cellError);
+            }
+
+            // Обновляем прогресс
+            const progress = Math.round((currentCell / totalCells) * 100);
+            setMassQRGeneration(prev => ({
+              ...prev,
+              current: currentCell,
+              progress: progress,
+              results: [...results]
+            }));
+
+            // Небольшая задержка чтобы не перегружать сервер
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        }
+      }
+
+      // Завершение генерации
+      setMassQRGeneration(prev => ({
+        ...prev,
+        isGenerating: false
+      }));
+
+      showAlert(`Массовая генерация завершена! Сгенерировано ${results.length} QR кодов из ${totalCells} ячеек.`, 'success');
+      console.log(`🎉 Массовая генерация завершена: ${results.length}/${totalCells} QR кодов`);
+
     } catch (error) {
       console.error('Error generating all cells QR:', error);
+      setMassQRGeneration(prev => ({
+        ...prev,
+        isGenerating: false
+      }));
       showAlert(`Ошибка массовой генерации QR кодов: ${error.message}`, 'error');
     }
   };
