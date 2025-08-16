@@ -32819,10 +32819,10 @@ function App() {
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <QrCode className="h-6 w-6 text-orange-600" />
-              <span>Генерация QR кодов для склада</span>
+              <span>Массовая генерация QR кодов</span>
             </DialogTitle>
             <DialogDescription>
-              Склад: {selectedWarehouseForQR?.name} | Генерация QR кодов для ячеек склада
+              Склад: {selectedWarehouseForQR?.name} | Генерация уникальных QR кодов ячеек в формате XXX-BB-PP-CCC
             </DialogDescription>
           </DialogHeader>
           
