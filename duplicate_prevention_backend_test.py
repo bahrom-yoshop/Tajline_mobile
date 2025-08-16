@@ -455,7 +455,11 @@ class DuplicatePreventionTester:
             final_cargo_response = self.session.get(f"{API_BASE}/cargo/all?per_page=1")
             final_cargo_count = 0
             if final_cargo_response.status_code == 200:
-                final_cargo_count = final_cargo_response.json().get("pagination", {}).get("total_count", 0)
+                final_cargo_data = final_cargo_response.json()
+                if isinstance(final_cargo_data, list):
+                    final_cargo_count = len(final_cargo_data)
+                else:
+                    final_cargo_count = final_cargo_data.get("pagination", {}).get("total_count", 0)
             
             # Анализируем результаты
             cargos_created_by_api = len(created_cargos)
