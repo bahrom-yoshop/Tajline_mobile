@@ -14566,6 +14566,15 @@ async def complete_cargo_processing(
                 "status": "awaiting_placement",  # ИСПРАВЛЕНО: используем валидный статус вместо placement_ready
                 "processing_status": "paid",  # Добавляем для появления в списке размещения
                 "warehouse_id": warehouse_id,  # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: добавляем warehouse_id
+                
+                # НОВОЕ: Информация о маршруте складирования
+                "source_warehouse_id": cargo_details.get("source_warehouse_id", warehouse_id),
+                "source_warehouse_name": cargo_details.get("source_warehouse_name", ""),
+                "destination_warehouse_id": cargo_details.get("destination_warehouse_id", cargo_details.get("warehouse_id")),
+                "destination_warehouse_name": cargo_details.get("destination_warehouse_name", ""),
+                "is_route_delivery": cargo_details.get("is_route_delivery", False),
+                "route_info": cargo_details.get("route_info", {}),
+                
                 "created_by": current_user.id,
                 "created_by_name": current_user.full_name,
                 "created_at": current_time,
@@ -14575,7 +14584,7 @@ async def complete_cargo_processing(
                 "courier_delivered_by": notification.get("courier_name"),
                 "courier_delivered_at": notification.get("delivered_at"),
                 "route": "moscow_to_tajikistan",  # Добавляем обязательное поле
-                "description": f"Груз создан из заявки на забор №{notification.get('request_number')}, позиция {index + 1}",  # Добавляем обязательное поле
+                "description": f"Груз создан из заявки на забор №{notification.get('request_number')}, позиция {index + 1}. Маршрут: {cargo_details.get('source_warehouse_name', 'Неизвестно')} → {cargo_details.get('destination_warehouse_name', 'Неизвестно')}",  # Добавляем обязательное поле с маршрутом
                 "total_weight": sum(float(item.get("weight", 0)) for item in cargo_items),
                 "total_value": sum(float(item.get("price", 0)) for item in cargo_items),
                 "operation_history": [
@@ -14584,7 +14593,7 @@ async def complete_cargo_processing(
                         "timestamp": current_time,
                         "performed_by": current_user.full_name,
                         "performed_by_id": current_user.id,
-                        "details": f"Груз создан из заявки на забор №{notification.get('request_number')}"
+                        "details": f"Груз создан из заявки на забор №{notification.get('request_number')}. Маршрут: {cargo_details.get('source_warehouse_name', '')} → {cargo_details.get('destination_warehouse_name', '')}"
                     }
                 ],
                 "original_action_history": notification.get("action_history", [])
