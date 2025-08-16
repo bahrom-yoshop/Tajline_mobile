@@ -2414,6 +2414,33 @@ function App() {
     }
   };
 
+  // НОВАЯ ФУНКЦИЯ: Скачивание всех QR кодов как ZIP архива
+  const downloadAllQRCodes = async (results) => {
+    try {
+      showAlert('Подготовка архива с QR кодами...', 'info');
+      
+      // Создаем ZIP архив с помощью JSZip (если доступно) или просто скачиваем один за другим
+      for (let i = 0; i < results.length && i < 50; i++) { // Ограничиваем до 50 QR кодов
+        const result = results[i];
+        const filename = `${selectedWarehouseForQR?.name}-${result.code}`;
+        
+        setTimeout(() => {
+          downloadQRCode(result.qr_image, filename);
+        }, i * 200); // Задержка между скачиваниями
+      }
+      
+      if (results.length > 50) {
+        showAlert(`Скачано первых 50 QR кодов из ${results.length}. Для скачивания остальных повторите операцию.`, 'info');
+      } else {
+        showAlert(`Скачивание ${results.length} QR кодов начато!`, 'success');
+      }
+      
+    } catch (error) {
+      console.error('Error downloading all QR codes:', error);
+      showAlert('Ошибка при скачивании QR кодов', 'error');
+    }
+  };
+
   const handleSendToPlacement = async (notification) => {
     try {
       // Подтверждение действия
