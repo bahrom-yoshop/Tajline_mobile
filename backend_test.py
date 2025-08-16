@@ -601,8 +601,10 @@ class PricePerKgModalTester:
     
     def run_all_tests(self):
         """Запустить все тесты"""
-        print("🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Исправления для отображения цены за кг от курьера в модальном окне")
-        print("=" * 100)
+        print("🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Исправления для отображения цены за кг (а не итоговой суммы) в поле 'Цена (₽)' модального окна")
+        print("=" * 120)
+        print("ЦЕЛЬ: Убедиться что в модальном окне просмотра поле 'Цена (₽)' показывает 50₽ (price_per_kg), а НЕ 500₽ (total_value)")
+        print("=" * 120)
         
         # Авторизация всех пользователей
         if not self.authenticate_admin():
@@ -617,7 +619,8 @@ class PricePerKgModalTester:
             self.test_price_per_kg_field_saved,
             self.test_endpoint_response_structure,
             self.test_modal_data_structure,
-            self.test_price_calculation
+            self.test_price_calculation,
+            self.test_critical_modal_price_display_logic  # НОВЫЙ КРИТИЧЕСКИЙ ТЕСТ
         ]
         
         success_count = 0
@@ -630,9 +633,9 @@ class PricePerKgModalTester:
         self.cleanup_test_data()
         
         # Итоговый отчет
-        print("\n" + "=" * 100)
+        print("\n" + "=" * 120)
         print("📊 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ")
-        print("=" * 100)
+        print("=" * 120)
         
         total_tests = len(self.test_results)
         successful_tests = len([r for r in self.test_results if r["success"]])
@@ -646,6 +649,13 @@ class PricePerKgModalTester:
         for result in self.test_results:
             status = "✅" if result["success"] else "❌"
             print(f"{status} {result['test']}: {result['details']}")
+        
+        # КРИТИЧЕСКИЙ ВЫВОД
+        if successful_tests == total_tests:
+            print("\n🎉 КРИТИЧЕСКИЙ УСПЕХ: Backend корректно сохраняет и возвращает price_per_kg отдельно от total_value!")
+            print("✅ В модальном окне просмотра поле 'Цена (₽)' должно показывать 50₽, а не 500₽")
+        else:
+            print("\n❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: Обнаружены ошибки в обработке price_per_kg vs total_value")
         
         return successful_tests == total_tests
 
