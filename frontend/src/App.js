@@ -16138,15 +16138,15 @@ function App() {
                               <Label htmlFor="cell-code-qr">Код ячейки</Label>
                               <Input
                                 id="cell-code-qr"
-                                placeholder="Например: W001-Б1-П1-Я1"
-                                value={qrCellCode}
-                                onChange={(e) => setQrCellCode(e.target.value)}
+                                placeholder="Например: Б1-П1-Я1"
+                                value={qrCellCode.code || ''}
+                                onChange={(e) => setQrCellCode({...qrCellCode, code: e.target.value})}
                               />
                             </div>
                             <Button 
                               onClick={() => generateCellQR()}
                               className="w-full bg-purple-600 hover:bg-purple-700"
-                              disabled={!qrCellCode.trim()}
+                              disabled={!qrCellCode.code?.trim()}
                             >
                               <QrCode className="mr-2 h-4 w-4" />
                               Генерировать QR код ячейки
