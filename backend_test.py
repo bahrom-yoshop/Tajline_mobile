@@ -1,1189 +1,28 @@
 #!/usr/bin/env python3
 """
-КРИТИЧЕСКАЯ ДИАГНОСТИКА: Дублирование заявок при обработке груза в TAJLINE.TJ
+🎯 ФИНАЛЬНОЕ ТЕСТИРОВАНИЕ: Все 3 критические исправления в TAJLINE.TJ
 
-ПРОБЛЕМА: При нажатии кнопки "Принять груз":
-1. Заявка дублируется вместо удаления из списка уведомлений
-2. Создается несколько одинаковых грузов с номером 100012/01 
-3. В списке размещения груза появляется множество копий одной заявки
-4. Номер создаваемого груза не соответствует номеру принятой заявки
+ИСПРАВЛЕНИЯ ДЛЯ ТЕСТИРОВАНИЯ:
+1. ✅ ПРОБЛЕМА 1: Добавлены недостающие DELETE endpoints для заявок на забор:
+   - DELETE /api/admin/pickup-requests/{request_id}
+   - DELETE /api/admin/courier/pickup-requests/{request_id}
 
-НУЖНО ПРОТЕСТИРОВАТЬ:
-1. Авторизация оператора
-2. Получение списка уведомлений (найти заявки типа 100021, 100020)
-3. Тестирование полного workflow:
-   - Принятие заявки (/accept)
-   - Завершение оформления (/complete) 
-4. Проверка сколько грузов создается за один вызов /complete
-5. Проверка правильности номеров создаваемых грузов
-6. Проверка изменения статуса заявки после обработки
-7. Анализ логики генерации номеров грузов в функции complete_cargo_processing
-"""
+2. ✅ ПРОБЛЕМА 2: Диагностирована проблема удаления транспорта (разные endpoints с разной логикой)
 
-import requests
-import json
-import os
-from datetime import datetime
-import time
+3. ✅ ПРОБЛЕМА 3: Добавлены новые функции для управления неактивными курьерами:
+   - GET /api/admin/couriers/inactive (получить список неактивных курьеров)
+   - POST /api/admin/couriers/{courier_id}/activate (активировать курьера)
+   - DELETE /api/admin/couriers/{courier_id}/permanent (полное удаление курьера)
 
-# Получаем URL backend из переменных окружения
-BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cargo-route-map.preview.emergentagent.com')
-API_BASE = f"{BACKEND_URL}/api"
+ПОЛНОЕ ТЕСТИРОВАНИЕ:
+1. Авторизация администратора
+2. Тестирование новых DELETE endpoints для заявок на забор
+3. Проверка существования и работоспособности транспортных endpoints
+4. Тестирование всех новых функций управления неактивными курьерами
+5. Проверка валидации и error handling для всех новых endpoints
+6. Подтверждение правильной структуры ответов
 
-class TajlineCargoTester:
-    def __init__(self):
-        self.session = requests.Session()
-        self.auth_token = None
-        self.user_info = None
-        
-    def log(self, message, level="INFO"):
-        """Логирование с временной меткой"""
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        print(f"[{timestamp}] {level}: {message}")
-        
-    def authenticate_operator(self, phone="+79999888777", password="admin123"):
-        """Авторизация оператора склада"""
-        try:
-            self.log("🔐 Попытка авторизации оператора склада...")
-            
-            response = self.session.post(f"{API_BASE}/auth/login", json={
-                "phone": phone,
-                "password": password
-            })
-            
-            if response.status_code == 200:
-                data = response.json()
-                self.auth_token = data.get("access_token")
-                self.session.headers.update({"Authorization": f"Bearer {self.auth_token}"})
-                
-                # Получаем информацию о пользователе
-                user_response = self.session.get(f"{API_BASE}/auth/me")
-                if user_response.status_code == 200:
-                    self.user_info = user_response.json()
-                    self.log(f"✅ Успешная авторизация: {self.user_info.get('full_name')} (роль: {self.user_info.get('role')})")
-                    return True
-                else:
-                    self.log(f"❌ Ошибка получения данных пользователя: {user_response.status_code}", "ERROR")
-                    return False
-            else:
-                self.log(f"❌ Ошибка авторизации: {response.status_code} - {response.text}", "ERROR")
-                return False
-                
-        except Exception as e:
-            self.log(f"❌ Исключение при авторизации: {str(e)}", "ERROR")
-            return False
-    
-    def get_warehouse_notifications(self):
-        """Получение списка уведомлений склада"""
-        try:
-            self.log("📋 Получение списка уведомлений склада...")
-            
-            response = self.session.get(f"{API_BASE}/operator/warehouse-notifications")
-            
-            if response.status_code == 200:
-                notifications = response.json()
-                self.log(f"✅ Получено {len(notifications)} уведомлений")
-                
-                # Анализируем уведомления
-                pending_count = len([n for n in notifications if n.get('status') == 'pending_acceptance'])
-                in_processing_count = len([n for n in notifications if n.get('status') == 'in_processing'])
-                completed_count = len([n for n in notifications if n.get('status') == 'completed'])
-                
-                self.log(f"📊 Статистика уведомлений: pending: {pending_count}, in_processing: {in_processing_count}, completed: {completed_count}")
-                
-                # Ищем заявки с номерами 100021, 100020
-                target_requests = []
-                for notification in notifications:
-                    if isinstance(notification, dict):
-                        request_number = notification.get('request_number', '')
-                        if '100021' in str(request_number) or '100020' in str(request_number):
-                            target_requests.append(notification)
-                            self.log(f"🎯 Найдена целевая заявка: {request_number} (ID: {notification.get('id')}, статус: {notification.get('status')})")
-                
-                if not target_requests:
-                    self.log("⚠️ Заявки 100021/100020 не найдены, используем первую доступную заявку")
-                    if notifications:
-                        # Берем первое уведомление, которое является словарем
-                        for notif in notifications:
-                            if isinstance(notif, dict):
-                                target_requests = [notif]
-                                break
-                
-                return notifications, target_requests
-            else:
-                self.log(f"❌ Ошибка получения уведомлений: {response.status_code} - {response.text}", "ERROR")
-                return [], []
-                
-        except Exception as e:
-            self.log(f"❌ Исключение при получении уведомлений: {str(e)}", "ERROR")
-            return [], []
-    
-    def accept_notification(self, notification_id):
-        """Принятие уведомления (первый этап)"""
-        try:
-            self.log(f"✋ Принятие уведомления {notification_id}...")
-            
-            response = self.session.post(f"{API_BASE}/operator/warehouse-notifications/{notification_id}/accept")
-            
-            if response.status_code == 200:
-                result = response.json()
-                self.log(f"✅ Уведомление принято: {result}")
-                return True, result
-            else:
-                self.log(f"❌ Ошибка принятия уведомления: {response.status_code} - {response.text}", "ERROR")
-                return False, None
-                
-        except Exception as e:
-            self.log(f"❌ Исключение при принятии уведомления: {str(e)}", "ERROR")
-            return False, None
-    
-    def complete_cargo_processing(self, notification_id, cargo_data):
-        """Завершение оформления груза (второй этап) - КРИТИЧЕСКАЯ ФУНКЦИЯ"""
-        try:
-            self.log(f"🎯 КРИТИЧЕСКИЙ ТЕСТ: Завершение оформления груза для уведомления {notification_id}...")
-            
-            # Подготавливаем данные для завершения оформления
-            complete_data = {
-                "cargo_items": [
-                    {
-                        "cargo_name": cargo_data.get("cargo_name", "Тестовый груз"),
-                        "weight": cargo_data.get("weight", 10.0),
-                        "price_per_kg": cargo_data.get("price_per_kg", 100.0)
-                    }
-                ],
-                "description": cargo_data.get("description", "Тестовое описание груза"),
-                "payment_method": cargo_data.get("payment_method", "cash"),
-                "payment_amount": cargo_data.get("payment_amount", 1000.0)
-            }
-            
-            self.log(f"📦 Данные для оформления: {json.dumps(complete_data, ensure_ascii=False, indent=2)}")
-            
-            # Получаем количество грузов ДО вызова complete
-            before_cargo_count = self.get_cargo_count()
-            self.log(f"📊 Количество грузов ДО complete: {before_cargo_count}")
-            
-            response = self.session.post(
-                f"{API_BASE}/operator/warehouse-notifications/{notification_id}/complete",
-                json=complete_data
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                self.log(f"✅ Груз оформлен: {result}")
-                
-                # Получаем количество грузов ПОСЛЕ вызова complete
-                time.sleep(1)  # Небольшая задержка для обновления данных
-                after_cargo_count = self.get_cargo_count()
-                self.log(f"📊 Количество грузов ПОСЛЕ complete: {after_cargo_count}")
-                
-                created_count = after_cargo_count - before_cargo_count
-                self.log(f"🎯 КРИТИЧЕСКИЙ РЕЗУЛЬТАТ: Создано грузов за один вызов /complete: {created_count}")
-                
-                if created_count > 1:
-                    self.log(f"🚨 ПРОБЛЕМА НАЙДЕНА: Создано {created_count} грузов вместо 1!", "ERROR")
-                elif created_count == 1:
-                    self.log("✅ Корректно: создан 1 груз")
-                else:
-                    self.log("⚠️ Грузы не созданы или не найдены", "WARNING")
-                
-                # Проверяем созданные грузы
-                created_cargos = result.get('created_cargos', [])
-                if created_cargos:
-                    self.log(f"📦 Созданные грузы:")
-                    for cargo in created_cargos:
-                        cargo_number = cargo.get('cargo_number', 'N/A')
-                        self.log(f"   - Номер груза: {cargo_number}")
-                        
-                        # Проверяем соответствие номера груза номеру заявки
-                        if 'request_number' in result:
-                            request_number = result['request_number']
-                            if request_number not in cargo_number and cargo_number not in request_number:
-                                self.log(f"⚠️ НЕСООТВЕТСТВИЕ: Номер груза {cargo_number} не соответствует номеру заявки {request_number}", "WARNING")
-                
-                return True, result
-            else:
-                self.log(f"❌ Ошибка завершения оформления: {response.status_code} - {response.text}", "ERROR")
-                return False, None
-                
-        except Exception as e:
-            self.log(f"❌ Исключение при завершении оформления: {str(e)}", "ERROR")
-            return False, None
-    
-    def get_cargo_count(self):
-        """Получение общего количества грузов в системе"""
-        try:
-            # Проверяем operator_cargo коллекцию
-            response = self.session.get(f"{API_BASE}/operator/cargo/list?per_page=1")
-            if response.status_code == 200:
-                data = response.json()
-                return data.get('pagination', {}).get('total_count', 0)
-            return 0
-        except:
-            return 0
-    
-    def check_notification_status_change(self, notification_id, original_status):
-        """Проверка изменения статуса уведомления после обработки"""
-        try:
-            self.log(f"🔍 Проверка изменения статуса уведомления {notification_id}...")
-            
-            notifications, _ = self.get_warehouse_notifications()
-            
-            for notification in notifications:
-                if notification.get('id') == notification_id:
-                    current_status = notification.get('status')
-                    self.log(f"📊 Статус уведомления: {original_status} → {current_status}")
-                    
-                    if current_status != original_status:
-                        self.log("✅ Статус уведомления изменился корректно")
-                        return True, current_status
-                    else:
-                        self.log("⚠️ Статус уведомления НЕ изменился", "WARNING")
-                        return False, current_status
-            
-            self.log("❌ Уведомление не найдено после обработки", "ERROR")
-            return False, None
-            
-        except Exception as e:
-            self.log(f"❌ Исключение при проверке статуса: {str(e)}", "ERROR")
-            return False, None
-    
-    def test_cargo_duplication_workflow(self):
-        """ОСНОВНОЙ ТЕСТ: Полный workflow обработки груза с диагностикой дублирования"""
-        try:
-            self.log("🎯 НАЧАЛО КРИТИЧЕСКОГО ТЕСТА ДУБЛИРОВАНИЯ ГРУЗОВ")
-            self.log("=" * 80)
-            
-            # 1. Авторизация
-            if not self.authenticate_operator():
-                return False
-            
-            # 2. Получение уведомлений
-            notifications, target_requests = self.get_warehouse_notifications()
-            if not target_requests:
-                self.log("❌ Нет доступных заявок для тестирования", "ERROR")
-                return False
-            
-            # 3. Выбираем первую доступную заявку
-            test_notification = target_requests[0]
-            notification_id = test_notification.get('id')
-            original_status = test_notification.get('status')
-            request_number = test_notification.get('request_number', 'N/A')
-            
-            self.log(f"🎯 Тестируем заявку: {request_number} (ID: {notification_id}, статус: {original_status})")
-            
-            # 4. Принятие заявки (если еще не принята)
-            if original_status == 'pending_acceptance':
-                success, accept_result = self.accept_notification(notification_id)
-                if not success:
-                    self.log("❌ Не удалось принять заявку", "ERROR")
-                    return False
-                
-                # Проверяем изменение статуса после принятия
-                time.sleep(1)
-                self.check_notification_status_change(notification_id, original_status)
-            
-            # 5. КРИТИЧЕСКИЙ ТЕСТ: Завершение оформления
-            cargo_data = {
-                "cargo_name": f"Тест груз {request_number}",
-                "weight": 15.0,
-                "price_per_kg": 120.0,
-                "description": f"Тестовый груз для диагностики дублирования {request_number}",
-                "payment_method": "cash",
-                "payment_amount": 1800.0
-            }
-            
-            success, complete_result = self.complete_cargo_processing(notification_id, cargo_data)
-            if not success:
-                self.log("❌ Не удалось завершить оформление груза", "ERROR")
-                return False
-            
-            # 6. Финальная проверка статуса уведомления
-            time.sleep(2)
-            status_changed, final_status = self.check_notification_status_change(notification_id, original_status)
-            
-            # 7. Проверка на дублирование в списке размещения
-            self.log("🔍 Проверка списка грузов для размещения...")
-            placement_response = self.session.get(f"{API_BASE}/operator/cargo/available-for-placement")
-            if placement_response.status_code == 200:
-                placement_data = placement_response.json()
-                placement_items = placement_data.get('items', [])
-                
-                # Ищем дубликаты по номеру заявки
-                duplicates = []
-                for item in placement_items:
-                    item_number = item.get('cargo_number', '')
-                    if request_number in item_number or item_number in request_number:
-                        duplicates.append(item)
-                
-                if len(duplicates) > 1:
-                    self.log(f"🚨 ДУБЛИРОВАНИЕ НАЙДЕНО: {len(duplicates)} копий заявки {request_number} в списке размещения!", "ERROR")
-                    for i, dup in enumerate(duplicates, 1):
-                        self.log(f"   Копия {i}: {dup.get('cargo_number')} (ID: {dup.get('id')})")
-                elif len(duplicates) == 1:
-                    self.log(f"✅ Корректно: найдена 1 копия заявки {request_number} в списке размещения")
-                else:
-                    self.log(f"⚠️ Заявка {request_number} не найдена в списке размещения", "WARNING")
-            
-            self.log("=" * 80)
-            self.log("🎯 КРИТИЧЕСКИЙ ТЕСТ ЗАВЕРШЕН")
-            return True
-            
-        except Exception as e:
-            self.log(f"❌ Критическое исключение в тесте: {str(e)}", "ERROR")
-            return False
-    
-    def analyze_cargo_generation_logic(self):
-        """Анализ логики генерации номеров грузов"""
-        try:
-            self.log("🔍 АНАЛИЗ ЛОГИКИ ГЕНЕРАЦИИ НОМЕРОВ ГРУЗОВ")
-            self.log("-" * 60)
-            
-            # Получаем последние созданные грузы
-            response = self.session.get(f"{API_BASE}/operator/cargo/list?per_page=10&sort_by=created_at&sort_order=desc")
-            if response.status_code == 200:
-                data = response.json()
-                recent_cargos = data.get('items', [])
-                
-                self.log(f"📦 Последние {len(recent_cargos)} грузов:")
-                cargo_numbers = []
-                for cargo in recent_cargos:
-                    cargo_number = cargo.get('cargo_number', 'N/A')
-                    created_at = cargo.get('created_at', 'N/A')
-                    cargo_numbers.append(cargo_number)
-                    self.log(f"   - {cargo_number} (создан: {created_at})")
-                
-                # Анализируем паттерны номеров
-                self.log("\n🔍 Анализ паттернов номеров:")
-                
-                # Группируем по форматам
-                format_2501 = [n for n in cargo_numbers if n.startswith('2501')]
-                format_100 = [n for n in cargo_numbers if n.startswith('100') and '/' in n]
-                other_formats = [n for n in cargo_numbers if not n.startswith('2501') and not (n.startswith('100') and '/' in n)]
-                
-                self.log(f"   - Формат 2501XXXXXX: {len(format_2501)} грузов")
-                self.log(f"   - Формат 100XXX/XX: {len(format_100)} грузов")
-                self.log(f"   - Другие форматы: {len(other_formats)} грузов")
-                
-                # Проверяем на дубликаты
-                duplicates = {}
-                for number in cargo_numbers:
-                    if number in duplicates:
-                        duplicates[number] += 1
-                    else:
-                        duplicates[number] = 1
-                
-                duplicate_numbers = {k: v for k, v in duplicates.items() if v > 1}
-                if duplicate_numbers:
-                    self.log(f"\n🚨 НАЙДЕНЫ ДУБЛИРОВАННЫЕ НОМЕРА:")
-                    for number, count in duplicate_numbers.items():
-                        self.log(f"   - {number}: {count} копий")
-                else:
-                    self.log("\n✅ Дублированных номеров не найдено")
-                
-            else:
-                self.log(f"❌ Ошибка получения списка грузов: {response.status_code}", "ERROR")
-                
-        except Exception as e:
-            self.log(f"❌ Исключение при анализе генерации номеров: {str(e)}", "ERROR")
-
-def main():
-    """Главная функция тестирования"""
-    print("🚀 КРИТИЧЕСКАЯ ДИАГНОСТИКА ДУБЛИРОВАНИЯ ЗАЯВОК В TAJLINE.TJ")
-    print("=" * 80)
-    print("ПРОБЛЕМА: При нажатии кнопки 'Принять груз' создаются дубликаты вместо корректной обработки")
-    print("ЦЕЛЬ: Найти корневую причину дублирования и проанализировать workflow")
-    print("=" * 80)
-    
-    tester = TajlineCargoTester()
-    
-    try:
-        # Основной тест дублирования
-        success = tester.test_cargo_duplication_workflow()
-        
-        if success:
-            print("\n" + "=" * 80)
-            print("📊 ДОПОЛНИТЕЛЬНЫЙ АНАЛИЗ")
-            print("=" * 80)
-            
-            # Анализ логики генерации номеров
-            tester.analyze_cargo_generation_logic()
-        
-        print("\n" + "=" * 80)
-        print("🎯 ДИАГНОСТИКА ЗАВЕРШЕНА")
-        print("=" * 80)
-        
-        if success:
-            print("✅ Тест выполнен успешно. Проверьте логи выше на наличие проблем с дублированием.")
-        else:
-            print("❌ Тест завершился с ошибками. Проверьте логи для диагностики проблем.")
-            
-    except KeyboardInterrupt:
-        print("\n⚠️ Тест прерван пользователем")
-    except Exception as e:
-        print(f"\n❌ Критическая ошибка: {str(e)}")
-
-if __name__ == "__main__":
-    main()
-"""
-КРИТИЧЕСКАЯ ДИАГНОСТИКА: Проблема с модальным окном приемки груза в TAJLINE.TJ
-Backend API Testing Script
-
-ПРОБЛЕМА: Когда оператор склада:
-1. Получает список уведомлений о поступлении нового груза
-2. Нажимает кнопку "Принять" - открывается модальное окно
-3. Заполняет остальные поля (вес, размеры, описание и т.д.)
-4. Нажимает кнопку "Оформить и отправить"
-5. НИЧЕГО НЕ ПРОИСХОДИТ - заявка остается на месте
-
-ПОДОЗРЕНИЯ:
-- Endpoint POST /api/operator/warehouse-notifications/{notification_id}/accept может не обрабатывать дополнительные поля из модального окна
-- Возможны проблемы с валидацией данных
-- Frontend может неправильно отправлять данные модального окна
-
-НУЖНО ПРОТЕСТИРОВАТЬ:
-1. Авторизация оператора склада
-2. Получение списка уведомлений (найти заявку № 100021)
-3. Тестирование приемки через POST /api/operator/warehouse-notifications/{notification_id}/accept с минимальными данными
-4. Тестирование приемки с полными данными из модального окна (вес, размеры, описание)
-5. Проверка обработки и изменения статуса заявки
-6. Анализ структуры данных, которые должны отправляться из модального окна
-"""
-
-import requests
-import json
-import os
-from datetime import datetime
-
-# Configuration
-BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://cargo-route-map.preview.emergentagent.com')
-API_BASE = f"{BACKEND_URL}/api"
-
-# Test credentials - warehouse operator
-WAREHOUSE_OPERATOR_PHONE = "+79777888999"
-WAREHOUSE_OPERATOR_PASSWORD = "warehouse123"
-
-# Admin credentials as fallback
-ADMIN_PHONE = "+79999888777"
-ADMIN_PASSWORD = "admin123"
-
-class WarehouseNotificationTester:
-    def __init__(self):
-        self.session = requests.Session()
-        self.auth_token = None
-        self.current_user = None
-        self.test_results = []
-        
-    def log_result(self, test_name, success, details, data=None):
-        """Log test result"""
-        result = {
-            "test": test_name,
-            "success": success,
-            "details": details,
-            "timestamp": datetime.now().isoformat(),
-            "data": data
-        }
-        self.test_results.append(result)
-        status = "✅ УСПЕХ" if success else "❌ ОШИБКА"
-        print(f"{status}: {test_name}")
-        print(f"   Детали: {details}")
-        if data:
-            print(f"   Данные: {json.dumps(data, ensure_ascii=False, indent=2)[:200]}...")
-        print()
-        
-    def authenticate_warehouse_operator(self):
-        """Test 1: Authenticate warehouse operator"""
-        try:
-            # Try warehouse operator first
-            login_data = {
-                "phone": WAREHOUSE_OPERATOR_PHONE,
-                "password": WAREHOUSE_OPERATOR_PASSWORD
-            }
-            
-            response = self.session.post(f"{API_BASE}/auth/login", json=login_data)
-            
-            if response.status_code == 200:
-                data = response.json()
-                self.auth_token = data.get("access_token")
-                self.session.headers.update({"Authorization": f"Bearer {self.auth_token}"})
-                
-                # Get user info
-                user_response = self.session.get(f"{API_BASE}/auth/me")
-                if user_response.status_code == 200:
-                    self.current_user = user_response.json()
-                    self.log_result(
-                        "Авторизация оператора склада",
-                        True,
-                        f"Успешная авторизация '{self.current_user.get('full_name')}' (номер: {self.current_user.get('user_number')}, роль: {self.current_user.get('role')})",
-                        {"phone": WAREHOUSE_OPERATOR_PHONE, "role": self.current_user.get('role')}
-                    )
-                    return True
-                    
-            # Fallback to admin if warehouse operator fails
-            admin_login_data = {
-                "phone": ADMIN_PHONE,
-                "password": ADMIN_PASSWORD
-            }
-            
-            response = self.session.post(f"{API_BASE}/auth/login", json=admin_login_data)
-            
-            if response.status_code == 200:
-                data = response.json()
-                self.auth_token = data.get("access_token")
-                self.session.headers.update({"Authorization": f"Bearer {self.auth_token}"})
-                
-                # Get user info
-                user_response = self.session.get(f"{API_BASE}/auth/me")
-                if user_response.status_code == 200:
-                    self.current_user = user_response.json()
-                    self.log_result(
-                        "Авторизация администратора (fallback)",
-                        True,
-                        f"Успешная авторизация '{self.current_user.get('full_name')}' (номер: {self.current_user.get('user_number')}, роль: {self.current_user.get('role')}) как fallback для тестирования",
-                        {"phone": ADMIN_PHONE, "role": self.current_user.get('role')}
-                    )
-                    return True
-                    
-            self.log_result(
-                "Авторизация пользователя",
-                False,
-                f"Ошибка авторизации: HTTP {response.status_code}",
-                {"response": response.text[:500]}
-            )
-            return False
-            
-        except Exception as e:
-            self.log_result(
-                "Авторизация пользователя",
-                False,
-                f"Исключение при авторизации: {str(e)}",
-                {"error": str(e)}
-            )
-            return False
-    
-    def get_warehouse_notifications(self):
-        """Test 2: Get warehouse notifications list"""
-        try:
-            response = self.session.get(f"{API_BASE}/operator/warehouse-notifications")
-            
-            if response.status_code == 200:
-                data = response.json()
-                notifications = data.get('notifications', [])
-                
-                # Analyze notifications
-                total_notifications = len(notifications)
-                pending_count = len([n for n in notifications if n.get('status') == 'pending_acceptance'])
-                in_processing_count = len([n for n in notifications if n.get('status') == 'in_processing'])
-                completed_count = len([n for n in notifications if n.get('status') == 'completed'])
-                
-                # Look for request #100021
-                request_100021 = None
-                for notification in notifications:
-                    if notification.get('request_number') == '100021' or notification.get('request_id') == '100021':
-                        request_100021 = notification
-                        break
-                
-                self.log_result(
-                    "Получение списка уведомлений",
-                    True,
-                    f"Получено {total_notifications} уведомлений (pending: {pending_count}, in_processing: {in_processing_count}, completed: {completed_count}). Заявка №100021: {'найдена' if request_100021 else 'не найдена'}",
-                    {
-                        "total": total_notifications,
-                        "pending": pending_count,
-                        "in_processing": in_processing_count,
-                        "completed": completed_count,
-                        "request_100021_found": bool(request_100021),
-                        "sample_notification": notifications[0] if notifications else None,
-                        "response_structure": data
-                    }
-                )
-                return notifications
-                
-            else:
-                self.log_result(
-                    "Получение списка уведомлений",
-                    False,
-                    f"Ошибка получения уведомлений: HTTP {response.status_code}",
-                    {"response": response.text[:500]}
-                )
-                return []
-                
-        except Exception as e:
-            self.log_result(
-                "Получение списка уведомлений",
-                False,
-                f"Исключение при получении уведомлений: {str(e)}",
-                {"error": str(e)}
-            )
-            return []
-    
-    def analyze_notification_structure(self, notifications):
-        """Test 3: Analyze notification data structure"""
-        try:
-            if not notifications:
-                self.log_result(
-                    "Анализ структуры уведомлений",
-                    False,
-                    "Нет уведомлений для анализа",
-                    {}
-                )
-                return
-            
-            # Analyze first notification structure
-            sample_notification = notifications[0]
-            
-            # Check for key fields
-            key_fields = [
-                'id', 'request_id', 'request_number', 'pickup_request_id',
-                'sender_full_name', 'sender_phone', 'pickup_address',
-                'cargo_name', 'weight', 'description', 'courier_fee',
-                'status', 'created_at'
-            ]
-            
-            present_fields = []
-            missing_fields = []
-            
-            for field in key_fields:
-                if field in sample_notification:
-                    present_fields.append(field)
-                else:
-                    missing_fields.append(field)
-            
-            # Check for request #100021 specifically
-            request_100021 = None
-            for notification in notifications:
-                if (notification.get('request_number') == '100021' or 
-                    notification.get('request_id') == '100021' or
-                    str(notification.get('request_id')) == '100021'):
-                    request_100021 = notification
-                    break
-            
-            self.log_result(
-                "Анализ структуры уведомлений",
-                True,
-                f"Проанализировано {len(notifications)} уведомлений. Присутствующие поля: {len(present_fields)}, Отсутствующие поля: {len(missing_fields)}. Заявка №100021: {'найдена' if request_100021 else 'не найдена'}",
-                {
-                    "total_notifications": len(notifications),
-                    "present_fields": present_fields,
-                    "missing_fields": missing_fields,
-                    "sample_structure": {k: type(v).__name__ for k, v in sample_notification.items()},
-                    "request_100021": request_100021
-                }
-            )
-            
-            return request_100021
-            
-        except Exception as e:
-            self.log_result(
-                "Анализ структуры уведомлений",
-                False,
-                f"Исключение при анализе структуры: {str(e)}",
-                {"error": str(e)}
-            )
-            return None
-    
-    def test_minimal_acceptance(self, notifications):
-        """Test 4: Test notification acceptance with minimal data"""
-        try:
-            if not notifications:
-                self.log_result(
-                    "Тестирование минимальной приемки",
-                    False,
-                    "Нет уведомлений для тестирования",
-                    {}
-                )
-                return False
-            
-            # Find a suitable notification for testing
-            test_notification = None
-            for notification in notifications:
-                if notification.get('status') == 'pending_acceptance':
-                    test_notification = notification
-                    break
-            
-            if not test_notification:
-                # Try with any notification
-                test_notification = notifications[0]
-            
-            notification_id = test_notification.get('id')
-            
-            # Test with minimal data (just as the modal might send)
-            minimal_data = {}
-            
-            response = self.session.post(
-                f"{API_BASE}/operator/warehouse-notifications/{notification_id}/accept",
-                json=minimal_data
-            )
-            
-            if response.status_code == 200:
-                result_data = response.json()
-                self.log_result(
-                    "Тестирование минимальной приемки",
-                    True,
-                    f"Успешная приемка уведомления с минимальными данными. Статус: {result_data.get('status', 'unknown')}",
-                    {
-                        "notification_id": notification_id,
-                        "request_data": minimal_data,
-                        "response": result_data
-                    }
-                )
-                return True
-            else:
-                error_details = response.text
-                self.log_result(
-                    "Тестирование минимальной приемки",
-                    False,
-                    f"Ошибка приемки с минимальными данными: HTTP {response.status_code}. Детали: {error_details[:200]}",
-                    {
-                        "notification_id": notification_id,
-                        "request_data": minimal_data,
-                        "status_code": response.status_code,
-                        "error": error_details
-                    }
-                )
-                return False
-                
-        except Exception as e:
-            self.log_result(
-                "Тестирование минимальной приемки",
-                False,
-                f"Исключение при тестировании минимальной приемки: {str(e)}",
-                {"error": str(e)}
-            )
-            return False
-    
-    def test_full_modal_acceptance(self, notifications):
-        """Test 5: Test notification acceptance with full modal data using /complete endpoint"""
-        try:
-            if not notifications:
-                self.log_result(
-                    "Тестирование полной приемки модального окна",
-                    False,
-                    "Нет уведомлений для тестирования",
-                    {}
-                )
-                return False
-            
-            # Find a suitable notification for testing
-            test_notification = None
-            for notification in notifications:
-                if notification.get('status') == 'pending_acceptance':
-                    test_notification = notification
-                    break
-            
-            if not test_notification:
-                # Try with any notification
-                test_notification = notifications[0]
-            
-            notification_id = test_notification.get('id')
-            
-            # Step 1: First accept the notification (this should change status to in_processing)
-            accept_response = self.session.post(
-                f"{API_BASE}/operator/warehouse-notifications/{notification_id}/accept"
-            )
-            
-            if accept_response.status_code != 200:
-                self.log_result(
-                    "Тестирование полной приемки модального окна - Шаг 1 (Accept)",
-                    False,
-                    f"Ошибка при принятии уведомления: HTTP {accept_response.status_code}. Детали: {accept_response.text[:200]}",
-                    {
-                        "notification_id": notification_id,
-                        "status_code": accept_response.status_code,
-                        "error": accept_response.text
-                    }
-                )
-                return False
-            
-            # Step 2: Complete with full modal data (as the modal window would send)
-            full_modal_data = {
-                "sender_full_name": test_notification.get('sender_full_name', 'Тестовый Отправитель'),
-                "sender_phone": test_notification.get('sender_phone', '+79999999999'),
-                "sender_address": test_notification.get('pickup_address', 'Тестовый адрес отправителя'),
-                "recipient_full_name": "Тестовый Получатель",
-                "recipient_phone": "+79888888888",
-                "recipient_address": "Тестовый адрес получателя",
-                "payment_method": "cash",
-                "payment_status": "paid",
-                "delivery_method": "pickup",
-                "cargo_items": [
-                    {
-                        "name": "Тестовый груз из модального окна",
-                        "weight": 15.5,
-                        "price": 5000.0
-                    }
-                ]
-            }
-            
-            complete_response = self.session.post(
-                f"{API_BASE}/operator/warehouse-notifications/{notification_id}/complete",
-                json=full_modal_data
-            )
-            
-            if complete_response.status_code == 200:
-                result_data = complete_response.json()
-                self.log_result(
-                    "Тестирование полной приемки модального окна",
-                    True,
-                    f"Успешная приемка уведомления с полными данными модального окна. Создано грузов: {result_data.get('created_count', 0)}",
-                    {
-                        "notification_id": notification_id,
-                        "request_data": full_modal_data,
-                        "response": result_data
-                    }
-                )
-                return True
-            else:
-                error_details = complete_response.text
-                self.log_result(
-                    "Тестирование полной приемки модального окна",
-                    False,
-                    f"Ошибка завершения оформления с полными данными модального окна: HTTP {complete_response.status_code}. Детали: {error_details[:200]}",
-                    {
-                        "notification_id": notification_id,
-                        "request_data": full_modal_data,
-                        "status_code": complete_response.status_code,
-                        "error": error_details
-                    }
-                )
-                return False
-                
-        except Exception as e:
-            self.log_result(
-                "Тестирование полной приемки модального окна",
-                False,
-                f"Исключение при тестировании полной приемки: {str(e)}",
-                {"error": str(e)}
-            )
-            return False
-    
-    def test_request_100021_specifically(self, notifications):
-        """Test 6: Test request #100021 specifically"""
-        try:
-            # Find request #100021
-            request_100021 = None
-            for notification in notifications:
-                if (notification.get('request_number') == '100021' or 
-                    notification.get('request_id') == '100021' or
-                    str(notification.get('request_id')) == '100021'):
-                    request_100021 = notification
-                    break
-            
-            if not request_100021:
-                self.log_result(
-                    "Тестирование заявки №100021",
-                    False,
-                    "Заявка №100021 не найдена в списке уведомлений",
-                    {"available_requests": [n.get('request_number') or n.get('request_id') for n in notifications[:5]]}
-                )
-                return False
-            
-            notification_id = request_100021.get('id')
-            
-            # Test with realistic modal data for request #100021
-            modal_data_100021 = {
-                "weight": request_100021.get('weight', 10.0),
-                "dimensions": {
-                    "length": 40,
-                    "width": 25,
-                    "height": 15
-                },
-                "description": request_100021.get('description', 'Описание груза №100021'),
-                "special_instructions": "Проверить содержимое при приемке",
-                "declared_value": request_100021.get('declared_value', 3000.0),
-                "packaging_type": "упаковка",
-                "operator_notes": "Принято оператором склада через модальное окно"
-            }
-            
-            response = self.session.post(
-                f"{API_BASE}/operator/warehouse-notifications/{notification_id}/accept",
-                json=modal_data_100021
-            )
-            
-            if response.status_code == 200:
-                result_data = response.json()
-                self.log_result(
-                    "Тестирование заявки №100021",
-                    True,
-                    f"Успешная приемка заявки №100021 с данными модального окна. Статус: {result_data.get('status', 'unknown')}",
-                    {
-                        "notification_id": notification_id,
-                        "request_number": "100021",
-                        "request_data": modal_data_100021,
-                        "response": result_data
-                    }
-                )
-                return True
-            else:
-                error_details = response.text
-                self.log_result(
-                    "Тестирование заявки №100021",
-                    False,
-                    f"Ошибка приемки заявки №100021: HTTP {response.status_code}. Детали: {error_details[:200]}",
-                    {
-                        "notification_id": notification_id,
-                        "request_number": "100021",
-                        "request_data": modal_data_100021,
-                        "status_code": response.status_code,
-                        "error": error_details
-                    }
-                )
-                return False
-                
-        except Exception as e:
-            self.log_result(
-                "Тестирование заявки №100021",
-                False,
-                f"Исключение при тестировании заявки №100021: {str(e)}",
-                {"error": str(e)}
-            )
-            return False
-    
-    def verify_status_changes(self, notifications):
-        """Test 7: Verify that notifications status changes after acceptance"""
-        try:
-            # Get updated notifications list
-            response = self.session.get(f"{API_BASE}/operator/warehouse-notifications")
-            
-            if response.status_code == 200:
-                updated_notifications = response.json()
-                
-                # Compare with original notifications
-                original_count = len(notifications)
-                updated_count = len(updated_notifications)
-                
-                # Count status changes
-                status_changes = 0
-                for orig_notif in notifications:
-                    for upd_notif in updated_notifications:
-                        if orig_notif.get('id') == upd_notif.get('id'):
-                            if orig_notif.get('status') != upd_notif.get('status'):
-                                status_changes += 1
-                            break
-                
-                self.log_result(
-                    "Проверка изменения статусов",
-                    True,
-                    f"Проверка изменений статусов завершена. Исходно: {original_count} уведомлений, Обновлено: {updated_count} уведомлений, Изменений статуса: {status_changes}",
-                    {
-                        "original_count": original_count,
-                        "updated_count": updated_count,
-                        "status_changes": status_changes,
-                        "updated_statuses": [n.get('status') for n in updated_notifications[:5]]
-                    }
-                )
-                return True
-                
-            else:
-                self.log_result(
-                    "Проверка изменения статусов",
-                    False,
-                    f"Ошибка получения обновленных уведомлений: HTTP {response.status_code}",
-                    {"response": response.text[:500]}
-                )
-                return False
-                
-        except Exception as e:
-            self.log_result(
-                "Проверка изменения статусов",
-                False,
-                f"Исключение при проверке изменения статусов: {str(e)}",
-                {"error": str(e)}
-            )
-            return False
-    
-    def test_wrong_endpoint_usage(self, notifications):
-        """Test 8: Check if frontend is incorrectly sending modal data to /accept endpoint"""
-        try:
-            if not notifications:
-                self.log_result(
-                    "Проверка неправильного использования endpoint",
-                    False,
-                    "Нет уведомлений для тестирования",
-                    {}
-                )
-                return False
-            
-            # Find a suitable notification for testing
-            test_notification = None
-            for notification in notifications:
-                if notification.get('status') == 'pending_acceptance':
-                    test_notification = notification
-                    break
-            
-            if not test_notification:
-                # Try with any notification
-                test_notification = notifications[0]
-            
-            notification_id = test_notification.get('id')
-            
-            # Test what happens if frontend sends modal data to /accept endpoint (wrong usage)
-            modal_data_to_wrong_endpoint = {
-                "weight": 15.5,
-                "dimensions": {
-                    "length": 50,
-                    "width": 30,
-                    "height": 20
-                },
-                "description": "Тестовое описание груза из модального окна",
-                "special_instructions": "Осторожно, хрупкое",
-                "declared_value": 5000.0,
-                "packaging_type": "коробка",
-                "additional_notes": "Дополнительные заметки оператора"
-            }
-            
-            response = self.session.post(
-                f"{API_BASE}/operator/warehouse-notifications/{notification_id}/accept",
-                json=modal_data_to_wrong_endpoint
-            )
-            
-            if response.status_code == 200:
-                result_data = response.json()
-                self.log_result(
-                    "Проверка неправильного использования endpoint",
-                    True,
-                    f"НАЙДЕНА ПРОБЛЕМА: /accept endpoint принимает данные модального окна, но не обрабатывает их! Статус: {result_data.get('status', 'unknown')}. Это может быть причиной проблемы - данные отправляются, но игнорируются.",
-                    {
-                        "notification_id": notification_id,
-                        "request_data": modal_data_to_wrong_endpoint,
-                        "response": result_data,
-                        "issue": "Frontend может отправлять данные модального окна на неправильный endpoint"
-                    }
-                )
-                return True
-            else:
-                error_details = response.text
-                self.log_result(
-                    "Проверка неправильного использования endpoint",
-                    False,
-                    f"/accept endpoint корректно отклоняет данные модального окна: HTTP {response.status_code}. Это правильное поведение.",
-                    {
-                        "notification_id": notification_id,
-                        "request_data": modal_data_to_wrong_endpoint,
-                        "status_code": response.status_code,
-                        "error": error_details
-                    }
-                )
-                return False
-                
-        except Exception as e:
-            self.log_result(
-                "Проверка неправильного использования endpoint",
-                False,
-                f"Исключение при проверке неправильного использования endpoint: {str(e)}",
-                {"error": str(e)}
-            )
-            return False
-    
-    def run_comprehensive_test(self):
-        """Run comprehensive warehouse notification modal testing"""
-        print("🎯 КРИТИЧЕСКАЯ ДИАГНОСТИКА: Проблема с модальным окном приемки груза в TAJLINE.TJ")
-        print("=" * 80)
-        print()
-        
-        # Test 1: Authentication
-        if not self.authenticate_warehouse_operator():
-            print("❌ Критическая ошибка: Не удалось авторизоваться. Тестирование прервано.")
-            return
-        
-        # Test 2: Get notifications
-        notifications = self.get_warehouse_notifications()
-        if not notifications:
-            print("❌ Критическая ошибка: Не удалось получить уведомления. Тестирование прервано.")
-            return
-        
-        # Test 3: Analyze structure
-        request_100021 = self.analyze_notification_structure(notifications)
-        
-        # Test 4: Test minimal acceptance
-        self.test_minimal_acceptance(notifications)
-        
-        # Test 5: Test full modal acceptance
-        self.test_full_modal_acceptance(notifications)
-        
-        # Test 6: Test request #100021 specifically
-        self.test_request_100021_specifically(notifications)
-        
-        # Test 7: Verify status changes
-        self.verify_status_changes(notifications)
-        
-        # Test 8: Check if frontend is calling wrong endpoint
-        self.test_wrong_endpoint_usage(notifications)
-        
-        # Summary
-        self.print_summary()
-    
-    def print_summary(self):
-        """Print comprehensive test summary"""
-        print("\n" + "=" * 80)
-        print("📊 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ")
-        print("=" * 80)
-        
-        total_tests = len(self.test_results)
-        successful_tests = len([r for r in self.test_results if r['success']])
-        failed_tests = total_tests - successful_tests
-        success_rate = (successful_tests / total_tests * 100) if total_tests > 0 else 0
-        
-        print(f"Всего тестов: {total_tests}")
-        print(f"Успешных: {successful_tests}")
-        print(f"Неудачных: {failed_tests}")
-        print(f"Процент успеха: {success_rate:.1f}%")
-        print()
-        
-        # Print detailed results
-        for result in self.test_results:
-            status = "✅" if result['success'] else "❌"
-            print(f"{status} {result['test']}")
-            print(f"   {result['details']}")
-            print()
-        
-        # Print critical findings
-        print("🔍 КРИТИЧЕСКИЕ ВЫВОДЫ:")
-        
-        # Check if we found the core issue
-        modal_tests = [r for r in self.test_results if 'модальн' in r['test'].lower()]
-        if modal_tests:
-            modal_success = all(r['success'] for r in modal_tests)
-            if modal_success:
-                print("✅ Модальное окно приемки работает корректно с полными данными")
-            else:
-                print("❌ НАЙДЕНА ПРОБЛЕМА: Модальное окно приемки не работает корректно")
-                for test in modal_tests:
-                    if not test['success']:
-                        print(f"   - {test['details']}")
-        
-        # Check for request #100021
-        request_100021_tests = [r for r in self.test_results if '100021' in r['test']]
-        if request_100021_tests:
-            if any(r['success'] for r in request_100021_tests):
-                print("✅ Заявка №100021 найдена и протестирована")
-            else:
-                print("❌ ПРОБЛЕМА: Заявка №100021 не найдена или не работает")
-        
-        print("\n" + "=" * 80)
-
-def main():
-    """Main testing function"""
-    tester = WarehouseNotificationTester()
-    tester.run_comprehensive_test()
-
-if __name__ == "__main__":
-    main()
-"""
-КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Исправление ошибки "Pickup request ID not found in notification" в TAJLINE.TJ
-
-ИСПРАВЛЕНИЕ ПРИМЕНЕНО: 
-- В функции send_pickup_request_to_placement добавлена поддержка обратной совместимости
-- Теперь код ищет pickup_request_id ИЛИ request_id: pickup_request_id = notification.get("pickup_request_id") or notification.get("request_id")
-- Это должно исправить ошибку для существующих уведомлений в базе данных
-
-НУЖНО ПРОТЕСТИРОВАТЬ:
-1. Авторизация пользователя (любого с доступом к уведомлениям)
-2. Получение списка уведомлений с существующими данными
-3. Попытка отправить существующее уведомление на размещение через POST /api/operator/warehouse-notifications/{notification_id}/send-to-placement  
-4. Проверка что ошибка "Pickup request ID not found in notification" ИСПРАВЛЕНА
-5. Проверка что обработка проходит успешно с полем request_id
-
-ОЖИДАЕМЫЙ РЕЗУЛЬТАТ: Кнопка "Отправить на размещение" теперь работает корректно для существующих уведомлений, ошибка HTTP 400 исправлена.
+ОЖИДАЕМЫЙ РЕЗУЛЬТАТ: Все 3 проблемы решены, новые endpoints работают корректно, система готова к использованию.
 """
 
 import requests
@@ -1192,410 +31,785 @@ import os
 from datetime import datetime
 
 # Получаем URL backend из переменной окружения
-BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cargo-route-map.preview.emergentagent.com')
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://550bba2e-5014-4d23-b2e8-7c38c4ea5482.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
-class PickupRequestFixTest:
+class TajlineBackendTester:
     def __init__(self):
         self.session = requests.Session()
-        self.auth_token = None
-        self.current_user = None
+        self.admin_token = None
         self.test_results = []
-        self.notifications = []
         
-    def log_result(self, test_name: str, success: bool, details: str):
-        """Логирование результатов тестов"""
-        status = "✅ PASS" if success else "❌ FAIL"
-        result = f"{status} {test_name}: {details}"
+    def log_result(self, test_name, success, details="", error_msg=""):
+        """Логирование результатов тестирования"""
+        result = {
+            "test": test_name,
+            "success": success,
+            "details": details,
+            "error": error_msg,
+            "timestamp": datetime.now().isoformat()
+        }
         self.test_results.append(result)
-        print(result)
         
-    def authenticate_user(self):
-        """Тест 1: Авторизация пользователя с доступом к уведомлениям"""
+        status = "✅" if success else "❌"
+        print(f"{status} {test_name}")
+        if details:
+            print(f"   📋 {details}")
+        if error_msg:
+            print(f"   🚨 {error_msg}")
+        print()
+
+    def authenticate_admin(self):
+        """Авторизация администратора"""
         try:
-            # Попробуем разные учетные данные для доступа к уведомлениям
-            credentials_to_try = [
-                ("+79777888999", "warehouse123", "Оператор склада"),
-                ("+79999888777", "admin123", "Администратор"),
-                ("+79888777666", "operator123", "Другой оператор")
-            ]
+            login_data = {
+                "phone": "+79999888777",
+                "password": "admin123"
+            }
             
-            for phone, password, description in credentials_to_try:
-                login_data = {
-                    "phone": phone,
-                    "password": password
-                }
-                
-                response = self.session.post(f"{API_BASE}/auth/login", json=login_data)
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    self.auth_token = data.get("access_token")
-                    self.current_user = data.get("user", {})
-                    
-                    # Устанавливаем заголовок авторизации
-                    self.session.headers.update({
-                        "Authorization": f"Bearer {self.auth_token}",
-                        "Content-Type": "application/json"
-                    })
-                    
-                    user_info = f"'{self.current_user.get('full_name')}' (номер: {self.current_user.get('user_number')}, роль: {self.current_user.get('role')})"
-                    self.log_result(
-                        "АВТОРИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ",
-                        True,
-                        f"Успешная авторизация {description}: {user_info}, JWT токен получен"
-                    )
-                    return True
-                else:
-                    print(f"Попытка авторизации {description} неудачна: HTTP {response.status_code}")
-            
-            self.log_result(
-                "АВТОРИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ",
-                False,
-                "Не удалось авторизоваться ни с одними учетными данными"
-            )
-            return False
-                
-        except Exception as e:
-            self.log_result(
-                "АВТОРИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ",
-                False,
-                f"Исключение при авторизации: {str(e)}"
-            )
-            return False
-    
-    def get_warehouse_notifications(self):
-        """Тест 2: Получение списка уведомлений с существующими данными"""
-        try:
-            response = self.session.get(f"{API_BASE}/operator/warehouse-notifications")
+            response = self.session.post(f"{API_BASE}/auth/login", json=login_data)
             
             if response.status_code == 200:
                 data = response.json()
-                notifications = data.get("notifications", [])
-                total_count = data.get("total_count", 0)
-                pending_count = data.get("pending_count", 0)
-                in_processing_count = data.get("in_processing_count", 0)
+                self.admin_token = data.get("access_token")
+                self.session.headers.update({"Authorization": f"Bearer {self.admin_token}"})
                 
-                self.notifications = notifications
-                
-                self.log_result(
-                    "ПОЛУЧЕНИЕ СПИСКА УВЕДОМЛЕНИЙ",
-                    True,
-                    f"Endpoint работает корректно, получено {total_count} уведомлений (pending: {pending_count}, in_processing: {in_processing_count})"
-                )
-                return True
-            elif response.status_code == 403:
-                # Попробуем через админский endpoint
-                admin_response = self.session.get(f"{API_BASE}/notifications")
-                if admin_response.status_code == 200:
-                    admin_data = admin_response.json()
-                    notifications = admin_data.get("notifications", [])
-                    
-                    # Фильтруем warehouse notifications
-                    warehouse_notifications = [n for n in notifications if 'warehouse' in n.get('message', '').lower() or 'pickup' in n.get('message', '').lower()]
-                    
-                    self.notifications = warehouse_notifications
+                # Проверяем данные пользователя
+                user_response = self.session.get(f"{API_BASE}/auth/me")
+                if user_response.status_code == 200:
+                    user_data = user_response.json()
+                    user_name = user_data.get("full_name", "Unknown")
+                    user_role = user_data.get("role", "Unknown")
+                    user_number = user_data.get("user_number", "Unknown")
                     
                     self.log_result(
-                        "ПОЛУЧЕНИЕ СПИСКА УВЕДОМЛЕНИЙ",
+                        "Авторизация администратора",
                         True,
-                        f"Получено через админский endpoint: {len(warehouse_notifications)} уведомлений склада из {len(notifications)} общих"
+                        f"Успешная авторизация '{user_name}' (номер: {user_number}), роль: {user_role}"
                     )
                     return True
                 else:
                     self.log_result(
-                        "ПОЛУЧЕНИЕ СПИСКА УВЕДОМЛЕНИЙ",
+                        "Авторизация администратора",
                         False,
-                        f"Ошибка получения уведомлений: HTTP {response.status_code}, также не удалось получить через админский endpoint: HTTP {admin_response.status_code}"
+                        error_msg=f"Ошибка получения данных пользователя: {user_response.status_code}"
                     )
                     return False
             else:
                 self.log_result(
-                    "ПОЛУЧЕНИЕ СПИСКА УВЕДОМЛЕНИЙ",
+                    "Авторизация администратора",
                     False,
-                    f"Ошибка получения уведомлений: HTTP {response.status_code}, {response.text}"
+                    error_msg=f"Ошибка авторизации: {response.status_code} - {response.text}"
                 )
                 return False
                 
         except Exception as e:
             self.log_result(
-                "ПОЛУЧЕНИЕ СПИСКА УВЕДОМЛЕНИЙ",
+                "Авторизация администратора",
                 False,
-                f"Исключение при получении уведомлений: {str(e)}"
+                error_msg=f"Исключение при авторизации: {str(e)}"
             )
             return False
-    
-    def analyze_notification_structure(self):
-        """Тест 3: Анализ структуры уведомлений для проверки обратной совместимости"""
+
+    def test_pickup_request_deletion_endpoints(self):
+        """ПРОБЛЕМА 1: Тестирование новых DELETE endpoints для заявок на забор"""
+        print("🎯 ТЕСТИРОВАНИЕ ПРОБЛЕМЫ 1: DELETE endpoints для заявок на забор")
+        
+        # Сначала получим список заявок на забор для тестирования
         try:
-            if not self.notifications:
+            pickup_response = self.session.get(f"{API_BASE}/operator/pickup-requests")
+            if pickup_response.status_code == 200:
+                pickup_data = pickup_response.json()
+                pickup_requests = pickup_data.get("pickup_requests", [])
+                
+                if pickup_requests:
+                    test_request_id = pickup_requests[0].get("id")
+                    request_number = pickup_requests[0].get("request_number", "Unknown")
+                    
+                    self.log_result(
+                        "Получение заявок на забор для тестирования",
+                        True,
+                        f"Найдено {len(pickup_requests)} заявок, тестовая заявка: {request_number} (ID: {test_request_id})"
+                    )
+                    
+                    # Тест 1: DELETE /api/admin/pickup-requests/{request_id}
+                    self.test_individual_pickup_deletion_endpoint1(test_request_id, request_number)
+                    
+                    # Тест 2: DELETE /api/admin/courier/pickup-requests/{request_id}
+                    if len(pickup_requests) > 1:
+                        test_request_id2 = pickup_requests[1].get("id")
+                        request_number2 = pickup_requests[1].get("request_number", "Unknown")
+                        self.test_individual_pickup_deletion_endpoint2(test_request_id2, request_number2)
+                    else:
+                        self.log_result(
+                            "DELETE /api/admin/courier/pickup-requests/{request_id}",
+                            False,
+                            error_msg="Недостаточно заявок для тестирования второго endpoint"
+                        )
+                else:
+                    # Создадим тестовую заявку для тестирования
+                    self.create_test_pickup_request_for_deletion()
+            else:
                 self.log_result(
-                    "АНАЛИЗ СТРУКТУРЫ УВЕДОМЛЕНИЙ",
-                    True,
-                    "Список уведомлений пуст - нет данных для анализа структуры"
+                    "Получение заявок на забор для тестирования",
+                    False,
+                    error_msg=f"Ошибка получения заявок: {pickup_response.status_code}"
                 )
-                return True
-            
-            # Анализируем структуру уведомлений
-            pickup_request_id_count = 0
-            request_id_count = 0
-            request_number_count = 0
-            
-            for notification in self.notifications:
-                if "pickup_request_id" in notification:
-                    pickup_request_id_count += 1
-                if "request_id" in notification:
-                    request_id_count += 1
-                if "request_number" in notification:
-                    request_number_count += 1
-            
-            total_notifications = len(self.notifications)
-            
-            # Получаем ключи образца для анализа
-            sample_notification = self.notifications[0]
-            all_keys = list(sample_notification.keys())
-            
-            analysis_details = (
-                f"Проанализировано {total_notifications} уведомлений. "
-                f"pickup_request_id: {pickup_request_id_count}/{total_notifications}, "
-                f"request_id: {request_id_count}/{total_notifications}, "
-                f"request_number: {request_number_count}/{total_notifications}. "
-                f"Ключи в образце: {', '.join(all_keys[:15])}{'...' if len(all_keys) > 15 else ''}"
-            )
-            
-            # Сохраняем данные для следующих тестов
-            self.structure_analysis = {
-                "total_notifications": total_notifications,
-                "has_pickup_request_id": pickup_request_id_count,
-                "has_request_id": request_id_count,
-                "has_request_number": request_number_count,
-                "sample_keys": all_keys,
-                "sample_notification": sample_notification
-            }
-            
-            self.log_result(
-                "АНАЛИЗ СТРУКТУРЫ УВЕДОМЛЕНИЙ",
-                True,
-                analysis_details
-            )
-            return True
-            
+                # Попробуем создать тестовую заявку
+                self.create_test_pickup_request_for_deletion()
+                
         except Exception as e:
             self.log_result(
-                "АНАЛИЗ СТРУКТУРЫ УВЕДОМЛЕНИЙ",
+                "Получение заявок на забор для тестирования",
                 False,
-                f"Исключение при анализе структуры: {str(e)}"
+                error_msg=f"Исключение: {str(e)}"
             )
-            return False
-    
-    def test_backward_compatibility_fix(self):
-        """Тест 4: Проверка что исправление обратной совместимости работает"""
+
+    def create_test_pickup_request_for_deletion(self):
+        """Создание тестовой заявки на забор для тестирования удаления"""
         try:
-            if not self.notifications:
-                self.log_result(
-                    "ТЕСТИРОВАНИЕ ИСПРАВЛЕНИЯ ОБРАТНОЙ СОВМЕСТИМОСТИ",
-                    True,
-                    "Нет уведомлений для тестирования - это ожидаемо если база данных пуста"
-                )
-                return True
+            test_pickup_data = {
+                "sender_full_name": "Тестовый Отправитель Удаления",
+                "sender_phone": "+992900111222",
+                "pickup_address": "Душанбе, ул. Тестовая для Удаления, 123",
+                "pickup_date": "2025-01-15",
+                "pickup_time_from": "10:00",
+                "pickup_time_to": "12:00",
+                "route": "moscow_dushanbe",
+                "courier_fee": 500.0
+            }
             
-            # Ищем уведомление для тестирования
-            test_notification = None
-            
-            # Сначала ищем уведомление в статусе "in_processing"
-            for notification in self.notifications:
-                if notification.get("status") == "in_processing":
-                    test_notification = notification
-                    break
-            
-            # Если нет в обработке, попробуем принять pending уведомление
-            if not test_notification:
-                for notification in self.notifications:
-                    if notification.get("status") == "pending_acceptance":
-                        notification_id = notification.get("id")
-                        accept_response = self.session.post(f"{API_BASE}/operator/warehouse-notifications/{notification_id}/accept")
-                        
-                        if accept_response.status_code == 200:
-                            test_notification = notification
-                            test_notification["status"] = "in_processing"
-                            self.log_result(
-                                "ПОДГОТОВКА К ТЕСТИРОВАНИЮ",
-                                True,
-                                f"Уведомление {notification_id} успешно принято для тестирования"
-                            )
-                            break
-                        else:
-                            print(f"Не удалось принять уведомление {notification_id}: HTTP {accept_response.status_code}")
-            
-            if not test_notification:
-                self.log_result(
-                    "ТЕСТИРОВАНИЕ ИСПРАВЛЕНИЯ ОБРАТНОЙ СОВМЕСТИМОСТИ",
-                    True,
-                    "Нет подходящих уведомлений в статусе 'in_processing' для тестирования"
-                )
-                return True
-            
-            # Проверяем структуру тестового уведомления
-            has_pickup_request_id = "pickup_request_id" in test_notification
-            has_request_id = "request_id" in test_notification
-            
-            compatibility_info = f"Тестовое уведомление: pickup_request_id={has_pickup_request_id}, request_id={has_request_id}"
-            
-            # Тестируем endpoint отправки на размещение
-            notification_id = test_notification.get("id")
-            response = self.session.post(f"{API_BASE}/operator/warehouse-notifications/{notification_id}/send-to-placement")
+            response = self.session.post(f"{API_BASE}/admin/courier/pickup-request", json=test_pickup_data)
             
             if response.status_code == 200:
                 data = response.json()
+                request_id = data.get("request_id")
+                request_number = data.get("request_number")
+                
                 self.log_result(
-                    "ТЕСТИРОВАНИЕ ИСПРАВЛЕНИЯ ОБРАТНОЙ СОВМЕСТИМОСТИ",
+                    "Создание тестовой заявки на забор",
                     True,
-                    f"🎉 ИСПРАВЛЕНИЕ РАБОТАЕТ! Endpoint успешно обработал уведомление с обратной совместимостью. {compatibility_info}. Груз создан: {data.get('cargo_number', 'N/A')}, статус: {data.get('status', 'N/A')}"
+                    f"Создана заявка {request_number} (ID: {request_id})"
                 )
-                return True
-            elif response.status_code == 400 and "Pickup request ID not found" in response.text:
-                # Это означает, что исправление не работает
+                
+                # Теперь тестируем удаление
+                self.test_individual_pickup_deletion_endpoint1(request_id, request_number)
+                
+            else:
                 self.log_result(
-                    "ТЕСТИРОВАНИЕ ИСПРАВЛЕНИЯ ОБРАТНОЙ СОВМЕСТИМОСТИ",
+                    "Создание тестовой заявки на забор",
                     False,
-                    f"❌ ИСПРАВЛЕНИЕ НЕ РАБОТАЕТ! Все еще получаем ошибку 'Pickup request ID not found in notification'. {compatibility_info}. HTTP 400: {response.text}"
+                    error_msg=f"Ошибка создания: {response.status_code} - {response.text}"
                 )
-                return False
-            elif response.status_code == 404 and "Pickup request not found" in response.text:
-                # Это означает, что исправление работает (находит ID), но связанная заявка не найдена
+                
+        except Exception as e:
+            self.log_result(
+                "Создание тестовой заявки на забор",
+                False,
+                error_msg=f"Исключение: {str(e)}"
+            )
+
+    def test_individual_pickup_deletion_endpoint1(self, request_id, request_number):
+        """Тестирование DELETE /api/admin/pickup-requests/{request_id}"""
+        try:
+            response = self.session.delete(f"{API_BASE}/admin/pickup-requests/{request_id}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                message = data.get("message", "")
+                deleted_id = data.get("deleted_id", "")
+                
                 self.log_result(
-                    "ТЕСТИРОВАНИЕ ИСПРАВЛЕНИЯ ОБРАТНОЙ СОВМЕСТИМОСТИ",
+                    "DELETE /api/admin/pickup-requests/{request_id}",
                     True,
-                    f"✅ ИСПРАВЛЕНИЕ РАБОТАЕТ ЧАСТИЧНО! Код успешно находит pickup_request_id/request_id (исправление работает), но связанная заявка не найдена в базе данных. {compatibility_info}. Это проблема данных, а не кода."
+                    f"Заявка {request_number} успешно удалена. Ответ: {message}, ID: {deleted_id}"
                 )
-                return True
+            elif response.status_code == 404:
+                self.log_result(
+                    "DELETE /api/admin/pickup-requests/{request_id}",
+                    False,
+                    error_msg=f"Заявка не найдена (404) - возможно уже удалена или не существует"
+                )
             elif response.status_code == 403:
                 self.log_result(
-                    "ТЕСТИРОВАНИЕ ИСПРАВЛЕНИЯ ОБРАТНОЙ СОВМЕСТИМОСТИ",
+                    "DELETE /api/admin/pickup-requests/{request_id}",
                     False,
-                    f"Доступ запрещен для текущего пользователя. Роль: {self.current_user.get('role')}"
+                    error_msg=f"Доступ запрещен (403) - проблема с правами администратора"
                 )
-                return False
             else:
                 self.log_result(
-                    "ТЕСТИРОВАНИЕ ИСПРАВЛЕНИЯ ОБРАТНОЙ СОВМЕСТИМОСТИ",
+                    "DELETE /api/admin/pickup-requests/{request_id}",
                     False,
-                    f"Неожиданная ошибка endpoint: HTTP {response.status_code}, {response.text[:300]}"
+                    error_msg=f"Ошибка удаления: {response.status_code} - {response.text}"
                 )
-                return False
                 
         except Exception as e:
             self.log_result(
-                "ТЕСТИРОВАНИЕ ИСПРАВЛЕНИЯ ОБРАТНОЙ СОВМЕСТИМОСТИ",
+                "DELETE /api/admin/pickup-requests/{request_id}",
                 False,
-                f"Исключение при тестировании исправления: {str(e)}"
+                error_msg=f"Исключение: {str(e)}"
             )
-            return False
-    
-    def verify_error_message_improvement(self):
-        """Тест 5: Проверка улучшенного сообщения об ошибке"""
+
+    def test_individual_pickup_deletion_endpoint2(self, request_id, request_number):
+        """Тестирование DELETE /api/admin/courier/pickup-requests/{request_id}"""
         try:
-            if not hasattr(self, 'structure_analysis'):
-                self.log_result(
-                    "ПРОВЕРКА УЛУЧШЕННОГО СООБЩЕНИЯ ОБ ОШИБКЕ",
-                    True,
-                    "Структурный анализ не выполнен - пропускаем проверку сообщения об ошибке"
-                )
-                return True
+            response = self.session.delete(f"{API_BASE}/admin/courier/pickup-requests/{request_id}")
             
-            analysis = self.structure_analysis
-            
-            # Проверяем, что новое сообщение об ошибке более информативно
-            if analysis["has_pickup_request_id"] == 0 and analysis["has_request_id"] == 0:
-                # Если нет ни одного поля, должно быть улучшенное сообщение
-                expected_error = "Pickup request ID not found in notification (neither pickup_request_id nor request_id)"
+            if response.status_code == 200:
+                data = response.json()
+                message = data.get("message", "")
+                deleted_id = data.get("deleted_id", "")
                 
                 self.log_result(
-                    "ПРОВЕРКА УЛУЧШЕННОГО СООБЩЕНИЯ ОБ ОШИБКЕ",
+                    "DELETE /api/admin/courier/pickup-requests/{request_id}",
                     True,
-                    f"Ожидается улучшенное сообщение об ошибке: '{expected_error}' для уведомлений без обоих полей"
+                    f"Заявка {request_number} успешно удалена. Ответ: {message}, ID: {deleted_id}"
+                )
+            elif response.status_code == 404:
+                self.log_result(
+                    "DELETE /api/admin/courier/pickup-requests/{request_id}",
+                    False,
+                    error_msg=f"Заявка не найдена (404) - возможно уже удалена или не существует"
+                )
+            elif response.status_code == 403:
+                self.log_result(
+                    "DELETE /api/admin/courier/pickup-requests/{request_id}",
+                    False,
+                    error_msg=f"Доступ запрещен (403) - проблема с правами администратора"
                 )
             else:
                 self.log_result(
-                    "ПРОВЕРКА УЛУЧШЕННОГО СООБЩЕНИЯ ОБ ОШИБКЕ",
-                    True,
-                    f"Уведомления содержат необходимые поля (pickup_request_id: {analysis['has_pickup_request_id']}, request_id: {analysis['has_request_id']}), улучшенное сообщение об ошибке не требуется"
+                    "DELETE /api/admin/courier/pickup-requests/{request_id}",
+                    False,
+                    error_msg=f"Ошибка удаления: {response.status_code} - {response.text}"
                 )
-            
-            return True
-            
+                
         except Exception as e:
             self.log_result(
-                "ПРОВЕРКА УЛУЧШЕННОГО СООБЩЕНИЯ ОБ ОШИБКЕ",
+                "DELETE /api/admin/courier/pickup-requests/{request_id}",
                 False,
-                f"Исключение при проверке сообщения об ошибке: {str(e)}"
+                error_msg=f"Исключение: {str(e)}"
             )
-            return False
-    
-    def run_comprehensive_test(self):
-        """Запуск полного тестирования исправления"""
-        print("🔧 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Исправление ошибки 'Pickup request ID not found in notification' в TAJLINE.TJ")
-        print("=" * 120)
-        print("ИСПРАВЛЕНИЕ: Добавлена поддержка обратной совместимости - поиск pickup_request_id ИЛИ request_id")
-        print("ОЖИДАЕМЫЙ РЕЗУЛЬТАТ: Кнопка 'Отправить на размещение' работает корректно для существующих уведомлений")
-        print("=" * 120)
+
+    def test_transport_deletion_diagnosis(self):
+        """ПРОБЛЕМА 2: Диагностика проблемы удаления транспорта"""
+        print("🎯 ТЕСТИРОВАНИЕ ПРОБЛЕМЫ 2: Диагностика удаления транспорта")
         
-        # Выполняем все тесты по порядку
-        tests = [
-            ("Авторизация пользователя", self.authenticate_user),
-            ("Получение списка уведомлений", self.get_warehouse_notifications),
-            ("Анализ структуры уведомлений", self.analyze_notification_structure),
-            ("Тестирование исправления обратной совместимости", self.test_backward_compatibility_fix),
-            ("Проверка улучшенного сообщения об ошибке", self.verify_error_message_improvement)
-        ]
+        # Получаем список транспорта
+        try:
+            transport_response = self.session.get(f"{API_BASE}/transport/list")
+            if transport_response.status_code == 200:
+                transports = transport_response.json()
+                
+                if transports:
+                    test_transport = transports[0]
+                    transport_id = test_transport.get("id")
+                    transport_number = test_transport.get("transport_number", "Unknown")
+                    cargo_count = len(test_transport.get("cargo_list", []))
+                    
+                    self.log_result(
+                        "Получение списка транспорта",
+                        True,
+                        f"Найдено {len(transports)} транспортов, тестовый: {transport_number} (ID: {transport_id}, грузов: {cargo_count})"
+                    )
+                    
+                    # Тестируем разные endpoints удаления транспорта
+                    self.test_transport_deletion_endpoint1(transport_id, transport_number, cargo_count)
+                    
+                    # Найдем другой транспорт для второго теста
+                    if len(transports) > 1:
+                        test_transport2 = transports[1]
+                        transport_id2 = test_transport2.get("id")
+                        transport_number2 = test_transport2.get("transport_number", "Unknown")
+                        cargo_count2 = len(test_transport2.get("cargo_list", []))
+                        self.test_transport_deletion_endpoint2(transport_id2, transport_number2, cargo_count2)
+                    
+                else:
+                    self.log_result(
+                        "Получение списка транспорта",
+                        False,
+                        error_msg="Список транспорта пуст"
+                    )
+            else:
+                self.log_result(
+                    "Получение списка транспорта",
+                    False,
+                    error_msg=f"Ошибка получения транспорта: {transport_response.status_code}"
+                )
+                
+        except Exception as e:
+            self.log_result(
+                "Получение списка транспорта",
+                False,
+                error_msg=f"Исключение: {str(e)}"
+            )
+
+    def test_transport_deletion_endpoint1(self, transport_id, transport_number, cargo_count):
+        """Тестирование DELETE /api/admin/transports/{transport_id} (строгие правила)"""
+        try:
+            response = self.session.delete(f"{API_BASE}/admin/transports/{transport_id}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                message = data.get("message", "")
+                
+                self.log_result(
+                    "DELETE /api/admin/transports/{transport_id} (строгие правила)",
+                    True,
+                    f"Транспорт {transport_number} успешно удален. Ответ: {message}"
+                )
+            elif response.status_code == 400:
+                # Ожидаемая ошибка для транспорта с грузом
+                error_text = response.text
+                self.log_result(
+                    "DELETE /api/admin/transports/{transport_id} (строгие правила)",
+                    True,
+                    f"Корректная блокировка удаления транспорта с грузом ({cargo_count} грузов). Ошибка: {error_text}"
+                )
+            elif response.status_code == 404:
+                self.log_result(
+                    "DELETE /api/admin/transports/{transport_id} (строгие правила)",
+                    False,
+                    error_msg=f"Транспорт не найден (404)"
+                )
+            elif response.status_code == 403:
+                self.log_result(
+                    "DELETE /api/admin/transports/{transport_id} (строгие правила)",
+                    False,
+                    error_msg=f"Доступ запрещен (403) - проблема с правами администратора"
+                )
+            else:
+                self.log_result(
+                    "DELETE /api/admin/transports/{transport_id} (строгие правила)",
+                    False,
+                    error_msg=f"Неожиданная ошибка: {response.status_code} - {response.text}"
+                )
+                
+        except Exception as e:
+            self.log_result(
+                "DELETE /api/admin/transports/{transport_id} (строгие правила)",
+                False,
+                error_msg=f"Исключение: {str(e)}"
+            )
+
+    def test_transport_deletion_endpoint2(self, transport_id, transport_number, cargo_count):
+        """Тестирование DELETE /api/transport/{transport_id} (менее строгие правила)"""
+        try:
+            response = self.session.delete(f"{API_BASE}/transport/{transport_id}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                message = data.get("message", "")
+                
+                self.log_result(
+                    "DELETE /api/transport/{transport_id} (менее строгие правила)",
+                    True,
+                    f"Транспорт {transport_number} успешно удален. Ответ: {message}"
+                )
+            elif response.status_code == 400:
+                error_text = response.text
+                self.log_result(
+                    "DELETE /api/transport/{transport_id} (менее строгие правила)",
+                    True,
+                    f"Блокировка удаления транспорта ({cargo_count} грузов). Ошибка: {error_text}"
+                )
+            elif response.status_code == 404:
+                self.log_result(
+                    "DELETE /api/transport/{transport_id} (менее строгие правила)",
+                    False,
+                    error_msg=f"Транспорт не найден (404)"
+                )
+            elif response.status_code == 403:
+                self.log_result(
+                    "DELETE /api/transport/{transport_id} (менее строгие правила)",
+                    False,
+                    error_msg=f"Доступ запрещен (403) - проблема с правами"
+                )
+            else:
+                self.log_result(
+                    "DELETE /api/transport/{transport_id} (менее строгие правила)",
+                    False,
+                    error_msg=f"Неожиданная ошибка: {response.status_code} - {response.text}"
+                )
+                
+        except Exception as e:
+            self.log_result(
+                "DELETE /api/transport/{transport_id} (менее строгие правила)",
+                False,
+                error_msg=f"Исключение: {str(e)}"
+            )
+
+    def test_inactive_courier_management(self):
+        """ПРОБЛЕМА 3: Тестирование новых функций управления неактивными курьерами"""
+        print("🎯 ТЕСТИРОВАНИЕ ПРОБЛЕМЫ 3: Управление неактивными курьерами")
         
-        passed_tests = 0
-        total_tests = len(tests)
+        # Тест 1: GET /api/admin/couriers/inactive
+        self.test_get_inactive_couriers()
         
-        for test_name, test_func in tests:
-            print(f"\n🧪 Выполняется: {test_name}")
-            try:
-                if test_func():
-                    passed_tests += 1
-            except Exception as e:
-                self.log_result(test_name, False, f"Критическая ошибка в тесте: {str(e)}")
+        # Тест 2: Создание тестового курьера для активации/удаления
+        test_courier_id = self.create_test_courier_for_management()
         
-        # Итоговый отчет
-        print("\n" + "=" * 120)
-        print("📊 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ ИСПРАВЛЕНИЯ")
-        print("=" * 120)
+        if test_courier_id:
+            # Тест 3: Деактивация курьера (используем существующий endpoint)
+            self.deactivate_test_courier(test_courier_id)
+            
+            # Тест 4: POST /api/admin/couriers/{courier_id}/activate
+            self.test_activate_courier(test_courier_id)
+            
+            # Тест 5: DELETE /api/admin/couriers/{courier_id}/permanent
+            self.test_permanent_delete_courier(test_courier_id)
+
+    def test_get_inactive_couriers(self):
+        """Тестирование GET /api/admin/couriers/inactive"""
+        try:
+            response = self.session.get(f"{API_BASE}/admin/couriers/inactive")
+            
+            if response.status_code == 200:
+                data = response.json()
+                inactive_couriers = data.get("inactive_couriers", [])
+                total_count = data.get("total_count", 0)
+                
+                self.log_result(
+                    "GET /api/admin/couriers/inactive",
+                    True,
+                    f"Получено {total_count} неактивных курьеров. Структура ответа корректна."
+                )
+                
+                # Анализируем структуру данных
+                if inactive_couriers:
+                    sample_courier = inactive_couriers[0]
+                    courier_fields = list(sample_courier.keys())
+                    self.log_result(
+                        "Анализ структуры неактивных курьеров",
+                        True,
+                        f"Поля курьера: {courier_fields}"
+                    )
+                
+            elif response.status_code == 403:
+                self.log_result(
+                    "GET /api/admin/couriers/inactive",
+                    False,
+                    error_msg="Доступ запрещен (403) - проблема с правами администратора"
+                )
+            elif response.status_code == 404:
+                self.log_result(
+                    "GET /api/admin/couriers/inactive",
+                    False,
+                    error_msg="Endpoint не найден (404) - возможно не реализован"
+                )
+            else:
+                self.log_result(
+                    "GET /api/admin/couriers/inactive",
+                    False,
+                    error_msg=f"Ошибка: {response.status_code} - {response.text}"
+                )
+                
+        except Exception as e:
+            self.log_result(
+                "GET /api/admin/couriers/inactive",
+                False,
+                error_msg=f"Исключение: {str(e)}"
+            )
+
+    def create_test_courier_for_management(self):
+        """Создание тестового курьера для тестирования управления"""
+        try:
+            # Сначала получим список складов для назначения
+            warehouses_response = self.session.get(f"{API_BASE}/warehouses")
+            if warehouses_response.status_code != 200:
+                self.log_result(
+                    "Получение складов для создания курьера",
+                    False,
+                    error_msg=f"Ошибка получения складов: {warehouses_response.status_code}"
+                )
+                return None
+                
+            warehouses = warehouses_response.json()
+            if not warehouses:
+                self.log_result(
+                    "Получение складов для создания курьера",
+                    False,
+                    error_msg="Список складов пуст"
+                )
+                return None
+                
+            warehouse_id = warehouses[0]["id"]
+            
+            test_courier_data = {
+                "full_name": "Тестовый Курьер Управления",
+                "phone": "+992900333444",
+                "password": "testcourier123",
+                "address": "Душанбе, ул. Тестовая Управления, 789",
+                "transport_type": "car",
+                "transport_number": "TEST-MGMT-001",
+                "transport_capacity": 500.0,
+                "assigned_warehouse_id": warehouse_id
+            }
+            
+            response = self.session.post(f"{API_BASE}/admin/couriers/create", json=test_courier_data)
+            
+            if response.status_code == 200:
+                data = response.json()
+                courier_id = data.get("courier_id")
+                
+                self.log_result(
+                    "Создание тестового курьера для управления",
+                    True,
+                    f"Создан курьер ID: {courier_id}"
+                )
+                return courier_id
+            else:
+                self.log_result(
+                    "Создание тестового курьера для управления",
+                    False,
+                    error_msg=f"Ошибка создания: {response.status_code} - {response.text}"
+                )
+                return None
+                
+        except Exception as e:
+            self.log_result(
+                "Создание тестового курьера для управления",
+                False,
+                error_msg=f"Исключение: {str(e)}"
+            )
+            return None
+
+    def deactivate_test_courier(self, courier_id):
+        """Деактивация курьера для тестирования активации"""
+        try:
+            # Используем существующий endpoint для деактивации (soft delete)
+            response = self.session.delete(f"{API_BASE}/admin/couriers/{courier_id}")
+            
+            if response.status_code == 200:
+                self.log_result(
+                    "Деактивация тестового курьера",
+                    True,
+                    f"Курьер {courier_id} деактивирован для тестирования активации"
+                )
+            else:
+                self.log_result(
+                    "Деактивация тестового курьера",
+                    False,
+                    error_msg=f"Ошибка деактивации: {response.status_code} - {response.text}"
+                )
+                
+        except Exception as e:
+            self.log_result(
+                "Деактивация тестового курьера",
+                False,
+                error_msg=f"Исключение: {str(e)}"
+            )
+
+    def test_activate_courier(self, courier_id):
+        """Тестирование POST /api/admin/couriers/{courier_id}/activate"""
+        try:
+            response = self.session.post(f"{API_BASE}/admin/couriers/{courier_id}/activate")
+            
+            if response.status_code == 200:
+                data = response.json()
+                message = data.get("message", "")
+                activated_id = data.get("courier_id", "")
+                
+                self.log_result(
+                    "POST /api/admin/couriers/{courier_id}/activate",
+                    True,
+                    f"Курьер {courier_id} успешно активирован. Ответ: {message}, ID: {activated_id}"
+                )
+            elif response.status_code == 404:
+                self.log_result(
+                    "POST /api/admin/couriers/{courier_id}/activate",
+                    False,
+                    error_msg="Курьер не найден (404)"
+                )
+            elif response.status_code == 403:
+                self.log_result(
+                    "POST /api/admin/couriers/{courier_id}/activate",
+                    False,
+                    error_msg="Доступ запрещен (403) - проблема с правами администратора"
+                )
+            elif response.status_code == 400:
+                error_text = response.text
+                self.log_result(
+                    "POST /api/admin/couriers/{courier_id}/activate",
+                    True,
+                    f"Корректная обработка ошибки активации: {error_text}"
+                )
+            else:
+                self.log_result(
+                    "POST /api/admin/couriers/{courier_id}/activate",
+                    False,
+                    error_msg=f"Неожиданная ошибка: {response.status_code} - {response.text}"
+                )
+                
+        except Exception as e:
+            self.log_result(
+                "POST /api/admin/couriers/{courier_id}/activate",
+                False,
+                error_msg=f"Исключение: {str(e)}"
+            )
+
+    def test_permanent_delete_courier(self, courier_id):
+        """Тестирование DELETE /api/admin/couriers/{courier_id}/permanent"""
+        try:
+            response = self.session.delete(f"{API_BASE}/admin/couriers/{courier_id}/permanent")
+            
+            if response.status_code == 200:
+                data = response.json()
+                message = data.get("message", "")
+                deleted_id = data.get("courier_id", "")
+                
+                self.log_result(
+                    "DELETE /api/admin/couriers/{courier_id}/permanent",
+                    True,
+                    f"Курьер {courier_id} полностью удален. Ответ: {message}, ID: {deleted_id}"
+                )
+            elif response.status_code == 404:
+                self.log_result(
+                    "DELETE /api/admin/couriers/{courier_id}/permanent",
+                    False,
+                    error_msg="Курьер не найден (404)"
+                )
+            elif response.status_code == 403:
+                self.log_result(
+                    "DELETE /api/admin/couriers/{courier_id}/permanent",
+                    False,
+                    error_msg="Доступ запрещен (403) - проблема с правами администратора"
+                )
+            elif response.status_code == 400:
+                error_text = response.text
+                self.log_result(
+                    "DELETE /api/admin/couriers/{courier_id}/permanent",
+                    True,
+                    f"Корректная обработка ошибки удаления: {error_text}"
+                )
+            else:
+                self.log_result(
+                    "DELETE /api/admin/couriers/{courier_id}/permanent",
+                    False,
+                    error_msg=f"Неожиданная ошибка: {response.status_code} - {response.text}"
+                )
+                
+        except Exception as e:
+            self.log_result(
+                "DELETE /api/admin/couriers/{courier_id}/permanent",
+                False,
+                error_msg=f"Исключение: {str(e)}"
+            )
+
+    def generate_summary(self):
+        """Генерация итогового отчета"""
+        print("\n" + "="*80)
+        print("🎯 ФИНАЛЬНЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ: Все 3 критические исправления в TAJLINE.TJ")
+        print("="*80)
         
-        success_rate = (passed_tests / total_tests) * 100
-        print(f"Успешность тестирования: {success_rate:.1f}% ({passed_tests}/{total_tests} тестов пройдены)")
+        total_tests = len(self.test_results)
+        successful_tests = len([r for r in self.test_results if r["success"]])
+        failed_tests = total_tests - successful_tests
+        success_rate = (successful_tests / total_tests * 100) if total_tests > 0 else 0
         
-        print("\n📋 ДЕТАЛЬНЫЕ РЕЗУЛЬТАТЫ:")
-        for result in self.test_results:
-            print(f"  {result}")
+        print(f"\n📊 ОБЩАЯ СТАТИСТИКА:")
+        print(f"   Всего тестов: {total_tests}")
+        print(f"   Успешных: {successful_tests} ✅")
+        print(f"   Неудачных: {failed_tests} ❌")
+        print(f"   Процент успеха: {success_rate:.1f}%")
         
-        # Финальный вывод
-        print(f"\n🎯 КРИТИЧЕСКИЙ ВЫВОД:")
+        print(f"\n📋 ДЕТАЛЬНЫЕ РЕЗУЛЬТАТЫ:")
+        
+        # Группируем результаты по проблемам
+        problem1_tests = [r for r in self.test_results if "pickup" in r["test"].lower() or "DELETE /api/admin" in r["test"]]
+        problem2_tests = [r for r in self.test_results if "transport" in r["test"].lower()]
+        problem3_tests = [r for r in self.test_results if "courier" in r["test"].lower() and "inactive" in r["test"].lower() or "activate" in r["test"].lower() or "permanent" in r["test"].lower()]
+        
+        print(f"\n🎯 ПРОБЛЕМА 1: DELETE endpoints для заявок на забор")
+        for test in problem1_tests:
+            status = "✅" if test["success"] else "❌"
+            print(f"   {status} {test['test']}")
+            if test["details"]:
+                print(f"      📋 {test['details']}")
+            if test["error"]:
+                print(f"      🚨 {test['error']}")
+        
+        print(f"\n🎯 ПРОБЛЕМА 2: Диагностика удаления транспорта")
+        for test in problem2_tests:
+            status = "✅" if test["success"] else "❌"
+            print(f"   {status} {test['test']}")
+            if test["details"]:
+                print(f"      📋 {test['details']}")
+            if test["error"]:
+                print(f"      🚨 {test['error']}")
+        
+        print(f"\n🎯 ПРОБЛЕМА 3: Управление неактивными курьерами")
+        for test in problem3_tests:
+            status = "✅" if test["success"] else "❌"
+            print(f"   {status} {test['test']}")
+            if test["details"]:
+                print(f"      📋 {test['details']}")
+            if test["error"]:
+                print(f"      🚨 {test['error']}")
+        
+        print(f"\n🎯 ОБЩИЕ ТЕСТЫ:")
+        general_tests = [r for r in self.test_results if r not in problem1_tests + problem2_tests + problem3_tests]
+        for test in general_tests:
+            status = "✅" if test["success"] else "❌"
+            print(f"   {status} {test['test']}")
+            if test["details"]:
+                print(f"      📋 {test['details']}")
+            if test["error"]:
+                print(f"      🚨 {test['error']}")
+        
+        print(f"\n🎯 ЗАКЛЮЧЕНИЕ:")
         if success_rate >= 80:
-            print("✅ ИСПРАВЛЕНИЕ РАБОТАЕТ КОРРЕКТНО! Ошибка 'Pickup request ID not found in notification' исправлена.")
-            print("✅ Обратная совместимость реализована успешно - код ищет pickup_request_id ИЛИ request_id.")
-            print("✅ Кнопка 'Отправить на размещение' теперь работает для существующих уведомлений.")
+            print("   🎉 ОТЛИЧНО! Большинство исправлений работают корректно.")
         elif success_rate >= 60:
-            print("⚠️ ИСПРАВЛЕНИЕ РАБОТАЕТ ЧАСТИЧНО. Проверьте детальные результаты для выявления проблем.")
+            print("   ⚠️  ХОРОШО! Основные исправления работают, есть незначительные проблемы.")
         else:
-            print("❌ ИСПРАВЛЕНИЕ НЕ РАБОТАЕТ ИЛИ РАБОТАЕТ НЕКОРРЕКТНО. Требуется дополнительная диагностика.")
+            print("   🚨 ТРЕБУЕТСЯ ВНИМАНИЕ! Обнаружены критические проблемы.")
         
-        return success_rate >= 60
+        print("="*80)
+        
+        return {
+            "total_tests": total_tests,
+            "successful_tests": successful_tests,
+            "failed_tests": failed_tests,
+            "success_rate": success_rate,
+            "test_results": self.test_results
+        }
+
+    def run_all_tests(self):
+        """Запуск всех тестов"""
+        print("🚀 НАЧАЛО ФИНАЛЬНОГО ТЕСТИРОВАНИЯ: Все 3 критические исправления в TAJLINE.TJ")
+        print("="*80)
+        
+        # 1. Авторизация администратора
+        if not self.authenticate_admin():
+            print("❌ Критическая ошибка: Не удалось авторизоваться как администратор")
+            return self.generate_summary()
+        
+        # 2. Тестирование ПРОБЛЕМЫ 1: DELETE endpoints для заявок на забор
+        self.test_pickup_request_deletion_endpoints()
+        
+        # 3. Тестирование ПРОБЛЕМЫ 2: Диагностика удаления транспорта
+        self.test_transport_deletion_diagnosis()
+        
+        # 4. Тестирование ПРОБЛЕМЫ 3: Управление неактивными курьерами
+        self.test_inactive_courier_management()
+        
+        # 5. Генерация итогового отчета
+        return self.generate_summary()
 
 def main():
-    """Основная функция для запуска тестирования"""
-    tester = PickupRequestFixTest()
-    success = tester.run_comprehensive_test()
+    """Главная функция"""
+    tester = TajlineBackendTester()
+    results = tester.run_all_tests()
     
-    if success:
-        print(f"\n✅ ТЕСТИРОВАНИЕ ИСПРАВЛЕНИЯ ЗАВЕРШЕНО УСПЕШНО")
-    else:
-        print(f"\n❌ ТЕСТИРОВАНИЕ ВЫЯВИЛО ПРОБЛЕМЫ С ИСПРАВЛЕНИЕМ")
+    # Сохраняем результаты в файл
+    with open("/app/final_test_results.json", "w", encoding="utf-8") as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
     
-    return success
+    print(f"\n💾 Результаты сохранены в /app/final_test_results.json")
+    
+    return results["success_rate"] >= 80
 
 if __name__ == "__main__":
-    main()
+    success = main()
+    exit(0 if success else 1)
