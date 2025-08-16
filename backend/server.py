@@ -14981,6 +14981,7 @@ async def get_pickup_request_by_id(
                 "weight": pickup_request.get("weight"),
                 "total_value": pickup_request.get("total_value"),
                 "declared_value": pickup_request.get("declared_value"),
+                "price_per_kg": pickup_request.get("price_per_kg"),  # Добавлено: цена за кг от курьера
                 "cargo_items": pickup_request.get("cargo_items", [])
             },
             
