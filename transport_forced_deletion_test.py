@@ -175,7 +175,7 @@ class TransportForcedDeletionTester:
     def create_test_cargo_and_assign_to_transport(self, transport_id: str):
         """Создание тестового груза и назначение его на транспорт"""
         try:
-            # Сначала создаем груз
+            # Сначала создаем груз через direct accept
             cargo_data = {
                 "sender_full_name": "Тестовый Отправитель",
                 "sender_phone": "+79999111222",
@@ -189,7 +189,7 @@ class TransportForcedDeletionTester:
                 "route": "moscow_to_tajikistan"
             }
             
-            response = self.session.post(f"{BACKEND_URL}/operator/cargo", json=cargo_data)
+            response = self.session.post(f"{BACKEND_URL}/operator/cargo/direct-accept", json=cargo_data)
             
             if response.status_code == 200:
                 cargo_response = response.json()
