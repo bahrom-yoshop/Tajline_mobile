@@ -145,7 +145,7 @@ class TransportForcedDeletionTester:
                 "direction": "Москва-Душанбе"
             }
             
-            response = self.session.post(f"{BACKEND_URL}/admin/transports", json=transport_data)
+            response = self.session.post(f"{BACKEND_URL}/transport/create", json=transport_data)
             
             if response.status_code == 200:
                 data = response.json()
