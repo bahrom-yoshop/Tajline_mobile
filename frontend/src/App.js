@@ -18448,6 +18448,13 @@ function App() {
                                                   🏭 {item.warehouse_name}
                                                 </Badge>
                                               )}
+                                              
+                                              {/* НОВОЕ: Информация о маршруте груза */}
+                                              {item.route_info && (
+                                                <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                                                  📍 {item.route_info.from?.warehouse_name || 'Неизвестно'} → {item.route_info.to?.warehouse_name || item.warehouse_name}
+                                                </Badge>
+                                              )}
                                             </div>
                                           
                                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
