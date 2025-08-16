@@ -23587,7 +23587,11 @@ function App() {
                       </SelectTrigger>
                       <SelectContent>
                         {warehouses
-                          .filter(warehouse => warehouse.is_active)
+                          .filter(warehouse => {
+                            // Показываем только активные склады, исключая склад текущего оператора
+                            const operatorWarehouseIds = operatorWarehouses.map(w => w.id);
+                            return warehouse.is_active && !operatorWarehouseIds.includes(warehouse.id);
+                          })
                           .map(warehouse => (
                             <SelectItem key={warehouse.id} value={warehouse.id}>
                               {warehouse.name} ({warehouse.location})
