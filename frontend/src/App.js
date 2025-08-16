@@ -7837,8 +7837,40 @@ function App() {
             response.errors.forEach(error => showAlert(error, 'error'));
           }
         } else {
-          const response = await apiCall(`/api/admin/transports/${items[0].id}`, 'DELETE');
-          showAlert(response.message, 'success');
+          try {
+            // Сначала пробуем строгий endpoint (только пустые транспорты)
+            const response = await apiCall(`/api/admin/transports/${items[0].id}`, 'DELETE');
+            showAlert(response.message, 'success');
+          } catch (error) {
+            // Если транспорт содержит груз, предлагаем принудительное удаление
+            if (error.message.includes('транспорте находится') || error.message.includes('груз')) {
+              const transport = items[0];
+              const forceDelete = window.confirm(
+                `⚠️ ВНИМАНИЕ: Транспорт "${transport.transport_number}" содержит груз!\n\n` +
+                `${error.message}\n\n` +
+                `Хотите ПРИНУДИТЕЛЬНО удалить транспорт?\n` +
+                `⚠️ ГРУЗ БУДЕТ ПЕРЕМЕЩЕН В СТАТУС "Без транспорта"\n\n` +
+                `Нажмите ОК для принудительного удаления или Отмена для отказа.`
+              );
+              
+              if (forceDelete) {
+                try {
+                  // Используем менее строгий endpoint для принудительного удаления
+                  const forceResponse = await apiCall(`/api/transport/${items[0].id}`, 'DELETE');
+                  showAlert(`Транспорт "${transport.transport_number}" принудительно удален. ${forceResponse.message}`, 'warning');
+                } catch (forceError) {
+                  showAlert(`Ошибка принудительного удаления: ${forceError.message}`, 'error');
+                  return; // Не закрываем модальное окно при ошибке
+                }
+              } else {
+                showAlert('Удаление транспорта отменено пользователем', 'info');
+                return; // Не закрываем модальное окно
+              }
+            } else {
+              showAlert(`Ошибка удаления транспорта: ${error.message}`, 'error');
+              return; // Не закрываем модальное окно при ошибке
+            }
+          }
         }
         setSelectedTransports([]);
         setSelectAllTransports(false);
