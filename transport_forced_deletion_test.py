@@ -172,62 +172,66 @@ class TransportForcedDeletionTester:
             )
             return None, None
     
-    def create_test_cargo_and_assign_to_transport(self, transport_id: str):
-        """Создание тестового груза и назначение его на транспорт"""
+    def find_existing_cargo_and_assign_to_transport(self, transport_id: str):
+        """Найти существующий груз и назначить его на транспорт"""
         try:
-            # Сначала создаем груз через direct accept
-            cargo_data = {
-                "sender_full_name": "Тестовый Отправитель",
-                "sender_phone": "+79999111222",
-                "recipient_full_name": "Тестовый Получатель",
-                "recipient_phone": "+79999333444",
-                "recipient_address": "Душанбе, ул. Тестовая, д. 1",
-                "weight": 10.0,
-                "cargo_name": "Тестовый груз для транспорта",
-                "declared_value": 1000.0,
-                "description": "Тестовый груз для проверки удаления транспорта",
-                "route": "moscow_to_tajikistan"
-            }
-            
-            response = self.session.post(f"{BACKEND_URL}/operator/cargo/direct-accept", json=cargo_data)
+            # Получаем список доступных грузов
+            response = self.session.get(f"{BACKEND_URL}/cargo/all")
             
             if response.status_code == 200:
-                cargo_response = response.json()
-                cargo_id = cargo_response.get('cargo_id') or cargo_response.get('id')
-                cargo_number = cargo_response.get('cargo_number')
+                data = response.json()
+                cargos = data if isinstance(data, list) else data.get('items', [])
                 
-                # Теперь назначаем груз на транспорт
-                assignment_data = {
-                    "cargo_numbers": [cargo_number]
-                }
+                # Ищем груз, который можно назначить на транспорт
+                suitable_cargo = None
+                for cargo in cargos:
+                    if cargo.get('status') in ['accepted', 'placed_in_warehouse', 'in_warehouse'] and not cargo.get('transport_id'):
+                        suitable_cargo = cargo
+                        break
                 
-                assign_response = self.session.post(f"{BACKEND_URL}/transport/{transport_id}/place-cargo", json=assignment_data)
-                
-                if assign_response.status_code == 200:
-                    self.log_result(
-                        "Создание груза и назначение на транспорт",
-                        True,
-                        f"Создан груз {cargo_number} (ID: {cargo_id}) и назначен на транспорт {transport_id}"
-                    )
-                    return cargo_id, cargo_number
+                if suitable_cargo:
+                    cargo_id = suitable_cargo.get('id')
+                    cargo_number = suitable_cargo.get('cargo_number')
+                    
+                    # Назначаем груз на транспорт
+                    assignment_data = {
+                        "cargo_numbers": [cargo_number]
+                    }
+                    
+                    assign_response = self.session.post(f"{BACKEND_URL}/transport/{transport_id}/place-cargo", json=assignment_data)
+                    
+                    if assign_response.status_code == 200:
+                        self.log_result(
+                            "Поиск груза и назначение на транспорт",
+                            True,
+                            f"Найден груз {cargo_number} (ID: {cargo_id}) и назначен на транспорт {transport_id}"
+                        )
+                        return cargo_id, cargo_number
+                    else:
+                        self.log_result(
+                            "Поиск груза и назначение на транспорт",
+                            False,
+                            f"Груз найден, но не удалось назначить на транспорт. HTTP {assign_response.status_code}: {assign_response.text}"
+                        )
+                        return None, None
                 else:
                     self.log_result(
-                        "Создание груза и назначение на транспорт",
+                        "Поиск груза и назначение на транспорт",
                         False,
-                        f"Груз создан, но не удалось назначить на транспорт. HTTP {assign_response.status_code}: {assign_response.text}"
+                        f"Не найдено подходящих грузов для назначения на транспорт. Всего грузов: {len(cargos)}"
                     )
-                    return cargo_id, cargo_number
+                    return None, None
             else:
                 self.log_result(
-                    "Создание груза и назначение на транспорт",
+                    "Поиск груза и назначение на транспорт",
                     False,
-                    f"Не удалось создать груз. HTTP {response.status_code}: {response.text}"
+                    f"Не удалось получить список грузов. HTTP {response.status_code}: {response.text}"
                 )
                 return None, None
                 
         except Exception as e:
             self.log_result(
-                "Создание груза и назначение на транспорт",
+                "Поиск груза и назначение на транспорт",
                 False,
                 f"Ошибка запроса: {str(e)}"
             )
