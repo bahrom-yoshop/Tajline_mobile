@@ -23129,10 +23129,23 @@ function App() {
                     <p><strong>Плата курьеру:</strong> {currentCargoNotification.courier_fee} ₽</p>
                   </div>
                   <div>
-                    <p><strong>Адрес забора:</strong> {currentCargoNotification.pickup_address}</p>
-                    <p><strong>Дата забора:</strong> {currentCargoNotification.pickup_date}</p>
-                    <p><strong>Время забора:</strong> {currentCargoNotification.pickup_time_from} - {currentCargoNotification.pickup_time_to}</p>
-                    <p><strong>Способ оплаты:</strong> {currentCargoNotification.payment_method === 'cash' ? 'Наличные' : currentCargoNotification.payment_method === 'card' ? 'Карта' : 'Не указан'}</p>
+                    <p><strong>Адрес забора:</strong> {currentCargoNotification.sender_data?.pickup_address || currentCargoNotification.pickup_address || 'Не указан'}</p>
+                    <p><strong>Дата забора:</strong> {currentCargoNotification.sender_data?.pickup_date || currentCargoNotification.pickup_date || 'Не указана'}</p>
+                    <p><strong>Время забора:</strong> {currentCargoNotification.sender_data?.pickup_time_from && currentCargoNotification.sender_data?.pickup_time_to ? 
+                      `${currentCargoNotification.sender_data.pickup_time_from} - ${currentCargoNotification.sender_data.pickup_time_to}` : 
+                      (currentCargoNotification.pickup_time_from && currentCargoNotification.pickup_time_to ? 
+                        `${currentCargoNotification.pickup_time_from} - ${currentCargoNotification.pickup_time_to}` : 'Не указано')
+                    }</p>
+                    <p><strong>Способ оплаты:</strong> {(() => {
+                      const paymentMethod = currentCargoNotification.courier_payment_method || currentCargoNotification.payment_info?.payment_method || currentCargoNotification.payment_method;
+                      switch(paymentMethod) {
+                        case 'cash': return 'Наличные';
+                        case 'card': return 'Карта';
+                        case 'transfer': return 'Перевод';
+                        case 'not_paid': return 'Не оплачено';
+                        default: return paymentMethod || 'Не указан';
+                      }
+                    })()}</p>
                   </div>
                 </div>
                 
