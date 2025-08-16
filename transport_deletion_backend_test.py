@@ -226,8 +226,8 @@ class TransportDeletionTester:
         
         # Список возможных endpoints для удаления
         deletion_endpoints = [
+            "/admin/transports/{id}",  # Найденный рабочий endpoint
             "/admin/transport/{id}",
-            "/admin/transports/{id}",
             "/transport/{id}",
             "/transports/{id}",
             "/admin/transport/delete/{id}",
