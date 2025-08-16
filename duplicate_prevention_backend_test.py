@@ -398,7 +398,11 @@ class DuplicatePreventionTester:
             cargo_response = self.session.get(f"{API_BASE}/cargo/all?per_page=1")
             initial_cargo_count = 0
             if cargo_response.status_code == 200:
-                initial_cargo_count = cargo_response.json().get("pagination", {}).get("total_count", 0)
+                cargo_data = cargo_response.json()
+                if isinstance(cargo_data, list):
+                    initial_cargo_count = len(cargo_data)
+                else:
+                    initial_cargo_count = cargo_data.get("pagination", {}).get("total_count", 0)
             
             # Шаг 1: Принятие уведомления (если нужно)
             if original_status == "pending_acceptance":
