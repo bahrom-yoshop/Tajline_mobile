@@ -270,7 +270,11 @@ class DuplicatePreventionTester:
             existing_cargos = []
             if response.status_code == 200:
                 data = response.json()
-                existing_cargos = data.get("items", [])
+                # API возвращает прямой список, а не объект с items
+                if isinstance(data, list):
+                    existing_cargos = data
+                else:
+                    existing_cargos = data.get("items", [])
             
             # Анализируем существующие номера грузов
             existing_numbers = [c.get("cargo_number") for c in existing_cargos if c.get("cargo_number")]
