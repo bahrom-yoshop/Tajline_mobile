@@ -373,6 +373,98 @@ class PickupRequestDeletionTester:
             )
             return None
 
+    def test_deletion_endpoints_directly(self):
+        """Тестирование endpoints удаления напрямую с созданными ID"""
+        try:
+            # Тестируем основной endpoint с несуществующим ID
+            test_id = "100083"  # ID из созданных заявок
+            
+            response = self.session.delete(f"{BACKEND_URL}/admin/pickup-requests/{test_id}")
+            
+            if response.status_code in [200, 404]:
+                self.log_result(
+                    "Тестирование основного DELETE endpoint",
+                    True,
+                    f"Endpoint /api/admin/pickup-requests/{{id}} доступен. HTTP {response.status_code}: {response.text[:200]}"
+                )
+            else:
+                self.log_result(
+                    "Тестирование основного DELETE endpoint",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+            
+            # Тестируем альтернативный endpoint
+            response2 = self.session.delete(f"{BACKEND_URL}/admin/courier/pickup-requests/{test_id}")
+            
+            if response2.status_code in [200, 404]:
+                self.log_result(
+                    "Тестирование альтернативного DELETE endpoint",
+                    True,
+                    f"Endpoint /api/admin/courier/pickup-requests/{{id}} доступен. HTTP {response2.status_code}: {response2.text[:200]}"
+                )
+            else:
+                self.log_result(
+                    "Тестирование альтернативного DELETE endpoint",
+                    False,
+                    f"HTTP {response2.status_code}: {response2.text}"
+                )
+            
+            # Тестируем массовое удаление
+            bulk_data = {"ids": ["100084", "100085"]}
+            response3 = self.session.delete(f"{BACKEND_URL}/admin/pickup-requests/bulk", json=bulk_data)
+            
+            if response3.status_code in [200, 404]:
+                self.log_result(
+                    "Тестирование массового DELETE endpoint",
+                    True,
+                    f"Endpoint /api/admin/pickup-requests/bulk доступен. HTTP {response3.status_code}: {response3.text[:200]}"
+                )
+            else:
+                self.log_result(
+                    "Тестирование массового DELETE endpoint",
+                    False,
+                    f"HTTP {response3.status_code}: {response3.text}"
+                )
+                
+        except Exception as e:
+            self.log_result(
+                "Тестирование DELETE endpoints",
+                False,
+                f"Ошибка запроса: {str(e)}"
+            )
+
+    def check_courier_pickup_requests_endpoint(self):
+        """Проверка альтернативного endpoint для получения заявок курьеров"""
+        try:
+            response = self.session.get(f"{BACKEND_URL}/courier/pickup-requests")
+            
+            if response.status_code == 200:
+                data = response.json()
+                pickup_requests = data if isinstance(data, list) else data.get('items', [])
+                
+                self.log_result(
+                    "Проверка endpoint курьерских заявок",
+                    True,
+                    f"GET /api/courier/pickup-requests: получено {len(pickup_requests)} заявок"
+                )
+                return pickup_requests
+            else:
+                self.log_result(
+                    "Проверка endpoint курьерских заявок",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return []
+                
+        except Exception as e:
+            self.log_result(
+                "Проверка endpoint курьерских заявок",
+                False,
+                f"Ошибка запроса: {str(e)}"
+            )
+            return []
+
     def run_comprehensive_test(self):
         """Запуск полного комплексного тестирования"""
         print("🎯 НАЧАЛО КРИТИЧЕСКОГО ТЕСТИРОВАНИЯ: Удаление заявок на забор после frontend исправлений")
@@ -398,10 +490,16 @@ class PickupRequestDeletionTester:
             # Обновляем список заявок после создания
             pickup_requests = self.get_pickup_requests_list()
         
-        # 4. Проверка структуры ответа
+        # 4. Проверка альтернативного endpoint для получения заявок
+        courier_requests = self.check_courier_pickup_requests_endpoint()
+        
+        # 5. Проверка структуры ответа
         self.test_response_structure(None)
         
-        # 5. Тестирование индивидуального удаления (если есть заявки)
+        # 6. Тестирование DELETE endpoints напрямую
+        self.test_deletion_endpoints_directly()
+        
+        # 7. Тестирование индивидуального удаления (если есть заявки)
         if pickup_requests:
             # Берем первую заявку для тестирования
             test_request = pickup_requests[0]
@@ -423,10 +521,13 @@ class PickupRequestDeletionTester:
                         self.test_individual_deletion_alternative_endpoint(alt_request_id)
                         self.verify_deletion_from_database(alt_request_id)
         
-        # 6. Тестирование массового удаления (если есть заявки)
+        # 8. Тестирование массового удаления (если есть заявки)
         if len(pickup_requests) > 2:
             remaining_ids = [req.get('id') for req in pickup_requests[2:] if req.get('id')]
             self.test_bulk_deletion_endpoint(remaining_ids)
+        elif created_request_ids:
+            # Используем созданные ID для тестирования массового удаления
+            self.test_bulk_deletion_endpoint(created_request_ids)
         
         # Подведение итогов
         self.print_summary()
