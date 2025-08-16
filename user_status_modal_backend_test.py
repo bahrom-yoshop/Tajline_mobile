@@ -467,22 +467,32 @@ class UserStatusModalTester:
     
     def cleanup_test_users(self):
         """Очистка созданных тестовых пользователей"""
-        if not self.admin_token or not self.test_users:
+        if not self.test_users:
             return
         
-        headers = {"Authorization": f"Bearer {self.admin_token}"}
-        cleaned_count = 0
-        
-        for user in self.test_users:
-            try:
-                response = self.session.delete(f"{BACKEND_URL}/admin/users/{user['id']}", headers=headers)
-                if response.status_code == 200:
-                    cleaned_count += 1
-            except:
-                pass  # Игнорируем ошибки при очистке
-        
-        if cleaned_count > 0:
-            print(f"🧹 Очищено {cleaned_count} тестовых пользователей")
+        try:
+            import pymongo
+            from pymongo import MongoClient
+            
+            # Подключаемся к MongoDB
+            mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+            db_name = os.environ.get('DB_NAME', 'test_database')
+            client = MongoClient(mongo_url)
+            db = client[db_name]
+            
+            cleaned_count = 0
+            for user in self.test_users:
+                try:
+                    result = db.users.delete_one({"id": user['id']})
+                    if result.deleted_count > 0:
+                        cleaned_count += 1
+                except:
+                    pass  # Игнорируем ошибки при очистке
+            
+            if cleaned_count > 0:
+                print(f"🧹 Очищено {cleaned_count} тестовых пользователей")
+        except Exception as e:
+            print(f"⚠️ Ошибка при очистке тестовых пользователей: {e}")
     
     def run_all_tests(self):
         """Запуск всех тестов"""
