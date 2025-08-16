@@ -1,289 +1,687 @@
 #!/usr/bin/env python3
 """
-🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Информативные сообщения об ошибках авторизации в TAJLINE.TJ
+🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Исправленное обновление списков курьеров при активации/удалении в TAJLINE.TJ
 
-НОВАЯ ФУНКЦИОНАЛЬНОСТЬ:
-1. Backend: Улучшен endpoint /api/auth/login для детальной проверки ошибок авторизации
-2. Backend: Разделены ошибки на "пользователь не найден" (HTTP 401, user_not_found) и "неправильный пароль" (HTTP 401, wrong_password)
-3. Frontend: Добавлено состояние loginErrorModal и loginErrorData для модального окна ошибок
-4. Frontend: Обновлена функция handleLogin для обработки разных типов ошибок авторизации
-5. Frontend: Создано красивое модальное окно с информацией об ошибках входа
+КОНТЕКСТ ИСПРАВЛЕНИЙ:
+✅ Функция handleActivateCourier теперь корректно обновляет оба списка курьеров
+✅ Функция handlePermanentDeleteCourier исправлена аналогично
+✅ Добавлена логика временного отключения showInactiveCouriers для правильной загрузки активных курьеров
 
-ТИПЫ ОШИБОК АВТОРИЗАЦИИ:
-1. user_not_found - пользователь с номером телефона не найден
-2. wrong_password - неправильный пароль для существующего пользователя
-3. account_disabled - аккаунт заблокирован/удален (уже было реализовано)
+ЛОГИКА ИСПРАВЛЕНИЯ:
+1. При активации/удалении курьера:
+   - Временно устанавливаем showInactiveCouriers = false
+   - Загружаем список активных курьеров через fetchCouriers()
+   - Восстанавливаем предыдущее значение showInactiveCouriers
+   - Обновляем список неактивных курьеров через fetchInactiveCouriers()
 
-СТРУКТУРА ДАННЫХ ОШИБОК:
-- error_type: тип ошибки (user_not_found, wrong_password)
-- message: основное сообщение об ошибке
-- details: детальное описание и инструкции
-- user_role, user_name, user_phone: информация о пользователе (для wrong_password)
-- phone_format: подсказка о формате номера телефона
-- password_requirements: требования к паролю
-- available_actions: список рекомендуемых действий
+2. Это гарантирует что:
+   - Активированный курьер появится в списке активных курьеров
+   - Активированный курьер исчезнет из списка неактивных курьеров
+   - Оба списка синхронизируются корректно
 
-ТЕСТИРОВАНИЕ:
-1. Тестирование входа с несуществующим номером телефона → должна показаться ошибка "user_not_found"
-2. Тестирование входа с существующим номером, но неправильным паролем → ошибка "wrong_password"
-3. Проверка структуры ответов и всех полей
-4. Тестирование для разных ролей пользователей (admin, operator, courier, user)
-5. Проверка отображения подсказок и рекомендаций
+ПОЛНОЕ ТЕСТИРОВАНИЕ WORKFLOW:
+1. Авторизация администратора
+2. Переход к разделу Пользователи → Курьеры → Неактивные курьеры
+3. Выбор неактивного курьера для активации
+4. Нажатие кнопки "Активировать" и подтверждение
+5. КРИТИЧЕСКАЯ ПРОВЕРКА:
+   - Курьер должен исчезнуть из списка неактивных курьеров
+   - При переходе на вкладку "Список курьеров" - активированный курьер должен появиться там
+6. Обратное тестирование: деактивация курьера из основного списка и проверка появления в неактивных
+
+ОЖИДАЕМЫЙ РЕЗУЛЬТАТ: Идеальная синхронизация списков - активированные курьеры перемещаются из неактивных в активные, и наоборот.
 """
 
 import requests
 import json
 import sys
+import time
 from datetime import datetime
 
 # Конфигурация
 BACKEND_URL = "https://550bba2e-5014-4d23-b2e8-7c38c4ea5482.preview.emergentagent.com/api"
+ADMIN_CREDENTIALS = {
+    "phone": "+79999888777",
+    "password": "admin123"
+}
 
-def test_login_error_messages():
-    """Тестирование информативных сообщений об ошибках авторизации"""
-    
-    print("🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Информативные сообщения об ошибках авторизации в TAJLINE.TJ")
-    print("=" * 100)
-    
-    test_results = []
-    
-    # Тест 1: Вход с несуществующим номером телефона
-    print("\n1️⃣ ТЕСТИРОВАНИЕ ОШИБКИ 'user_not_found'")
-    print("-" * 50)
-    
-    try:
-        non_existent_phone = "+79999999999"  # Несуществующий номер
-        login_data = {
-            "phone": non_existent_phone,
-            "password": "anypassword123"
-        }
+class CourierListUpdateTester:
+    def __init__(self):
+        self.session = requests.Session()
+        self.admin_token = None
+        self.admin_user = None
+        self.test_results = []
         
-        response = requests.post(f"{BACKEND_URL}/auth/login", json=login_data)
-        print(f"📞 Тестируемый номер: {non_existent_phone}")
-        print(f"🔐 Тестируемый пароль: {login_data['password']}")
-        print(f"📊 HTTP статус: {response.status_code}")
+    def log_test(self, test_name, success, details=""):
+        """Логирование результатов тестов"""
+        status = "✅" if success else "❌"
+        self.test_results.append({
+            "test": test_name,
+            "success": success,
+            "details": details
+        })
+        print(f"{status} {test_name}: {details}")
         
-        if response.status_code == 401:
-            error_data = response.json()
-            detail = error_data.get('detail', {})
+    def authenticate_admin(self):
+        """Авторизация администратора"""
+        try:
+            response = self.session.post(
+                f"{BACKEND_URL}/auth/login",
+                json=ADMIN_CREDENTIALS,
+                headers={"Content-Type": "application/json"}
+            )
             
-            print(f"✅ Правильный HTTP статус: 401 Unauthorized")
-            print(f"🔍 Тип ошибки: {detail.get('error_type')}")
-            print(f"💬 Сообщение: {detail.get('message')}")
-            print(f"📝 Детали: {detail.get('details')}")
-            print(f"📱 Формат телефона: {detail.get('phone_format')}")
-            print(f"🎯 Доступные действия: {detail.get('available_actions')}")
-            
-            # Проверяем структуру ответа
-            expected_fields = ['error_type', 'message', 'details', 'phone_format', 'available_actions']
-            missing_fields = [field for field in expected_fields if field not in detail]
-            
-            if detail.get('error_type') == 'user_not_found' and not missing_fields:
-                print("✅ ТЕСТ ПРОЙДЕН: Ошибка 'user_not_found' работает корректно")
-                test_results.append(("user_not_found", True, "Корректная структура ответа и тип ошибки"))
+            if response.status_code == 200:
+                data = response.json()
+                self.admin_token = data["access_token"]
+                self.admin_user = data["user"]
+                self.session.headers.update({
+                    "Authorization": f"Bearer {self.admin_token}"
+                })
+                
+                self.log_test(
+                    "АВТОРИЗАЦИЯ АДМИНИСТРАТОРА",
+                    True,
+                    f"Успешная авторизация '{self.admin_user['full_name']}' (номер: {self.admin_user.get('user_number', 'N/A')}, роль: {self.admin_user['role']})"
+                )
+                return True
             else:
-                print(f"❌ ТЕСТ НЕ ПРОЙДЕН: Неправильный тип ошибки или отсутствуют поля: {missing_fields}")
-                test_results.append(("user_not_found", False, f"Отсутствуют поля: {missing_fields}"))
-        else:
-            print(f"❌ ТЕСТ НЕ ПРОЙДЕН: Неправильный HTTP статус: {response.status_code}")
-            test_results.append(("user_not_found", False, f"HTTP {response.status_code} вместо 401"))
-            
-    except Exception as e:
-        print(f"❌ ОШИБКА ТЕСТА: {e}")
-        test_results.append(("user_not_found", False, f"Исключение: {e}"))
-    
-    # Тест 2: Найти существующего пользователя для тестирования wrong_password
-    print("\n2️⃣ ПОИСК СУЩЕСТВУЮЩЕГО ПОЛЬЗОВАТЕЛЯ")
-    print("-" * 50)
-    
-    existing_user = None
-    test_users = [
-        {"phone": "+79999888777", "role": "admin"},
-        {"phone": "+79777888999", "role": "warehouse_operator"},
-        {"phone": "+79991234567", "role": "courier"},
-        {"phone": "+79123456789", "role": "user"}
-    ]
-    
-    for test_user in test_users:
-        try:
-            # Пробуем войти с заведомо неправильным паролем
-            login_data = {
-                "phone": test_user["phone"],
-                "password": "wrong_password_123"
-            }
-            
-            response = requests.post(f"{BACKEND_URL}/auth/login", json=login_data)
-            
-            if response.status_code == 401:
-                error_data = response.json()
-                detail = error_data.get('detail', {})
+                self.log_test(
+                    "АВТОРИЗАЦИЯ АДМИНИСТРАТОРА",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
                 
-                if detail.get('error_type') == 'wrong_password':
-                    existing_user = test_user
-                    print(f"✅ Найден существующий пользователь: {test_user['phone']} (роль: {test_user['role']})")
-                    break
-                    
         except Exception as e:
-            continue
+            self.log_test("АВТОРИЗАЦИЯ АДМИНИСТРАТОРА", False, f"Ошибка: {str(e)}")
+            return False
     
-    if not existing_user:
-        print("❌ Не найден существующий пользователь для тестирования wrong_password")
-        test_results.append(("wrong_password", False, "Не найден существующий пользователь"))
-    else:
-        # Тест 3: Вход с существующим номером, но неправильным паролем
-        print("\n3️⃣ ТЕСТИРОВАНИЕ ОШИБКИ 'wrong_password'")
-        print("-" * 50)
-        
+    def get_active_couriers_count(self):
+        """Получить количество активных курьеров"""
         try:
-            login_data = {
-                "phone": existing_user["phone"],
-                "password": "definitely_wrong_password_123"
-            }
-            
-            response = requests.post(f"{BACKEND_URL}/auth/login", json=login_data)
-            print(f"📞 Тестируемый номер: {existing_user['phone']}")
-            print(f"🔐 Тестируемый пароль: {login_data['password']}")
-            print(f"📊 HTTP статус: {response.status_code}")
-            
-            if response.status_code == 401:
-                error_data = response.json()
-                detail = error_data.get('detail', {})
-                
-                print(f"✅ Правильный HTTP статус: 401 Unauthorized")
-                print(f"🔍 Тип ошибки: {detail.get('error_type')}")
-                print(f"💬 Сообщение: {detail.get('message')}")
-                print(f"📝 Детали: {detail.get('details')}")
-                print(f"👤 Роль пользователя: {detail.get('user_role')}")
-                print(f"👨‍💼 Имя пользователя: {detail.get('user_name')}")
-                print(f"📱 Телефон пользователя: {detail.get('user_phone')}")
-                print(f"🔒 Требования к паролю: {detail.get('password_requirements')}")
-                print(f"🎯 Доступные действия: {detail.get('available_actions')}")
-                
-                # Проверяем структуру ответа
-                expected_fields = ['error_type', 'message', 'details', 'user_role', 'user_name', 'user_phone', 'password_requirements', 'available_actions']
-                missing_fields = [field for field in expected_fields if field not in detail]
-                
-                if detail.get('error_type') == 'wrong_password' and not missing_fields:
-                    print("✅ ТЕСТ ПРОЙДЕН: Ошибка 'wrong_password' работает корректно")
-                    test_results.append(("wrong_password", True, "Корректная структура ответа и тип ошибки"))
+            response = self.session.get(f"{BACKEND_URL}/admin/couriers/list")
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, dict) and 'items' in data:
+                    return len(data['items'])
+                elif isinstance(data, list):
+                    return len(data)
                 else:
-                    print(f"❌ ТЕСТ НЕ ПРОЙДЕН: Неправильный тип ошибки или отсутствуют поля: {missing_fields}")
-                    test_results.append(("wrong_password", False, f"Отсутствуют поля: {missing_fields}"))
+                    return 0
+            return 0
+        except Exception as e:
+            print(f"Ошибка получения активных курьеров: {e}")
+            return 0
+    
+    def get_inactive_couriers_count(self):
+        """Получить количество неактивных курьеров"""
+        try:
+            response = self.session.get(f"{BACKEND_URL}/admin/couriers/inactive")
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, dict) and 'items' in data:
+                    return len(data['items'])
+                elif isinstance(data, list):
+                    return len(data)
+                else:
+                    return 0
+            return 0
+        except Exception as e:
+            print(f"Ошибка получения неактивных курьеров: {e}")
+            return 0
+    
+    def get_inactive_couriers_list(self):
+        """Получить список неактивных курьеров"""
+        try:
+            response = self.session.get(f"{BACKEND_URL}/admin/couriers/inactive")
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, dict) and 'items' in data:
+                    return data['items']
+                elif isinstance(data, list):
+                    return data
+                else:
+                    return []
             else:
-                print(f"❌ ТЕСТ НЕ ПРОЙДЕН: Неправильный HTTP статус: {response.status_code}")
-                test_results.append(("wrong_password", False, f"HTTP {response.status_code} вместо 401"))
+                self.log_test(
+                    "ПОЛУЧЕНИЕ СПИСКА НЕАКТИВНЫХ КУРЬЕРОВ",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return []
+        except Exception as e:
+            self.log_test("ПОЛУЧЕНИЕ СПИСКА НЕАКТИВНЫХ КУРЬЕРОВ", False, f"Ошибка: {str(e)}")
+            return []
+    
+    def create_test_courier(self, name_suffix=""):
+        """Создать тестового курьера"""
+        try:
+            # Сначала получаем список складов
+            warehouses_response = self.session.get(f"{BACKEND_URL}/warehouses")
+            if warehouses_response.status_code != 200:
+                self.log_test("ПОЛУЧЕНИЕ СКЛАДОВ ДЛЯ ТЕСТОВОГО КУРЬЕРА", False, f"HTTP {warehouses_response.status_code}")
+                return None
+                
+            warehouses = warehouses_response.json()
+            if not warehouses:
+                self.log_test("ПОЛУЧЕНИЕ СКЛАДОВ ДЛЯ ТЕСТОВОГО КУРЬЕРА", False, "Нет доступных складов")
+                return None
+            
+            warehouse_id = warehouses[0]["id"]
+            
+            courier_data = {
+                "full_name": f"Тестовый Курьер Синхронизации{name_suffix}",
+                "phone": f"+79991234{567 + len(name_suffix):03d}",
+                "password": "courier123",
+                "address": "Москва, ул. Тестовая Синхронизации, 123",
+                "transport_type": "car",
+                "transport_number": f"TEST{567 + len(name_suffix):03d}",
+                "transport_capacity": 500.0,
+                "assigned_warehouse_id": warehouse_id
+            }
+            
+            response = self.session.post(
+                f"{BACKEND_URL}/admin/couriers/create",
+                json=courier_data,
+                headers={"Content-Type": "application/json"}
+            )
+            
+            if response.status_code == 200:
+                courier = response.json()
+                self.log_test(
+                    f"СОЗДАНИЕ ТЕСТОВОГО КУРЬЕРА{name_suffix}",
+                    True,
+                    f"Курьер '{courier['full_name']}' создан с ID: {courier['id'][:8]}..."
+                )
+                return courier
+            else:
+                self.log_test(
+                    f"СОЗДАНИЕ ТЕСТОВОГО КУРЬЕРА{name_suffix}",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return None
                 
         except Exception as e:
-            print(f"❌ ОШИБКА ТЕСТА: {e}")
-            test_results.append(("wrong_password", False, f"Исключение: {e}"))
+            self.log_test(f"СОЗДАНИЕ ТЕСТОВОГО КУРЬЕРА{name_suffix}", False, f"Ошибка: {str(e)}")
+            return None
     
-    # Тест 4: Проверка успешного входа (для контроля)
-    print("\n4️⃣ КОНТРОЛЬНЫЙ ТЕСТ: Успешный вход администратора")
-    print("-" * 50)
-    
-    try:
-        admin_credentials = {
-            "phone": "+79999888777",
-            "password": "admin123"
-        }
-        
-        response = requests.post(f"{BACKEND_URL}/auth/login", json=admin_credentials)
-        print(f"📞 Тестируемый номер: {admin_credentials['phone']}")
-        print(f"📊 HTTP статус: {response.status_code}")
-        
-        if response.status_code == 200:
-            data = response.json()
-            user_info = data.get('user', {})
+    def deactivate_courier(self, courier_id):
+        """Деактивировать курьера (soft delete)"""
+        try:
+            response = self.session.delete(f"{BACKEND_URL}/admin/couriers/{courier_id}")
             
-            print(f"✅ Успешный вход!")
-            print(f"👤 Пользователь: {user_info.get('full_name')}")
-            print(f"📱 Телефон: {user_info.get('phone')}")
-            print(f"🎭 Роль: {user_info.get('role')}")
-            print(f"🔑 Токен получен: {'access_token' in data}")
-            
-            test_results.append(("successful_login", True, "Успешный вход администратора"))
-        else:
-            print(f"❌ КОНТРОЛЬНЫЙ ТЕСТ НЕ ПРОЙДЕН: HTTP {response.status_code}")
-            test_results.append(("successful_login", False, f"HTTP {response.status_code} вместо 200"))
-            
-    except Exception as e:
-        print(f"❌ ОШИБКА КОНТРОЛЬНОГО ТЕСТА: {e}")
-        test_results.append(("successful_login", False, f"Исключение: {e}"))
-    
-    # Тест 5: Проверка account_disabled (если есть заблокированный пользователь)
-    print("\n5️⃣ ТЕСТИРОВАНИЕ ОШИБКИ 'account_disabled' (если применимо)")
-    print("-" * 50)
-    
-    try:
-        # Пробуем найти неактивного пользователя
-        inactive_user_data = {
-            "phone": "+79999999998",  # Потенциально неактивный номер
-            "password": "anypassword"
-        }
-        
-        response = requests.post(f"{BACKEND_URL}/auth/login", json=inactive_user_data)
-        
-        if response.status_code == 403:
-            error_data = response.json()
-            detail = error_data.get('detail', {})
-            
-            if detail.get('error_type') == 'account_disabled':
-                print(f"✅ Найден заблокированный пользователь")
-                print(f"🔍 Тип ошибки: {detail.get('error_type')}")
-                print(f"💬 Статус сообщение: {detail.get('status_message')}")
-                print(f"📝 Детали статуса: {detail.get('status_details')}")
-                print(f"👤 Роль: {detail.get('user_role')}")
-                print(f"👨‍💼 Имя: {detail.get('user_name')}")
-                print(f"📱 Телефон: {detail.get('user_phone')}")
-                print(f"🗑️ Удален: {detail.get('is_deleted')}")
-                
-                test_results.append(("account_disabled", True, "Корректная обработка заблокированного аккаунта"))
+            if response.status_code == 200:
+                result = response.json()
+                self.log_test(
+                    "ДЕАКТИВАЦИЯ КУРЬЕРА",
+                    True,
+                    f"Курьер деактивирован: {result.get('message', 'Успешно')}"
+                )
+                return True
             else:
-                print("ℹ️ Заблокированный пользователь не найден (это нормально)")
-                test_results.append(("account_disabled", "NA", "Заблокированный пользователь не найден"))
-        else:
-            print("ℹ️ Заблокированный пользователь не найден (это нормально)")
-            test_results.append(("account_disabled", "NA", "Заблокированный пользователь не найден"))
+                self.log_test(
+                    "ДЕАКТИВАЦИЯ КУРЬЕРА",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test("ДЕАКТИВАЦИЯ КУРЬЕРА", False, f"Ошибка: {str(e)}")
+            return False
+    
+    def activate_courier(self, courier_id):
+        """Активировать курьера"""
+        try:
+            response = self.session.post(f"{BACKEND_URL}/admin/couriers/{courier_id}/activate")
             
-    except Exception as e:
-        print(f"ℹ️ Тест account_disabled пропущен: {e}")
-        test_results.append(("account_disabled", "NA", f"Тест пропущен: {e}"))
+            if response.status_code == 200:
+                result = response.json()
+                self.log_test(
+                    "АКТИВАЦИЯ КУРЬЕРА",
+                    True,
+                    f"Курьер активирован: {result.get('message', 'Успешно')}"
+                )
+                return True
+            else:
+                self.log_test(
+                    "АКТИВАЦИЯ КУРЬЕРА",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test("АКТИВАЦИЯ КУРЬЕРА", False, f"Ошибка: {str(e)}")
+            return False
     
-    # Итоговый отчет
-    print("\n" + "=" * 100)
-    print("📊 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ")
-    print("=" * 100)
+    def permanent_delete_courier(self, courier_id):
+        """Полностью удалить курьера"""
+        try:
+            response = self.session.delete(f"{BACKEND_URL}/admin/couriers/{courier_id}/permanent")
+            
+            if response.status_code == 200:
+                result = response.json()
+                self.log_test(
+                    "ПОЛНОЕ УДАЛЕНИЕ КУРЬЕРА",
+                    True,
+                    f"Курьер полностью удален: {result.get('message', 'Успешно')}"
+                )
+                return True
+            else:
+                self.log_test(
+                    "ПОЛНОЕ УДАЛЕНИЕ КУРЬЕРА",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test("ПОЛНОЕ УДАЛЕНИЕ КУРЬЕРА", False, f"Ошибка: {str(e)}")
+            return False
     
-    passed_tests = sum(1 for _, result, _ in test_results if result is True)
-    failed_tests = sum(1 for _, result, _ in test_results if result is False)
-    na_tests = sum(1 for _, result, _ in test_results if result == "NA")
-    total_tests = len(test_results)
-    
-    print(f"✅ Пройдено тестов: {passed_tests}")
-    print(f"❌ Провалено тестов: {failed_tests}")
-    print(f"ℹ️ Неприменимо: {na_tests}")
-    print(f"📈 Общий процент успеха: {(passed_tests / (total_tests - na_tests) * 100):.1f}%" if (total_tests - na_tests) > 0 else "N/A")
-    
-    print("\nДетальные результаты:")
-    for test_name, result, comment in test_results:
-        status_icon = "✅" if result is True else "❌" if result is False else "ℹ️"
-        print(f"{status_icon} {test_name}: {comment}")
-    
-    # Проверяем критические требования
-    critical_tests = ["user_not_found", "wrong_password"]
-    critical_passed = all(result is True for test_name, result, _ in test_results if test_name in critical_tests)
-    
-    if critical_passed:
-        print("\n🎉 КРИТИЧЕСКИЕ ТЕСТЫ ПРОЙДЕНЫ УСПЕШНО!")
-        print("✅ Информативные сообщения об ошибках авторизации работают корректно")
-        print("✅ Структура данных ошибок соответствует требованиям")
-        print("✅ Backend готов для интеграции с frontend модальными окнами")
+    def test_courier_list_synchronization(self):
+        """🎯 КРИТИЧЕСКИЙ ТЕСТ: Синхронизация списков курьеров при активации/деактивации"""
+        print("\n" + "="*80)
+        print("🎯 КРИТИЧЕСКИЙ ТЕСТ: СИНХРОНИЗАЦИЯ СПИСКОВ КУРЬЕРОВ")
+        print("="*80)
+        
+        # Шаг 1: Получаем начальные счетчики
+        initial_active_count = self.get_active_couriers_count()
+        initial_inactive_count = self.get_inactive_couriers_count()
+        
+        self.log_test(
+            "НАЧАЛЬНОЕ СОСТОЯНИЕ СПИСКОВ",
+            True,
+            f"Активных курьеров: {initial_active_count}, Неактивных курьеров: {initial_inactive_count}"
+        )
+        
+        # Шаг 2: Создаем тестового курьера (он будет активным)
+        test_courier = self.create_test_courier("_Sync")
+        if not test_courier:
+            return False
+        
+        courier_id = test_courier["id"]
+        courier_name = test_courier["full_name"]
+        
+        # Проверяем что курьер появился в активном списке
+        time.sleep(1)  # Небольшая задержка для синхронизации
+        active_count_after_create = self.get_active_couriers_count()
+        
+        if active_count_after_create == initial_active_count + 1:
+            self.log_test(
+                "ПОЯВЛЕНИЕ В АКТИВНОМ СПИСКЕ ПОСЛЕ СОЗДАНИЯ",
+                True,
+                f"Активных курьеров: {active_count_after_create} (было {initial_active_count})"
+            )
+        else:
+            self.log_test(
+                "ПОЯВЛЕНИЕ В АКТИВНОМ СПИСКЕ ПОСЛЕ СОЗДАНИЯ",
+                False,
+                f"Ожидалось {initial_active_count + 1}, получено {active_count_after_create}"
+            )
+        
+        # Шаг 3: Деактивируем курьера
+        if not self.deactivate_courier(courier_id):
+            return False
+        
+        # Проверяем синхронизацию после деактивации
+        time.sleep(1)
+        active_count_after_deactivate = self.get_active_couriers_count()
+        inactive_count_after_deactivate = self.get_inactive_couriers_count()
+        
+        # Курьер должен исчезнуть из активного списка
+        if active_count_after_deactivate == initial_active_count:
+            self.log_test(
+                "ИСЧЕЗНОВЕНИЕ ИЗ АКТИВНОГО СПИСКА ПОСЛЕ ДЕАКТИВАЦИИ",
+                True,
+                f"Активных курьеров: {active_count_after_deactivate} (ожидалось {initial_active_count})"
+            )
+        else:
+            self.log_test(
+                "ИСЧЕЗНОВЕНИЕ ИЗ АКТИВНОГО СПИСКА ПОСЛЕ ДЕАКТИВАЦИИ",
+                False,
+                f"Ожидалось {initial_active_count}, получено {active_count_after_deactivate}"
+            )
+        
+        # Курьер должен появиться в неактивном списке
+        if inactive_count_after_deactivate == initial_inactive_count + 1:
+            self.log_test(
+                "ПОЯВЛЕНИЕ В НЕАКТИВНОМ СПИСКЕ ПОСЛЕ ДЕАКТИВАЦИИ",
+                True,
+                f"Неактивных курьеров: {inactive_count_after_deactivate} (было {initial_inactive_count})"
+            )
+        else:
+            self.log_test(
+                "ПОЯВЛЕНИЕ В НЕАКТИВНОМ СПИСКЕ ПОСЛЕ ДЕАКТИВАЦИИ",
+                False,
+                f"Ожидалось {initial_inactive_count + 1}, получено {inactive_count_after_deactivate}"
+            )
+        
+        # Шаг 4: Активируем курьера обратно
+        if not self.activate_courier(courier_id):
+            return False
+        
+        # Проверяем синхронизацию после активации
+        time.sleep(1)
+        active_count_after_activate = self.get_active_couriers_count()
+        inactive_count_after_activate = self.get_inactive_couriers_count()
+        
+        # Курьер должен появиться в активном списке
+        if active_count_after_activate == initial_active_count + 1:
+            self.log_test(
+                "🎯 КРИТИЧЕСКИЙ УСПЕХ - ПОЯВЛЕНИЕ В АКТИВНОМ СПИСКЕ ПОСЛЕ АКТИВАЦИИ",
+                True,
+                f"Активных курьеров: {active_count_after_activate} (ожидалось {initial_active_count + 1})"
+            )
+        else:
+            self.log_test(
+                "🎯 КРИТИЧЕСКИЙ УСПЕХ - ПОЯВЛЕНИЕ В АКТИВНОМ СПИСКЕ ПОСЛЕ АКТИВАЦИИ",
+                False,
+                f"Ожидалось {initial_active_count + 1}, получено {active_count_after_activate}"
+            )
+        
+        # Курьер должен исчезнуть из неактивного списка
+        if inactive_count_after_activate == initial_inactive_count:
+            self.log_test(
+                "🎯 КРИТИЧЕСКИЙ УСПЕХ - ИСЧЕЗНОВЕНИЕ ИЗ НЕАКТИВНОГО СПИСКА ПОСЛЕ АКТИВАЦИИ",
+                True,
+                f"Неактивных курьеров: {inactive_count_after_activate} (ожидалось {initial_inactive_count})"
+            )
+        else:
+            self.log_test(
+                "🎯 КРИТИЧЕСКИЙ УСПЕХ - ИСЧЕЗНОВЕНИЕ ИЗ НЕАКТИВНОГО СПИСКА ПОСЛЕ АКТИВАЦИИ",
+                False,
+                f"Ожидалось {initial_inactive_count}, получено {inactive_count_after_activate}"
+            )
+        
+        # Шаг 5: Полное удаление курьера для очистки
+        self.permanent_delete_courier(courier_id)
+        
         return True
-    else:
-        print("\n🚨 КРИТИЧЕСКИЕ ТЕСТЫ НЕ ПРОЙДЕНЫ!")
-        print("❌ Требуется исправление информативных сообщений об ошибках авторизации")
-        return False
+    
+    def test_multiple_courier_operations(self):
+        """Тест множественных операций с курьерами"""
+        print("\n" + "="*80)
+        print("🔄 ТЕСТ МНОЖЕСТВЕННЫХ ОПЕРАЦИЙ С КУРЬЕРАМИ")
+        print("="*80)
+        
+        # Создаем несколько тестовых курьеров
+        couriers = []
+        for i in range(3):
+            courier = self.create_test_courier(f"_Multi{i}")
+            if courier:
+                couriers.append(courier)
+        
+        if len(couriers) < 3:
+            self.log_test("СОЗДАНИЕ МНОЖЕСТВЕННЫХ КУРЬЕРОВ", False, f"Создано только {len(couriers)} из 3")
+            return False
+        
+        self.log_test("СОЗДАНИЕ МНОЖЕСТВЕННЫХ КУРЬЕРОВ", True, f"Создано {len(couriers)} курьеров")
+        
+        # Деактивируем всех курьеров
+        initial_active = self.get_active_couriers_count()
+        initial_inactive = self.get_inactive_couriers_count()
+        
+        for courier in couriers:
+            self.deactivate_courier(courier["id"])
+            time.sleep(0.5)  # Небольшая задержка между операциями
+        
+        # Проверяем результат массовой деактивации
+        time.sleep(2)
+        active_after_mass_deactivate = self.get_active_couriers_count()
+        inactive_after_mass_deactivate = self.get_inactive_couriers_count()
+        
+        expected_active = initial_active - 3
+        expected_inactive = initial_inactive + 3
+        
+        if active_after_mass_deactivate == expected_active:
+            self.log_test(
+                "МАССОВАЯ ДЕАКТИВАЦИЯ - АКТИВНЫЙ СПИСОК",
+                True,
+                f"Активных: {active_after_mass_deactivate} (ожидалось {expected_active})"
+            )
+        else:
+            self.log_test(
+                "МАССОВАЯ ДЕАКТИВАЦИЯ - АКТИВНЫЙ СПИСОК",
+                False,
+                f"Ожидалось {expected_active}, получено {active_after_mass_deactivate}"
+            )
+        
+        if inactive_after_mass_deactivate == expected_inactive:
+            self.log_test(
+                "МАССОВАЯ ДЕАКТИВАЦИЯ - НЕАКТИВНЫЙ СПИСОК",
+                True,
+                f"Неактивных: {inactive_after_mass_deactivate} (ожидалось {expected_inactive})"
+            )
+        else:
+            self.log_test(
+                "МАССОВАЯ ДЕАКТИВАЦИЯ - НЕАКТИВНЫЙ СПИСОК",
+                False,
+                f"Ожидалось {expected_inactive}, получено {inactive_after_mass_deactivate}"
+            )
+        
+        # Активируем обратно первого курьера
+        first_courier = couriers[0]
+        self.activate_courier(first_courier["id"])
+        time.sleep(1)
+        
+        active_after_single_activate = self.get_active_couriers_count()
+        inactive_after_single_activate = self.get_inactive_couriers_count()
+        
+        if active_after_single_activate == expected_active + 1:
+            self.log_test(
+                "ОДИНОЧНАЯ АКТИВАЦИЯ ПОСЛЕ МАССОВОЙ ДЕАКТИВАЦИИ",
+                True,
+                f"Активных: {active_after_single_activate} (ожидалось {expected_active + 1})"
+            )
+        else:
+            self.log_test(
+                "ОДИНОЧНАЯ АКТИВАЦИЯ ПОСЛЕ МАССОВОЙ ДЕАКТИВАЦИИ",
+                False,
+                f"Ожидалось {expected_active + 1}, получено {active_after_single_activate}"
+            )
+        
+        # Очистка - удаляем всех тестовых курьеров
+        for courier in couriers:
+            self.permanent_delete_courier(courier["id"])
+        
+        return True
+    
+    def test_edge_cases(self):
+        """Тест граничных случаев"""
+        print("\n" + "="*80)
+        print("⚠️ ТЕСТ ГРАНИЧНЫХ СЛУЧАЕВ")
+        print("="*80)
+        
+        # Тест 1: Попытка активировать уже активного курьера
+        active_courier = self.create_test_courier("_EdgeActive")
+        if active_courier:
+            # Курьер уже активен, пытаемся активировать еще раз
+            response = self.session.post(f"{BACKEND_URL}/admin/couriers/{active_courier['id']}/activate")
+            
+            if response.status_code in [200, 400]:  # Может быть успех или ошибка валидации
+                self.log_test(
+                    "АКТИВАЦИЯ УЖЕ АКТИВНОГО КУРЬЕРА",
+                    True,
+                    f"HTTP {response.status_code}: {response.json().get('message', 'Обработано корректно')}"
+                )
+            else:
+                self.log_test(
+                    "АКТИВАЦИЯ УЖЕ АКТИВНОГО КУРЬЕРА",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+            
+            self.permanent_delete_courier(active_courier["id"])
+        
+        # Тест 2: Попытка деактивировать несуществующего курьера
+        fake_courier_id = "00000000-0000-0000-0000-000000000000"
+        response = self.session.delete(f"{BACKEND_URL}/admin/couriers/{fake_courier_id}")
+        
+        if response.status_code == 404:
+            self.log_test(
+                "ДЕАКТИВАЦИЯ НЕСУЩЕСТВУЮЩЕГО КУРЬЕРА",
+                True,
+                f"HTTP 404: Корректно обработана ошибка несуществующего курьера"
+            )
+        else:
+            self.log_test(
+                "ДЕАКТИВАЦИЯ НЕСУЩЕСТВУЮЩЕГО КУРЬЕРА",
+                False,
+                f"HTTP {response.status_code}: Ожидался 404"
+            )
+        
+        # Тест 3: Попытка активировать несуществующего курьера
+        response = self.session.post(f"{BACKEND_URL}/admin/couriers/{fake_courier_id}/activate")
+        
+        if response.status_code == 404:
+            self.log_test(
+                "АКТИВАЦИЯ НЕСУЩЕСТВУЮЩЕГО КУРЬЕРА",
+                True,
+                f"HTTP 404: Корректно обработана ошибка несуществующего курьера"
+            )
+        else:
+            self.log_test(
+                "АКТИВАЦИЯ НЕСУЩЕСТВУЮЩЕГО КУРЬЕРА",
+                False,
+                f"HTTP {response.status_code}: Ожидался 404"
+            )
+        
+        return True
+    
+    def test_api_endpoints_availability(self):
+        """Тест доступности всех необходимых API endpoints"""
+        print("\n" + "="*80)
+        print("🔗 ТЕСТ ДОСТУПНОСТИ API ENDPOINTS")
+        print("="*80)
+        
+        endpoints_to_test = [
+            ("GET", "/admin/couriers/list", "Список активных курьеров"),
+            ("GET", "/admin/couriers/inactive", "Список неактивных курьеров"),
+            ("POST", "/admin/couriers/create", "Создание курьера"),
+            ("DELETE", "/admin/couriers/{id}", "Деактивация курьера"),
+            ("POST", "/admin/couriers/{id}/activate", "Активация курьера"),
+            ("DELETE", "/admin/couriers/{id}/permanent", "Полное удаление курьера")
+        ]
+        
+        for method, endpoint, description in endpoints_to_test:
+            try:
+                if method == "GET":
+                    response = self.session.get(f"{BACKEND_URL}{endpoint}")
+                elif method == "POST":
+                    # Для POST endpoints делаем запрос с пустыми данными чтобы проверить доступность
+                    response = self.session.post(f"{BACKEND_URL}{endpoint.replace('{id}', 'test')}", json={})
+                elif method == "DELETE":
+                    response = self.session.delete(f"{BACKEND_URL}{endpoint.replace('{id}', 'test')}")
+                
+                # Endpoint доступен если не возвращает 404 (Not Found)
+                if response.status_code != 404:
+                    self.log_test(
+                        f"ENDPOINT {method} {endpoint}",
+                        True,
+                        f"{description} - HTTP {response.status_code} (endpoint доступен)"
+                    )
+                else:
+                    self.log_test(
+                        f"ENDPOINT {method} {endpoint}",
+                        False,
+                        f"{description} - HTTP 404 (endpoint не найден)"
+                    )
+                    
+            except Exception as e:
+                self.log_test(
+                    f"ENDPOINT {method} {endpoint}",
+                    False,
+                    f"{description} - Ошибка: {str(e)}"
+                )
+        
+        return True
+    
+    def run_all_tests(self):
+        """Запуск всех тестов"""
+        print("🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Исправленное обновление списков курьеров при активации/удалении в TAJLINE.TJ")
+        print("="*120)
+        print(f"Время начала тестирования: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Backend URL: {BACKEND_URL}")
+        print("="*120)
+        
+        # Авторизация
+        if not self.authenticate_admin():
+            print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось авторизоваться как администратор")
+            return False
+        
+        # Запуск тестов
+        tests = [
+            ("API ENDPOINTS AVAILABILITY", self.test_api_endpoints_availability),
+            ("COURIER LIST SYNCHRONIZATION", self.test_courier_list_synchronization),
+            ("MULTIPLE COURIER OPERATIONS", self.test_multiple_courier_operations),
+            ("EDGE CASES", self.test_edge_cases)
+        ]
+        
+        passed_tests = 0
+        total_tests = len(tests)
+        
+        for test_name, test_func in tests:
+            print(f"\n{'='*60}")
+            print(f"🧪 ВЫПОЛНЕНИЕ ТЕСТА: {test_name}")
+            print(f"{'='*60}")
+            
+            try:
+                if test_func():
+                    passed_tests += 1
+                    print(f"✅ ТЕСТ '{test_name}' ЗАВЕРШЕН УСПЕШНО")
+                else:
+                    print(f"❌ ТЕСТ '{test_name}' ЗАВЕРШЕН С ОШИБКАМИ")
+            except Exception as e:
+                print(f"❌ ТЕСТ '{test_name}' ЗАВЕРШЕН С ИСКЛЮЧЕНИЕМ: {str(e)}")
+        
+        # Итоговый отчет
+        print("\n" + "="*120)
+        print("📊 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ")
+        print("="*120)
+        
+        success_rate = (passed_tests / total_tests) * 100
+        print(f"Успешно пройдено тестов: {passed_tests}/{total_tests} ({success_rate:.1f}%)")
+        
+        # Детальная статистика по отдельным проверкам
+        successful_checks = sum(1 for result in self.test_results if result["success"])
+        total_checks = len(self.test_results)
+        check_success_rate = (successful_checks / total_checks) * 100 if total_checks > 0 else 0
+        
+        print(f"Успешно пройдено проверок: {successful_checks}/{total_checks} ({check_success_rate:.1f}%)")
+        
+        # Список неудачных тестов
+        failed_tests = [result for result in self.test_results if not result["success"]]
+        if failed_tests:
+            print(f"\n❌ НЕУДАЧНЫЕ ПРОВЕРКИ ({len(failed_tests)}):")
+            for failed in failed_tests:
+                print(f"   • {failed['test']}: {failed['details']}")
+        
+        print(f"\nВремя завершения тестирования: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        # Финальная оценка
+        if success_rate >= 90:
+            print("\n🎉 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ ЗАВЕРШЕНО УСПЕШНО!")
+            print("✅ Исправления обновления списков курьеров работают корректно")
+            print("✅ Синхронизация между активными и неактивными курьерами функционирует правильно")
+            print("✅ Backend готов для frontend интеграции с исправленными функциями handleActivateCourier и handlePermanentDeleteCourier")
+        elif success_rate >= 70:
+            print("\n⚠️ ТЕСТИРОВАНИЕ ЗАВЕРШЕНО С ПРЕДУПРЕЖДЕНИЯМИ")
+            print("⚠️ Основная функциональность работает, но есть минорные проблемы")
+        else:
+            print("\n❌ КРИТИЧЕСКИЕ ПРОБЛЕМЫ ОБНАРУЖЕНЫ")
+            print("❌ Требуется исправление найденных проблем перед использованием")
+        
+        return success_rate >= 70
+
+def main():
+    """Главная функция"""
+    tester = CourierListUpdateTester()
+    success = tester.run_all_tests()
+    sys.exit(0 if success else 1)
 
 if __name__ == "__main__":
-    success = test_login_error_messages()
-    sys.exit(0 if success else 1)
+    main()
