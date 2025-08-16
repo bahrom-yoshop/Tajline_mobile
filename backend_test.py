@@ -143,22 +143,22 @@ class PricePerKgModalTester:
             
             # Данные заявки согласно примеру из review request
             pickup_data = {
-                "sender_full_name": "Тестовый Отправитель Холодильника",
+                "sender_full_name": "Тестовый Отправитель Телевизора",
                 "sender_phone": "+79111222333",
                 "pickup_address": "Москва, ул. Тестовая, д. 123, кв. 45",
                 "pickup_date": "2025-01-20",
                 "pickup_time_from": "10:00",
                 "pickup_time_to": "12:00",
                 "destination": "Душанбе, ул. Рудаки, д. 100",
-                "cargo_name": "Холодильник",  # Согласно примеру
-                "weight": 30.0,  # 30 кг согласно примеру
-                "price_per_kg": 80.0,  # 80 ₽ за кг согласно примеру - КЛЮЧЕВОЕ ПОЛЕ ДЛЯ ТЕСТИРОВАНИЯ
-                "total_value": 2400.0,  # 30 × 80 = 2400 ₽ согласно примеру
-                "declared_value": 2400.0,  # Дублируем для совместимости
+                "cargo_name": "Телевизор",  # Согласно примеру из review request
+                "weight": 10.0,  # 10 кг согласно примеру
+                "price_per_kg": 50.0,  # 50 ₽ за кг согласно примеру - КЛЮЧЕВОЕ ПОЛЕ ДЛЯ ТЕСТИРОВАНИЯ
+                "total_value": 500.0,  # 10 × 50 = 500 ₽ согласно примеру
+                "declared_value": 500.0,  # Дублируем для совместимости
                 "payment_method": "cash",
-                "courier_fee": 500.0,
+                "courier_fee": 200.0,
                 "delivery_method": "pickup",
-                "description": "Тестовая заявка для проверки отображения price_per_kg в модальном окне"
+                "description": "Тестовая заявка для проверки отображения price_per_kg (50₽) вместо total_value (500₽) в модальном окне"
             }
             
             response = self.session.post(
@@ -174,7 +174,7 @@ class PricePerKgModalTester:
                 self.log_test(
                     "СОЗДАНИЕ ТЕСТОВОЙ ЗАЯВКИ С PRICE_PER_KG",
                     True,
-                    f"Заявка создана с ID: {self.test_pickup_request_id}, номер: {data.get('request_number')}, груз: Холодильник, вес: 30 кг, цена за кг: 80 ₽"
+                    f"Заявка создана с ID: {self.test_pickup_request_id}, номер: {data.get('request_number')}, груз: Телевизор, вес: 10 кг, цена за кг: 50 ₽, итого: 500 ₽"
                 )
                 return True
             else:
