@@ -16409,6 +16409,146 @@ async def delete_courier_pickup_request(request_id: str, current_user: User = De
     except Exception as e:
         print(f"Error deleting courier pickup request: {str(e)}")
         raise HTTPException(status_code=500, detail="Ошибка при удалении заявки")
+# НОВАЯ ФУНКЦИЯ: Получить список неактивных курьеров
+@app.get("/api/admin/couriers/inactive")
+async def get_inactive_couriers(current_user: User = Depends(get_current_user)):
+    if current_user.role not in ["admin"]:
+        raise HTTPException(status_code=403, detail="Access denied: Only admins")
+    
+    try:
+        # Получаем неактивных курьеров
+        inactive_couriers = list(db.couriers.find({"is_active": False}, {"_id": 0}))
+        
+        # Добавляем информацию о пользователе для каждого курьера
+        for courier in inactive_couriers:
+            user = db.users.find_one({"id": courier.get("user_id")}, {"_id": 0})
+            if user:
+                courier["user_info"] = {
+                    "full_name": user.get("full_name", ""),
+                    "phone": user.get("phone", ""),
+                    "is_active": user.get("is_active", False)
+                }
+            
+            # Добавляем информацию о складе
+            warehouse = db.warehouses.find_one({"id": courier.get("assigned_warehouse_id")}, {"_id": 0})
+            if warehouse:
+                courier["assigned_warehouse_name"] = warehouse.get("name", "Неизвестный склад")
+        
+        return {
+            "inactive_couriers": inactive_couriers,
+            "total_count": len(inactive_couriers)
+        }
+        
+    except Exception as e:
+        print(f"Error getting inactive couriers: {str(e)}")
+        raise HTTPException(status_code=500, detail="Ошибка при получении неактивных курьеров")
+
+# НОВАЯ ФУНКЦИЯ: Активировать курьера (перевести из неактивного в активное состояние)
+@app.post("/api/admin/couriers/{courier_id}/activate")
+async def activate_courier(courier_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role not in ["admin"]:
+        raise HTTPException(status_code=403, detail="Access denied: Only admins")
+    
+    try:
+        # Находим курьера
+        courier = db.couriers.find_one({"id": courier_id}, {"_id": 0})
+        if not courier:
+            raise HTTPException(status_code=404, detail="Курьер не найден")
+        
+        # Активируем курьера
+        result = db.couriers.update_one(
+            {"id": courier_id},
+            {
+                "$set": {
+                    "is_active": True,
+                    "reactivated_at": datetime.utcnow(),
+                    "reactivated_by": current_user.id,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=400, detail="Не удалось активировать курьера")
+        
+        # Также активируем связанного пользователя
+        if courier.get("user_id"):
+            db.users.update_one(
+                {"id": courier["user_id"]},
+                {"$set": {"is_active": True}}
+            )
+        
+        return {
+            "message": "Курьер успешно активирован",
+            "courier_id": courier_id,
+            "activated_by": current_user.full_name
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error activating courier: {str(e)}")
+        raise HTTPException(status_code=500, detail="Ошибка при активации курьера")
+
+# НОВАЯ ФУНКЦИЯ: Полное удаление курьера из базы данных
+@app.delete("/api/admin/couriers/{courier_id}/permanent")
+async def permanently_delete_courier(courier_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role not in ["admin"]:
+        raise HTTPException(status_code=403, detail="Access denied: Only admins")
+    
+    try:
+        # Находим курьера
+        courier = db.couriers.find_one({"id": courier_id}, {"_id": 0})
+        if not courier:
+            raise HTTPException(status_code=404, detail="Курьер не найден")
+        
+        user_id = courier.get("user_id")
+        
+        # Проверяем, есть ли активные заявки у курьера
+        active_requests = db.courier_requests.find({
+            "assigned_courier_id": courier_id,
+            "request_status": {"$in": ["assigned", "accepted"]}
+        }).count()
+        
+        if active_requests > 0:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Невозможно удалить курьера. У него есть {active_requests} активных заявок. Сначала завершите или переназначьте заявки."
+            )
+        
+        # Удаляем курьера из базы данных
+        courier_result = db.couriers.delete_one({"id": courier_id})
+        
+        # Удаляем связанного пользователя (если он существует и не используется в других ролях)
+        user_deleted = False
+        if user_id:
+            # Проверяем, используется ли пользователь в других ролях
+            user = db.users.find_one({"id": user_id}, {"_id": 0})
+            if user and user.get("role") == "courier":
+                # Безопасно удаляем пользователя только если он имеет роль курьера
+                user_result = db.users.delete_one({"id": user_id})
+                user_deleted = user_result.deleted_count > 0
+        
+        # Удаляем связанные записи (местоположения, история и т.д.)
+        db.courier_locations.delete_many({"courier_id": courier_id})
+        db.courier_requests.update_many(
+            {"assigned_courier_id": courier_id},
+            {"$set": {"assigned_courier_id": None, "assigned_courier_name": "Удаленный курьер"}}
+        )
+        
+        return {
+            "message": "Курьер полностью удален из базы данных",
+            "courier_id": courier_id,
+            "user_deleted": user_deleted,
+            "deleted_by": current_user.full_name,
+            "deletion_date": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error permanently deleting courier: {str(e)}")
+        raise HTTPException(status_code=500, detail="Ошибка при полном удалении курьера")
 @app.post("/api/admin/cleanup-duplicate-notifications")
 async def cleanup_duplicate_notifications(current_user: User = Depends(get_current_user)):
     if current_user.role not in ["admin"]:
