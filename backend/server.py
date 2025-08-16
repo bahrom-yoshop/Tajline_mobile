@@ -14504,6 +14504,70 @@ async def accept_warehouse_delivery(
         print(f"DEBUG: {error_details}")  # This will appear in logs
         raise HTTPException(status_code=500, detail=f"Error accepting notification: {str(e)}")
 
+# НОВЫЙ ENDPOINT: Обновление данных принятого уведомления
+@app.put("/api/operator/warehouse-notifications/{notification_id}")
+async def update_warehouse_notification(
+    notification_id: str,
+    update_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Обновить данные принятого уведомления"""
+    if current_user.role not in [UserRole.WAREHOUSE_OPERATOR, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Access denied: Only operators and admins")
+    
+    try:
+        # Получаем существующее уведомление
+        notification = db.warehouse_notifications.find_one({"id": notification_id}, {"_id": 0})
+        if not notification:
+            raise HTTPException(status_code=404, detail="Notification not found")
+        
+        current_time = datetime.utcnow()
+        
+        # Подготавливаем данные для обновления
+        allowed_fields = [
+            'sender_full_name', 'sender_phone', 'pickup_address', 
+            'destination', 'courier_fee', 'payment_method'
+        ]
+        
+        update_fields = {}
+        for field in allowed_fields:
+            if field in update_data:
+                update_fields[field] = update_data[field]
+        
+        # Добавляем информацию об обновлении
+        update_fields.update({
+            "updated_at": current_time,
+            "updated_by": current_user.full_name,
+            "updated_by_id": current_user.id
+        })
+        
+        # Обновляем уведомление
+        update_result = db.warehouse_notifications.update_one(
+            {"id": notification_id},
+            {"$set": update_fields}
+        )
+        
+        if update_result.modified_count == 0:
+            raise HTTPException(status_code=400, detail="No changes were made to the notification")
+        
+        # Получаем обновленное уведомление
+        updated_notification = db.warehouse_notifications.find_one({"id": notification_id}, {"_id": 0})
+        
+        return {
+            "message": "Notification updated successfully",
+            "notification_id": notification_id,
+            "updated_fields": list(update_fields.keys()),
+            "notification": updated_notification
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        error_details = f"Error updating notification: {str(e)}. Traceback: {traceback.format_exc()}"
+        print(f"DEBUG: {error_details}")
+        raise HTTPException(status_code=500, detail=f"Error updating notification: {str(e)}")
+
 # НОВЫЙ ENDPOINT: Полное оформление груза с деталями
 @app.post("/api/operator/warehouse-notifications/{notification_id}/complete")
 async def complete_cargo_processing(
