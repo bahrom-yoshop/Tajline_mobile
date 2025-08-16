@@ -5122,8 +5122,12 @@ function App() {
 
       return result;
     } catch (error) {
-      // Показываем alert только если это не ошибка истечения сессии
-      if (error.message !== 'Session expired') {
+      // Не показываем alert для структурированных ошибок авторизации - они обрабатываются модальными окнами
+      const isAuthError = error.status === 401 || error.status === 403;
+      const hasStructuredError = error.detail && typeof error.detail === 'object' && error.detail.error_type;
+      
+      // Показываем alert только если это не ошибка истечения сессии и не структурированная ошибка авторизации
+      if (error.message !== 'Session expired' && !(isAuthError && hasStructuredError)) {
         showAlert(error.message, 'error');
       }
       throw error;
