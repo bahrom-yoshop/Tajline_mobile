@@ -14249,7 +14249,7 @@ async def deliver_cargo_to_warehouse(
             )
             
             # Создаем уведомление для операторов о поступившем грузе
-            notification_id = f"WN_{int(current_time.timestamp() * 1000)}"  # Unique timestamp-based ID
+            notification_id = f"WN_{str(uuid.uuid4())}"  # Unique UUID-based ID
             warehouse_notification = {
                 "id": notification_id,
                 "request_id": request_id,  # Оставляем для совместимости
