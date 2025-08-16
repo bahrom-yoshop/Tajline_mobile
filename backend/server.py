@@ -2796,6 +2796,76 @@ async def generate_warehouse_cell_qr(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating cell QR code: {str(e)}")
 
+# НОВЫЙ ENDPOINT: Обновление номеров складов для уникальности QR кодов
+@app.post("/api/admin/warehouses/update-id-numbers")
+async def update_warehouse_id_numbers(
+    current_user: User = Depends(get_current_user)
+):
+    """Обновить номера складов для обеспечения уникальности QR кодов ячеек"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Только администратор может обновлять номера складов"
+        )
+    
+    try:
+        # Получаем все склады
+        warehouses = list(db.warehouses.find({}, {"_id": 0}))
+        
+        updated_warehouses = []
+        
+        for warehouse in warehouses:
+            warehouse_id = warehouse.get("id")
+            current_id_number = warehouse.get("warehouse_id_number")
+            
+            # Если у склада нет уникального номера или номер некорректный, генерируем новый
+            if not current_id_number or not current_id_number.isdigit() or len(current_id_number) != 3:
+                # Генерируем новый уникальный номер
+                new_id_number = generate_warehouse_id_number()
+                
+                # Обновляем склад
+                update_result = db.warehouses.update_one(
+                    {"id": warehouse_id},
+                    {"$set": {"warehouse_id_number": new_id_number}}
+                )
+                
+                if update_result.modified_count > 0:
+                    updated_warehouses.append({
+                        "warehouse_id": warehouse_id,
+                        "name": warehouse.get("name", "Unknown"),
+                        "old_number": current_id_number,
+                        "new_number": new_id_number
+                    })
+            else:
+                # Проверяем уникальность существующего номера
+                duplicates = list(db.warehouses.find({"warehouse_id_number": current_id_number}))
+                if len(duplicates) > 1:
+                    # Есть дубликаты, нужно обновить
+                    new_id_number = generate_warehouse_id_number()
+                    
+                    update_result = db.warehouses.update_one(
+                        {"id": warehouse_id},
+                        {"$set": {"warehouse_id_number": new_id_number}}
+                    )
+                    
+                    if update_result.modified_count > 0:
+                        updated_warehouses.append({
+                            "warehouse_id": warehouse_id,
+                            "name": warehouse.get("name", "Unknown"),
+                            "old_number": current_id_number,
+                            "new_number": new_id_number
+                        })
+        
+        return {
+            "message": "Номера складов обновлены успешно",
+            "total_warehouses": len(warehouses),
+            "updated_warehouses": updated_warehouses,
+            "updated_count": len(updated_warehouses)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating warehouse ID numbers: {str(e)}")
+
 @app.post("/api/warehouses/{warehouse_id}/add-block")
 async def add_warehouse_block(
     warehouse_id: str,
