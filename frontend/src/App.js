@@ -4352,18 +4352,42 @@ function App() {
 
   const generateCellQR = async () => {
     if (!qrCellCode.trim()) {
-      showAlert('Введите код ячейки', 'error');
+      showAlert('Введите код ячейки в формате: Б1-П1-Я1', 'error');
       return;
     }
 
     try {
+      // Парсим введенный код ячейки для извлечения блока, полки, ячейки
+      const cellParts = qrCellCode.trim().match(/^Б(\d+)-П(\d+)-Я(\d+)$/);
+      if (!cellParts) {
+        showAlert('Неверный формат. Введите код в формате: Б1-П1-Я1', 'error');
+        return;
+      }
+      
+      const block = parseInt(cellParts[1]);
+      const shelf = parseInt(cellParts[2]);
+      const cell = parseInt(cellParts[3]);
+      
+      // Нужно определить склад - используем выбранный или текущий
+      const warehouse_id = selectedWarehouseForManagement?.id || user?.assigned_warehouse_id;
+      if (!warehouse_id) {
+        showAlert('Не выбран склад для генерации QR кода', 'error');
+        return;
+      }
+
       const response = await apiCall('/api/warehouse/cell/generate-qr', 'POST', {
-        cell_code: qrCellCode.trim()
+        warehouse_id: warehouse_id,
+        block: block,
+        shelf: shelf,
+        cell: cell,
+        format: 'id' // ИСПРАВЛЕНИЕ: Используем новый ID формат с уникальными номерами складов
       });
       
-      if (response && response.qr_code) {
+      if (response && response.success && response.qr_code) {
         setGeneratedCellQR(response.qr_code);
-        showAlert('QR код ячейки создан успешно!', 'success');
+        showAlert(`QR код для ячейки ${response.readable_name || qrCellCode} создан успешно! Код: ${response.cell_code}`, 'success');
+      } else {
+        showAlert('Не удалось создать QR код', 'error');
       }
     } catch (error) {
       console.error('Error generating cell QR:', error);
