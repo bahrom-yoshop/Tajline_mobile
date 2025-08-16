@@ -23053,10 +23053,16 @@ function App() {
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Package className="mr-2 h-5 w-5 text-blue-600" />
-              Полное оформление груза на складе
+              {currentCargoNotification?.isViewMode ? 
+                'Просмотр принятого уведомления' : 
+                'Полное оформление груза на складе'
+              }
             </DialogTitle>
             <DialogDescription>
-              Оформление груза из заявки на забор №{currentCargoNotification?.request_number}
+              {currentCargoNotification?.isViewMode ? 
+                `Просмотр и редактирование принятого уведомления №${currentCargoNotification?.request_number}` :
+                `Оформление груза из заявки на забор №${currentCargoNotification?.request_number}`
+              }
             </DialogDescription>
           </DialogHeader>
           
