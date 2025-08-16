@@ -326,7 +326,7 @@ class UserStatusModalTester:
             # Создаем пользователя через регистрацию
             response = self.session.post(f"{BACKEND_URL}/auth/register", json=user_data)
             
-            if response.status_code == 201:
+            if response.status_code in [200, 201]:  # Регистрация может возвращать 200 или 201
                 created_user = response.json()
                 user_info = created_user.get("user", {})
                 user_id = user_info.get("id")
