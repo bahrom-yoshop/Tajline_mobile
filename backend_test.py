@@ -41,7 +41,7 @@ class TajlineCargoTester:
         timestamp = datetime.now().strftime("%H:%M:%S")
         print(f"[{timestamp}] {level}: {message}")
         
-    def authenticate_operator(self, phone="+79777888999", password="warehouse123"):
+    def authenticate_operator(self, phone="+79999888777", password="admin123"):
         """Авторизация оператора склада"""
         try:
             self.log("🔐 Попытка авторизации оператора склада...")
