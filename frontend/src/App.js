@@ -20465,6 +20465,28 @@ function App() {
                             Список складов ({warehouses.length})
                           </div>
                           <div className="flex items-center space-x-2">
+                            <Button 
+                              variant="outline"
+                              onClick={async () => {
+                                try {
+                                  const response = await apiCall('/api/admin/warehouses/update-id-numbers', 'POST');
+                                  if (response.updated_count > 0) {
+                                    showAlert(`Обновлены номера ${response.updated_count} складов для уникальности QR кодов`, 'success');
+                                    // Обновляем список складов
+                                    fetchWarehouses();
+                                  } else {
+                                    showAlert('Все склады уже имеют уникальные номера', 'info');
+                                  }
+                                } catch (error) {
+                                  console.error('Error updating warehouse numbers:', error);
+                                  showAlert('Ошибка при обновлении номеров складов: ' + error.message, 'error');
+                                }
+                              }}
+                              className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                            >
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Обновить номера складов
+                            </Button>
                             {selectedWarehouses.length > 0 && (
                               <Button 
                                 variant="destructive" 
