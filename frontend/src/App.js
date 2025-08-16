@@ -2259,6 +2259,69 @@ function App() {
     }
   };
 
+  // НОВЫЕ ФУНКЦИИ: Генерация QR кодов для модального окна
+  const generateSpecificCellQR = async () => {
+    if (!qrCellCode.block || !qrCellCode.shelf || !qrCellCode.cell) {
+      showAlert('Заполните все поля: Блок, Полка, Ячейка', 'error');
+      return;
+    }
+
+    try {
+      const response = await apiCall('/api/warehouse/cell/generate-qr', 'POST', {
+        warehouse_id: selectedWarehouseForQR.id,
+        block: parseInt(qrCellCode.block),
+        shelf: parseInt(qrCellCode.shelf),
+        cell: parseInt(qrCellCode.cell),
+        format: 'id' // Используем новый ID формат с уникальными номерами складов
+      });
+      
+      if (response && response.success && response.qr_code) {
+        setGeneratedCellQR(response.qr_code);
+        showAlert(`QR код для ячейки ${response.readable_name} создан успешно! Код: ${response.cell_code}`, 'success');
+      } else {
+        showAlert('Не удалось создать QR код', 'error');
+      }
+    } catch (error) {
+      console.error('Error generating specific cell QR:', error);
+      showAlert(`Ошибка создания QR кода: ${error.message}`, 'error');
+    }
+  };
+
+  const generateAllCellsQR = async () => {
+    if (!selectedWarehouseForQR) {
+      showAlert('Склад не выбран', 'error');
+      return;
+    }
+
+    try {
+      showAlert('Начинается генерация QR кодов для всех ячеек склада...', 'info');
+      // Можно вызвать существующую функцию или создать новую
+      await generateCellQRCodes();
+    } catch (error) {
+      console.error('Error generating all cells QR:', error);
+      showAlert(`Ошибка массовой генерации QR кодов: ${error.message}`, 'error');
+    }
+  };
+
+  const generateRangeQR = async () => {
+    showAlert('Функция генерации по диапазону будет реализована в следующем обновлении', 'info');
+  };
+
+  const downloadQRCode = (qrCodeData, filename) => {
+    try {
+      const link = document.createElement('a');
+      link.href = qrCodeData;
+      link.download = `${filename}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showAlert(`QR код ${filename} скачан успешно!`, 'success');
+    } catch (error) {
+      console.error('Error downloading QR code:', error);
+      showAlert('Ошибка при скачивании QR кода', 'error');
+    }
+  };
+
   const handleSendToPlacement = async (notification) => {
     try {
       // Подтверждение действия
