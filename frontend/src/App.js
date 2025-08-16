@@ -31659,7 +31659,14 @@ function App() {
       </Dialog>
 
       {/* Модальное окно ошибок авторизации */}
-      <Dialog open={loginErrorModal} onOpenChange={setLoginErrorModal}>
+      {console.log('🎨 Rendering loginErrorModal:', loginErrorModal, 'with data:', loginErrorData)}
+      <Dialog 
+        open={loginErrorModal} 
+        onOpenChange={(open) => {
+          console.log('🔄 Dialog onOpenChange called with:', open);
+          setLoginErrorModal(open);
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
@@ -31768,6 +31775,7 @@ function App() {
             <Button 
               variant="outline" 
               onClick={() => {
+                console.log('🚫 Closing loginErrorModal');
                 setLoginErrorModal(false);
                 setLoginErrorData(null);
               }}
@@ -31777,6 +31785,7 @@ function App() {
             {loginErrorData?.errorType === 'user_not_found' && (
               <Button 
                 onClick={() => {
+                  console.log('📝 Closing modal and switching to registration');
                   setLoginErrorModal(false);
                   setLoginErrorData(null);
                   // Переключаемся на вкладку регистрации
