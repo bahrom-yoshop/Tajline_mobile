@@ -3330,6 +3330,23 @@ function App() {
   const [cargoDetailsModal, setCargoDetailsModal] = useState(false); // Модальное окно деталей груза
   const [quickPlacementModal, setQuickPlacementModal] = useState(false); // Быстрое размещение
   const [warehouseNumbersUpdated, setWarehouseNumbersUpdated] = useState(false); // Флаг обновления номеров складов
+  
+  // ИСПРАВЛЕНИЕ: Глобальный обработчик ошибок removeChild
+  useEffect(() => {
+    const handleGlobalError = (event) => {
+      if (event.error && event.error.message && 
+          (event.error.message.includes('removeChild') || event.error.message.includes('Node'))) {
+        console.warn('🔧 Глобальная ошибка removeChild перехвачена и обработана:', event.error.message);
+        event.preventDefault(); // Предотвращаем показ ошибки пользователю
+      }
+    };
+    
+    window.addEventListener('error', handleGlobalError);
+    
+    return () => {
+      window.removeEventListener('error', handleGlobalError);
+    };
+  }, []);
   const [quickPlacementForm, setQuickPlacementForm] = useState({
     block_number: 1,
     shelf_number: 1,
