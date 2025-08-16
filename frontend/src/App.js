@@ -31679,171 +31679,201 @@ function App() {
         </DialogContent>
       </Dialog>
 
-      {/* Тестовое модальное окно для диагностики */}
+      {/* Тестовое модальное окно для диагностики - ПРОСТОЕ без Radix UI */}
       {console.log('🧪 Rendering testModal:', testModal)}
-      <Dialog open={testModal} onOpenChange={setTestModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>🧪 Тестовое модальное окно</DialogTitle>
-            <DialogDescription>
-              Это простое тестовое модальное окно для проверки функциональности Dialog.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="p-4">
-            <p className="text-green-600 font-semibold">✅ Dialog компонент работает правильно!</p>
-            <p className="text-sm text-gray-600 mt-2">
-              Если вы видите это окно, значит базовая функциональность Dialog работает корректно.
-            </p>
-          </div>
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setTestModal(false)}>
-              Закрыть
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Модальное окно ошибок авторизации */}
-      {console.log('🎨 Rendering loginErrorModal:', loginErrorModal, 'with data:', loginErrorData)}
-      <Dialog 
-        open={loginErrorModal} 
-        onOpenChange={(open) => {
-          console.log('🔄 Dialog onOpenChange called with:', open);
-          setLoginErrorModal(open);
-        }}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              {loginErrorData?.errorType === 'user_not_found' ? (
-                <User className="h-5 w-5 text-blue-600" />
-              ) : (
-                <Lock className="h-5 w-5 text-red-600" />
-              )}
-              <span>Ошибка входа в систему</span>
-            </DialogTitle>
-            <DialogDescription>
-              Проверьте введенные данные и повторите попытку
-            </DialogDescription>
-          </DialogHeader>
+      {testModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50"
+            onClick={() => setTestModal(false)}
+          ></div>
           
-          {loginErrorData && (
-            <div className="space-y-4">
-              {/* Основное сообщение об ошибке */}
-              <div className={`p-4 rounded-lg border ${
-                loginErrorData.errorType === 'user_not_found' 
-                  ? 'bg-blue-50 border-blue-200' 
-                  : 'bg-red-50 border-red-200'
-              }`}>
-                <h4 className={`font-semibold mb-2 ${
-                  loginErrorData.errorType === 'user_not_found' ? 'text-blue-800' : 'text-red-800'
-                }`}>
-                  {loginErrorData.message}
-                </h4>
-                <p className={`text-sm ${
-                  loginErrorData.errorType === 'user_not_found' ? 'text-blue-700' : 'text-red-700'
-                }`}>
-                  {loginErrorData.details}
-                </p>
-              </div>
-
-              {/* Информация о пользователе (для ошибки пароля) */}
-              {loginErrorData.errorType === 'wrong_password' && loginErrorData.userName && (
-                <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-600">Пользователь:</span>
-                    <span className="text-sm text-gray-800">{loginErrorData.userName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-600">Роль:</span>
-                    <span className="text-sm text-gray-800">{loginErrorData.userRole}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-600">Телефон:</span>
-                    <span className="text-sm text-gray-800">{loginErrorData.userPhone}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Формат номера телефона */}
-              {loginErrorData.phoneFormat && (
-                <div className="bg-blue-100 border border-blue-200 p-3 rounded-lg">
-                  <h5 className="text-sm font-semibold text-blue-800 mb-1">
-                    📱 Формат номера телефона:
-                  </h5>
-                  <p className="text-sm text-blue-700">{loginErrorData.phoneFormat}</p>
-                </div>
-              )}
-
-              {/* Требования к паролю */}
-              {loginErrorData.passwordRequirements && (
-                <div className="bg-orange-100 border border-orange-200 p-3 rounded-lg">
-                  <h5 className="text-sm font-semibold text-orange-800 mb-1">
-                    🔒 Требования к паролю:
-                  </h5>
-                  <p className="text-sm text-orange-700">{loginErrorData.passwordRequirements}</p>
-                </div>
-              )}
-
-              {/* Доступные действия */}
-              {loginErrorData.availableActions && loginErrorData.availableActions.length > 0 && (
-                <div className="bg-green-100 border border-green-200 p-3 rounded-lg">
-                  <h5 className="text-sm font-semibold text-green-800 mb-2">
-                    💡 Рекомендуемые действия:
-                  </h5>
-                  <ul className="text-sm text-green-700 space-y-1">
-                    {loginErrorData.availableActions.map((action, index) => (
-                      <li key={index} className="flex items-center">
-                        <span className="mr-2">•</span>
-                        {action}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Контактная информация */}
-              <div className="bg-gray-100 border border-gray-200 p-3 rounded-lg">
-                <h5 className="text-sm font-semibold text-gray-800 mb-2">
-                  📞 Служба поддержки TAJLINE.TJ
-                </h5>
-                <div className="text-sm text-gray-700 space-y-1">
-                  <p>Телефон: +992 123 456 789</p>
-                  <p>Email: support@tajline.tj</p>
-                  <p>Время работы: 9:00 - 18:00 (пн-пт)</p>
-                </div>
-              </div>
+          {/* Modal Content */}
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 z-10">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">🧪 Тестовое модальное окно</h2>
+              <button 
+                onClick={() => setTestModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
-          )}
+            
+            <div className="mb-4">
+              <p className="text-green-600 font-semibold">✅ Простое модальное окно работает!</p>
+              <p className="text-sm text-gray-600 mt-2">
+                Это простое модальное окно создано без Radix UI для проверки базовой функциональности.
+              </p>
+            </div>
+            
+            <div className="flex justify-end">
+              <button 
+                onClick={() => setTestModal(false)}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-          <div className="flex justify-end space-x-2 mt-4">
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                console.log('🚫 Closing loginErrorModal');
-                setLoginErrorModal(false);
-                setLoginErrorData(null);
-              }}
-            >
-              Понятно
-            </Button>
-            {loginErrorData?.errorType === 'user_not_found' && (
-              <Button 
+      {/* Простое модальное окно ошибок авторизации - БЕЗ Radix UI */}
+      {console.log('🎨 Rendering loginErrorModal:', loginErrorModal, 'with data:', loginErrorData)}
+      {loginErrorModal && loginErrorData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50"
+            onClick={() => {
+              console.log('🚫 Closing loginErrorModal via backdrop');
+              setLoginErrorModal(false);
+              setLoginErrorData(null);
+            }}
+          ></div>
+          
+          {/* Modal Content */}
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                {loginErrorData.errorType === 'user_not_found' ? (
+                  <User className="h-5 w-5 text-blue-600" />
+                ) : (
+                  <Lock className="h-5 w-5 text-red-600" />
+                )}
+                <h2 className="text-lg font-semibold">Ошибка входа в систему</h2>
+              </div>
+              <button 
                 onClick={() => {
-                  console.log('📝 Closing modal and switching to registration');
+                  console.log('🚫 Closing loginErrorModal via X button');
                   setLoginErrorModal(false);
                   setLoginErrorData(null);
-                  // Переключаемся на вкладку регистрации
-                  // Можно добавить логику переключения если есть табы
                 }}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="text-gray-400 hover:text-gray-600"
               >
-                Регистрация
-              </Button>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Проверьте введенные данные и повторите попытку
+            </p>
+            
+            {/* Основное сообщение об ошибке */}
+            <div className={`p-4 rounded-lg border mb-4 ${
+              loginErrorData.errorType === 'user_not_found' 
+                ? 'bg-blue-50 border-blue-200' 
+                : 'bg-red-50 border-red-200'
+            }`}>
+              <h4 className={`font-semibold mb-2 ${
+                loginErrorData.errorType === 'user_not_found' ? 'text-blue-800' : 'text-red-800'
+              }`}>
+                {loginErrorData.message}
+              </h4>
+              <p className={`text-sm ${
+                loginErrorData.errorType === 'user_not_found' ? 'text-blue-700' : 'text-red-700'
+              }`}>
+                {loginErrorData.details}
+              </p>
+            </div>
+
+            {/* Информация о пользователе (для ошибки пароля) */}
+            {loginErrorData.errorType === 'wrong_password' && loginErrorData.userName && (
+              <div className="space-y-2 p-3 bg-gray-50 rounded-lg mb-4">
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-600">Пользователь:</span>
+                  <span className="text-sm text-gray-800">{loginErrorData.userName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-600">Роль:</span>
+                  <span className="text-sm text-gray-800">{loginErrorData.userRole}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-600">Телефон:</span>
+                  <span className="text-sm text-gray-800">{loginErrorData.userPhone}</span>
+                </div>
+              </div>
             )}
+
+            {/* Формат номера телефона */}
+            {loginErrorData.phoneFormat && (
+              <div className="bg-blue-100 border border-blue-200 p-3 rounded-lg mb-4">
+                <h5 className="text-sm font-semibold text-blue-800 mb-1">
+                  📱 Формат номера телефона:
+                </h5>
+                <p className="text-sm text-blue-700">{loginErrorData.phoneFormat}</p>
+              </div>
+            )}
+
+            {/* Требования к паролю */}
+            {loginErrorData.passwordRequirements && (
+              <div className="bg-orange-100 border border-orange-200 p-3 rounded-lg mb-4">
+                <h5 className="text-sm font-semibold text-orange-800 mb-1">
+                  🔒 Требования к паролю:
+                </h5>
+                <p className="text-sm text-orange-700">{loginErrorData.passwordRequirements}</p>
+              </div>
+            )}
+
+            {/* Доступные действия */}
+            {loginErrorData.availableActions && loginErrorData.availableActions.length > 0 && (
+              <div className="bg-green-100 border border-green-200 p-3 rounded-lg mb-4">
+                <h5 className="text-sm font-semibold text-green-800 mb-2">
+                  💡 Рекомендуемые действия:
+                </h5>
+                <ul className="text-sm text-green-700 space-y-1">
+                  {loginErrorData.availableActions.map((action, index) => (
+                    <li key={index} className="flex items-center">
+                      <span className="mr-2">•</span>
+                      {action}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Контактная информация */}
+            <div className="bg-gray-100 border border-gray-200 p-3 rounded-lg mb-4">
+              <h5 className="text-sm font-semibold text-gray-800 mb-2">
+                📞 Служба поддержки TAJLINE.TJ
+              </h5>
+              <div className="text-sm text-gray-700 space-y-1">
+                <p>Телефон: +992 123 456 789</p>
+                <p>Email: support@tajline.tj</p>
+                <p>Время работы: 9:00 - 18:00 (пн-пт)</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <button 
+                className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+                onClick={() => {
+                  console.log('🚫 Closing loginErrorModal via Понятно button');
+                  setLoginErrorModal(false);
+                  setLoginErrorData(null);
+                }}
+              >
+                Понятно
+              </button>
+              {loginErrorData.errorType === 'user_not_found' && (
+                <button 
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  onClick={() => {
+                    console.log('📝 Registering new user');
+                    setLoginErrorModal(false);
+                    setLoginErrorData(null);
+                    // Переключаемся на вкладку регистрации
+                  }}
+                >
+                  Регистрация
+                </button>
+              )}
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
       {/* Модальное окно статуса пользователя */}
       <Dialog open={userStatusModal} onOpenChange={setUserStatusModal}>
