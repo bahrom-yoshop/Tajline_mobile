@@ -29783,13 +29783,14 @@ function App() {
                   {/* НОВАЯ КНОПКА: Генерация QR кодов */}
                   <Button
                     onClick={() => {
+                      console.log('🔥 Кнопка Генерация QR кодов нажата!');
                       setSelectedWarehouseForQR(selectedWarehouseForManagement);
                       setQrGenerationModal(true);
                     }}
-                    className="bg-orange-600 hover:bg-orange-700"
+                    className="bg-orange-600 hover:bg-orange-700 text-white font-medium"
                   >
                     <QrCode className="mr-2 h-4 w-4" />
-                    Генерация QR кодов
+                    QR коды
                   </Button>
                 </div>
 
