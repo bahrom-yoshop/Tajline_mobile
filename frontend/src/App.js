@@ -2441,6 +2441,140 @@ function App() {
     }
   };
 
+  // НОВАЯ ФУНКЦИЯ: Массовая печать QR кодов
+  const printAllQRCodes = (results) => {
+    try {
+      console.log('🖨️ Начинаем массовую печать QR кодов:', results.length);
+      
+      // Создаем HTML страницу для печати
+      const printWindow = window.open('', '_blank');
+      
+      let htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>QR коды склада ${selectedWarehouseForQR?.name}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              margin: 20px;
+              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 2px solid #333;
+              padding-bottom: 10px;
+            }
+            .qr-grid {
+              display: grid;
+              grid-template-columns: repeat(4, 1fr);
+              gap: 20px;
+              page-break-inside: avoid;
+            }
+            .qr-item {
+              text-align: center;
+              border: 1px solid #ddd;
+              padding: 15px;
+              border-radius: 8px;
+              page-break-inside: avoid;
+            }
+            .qr-designation {
+              font-weight: bold;
+              font-size: 16px;
+              color: #333;
+              margin-bottom: 10px;
+              background-color: #f0f8ff;
+              padding: 5px;
+              border-radius: 4px;
+            }
+            .qr-code {
+              margin: 10px 0;
+            }
+            .qr-details {
+              font-size: 12px;
+              color: #666;
+              margin-top: 8px;
+            }
+            .warehouse-info {
+              background-color: #e8f4fd;
+              padding: 10px;
+              border-radius: 6px;
+              margin-bottom: 10px;
+              font-size: 14px;
+            }
+            @media print {
+              .qr-grid {
+                grid-template-columns: repeat(3, 1fr);
+              }
+              .qr-item {
+                break-inside: avoid;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>QR коды склада: ${selectedWarehouseForQR?.name}</h1>
+            <div class="warehouse-info">
+              <strong>Адрес:</strong> ${selectedWarehouseForQR?.address || 'Не указан'}<br>
+              <strong>Уникальный номер склада:</strong> ${selectedWarehouseForQR?.warehouse_id_number || 'Не указан'}<br>
+              <strong>Всего QR кодов:</strong> ${results.length}<br>
+              <strong>Дата печати:</strong> ${new Date().toLocaleString('ru-RU')}
+            </div>
+          </div>
+          <div class="qr-grid">
+      `;
+
+      // Добавляем каждый QR код с обозначением
+      results.forEach((result, index) => {
+        // Извлекаем блок, полку, ячейку из location (например "Б1-П2-Я3")
+        const locationMatch = result.location.match(/Б(\d+)-П(\d+)-Я(\d+)/);
+        const designation = locationMatch ? `Б${locationMatch[1]}-П${locationMatch[2]}-Я${locationMatch[3]}` : result.location;
+        
+        htmlContent += `
+          <div class="qr-item">
+            <div class="qr-designation">${designation}</div>
+            <div class="qr-code">
+              <img src="${result.qr_image}" alt="QR Code ${result.code}" width="120" height="120">
+            </div>
+            <div class="qr-details">
+              <strong>Код:</strong> ${result.code}<br>
+              <strong>Ячейка:</strong> ${result.readable_name || designation}
+            </div>
+          </div>
+        `;
+      });
+
+      htmlContent += `
+          </div>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+
+      // Ждем загрузки изображений и запускаем печать
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+        
+        // Закрываем окно после печати
+        setTimeout(() => {
+          printWindow.close();
+        }, 1000);
+      }, 2000);
+
+      showAlert(`Подготовлен документ для печати ${results.length} QR кодов`, 'success');
+      
+    } catch (error) {
+      console.error('Error printing all QR codes:', error);
+      showAlert('Ошибка при подготовке печати QR кодов', 'error');
+    }
+  };
+
   const handleSendToPlacement = async (notification) => {
     try {
       // Подтверждение действия
