@@ -12213,6 +12213,7 @@ function App() {
         subsections: [
           { id: 'couriers-tracking-map', label: 'Карта отслеживания' },
           { id: 'couriers-tracking-list', label: 'Список курьеров', adminOnly: true },
+          { id: 'couriers-inactive', label: 'Неактивные курьеры', adminOnly: true },
           { id: 'couriers-history-analytics', label: 'История и аналитика' }
         ]
       },
