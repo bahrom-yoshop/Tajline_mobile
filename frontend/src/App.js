@@ -2166,7 +2166,7 @@ function App() {
           cargo_items: [{ 
             name: notification.destination || 'Наименование груза не указано', 
             weight: '', 
-            price: notification.total_value || notification.declared_value || '' // ИСПРАВЛЕНИЕ: Добавляем цену из уведомления
+            price: notification.price_per_kg || '' // ИСПРАВЛЕНИЕ: Используем price_per_kg вместо total_value
           }],
           payment_method: notification.payment_method || 'cash', // ИСПРАВЛЕНИЕ: Используем способ оплаты из уведомления
           delivery_method: 'pickup',
