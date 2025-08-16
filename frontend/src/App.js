@@ -31674,6 +31674,30 @@ function App() {
         </DialogContent>
       </Dialog>
 
+      {/* Тестовое модальное окно для диагностики */}
+      {console.log('🧪 Rendering testModal:', testModal)}
+      <Dialog open={testModal} onOpenChange={setTestModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>🧪 Тестовое модальное окно</DialogTitle>
+            <DialogDescription>
+              Это простое тестовое модальное окно для проверки функциональности Dialog.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4">
+            <p className="text-green-600 font-semibold">✅ Dialog компонент работает правильно!</p>
+            <p className="text-sm text-gray-600 mt-2">
+              Если вы видите это окно, значит базовая функциональность Dialog работает корректно.
+            </p>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setTestModal(false)}>
+              Закрыть
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Модальное окно ошибок авторизации */}
       {console.log('🎨 Rendering loginErrorModal:', loginErrorModal, 'with data:', loginErrorData)}
       <Dialog 
