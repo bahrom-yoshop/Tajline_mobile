@@ -137,8 +137,8 @@ class UserStatusModalTester:
             )
             return False
     
-    def create_test_blocked_user(self, role="user"):
-        """Создание тестового заблокированного пользователя через регистрацию"""
+    def create_and_test_blocked_user(self, role="user"):
+        """Создание и тестирование заблокированного пользователя"""
         try:
             # Генерируем уникальные данные для тестового пользователя
             unique_id = str(uuid.uuid4())[:8]
@@ -154,163 +154,129 @@ class UserStatusModalTester:
             # Создаем пользователя через регистрацию
             response = self.session.post(f"{BACKEND_URL}/auth/register", json=user_data)
             
-            if response.status_code in [200, 201]:  # Регистрация может возвращать 200 или 201
+            if response.status_code in [200, 201]:
                 created_user = response.json()
                 user_info = created_user.get("user", {})
                 user_id = user_info.get("id")
                 
                 if not user_id:
                     self.log_result(
-                        f"Создание тестового заблокированного пользователя ({role})",
+                        f"Создание и тестирование заблокированного пользователя ({role})",
                         False,
-                        f"Пользователь создан, но ID не найден в ответе: {created_user}"
+                        f"Пользователь создан, но ID не найден в ответе"
                     )
-                    return None
+                    return False
                 
-                # Теперь блокируем пользователя напрямую в базе данных через MongoDB
-                import pymongo
-                from pymongo import MongoClient
+                # Сохраняем пользователя для очистки
+                test_user = {
+                    "id": user_id,
+                    "phone": test_phone,
+                    "password": "test123",
+                    "role": role,
+                    "full_name": user_data["full_name"]
+                }
+                self.test_users.append(test_user)
                 
-                # Подключаемся к MongoDB
-                mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
-                db_name = os.environ.get('DB_NAME', 'test_database')
-                client = MongoClient(mongo_url)
-                db = client[db_name]
-                
-                # Блокируем пользователя
-                result = db.users.update_one(
-                    {"id": user_id},
-                    {"$set": {"is_active": False}}
-                )
-                
-                if result.modified_count > 0:
-                    self.test_users.append({
-                        "id": user_id,
-                        "phone": test_phone,
-                        "password": "test123",
-                        "role": role,
-                        "full_name": user_data["full_name"]
-                    })
-                    
-                    self.log_result(
-                        f"Создание тестового заблокированного пользователя ({role})",
-                        True,
-                        f"Пользователь '{user_data['full_name']}' создан и заблокирован (is_active: false), телефон: {test_phone}"
-                    )
-                    return self.test_users[-1]
-                else:
-                    self.log_result(
-                        f"Создание тестового заблокированного пользователя ({role})",
-                        False,
-                        f"Не удалось заблокировать пользователя в базе данных"
-                    )
-                    return None
-            else:
-                self.log_result(
-                    f"Создание тестового заблокированного пользователя ({role})",
-                    False,
-                    f"Не удалось создать пользователя: HTTP {response.status_code}: {response.text}"
-                )
-                return None
-                
-        except Exception as e:
-            self.log_result(
-                f"Создание тестового заблокированного пользователя ({role})",
-                False,
-                f"Exception: {str(e)}"
-            )
-            return None
-    
-    def test_blocked_user_login(self, blocked_user):
-        """Тест 3: Попытка входа заблокированным пользователем"""
-        try:
-            if not blocked_user:
-                self.log_result(
-                    "Попытка входа заблокированным пользователем",
-                    False,
-                    "Тестовый заблокированный пользователь не создан"
-                )
-                return False
-            
-            login_data = {
-                "phone": blocked_user["phone"],
-                "password": blocked_user["password"]
-            }
-            
-            response = self.session.post(f"{BACKEND_URL}/auth/login", json=login_data)
-            
-            if response.status_code == 403:
-                # Ожидаем HTTP 403 с детальной информацией о статусе
+                # Блокируем пользователя через прямое обращение к MongoDB
                 try:
-                    error_data = response.json()
-                    detail = error_data.get("detail", {})
+                    import pymongo
+                    from pymongo import MongoClient
                     
-                    # Проверяем структуру ответа с информацией о статусе
-                    required_fields = ["status_message", "status_details", "user_role", "user_name", "user_phone", "is_deleted"]
-                    missing_fields = []
+                    mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+                    db_name = os.environ.get('DB_NAME', 'test_database')
+                    client = MongoClient(mongo_url)
+                    db = client[db_name]
                     
-                    for field in required_fields:
-                        if field not in detail:
-                            missing_fields.append(field)
+                    # Блокируем пользователя
+                    result = db.users.update_one(
+                        {"id": user_id},
+                        {"$set": {"is_active": False}}
+                    )
                     
-                    if not missing_fields:
+                    if result.matched_count == 0:
                         self.log_result(
-                            "Попытка входа заблокированным пользователем",
-                            True,
-                            f"🎯 КРИТИЧЕСКИЙ УСПЕХ - HTTP 403 с детальной информацией о статусе! Статус: '{detail.get('status_message', 'N/A')}', Пользователь: '{detail.get('user_name', 'N/A')}', Роль: '{detail.get('user_role', 'N/A')}', Заблокирован: {not detail.get('is_deleted', True)}"
-                        )
-                        return True
-                    else:
-                        self.log_result(
-                            "Попытка входа заблокированным пользователем",
+                            f"Создание и тестирование заблокированного пользователя ({role})",
                             False,
-                            f"HTTP 403 получен, но отсутствуют поля в структуре ответа: {missing_fields}. Полученные данные: {detail}"
+                            f"Пользователь не найден в базе данных для блокировки"
                         )
                         return False
-                        
-                except json.JSONDecodeError:
+                    
+                except Exception as mongo_error:
                     self.log_result(
-                        "Попытка входа заблокированным пользователем",
+                        f"Создание и тестирование заблокированного пользователя ({role})",
                         False,
-                        f"HTTP 403 получен, но ответ не является валидным JSON: {response.text}"
+                        f"Ошибка MongoDB: {str(mongo_error)}"
+                    )
+                    return False
+                
+                # Теперь тестируем вход заблокированным пользователем
+                login_data = {
+                    "phone": test_phone,
+                    "password": "test123"
+                }
+                
+                login_response = self.session.post(f"{BACKEND_URL}/auth/login", json=login_data)
+                
+                if login_response.status_code == 403:
+                    try:
+                        error_data = login_response.json()
+                        detail = error_data.get("detail", {})
+                        
+                        # Проверяем структуру ответа с информацией о статусе
+                        required_fields = ["status_message", "status_details", "user_role", "user_name", "user_phone", "is_deleted"]
+                        missing_fields = []
+                        
+                        for field in required_fields:
+                            if field not in detail:
+                                missing_fields.append(field)
+                        
+                        if not missing_fields:
+                            self.log_result(
+                                f"Создание и тестирование заблокированного пользователя ({role})",
+                                True,
+                                f"🎯 КРИТИЧЕСКИЙ УСПЕХ - HTTP 403 с детальной информацией о статусе! Статус: '{detail.get('status_message', 'N/A')}', Пользователь: '{detail.get('user_name', 'N/A')}', Роль: '{detail.get('user_role', 'N/A')}', Заблокирован: {not detail.get('is_deleted', True)}"
+                            )
+                            return True
+                        else:
+                            self.log_result(
+                                f"Создание и тестирование заблокированного пользователя ({role})",
+                                False,
+                                f"HTTP 403 получен, но отсутствуют поля в структуре ответа: {missing_fields}. Полученные данные: {detail}"
+                            )
+                            return False
+                            
+                    except json.JSONDecodeError:
+                        self.log_result(
+                            f"Создание и тестирование заблокированного пользователя ({role})",
+                            False,
+                            f"HTTP 403 получен, но ответ не является валидным JSON: {login_response.text}"
+                        )
+                        return False
+                else:
+                    self.log_result(
+                        f"Создание и тестирование заблокированного пользователя ({role})",
+                        False,
+                        f"Ожидался HTTP 403, получен HTTP {login_response.status_code}: {login_response.text}"
                     )
                     return False
             else:
                 self.log_result(
-                    "Попытка входа заблокированным пользователем",
+                    f"Создание и тестирование заблокированного пользователя ({role})",
                     False,
-                    f"Ожидался HTTP 403, получен HTTP {response.status_code}: {response.text}"
+                    f"Не удалось создать пользователя: HTTP {response.status_code}: {response.text}"
                 )
                 return False
                 
         except Exception as e:
             self.log_result(
-                "Попытка входа заблокированным пользователем",
+                f"Создание и тестирование заблокированного пользователя ({role})",
                 False,
                 f"Exception: {str(e)}"
             )
             return False
     
-    def test_different_roles_blocked(self):
-        """Тест 4: Тестирование разных ролей заблокированных пользователей"""
-        roles_to_test = ["admin", "warehouse_operator", "courier", "user"]
-        success_count = 0
-        
-        for role in roles_to_test:
-            blocked_user = self.create_test_blocked_user(role)
-            if blocked_user and self.test_blocked_user_login(blocked_user):
-                success_count += 1
-        
-        self.log_result(
-            "Тестирование разных ролей заблокированных пользователей",
-            success_count == len(roles_to_test),
-            f"Успешно протестировано {success_count}/{len(roles_to_test)} ролей: {roles_to_test}"
-        )
-        
-        return success_count == len(roles_to_test)
-    
-    def create_test_deleted_user(self):
-        """Создание тестового удаленного пользователя"""
+    def create_and_test_deleted_user(self):
+        """Создание и тестирование удаленного пользователя"""
         try:
             # Генерируем уникальные данные для тестового пользователя
             unique_id = str(uuid.uuid4())[:8]
@@ -326,139 +292,121 @@ class UserStatusModalTester:
             # Создаем пользователя через регистрацию
             response = self.session.post(f"{BACKEND_URL}/auth/register", json=user_data)
             
-            if response.status_code in [200, 201]:  # Регистрация может возвращать 200 или 201
+            if response.status_code in [200, 201]:
                 created_user = response.json()
                 user_info = created_user.get("user", {})
                 user_id = user_info.get("id")
                 
                 if not user_id:
                     self.log_result(
-                        "Создание тестового удаленного пользователя",
+                        "Создание и тестирование удаленного пользователя",
                         False,
-                        f"Пользователь создан, но ID не найден в ответе: {created_user}"
+                        f"Пользователь создан, но ID не найден в ответе"
                     )
-                    return None
+                    return False
+                
+                # Сохраняем пользователя для очистки
+                test_user = {
+                    "id": user_id,
+                    "phone": test_phone,
+                    "password": "test123",
+                    "role": "user",
+                    "full_name": user_data["full_name"],
+                    "is_deleted": True
+                }
+                self.test_users.append(test_user)
                 
                 # Помечаем пользователя как удаленного через MongoDB
-                import pymongo
-                from pymongo import MongoClient
-                
-                # Подключаемся к MongoDB
-                mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
-                db_name = os.environ.get('DB_NAME', 'test_database')
-                client = MongoClient(mongo_url)
-                db = client[db_name]
-                
-                # Помечаем пользователя как удаленного
-                result = db.users.update_one(
-                    {"id": user_id},
-                    {"$set": {
-                        "is_active": False,
-                        "deleted_at": datetime.now().isoformat()
-                    }}
-                )
-                
-                if result.modified_count > 0:
-                    deleted_user = {
-                        "id": user_id,
-                        "phone": test_phone,
-                        "password": "test123",
-                        "role": "user",
-                        "full_name": user_data["full_name"],
-                        "is_deleted": True
-                    }
-                    self.test_users.append(deleted_user)
-                    
-                    self.log_result(
-                        "Создание тестового удаленного пользователя",
-                        True,
-                        f"Пользователь '{user_data['full_name']}' создан и удален, телефон: {test_phone}"
-                    )
-                    return deleted_user
-                else:
-                    self.log_result(
-                        "Создание тестового удаленного пользователя",
-                        False,
-                        f"Не удалось пометить пользователя как удаленного в базе данных"
-                    )
-                    return None
-            else:
-                self.log_result(
-                    "Создание тестового удаленного пользователя",
-                    False,
-                    f"Не удалось создать пользователя: HTTP {response.status_code}: {response.text}"
-                )
-                return None
-                
-        except Exception as e:
-            self.log_result(
-                "Создание тестового удаленного пользователя",
-                False,
-                f"Exception: {str(e)}"
-            )
-            return None
-    
-    def test_deleted_user_login(self):
-        """Тест 5: Попытка входа удаленным пользователем"""
-        deleted_user = self.create_test_deleted_user()
-        
-        if not deleted_user:
-            self.log_result(
-                "Попытка входа удаленным пользователем",
-                False,
-                "Тестовый удаленный пользователь не создан"
-            )
-            return False
-        
-        try:
-            login_data = {
-                "phone": deleted_user["phone"],
-                "password": deleted_user["password"]
-            }
-            
-            response = self.session.post(f"{BACKEND_URL}/auth/login", json=login_data)
-            
-            if response.status_code == 403:
                 try:
-                    error_data = response.json()
-                    detail = error_data.get("detail", {})
+                    import pymongo
+                    from pymongo import MongoClient
                     
-                    # Проверяем что is_deleted = true для удаленного пользователя
-                    is_deleted = detail.get("is_deleted", False)
+                    mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+                    db_name = os.environ.get('DB_NAME', 'test_database')
+                    client = MongoClient(mongo_url)
+                    db = client[db_name]
                     
-                    if is_deleted:
+                    # Помечаем пользователя как удаленного
+                    result = db.users.update_one(
+                        {"id": user_id},
+                        {"$set": {
+                            "is_active": False,
+                            "deleted_at": datetime.now().isoformat()
+                        }}
+                    )
+                    
+                    if result.matched_count == 0:
                         self.log_result(
-                            "Попытка входа удаленным пользователем",
-                            True,
-                            f"🎯 КРИТИЧЕСКИЙ УСПЕХ - HTTP 403 для удаленного пользователя! Статус: '{detail.get('status_message', 'N/A')}', is_deleted: {is_deleted}"
-                        )
-                        return True
-                    else:
-                        self.log_result(
-                            "Попытка входа удаленным пользователем",
+                            "Создание и тестирование удаленного пользователя",
                             False,
-                            f"HTTP 403 получен, но is_deleted = {is_deleted} (ожидался true). Данные: {detail}"
+                            f"Пользователь не найден в базе данных для удаления"
                         )
                         return False
-                        
-                except json.JSONDecodeError:
+                    
+                except Exception as mongo_error:
                     self.log_result(
-                        "Попытка входа удаленным пользователем",
+                        "Создание и тестирование удаленного пользователя",
                         False,
-                        f"HTTP 403 получен, но ответ не является валидным JSON: {response.text}"
+                        f"Ошибка MongoDB: {str(mongo_error)}"
+                    )
+                    return False
+                
+                # Теперь тестируем вход удаленным пользователем
+                login_data = {
+                    "phone": test_phone,
+                    "password": "test123"
+                }
+                
+                login_response = self.session.post(f"{BACKEND_URL}/auth/login", json=login_data)
+                
+                if login_response.status_code == 403:
+                    try:
+                        error_data = login_response.json()
+                        detail = error_data.get("detail", {})
+                        
+                        # Проверяем что is_deleted = true для удаленного пользователя
+                        is_deleted = detail.get("is_deleted", False)
+                        
+                        if is_deleted:
+                            self.log_result(
+                                "Создание и тестирование удаленного пользователя",
+                                True,
+                                f"🎯 КРИТИЧЕСКИЙ УСПЕХ - HTTP 403 для удаленного пользователя! Статус: '{detail.get('status_message', 'N/A')}', is_deleted: {is_deleted}"
+                            )
+                            return True
+                        else:
+                            self.log_result(
+                                "Создание и тестирование удаленного пользователя",
+                                False,
+                                f"HTTP 403 получен, но is_deleted = {is_deleted} (ожидался true). Данные: {detail}"
+                            )
+                            return False
+                            
+                    except json.JSONDecodeError:
+                        self.log_result(
+                            "Создание и тестирование удаленного пользователя",
+                            False,
+                            f"HTTP 403 получен, но ответ не является валидным JSON: {login_response.text}"
+                        )
+                        return False
+                else:
+                    self.log_result(
+                        "Создание и тестирование удаленного пользователя",
+                        False,
+                        f"Ожидался HTTP 403, получен HTTP {login_response.status_code}: {login_response.text}"
                     )
                     return False
             else:
                 self.log_result(
-                    "Попытка входа удаленным пользователем",
+                    "Создание и тестирование удаленного пользователя",
                     False,
-                    f"Ожидался HTTP 403, получен HTTP {response.status_code}: {response.text}"
+                    f"Не удалось создать пользователя: HTTP {response.status_code}: {response.text}"
                 )
                 return False
                 
         except Exception as e:
             self.log_result(
-                "Попытка входа удаленным пользователем",
+                "Создание и тестирование удаленного пользователя",
                 False,
                 f"Exception: {str(e)}"
             )
@@ -506,16 +454,24 @@ class UserStatusModalTester:
         # Тест 2: Авторизация активного пользователя
         self.test_active_user_login()
         
-        # Тест 3: Создание и тестирование заблокированного пользователя
-        blocked_user = self.create_test_blocked_user("user")
-        if blocked_user:
-            self.test_blocked_user_login(blocked_user)
+        # Тест 3: Создание и тестирование заблокированного пользователя (user)
+        self.create_and_test_blocked_user("user")
         
-        # Тест 4: Тестирование разных ролей
-        self.test_different_roles_blocked()
+        # Тест 4: Тестирование разных ролей заблокированных пользователей
+        roles_to_test = ["admin", "warehouse_operator", "courier"]
+        success_count = 0
+        for role in roles_to_test:
+            if self.create_and_test_blocked_user(role):
+                success_count += 1
         
-        # Тест 5: Тестирование удаленного пользователя
-        self.test_deleted_user_login()
+        self.log_result(
+            "Тестирование разных ролей заблокированных пользователей",
+            success_count == len(roles_to_test),
+            f"Успешно протестировано {success_count}/{len(roles_to_test)} ролей: {roles_to_test}"
+        )
+        
+        # Тест 5: Создание и тестирование удаленного пользователя
+        self.create_and_test_deleted_user()
         
         # Очистка тестовых данных
         self.cleanup_test_users()
