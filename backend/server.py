@@ -16365,9 +16365,16 @@ async def create_courier_pickup_request(
             "destination": request_data.get("destination", ""),
             "route": request_data.get("route", ""),  # Сохраняем для совместимости
             
+            # Информация о грузе (добавлено для модального окна)
+            "cargo_name": request_data.get("cargo_name", ""),
+            "weight": float(request_data.get("weight", 0)) if request_data.get("weight") else None,
+            "total_value": float(request_data.get("total_value", 0)) if request_data.get("total_value") else None,
+            "declared_value": float(request_data.get("declared_value", 0)) if request_data.get("declared_value") else None,
+            
             # Курьерская служба
             "courier_fee": float(request_data.get("courier_fee", 0)),
-            "payment_status": request_data.get("payment_method", "not_paid"),
+            "payment_method": request_data.get("payment_method", "not_paid"),  # Исправлено: сохраняем как payment_method
+            "payment_status": request_data.get("payment_method", "not_paid"),  # Для совместимости
             
             # Системная информация
             "created_by": current_user.id,
