@@ -3332,6 +3332,7 @@ function App() {
   const [warehouseNumbersUpdated, setWarehouseNumbersUpdated] = useState(false); // Флаг обновления номеров складов
   const [qrGenerationModal, setQrGenerationModal] = useState(false); // Модальное окно генерации QR кодов
   const [selectedWarehouseForQR, setSelectedWarehouseForQR] = useState(null); // Выбранный склад для генерации QR
+  const [qrCellCode, setQrCellCode] = useState({ block: '', shelf: '', cell: '' }); // Данные ячейки для QR
   
   // ИСПРАВЛЕНИЕ: Глобальный обработчик ошибок removeChild
   useEffect(() => {
