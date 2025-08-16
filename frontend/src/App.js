@@ -3396,6 +3396,13 @@ function App() {
   const [qrGenerationModal, setQrGenerationModal] = useState(false); // Модальное окно генерации QR кодов
   const [selectedWarehouseForQR, setSelectedWarehouseForQR] = useState(null); // Выбранный склад для генерации QR
   const [warehouseSelectionModal, setWarehouseSelectionModal] = useState(false); // Модальное окно выбора склада для QR
+  const [massQRGeneration, setMassQRGeneration] = useState({
+    isGenerating: false,
+    progress: 0,
+    total: 0,
+    current: 0,
+    results: []
+  }); // Состояние массовой генерации QR кодов
   
   // ИСПРАВЛЕНИЕ: Глобальный обработчик ошибок removeChild
   useEffect(() => {
