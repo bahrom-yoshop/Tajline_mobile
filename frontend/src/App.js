@@ -27,7 +27,7 @@ import {
   DollarSign, FileText, Grid3X3, Package2, Home, CreditCard, Printer, Zap, MessageCircle,
   QrCode, Camera, Download, Calculator, ShoppingCart, RefreshCw, Eye, XCircle, Save, Filter,
   ArrowUp, Ban, Settings, Copy, Minus, Palette, UserCheck, BarChart, Maximize, ArrowLeft, Edit3, BarChart3,
-  Scan, Target, MousePointer, Phone, MessageSquare, Send, ExternalLink, UserX, Lock
+  Scan, Target, MousePointer, Phone, MessageSquare, Send, ExternalLink, UserX, Lock, Grid
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
