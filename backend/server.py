@@ -13629,6 +13629,40 @@ async def get_all_couriers_locations(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching courier locations: {str(e)}")
 
+# НОВАЯ ФУНКЦИЯ: Получить список неактивных курьеров
+@app.get("/api/admin/couriers/inactive")
+async def get_inactive_couriers(current_user: User = Depends(get_current_user)):
+    if current_user.role not in ["admin"]:
+        raise HTTPException(status_code=403, detail="Access denied: Only admins")
+    
+    try:
+        # Получаем неактивных курьеров
+        inactive_couriers = list(db.couriers.find({"is_active": False}, {"_id": 0}))
+        
+        # Добавляем информацию о пользователе для каждого курьера
+        for courier in inactive_couriers:
+            user = db.users.find_one({"id": courier.get("user_id")}, {"_id": 0})
+            if user:
+                courier["user_info"] = {
+                    "full_name": user.get("full_name", ""),
+                    "phone": user.get("phone", ""),
+                    "is_active": user.get("is_active", False)
+                }
+            
+            # Добавляем информацию о складе
+            warehouse = db.warehouses.find_one({"id": courier.get("assigned_warehouse_id")}, {"_id": 0})
+            if warehouse:
+                courier["assigned_warehouse_name"] = warehouse.get("name", "Неизвестный склад")
+        
+        return {
+            "inactive_couriers": inactive_couriers,
+            "total_count": len(inactive_couriers)
+        }
+        
+    except Exception as e:
+        print(f"Error getting inactive couriers: {str(e)}")
+        raise HTTPException(status_code=500, detail="Ошибка при получении неактивных курьеров")
+
 @app.get("/api/admin/couriers/{courier_id}")
 async def get_courier_profile(
     courier_id: str,
