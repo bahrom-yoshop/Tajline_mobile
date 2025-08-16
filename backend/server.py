@@ -1853,11 +1853,44 @@ async def register(user_data: UserCreate):
 @app.post("/api/auth/login")
 async def login(user_data: UserLogin):
     user = db.users.find_one({"phone": user_data.phone})
+    
+    # Проверяем существование пользователя и правильность пароля
     if not user or not verify_password(user_data.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid phone or password")
     
+    # Детальная проверка статуса пользователя
     if not user["is_active"]:
-        raise HTTPException(status_code=401, detail="Account is disabled")
+        # Получаем информацию о роли для более точного сообщения
+        role_names = {
+            "admin": "Администратор",
+            "operator": "Оператор склада", 
+            "courier": "Курьер",
+            "user": "Пользователь"
+        }
+        role_display = role_names.get(user["role"], user["role"])
+        
+        # Проверяем, был ли пользователь удален (soft delete)
+        deletion_info = user.get("deleted_at") or user.get("deactivated_at")
+        if deletion_info:
+            status_message = f"Аккаунт {role_display} '{user['full_name']}' был удален из системы"
+            status_details = f"Дата удаления: {deletion_info}"
+        else:
+            status_message = f"Аккаунт {role_display} '{user['full_name']}' заблокирован администратором"
+            status_details = "Обратитесь к администратору для разблокировки"
+        
+        # Возвращаем специальную ошибку с деталями статуса
+        raise HTTPException(
+            status_code=403, 
+            detail={
+                "error_type": "account_disabled",
+                "status_message": status_message,
+                "status_details": status_details,
+                "user_role": role_display,
+                "user_name": user["full_name"],
+                "user_phone": user["phone"],
+                "is_deleted": bool(deletion_info)
+            }
+        )
     
     # Генерируем user_number если его нет
     user_number = user.get("user_number")
