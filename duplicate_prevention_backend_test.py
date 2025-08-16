@@ -629,7 +629,11 @@ class DuplicatePreventionTester:
                 return False
             
             data = response.json()
-            cargos = data.get("items", [])
+            # API возвращает прямой список, а не объект с items
+            if isinstance(data, list):
+                cargos = data
+            else:
+                cargos = data.get("items", [])
             
             if len(cargos) < 2:
                 self.log_result(
