@@ -313,11 +313,6 @@ class UserStatusModalTester:
     def create_test_deleted_user(self):
         """Создание тестового удаленного пользователя"""
         try:
-            if not self.admin_token:
-                return None
-                
-            headers = {"Authorization": f"Bearer {self.admin_token}"}
-            
             # Генерируем уникальные данные для тестового пользователя
             unique_id = str(uuid.uuid4())[:8]
             test_phone = f"+7998{unique_id[:7]}"
@@ -329,17 +324,42 @@ class UserStatusModalTester:
                 "role": "user"
             }
             
-            # Создаем пользователя
-            response = self.session.post(f"{BACKEND_URL}/admin/users", json=user_data, headers=headers)
+            # Создаем пользователя через регистрацию
+            response = self.session.post(f"{BACKEND_URL}/auth/register", json=user_data)
             
             if response.status_code == 201:
                 created_user = response.json()
-                user_id = created_user.get("id")
+                user_info = created_user.get("user", {})
+                user_id = user_info.get("id")
                 
-                # Удаляем пользователя (помечаем как удаленного)
-                delete_response = self.session.delete(f"{BACKEND_URL}/admin/users/{user_id}", headers=headers)
+                if not user_id:
+                    self.log_result(
+                        "Создание тестового удаленного пользователя",
+                        False,
+                        f"Пользователь создан, но ID не найден в ответе: {created_user}"
+                    )
+                    return None
                 
-                if delete_response.status_code == 200:
+                # Помечаем пользователя как удаленного через MongoDB
+                import pymongo
+                from pymongo import MongoClient
+                
+                # Подключаемся к MongoDB
+                mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+                db_name = os.environ.get('DB_NAME', 'test_database')
+                client = MongoClient(mongo_url)
+                db = client[db_name]
+                
+                # Помечаем пользователя как удаленного
+                result = db.users.update_one(
+                    {"id": user_id},
+                    {"$set": {
+                        "is_active": False,
+                        "deleted_at": datetime.now().isoformat()
+                    }}
+                )
+                
+                if result.modified_count > 0:
                     deleted_user = {
                         "id": user_id,
                         "phone": test_phone,
@@ -360,7 +380,7 @@ class UserStatusModalTester:
                     self.log_result(
                         "Создание тестового удаленного пользователя",
                         False,
-                        f"Не удалось удалить пользователя: HTTP {delete_response.status_code}"
+                        f"Не удалось пометить пользователя как удаленного в базе данных"
                     )
                     return None
             else:
