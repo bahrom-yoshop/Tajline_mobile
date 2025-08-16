@@ -16521,6 +16521,16 @@ function App() {
                                               <Button
                                                 variant="outline"
                                                 size="sm"
+                                                onClick={() => handleViewNotification(notification)}
+                                                className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                                              >
+                                                <Eye className="mr-1 h-3 w-3" />
+                                                Просмотр
+                                              </Button>
+                                              
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
                                                 onClick={() => handleSendToPlacement(notification)}
                                                 className="text-green-600 border-green-300 hover:bg-green-50"
                                               >
