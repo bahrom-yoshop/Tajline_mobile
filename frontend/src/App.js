@@ -2071,42 +2071,52 @@ function App() {
         const cargoInfo = modalData.cargo_info || {};
         const paymentInfo = modalData.payment_info || {};
         
-        // Обработка данных о грузах
+        // Обработка данных о грузах - правильно извлекаем цену от курьера
         let processedCargoItems = [];
         if (cargoInfo.cargo_items && cargoInfo.cargo_items.length > 0) {
           processedCargoItems = cargoInfo.cargo_items.map((item, index) => ({
             name: item.name || `Груз ${index + 1}`,
             weight: item.weight ? String(item.weight) : '',
-            price: item.price || item.total_price || item.value || ''
+            price: item.price || item.total_price || item.value || item.declared_value || ''
           }));
-        } else if (cargoInfo.cargo_name) {
-          const cargoNames = cargoInfo.cargo_name.split(',').map(name => name.trim()).filter(name => name);
-          if (cargoNames.length > 1) {
-            processedCargoItems = cargoNames.map((name, index) => ({
-              name: name,
-              weight: index === 0 && cargoInfo.weight ? String(cargoInfo.weight) : '',
-              price: index === 0 && (cargoInfo.total_value || cargoInfo.declared_value) ? String(cargoInfo.total_value || cargoInfo.declared_value) : ''
-            }));
-          } else {
-            processedCargoItems = [{
-              name: cargoInfo.cargo_name,
-              weight: cargoInfo.weight ? String(cargoInfo.weight) : '',
-              price: cargoInfo.total_value ? String(cargoInfo.total_value) : cargoInfo.declared_value ? String(cargoInfo.declared_value) : ''
-            }];
-          }
-        } else if (cargoInfo.destination || notification.destination) {
-          processedCargoItems = [{
-            name: cargoInfo.destination || notification.destination || 'Наименование груза не указано',
-            weight: cargoInfo.weight ? String(cargoInfo.weight) : '',
-            price: cargoInfo.total_value ? String(cargoInfo.total_value) : cargoInfo.declared_value ? String(cargoInfo.declared_value) : ''
-          }];
+          console.log('✅ Используем cargo_items из backend:', processedCargoItems);
         } else {
+          // Создаем один элемент груза из доступных данных
+          const cargoName = cargoInfo.cargo_name || cargoInfo.destination || notification.destination || 'Наименование груза не указано';
+          const cargoWeight = cargoInfo.weight ? String(cargoInfo.weight) : '';
+          // ИСПРАВЛЕНИЕ: Правильно извлекаем цену, которую заполнил курьер
+          const cargoPrice = cargoInfo.total_value || cargoInfo.declared_value || '';
+          
           processedCargoItems = [{
-            name: 'Наименование груза не указано',
-            weight: '',
-            price: ''
+            name: cargoName,
+            weight: cargoWeight,
+            price: cargoPrice ? String(cargoPrice) : ''
           }];
+          
+          console.log('✅ Создан груз из данных курьера:', {
+            name: cargoName,
+            weight: cargoWeight, 
+            price: cargoPrice,
+            source: 'cargoInfo.total_value или cargoInfo.declared_value'
+          });
         }
+        
+        // ИСПРАВЛЕНИЕ: Правильно извлекаем способ оплаты от курьера
+        const courierPaymentMethod = paymentInfo.payment_method || notification.payment_method || 'cash';
+        const courierPaymentStatus = paymentInfo.payment_status || notification.payment_status || 'not_paid';
+        
+        console.log('💰 Данные об оплате от курьера:', {
+          payment_method: courierPaymentMethod,
+          payment_status: courierPaymentStatus,
+          courier_fee: paymentInfo.courier_fee
+        });
+        
+        console.log('📅 Данные о заборе от курьера:', {
+          pickup_date: senderData.pickup_date,
+          pickup_time_from: senderData.pickup_time_from,
+          pickup_time_to: senderData.pickup_time_to,
+          pickup_address: senderData.pickup_address
+        });
         
         setCargoAcceptanceForm({
           sender_full_name: senderData.sender_full_name || notification.sender_full_name || '',
@@ -2116,9 +2126,9 @@ function App() {
           recipient_phone: recipientData.recipient_phone || '',
           recipient_address: recipientData.recipient_address || '',
           cargo_items: processedCargoItems,
-          payment_method: paymentInfo.payment_method || notification.payment_method || 'cash',
+          payment_method: courierPaymentMethod, // ИСПРАВЛЕНИЕ: Используем способ оплаты от курьера
           delivery_method: recipientData.delivery_method || 'pickup',
-          payment_status: paymentInfo.payment_status || 'not_paid',
+          payment_status: courierPaymentStatus, // ИСПРАВЛЕНИЕ: Используем статус оплаты от курьера
           amount_paid: '',
           payment_notes: ''
         });
@@ -2131,12 +2141,20 @@ function App() {
           recipient_data: recipientData,
           cargo_info: cargoInfo,
           payment_info: paymentInfo,
-          isViewMode: true // Флаг для указания режима просмотра
+          isViewMode: true, // Флаг для указания режима просмотра
+          // ИСПРАВЛЕНИЕ: Добавляем данные о заборе для отображения
+          pickup_date: senderData.pickup_date,
+          pickup_time_from: senderData.pickup_time_from, 
+          pickup_time_to: senderData.pickup_time_to,
+          courier_payment_method: courierPaymentMethod,
+          courier_payment_status: courierPaymentStatus
         };
         
         setCurrentCargoNotification(enrichedNotification);
       } else {
         // Используем данные из уведомления напрямую
+        console.log('📋 Используем данные напрямую из уведомления:', notification);
+        
         setCargoAcceptanceForm({
           sender_full_name: notification.sender_full_name || '',
           sender_phone: notification.sender_phone || '',
@@ -2147,18 +2165,20 @@ function App() {
           cargo_items: [{ 
             name: notification.destination || 'Наименование груза не указано', 
             weight: '', 
-            price: '' 
+            price: notification.total_value || notification.declared_value || '' // ИСПРАВЛЕНИЕ: Добавляем цену из уведомления
           }],
-          payment_method: notification.payment_method || 'cash',
+          payment_method: notification.payment_method || 'cash', // ИСПРАВЛЕНИЕ: Используем способ оплаты из уведомления
           delivery_method: 'pickup',
-          payment_status: notification.payment_status || 'not_paid',
+          payment_status: notification.payment_status || 'not_paid', // ИСПРАВЛЕНИЕ: Используем статус оплаты из уведомления
           amount_paid: '',
           payment_notes: ''
         });
         
         setCurrentCargoNotification({
           ...notification,
-          isViewMode: true // Флаг для указания режима просмотра
+          isViewMode: true, // Флаг для указания режима просмотра
+          courier_payment_method: notification.payment_method,
+          courier_payment_status: notification.payment_status
         });
       }
       
