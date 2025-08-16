@@ -33272,20 +33272,36 @@ function App() {
                     Сгенерированный QR код
                   </h5>
                   <div className="text-center">
+                    {/* Назначение ячейки */}
+                    <div className="bg-blue-100 text-blue-800 font-bold text-lg p-3 rounded-lg mb-4">
+                      Б{qrCellCode.block}-П{qrCellCode.shelf}-Я{qrCellCode.cell}
+                    </div>
+                    
                     <img 
                       src={generatedCellQR} 
                       alt="Generated QR Code" 
                       className="mx-auto mb-3 border border-gray-200 rounded"
                       style={{ width: '200px', height: '200px' }}
                     />
-                    <Button 
-                      onClick={() => downloadQRCode(generatedCellQR, `QR-${selectedWarehouseForQR?.name}-${qrCellCode.block}-${qrCellCode.shelf}-${qrCellCode.cell}`)}
-                      variant="outline"
-                      className="text-blue-600 border-blue-300 hover:bg-blue-50"
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      Скачать QR код
-                    </Button>
+                    
+                    <div className="flex justify-center space-x-3">
+                      <Button 
+                        onClick={() => downloadQRCode(generatedCellQR, `QR-${selectedWarehouseForQR?.name}-${qrCellCode.block}-${qrCellCode.shelf}-${qrCellCode.cell}`)}
+                        variant="outline"
+                        className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Скачать QR код
+                      </Button>
+                      
+                      <Button 
+                        onClick={() => printSingleQRCode()}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Printer className="mr-2 h-4 w-4" />
+                        Печать QR кода
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
