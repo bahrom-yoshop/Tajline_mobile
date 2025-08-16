@@ -35,7 +35,14 @@ from datetime import datetime
 import uuid
 
 # Получаем URL backend из переменных окружения
-BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:8001')
+with open('/app/frontend/.env', 'r') as f:
+    for line in f:
+        if line.startswith('REACT_APP_BACKEND_URL='):
+            BACKEND_URL = line.split('=', 1)[1].strip()
+            break
+    else:
+        BACKEND_URL = 'http://localhost:8001'
+
 if not BACKEND_URL.endswith('/api'):
     BACKEND_URL = f"{BACKEND_URL}/api"
 
