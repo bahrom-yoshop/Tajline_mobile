@@ -20656,6 +20656,15 @@ function App() {
                               <Plus className="mr-2 h-4 w-4" />
                               Создать склад
                             </Button>
+                            
+                            {/* НОВАЯ КНОПКА: Генерация QR кодов для всех складов */}
+                            <Button 
+                              onClick={() => setWarehouseSelectionModal(true)}
+                              className="bg-orange-600 hover:bg-orange-700"
+                            >
+                              <QrCode className="mr-2 h-4 w-4" />
+                              Генерация QR кодов
+                            </Button>
                           </div>
                         </CardTitle>
                       </CardHeader>
