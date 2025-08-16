@@ -5913,6 +5913,14 @@ function App() {
     }
   }, [showInactiveCouriers, user]);
 
+  // НОВЫЙ USEEFFECT: Обновление номеров складов при загрузке приложения для админов
+  useEffect(() => {
+    if (user?.role === 'admin' && !warehouseNumbersUpdated) {
+      ensureWarehouseNumbers();
+      setWarehouseNumbersUpdated(true);
+    }
+  }, [user?.role]);
+
   // НОВЫЙ USEEFFECT: Очистка QR сканеров при переключении вкладок/секций
   useEffect(() => {
     console.log(`🔄 Переключение на секцию: ${activeSection}, вкладка: ${activeTab}`);
