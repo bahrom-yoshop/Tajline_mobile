@@ -5202,7 +5202,8 @@ function App() {
             warehouse_id: selectedWarehouseForManagement.id,
             block: cell.block,
             shelf: cell.shelf,
-            cell: cell.cell
+            cell: cell.cell,
+            format: 'id' // ИСПРАВЛЕНИЕ: Используем новый ID формат с уникальными номерами складов
           });
           
           if (response && response.success) {
