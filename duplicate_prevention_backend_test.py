@@ -37,7 +37,7 @@ from datetime import datetime
 from typing import List, Dict, Any
 
 # Получаем URL backend из переменной окружения
-BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://550bba2e-5014-4d23-b2e8-7c38c4ea5482.preview.emergentagent.com')
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cargo-tracker-28.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 class DuplicatePreventionTester:

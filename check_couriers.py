@@ -3,7 +3,7 @@ import requests
 import json
 
 # Configuration
-BACKEND_URL = "https://550bba2e-5014-4d23-b2e8-7c38c4ea5482.preview.emergentagent.com/api"
+BACKEND_URL = "https://cargo-tracker-28.preview.emergentagent.com/api"
 ADMIN_CREDENTIALS = {
     "phone": "+79999888777",
     "password": "admin123"
