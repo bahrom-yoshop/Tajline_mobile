@@ -1852,11 +1852,48 @@ async def register(user_data: UserCreate):
 
 @app.post("/api/auth/login")
 async def login(user_data: UserLogin):
+    # Сначала проверяем существование пользователя
     user = db.users.find_one({"phone": user_data.phone})
     
-    # Проверяем существование пользователя и правильность пароля
-    if not user or not verify_password(user_data.password, user["password_hash"]):
-        raise HTTPException(status_code=401, detail="Invalid phone or password")
+    # Детальная проверка ошибок авторизации
+    if not user:
+        # Пользователь с таким номером не найден
+        raise HTTPException(
+            status_code=401, 
+            detail={
+                "error_type": "user_not_found",
+                "message": "Пользователь с указанным номером телефона не найден",
+                "details": "Проверьте правильность номера телефона или зарегистрируйтесь в системе",
+                "phone_format": "Формат: +992XXXXXXXXX или +7XXXXXXXXXX",
+                "available_actions": ["Проверить номер телефона", "Зарегистрироваться", "Обратиться в поддержку"]
+            }
+        )
+    
+    # Проверяем правильность пароля
+    if not verify_password(user_data.password, user["password_hash"]):
+        # Получаем информацию о роли для более точного сообщения
+        role_names = {
+            "admin": "Администратор",
+            "operator": "Оператор склада", 
+            "courier": "Курьер",
+            "user": "Пользователь"
+        }
+        role_display = role_names.get(user["role"], user["role"])
+        
+        # Неправильный пароль для существующего пользователя
+        raise HTTPException(
+            status_code=401, 
+            detail={
+                "error_type": "wrong_password",
+                "message": f"Неправильный пароль для {role_display} {user['full_name']}",
+                "details": "Проверьте правильность пароля и повторите попытку",
+                "user_role": role_display,
+                "user_name": user["full_name"],
+                "user_phone": user["phone"],
+                "password_requirements": "Пароль должен содержать минимум 6 символов",
+                "available_actions": ["Проверить пароль", "Восстановить пароль", "Обратиться в поддержку"]
+            }
+        )
     
     # Детальная проверка статуса пользователя
     if not user["is_active"]:
