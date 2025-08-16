@@ -2226,7 +2226,7 @@ function App() {
         cargo_items: [{
           name: cargoItem.cargo_name || cargoItem.destination || 'Груз',
           weight: cargoItem.weight ? String(cargoItem.weight) : '',
-          price: cargoItem.price_per_kg || cargoItem.declared_value || ''
+          price: cargoItem.price_per_kg ? String(cargoItem.price_per_kg) : ''  // ИСПРАВЛЕНИЕ: Только price_per_kg, без declared_value
         }],
         payment_method: cargoItem.payment_method || 'cash',
         delivery_method: cargoItem.delivery_method || 'pickup',
