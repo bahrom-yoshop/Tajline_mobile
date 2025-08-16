@@ -172,68 +172,31 @@ class TransportForcedDeletionTester:
             )
             return None, None
     
-    def find_existing_cargo_and_assign_to_transport(self, transport_id: str):
-        """Найти существующий груз и назначить его на транспорт"""
+    def find_transport_with_cargo(self, transports):
+        """Найти транспорт с грузом из существующих"""
         try:
-            # Получаем список доступных грузов
-            response = self.session.get(f"{BACKEND_URL}/cargo/all")
-            
-            if response.status_code == 200:
-                data = response.json()
-                cargos = data if isinstance(data, list) else data.get('items', [])
-                
-                # Ищем груз, который можно назначить на транспорт
-                suitable_cargo = None
-                for cargo in cargos:
-                    if cargo.get('status') in ['accepted', 'placed_in_warehouse', 'in_warehouse'] and not cargo.get('transport_id'):
-                        suitable_cargo = cargo
-                        break
-                
-                if suitable_cargo:
-                    cargo_id = suitable_cargo.get('id')
-                    cargo_number = suitable_cargo.get('cargo_number')
-                    
-                    # Назначаем груз на транспорт
-                    assignment_data = {
-                        "cargo_numbers": [cargo_number]
-                    }
-                    
-                    assign_response = self.session.post(f"{BACKEND_URL}/transport/{transport_id}/place-cargo", json=assignment_data)
-                    
-                    if assign_response.status_code == 200:
-                        self.log_result(
-                            "Поиск груза и назначение на транспорт",
-                            True,
-                            f"Найден груз {cargo_number} (ID: {cargo_id}) и назначен на транспорт {transport_id}"
-                        )
-                        return cargo_id, cargo_number
-                    else:
-                        self.log_result(
-                            "Поиск груза и назначение на транспорт",
-                            False,
-                            f"Груз найден, но не удалось назначить на транспорт. HTTP {assign_response.status_code}: {assign_response.text}"
-                        )
-                        return None, None
-                else:
+            for transport in transports:
+                cargo_list = transport.get('cargo_list', [])
+                if cargo_list and len(cargo_list) > 0:
                     self.log_result(
-                        "Поиск груза и назначение на транспорт",
-                        False,
-                        f"Не найдено подходящих грузов для назначения на транспорт. Всего грузов: {len(cargos)}"
+                        "Поиск транспорта с грузом",
+                        True,
+                        f"Найден транспорт {transport.get('id')} с {len(cargo_list)} грузами. Номер: {transport.get('transport_number')}"
                     )
-                    return None, None
-            else:
-                self.log_result(
-                    "Поиск груза и назначение на транспорт",
-                    False,
-                    f"Не удалось получить список грузов. HTTP {response.status_code}: {response.text}"
-                )
-                return None, None
-                
+                    return transport.get('id'), cargo_list[0] if cargo_list else None
+            
+            self.log_result(
+                "Поиск транспорта с грузом",
+                False,
+                f"Среди {len(transports)} транспортов не найдено ни одного с грузом"
+            )
+            return None, None
+            
         except Exception as e:
             self.log_result(
-                "Поиск груза и назначение на транспорт",
+                "Поиск транспорта с грузом",
                 False,
-                f"Ошибка запроса: {str(e)}"
+                f"Ошибка поиска: {str(e)}"
             )
             return None, None
     
