@@ -23577,7 +23577,10 @@ function App() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                   {/* Список складов */}
                   <div>
-                    <Label htmlFor="warehouse_id">Склад *</Label>
+                    <Label htmlFor="warehouse_id">Склад назначения *</Label>
+                    <div className="text-xs text-blue-600 mb-2">
+                      📍 Груз принимается на {operatorWarehouses[0]?.name || 'текущий склад'} и будет отправлен в выбранный склад
+                    </div>
                     <Select 
                       value={cargoAcceptanceForm.warehouse_id || ''} 
                       onValueChange={(value) => setCargoAcceptanceForm({...cargoAcceptanceForm, warehouse_id: value})}
