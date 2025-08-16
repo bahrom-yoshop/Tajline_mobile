@@ -482,8 +482,8 @@ class TransportForcedDeletionTester:
         transport_with_cargo_id, transport_with_cargo_data = self.create_test_transport()
         
         if transport_with_cargo_id:
-            # 7. Создание груза и назначение на транспорт
-            cargo_id, cargo_number = self.create_test_cargo_and_assign_to_transport(transport_with_cargo_id)
+            # 7. Поиск груза и назначение на транспорт
+            cargo_id, cargo_number = self.find_existing_cargo_and_assign_to_transport(transport_with_cargo_id)
             
             if cargo_id and cargo_number:
                 # 8. Тестирование удаления транспорта с грузом через строгий endpoint (должно вернуть ошибку)
