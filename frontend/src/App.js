@@ -100,6 +100,9 @@ function App() {
   
   // Тестовое состояние для простого модального окна (для диагностики)
   const [testModal, setTestModal] = useState(false);
+  
+  // Ref для предотвращения React state batching при ошибках авторизации
+  const loginErrorRef = useRef({ modal: false, data: null });
 
   // Новые состояния для клиентского дашборда (Функция 1)
   const [clientDashboard, setClientDashboard] = useState(null);
