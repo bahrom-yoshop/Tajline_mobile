@@ -4467,14 +4467,15 @@ function App() {
   };
 
   const generateCellQR = async () => {
-    if (!qrCellCode.trim()) {
+    const cellCode = qrCellCode.code || ''; // Используем поле code для старого формата
+    if (!cellCode.trim()) {
       showAlert('Введите код ячейки в формате: Б1-П1-Я1', 'error');
       return;
     }
 
     try {
       // Парсим введенный код ячейки для извлечения блока, полки, ячейки
-      const cellParts = qrCellCode.trim().match(/^Б(\d+)-П(\d+)-Я(\d+)$/);
+      const cellParts = cellCode.trim().match(/^Б(\d+)-П(\d+)-Я(\d+)$/);
       if (!cellParts) {
         showAlert('Неверный формат. Введите код в формате: Б1-П1-Я1', 'error');
         return;
@@ -4501,7 +4502,7 @@ function App() {
       
       if (response && response.success && response.qr_code) {
         setGeneratedCellQR(response.qr_code);
-        showAlert(`QR код для ячейки ${response.readable_name || qrCellCode} создан успешно! Код: ${response.cell_code}`, 'success');
+        showAlert(`QR код для ячейки ${response.readable_name || cellCode} создан успешно! Код: ${response.cell_code}`, 'success');
       } else {
         showAlert('Не удалось создать QR код', 'error');
       }
