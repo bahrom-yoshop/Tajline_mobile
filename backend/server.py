@@ -1434,15 +1434,37 @@ def generate_warehouse_cell_qr_code(warehouse_data: dict, block: int, shelf: int
     try:
         if use_id_format:
             # Новый формат с ID номерами
-            warehouse_id_number = warehouse_data.get('warehouse_id_number', '001')
+            warehouse_id_number = warehouse_data.get('warehouse_id_number')
             
-            # Формируем ID номера на основе позиций (как резервный вариант)
+            # ИСПРАВЛЕНИЕ: Если у склада нет warehouse_id_number, генерируем его
+            if not warehouse_id_number or not warehouse_id_number.isdigit() or len(warehouse_id_number) != 3:
+                warehouse_id = warehouse_data.get('id', 'unknown')
+                print(f"⚠️ Склад {warehouse_id} не имеет корректного warehouse_id_number: {warehouse_id_number}")
+                
+                # Генерируем новый уникальный номер
+                warehouse_id_number = generate_warehouse_id_number()
+                
+                # Обновляем склад в базе данных
+                try:
+                    db.warehouses.update_one(
+                        {"id": warehouse_id},
+                        {"$set": {"warehouse_id_number": warehouse_id_number}}
+                    )
+                    print(f"✅ Склад {warehouse_id} обновлен с новым номером: {warehouse_id_number}")
+                except Exception as update_error:
+                    print(f"❌ Ошибка обновления номера склада: {update_error}")
+                    # Используем номер по умолчанию в случае ошибки
+                    warehouse_id_number = "999"
+            
+            # Формируем ID номера на основе позиций
             block_id = f"{block:02d}"
             shelf_id = f"{shelf:02d}"  
             cell_id = f"{cell:03d}"
             
-            # QR код содержит ID номера: 001-01-01-001
+            # QR код содержит уникальный ID номер склада: 001-01-01-001
             cell_code = f"{warehouse_id_number}-{block_id}-{shelf_id}-{cell_id}"
+            
+            print(f"🏗️ Генерируется QR код для склада #{warehouse_id_number}, ячейки: {cell_code}")
         else:
             # Старый формат для совместимости
             warehouse_id = warehouse_data.get('id', 'UNK')
