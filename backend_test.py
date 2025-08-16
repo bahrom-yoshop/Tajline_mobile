@@ -372,12 +372,21 @@ class PricePerKgModalTester:
                     expected_total = weight * price_per_kg
                     
                     if abs(total_value - expected_total) < 0.01:  # Учитываем погрешность float
-                        self.log_test(
-                            "ПРОВЕРКА РАСЧЕТА ОБЩЕЙ СУММЫ",
-                            True,
-                            f"Расчет корректен: {weight} кг × {price_per_kg} ₽/кг = {total_value} ₽ (ожидалось {expected_total} ₽)"
-                        )
-                        return True
+                        # КРИТИЧЕСКАЯ ПРОВЕРКА: убеждаемся что price_per_kg (50) != total_value (500)
+                        if price_per_kg != total_value:
+                            self.log_test(
+                                "ПРОВЕРКА РАСЧЕТА ОБЩЕЙ СУММЫ",
+                                True,
+                                f"Расчет корректен: {weight} кг × {price_per_kg} ₽/кг = {total_value} ₽. КРИТИЧНО: price_per_kg ({price_per_kg}) ≠ total_value ({total_value})"
+                            )
+                            return True
+                        else:
+                            self.log_test(
+                                "ПРОВЕРКА РАСЧЕТА ОБЩЕЙ СУММЫ",
+                                False,
+                                f"КРИТИЧЕСКАЯ ОШИБКА: price_per_kg ({price_per_kg}) равно total_value ({total_value}), но должны отличаться!"
+                            )
+                            return False
                     else:
                         self.log_test(
                             "ПРОВЕРКА РАСЧЕТА ОБЩЕЙ СУММЫ",
