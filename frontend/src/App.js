@@ -32681,6 +32681,176 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* НОВОЕ МОДАЛЬНОЕ ОКНО: Генерация QR кодов для складов */}
+      <Dialog open={qrGenerationModal} onOpenChange={setQrGenerationModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <QrCode className="h-6 w-6 text-orange-600" />
+              <span>Генерация QR кодов для склада</span>
+            </DialogTitle>
+            <DialogDescription>
+              Склад: {selectedWarehouseForQR?.name} | Генерация QR кодов для ячеек склада
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Информация о складе */}
+            <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
+              <h4 className="font-semibold text-orange-800 mb-3 flex items-center">
+                <Building className="mr-2 h-5 w-5" />
+                Информация о складе
+              </h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium text-gray-600">Название:</span>
+                  <span className="ml-2 text-gray-800">{selectedWarehouseForQR?.name}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Адрес:</span>
+                  <span className="ml-2 text-gray-800">{selectedWarehouseForQR?.address}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Уникальный номер:</span>
+                  <span className="ml-2 text-gray-800 bg-blue-100 px-2 py-1 rounded font-mono">
+                    {selectedWarehouseForQR?.warehouse_id_number || 'Генерируется автоматически'}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">ID склада:</span>
+                  <span className="ml-2 text-gray-800 font-mono text-xs">{selectedWarehouseForQR?.id}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Типы генерации QR кодов */}
+            <div className="space-y-4">
+              <h4 className="font-semibold text-gray-800 flex items-center">
+                <Grid3X3 className="mr-2 h-5 w-5 text-blue-600" />
+                Выберите тип генерации QR кодов
+              </h4>
+
+              {/* Генерация для конкретной ячейки */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h5 className="font-medium text-gray-700 mb-3 flex items-center">
+                  <Target className="mr-2 h-4 w-4 text-purple-600" />
+                  Генерация для конкретной ячейки
+                </h5>
+                <div className="grid grid-cols-3 gap-3 mb-3">
+                  <div>
+                    <Label className="text-sm">Блок</Label>
+                    <Input 
+                      type="number" 
+                      min="1" 
+                      placeholder="1" 
+                      className="mt-1"
+                      value={qrCellCode.block || ''} 
+                      onChange={(e) => setQrCellCode({...qrCellCode, block: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm">Полка</Label>
+                    <Input 
+                      type="number" 
+                      min="1" 
+                      placeholder="1" 
+                      className="mt-1"
+                      value={qrCellCode.shelf || ''} 
+                      onChange={(e) => setQrCellCode({...qrCellCode, shelf: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm">Ячейка</Label>
+                    <Input 
+                      type="number" 
+                      min="1" 
+                      placeholder="1" 
+                      className="mt-1"
+                      value={qrCellCode.cell || ''} 
+                      onChange={(e) => setQrCellCode({...qrCellCode, cell: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => generateSpecificCellQR()}
+                  className="bg-purple-600 hover:bg-purple-700"
+                  disabled={!qrCellCode.block || !qrCellCode.shelf || !qrCellCode.cell}
+                >
+                  <QrCode className="mr-2 h-4 w-4" />
+                  Сгенерировать QR для ячейки
+                </Button>
+              </div>
+
+              {/* Массовая генерация */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h5 className="font-medium text-gray-700 mb-3 flex items-center">
+                  <Grid className="mr-2 h-4 w-4 text-blue-600" />
+                  Массовая генерация QR кодов
+                </h5>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button 
+                    onClick={() => generateAllCellsQR()}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <QrCode className="mr-2 h-4 w-4" />
+                    Генерировать для всех ячеек
+                  </Button>
+                  <Button 
+                    onClick={() => generateRangeQR()}
+                    variant="outline"
+                    className="text-green-600 border-green-300 hover:bg-green-50"
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    Генерировать по диапазону
+                  </Button>
+                </div>
+              </div>
+
+              {/* Результат генерации */}
+              {generatedCellQR && (
+                <div className="border border-green-200 rounded-lg p-4 bg-green-50">
+                  <h5 className="font-medium text-green-700 mb-3 flex items-center">
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Сгенерированный QR код
+                  </h5>
+                  <div className="text-center">
+                    <img 
+                      src={generatedCellQR} 
+                      alt="Generated QR Code" 
+                      className="mx-auto mb-3 border border-gray-200 rounded"
+                      style={{ width: '200px', height: '200px' }}
+                    />
+                    <Button 
+                      onClick={() => downloadQRCode(generatedCellQR, `QR-${selectedWarehouseForQR?.name}-${qrCellCode.block}-${qrCellCode.shelf}-${qrCellCode.cell}`)}
+                      variant="outline"
+                      className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Скачать QR код
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Кнопки управления */}
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setQrGenerationModal(false);
+                  setSelectedWarehouseForQR(null);
+                  setGeneratedCellQR(null);
+                  setQrCellCode({ block: '', shelf: '', cell: '' });
+                }}
+              >
+                Закрыть
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
