@@ -2575,6 +2575,129 @@ function App() {
     }
   };
 
+  // НОВАЯ ФУНКЦИЯ: Печать отдельного QR кода
+  const printSingleQRCode = () => {
+    try {
+      if (!generatedCellQR || !qrCellCode.block || !qrCellCode.shelf || !qrCellCode.cell) {
+        showAlert('QR код не сгенерирован или отсутствуют данные ячейки', 'error');
+        return;
+      }
+
+      console.log('🖨️ Печать отдельного QR кода для ячейки:', `Б${qrCellCode.block}-П${qrCellCode.shelf}-Я${qrCellCode.cell}`);
+      
+      const designation = `Б${qrCellCode.block}-П${qrCellCode.shelf}-Я${qrCellCode.cell}`;
+      
+      // Создаем HTML страницу для печати
+      const printWindow = window.open('', '_blank');
+      
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>QR код ячейки ${designation}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              margin: 40px;
+              text-align: center;
+              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+            }
+            .header {
+              margin-bottom: 30px;
+              border-bottom: 2px solid #333;
+              padding-bottom: 15px;
+            }
+            .warehouse-info {
+              background-color: #e8f4fd;
+              padding: 15px;
+              border-radius: 8px;
+              margin-bottom: 30px;
+              font-size: 14px;
+            }
+            .qr-container {
+              margin: 30px 0;
+              padding: 20px;
+              border: 2px solid #ddd;
+              border-radius: 12px;
+              display: inline-block;
+            }
+            .qr-designation {
+              font-weight: bold;
+              font-size: 24px;
+              color: #333;
+              margin-bottom: 20px;
+              background-color: #f0f8ff;
+              padding: 10px 20px;
+              border-radius: 8px;
+              border: 2px solid #4a90e2;
+            }
+            .qr-code {
+              margin: 20px 0;
+            }
+            .qr-details {
+              font-size: 14px;
+              color: #666;
+              margin-top: 15px;
+            }
+            .generated-code {
+              font-family: monospace;
+              background-color: #f5f5f5;
+              padding: 8px 12px;
+              border-radius: 4px;
+              font-weight: bold;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>QR код ячейки склада</h1>
+          </div>
+          
+          <div class="warehouse-info">
+            <strong>Склад:</strong> ${selectedWarehouseForQR?.name || 'Не указан'}<br>
+            <strong>Адрес:</strong> ${selectedWarehouseForQR?.address || 'Не указан'}<br>
+            <strong>Уникальный номер склада:</strong> ${selectedWarehouseForQR?.warehouse_id_number || 'Не указан'}<br>
+            <strong>Дата печати:</strong> ${new Date().toLocaleString('ru-RU')}
+          </div>
+          
+          <div class="qr-container">
+            <div class="qr-designation">${designation}</div>
+            <div class="qr-code">
+              <img src="${generatedCellQR}" alt="QR Code ${designation}" width="200" height="200">
+            </div>
+            <div class="qr-details">
+              <div class="generated-code">
+                Код: ${selectedWarehouseForQR?.warehouse_id_number || '000'}-${String(qrCellCode.block).padStart(2, '0')}-${String(qrCellCode.shelf).padStart(2, '0')}-${String(qrCellCode.cell).padStart(3, '0')}
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+
+      // Ждем загрузки изображения и запускаем печать
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+        
+        // Закрываем окно после печати
+        setTimeout(() => {
+          printWindow.close();
+        }, 1000);
+      }, 1500);
+
+      showAlert(`Подготовлен документ для печати QR кода ячейки ${designation}`, 'success');
+      
+    } catch (error) {
+      console.error('Error printing single QR code:', error);
+      showAlert('Ошибка при подготовке печати QR кода', 'error');
+    }
+  };
+
   const handleSendToPlacement = async (notification) => {
     try {
       // Подтверждение действия
