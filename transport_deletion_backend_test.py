@@ -162,6 +162,7 @@ class TransportDeletionTester:
             
             # Пробуем различные endpoints для создания
             creation_endpoints = [
+                "/transport/create",  # Найденный рабочий endpoint
                 "/admin/transport",
                 "/admin/transports",
                 "/transport",
