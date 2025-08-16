@@ -214,7 +214,8 @@ class WarehouseNotificationUpdateTester:
             )
             
             if response.status_code == 200:
-                notifications = response.json()
+                data = response.json()
+                notifications = data.get("notifications", []) if isinstance(data, dict) else data
                 print(f"DEBUG: Found {len(notifications)} notifications")
                 
                 if notifications and len(notifications) > 0:
