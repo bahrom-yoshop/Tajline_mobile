@@ -69,7 +69,7 @@ def create_warehouse_operator():
     
     try:
         response = session.post(
-            f"{BACKEND_URL}/admin/operators/create",
+            f"{BACKEND_URL}/admin/create-operator",
             json=operator_data,
             headers={"Content-Type": "application/json"}
         )
