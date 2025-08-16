@@ -22583,6 +22583,170 @@ function App() {
                 </div>
               )}
 
+              {/* Неактивные курьеры - только для админов */}
+              {activeSection === 'couriers-tracking' && activeTab === 'couriers-inactive' && 
+               user?.role === 'admin' && (
+                <div className="space-y-6 p-4 md:p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h1 className="text-2xl font-bold text-gray-900">Неактивные курьеры</h1>
+                      <p className="text-gray-600">Управление заблокированными и удаленными курьерами</p>
+                    </div>
+                    <Button 
+                      onClick={fetchInactiveCouriers}
+                      variant="outline"
+                      className="flex items-center"
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Обновить
+                    </Button>
+                  </div>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <UserX className="mr-2 h-5 w-5 text-orange-600" />
+                        Неактивные курьеры ({inactiveCouriers.length})
+                      </CardTitle>
+                      <CardDescription>
+                        Курьеры, которые были заблокированы или удалены из системы. Их можно активировать или удалить полностью.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {inactiveCouriers.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Курьер</TableHead>
+                                <TableHead>Склад</TableHead>
+                                <TableHead>Пользователь</TableHead>
+                                <TableHead>Статус</TableHead>
+                                <TableHead className="text-right">Действия</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {inactiveCouriers.map((courier) => (
+                                <TableRow key={courier.id} className="opacity-75 bg-gray-50">
+                                  <TableCell>
+                                    <div className="flex items-center">
+                                      <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                                        <UserX className="h-4 w-4 text-red-600" />
+                                      </div>
+                                      <div>
+                                        <div className="font-medium text-gray-900">{courier.full_name}</div>
+                                        <div className="text-sm text-gray-500">ID: {courier.id}</div>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="text-sm">
+                                      <div className="font-medium">{courier.assigned_warehouse_name || 'Не назначен'}</div>
+                                      {courier.assigned_warehouse_id && (
+                                        <div className="text-gray-500">ID: {courier.assigned_warehouse_id}</div>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="text-sm">
+                                      {courier.user_info ? (
+                                        <>
+                                          <div className="font-medium">{courier.user_info.full_name}</div>
+                                          <div className="text-gray-500">{courier.user_info.phone}</div>
+                                          <div className={`text-xs px-2 py-1 rounded-full inline-block ${
+                                            courier.user_info.is_active 
+                                              ? 'bg-green-100 text-green-800' 
+                                              : 'bg-red-100 text-red-800'
+                                          }`}>
+                                            {courier.user_info.is_active ? 'Активен' : 'Заблокирован'}
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <span className="text-gray-400">Пользователь не найден</span>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex flex-col space-y-1">
+                                      <div className="flex items-center">
+                                        <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
+                                        <span className="text-sm font-medium text-red-700">Неактивен</span>
+                                      </div>
+                                      {courier.deactivated_at && (
+                                        <div className="text-xs text-gray-500">
+                                          Деактивирован: {new Date(courier.deactivated_at).toLocaleDateString('ru-RU')}
+                                        </div>
+                                      )}
+                                      {courier.reactivated_at && (
+                                        <div className="text-xs text-green-600">
+                                          Последняя активация: {new Date(courier.reactivated_at).toLocaleDateString('ru-RU')}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex items-center justify-end space-x-2">
+                                      {/* Кнопка активации */}
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                                        onClick={() => handleActivateCourier(courier.id, courier.full_name)}
+                                        title={`Активировать курьера ${courier.full_name}`}
+                                      >
+                                        <UserCheck className="h-4 w-4" />
+                                      </Button>
+                                      
+                                      {/* Кнопка полного удаления */}
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                        onClick={() => handlePermanentDeleteCourier(courier.id, courier.full_name)}
+                                        title={`Полностью удалить курьера ${courier.full_name}`}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <UserCheck className="mx-auto h-12 w-12 text-gray-400" />
+                          <h3 className="mt-2 text-sm font-medium text-gray-900">Нет неактивных курьеров</h3>
+                          <p className="mt-1 text-sm text-gray-500">Все курьеры активны или не было деактивированных курьеров.</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Информационная панель */}
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0">
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <UserCheck className="h-4 w-4 text-blue-600" />
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-sm font-medium text-blue-900 mb-1">Управление неактивными курьерами</h4>
+                          <div className="text-sm text-blue-800 space-y-1">
+                            <p><strong>Активация:</strong> Восстанавливает доступ курьера к системе и возможность принимать заявки.</p>
+                            <p><strong>Полное удаление:</strong> Необратимо удаляет курьера, связанного пользователя и всю историю из системы.</p>
+                            <p><strong>Безопасность:</strong> Полное удаление недоступно для курьеров с активными заявками.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
               {/* История и аналитика курьеров - доступна админам и операторам */}
               {activeSection === 'couriers-tracking' && activeTab === 'couriers-history-analytics' && 
                (user?.role === 'admin' || user?.role === 'warehouse_operator') && (
