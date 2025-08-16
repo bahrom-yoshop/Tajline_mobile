@@ -14441,7 +14441,8 @@ async def complete_cargo_processing(
         
         for index, item in enumerate(cargo_items):
             cargo_id = generate_readable_request_number()
-            cargo_number = f"{notification.get('request_number', '000000000')}/{str(index + 1).zfill(2)}"
+            # Создаем уникальный номер груза на основе cargo_id для предотвращения дубликатов
+            cargo_number = f"{cargo_id[:6]}/{str(index + 1).zfill(2)}"
             
             cargo_data = {
                 "id": cargo_id,
