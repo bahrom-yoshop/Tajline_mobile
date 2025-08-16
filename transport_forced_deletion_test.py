@@ -198,11 +198,10 @@ class TransportForcedDeletionTester:
                 
                 # Теперь назначаем груз на транспорт
                 assignment_data = {
-                    "transport_id": transport_id,
                     "cargo_numbers": [cargo_number]
                 }
                 
-                assign_response = self.session.post(f"{BACKEND_URL}/admin/transports/assign-cargo-by-numbers", json=assignment_data)
+                assign_response = self.session.post(f"{BACKEND_URL}/transport/{transport_id}/place-cargo", json=assignment_data)
                 
                 if assign_response.status_code == 200:
                     self.log_result(
