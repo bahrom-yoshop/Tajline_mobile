@@ -10223,7 +10223,7 @@ function App() {
         const errorInfo = error.detail;
         
         // Добавляем отладочную информацию
-        console.log('📊 Setting loginErrorData:', {
+        const errorData = {
           errorType: errorInfo.error_type,
           message: errorInfo.message,
           details: errorInfo.details,
@@ -10233,19 +10233,15 @@ function App() {
           phoneFormat: errorInfo.phone_format,
           passwordRequirements: errorInfo.password_requirements,
           availableActions: errorInfo.available_actions || []
-        });
+        };
         
-        setLoginErrorData({
-          errorType: errorInfo.error_type,
-          message: errorInfo.message,
-          details: errorInfo.details,
-          userRole: errorInfo.user_role,
-          userName: errorInfo.user_name,
-          userPhone: errorInfo.user_phone,
-          phoneFormat: errorInfo.phone_format,
-          passwordRequirements: errorInfo.password_requirements,
-          availableActions: errorInfo.available_actions || []
-        });
+        console.log('📊 Setting loginErrorData:', errorData);
+        
+        // Используем ref для немедленного обновления
+        loginErrorRef.current = { modal: true, data: errorData };
+        
+        // Устанавливаем состояние
+        setLoginErrorData(errorData);
         
         console.log('🔍 Setting loginErrorModal to TRUE');
         
@@ -10253,6 +10249,7 @@ function App() {
         setTimeout(() => {
           setLoginErrorModal(true);
           console.log('⏰ TIMEOUT: loginErrorModal set to TRUE');
+          console.log('🎯 REF CHECK: loginErrorRef.current:', loginErrorRef.current);
           
           // Дополнительная проверка через небольшую задержку
           setTimeout(() => {
