@@ -33242,7 +33242,7 @@ function App() {
                         </p>
                       )}
                     </div>
-                    <div className="mt-3 flex justify-center">
+                    <div className="mt-3 flex justify-center space-x-3">
                       <Button 
                         onClick={() => downloadAllQRCodes(massQRGeneration.results)}
                         variant="outline"
@@ -33250,6 +33250,14 @@ function App() {
                       >
                         <Download className="mr-2 h-4 w-4" />
                         Скачать все QR коды
+                      </Button>
+                      
+                      <Button 
+                        onClick={() => printAllQRCodes(massQRGeneration.results)}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Printer className="mr-2 h-4 w-4" />
+                        Печать всех QR кодов
                       </Button>
                     </div>
                   </div>
