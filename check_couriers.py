@@ -18,6 +18,11 @@ def check_courier_lists():
         print(f"Authentication failed: {auth_response.text}")
         return
     
+    # Set authorization header
+    auth_data = auth_response.json()
+    token = auth_data["access_token"]
+    session.headers.update({"Authorization": f"Bearer {token}"})
+    
     print("✅ Authenticated successfully")
     
     # Check active couriers
