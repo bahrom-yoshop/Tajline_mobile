@@ -29789,19 +29789,6 @@ function App() {
                     <Trash2 className="mr-2 h-4 w-4" />
                     Удалить блок
                   </Button>
-
-                  {/* НОВАЯ КНОПКА: Генерация QR кодов */}
-                  <Button
-                    onClick={() => {
-                      console.log('🔥 Кнопка Генерация QR кодов нажата!');
-                      setSelectedWarehouseForQR(selectedWarehouseForManagement);
-                      setQrGenerationModal(true);
-                    }}
-                    className="bg-orange-600 hover:bg-orange-700 text-white font-medium"
-                  >
-                    <QrCode className="mr-2 h-4 w-4" />
-                    QR коды
-                  </Button>
                 </div>
 
                 {/* QR Generation Results */}
