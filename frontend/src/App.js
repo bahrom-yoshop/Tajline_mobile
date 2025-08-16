@@ -122,6 +122,7 @@ function App() {
 
   // НОВЫЕ СОСТОЯНИЯ ДЛЯ КУРЬЕРСКОЙ СЛУЖБЫ (ЭТАП 2)
   const [couriers, setCouriers] = useState([]);
+  const [inactiveCouriers, setInactiveCouriers] = useState([]);
   const [couriersPagination, setCouriersPagination] = useState({});
   const [couriersPage, setCouriersPage] = useState(1);
   const [couriersPerPage, setCouriersPerPage] = useState(25);
