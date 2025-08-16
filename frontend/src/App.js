@@ -5064,7 +5064,18 @@ function App() {
       }
 
       if (!response.ok) {
-        // Обработка 401 ошибки (unauthorized) - токен истек или невалиден
+        // СНАЧАЛА проверяем структурированные ошибки авторизации (401 с error_type)
+        if (response.status === 401 && result.detail && typeof result.detail === 'object' && result.detail.error_type) {
+          console.log('🔍 Detected structured auth error:', result.detail.error_type);
+          // Создаем расширенную ошибку для структурированных ошибок авторизации
+          const enhancedError = new Error(result.detail.message || result.detail.status_message || 'Authentication error');
+          enhancedError.status = response.status;
+          enhancedError.detail = result.detail;
+          enhancedError.response = result;
+          throw enhancedError;
+        }
+        
+        // Обработка 401 ошибки (unauthorized) - токен истек или невалиден (только для НЕструктурированных ошибок)
         if (response.status === 401 && !isLoggingOut && !isLoggingIn) {
           console.log('Received 401 response, checking if logout is needed');
           
