@@ -441,26 +441,65 @@ class TransportForcedDeletionTester:
             self.test_empty_transport_deletion_strict_endpoint(empty_transport_id)
             self.verify_transport_deletion_from_database(empty_transport_id)
         
-        # 6. Создание тестового транспорта с грузом
-        transport_with_cargo_id, transport_with_cargo_data = self.create_test_transport()
+        # 6. Поиск существующего транспорта с грузом для тестирования
+        transport_with_cargo_id, cargo_id = self.find_transport_with_cargo(transports)
         
-        if transport_with_cargo_id:
-            # 7. Поиск груза и назначение на транспорт
-            cargo_id, cargo_number = self.find_existing_cargo_and_assign_to_transport(transport_with_cargo_id)
+        if transport_with_cargo_id and cargo_id:
+            # 7. Тестирование удаления транспорта с грузом через строгий endpoint (должно вернуть ошибку)
+            self.test_transport_with_cargo_deletion_strict_endpoint(transport_with_cargo_id)
             
-            if cargo_id and cargo_number:
-                # 8. Тестирование удаления транспорта с грузом через строгий endpoint (должно вернуть ошибку)
-                self.test_transport_with_cargo_deletion_strict_endpoint(transport_with_cargo_id)
+            # 8. Тестирование принудительного удаления через менее строгий endpoint
+            forced_deletion_success = self.test_forced_transport_deletion_lenient_endpoint(transport_with_cargo_id)
+            
+            if forced_deletion_success:
+                # 9. Проверка что транспорт удален из базы данных
+                self.verify_transport_deletion_from_database(transport_with_cargo_id)
                 
-                # 9. Тестирование принудительного удаления через менее строгий endpoint
-                forced_deletion_success = self.test_forced_transport_deletion_lenient_endpoint(transport_with_cargo_id)
-                
-                if forced_deletion_success:
-                    # 10. Проверка статуса груза после удаления транспорта
-                    self.check_cargo_status_after_transport_deletion(cargo_id, cargo_number)
-                    
-                    # 11. Проверка что транспорт удален из базы данных
-                    self.verify_transport_deletion_from_database(transport_with_cargo_id)
+                # 10. Проверка статуса груза после удаления транспорта (если есть номер груза)
+                if cargo_id:
+                    # Попробуем найти номер груза
+                    cargo_response = self.session.get(f"{BACKEND_URL}/cargo/all")
+                    if cargo_response.status_code == 200:
+                        cargos = cargo_response.json()
+                        if isinstance(cargos, list):
+                            cargo_data = next((c for c in cargos if c.get('id') == cargo_id), None)
+                            if cargo_data:
+                                cargo_number = cargo_data.get('cargo_number')
+                                if cargo_number:
+                                    self.check_cargo_status_after_transport_deletion(cargo_id, cargo_number)
+        else:
+            # Создаем новый транспорт для тестирования с грузом
+            transport_with_cargo_id, transport_with_cargo_data = self.create_test_transport()
+            
+            if transport_with_cargo_id:
+                # Попробуем найти существующий груз для назначения
+                cargo_response = self.session.get(f"{BACKEND_URL}/cargo/all")
+                if cargo_response.status_code == 200:
+                    cargos = cargo_response.json()
+                    if isinstance(cargos, list) and len(cargos) > 0:
+                        # Берем первый доступный груз
+                        test_cargo = cargos[0]
+                        cargo_id = test_cargo.get('id')
+                        cargo_number = test_cargo.get('cargo_number')
+                        
+                        # Пытаемся назначить груз на транспорт
+                        assignment_data = {"cargo_numbers": [cargo_number]}
+                        assign_response = self.session.post(f"{BACKEND_URL}/transport/{transport_with_cargo_id}/place-cargo", json=assignment_data)
+                        
+                        if assign_response.status_code == 200:
+                            # Тестируем удаление транспорта с грузом
+                            self.test_transport_with_cargo_deletion_strict_endpoint(transport_with_cargo_id)
+                            forced_deletion_success = self.test_forced_transport_deletion_lenient_endpoint(transport_with_cargo_id)
+                            
+                            if forced_deletion_success:
+                                self.verify_transport_deletion_from_database(transport_with_cargo_id)
+                                self.check_cargo_status_after_transport_deletion(cargo_id, cargo_number)
+                        else:
+                            self.log_result(
+                                "Альтернативное тестирование с новым транспортом",
+                                False,
+                                f"Не удалось назначить груз на новый транспорт. HTTP {assign_response.status_code}: {assign_response.text}"
+                            )
         
         # Подведение итогов
         self.print_summary()
