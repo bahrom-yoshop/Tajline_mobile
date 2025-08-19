@@ -33685,31 +33685,75 @@ function App() {
               )}
 
               {/* Кнопки управления */}
-              <div className="flex justify-end space-x-3 pt-4 border-t">
-                <Button 
-                  variant="outline" 
-                  onClick={closeCargoConfirmationModal}
-                  disabled={qrGenerationInProgress}
-                >
-                  Отмена
-                </Button>
-                <Button 
-                  onClick={handleConfirmCargoAcceptance}
-                  disabled={qrGenerationInProgress}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  {qrGenerationInProgress ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Генерация QR кодов...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Подтвердить приём груза
-                    </>
+              <div className="flex flex-col space-y-3 pt-4 border-t">
+                {/* Верхний ряд - кнопки печати и генерации */}
+                {generatedQRCodes.length > 0 && (
+                  <div className="flex justify-center space-x-3">
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        // Логика печати всех QR кодов
+                        window.print();
+                      }}
+                      disabled={qrGenerationInProgress}
+                      className="flex-1"
+                    >
+                      <Printer className="mr-2 h-4 w-4" />
+                      Печать всех QR кодов
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        // Логика экспорта/скачивания QR кодов
+                        showAlert('Функция экспорта QR кодов будет доступна в следующем обновлении', 'info');
+                      }}
+                      disabled={qrGenerationInProgress}
+                      className="flex-1"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Скачать QR коды
+                    </Button>
+                  </div>
+                )}
+                
+                {/* Нижний ряд - основные кнопки управления */}
+                <div className="flex justify-end space-x-3">
+                  <Button 
+                    variant="outline" 
+                    onClick={closeCargoConfirmationModal}
+                    disabled={qrGenerationInProgress}
+                  >
+                    Отмена
+                  </Button>
+                  {!generatedQRCodes.length && (
+                    <Button 
+                      onClick={handleConfirmCargoAcceptance}
+                      disabled={qrGenerationInProgress}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {qrGenerationInProgress ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Генерация QR кодов...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Подтвердить приём груза
+                        </>
+                      )}
+                    </Button>
                   )}
-                </Button>
+                  {generatedQRCodes.length > 0 && (
+                    <Button 
+                      onClick={closeCargoConfirmationModal}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Завершить
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           )}
