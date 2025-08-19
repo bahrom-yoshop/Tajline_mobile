@@ -17799,6 +17799,59 @@ function App() {
                             />
                           </div>
 
+                          {/* НОВЫЕ ПОЛЯ: Город и склад выдачи груза */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="delivery_city">Город выдачи груза *</Label>
+                              {allCitiesLoading ? (
+                                <div className="flex items-center px-3 py-2 border border-gray-300 rounded-md">
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                                  <span className="text-sm text-gray-500">Загрузка городов...</span>
+                                </div>
+                              ) : (
+                                <select
+                                  id="delivery_city"
+                                  value={selectedDeliveryCity}
+                                  onChange={(e) => handleDeliveryCityChange(e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  required
+                                >
+                                  <option value="">Выберите город</option>
+                                  {allWarehouseCities.map((cityData, index) => (
+                                    <option key={index} value={cityData.city_name}>
+                                      {cityData.city_name} ({cityData.warehouses_count} {cityData.warehouses_count === 1 ? 'склад' : 'складов'})
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                            </div>
+                            
+                            <div>
+                              <Label htmlFor="delivery_warehouse">Склад для выдачи груза *</Label>
+                              <select
+                                id="delivery_warehouse"
+                                value={selectedDeliveryWarehouse}
+                                onChange={(e) => handleDeliveryWarehouseChange(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                                disabled={!selectedDeliveryCity || availableWarehousesForCity.length === 0}
+                              >
+                                <option value="">
+                                  {!selectedDeliveryCity 
+                                    ? 'Сначала выберите город' 
+                                    : availableWarehousesForCity.length === 0 
+                                      ? 'Нет доступных складов' 
+                                      : 'Выберите склад'}
+                                </option>
+                                {availableWarehousesForCity.map((warehouse, index) => (
+                                  <option key={index} value={warehouse.warehouse_id}>
+                                    {warehouse.warehouse_name} ({warehouse.warehouse_location})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
                           {/* НОВЫЕ ПОЛЯ ДЛЯ КУРЬЕРСКОЙ СЛУЖБЫ */}
                           <div className="space-y-4 border-t pt-4">
                             <h3 className="text-lg font-semibold text-gray-900">Курьерская служба</h3>
