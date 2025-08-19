@@ -543,6 +543,7 @@ class Warehouse(BaseModel):
     created_by: str
     created_at: datetime
     is_active: bool = True
+    delivery_cities: Optional[List[str]] = Field(default_factory=list, description="Список городов для выдачи груза")
 
 class WarehouseBlock(BaseModel):
     id: str
