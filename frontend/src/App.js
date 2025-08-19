@@ -17939,6 +17939,7 @@ function App() {
                                 required
                               >
                                 <option value="pickup">Самовывоз</option>
+                                <option value="city_delivery">Доставка до города получателя</option>
                                 <option value="home_delivery">Доставка до дома</option>
                               </select>
                             </div>
