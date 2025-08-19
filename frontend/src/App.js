@@ -3697,6 +3697,12 @@ function App() {
   const [filteredCities, setFilteredCities] = useState([]);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   
+  // Confirmation modal for cargo acceptance states
+  const [showCargoConfirmationModal, setShowCargoConfirmationModal] = useState(false);
+  const [confirmationCargoData, setConfirmationCargoData] = useState(null);
+  const [generatedQRCodes, setGeneratedQRCodes] = useState([]);
+  const [qrGenerationInProgress, setQrGenerationInProgress] = useState(false);
+  
   // Manual placement states
   const [manualCargoNumber, setManualCargoNumber] = useState('');
   const [manualCellCode, setManualCellCode] = useState('');
