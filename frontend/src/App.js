@@ -11719,18 +11719,21 @@ function App() {
     const breakdown = [];
     
     cargoItems.forEach((item, index) => {
+      const quantity = parseFloat(item.quantity) || 1;
       const weight = parseFloat(item.weight) || 0;
       const pricePerKg = parseFloat(item.price_per_kg) || 0;
-      const itemCost = weight * pricePerKg;
+      const itemCost = quantity * weight * pricePerKg;
+      const totalWeight = quantity * weight;
       
-      totalWeightSum += weight;
+      totalWeightSum += totalWeight;
       totalCostSum += itemCost;
       
       if (weight > 0 && pricePerKg > 0) {
         breakdown.push({
           index: index + 1,
           name: item.cargo_name || `Груз ${index + 1}`,
-          weight,
+          quantity,
+          weight: totalWeight,
           pricePerKg,
           cost: itemCost
         });
