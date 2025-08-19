@@ -17849,20 +17849,45 @@ function App() {
                                   <span className="text-sm text-gray-500">Загрузка городов...</span>
                                 </div>
                               ) : (
-                                <select
-                                  id="delivery_city"
-                                  value={selectedDeliveryCity}
-                                  onChange={(e) => handleDeliveryCityChange(e.target.value)}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  required
-                                >
-                                  <option value="">Выберите город</option>
-                                  {allWarehouseCities.map((cityData, index) => (
-                                    <option key={index} value={cityData.city_name}>
-                                      {cityData.city_name} ({cityData.warehouses_count} {cityData.warehouses_count === 1 ? 'склад' : 'складов'})
-                                    </option>
-                                  ))}
-                                </select>
+                                <div className="relative">
+                                  <Input
+                                    id="delivery_city"
+                                    type="text"
+                                    value={citySearchQuery}
+                                    onChange={(e) => handleCitySearchChange(e.target.value)}
+                                    onFocus={() => {
+                                      if (filteredCities.length > 0) setShowCityDropdown(true);
+                                    }}
+                                    placeholder="Начните вводить название города..."
+                                    className="w-full"
+                                    required
+                                  />
+                                  
+                                  {/* Выпадающий список с найденными городами */}
+                                  {showCityDropdown && filteredCities.length > 0 && (
+                                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                      {filteredCities.map((cityData, index) => (
+                                        <div
+                                          key={index}
+                                          onClick={() => handleDeliveryCityChange(cityData.city_name)}
+                                          className="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                        >
+                                          <div className="font-medium text-gray-900">{cityData.city_name}</div>
+                                          <div className="text-sm text-gray-500">
+                                            {cityData.warehouses_count} {cityData.warehouses_count === 1 ? 'склад' : 'складов'}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  
+                                  {/* Показать сообщение если ничего не найдено */}
+                                  {citySearchQuery.length > 0 && filteredCities.length === 0 && (
+                                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg p-4 text-center text-gray-500">
+                                      Городов не найдено
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </div>
                             
