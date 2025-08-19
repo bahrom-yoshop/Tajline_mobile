@@ -32334,7 +32334,7 @@ function App() {
 
       {/* МОДАЛЬНОЕ ОКНО УПРАВЛЕНИЯ ЯЧЕЙКАМИ */}
       <Dialog open={cellManagementModal} onOpenChange={setCellManagementModal}>
-        <DialogContent className="w-full max-w-6xl max-h-[95vh] overflow-y-auto">
+        <DialogContent className="w-full max-w-6xl max-h-[95vh] overflow-y-auto mx-4">
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Settings className="mr-2 h-5 w-5" />
