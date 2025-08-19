@@ -18310,30 +18310,6 @@ function App() {
 
                           {/* Кнопки действий - показываем только в обычном режиме */}
                           <div className="flex flex-col gap-4">
-                            {/* Кнопки печати */}
-                            <div className="flex gap-2">
-                              <Button 
-                                type="button" 
-                                variant="outline"
-                                onClick={handlePrintCurrentInvoice}
-                                disabled={!canPrintInvoice()}
-                                className="flex-1"
-                              >
-                                <Printer className="mr-2 h-4 w-4" />
-                                Печать накладной
-                              </Button>
-                              <Button 
-                                type="button" 
-                                variant="outline"
-                                onClick={handlePrintCurrentBarcode}
-                                disabled={!canPrintInvoice()}
-                                className="flex-1"
-                              >
-                                <QrCode className="mr-2 h-4 w-4" />
-                                Штрих-код
-                              </Button>
-                            </div>
-                            
                             {/* Кнопки действий */}
                             <div className="flex flex-col space-y-3">
                               {/* Главная кнопка приема груза */}
