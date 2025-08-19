@@ -13571,6 +13571,165 @@ async def assign_warehouse_numbers(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error assigning warehouse numbers: {str(e)}")
 
+# НОВЫЕ ENDPOINTS ДЛЯ УПРАВЛЕНИЯ ГОРОДАМИ СКЛАДОВ
+
+@app.get("/api/warehouses/{warehouse_id}/cities")
+async def get_warehouse_cities(
+    warehouse_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить список городов для выдачи груза конкретного склада"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        
+        cities = warehouse.get("delivery_cities", [])
+        
+        return {
+            "warehouse_id": warehouse_id,
+            "warehouse_name": warehouse.get("name"),
+            "cities": cities,
+            "cities_count": len(cities)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching warehouse cities: {str(e)}")
+
+@app.post("/api/warehouses/{warehouse_id}/cities")
+async def add_warehouse_city(
+    warehouse_id: str,
+    city_data: WarehouseCityAdd,
+    current_user: User = Depends(get_current_user)
+):
+    """Добавить город к складу для выдачи груза"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        
+        current_cities = warehouse.get("delivery_cities", [])
+        city_name = city_data.city_name.strip()
+        
+        # Проверяем, что город не добавлен уже
+        if city_name in current_cities:
+            raise HTTPException(status_code=400, detail=f"City '{city_name}' already exists for this warehouse")
+        
+        # Добавляем город
+        current_cities.append(city_name)
+        
+        db.warehouses.update_one(
+            {"id": warehouse_id},
+            {"$set": {"delivery_cities": current_cities}}
+        )
+        
+        return {
+            "message": f"City '{city_name}' added successfully",
+            "warehouse_id": warehouse_id,
+            "city_added": city_name,
+            "total_cities": len(current_cities)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error adding city to warehouse: {str(e)}")
+
+@app.post("/api/warehouses/{warehouse_id}/cities/bulk")
+async def add_warehouse_cities_bulk(
+    warehouse_id: str,
+    cities_data: WarehouseCityBulkAdd,
+    current_user: User = Depends(get_current_user)
+):
+    """Массовое добавление городов к складу для выдачи груза"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        
+        current_cities = warehouse.get("delivery_cities", [])
+        new_cities = cities_data.city_names
+        
+        added_cities = []
+        skipped_cities = []
+        
+        for city_name in new_cities:
+            city_name = city_name.strip()
+            if city_name not in current_cities:
+                current_cities.append(city_name)
+                added_cities.append(city_name)
+            else:
+                skipped_cities.append(city_name)
+        
+        if added_cities:
+            db.warehouses.update_one(
+                {"id": warehouse_id},
+                {"$set": {"delivery_cities": current_cities}}
+            )
+        
+        return {
+            "message": f"Bulk city addition completed",
+            "warehouse_id": warehouse_id,
+            "added_cities": added_cities,
+            "added_count": len(added_cities),
+            "skipped_cities": skipped_cities,
+            "skipped_count": len(skipped_cities),
+            "total_cities": len(current_cities)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error bulk adding cities to warehouse: {str(e)}")
+
+@app.delete("/api/warehouses/{warehouse_id}/cities")
+async def delete_warehouse_city(
+    warehouse_id: str,
+    city_data: WarehouseCityDelete,
+    current_user: User = Depends(get_current_user)
+):
+    """Удалить город из списка городов для выдачи груза склада"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        
+        current_cities = warehouse.get("delivery_cities", [])
+        city_name = city_data.city_name.strip()
+        
+        if city_name not in current_cities:
+            raise HTTPException(status_code=404, detail=f"City '{city_name}' not found in warehouse cities")
+        
+        # Удаляем город
+        current_cities.remove(city_name)
+        
+        db.warehouses.update_one(
+            {"id": warehouse_id},
+            {"$set": {"delivery_cities": current_cities}}
+        )
+        
+        return {
+            "message": f"City '{city_name}' removed successfully",
+            "warehouse_id": warehouse_id,
+            "city_removed": city_name,
+            "total_cities": len(current_cities)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error removing city from warehouse: {str(e)}")
+
 # НОВЫЕ ENDPOINTS ДЛЯ КУРЬЕРСКОЙ СЛУЖБЫ (ЭТАП 1)
 
 @app.post("/api/admin/couriers/create")
