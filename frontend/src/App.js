@@ -33502,7 +33502,7 @@ function App() {
 
       {/* МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ ПРИЁМА ГРУЗА */}
       <Dialog open={showCargoConfirmationModal} onOpenChange={setShowCargoConfirmationModal}>
-        <DialogContent className="w-full max-w-6xl max-h-[95vh] overflow-y-auto">
+        <DialogContent className="w-full max-w-6xl max-h-[95vh] overflow-y-auto mx-4">
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Package className="mr-2 h-5 w-5" />
