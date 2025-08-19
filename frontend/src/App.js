@@ -18199,7 +18199,7 @@ function App() {
                                 )}
 
                                 {/* Общие итоги */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   <div className="bg-white p-3 rounded border">
                                     <div className="text-sm text-gray-600">Общий вес</div>
                                     <div className="text-2xl font-bold text-blue-600">
