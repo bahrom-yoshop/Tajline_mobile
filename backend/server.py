@@ -545,6 +545,26 @@ class Warehouse(BaseModel):
     is_active: bool = True
     delivery_cities: Optional[List[str]] = Field(default_factory=list, description="Список городов для выдачи груза")
 
+# Модели для управления городами складов
+class WarehouseCityAdd(BaseModel):
+    city_name: str = Field(..., min_length=2, max_length=100, description="Название города для добавления")
+
+class WarehouseCityBulkAdd(BaseModel):
+    city_names: List[str] = Field(..., min_items=1, max_items=50, description="Список городов для массового добавления")
+    
+    @validator('city_names')
+    def validate_city_names(cls, v):
+        # Очищаем и валидируем каждый город
+        cleaned_cities = []
+        for city in v:
+            city = city.strip()
+            if len(city) >= 2 and len(city) <= 100:
+                cleaned_cities.append(city)
+        return cleaned_cities
+
+class WarehouseCityDelete(BaseModel):
+    city_name: str = Field(..., min_length=2, max_length=100, description="Название города для удаления")
+
 class WarehouseBlock(BaseModel):
     id: str
     warehouse_id: str
