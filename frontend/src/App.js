@@ -17973,27 +17973,39 @@ function App() {
                             
                             <div>
                               <Label htmlFor="delivery_warehouse">Склад для выдачи груза *</Label>
-                              <select
-                                id="delivery_warehouse"
-                                value={selectedDeliveryWarehouse}
-                                onChange={(e) => handleDeliveryWarehouseChange(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                                disabled={!selectedDeliveryCity || availableWarehousesForCity.length === 0}
-                              >
-                                <option value="">
+                              {selectedDeliveryCity && availableWarehousesForCity.length > 0 ? (
+                                <div className="space-y-2">
+                                  <select
+                                    id="delivery_warehouse"
+                                    value={selectedDeliveryWarehouse}
+                                    onChange={(e) => handleDeliveryWarehouseChange(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    required
+                                  >
+                                    {availableWarehousesForCity.map((warehouse, index) => (
+                                      <option key={index} value={warehouse.warehouse_id}>
+                                        {warehouse.warehouse_name} ({warehouse.warehouse_location})
+                                      </option>
+                                    ))}
+                                  </select>
+                                  {selectedDeliveryWarehouse && (
+                                    <div className="bg-green-50 p-2 rounded-md border border-green-200">
+                                      <div className="text-sm text-green-700 flex items-center">
+                                        <CheckCircle className="h-4 w-4 mr-1" />
+                                        Автоматически выбран: {availableWarehousesForCity.find(w => w.warehouse_id === selectedDeliveryWarehouse)?.warehouse_name}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500">
                                   {!selectedDeliveryCity 
                                     ? 'Сначала выберите город' 
                                     : availableWarehousesForCity.length === 0 
-                                      ? 'Нет доступных складов' 
-                                      : 'Выберите склад'}
-                                </option>
-                                {availableWarehousesForCity.map((warehouse, index) => (
-                                  <option key={index} value={warehouse.warehouse_id}>
-                                    {warehouse.warehouse_name} ({warehouse.warehouse_location})
-                                  </option>
-                                ))}
-                              </select>
+                                      ? 'Нет доступных складов для выбранного города' 
+                                      : 'Загрузка складов...'}
+                                </div>
+                              )}
                             </div>
                           </div>
 
