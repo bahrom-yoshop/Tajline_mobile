@@ -528,6 +528,7 @@ class WarehouseCreate(BaseModel):
     blocks_count: int = Field(..., ge=1, le=9)
     shelves_per_block: int = Field(..., ge=1, le=3)
     cells_per_shelf: int = Field(..., ge=1, le=50)
+    delivery_cities: Optional[List[str]] = Field(default_factory=list, description="Список городов для выдачи груза")
 
 class Warehouse(BaseModel):
     id: str
