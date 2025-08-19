@@ -16443,7 +16443,7 @@ function App() {
                           {/* Информация о пользователе */}
                           <div className="bg-gray-50 p-6 rounded-lg">
                             <h3 className="text-lg font-semibold mb-4">Информация о пользователе</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div>
                                 <label className="text-sm font-medium text-gray-500">Номер пользователя</label>
                                 <p className="text-lg">{personalDashboardData.user_info.user_number}</p>
