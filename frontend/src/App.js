@@ -3687,6 +3687,13 @@ function App() {
   const [newCityName, setNewCityName] = useState('');
   const [bulkCitiesText, setBulkCitiesText] = useState('');
   
+  // New cargo form fields states
+  const [allWarehouseCities, setAllWarehouseCities] = useState([]);
+  const [selectedDeliveryCity, setSelectedDeliveryCity] = useState('');
+  const [selectedDeliveryWarehouse, setSelectedDeliveryWarehouse] = useState('');
+  const [availableWarehousesForCity, setAvailableWarehousesForCity] = useState([]);
+  const [allCitiesLoading, setAllCitiesLoading] = useState(false);
+  
   // Manual placement states
   const [manualCargoNumber, setManualCargoNumber] = useState('');
   const [manualCellCode, setManualCellCode] = useState('');
