@@ -21306,6 +21306,14 @@ function App() {
                                         Редактировать
                                       </Button>
                                       <Button 
+                                        variant="outline" 
+                                        onClick={() => openWarehouseCitiesManagement(warehouse)}
+                                        className="text-green-600 border-green-200 hover:bg-green-50"
+                                      >
+                                        <MapPin className="mr-2 h-4 w-4" />
+                                        Города доставки
+                                      </Button>
+                                      <Button 
                                         variant="destructive" 
                                         onClick={() => handleDeleteWarehouse(warehouse.id)}
                                         className="bg-red-600 hover:bg-red-700"
