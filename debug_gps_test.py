@@ -7,7 +7,7 @@ import requests
 import json
 
 def test_admin_gps_endpoint():
-    base_url = "https://cargo-tracker-28.preview.emergentagent.com"
+    base_url = "https://cargo-tracker-31.preview.emergentagent.com"
     
     print("🔍 DEBUG: Testing Admin GPS Endpoint Issue")
     
