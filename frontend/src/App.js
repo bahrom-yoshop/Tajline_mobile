@@ -6649,6 +6649,19 @@ function App() {
     }
   }, [user?.role]);
 
+  // НОВЫЙ USEEFFECT: Скрытие выпадающего списка городов при клике вне области
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Проверяем, что клик был вне области автодополнения городов
+      if (!event.target.closest('.city-autocomplete')) {
+        setShowCityDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // НОВЫЙ USEEFFECT: Очистка QR сканеров при переключении вкладок/секций
   useEffect(() => {
     console.log(`🔄 Переключение на секцию: ${activeSection}, вкладка: ${activeTab}`);
