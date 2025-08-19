@@ -29309,7 +29309,7 @@ function App() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <p className="font-medium">Статус груза</p>
                   <p className="text-blue-600">{getStatusText(scannedCargoInfo.status)}</p>
