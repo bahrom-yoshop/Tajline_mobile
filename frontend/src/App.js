@@ -11674,7 +11674,7 @@ function App() {
   const addCargoItem = () => {
     setOperatorCargoForm({
       ...operatorCargoForm,
-      cargo_items: [...operatorCargoForm.cargo_items, { cargo_name: '', weight: '', price_per_kg: '' }]
+      cargo_items: [...operatorCargoForm.cargo_items, { cargo_name: '', quantity: 1, weight: '', price_per_kg: '', total_amount: '' }]
     });
   };
 
