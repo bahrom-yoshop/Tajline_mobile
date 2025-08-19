@@ -18034,7 +18034,7 @@ function App() {
                                       )}
                                     </div>
                                     
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                                       <div>
                                         <Label>Название груза</Label>
                                         <Input
@@ -18053,6 +18053,18 @@ function App() {
                                         />
                                       </div>
                                       <div>
+                                        <Label>Количество</Label>
+                                        <Input
+                                          type="number"
+                                          min="1"
+                                          step="1"
+                                          value={item.quantity || 1}
+                                          onChange={(e) => updateCargoItem(index, 'quantity', e.target.value)}
+                                          placeholder="1"
+                                          required
+                                        />
+                                      </div>
+                                      <div>
                                         <Label>Вес (кг)</Label>
                                         <Input
                                           type="number"
@@ -18060,20 +18072,32 @@ function App() {
                                           min="0"
                                           value={item.weight}
                                           onChange={(e) => updateCargoItem(index, 'weight', e.target.value)}
-                                          placeholder="10.5"
+                                          placeholder="1.0"
                                           required
                                         />
                                       </div>
                                       <div>
-                                        <Label>Цена за кг (руб.)</Label>
+                                        <Label>Цена за кг (₽)</Label>
                                         <Input
                                           type="number"
                                           step="0.01"
                                           min="0"
                                           value={item.price_per_kg}
                                           onChange={(e) => updateCargoItem(index, 'price_per_kg', e.target.value)}
-                                          placeholder="100"
+                                          placeholder="50.00"
                                           required
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label>Общая сумма (₽)</Label>
+                                        <Input
+                                          type="number"
+                                          step="0.01"
+                                          min="0"
+                                          value={item.total_amount || '0.00'}
+                                          readOnly
+                                          className="bg-gray-100"
+                                          placeholder="0.00"
                                         />
                                       </div>
                                     </div>
