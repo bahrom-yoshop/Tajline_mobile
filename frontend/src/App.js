@@ -21759,7 +21759,7 @@ function App() {
                                     <Package className="w-4 h-4 mr-1" />
                                     Информация о грузе
                                   </h4>
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm text-gray-600">
                                     <div>
                                       <p><strong>Название:</strong> {order.cargo_name}</p>
                                       <p><strong>Описание:</strong> {order.description}</p>
