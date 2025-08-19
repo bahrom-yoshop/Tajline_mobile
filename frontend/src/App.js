@@ -5967,6 +5967,52 @@ function App() {
     setBulkCitiesText('');
   };
 
+  // НОВЫЕ ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ ФОРМОЙ ПРИЁМА ГРУЗА
+  
+  // Загрузить все города из всех складов
+  const fetchAllWarehouseCities = async () => {
+    try {
+      setAllCitiesLoading(true);
+      const response = await apiCall('/api/warehouses/all-cities');
+      setAllWarehouseCities(response.cities || []);
+    } catch (error) {
+      console.error('Error fetching all warehouse cities:', error);
+      showAlert(`Ошибка загрузки городов: ${error.message}`, 'error');
+    } finally {
+      setAllCitiesLoading(false);
+    }
+  };
+
+  // Обработка выбора города доставки
+  const handleDeliveryCityChange = (cityName) => {
+    setSelectedDeliveryCity(cityName);
+    setSelectedDeliveryWarehouse(''); // Очищаем выбранный склад
+    
+    // Находим доступные склады для выбранного города
+    const cityData = allWarehouseCities.find(city => city.city_name === cityName);
+    if (cityData) {
+      setAvailableWarehousesForCity(cityData.available_warehouses || []);
+    } else {
+      setAvailableWarehousesForCity([]);
+    }
+  };
+
+  // Обработка выбора склада для доставки
+  const handleDeliveryWarehouseChange = (warehouseId) => {
+    setSelectedDeliveryWarehouse(warehouseId);
+    
+    // Обновляем operatorCargoForm
+    const warehouseInfo = availableWarehousesForCity.find(w => w.warehouse_id === warehouseId);
+    if (warehouseInfo) {
+      setOperatorCargoForm(prev => ({
+        ...prev,
+        destination_warehouse_id: warehouseId,
+        destination_warehouse_name: warehouseInfo.warehouse_name,
+        delivery_city: selectedDeliveryCity
+      }));
+    }
+  };
+
   // Очистка всех камер при размонтировании компонента - улучшенная версия
   useEffect(() => {
     return () => {
