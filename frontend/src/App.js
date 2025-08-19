@@ -33602,6 +33602,164 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* МОДАЛЬНОЕ ОКНО УПРАВЛЕНИЯ ГОРОДАМИ СКЛАДА */}
+      <Dialog open={showWarehouseCitiesModal} onOpenChange={setShowWarehouseCitiesModal}>
+        <DialogContent className="w-full max-w-4xl max-h-[95vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <MapPin className="mr-2 h-5 w-5" />
+              Управление городами доставки: {selectedWarehouseForCities?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Добавление и управление списком городов для выдачи груза с этого склада
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Информация о складе */}
+            {selectedWarehouseForCities && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-lg">
+                    <Building className="mr-2 h-5 w-5" />
+                    Информация о складе
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Название:</p>
+                      <p className="font-semibold">{selectedWarehouseForCities.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Местоположение:</p>
+                      <p className="font-semibold">{selectedWarehouseForCities.location}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Добавить один город */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <Plus className="mr-2 h-5 w-5" />
+                  Добавить город
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-3">
+                  <Input
+                    placeholder="Введите название города..."
+                    value={newCityName}
+                    onChange={(e) => setNewCityName(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && addWarehouseCity()}
+                    className="flex-1"
+                  />
+                  <Button 
+                    onClick={addWarehouseCity}
+                    disabled={citiesLoading || !newCityName.trim()}
+                  >
+                    {citiesLoading ? 'Добавление...' : 'Добавить'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Массовое добавление городов */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <Grid className="mr-2 h-5 w-5" />
+                  Массовое добавление городов
+                </CardTitle>
+                <CardDescription>
+                  Введите названия городов через запятую, точку с запятой или с новой строки
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <textarea
+                    placeholder="Пример:&#10;Душанбе, Худжанд, Куляб&#10;Курган-Тюбе; Истаравшан&#10;Турсунзаде"
+                    value={bulkCitiesText}
+                    onChange={(e) => setBulkCitiesText(e.target.value)}
+                    rows={4}
+                    className="w-full p-3 border border-gray-300 rounded-md resize-y focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <Button 
+                    onClick={addWarehouseCitiesBulk}
+                    disabled={citiesLoading || !bulkCitiesText.trim()}
+                    className="w-full"
+                  >
+                    {citiesLoading ? 'Добавление...' : 'Массовое добавление'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Список текущих городов */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <List className="mr-2 h-5 w-5" />
+                  Текущие города доставки ({warehouseCities.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {citiesLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className="text-gray-500">Загрузка списка городов...</p>
+                  </div>
+                ) : warehouseCities.length === 0 ? (
+                  <div className="text-center py-8">
+                    <MapPin className="mx-auto h-12 w-12 text-gray-400 mb-2" />
+                    <p className="text-gray-500 mb-2">Нет добавленных городов</p>
+                    <p className="text-sm text-gray-400">
+                      Добавьте города, в которые этот склад может доставлять грузы
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {warehouseCities.map((city, index) => (
+                      <div 
+                        key={index} 
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                      >
+                        <div className="flex items-center">
+                          <MapPin className="h-4 w-4 text-green-600 mr-2" />
+                          <span className="font-medium">{city}</span>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeWarehouseCity(city)}
+                          disabled={citiesLoading}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Кнопки управления */}
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+              <Button 
+                variant="outline" 
+                onClick={closeWarehouseCitiesModal}
+              >
+                Закрыть
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
