@@ -3593,7 +3593,7 @@ function App() {
     description: '',
     route: 'moscow_to_tajikistan',
     // Новые поля для множественных грузов с индивидуальными ценами
-    cargo_items: [{ cargo_name: '', weight: '', price_per_kg: '' }],  // Каждый груз имеет свою цену
+    cargo_items: [{ cargo_name: '', quantity: 1, weight: '', price_per_kg: '', total_amount: '' }],  // Каждый груз имеет свою цену + количество и общую сумму
     price_per_kg: '',  // Общая цена за кг (для совместимости)
     use_multi_cargo: true,  // Флаг для переключения между режимами (включён по умолчанию)
     // НОВЫЕ ПОЛЯ ДЛЯ УЛУЧШЕННОЙ СИСТЕМЫ
