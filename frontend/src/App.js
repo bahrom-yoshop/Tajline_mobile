@@ -33463,6 +33463,222 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ ПРИЁМА ГРУЗА */}
+      <Dialog open={showCargoConfirmationModal} onOpenChange={setShowCargoConfirmationModal}>
+        <DialogContent className="w-full max-w-6xl max-h-[95vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Package className="mr-2 h-5 w-5" />
+              Подтверждение приёма груза
+            </DialogTitle>
+            <DialogDescription>
+              Проверьте все данные перед окончательным приёмом груза
+            </DialogDescription>
+          </DialogHeader>
+          
+          {confirmationCargoData && (
+            <div className="space-y-6">
+              {/* Информация об отправителе и получателе */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center">
+                      <User className="mr-2 h-4 w-4" />
+                      Отправитель
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div>
+                        <span className="text-sm text-gray-600">ФИО:</span>
+                        <p className="font-semibold">{confirmationCargoData.sender_info.full_name}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-600">Телефон:</span>
+                        <p className="font-semibold">{confirmationCargoData.sender_info.phone}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center">
+                      <User className="mr-2 h-4 w-4" />
+                      Получатель
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div>
+                        <span className="text-sm text-gray-600">ФИО:</span>
+                        <p className="font-semibold">{confirmationCargoData.recipient_info.full_name}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-600">Телефон:</span>
+                        <p className="font-semibold">{confirmationCargoData.recipient_info.phone}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-600">Адрес:</span>
+                        <p className="font-semibold">{confirmationCargoData.recipient_info.address}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Информация о доставке */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center">
+                    <MapPin className="mr-2 h-4 w-4" />
+                    Информация о доставке
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <span className="text-sm text-gray-600">Город выдачи:</span>
+                      <p className="font-semibold">{confirmationCargoData.delivery_info.city}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-600">Склад:</span>
+                      <p className="font-semibold">{confirmationCargoData.delivery_info.warehouse}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-600">Способ получения:</span>
+                      <p className="font-semibold">
+                        {confirmationCargoData.delivery_info.method === 'pickup' ? 'Самовывоз' :
+                         confirmationCargoData.delivery_info.method === 'city_delivery' ? 'Доставка до города получателя' :
+                         confirmationCargoData.delivery_info.method === 'home_delivery' ? 'Доставка до дома' : confirmationCargoData.delivery_info.method}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Список грузов */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center">
+                    <Package className="mr-2 h-4 w-4" />
+                    Список грузов ({confirmationCargoData.cargo_items.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {confirmationCargoData.cargo_items.map((item, index) => (
+                      <div key={index} className="p-4 bg-gray-50 rounded-lg border">
+                        <div className="flex justify-between items-center mb-3">
+                          <h4 className="font-medium text-gray-900">Груз #{index + 1}: {item.name}</h4>
+                          <span className="text-lg font-bold text-green-600">{item.total_amount.toFixed(2)} ₽</span>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">Количество:</span>
+                            <p className="font-semibold">{item.quantity} шт</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Вес за единицу:</span>
+                            <p className="font-semibold">{item.weight} кг</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Цена за кг:</span>
+                            <p className="font-semibold">{item.price_per_kg.toFixed(2)} ₽</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Общий вес:</span>
+                            <p className="font-semibold">{(item.quantity * item.weight).toFixed(1)} кг</p>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-xs text-gray-500">
+                          Расчёт: {item.quantity}шт × {item.weight}кг × {item.price_per_kg.toFixed(2)}₽/кг = {item.total_amount.toFixed(2)}₽
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Итоги */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center">
+                    <Calculator className="mr-2 h-4 w-4" />
+                    Итого
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg border">
+                      <div className="text-sm text-blue-600">Общий вес</div>
+                      <div className="text-2xl font-bold text-blue-600">{confirmationCargoData.totals.total_weight.toFixed(1)} кг</div>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg border">
+                      <div className="text-sm text-green-600">Общая сумма</div>
+                      <div className="text-2xl font-bold text-green-600">{confirmationCargoData.totals.total_cost.toFixed(2)} ₽</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* QR коды (если сгенерированы) */}
+              {generatedQRCodes.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center">
+                      <QrCode className="mr-2 h-4 w-4" />
+                      Сгенерированные QR коды ({generatedQRCodes.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {generatedQRCodes.map((qr, index) => (
+                        <div key={index} className="p-3 bg-white border rounded-lg text-center">
+                          <div className="font-mono text-sm text-gray-600 mb-1">{qr.id}</div>
+                          <div className="text-xs text-gray-500">{qr.cargo_name}</div>
+                          <div className="text-xs text-gray-500">
+                            {qr.item_number} из {qr.total_items}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Кнопки управления */}
+              <div className="flex justify-end space-x-3 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={closeCargoConfirmationModal}
+                  disabled={qrGenerationInProgress}
+                >
+                  Отмена
+                </Button>
+                <Button 
+                  onClick={handleConfirmCargoAcceptance}
+                  disabled={qrGenerationInProgress}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {qrGenerationInProgress ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Генерация QR кодов...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Подтвердить приём груза
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
