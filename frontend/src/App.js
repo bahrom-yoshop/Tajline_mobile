@@ -11832,6 +11832,118 @@ function App() {
     }
   };
 
+  // НОВАЯ ФУНКЦИЯ: Фактическая отправка груза после подтверждения
+  const handleConfirmCargoAcceptance = async () => {
+    try {
+      setQrGenerationInProgress(true);
+      
+      // Получаем данные из подтвержденной формы
+      const data = confirmationCargoData;
+      
+      // Подготавливаем данные для отправки как раньше
+      let selectedWarehouseId = operatorWarehouses.length > 0 ? operatorWarehouses[0].id : null;
+      
+      const requestData = {
+        sender_full_name: data.sender_info.full_name,
+        sender_phone: data.sender_info.phone,
+        recipient_full_name: data.recipient_info.full_name,
+        recipient_phone: data.recipient_info.phone,
+        recipient_address: data.recipient_info.address,
+        description: operatorCargoForm.description,
+        route: operatorCargoForm.route,
+        cargo_items: data.cargo_items.map(item => ({
+          cargo_name: item.name,
+          quantity: item.quantity,
+          weight: item.weight,
+          price_per_kg: item.price_per_kg,
+          total_amount: item.total_amount
+        })),
+        warehouse_id: selectedWarehouseId,
+        delivery_city: data.delivery_info.city,
+        delivery_warehouse_id: selectedDeliveryWarehouse,
+        payment_method: data.payment_info.method,
+        payment_amount: data.payment_info.amount ? parseFloat(data.payment_info.amount) : null,
+        debt_due_date: data.payment_info.due_date || null,
+        delivery_method: data.delivery_info.method
+      };
+      
+      // Отправляем данные в backend
+      const response = await apiCall('/api/operator/cargo/accept', 'POST', requestData);
+      
+      // Генерируем QR коды для каждой единицы груза
+      const qrCodes = [];
+      const application_number = response.cargo_number || '000000000';
+      
+      data.cargo_items.forEach((item, cargoIndex) => {
+        const cargo_id = `${application_number}/${String(cargoIndex + 1).padStart(2, '0')}`;
+        
+        for (let i = 1; i <= item.quantity; i++) {
+          const item_id = `${cargo_id}/${i}`;
+          qrCodes.push({
+            id: item_id,
+            cargo_name: item.name,
+            cargo_index: cargoIndex + 1,
+            item_number: i,
+            total_items: item.quantity,
+            qr_code: `QR_CODE_${item_id}` // В реальности здесь будет настоящий QR код
+          });
+        }
+      });
+      
+      setGeneratedQRCodes(qrCodes);
+      setQrGenerationInProgress(false);
+      
+      showAlert('Груз успешно принят и QR коды сгенерированы!', 'success');
+      
+      // Сброс формы
+      const warehouseId = operatorWarehouses.length === 1 ? operatorWarehouses[0].id : '';
+      setOperatorCargoForm({
+        sender_full_name: '',
+        sender_phone: '',
+        recipient_full_name: '',
+        recipient_phone: '',
+        recipient_address: '',
+        weight: '',
+        cargo_name: '',
+        declared_value: '',
+        description: '',
+        route: 'moscow_to_tajikistan',
+        cargo_items: [{ cargo_name: '', quantity: 1, weight: '', price_per_kg: '', total_amount: '' }],
+        price_per_kg: '',
+        use_multi_cargo: true,
+        warehouse_id: warehouseId,
+        payment_method: 'not_paid',
+        payment_amount: '',
+        debt_due_date: '',
+        delivery_method: 'pickup'
+      });
+      
+      // Сброс состояний
+      setSelectedDeliveryCity('');
+      setSelectedDeliveryWarehouse('');
+      setCitySearchQuery('');
+      setTotalWeight(0);
+      setTotalCost(0);
+      setCargoBreakdown([]);
+      
+      fetchOperatorCargo();
+      fetchAvailableCargo();
+      
+    } catch (error) {
+      console.error('Error confirming cargo acceptance:', error);
+      showAlert(`Ошибка при создании груза: ${error.message}`, 'error');
+      setQrGenerationInProgress(false);
+    }
+  };
+
+  // Закрыть модальное окно подтверждения
+  const closeCargoConfirmationModal = () => {
+    setShowCargoConfirmationModal(false);
+    setConfirmationCargoData(null);
+    setGeneratedQRCodes([]);
+    setQrGenerationInProgress(false);
+  };
+
   // НОВАЯ ФУНКЦИЯ: Отправка груза курьером
   const handleSendToCourier = async () => {
     if (!operatorCargoForm.pickup_required) {
