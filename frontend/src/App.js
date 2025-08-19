@@ -18348,6 +18348,42 @@ function App() {
                             </select>
                           </div>
 
+                          {/* Склад для размещения груза (только для админа) */}
+                          {user?.role === 'admin' && (
+                            <div>
+                              <Label htmlFor="placement_warehouse">Склад для размещения груза *</Label>
+                              <select
+                                id="placement_warehouse"
+                                value={operatorCargoForm.warehouse_id}
+                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, warehouse_id: e.target.value})}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                              >
+                                <option value="">Выберите склад</option>
+                                {warehouses.map((warehouse) => (
+                                  <option key={warehouse.id} value={warehouse.id}>
+                                    {warehouse.name} - {warehouse.location}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
+                          {/* Информация о выбранном складе для оператора */}
+                          {user?.role === 'warehouse_operator' && operatorWarehouses.length > 0 && (
+                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                              <Label className="text-sm font-medium text-blue-800">Склад для размещения груза</Label>
+                              <div className="mt-1">
+                                <span className="font-semibold text-blue-900">
+                                  {operatorWarehouses[0]?.name} - {operatorWarehouses[0]?.location}
+                                </span>
+                              </div>
+                              <p className="text-xs text-blue-600 mt-1">
+                                Автоматически выбран склад, к которому вы привязаны
+                              </p>
+                            </div>
+                          )}
+
                           {/* Кнопки действий - показываем только в обычном режиме */}
                           <div className="flex flex-col gap-4">
                             {/* Кнопки действий */}
