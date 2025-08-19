@@ -3679,6 +3679,14 @@ function App() {
   const [cellQRResults, setCellQRResults] = useState([]);
   const [cellQRLoading, setCellQRLoading] = useState(false);
   
+  // Warehouse cities management states
+  const [showWarehouseCitiesModal, setShowWarehouseCitiesModal] = useState(false);
+  const [selectedWarehouseForCities, setSelectedWarehouseForCities] = useState(null);
+  const [warehouseCities, setWarehouseCities] = useState([]);
+  const [citiesLoading, setCitiesLoading] = useState(false);
+  const [newCityName, setNewCityName] = useState('');
+  const [bulkCitiesText, setBulkCitiesText] = useState('');
+  
   // Manual placement states
   const [manualCargoNumber, setManualCargoNumber] = useState('');
   const [manualCellCode, setManualCellCode] = useState('');
