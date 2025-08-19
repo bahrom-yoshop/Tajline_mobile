@@ -17227,20 +17227,6 @@ function App() {
                               <Truck className="mr-2 h-4 w-4" />
                               Забор груза
                             </Button>
-                            
-                            {/* НОВАЯ кнопка для приёма груза через оператора */}
-                            <Button
-                              type="button"
-                              onClick={() => setShowOperatorCargoForm(!showOperatorCargoForm)}
-                              variant={showOperatorCargoForm ? "default" : "outline"}
-                              className={`${showOperatorCargoForm 
-                                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                                : 'border-blue-300 text-blue-700 hover:bg-blue-100'
-                              }`}
-                            >
-                              <Package className="mr-2 h-4 w-4" />
-                              Принимать Груз на склад
-                            </Button>
                           </div>
                         </CardTitle>
                         <CardDescription>
