@@ -3693,6 +3693,9 @@ function App() {
   const [selectedDeliveryWarehouse, setSelectedDeliveryWarehouse] = useState('');
   const [availableWarehousesForCity, setAvailableWarehousesForCity] = useState([]);
   const [allCitiesLoading, setAllCitiesLoading] = useState(false);
+  const [citySearchQuery, setCitySearchQuery] = useState('');
+  const [filteredCities, setFilteredCities] = useState([]);
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
   
   // Manual placement states
   const [manualCargoNumber, setManualCargoNumber] = useState('');
