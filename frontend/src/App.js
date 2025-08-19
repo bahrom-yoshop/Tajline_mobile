@@ -18169,7 +18169,7 @@ function App() {
                                   <div className="bg-white p-3 rounded border">
                                     <div className="text-sm text-gray-600">Общая стоимость</div>
                                     <div className="text-2xl font-bold text-green-600">
-                                      {totalCost.toFixed(2)} руб
+                                      {totalCost.toFixed(2)} ₽
                                     </div>
                                   </div>
                                 </div>
