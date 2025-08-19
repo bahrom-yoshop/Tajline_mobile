@@ -5821,6 +5821,145 @@ function App() {
     }
   };
 
+  // НОВЫЕ ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ ГОРОДАМИ СКЛАДОВ
+  
+  // Открыть модальное окно для управления городами склада
+  const openWarehouseCitiesManagement = async (warehouse) => {
+    try {
+      setSelectedWarehouseForCities(warehouse);
+      setCitiesLoading(true);
+      setShowWarehouseCitiesModal(true);
+      
+      // Загружаем текущий список городов
+      const response = await apiCall(`/api/warehouses/${warehouse.id}/cities`);
+      setWarehouseCities(response.cities || []);
+      
+    } catch (error) {
+      console.error('Error loading warehouse cities:', error);
+      showAlert(`Ошибка загрузки городов склада: ${error.message}`, 'error');
+    } finally {
+      setCitiesLoading(false);
+    }
+  };
+
+  // Добавить один город к складу
+  const addWarehouseCity = async () => {
+    if (!newCityName.trim()) {
+      showAlert('Введите название города', 'warning');
+      return;
+    }
+
+    try {
+      setCitiesLoading(true);
+      
+      const response = await apiCall(
+        `/api/warehouses/${selectedWarehouseForCities.id}/cities`,
+        'POST',
+        { city_name: newCityName.trim() }
+      );
+      
+      if (response && response.message) {
+        showAlert(response.message, 'success');
+        setNewCityName(''); // Очистить поле ввода
+        
+        // Обновить список городов
+        const updatedResponse = await apiCall(`/api/warehouses/${selectedWarehouseForCities.id}/cities`);
+        setWarehouseCities(updatedResponse.cities || []);
+      }
+    } catch (error) {
+      console.error('Error adding city to warehouse:', error);
+      showAlert(`Ошибка добавления города: ${error.message}`, 'error');
+    } finally {
+      setCitiesLoading(false);
+    }
+  };
+
+  // Массовое добавление городов к складу
+  const addWarehouseCitiesBulk = async () => {
+    const citiesText = bulkCitiesText.trim();
+    if (!citiesText) {
+      showAlert('Введите названия городов', 'warning');
+      return;
+    }
+
+    // Разбиваем текст на отдельные города (по запятым, точкам с запятой или новым строкам)
+    const cityNames = citiesText
+      .split(/[,;\n]/)
+      .map(city => city.trim())
+      .filter(city => city.length > 0);
+
+    if (cityNames.length === 0) {
+      showAlert('Не найдено валидных названий городов', 'warning');
+      return;
+    }
+
+    try {
+      setCitiesLoading(true);
+      
+      const response = await apiCall(
+        `/api/warehouses/${selectedWarehouseForCities.id}/cities/bulk`,
+        'POST',
+        { city_names: cityNames }
+      );
+      
+      if (response && response.message) {
+        const summary = `${response.message}. Добавлено: ${response.added_count}, пропущено: ${response.skipped_count}`;
+        showAlert(summary, 'success');
+        setBulkCitiesText(''); // Очистить поле ввода
+        
+        // Обновить список городов
+        const updatedResponse = await apiCall(`/api/warehouses/${selectedWarehouseForCities.id}/cities`);
+        setWarehouseCities(updatedResponse.cities || []);
+      }
+    } catch (error) {
+      console.error('Error bulk adding cities to warehouse:', error);
+      showAlert(`Ошибка массового добавления городов: ${error.message}`, 'error');
+    } finally {
+      setCitiesLoading(false);
+    }
+  };
+
+  // Удалить город из склада
+  const removeWarehouseCity = async (cityName) => {
+    const confirmDelete = window.confirm(
+      `Вы уверены, что хотите удалить город "${cityName}" из списка доставки этого склада?`
+    );
+    
+    if (!confirmDelete) return;
+
+    try {
+      setCitiesLoading(true);
+      
+      const response = await apiCall(
+        `/api/warehouses/${selectedWarehouseForCities.id}/cities`,
+        'DELETE',
+        { city_name: cityName }
+      );
+      
+      if (response && response.message) {
+        showAlert(response.message, 'success');
+        
+        // Обновить список городов
+        const updatedResponse = await apiCall(`/api/warehouses/${selectedWarehouseForCities.id}/cities`);
+        setWarehouseCities(updatedResponse.cities || []);
+      }
+    } catch (error) {
+      console.error('Error removing city from warehouse:', error);
+      showAlert(`Ошибка удаления города: ${error.message}`, 'error');
+    } finally {
+      setCitiesLoading(false);
+    }
+  };
+
+  // Закрыть модальное окно управления городами
+  const closeWarehouseCitiesModal = () => {
+    setShowWarehouseCitiesModal(false);
+    setSelectedWarehouseForCities(null);
+    setWarehouseCities([]);
+    setNewCityName('');
+    setBulkCitiesText('');
+  };
+
   // Очистка всех камер при размонтировании компонента - улучшенная версия
   useEffect(() => {
     return () => {
