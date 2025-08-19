@@ -4839,13 +4839,15 @@ async def create_warehouse(
         warehouse_id_number=warehouse_id_number,
         name=warehouse_data.name,
         location=warehouse_data.location,
+        address=warehouse_data.address,
         blocks_count=warehouse_data.blocks_count,
         shelves_per_block=warehouse_data.shelves_per_block,
         cells_per_shelf=warehouse_data.cells_per_shelf,
         total_capacity=total_capacity,
         created_by=current_user.id,
         created_at=warehouse["created_at"],
-        is_active=True
+        is_active=True,
+        delivery_cities=warehouse_data.delivery_cities or []
     )
 
 @app.get("/api/warehouses")
