@@ -18256,6 +18256,22 @@ function App() {
                             </div>
                           )}
 
+                          {/* Способ получения груза */}
+                          <div>
+                            <Label htmlFor="delivery_method">Способ получения груза *</Label>
+                            <select
+                              id="delivery_method"
+                              value={operatorCargoForm.delivery_method}
+                              onChange={(e) => setOperatorCargoForm({...operatorCargoForm, delivery_method: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              required
+                            >
+                              <option value="pickup">Самовывоз</option>
+                              <option value="city_delivery">Доставка до города получателя</option>
+                              <option value="home_delivery">Доставка до дома</option>
+                            </select>
+                          </div>
+
                           {/* Кнопки действий - показываем только в обычном режиме */}
                           <div className="flex flex-col gap-4">
                             {/* Кнопки печати */}
