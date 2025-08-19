@@ -5989,13 +5989,50 @@ function App() {
   // Обработка выбора города доставки
   const handleDeliveryCityChange = (cityName) => {
     setSelectedDeliveryCity(cityName);
+    setCitySearchQuery(cityName);
     setSelectedDeliveryWarehouse(''); // Очищаем выбранный склад
+    setShowCityDropdown(false);
     
     // Находим доступные склады для выбранного города
     const cityData = allWarehouseCities.find(city => city.city_name === cityName);
     if (cityData) {
       setAvailableWarehousesForCity(cityData.available_warehouses || []);
     } else {
+      setAvailableWarehousesForCity([]);
+    }
+  };
+
+  // Обработка поиска городов (автодополнение)
+  const handleCitySearchChange = (query) => {
+    setCitySearchQuery(query);
+    
+    if (query.length === 0) {
+      setFilteredCities([]);
+      setShowCityDropdown(false);
+      setSelectedDeliveryCity('');
+      setSelectedDeliveryWarehouse('');
+      setAvailableWarehousesForCity([]);
+      return;
+    }
+    
+    // Фильтруем города по введенному тексту
+    const filtered = allWarehouseCities.filter(cityData => 
+      cityData.city_name.toLowerCase().includes(query.toLowerCase())
+    );
+    
+    setFilteredCities(filtered);
+    setShowCityDropdown(filtered.length > 0);
+    
+    // Если точное совпадение найдено, автоматически выбираем город
+    const exactMatch = allWarehouseCities.find(cityData => 
+      cityData.city_name.toLowerCase() === query.toLowerCase()
+    );
+    
+    if (exactMatch) {
+      setSelectedDeliveryCity(exactMatch.city_name);
+      setAvailableWarehousesForCity(exactMatch.available_warehouses || []);
+    } else {
+      setSelectedDeliveryCity('');
       setAvailableWarehousesForCity([]);
     }
   };
