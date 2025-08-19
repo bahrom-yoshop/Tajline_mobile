@@ -11765,6 +11765,8 @@ function App() {
 
   const handleAcceptCargo = async (e) => {
     e.preventDefault();
+    
+    // Подготавливаем данные и показываем модальное окно подтверждения
     try {
       // Проверяем и устанавливаем warehouse_id
       let selectedWarehouseId = operatorCargoForm.warehouse_id;
@@ -11787,7 +11789,48 @@ function App() {
         return;
       }
       
-      let requestData;
+      // Подготавливаем данные для подтверждения
+      const confirmationData = {
+        sender_info: {
+          full_name: operatorCargoForm.sender_full_name,
+          phone: operatorCargoForm.sender_phone
+        },
+        recipient_info: {
+          full_name: operatorCargoForm.recipient_full_name,
+          phone: operatorCargoForm.recipient_phone,
+          address: operatorCargoForm.recipient_address
+        },
+        delivery_info: {
+          city: selectedDeliveryCity,
+          warehouse: availableWarehousesForCity.find(w => w.warehouse_id === selectedDeliveryWarehouse)?.warehouse_name || 'Не выбран',
+          method: operatorCargoForm.delivery_method
+        },
+        cargo_items: operatorCargoForm.cargo_items.map(item => ({
+          name: item.cargo_name,
+          quantity: parseInt(item.quantity) || 1,
+          weight: parseFloat(item.weight) || 0,
+          price_per_kg: parseFloat(item.price_per_kg) || 0,
+          total_amount: parseFloat(item.total_amount) || 0
+        })),
+        payment_info: {
+          method: operatorCargoForm.payment_method,
+          amount: operatorCargoForm.payment_amount,
+          due_date: operatorCargoForm.debt_due_date
+        },
+        totals: {
+          total_weight: totalWeight,
+          total_cost: totalCost
+        }
+      };
+      
+      setConfirmationCargoData(confirmationData);
+      setShowCargoConfirmationModal(true);
+      
+    } catch (error) {
+      console.error('Error preparing cargo confirmation:', error);
+      showAlert(`Ошибка при подготовке данных: ${error.message}`, 'error');
+    }
+  };
       
       if (operatorCargoForm.use_multi_cargo) {
         // Новый режим с множественными грузами и индивидуальными ценами
