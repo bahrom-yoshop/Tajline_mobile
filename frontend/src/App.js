@@ -33573,7 +33573,7 @@ function App() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <span className="text-sm text-gray-600">Город выдачи:</span>
                       <p className="font-semibold">{confirmationCargoData.delivery_info.city}</p>
