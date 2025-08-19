@@ -18150,7 +18150,7 @@ function App() {
                                             </span>
                                           </div>
                                           <div className="text-xs text-gray-500 mt-1">
-                                            {item.weight.toFixed(1)} кг × {item.pricePerKg.toFixed(2)} руб/кг
+                                            {item.quantity}шт × {(item.weight/item.quantity).toFixed(1)} кг × {item.pricePerKg.toFixed(2)} руб/кг
                                           </div>
                                         </div>
                                       ))}
