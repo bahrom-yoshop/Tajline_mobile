@@ -17862,7 +17862,7 @@ function App() {
                                   <span className="text-sm text-gray-500">Загрузка городов...</span>
                                 </div>
                               ) : (
-                                <div className="relative">
+                                <div className="relative city-autocomplete">
                                   <Input
                                     id="delivery_city"
                                     type="text"
