@@ -27719,7 +27719,7 @@ function App() {
                   <Calculator className="mr-2 h-4 w-4" />
                   Расчет стоимости
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600">
                       {adminRepeatOrderTotalWeight.toFixed(2)} кг
