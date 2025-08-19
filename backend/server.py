@@ -13730,6 +13730,57 @@ async def delete_warehouse_city(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error removing city from warehouse: {str(e)}")
 
+@app.get("/api/warehouses/all-cities")
+async def get_all_warehouse_cities(current_user: User = Depends(get_current_user)):
+    """Получить все уникальные города из всех складов для выбора в форме"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        # Получаем все склады
+        warehouses = list(db.warehouses.find({"is_active": True}))
+        
+        # Собираем все города и информацию о складах
+        cities_with_warehouses = {}  # city_name -> [warehouse_info, ...]
+        
+        for warehouse in warehouses:
+            cities = warehouse.get("delivery_cities", [])
+            warehouse_info = {
+                "warehouse_id": warehouse["id"],
+                "warehouse_name": warehouse["name"],
+                "warehouse_location": warehouse["location"],
+                "warehouse_id_number": warehouse.get("warehouse_id_number", "000")
+            }
+            
+            for city in cities:
+                city = city.strip()
+                if city:
+                    if city not in cities_with_warehouses:
+                        cities_with_warehouses[city] = []
+                    cities_with_warehouses[city].append(warehouse_info)
+        
+        # Формируем ответ
+        result = []
+        for city_name, warehouses_list in cities_with_warehouses.items():
+            result.append({
+                "city_name": city_name,
+                "available_warehouses": warehouses_list,
+                "warehouses_count": len(warehouses_list)
+            })
+        
+        # Сортируем по названию города
+        result.sort(key=lambda x: x["city_name"])
+        
+        return {
+            "cities": result,
+            "total_cities": len(result),
+            "total_warehouses_with_cities": len(warehouses)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching all warehouse cities: {str(e)}")
+
 # НОВЫЕ ENDPOINTS ДЛЯ КУРЬЕРСКОЙ СЛУЖБЫ (ЭТАП 1)
 
 @app.post("/api/admin/couriers/create")
