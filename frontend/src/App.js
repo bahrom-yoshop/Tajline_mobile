@@ -11693,13 +11693,22 @@ function App() {
     const newItems = [...operatorCargoForm.cargo_items];
     newItems[index] = { ...newItems[index], [field]: value };
     
+    // Автоматически пересчитываем total_amount если изменились количество, вес или цена
+    if (field === 'quantity' || field === 'weight' || field === 'price_per_kg') {
+      const item = newItems[index];
+      const quantity = parseFloat(item.quantity) || 0;
+      const weight = parseFloat(item.weight) || 0;
+      const pricePerKg = parseFloat(item.price_per_kg) || 0;
+      newItems[index].total_amount = (quantity * weight * pricePerKg).toFixed(2);
+    }
+    
     setOperatorCargoForm(prev => ({
       ...prev,
       cargo_items: newItems
     }));
     
     // Debounce пересчет итогов только для числовых полей
-    if (field === 'weight' || field === 'price_per_kg') {
+    if (field === 'quantity' || field === 'weight' || field === 'price_per_kg') {
       setTimeout(() => calculateTotalsWithIndividualPrices(newItems), 100);
     }
   };
