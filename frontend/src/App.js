@@ -23955,7 +23955,7 @@ function App() {
                   <MapPin className="mr-2 h-5 w-5 text-green-600" />
                   Получатель
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <Label htmlFor="recipient_full_name">ФИО получателя *</Label>
                     <Input
