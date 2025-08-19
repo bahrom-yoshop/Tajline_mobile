@@ -23915,7 +23915,7 @@ function App() {
                   <User className="mr-2 h-5 w-5 text-blue-600" />
                   Отправитель
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <Label htmlFor="sender_full_name">ФИО отправителя *</Label>
                     <Input
