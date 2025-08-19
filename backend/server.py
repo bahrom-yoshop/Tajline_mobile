@@ -4811,7 +4811,8 @@ async def create_warehouse(
         "total_capacity": total_capacity,
         "created_by": current_user.id,
         "created_at": datetime.utcnow(),
-        "is_active": True
+        "is_active": True,
+        "delivery_cities": warehouse_data.delivery_cities or []  # НОВОЕ: Список городов для выдачи груза
     }
     
     # Создаем склад
