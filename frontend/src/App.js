@@ -6000,10 +6000,25 @@ function App() {
     
     // Находим доступные склады для выбранного города
     const cityData = allWarehouseCities.find(city => city.city_name === cityName);
-    if (cityData) {
-      setAvailableWarehousesForCity(cityData.available_warehouses || []);
+    if (cityData && cityData.available_warehouses.length > 0) {
+      setAvailableWarehousesForCity(cityData.available_warehouses);
+      
+      // Автоматически выбираем первый доступный склад
+      const firstWarehouse = cityData.available_warehouses[0];
+      setSelectedDeliveryWarehouse(firstWarehouse.warehouse_id);
+      
+      // Обновляем operatorCargoForm
+      setOperatorCargoForm(prev => ({
+        ...prev,
+        destination_warehouse_id: firstWarehouse.warehouse_id,
+        destination_warehouse_name: firstWarehouse.warehouse_name,
+        delivery_city: cityName
+      }));
+      
+      console.log(`✅ Автоматически выбран склад: ${firstWarehouse.warehouse_name} для города ${cityName}`);
     } else {
       setAvailableWarehousesForCity([]);
+      console.log(`⚠️ Нет доступных складов для города ${cityName}`);
     }
   };
 
