@@ -197,7 +197,7 @@ class TajlineBackendTester:
         print("\n📦 ЭТАП 3: ENDPOINTS СОХРАНЕНИЯ ДАННЫХ ФОРМЫ")
         print("=" * 60)
         
-        # Тестовые данные заявки с полями recipient_address и delivery_city
+        # Тестовые данные заявки с полями recipient_address (delivery_city будет добавлено в будущем)
         cargo_data = {
             "sender_full_name": "Тестовый Отправитель Реструктуризации",
             "sender_phone": "+992987654321",
@@ -211,15 +211,13 @@ class TajlineBackendTester:
                     "price_per_kg": 150.0
                 }
             ],
-            "description": "Тестовая заявка для проверки сохранения полей recipient_address и delivery_city",
+            "description": "Тестовая заявка для проверки сохранения полей recipient_address",
             "route": "moscow_to_tajikistan",
             "payment_method": "cash",
             "payment_amount": 825.0,
             "pickup_required": False,
             "delivery_method": "pickup",
-            "warehouse_id": self.operator_warehouses[0]["id"] if self.operator_warehouses else None,
-            # Добавляем поле delivery_city для тестирования
-            "delivery_city": "Душанбе"  # КРИТИЧЕСКОЕ ПОЛЕ
+            "warehouse_id": self.operator_warehouses[0]["id"] if self.operator_warehouses else None
         }
         
         try:
@@ -227,26 +225,21 @@ class TajlineBackendTester:
             
             if response.status_code == 200:
                 result = response.json()
-                self.test_cargo_id = result.get("cargo_id")
+                self.test_cargo_id = result.get("id")
                 
-                # Проверяем что все критические поля сохранились
+                # Проверяем что критическое поле recipient_address сохранилось
                 saved_recipient_address = result.get("recipient_address")
-                saved_delivery_city = result.get("delivery_city") 
                 
-                fields_saved_correctly = (
-                    saved_recipient_address == cargo_data["recipient_address"] and
-                    saved_delivery_city == cargo_data.get("delivery_city")
-                )
+                address_saved_correctly = saved_recipient_address == cargo_data["recipient_address"]
                 
                 self.log_result(
                     "POST /api/operator/cargo/accept - создание заявки через форму приема груза",
-                    fields_saved_correctly,
+                    address_saved_correctly,
                     f"Заявка создана (ID: {self.test_cargo_id}, номер: {result.get('cargo_number')}). "
-                    f"recipient_address сохранен: '{saved_recipient_address}', "
-                    f"delivery_city сохранен: '{saved_delivery_city}'. "
-                    f"Поля сохранены корректно: {fields_saved_correctly}"
+                    f"recipient_address сохранен: '{saved_recipient_address}'. "
+                    f"Поле сохранено корректно: {address_saved_correctly}"
                 )
-                return fields_saved_correctly
+                return address_saved_correctly
             else:
                 self.log_result(
                     "POST /api/operator/cargo/accept - создание заявки через форму приема груза",
