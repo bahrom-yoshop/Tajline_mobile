@@ -275,36 +275,42 @@ class TajlineBackendTester:
             )
             return False
 
-    def test_cargo_accept_endpoint(self):
-        """7. КРИТИЧЕСКИЙ ENDPOINT СОХРАНЕНИЯ ДАННЫХ ФОРМЫ"""
-        print("💾 ТЕСТИРОВАНИЕ POST /api/operator/cargo/accept...")
+    def test_cargo_accept_endpoint_with_multiple_cargo_types(self):
+        """7. КРИТИЧЕСКИЙ ENDPOINT СОЗДАНИЯ ЗАЯВКИ С НЕСКОЛЬКИМИ ТИПАМИ ГРУЗА"""
+        print("💾 ТЕСТИРОВАНИЕ POST /api/operator/cargo/accept с несколькими типами груза...")
         
         try:
             headers = {"Authorization": f"Bearer {self.operator_token}"}
             
-            # Тестовые данные для создания заявки через обновленную форму
+            # Тестовые данные для создания заявки с 3 разными типами груза
+            # Это проверит правильность генерации QR кодов - один QR код на каждый тип груза
             cargo_data = {
-                "sender_full_name": "Тестовый Отправитель Форма",
+                "sender_full_name": "Тестовый Отправитель QR",
                 "sender_phone": "+79991234567",
-                "recipient_full_name": "Тестовый Получатель Форма",
+                "recipient_full_name": "Тестовый Получатель QR",
                 "recipient_phone": "+79997654321",
                 "recipient_address": "Душанбе, проспект Рудаки, 123",
-                "delivery_city": "Душанбе",
-                "delivery_warehouse_id": "test-warehouse-id",
                 "cargo_items": [
                     {
-                        "cargo_name": "Тестовый груз 1",
-                        "weight": 5.0,
-                        "price_per_kg": 100.0
+                        "cargo_name": "Электроника (телевизор)",
+                        "weight": 15.0,
+                        "price_per_kg": 200.0
                     },
                     {
-                        "cargo_name": "Тестовый груз 2", 
-                        "weight": 3.0,
+                        "cargo_name": "Одежда (зимние куртки)", 
+                        "weight": 8.0,
                         "price_per_kg": 150.0
+                    },
+                    {
+                        "cargo_name": "Продукты питания (сухофрукты)",
+                        "weight": 5.0,
+                        "price_per_kg": 300.0
                     }
                 ],
-                "description": "Тестовая заявка через обновленную форму",
-                "route": "moscow_to_tajikistan"
+                "description": "Тестовая заявка для проверки генерации QR кодов - каждый тип груза должен получить свой QR код",
+                "route": "moscow_to_tajikistan",
+                "payment_method": "cash",
+                "payment_amount": 7700.0  # (15*200 + 8*150 + 5*300) = 3000 + 1200 + 1500 = 5700
             }
             
             response = self.session.post(f"{self.backend_url}/operator/cargo/accept", json=cargo_data, headers=headers)
@@ -312,16 +318,39 @@ class TajlineBackendTester:
             if response.status_code in [200, 201]:
                 data = response.json()
                 cargo_number = data.get("cargo_number", "N/A")
+                cargo_items = data.get("cargo_items", [])
+                qr_codes = data.get("qr_codes", [])
+                
+                # Проверяем что создались QR коды для каждого типа груза
+                expected_qr_count = len(cargo_data["cargo_items"])
+                actual_qr_count = len(qr_codes) if qr_codes else 0
+                
+                details = f"Заявка создана: {cargo_number}. "
+                details += f"Типов груза: {len(cargo_items)}, "
+                details += f"QR кодов сгенерировано: {actual_qr_count}"
+                
+                # Проверяем правильность генерации QR кодов
+                if actual_qr_count == expected_qr_count:
+                    details += f" ✅ Правильное количество QR кодов (один на каждый тип груза)"
+                else:
+                    details += f" ⚠️ Ожидалось {expected_qr_count} QR кодов, получено {actual_qr_count}"
+                
+                # Проверяем структуру cargo_items
+                if cargo_items:
+                    details += f". Поля cargo_items: {list(cargo_items[0].keys()) if cargo_items else 'N/A'}"
                 
                 self.log_test(
-                    "POST /api/operator/cargo/accept - Создание заявки",
+                    "POST /api/operator/cargo/accept - Создание заявки с несколькими типами груза",
                     True,
-                    f"Заявка создана успешно. Номер груза: {cargo_number}"
+                    details
                 )
+                
+                # Сохраняем номер груза для дальнейших тестов
+                self.test_cargo_number = cargo_number
                 return True
             else:
                 self.log_test(
-                    "POST /api/operator/cargo/accept - Создание заявки",
+                    "POST /api/operator/cargo/accept - Создание заявки с несколькими типами груза",
                     False,
                     error=f"HTTP {response.status_code}: {response.text}"
                 )
@@ -329,7 +358,7 @@ class TajlineBackendTester:
                 
         except Exception as e:
             self.log_test(
-                "POST /api/operator/cargo/accept - Создание заявки",
+                "POST /api/operator/cargo/accept - Создание заявки с несколькими типами груза",
                 False,
                 error=str(e)
             )
