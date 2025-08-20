@@ -509,7 +509,7 @@ class FinalFixesTester:
                 "description": "Тестовый груз для проверки deferred payment",
                 "route": "moscow_to_tajikistan",
                 "warehouse_id": self.warehouse_id,
-                "payment_method": "deferred",  # КРИТИЧЕСКИЙ ТЕСТ
+                "payment_method": "credit",  # КРИТИЧЕСКИЙ ТЕСТ (deferred = credit in backend)
                 "debt_due_date": "2025-02-15",
                 "delivery_method": "pickup"
             }
