@@ -5118,10 +5118,13 @@ async def accept_new_cargo(
     
     # ИСПРАВЛЕНИЕ: Используем предварительно сгенерированный номер или генерируем новый
     if cargo_data.preferred_cargo_number:
-        # Проверяем уникальность предварительно сгенерированного номера
-        existing_cargo = db.cargo.find_one({"cargo_number": cargo_data.preferred_cargo_number})
-        if existing_cargo:
+        # Проверяем уникальность предварительно сгенерированного номера в ОБЕИХ коллекциях
+        existing_cargo_user = db.cargo.find_one({"cargo_number": cargo_data.preferred_cargo_number})
+        existing_cargo_operator = db.operator_cargo.find_one({"cargo_number": cargo_data.preferred_cargo_number})
+        
+        if existing_cargo_user or existing_cargo_operator:
             raise HTTPException(status_code=400, detail=f"Cargo number {cargo_data.preferred_cargo_number} already exists. Please generate a new QR code.")
+        
         cargo_number = cargo_data.preferred_cargo_number
         print(f"✅ Используем предварительно сгенерированный номер заявки: {cargo_number}")
     else:
