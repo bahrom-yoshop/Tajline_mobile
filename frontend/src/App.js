@@ -6132,12 +6132,6 @@ function App() {
               return false;
             });
         }
-          
-          // Частичное совпадение в сканированных данных
-          if (scannedData.includes(item.cargo_number)) return true;
-          if (item.request_number && scannedData.includes(item.request_number)) return true;
-          
-        }
 
         if (foundCargo) {
           console.log('✅ Груз найден:', foundCargo);
