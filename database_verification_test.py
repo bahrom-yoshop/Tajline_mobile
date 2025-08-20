@@ -9,7 +9,7 @@ import sys
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://cargo-system.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-cargo-5.preview.emergentagent.com/api"
 
 def test_database_verification():
     """

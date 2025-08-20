@@ -16,7 +16,7 @@ import sys
 from datetime import datetime
 
 # Конфигурация
-BACKEND_URL = "https://cargo-system.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-cargo-5.preview.emergentagent.com/api"
 
 # Учетные данные для тестирования
 ADMIN_CREDENTIALS = {
