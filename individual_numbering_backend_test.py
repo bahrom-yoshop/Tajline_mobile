@@ -337,8 +337,8 @@ class IndividualNumberingTester:
             individual_unit_number = f"{self.test_cargo_number}/01/01"
             
             placement_data = {
-                "cargo_id": self.test_cargo_id,
-                "individual_unit_number": individual_unit_number,
+                "individual_number": individual_unit_number,
+                "warehouse_id": "test-warehouse-id",  # Используем тестовый ID склада
                 "block_number": 1,
                 "shelf_number": 1,
                 "cell_number": 1
