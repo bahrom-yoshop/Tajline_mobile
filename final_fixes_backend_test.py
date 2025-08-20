@@ -450,6 +450,7 @@ class FinalFixesTester:
                 # Place the unit
                 placement_data = {
                     "individual_number": individual_number,
+                    "warehouse_id": self.warehouse_id,  # Add required warehouse_id
                     "block_number": 1,
                     "shelf_number": 2,
                     "cell_number": 1
