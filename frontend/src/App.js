@@ -33791,33 +33791,37 @@ function App() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                       {generatedQRCodes.map((qr, index) => (
-                        <div key={index} className="p-4 bg-white border-2 border-gray-200 rounded-lg text-center hover:border-blue-300 transition-colors">
+                        <div key={index} className="p-4 bg-white border-2 border-gray-200 rounded-lg text-center hover:border-blue-300 transition-colors shadow-sm">
                           {/* Название груза СВЕРХУ */}
-                          <div className="font-semibold text-sm text-gray-800 mb-2 min-h-[40px] flex items-center justify-center">
+                          <div className="font-bold text-base text-gray-800 mb-3 min-h-[40px] flex items-center justify-center">
                             {qr.cargo_name}
                           </div>
                           
                           {/* QR код */}
-                          <div className="mb-2">
+                          <div className="mb-3">
                             {qr.qr_code_image ? (
                               <img 
                                 src={qr.qr_code_image} 
                                 alt={`QR код ${qr.id}`}
-                                className="w-24 h-24 mx-auto border border-gray-300"
+                                className="w-32 h-32 mx-auto border border-gray-300 rounded"
                               />
                             ) : (
-                              <div className="w-24 h-24 mx-auto border border-gray-300 bg-gray-100 flex items-center justify-center">
-                                <QrCode className="h-8 w-8 text-gray-400" />
+                              <div className="w-32 h-32 mx-auto border border-gray-300 bg-gray-100 flex items-center justify-center rounded">
+                                <QrCode className="h-12 w-12 text-gray-400" />
                               </div>
                             )}
                           </div>
                           
                           {/* Номер груза СНИЗУ */}
-                          <div className="font-mono text-xs text-gray-600 mb-1">{qr.id}</div>
-                          <div className="text-xs text-gray-500">
-                            Позиция {qr.item_number} из {qr.total_items}
+                          <div className="font-mono text-sm font-bold text-gray-700 mb-2">{qr.id}</div>
+                          
+                          {/* Детали груза */}
+                          <div className="text-xs text-gray-500 space-y-1">
+                            <div>Количество: <span className="font-semibold">{qr.quantity} шт</span></div>
+                            <div>Вес: <span className="font-semibold">{qr.weight} кг</span></div>
+                            <div>Сумма: <span className="font-semibold">{qr.total_amount?.toFixed(2)} ₽</span></div>
                           </div>
                         </div>
                       ))}
