@@ -12200,16 +12200,23 @@ function App() {
       const qrCodes = [];
       const application_number = response.cargo_number || '000000000';
       
+      console.log(`🔄 Начинаем генерацию QR кодов для заявки: ${application_number}`);
+      console.log(`📦 Количество типов груза: ${data.cargo_items.length}`);
+      
       // Генерируем QR коды для каждой единицы каждого типа груза
       for (let cargoIndex = 0; cargoIndex < data.cargo_items.length; cargoIndex++) {
         const item = data.cargo_items[cargoIndex];
         const cargo_id_base = `${application_number}/${String(cargoIndex + 1).padStart(2, '0')}`;
         
+        console.log(`📋 Груз ${cargoIndex + 1}: "${item.name}" (количество: ${item.quantity})`);
+        
         // Создаем QR код для каждой единицы груза
         for (let i = 1; i <= item.quantity; i++) {
           const item_id = `${cargo_id_base}/${i}`;
           
-          // Генерируем QR код асинхронно
+          console.log(`🔄 Генерируем QR код для единицы ${i}/${item.quantity}: ${item_id}`);
+          
+          // Генерируем QR код (обязательно await для промиса)
           const qrCodeImage = await generateActualQRCode(item_id, 200);
           
           qrCodes.push({
@@ -12223,8 +12230,12 @@ function App() {
             total_amount: (item.weight * item.price_per_kg), // Цена за эту единицу
             qr_code_image: qrCodeImage
           });
+          
+          console.log(`✅ QR код сгенерирован для: ${item_id}`);
         }
       }
+      
+      console.log(`🎉 Всего сгенерировано QR кодов: ${qrCodes.length}`);
       
       setGeneratedQRCodes(qrCodes);
       setQrGenerationInProgress(false);
