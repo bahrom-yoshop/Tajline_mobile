@@ -20091,9 +20091,6 @@ function App() {
                                         </div>
                                         
                                         <div className="flex flex-wrap gap-2 mt-4">
-                                          <Button onClick={() => handleViewCargo(item)} variant="outline" size="sm">
-                                            <Eye className="mr-1 h-3 w-3" />Просмотр
-                                          </Button>
                                           <Button onClick={() => openEnhancedPlacementModal(item)} size="sm" className="bg-green-600 hover:bg-green-700">
                                             <Grid3X3 className="mr-1 h-3 w-3" />Разместить
                                           </Button>
