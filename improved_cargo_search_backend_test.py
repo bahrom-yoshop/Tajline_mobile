@@ -360,15 +360,27 @@ class ImprovedCargoSearchTester:
                 data = response.json()
                 cargo_list = data.get("items", []) if isinstance(data, dict) else data
                 
-                # Проверяем наличие наших тестовых грузов
+                # Проверяем наличие наших тестовых грузов по номерам (более надежно)
                 found_cargos = []
+                test_numbers = []
+                
+                # Собираем номера тестовых грузов
+                if "scenario_1" in self.test_scenarios:
+                    test_numbers.extend([cargo["number"] for cargo in self.test_scenarios["scenario_1"]])
+                if "scenario_2" in self.test_scenarios:
+                    test_numbers.append(self.test_scenarios["scenario_2"]["number"])
+                if "scenario_3" in self.test_scenarios:
+                    test_numbers.append(self.test_scenarios["scenario_3"]["number"])
+                
                 for cargo in cargo_list:
-                    if cargo.get("id") in self.test_cargo_ids:
+                    if cargo.get("cargo_number") in test_numbers:
                         found_cargos.append({
                             "id": cargo.get("id"),
                             "number": cargo.get("cargo_number"),
                             "cargo_items": cargo.get("cargo_items", []),
-                            "individual_items": cargo.get("individual_items", [])
+                            "has_individual_items": any(
+                                item.get("individual_items") for item in cargo.get("cargo_items", [])
+                            )
                         })
                 
                 self.log_test(
