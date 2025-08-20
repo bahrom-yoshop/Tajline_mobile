@@ -33781,7 +33781,7 @@ function App() {
                 </CardContent>
               </Card>
 
-              {/* QR коды (если сгенерированы) */}
+              {/* QR коды (если сгенерированы) - УЛУЧШЕННЫЙ ДИЗАЙН */}
               {generatedQRCodes.length > 0 && (
                 <Card>
                   <CardHeader>
@@ -33791,13 +33791,33 @@ function App() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {generatedQRCodes.map((qr, index) => (
-                        <div key={index} className="p-3 bg-white border rounded-lg text-center">
-                          <div className="font-mono text-sm text-gray-600 mb-1">{qr.id}</div>
-                          <div className="text-xs text-gray-500">{qr.cargo_name}</div>
+                        <div key={index} className="p-4 bg-white border-2 border-gray-200 rounded-lg text-center hover:border-blue-300 transition-colors">
+                          {/* Название груза СВЕРХУ */}
+                          <div className="font-semibold text-sm text-gray-800 mb-2 min-h-[40px] flex items-center justify-center">
+                            {qr.cargo_name}
+                          </div>
+                          
+                          {/* QR код */}
+                          <div className="mb-2">
+                            {qr.qr_code_image ? (
+                              <img 
+                                src={qr.qr_code_image} 
+                                alt={`QR код ${qr.id}`}
+                                className="w-24 h-24 mx-auto border border-gray-300"
+                              />
+                            ) : (
+                              <div className="w-24 h-24 mx-auto border border-gray-300 bg-gray-100 flex items-center justify-center">
+                                <QrCode className="h-8 w-8 text-gray-400" />
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Номер груза СНИЗУ */}
+                          <div className="font-mono text-xs text-gray-600 mb-1">{qr.id}</div>
                           <div className="text-xs text-gray-500">
-                            {qr.item_number} из {qr.total_items}
+                            Позиция {qr.item_number} из {qr.total_items}
                           </div>
                         </div>
                       ))}
@@ -33808,32 +33828,26 @@ function App() {
 
               {/* Кнопки управления */}
               <div className="flex flex-col space-y-3 pt-4 border-t">
-                {/* Верхний ряд - кнопки печати и генерации */}
+                {/* Верхний ряд - кнопки печати и скачивания (ИСПРАВЛЕННЫЕ) */}
                 {generatedQRCodes.length > 0 && (
-                  <div className="flex justify-center space-x-3">
+                  <div className="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-3">
                     <Button 
                       variant="outline"
-                      onClick={() => {
-                        // Логика печати всех QR кодов
-                        window.print();
-                      }}
+                      onClick={() => printQRCodes(generatedQRCodes)}
                       disabled={qrGenerationInProgress}
-                      className="flex-1"
+                      className="flex-1 bg-blue-50 border-blue-200 hover:bg-blue-100"
                     >
                       <Printer className="mr-2 h-4 w-4" />
-                      Печать всех QR кодов
+                      🖨️ Печать QR кодов
                     </Button>
                     <Button 
                       variant="outline"
-                      onClick={() => {
-                        // Логика экспорта/скачивания QR кодов
-                        showAlert('Функция экспорта QR кодов будет доступна в следующем обновлении', 'info');
-                      }}
+                      onClick={() => downloadQRCodes(generatedQRCodes)}
                       disabled={qrGenerationInProgress}
-                      className="flex-1"
+                      className="flex-1 bg-green-50 border-green-200 hover:bg-green-100"
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      Скачать QR коды
+                      💾 Скачать QR коды
                     </Button>
                   </div>
                 )}
