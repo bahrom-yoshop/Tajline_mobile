@@ -35380,6 +35380,31 @@ function App() {
                          confirmationCargoData.delivery_info.method === 'home_delivery' ? 'Доставка до дома' : confirmationCargoData.delivery_info.method}
                       </p>
                     </div>
+                    {/* НОВОЕ: Способ оплаты */}
+                    <div>
+                      <span className="text-sm text-gray-600">Способ оплаты:</span>
+                      <p className="font-semibold text-blue-600">
+                        {confirmationCargoData.payment_info?.method === 'cash' ? '💸 Наличными' :
+                         confirmationCargoData.payment_info?.method === 'card' ? '💳 Картой' :
+                         confirmationCargoData.payment_info?.method === 'transfer' ? '🏦 Переводом' :
+                         confirmationCargoData.payment_info?.method || 'Не указан'}
+                      </p>
+                    </div>
+                    {/* НОВОЕ: Информация об операторе */}
+                    <div>
+                      <span className="text-sm text-gray-600">Принимает:</span>
+                      <p className="font-semibold text-green-600">
+                        👤 {user?.full_name || 'Оператор'} 
+                        {user?.phone ? ` (${user.phone})` : ''}
+                      </p>
+                    </div>
+                    {/* НОВОЕ: Дата и время приема */}
+                    <div>
+                      <span className="text-sm text-gray-600">Дата приема:</span>
+                      <p className="font-semibold text-gray-800">
+                        📅 {new Date().toLocaleDateString('ru-RU')} в {new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
