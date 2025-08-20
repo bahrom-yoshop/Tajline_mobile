@@ -5216,6 +5216,7 @@ function App() {
   const [showCargoNumberQRModal, setShowCargoNumberQRModal] = useState(false); // Модальное окно QR номера заявки
   const [cargoNumberQRCode, setCargoNumberQRCode] = useState(null); // Сгенерированный QR код номера
   const [cargoNumberQRLoading, setCargoNumberQRLoading] = useState(false); // Загрузка генерации
+  const [preGeneratedCargoNumber, setPreGeneratedCargoNumber] = useState(null); // ИСПРАВЛЕНИЕ: Хранение предварительно сгенерированного номера
 
   // НОВЫЕ СОСТОЯНИЯ: Модальное окно детального размещения грузов
   const [showPlacementDetailsModal, setShowPlacementDetailsModal] = useState(false); // Модальное окно деталей размещения
