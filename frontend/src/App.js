@@ -12172,25 +12172,35 @@ function App() {
       // Отправляем данные в backend
       const response = await apiCall('/api/operator/cargo/accept', 'POST', requestData);
       
-      // Генерируем QR коды - ОДИН КОД ДЛЯ КАЖДОГО ТИПА ГРУЗА
+      // ИСПРАВЛЕННАЯ ГЕНЕРАЦИЯ: QR коды для КАЖДОЙ ЕДИНИЦЫ груза
       const qrCodes = [];
       const application_number = response.cargo_number || '000000000';
       
-      data.cargo_items.forEach((item, cargoIndex) => {
-        // Создаем ОДИН QR код для каждого типа груза (не на каждую единицу)
-        const cargo_id = `${application_number}/${String(cargoIndex + 1).padStart(2, '0')}`;
+      // Генерируем QR коды для каждой единицы каждого типа груза
+      for (let cargoIndex = 0; cargoIndex < data.cargo_items.length; cargoIndex++) {
+        const item = data.cargo_items[cargoIndex];
+        const cargo_id_base = `${application_number}/${String(cargoIndex + 1).padStart(2, '0')}`;
         
-        qrCodes.push({
-          id: cargo_id,
-          cargo_name: item.name,
-          cargo_index: cargoIndex + 1,
-          quantity: item.quantity,
-          weight: item.weight,
-          price_per_kg: item.price_per_kg,
-          total_amount: item.total_amount,
-          qr_code_image: generateActualQRCode(cargo_id, 200) // Один QR код на тип груза
-        });
-      });
+        // Создаем QR код для каждой единицы груза
+        for (let i = 1; i <= item.quantity; i++) {
+          const item_id = `${cargo_id_base}/${i}`;
+          
+          // Генерируем QR код асинхронно
+          const qrCodeImage = await generateActualQRCode(item_id, 200);
+          
+          qrCodes.push({
+            id: item_id,
+            cargo_name: item.name,
+            cargo_index: cargoIndex + 1,
+            item_number: i,
+            total_items: item.quantity,
+            weight: item.weight,
+            price_per_kg: item.price_per_kg,
+            total_amount: (item.weight * item.price_per_kg), // Цена за эту единицу
+            qr_code_image: qrCodeImage
+          });
+        }
+      }
       
       setGeneratedQRCodes(qrCodes);
       setQrGenerationInProgress(false);
