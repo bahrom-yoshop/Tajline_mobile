@@ -33861,11 +33861,11 @@ function App() {
                           {/* Номер груза СНИЗУ */}
                           <div className="font-mono text-sm font-bold text-gray-700 mb-2">{qr.id}</div>
                           
-                          {/* Детали груза */}
+                          {/* Детали груза для каждой единицы */}
                           <div className="text-xs text-gray-500 space-y-1">
-                            <div>Количество: <span className="font-semibold">{qr.quantity} шт</span></div>
-                            <div>Вес: <span className="font-semibold">{qr.weight} кг</span></div>
-                            <div>Сумма: <span className="font-semibold">{qr.total_amount?.toFixed(2)} ₽</span></div>
+                            <div>Единица: <span className="font-semibold">{qr.item_number} из {qr.total_items}</span></div>
+                            <div>Вес единицы: <span className="font-semibold">{(qr.weight / qr.total_items).toFixed(2)} кг</span></div>
+                            <div>Стоимость: <span className="font-semibold">{qr.total_amount?.toFixed(2)} ₽</span></div>
                           </div>
                         </div>
                       ))}
