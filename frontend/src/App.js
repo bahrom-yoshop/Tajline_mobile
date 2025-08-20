@@ -3949,6 +3949,11 @@ function App() {
   const [selectedRequestForQR, setSelectedRequestForQR] = useState(null); // Выбранная заявка для QR
   const [requestQRCode, setRequestQRCode] = useState(null); // Сгенерированный QR код заявки
   const [requestQRLoading, setRequestQRLoading] = useState(false); // Загрузка генерации QR заявки
+
+  // НОВЫЕ СОСТОЯНИЯ: QR код номера заявки для формы приема груза
+  const [showCargoNumberQRModal, setShowCargoNumberQRModal] = useState(false); // Модальное окно QR номера заявки
+  const [cargoNumberQRCode, setCargoNumberQRCode] = useState(null); // Сгенерированный QR код номера
+  const [cargoNumberQRLoading, setCargoNumberQRLoading] = useState(false); // Загрузка генерации
   
   // ИСПРАВЛЕНИЕ: Глобальный обработчик ошибок removeChild
   useEffect(() => {
