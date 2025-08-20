@@ -4434,12 +4434,46 @@ function App() {
         }, 150); // ФАЗА 4: Быстрый переход без курсора
         
       } else {
+        // ЭТАП 3: Обработка ошибок для трех типов QR кодов
         let errorMessage = '';
-        if (extractedData.type === 'individual_unit') {
-          errorMessage = `Индивидуальная единица ${extractedData.full_number} не найдена в списке ожидающих размещение.
-            Проверьте номер или убедитесь что груз принят на склад.`;
-        } else {
-          errorMessage = 'Груз не найден в списке ожидающих размещение';
+        
+        switch (extractedData.type) {
+          case 'UNIT_IN_CARGO_TYPE':
+            errorMessage = `❌ Единица ${extractedData.unit_number} груза типа ${extractedData.cargo_type} из заявки ${extractedData.request_number} не найдена.
+              Проверьте:
+              • Существует ли заявка ${extractedData.request_number}
+              • Есть ли груз типа ${extractedData.cargo_type} в этой заявке
+              • Существует ли единица ${extractedData.unit_number} в этом грузе
+              • Принят ли груз на склад для размещения`;
+            break;
+            
+          case 'CARGO_IN_REQUEST':
+            errorMessage = `❌ Груз типа ${extractedData.cargo_type} из заявки ${extractedData.request_number} не найден.
+              Проверьте:
+              • Существует ли заявка ${extractedData.request_number}
+              • Есть ли груз типа ${extractedData.cargo_type} в этой заявке
+              • Принят ли груз на склад для размещения`;
+            break;
+            
+          case 'SIMPLE_CARGO':
+            errorMessage = `❌ Простой груз ${extractedData.cargo_number} не найден.
+              Проверьте:
+              • Существует ли груз с номером ${extractedData.cargo_number}
+              • Принят ли груз на склад для размещения`;
+            break;
+            
+          case 'ERROR':
+          case 'UNKNOWN':
+            errorMessage = `❌ Неизвестный формат QR кода: "${cargoData}"
+              Поддерживаемые форматы:
+              • Простой номер: 123456 (1-10 цифр)
+              • Груз в заявке: 010101.01 или 010101/01
+              • Единица в грузе: 010101.01.01 или 010101/01/01`;
+            break;
+            
+          default:
+            errorMessage = `❌ Груз не найден по коду: ${cargoData}
+              Убедитесь, что груз принят на склад и ожидает размещения.`;
         }
         
         setScannerError(errorMessage);
