@@ -4235,39 +4235,67 @@ function App() {
       let foundCargo = null;
       let foundIndividualUnit = null;
       
-      // ЭТАП 2: НОВАЯ ЛОГИКА ПОИСКА ПО ТРЕМ ТИПАМ QR КОДОВ
+      // ЭТАП 2: УЛУЧШЕННАЯ ЛОГИКА ПОИСКА ПО ТРЕМ ТИПАМ QR КОДОВ
       switch (extractedData.type) {
         case 'UNIT_IN_CARGO_TYPE':
           // ТИП 3: Поиск единицы груза внутри типа (010101.01.01)
-          console.log('🔍 ЭТАП 2: Поиск единицы груза внутри типа:', extractedData.full_number);
+          console.log('🔍 СЦЕНАРИЙ 3: Поиск единицы груза внутри типа:', extractedData.full_number);
+          console.log('   → Заявка:', extractedData.request_number);  
+          console.log('   → Тип груза:', extractedData.cargo_type);
+          console.log('   → Единица:', extractedData.unit_number);
           
           // 1. Найти заявку по основному номеру
           const requestForUnit = availableCargoForPlacement.find(item => 
             item.cargo_number === extractedData.request_number
           );
           
-          if (requestForUnit && requestForUnit.cargo_items) {
-            // 2. Найти тип груза внутри заявки
-            for (const cargoItem of requestForUnit.cargo_items) {
-              if (cargoItem.type_number == extractedData.cargo_type && cargoItem.individual_items) {
-                // 3. Найти конкретную единицу внутри типа груза
-                const individualUnit = cargoItem.individual_items.find(unit => 
-                  unit.unit_index == extractedData.unit_number || 
-                  unit.individual_number === extractedData.full_number
-                );
-                if (individualUnit) {
-                  foundCargo = requestForUnit;
-                  foundIndividualUnit = {
-                    ...individualUnit,
-                    cargo_item: cargoItem,
-                    cargo_type_number: cargoItem.type_number,
-                    search_type: 'UNIT_IN_CARGO_TYPE'
-                  };
-                  console.log('✅ ЭТАП 2: Найдена единица груза внутри типа:', foundIndividualUnit);
-                  break;
+          if (requestForUnit) {
+            console.log('✅ СЦЕНАРИЙ 3: Заявка найдена:', requestForUnit.cargo_number);
+            
+            if (requestForUnit.cargo_items && requestForUnit.cargo_items.length > 0) {
+              // 2. Найти тип груза внутри заявки
+              const targetCargoItem = requestForUnit.cargo_items.find(item => 
+                item.type_number == extractedData.cargo_type || 
+                String(item.type_number).padStart(2, '0') === extractedData.cargo_type
+              );
+              
+              if (targetCargoItem) {
+                console.log('✅ СЦЕНАРИЙ 3: Тип груза найден:', targetCargoItem.type_number);
+                
+                if (targetCargoItem.individual_items && targetCargoItem.individual_items.length > 0) {
+                  // 3. Найти конкретную единицу внутри типа груза
+                  const individualUnit = targetCargoItem.individual_items.find(unit => 
+                    unit.unit_index == extractedData.unit_number || 
+                    String(unit.unit_index).padStart(2, '0') === extractedData.unit_number ||
+                    unit.individual_number === extractedData.full_number
+                  );
+                  
+                  if (individualUnit) {
+                    foundCargo = requestForUnit;
+                    foundIndividualUnit = {
+                      ...individualUnit,
+                      cargo_item: targetCargoItem,
+                      cargo_type_number: targetCargoItem.type_number,
+                      search_type: 'UNIT_IN_CARGO_TYPE'
+                    };
+                    console.log('✅ СЦЕНАРИЙ 3: Единица найдена:', foundIndividualUnit);
+                  } else {
+                    console.log('❌ СЦЕНАРИЙ 3: Единица не найдена в списке individual_items');
+                    console.log('   → Доступные единицы:', targetCargoItem.individual_items.map(u => u.unit_index || u.individual_number));
+                  }
+                } else {
+                  console.log('❌ СЦЕНАРИЙ 3: У груза нет индивидуальных единиц');
                 }
+              } else {
+                console.log('❌ СЦЕНАРИЙ 3: Тип груза не найден в заявке');
+                console.log('   → Доступные типы:', requestForUnit.cargo_items.map(item => item.type_number));
               }
+            } else {
+              console.log('❌ СЦЕНАРИЙ 3: В заявке нет cargo_items');
             }
+          } else {
+            console.log('❌ СЦЕНАРИЙ 3: Заявка не найдена');
+            console.log('   → Доступные заявки:', availableCargoForPlacement.map(item => item.cargo_number));
           }
           break;
           
