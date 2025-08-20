@@ -6596,11 +6596,6 @@ function App() {
       };
     }
   };
-        raw_data: scannedData,
-        error: error.message
-      };
-    }
-  };
 
   const parseCellQRCode = (qrData) => {
     try {
