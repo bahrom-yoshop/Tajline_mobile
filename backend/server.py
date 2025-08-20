@@ -5930,8 +5930,8 @@ async def get_available_cargo_for_placement(
             cargo_data['cargo_items'] = processed_cargo_items
             
             # 6. Общая статистика размещения для заявки
-            total_quantity = sum(item.get('quantity', 1) for item in cargo_items)
-            total_placed = sum(item.get('placed_count', 0) for item in cargo_items)
+            total_quantity = sum(item.get('quantity', 1) for item in processed_cargo_items)
+            total_placed = sum(item.get('placed_count', 0) for item in processed_cargo_items)
             cargo_data['total_quantity'] = total_quantity
             cargo_data['total_placed'] = total_placed
             cargo_data['placement_progress'] = f"{total_placed}/{total_quantity}"
