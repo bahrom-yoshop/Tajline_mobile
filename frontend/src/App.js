@@ -12244,42 +12244,46 @@ function App() {
       // Отправляем данные в backend
       const response = await apiCall('/api/operator/cargo/accept', 'POST', requestData);
       
-      // ИСПРАВЛЕННАЯ ГЕНЕРАЦИЯ: QR коды для КАЖДОЙ ЕДИНИЦЫ груза
+      console.log('🔍 Ответ от backend:', response);
+      
+      // ИСПРАВЛЕНИЕ: Используем cargo_items из ответа API
       const qrCodes = [];
       const application_number = response.cargo_number || '000000000';
+      const cargo_items_from_api = response.cargo_items || [];
       
       console.log(`🔄 Начинаем генерацию QR кодов для заявки: ${application_number}`);
-      console.log(`📦 Количество типов груза: ${data.cargo_items.length}`);
+      console.log(`📦 cargo_items из API:`, cargo_items_from_api);
+      console.log(`📦 Количество типов груза в API: ${cargo_items_from_api.length}`);
       
-      // Генерируем QR коды для каждой единицы каждого типа груза
-      for (let cargoIndex = 0; cargoIndex < data.cargo_items.length; cargoIndex++) {
-        const item = data.cargo_items[cargoIndex];
+      // ИСПРАВЛЕНИЕ: Генерируем QR коды на основе данных из API (не из локальной формы)
+      for (let cargoIndex = 0; cargoIndex < cargo_items_from_api.length; cargoIndex++) {
+        const item = cargo_items_from_api[cargoIndex];
         const cargo_id_base = `${application_number}/${String(cargoIndex + 1).padStart(2, '0')}`;
         
-        console.log(`📋 Груз ${cargoIndex + 1}: "${item.name}" (количество: ${item.quantity})`);
+        console.log(`📋 Груз ${cargoIndex + 1}: "${item.cargo_name}" (количество: ${item.quantity})`);
         
         // Создаем QR код для каждой единицы груза
         for (let i = 1; i <= item.quantity; i++) {
           const item_id = `${cargo_id_base}/${i}`;
           
-          console.log(`🔄 Генерируем QR код для единицы ${i}/${item.quantity}: ${item_id}`);
+          console.log(`🔄 Генерируем настоящий QR код для единицы ${i}/${item.quantity}: ${item_id}`);
           
-          // Генерируем QR код (обязательно await для промиса)
+          // ИСПРАВЛЕНИЕ: Генерируем настоящий QR код с библиотекой QRCode.js
           const qrCodeImage = await generateActualQRCode(item_id, 200);
           
           qrCodes.push({
             id: item_id,
-            cargo_name: item.name,
+            cargo_name: item.cargo_name,
             cargo_index: cargoIndex + 1,
             item_number: i,
             total_items: item.quantity,
             weight: item.weight,
             price_per_kg: item.price_per_kg,
-            total_amount: (item.weight * item.price_per_kg), // Цена за эту единицу
+            total_amount: item.total_amount / item.quantity, // Цена за эту единицу
             qr_code_image: qrCodeImage
           });
           
-          console.log(`✅ QR код сгенерирован для: ${item_id}`);
+          console.log(`✅ Настоящий QR код сгенерирован для: ${item_id}`);
         }
       }
       
