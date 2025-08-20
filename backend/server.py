@@ -2263,6 +2263,51 @@ def get_available_operations(cargo: dict, current_user: User) -> list:
     
     return operations
 
+@app.post("/api/backend/generate-simple-qr")
+async def generate_simple_qr(
+    request_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Простая генерация QR кода для любого текста (как в рабочей системе)"""
+    try:
+        qr_text = request_data.get("qr_text", "").strip()
+        qr_format = request_data.get("format", "png").lower()
+        
+        if not qr_text:
+            raise HTTPException(status_code=400, detail="QR text is required")
+        
+        # Используем ту же логику что и в generate_cargo_qr_code
+        # Генерируем QR код (копируем рабочий код)
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(qr_text)
+        qr.make(fit=True)
+        
+        # Создаем изображение
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Конвертируем в base64
+        buffer = BytesIO()
+        img.save(buffer, format="PNG")
+        img_data = base64.b64encode(buffer.getvalue()).decode()
+        
+        qr_code_data = f"data:image/png;base64,{img_data}"
+        
+        return {
+            "success": True,
+            "qr_text": qr_text,
+            "qr_code": qr_code_data,
+            "format": qr_format
+        }
+        
+    except Exception as e:
+        print(f"Error generating simple QR code: {e}")
+        raise HTTPException(status_code=500, detail=f"Error generating QR code: {str(e)}")
+
 @app.post("/api/cargo/generate-qr-by-number")
 async def generate_qr_by_cargo_number(
     request_data: dict,
