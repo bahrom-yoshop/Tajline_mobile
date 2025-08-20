@@ -4235,31 +4235,35 @@ function App() {
       let foundCargo = null;
       let foundIndividualUnit = null;
       
-      // НОВОЕ: Обработка разных типов отсканированных данных
+      // ЭТАП 2: НОВАЯ ЛОГИКА ПОИСКА ПО ТРЕМ ТИПАМ QR КОДОВ
       switch (extractedData.type) {
-        case 'individual_unit':
-          // Поиск по индивидуальному номеру 250101/01/01
-          console.log('🔍 ФАЗА 3: Поиск индивидуальной единицы:', extractedData.full_number);
+        case 'UNIT_IN_CARGO_TYPE':
+          // ТИП 3: Поиск единицы груза внутри типа (010101.01.01)
+          console.log('🔍 ЭТАП 2: Поиск единицы груза внутри типа:', extractedData.full_number);
           
-          // Поиск заявки по номеру
-          const requestCargo = availableCargoForPlacement.find(item => 
+          // 1. Найти заявку по основному номеру
+          const requestForUnit = availableCargoForPlacement.find(item => 
             item.cargo_number === extractedData.request_number
           );
           
-          if (requestCargo && requestCargo.cargo_items) {
-            // Поиск конкретной единицы в cargo_items
-            for (const cargoItem of requestCargo.cargo_items) {
-              if (cargoItem.individual_items) {
+          if (requestForUnit && requestForUnit.cargo_items) {
+            // 2. Найти тип груза внутри заявки
+            for (const cargoItem of requestForUnit.cargo_items) {
+              if (cargoItem.type_number == extractedData.cargo_type && cargoItem.individual_items) {
+                // 3. Найти конкретную единицу внутри типа груза
                 const individualUnit = cargoItem.individual_items.find(unit => 
+                  unit.unit_index == extractedData.unit_number || 
                   unit.individual_number === extractedData.full_number
                 );
                 if (individualUnit) {
-                  foundCargo = requestCargo;
+                  foundCargo = requestForUnit;
                   foundIndividualUnit = {
                     ...individualUnit,
                     cargo_item: cargoItem,
-                    cargo_type_number: cargoItem.type_number
+                    cargo_type_number: cargoItem.type_number,
+                    search_type: 'UNIT_IN_CARGO_TYPE'
                   };
+                  console.log('✅ ЭТАП 2: Найдена единица груза внутри типа:', foundIndividualUnit);
                   break;
                 }
               }
@@ -4267,29 +4271,79 @@ function App() {
           }
           break;
           
-        case 'request_number':
-        case 'json_request':
-          // Поиск по номеру заявки (6 цифр)
-          const requestNumber = extractedData.request_number;
-          foundCargo = availableCargoForPlacement.find(item => 
-            item.cargo_number === requestNumber
+        case 'CARGO_IN_REQUEST':
+          // ТИП 2: Поиск груза внутри заявки (010101.01)
+          console.log('🔍 ЭТАП 2: Поиск груза внутри заявки:', extractedData.full_number);
+          
+          // 1. Найти заявку по основному номеру
+          const requestForCargo = availableCargoForPlacement.find(item => 
+            item.cargo_number === extractedData.request_number
           );
+          
+          if (requestForCargo && requestForCargo.cargo_items) {
+            // 2. Найти конкретный груз по типу внутри заявки
+            const cargoItem = requestForCargo.cargo_items.find(item => 
+              item.type_number == extractedData.cargo_type
+            );
+            
+            if (cargoItem) {
+              foundCargo = requestForCargo;
+              // Если есть индивидуальные единицы, берем первую как представительную
+              if (cargoItem.individual_items && cargoItem.individual_items.length > 0) {
+                foundIndividualUnit = {
+                  ...cargoItem.individual_items[0],
+                  cargo_item: cargoItem,
+                  cargo_type_number: cargoItem.type_number,
+                  search_type: 'CARGO_IN_REQUEST',
+                  represents_all_units: true
+                };
+              } else {
+                // Создаем представительную единицу для всего груза
+                foundIndividualUnit = {
+                  cargo_item: cargoItem,
+                  cargo_type_number: cargoItem.type_number,
+                  search_type: 'CARGO_IN_REQUEST',
+                  represents_all_cargo: true
+                };
+              }
+              console.log('✅ ЭТАП 2: Найден груз внутри заявки:', foundIndividualUnit);
+            }
+          }
           break;
           
-        case 'standard_cargo':
-        case 'json_cargo':
-        case 'generic_number':
-          // Стандартный поиск по номеру груза
-          const searchNumber = extractedData.cargo_number || extractedData.number;
+        case 'SIMPLE_CARGO':
+          // ТИП 1: Поиск простого груза (123456)
+          console.log('🔍 ЭТАП 2: Поиск простого груза:', extractedData.cargo_number);
+          
+          foundCargo = availableCargoForPlacement.find(item => 
+            item.cargo_number === extractedData.cargo_number ||
+            item.id === extractedData.cargo_number
+          );
+          
+          if (foundCargo) {
+            // Для простого груза не нужны индивидуальные единицы
+            console.log('✅ ЭТАП 2: Найден простой груз:', foundCargo.cargo_number);
+          }
+          break;
+          
+        // ДОПОЛНИТЕЛЬНЫЕ ТИПЫ ДЛЯ СОВМЕСТИМОСТИ
+        case 'JSON_CARGO':
+        case 'JSON_REQUEST':
+        case 'PREFIXED_CARGO':
+        case 'GENERIC_NUMBER':
+          // Стандартный поиск для остальных типов
+          const searchNumber = extractedData.cargo_number || extractedData.request_number;
           foundCargo = availableCargoForPlacement.find(item => 
             item.cargo_number === searchNumber || 
             item.id === searchNumber ||
-            cargoData.includes(searchNumber)
+            extractedData.full_number.includes(item.cargo_number)
           );
+          console.log(`✅ ЭТАП 2: Поиск ${extractedData.type}:`, searchNumber, foundCargo ? 'найден' : 'не найден');
           break;
           
         default:
-          // Fallback - пытаемся найти по исходным данным
+          // Fallback поиск для неизвестных типов
+          console.log('🔍 ЭТАП 2: Fallback поиск для:', extractedData.type);
           foundCargo = availableCargoForPlacement.find(item => 
             item.cargo_number === cargoData || 
             item.id === cargoData ||
