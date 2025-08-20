@@ -11929,17 +11929,17 @@ function App() {
                 resolve(dataURL);
               } catch (error) {
                 console.error('❌ Ошибка с динамически загруженной библиотекой:', error);
-                resolve(generateEnhancedFallbackQR(data, size));
+                resolve(generateSimpleQRCode(data, size));
               }
             } else {
               console.warn('⚠️ Динамически загруженная библиотека неполная');
-              resolve(generateEnhancedFallbackQR(data, size));
+              resolve(generateSimpleQRCode(data, size));
             }
           };
           
           script.onerror = () => {
             console.error('❌ Ошибка динамической загрузки QRCode.js');
-            resolve(generateEnhancedFallbackQR(data, size));
+            resolve(generateSimpleQRCode(data, size));
           };
           
           document.head.appendChild(script);
@@ -11947,14 +11947,14 @@ function App() {
           // Timeout для динамической загрузки
           setTimeout(() => {
             console.warn('⏰ Таймаут динамической загрузки QRCode.js');
-            resolve(generateEnhancedFallbackQR(data, size));
+            resolve(generateSimpleQRCode(data, size));
           }, 3000);
         });
       }
 
       // Если ничего не сработало - fallback
       console.warn('⚠️ Все попытки загрузки QRCode.js неудачны, используем fallback');
-      return generateEnhancedFallbackQR(data, size);
+      return generateSimpleQRCode(data, size);
 
     } catch (error) {
       console.error('💥 Критическая ошибка генерации QR кода:', error);
