@@ -8,7 +8,7 @@ import json
 from datetime import datetime
 
 def debug_notifications():
-    base_url = "https://freight-qr-system.preview.emergentagent.com"
+    base_url = "https://cargo-system.preview.emergentagent.com"
     
     # Login as operator
     print("🔍 Logging in as operator...")

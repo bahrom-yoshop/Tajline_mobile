@@ -15,7 +15,7 @@ import concurrent.futures
 import threading
 
 # Получаем URL backend из переменной окружения
-BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://freight-qr-system.preview.emergentagent.com')
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cargo-system.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 # Глобальная переменная для токена авторизации

@@ -33,7 +33,7 @@ import sys
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://fd92835b-6e3a-415a-a86b-831b5b2d57c1.preview.emergentagent.com/api"
+BACKEND_URL = "https://cargo-system.preview.emergentagent.com/api"
 
 def test_new_placement_fields():
     """

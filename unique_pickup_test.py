@@ -9,7 +9,7 @@ from datetime import datetime
 import time
 
 def test_unique_pickup_acceptance():
-    base_url = "https://freight-qr-system.preview.emergentagent.com"
+    base_url = "https://cargo-system.preview.emergentagent.com"
     
     print("🎯 TESTING UNIQUE PICKUP REQUEST ACCEPTANCE")
     print("=" * 60)

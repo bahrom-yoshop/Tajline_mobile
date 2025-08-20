@@ -7,7 +7,7 @@ import requests
 import json
 
 def final_test():
-    base_url = "https://freight-qr-system.preview.emergentagent.com"
+    base_url = "https://cargo-system.preview.emergentagent.com"
     
     # Login as operator
     login_data = {

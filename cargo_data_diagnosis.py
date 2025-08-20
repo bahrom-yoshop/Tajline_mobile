@@ -7,7 +7,7 @@ import requests
 import json
 
 # Конфигурация
-BACKEND_URL = "https://freight-qr-system.preview.emergentagent.com/api"
+BACKEND_URL = "https://cargo-system.preview.emergentagent.com/api"
 
 def diagnose_cargo_data():
     """Диагностика данных груза"""

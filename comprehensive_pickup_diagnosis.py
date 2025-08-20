@@ -8,7 +8,7 @@ import requests
 import json
 from datetime import datetime
 
-BACKEND_URL = "https://freight-qr-system.preview.emergentagent.com/api"
+BACKEND_URL = "https://cargo-system.preview.emergentagent.com/api"
 
 def log_step(step_name, details=""):
     timestamp = datetime.now().strftime("%H:%M:%S")
