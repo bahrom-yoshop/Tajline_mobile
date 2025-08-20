@@ -14035,6 +14035,10 @@ function App() {
       fetchOperatorCargo();
       fetchAvailableCargo();
       
+      // ИСПРАВЛЕНИЕ: Очищаем предварительно сгенерированный номер после успешного создания заявки
+      setPreGeneratedCargoNumber(null);
+      console.log('✅ Предварительно сгенерированный номер заявки очищен после успешного создания');
+      
     } catch (error) {
       console.error('Error confirming cargo acceptance:', error);
       showAlert(`Ошибка при создании груза: ${error.message}`, 'error');
