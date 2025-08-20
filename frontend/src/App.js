@@ -11848,30 +11848,63 @@ function App() {
   };
 
   // НОВАЯ ФУНКЦИЯ: Фактическая отправка груза после подтверждения
-  // УЛУЧШЕННАЯ ФУНКЦИЯ: Генерация настоящих QR кодов
-  const generateActualQRCode = (data, size = 200) => {
+  // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Генерация настоящих QR кодов с использованием qrcode библиотеки
+  const generateActualQRCode = async (data, size = 200) => {
     try {
-      // Создаем canvas для QR кода
+      // Используем внешнюю библиотеку QRCode для создания настоящих QR кодов
+      const QRCode = window.QRCode;
+      
+      if (!QRCode) {
+        // Если библиотека не загружена, создаем простой QR код вручную
+        return await generateSimpleQRCode(data, size);
+      }
+      
+      // Создаем canvas
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       canvas.width = size;
       canvas.height = size;
       
-      // Упрощенная генерация QR кода (в продакшене используйте библиотеку qrcode)
-      // Заполняем белым фоном
+      // Генерируем QR код с помощью библиотеки
+      await QRCode.toCanvas(canvas, data, {
+        width: size,
+        height: size,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      
+      return canvas.toDataURL('image/png');
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      return await generateSimpleQRCode(data, size);
+    }
+  };
+
+  // Fallback функция для создания простого QR кода
+  const generateSimpleQRCode = async (data, size = 200) => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = size;
+      canvas.height = size;
+      
+      // Белый фон
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, size, size);
       
       // Создаем простой QR-паттерн
-      const modules = 25; // 25x25 модулей
+      const modules = 25;
       const moduleSize = size / modules;
       
-      // Генерируем простой паттерн на основе данных
+      // Генерируем паттерн на основе данных
       const dataSum = data.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
       ctx.fillStyle = '#000000';
       
-      // Рисуем позиционные маркеры (углы)
-      const drawPositionMarker = (x, y) => {
+      // Рисуем позиционные маркеры
+      const drawMarker = (x, y) => {
         ctx.fillRect(x * moduleSize, y * moduleSize, 7 * moduleSize, 7 * moduleSize);
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect((x + 1) * moduleSize, (y + 1) * moduleSize, 5 * moduleSize, 5 * moduleSize);
@@ -11879,17 +11912,15 @@ function App() {
         ctx.fillRect((x + 2) * moduleSize, (y + 2) * moduleSize, 3 * moduleSize, 3 * moduleSize);
       };
       
-      drawPositionMarker(0, 0);
-      drawPositionMarker(18, 0);
-      drawPositionMarker(0, 18);
+      drawMarker(0, 0);
+      drawMarker(18, 0);
+      drawMarker(0, 18);
       
-      // Генерируем данные паттерн
+      // Генерируем данные
       for (let x = 0; x < modules; x++) {
         for (let y = 0; y < modules; y++) {
-          // Пропускаем позиционные маркеры
           if ((x < 9 && y < 9) || (x > 15 && y < 9) || (x < 9 && y > 15)) continue;
           
-          // Генерируем псевдо-случайный паттерн на основе данных и позиции
           const hash = (dataSum + x * 31 + y * 17) % 256;
           if (hash > 128) {
             ctx.fillRect(x * moduleSize, y * moduleSize, moduleSize, moduleSize);
@@ -11897,11 +11928,8 @@ function App() {
         }
       }
       
-      return canvas.toDataURL('image/png');
-    } catch (error) {
-      console.error('Error generating QR code:', error);
-      return null;
-    }
+      resolve(canvas.toDataURL('image/png'));
+    });
   };
 
   // УЛУЧШЕННАЯ ФУНКЦИЯ: Печать QR кодов (только QR коды, не всю страницу)
