@@ -30003,6 +30003,151 @@ function App() {
         </DialogContent>
       </Dialog>
 
+      {/* НОВОЕ МОДАЛЬНОЕ ОКНО: QR код заявки с информацией о всех грузах */}
+      <Dialog open={showRequestQRModal} onOpenChange={setShowRequestQRModal}>
+        <DialogContent className="w-full max-w-[95vw] max-h-[95vh] p-4 sm:p-6 overflow-y-auto">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="flex items-center text-lg">
+              <QrCode className="mr-2 h-5 w-5 text-orange-600" />
+              QR код заявки №{selectedRequestForQR?.cargo_number}
+            </DialogTitle>
+            <DialogDescription className="text-sm">
+              QR код содержит информацию о всех грузах в заявке для быстрого сканирования оператором
+            </DialogDescription>
+          </DialogHeader>
+          
+          {requestQRLoading ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <RefreshCw className="h-8 w-8 animate-spin text-orange-600 mb-4" />
+              <p className="text-sm text-gray-600">Генерация QR кода заявки...</p>
+            </div>
+          ) : requestQRCode && selectedRequestForQR ? (
+            <div className="space-y-6">
+              {/* QR код */}
+              <div className="text-center">
+                <div className="bg-white p-6 rounded-lg border-2 border-orange-200 inline-block">
+                  <img 
+                    src={requestQRCode.image} 
+                    alt={`QR код заявки ${selectedRequestForQR.cargo_number}`}
+                    className="w-64 h-64 mx-auto"
+                  />
+                </div>
+                <p className="text-sm text-gray-500 mt-2">
+                  Отсканируйте для получения полной информации о заявке
+                </p>
+              </div>
+
+              {/* Информация о заявке */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-3 text-gray-800">Информация в QR коде:</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="font-medium text-gray-600">Отправитель:</span>
+                    <p>{requestQRCode.data.sender.name}</p>
+                    <p className="text-gray-500">{requestQRCode.data.sender.phone}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Получатель:</span>
+                    <p>{requestQRCode.data.recipient.name}</p>
+                    <p className="text-gray-500">{requestQRCode.data.recipient.phone}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Общий вес:</span>
+                    <p>{requestQRCode.data.total_weight} кг</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Стоимость:</span>
+                    <p>{requestQRCode.data.total_value} ₽</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Количество грузов:</span>
+                    <p>{requestQRCode.data.cargo_items.length} шт.</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Дата создания:</span>
+                    <p>{requestQRCode.data.created_date}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Список грузов */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-3 text-gray-800">Грузы в заявке:</h4>
+                <div className="space-y-2">
+                  {requestQRCode.data.cargo_items.map((item, index) => (
+                    <div key={index} className="bg-white p-3 rounded border">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium">{item.name}</p>
+                          <p className="text-sm text-gray-600">
+                            Вес: {item.weight} кг × Количество: {item.quantity} шт.
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-blue-600">{item.total_amount} ₽</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Кнопки действий */}
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handlePrintRequestQR}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700"
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Печать QR кода
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = requestQRCode.image;
+                    link.download = `QR_заявка_${selectedRequestForQR.cargo_number}.png`;
+                    link.click();
+                    showAlert('QR код сохранен!', 'success');
+                  }}
+                  className="flex-1"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Скачать
+                </Button>
+              </div>
+
+              {/* Техническая информация (сворачиваемая) */}
+              <details className="mt-4">
+                <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-800">
+                  Показать данные QR кода (JSON)
+                </summary>
+                <pre className="mt-2 bg-gray-100 p-3 rounded text-xs overflow-auto max-h-40">
+                  {requestQRCode.raw_data}
+                </pre>
+              </details>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Ошибка генерации QR кода</p>
+            </div>
+          )}
+
+          <div className="flex justify-end mt-6">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowRequestQRModal(false);
+                setSelectedRequestForQR(null);
+                setRequestQRCode(null);
+              }}
+            >
+              Закрыть
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* External Scanner Modal - Simplified */}
       <Dialog open={showCargoPlacementModal} onOpenChange={setShowCargoPlacementModal}>
         <DialogContent className="w-full max-w-[95vw] max-h-[95vh] p-3 sm:p-6 overflow-y-auto">
