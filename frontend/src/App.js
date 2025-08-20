@@ -3585,7 +3585,7 @@ function App() {
       `);
       printWindow.document.close();
       
-      showAlert(`QR код ${individualNumber} отправлен на печать (90мм x 100мм)!`, 'success');
+      showAlert(`QR код ${individualNumber} отправлен на печать!`, 'success');
       
     } catch (error) {
       console.error('❌ Ошибка печати QR кода:', error);
