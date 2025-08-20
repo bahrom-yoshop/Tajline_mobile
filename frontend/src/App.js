@@ -18101,7 +18101,7 @@ function App() {
                                       )}
                                     </div>
                                     
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-5 gap-3">
                                       <div>
                                         <Label>Название груза</Label>
                                         <Input
