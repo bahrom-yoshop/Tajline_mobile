@@ -4358,23 +4358,61 @@ function App() {
           selected_individual_unit: foundIndividualUnit
         });
         
-        // Формируем сообщение в зависимости от типа
+        // ЭТАП 3: Формируем сообщения в зависимости от типа QR кода
         let successMessage = '';
+        let alertMessage = '';
+        
         if (foundIndividualUnit) {
-          successMessage = `✅ Индивидуальная единица ${extractedData.full_number} найдена!
-            Груз: ${foundIndividualUnit.cargo_item.cargo_name}
-            Заявка: ${foundCargo.cargo_number}
-            Отсканируйте ячейку для размещения.`;
+          // Обработка индивидуальных единиц
+          switch (foundIndividualUnit.search_type) {
+            case 'UNIT_IN_CARGO_TYPE':
+              // ТИП 3: Единица груза внутри типа (010101.01.01)
+              successMessage = `✅ Единица ${extractedData.unit_number} груза типа ${extractedData.cargo_type} из заявки ${extractedData.request_number} найдена!
+                Груз: ${foundIndividualUnit.cargo_item?.cargo_name || 'Неизвестный груз'}
+                Отсканируйте ячейку для размещения.`;
+              alertMessage = `Единица ${extractedData.full_number} найдена! Отсканируйте ячейку.`;
+              break;
+              
+            case 'CARGO_IN_REQUEST':
+              // ТИП 2: Груз внутри заявки (010101.01)
+              if (foundIndividualUnit.represents_all_units) {
+                successMessage = `✅ Груз типа ${extractedData.cargo_type} из заявки ${extractedData.request_number} найден!
+                  Груз: ${foundIndividualUnit.cargo_item?.cargo_name || 'Неизвестный груз'}
+                  Количество единиц: ${foundIndividualUnit.cargo_item?.quantity || 1}
+                  Отсканируйте ячейку для размещения.`;
+                alertMessage = `Груз ${extractedData.full_number} найден! Отсканируйте ячейку.`;
+              } else {
+                successMessage = `✅ Груз ${extractedData.full_number} найден!
+                  Груз: ${foundIndividualUnit.cargo_item?.cargo_name || 'Неизвестный груз'}
+                  Отсканируйте ячейку для размещения.`;
+                alertMessage = `Груз ${extractedData.full_number} найден! Отсканируйте ячейку.`;
+              }
+              break;
+              
+            default:
+              // Для совместимости со старыми форматами
+              successMessage = `✅ Индивидуальная единица ${extractedData.full_number} найдена!
+                Груз: ${foundIndividualUnit.cargo_item?.cargo_name || 'Неизвестный груз'}
+                Заявка: ${foundCargo.cargo_number}
+                Отсканируйте ячейку для размещения.`;
+              alertMessage = `Единица ${extractedData.full_number} найдена! Отсканируйте ячейку.`;
+          }
         } else {
-          successMessage = `✅ Груз ${foundCargo.cargo_number} найден! Переходим к сканированию ячейки.`;
+          // ТИП 1: Простой груз (123456)
+          if (extractedData.type === 'SIMPLE_CARGO') {
+            successMessage = `✅ Простой груз ${extractedData.cargo_number} найден!
+              Это единый груз с одним количеством.
+              Отсканируйте ячейку для размещения.`;
+            alertMessage = `Груз ${extractedData.cargo_number} найден! Отсканируйте ячейку.`;
+          } else {
+            // Для остальных типов
+            successMessage = `✅ Груз ${foundCargo.cargo_number} найден! Переходим к сканированию ячейки.`;
+            alertMessage = `Груз ${foundCargo.cargo_number} найден! Отсканируйте ячейку.`;
+          }
         }
         
         setScannerMessage(successMessage);
-        showAlert(foundIndividualUnit ? 
-          `Единица ${extractedData.full_number} найдена! Отсканируйте ячейку.` :
-          `Груз ${foundCargo.cargo_number} найден! Отсканируйте ячейку.`, 
-          'success'
-        );
+        showAlert(alertMessage, 'success');
         
         // ФАЗА 4: АВТОМАТИЧЕСКИЕ ПЕРЕХОДЫ - улучшенный переход к сканированию ячейки
         setExternalScannerStep('cell');
