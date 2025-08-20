@@ -4463,10 +4463,16 @@ function App() {
         showAlert('Неверный формат QR-кода ячейки. Поддерживаемые форматы: Б1-П2-Я3, 003010101, 001-01-01-001', 'error');
       }
     } catch (error) {
-      console.error('❌ Ошибка обработки сканирования ячейки:', error);
+      console.error('ФАЗА 3: Ошибка обработки ячейки:', error);
       setScannerError('Ошибка обработки данных ячейки');
       setScannerMessage('❌ Ошибка обработки данных ячейки');
       showAlert('Ошибка обработки данных ячейки', 'error');
+    } finally {
+      // ФАЗА 3: Сброс индикатора обработки с задержкой
+      setTimeout(() => {
+        setScannerProcessingInput(false);
+        setScannerClickProtection(false);
+      }, 1000);
     }
   };
 
