@@ -6083,20 +6083,55 @@ function App() {
       setLastScanTime(currentTime);
       
       if (scannerMode === 'cargo-barcode') {
-        // Ищем груз по отсканированному номеру
-        const cargoNumber = extractCargoNumber(scannedData);
-        console.log('🔍 Поиск груза с номером:', cargoNumber);
+        // ОБНОВЛЕНО: Используем новую систему парсинга QR кодов
+        const extractedData = extractCargoNumber(scannedData);
+        console.log('🔍 Поиск груза с данными:', extractedData);
         
-        // ИСПРАВЛЕНИЕ: Улучшенный поиск груза с поддержкой различных форматов
-        const cargo = availableCargoForPlacement.find(item => {
-          // Точное совпадение номера груза
-          if (item.cargo_number === cargoNumber) return true;
-          
-          // Поиск по ID
-          if (item.id === cargoNumber) return true;
-          
-          // Поиск по номеру заявки (для грузов забора)
-          if (item.request_number === cargoNumber) return true;
+        let foundCargo = null;
+        
+        // Поиск груза в зависимости от типа данных
+        switch (extractedData.type) {
+          case 'individual_unit':
+            // Поиск по индивидуальному номеру
+            foundCargo = availableCargoForPlacement.find(item => 
+              item.cargo_number === extractedData.request_number
+            );
+            break;
+            
+          case 'request_number':
+          case 'json_request':
+            foundCargo = availableCargoForPlacement.find(item => 
+              item.cargo_number === extractedData.request_number
+            );
+            break;
+            
+          case 'standard_cargo':
+          case 'json_cargo':
+          case 'generic_number':
+            const searchNumber = extractedData.cargo_number || extractedData.number;
+            foundCargo = availableCargoForPlacement.find(item => {
+              // Точное совпадение номера груза
+              if (item.cargo_number === searchNumber) return true;
+              // Поиск по ID
+              if (item.id === searchNumber) return true;
+              // Поиск по номеру заявки
+              if (item.request_number === searchNumber) return true;
+              // Поиск в исходных данных
+              if (scannedData.includes(item.cargo_number)) return true;
+              
+              return false;
+            });
+            break;
+            
+          default:
+            // Fallback поиск
+            foundCargo = availableCargoForPlacement.find(item => {
+              if (item.cargo_number === scannedData) return true;
+              if (item.id === scannedData) return true;
+              if (scannedData.includes(item.cargo_number)) return true;
+              return false;
+            });
+        }
           
           // Частичное совпадение в сканированных данных
           if (scannedData.includes(item.cargo_number)) return true;
