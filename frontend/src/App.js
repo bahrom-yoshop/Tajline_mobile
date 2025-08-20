@@ -12837,11 +12837,11 @@ function App() {
             height: size,
             margin: 4,
             color: { dark: '#000000', light: '#FFFFFF' },
-            errorCorrectionLevel: 'H',
+            errorCorrectionLevel: 'M',
             type: 'image/png',
-            quality: 0.92
+            quality: 1.0
           });
-          console.log('🎉 ПРОДВИНУТЫЙ QR код сгенерирован после ожидания!');
+          console.log('🎉 ИСПРАВЛЕННЫЙ QR код сгенерирован после ожидания!');
           return dataURL;
         } catch (error) {
           console.error('❌ Ошибка при генерации после ожидания:', error);
@@ -12866,25 +12866,25 @@ function App() {
                   height: size,
                   margin: 4,
                   color: { dark: '#000000', light: '#FFFFFF' },
-                  errorCorrectionLevel: 'H',
+                  errorCorrectionLevel: 'M',
                   type: 'image/png',
-                  quality: 0.92
+                  quality: 1.0
                 });
-                console.log('🎉 ПРОДВИНУТЫЙ QR код сгенерирован с динамической библиотекой!');
+                console.log('🎉 ИСПРАВЛЕННЫЙ QR код сгенерирован с динамической библиотекой!');
                 resolve(dataURL);
               } catch (error) {
                 console.error('❌ Ошибка с динамически загруженной библиотекой:', error);
-                resolve(generateSimpleQRCode(qrData, size));
+                resolve(generateStandardQRCode(qrData, size));
               }
             } else {
               console.warn('⚠️ Динамически загруженная библиотека неполная');
-              resolve(generateSimpleQRCode(qrData, size));
+              resolve(generateStandardQRCode(qrData, size));
             }
           };
           
           script.onerror = () => {
             console.error('❌ Ошибка динамической загрузки QRCode.js');
-            resolve(generateSimpleQRCode(qrData, size));
+            resolve(generateStandardQRCode(qrData, size));
           };
           
           document.head.appendChild(script);
@@ -12892,14 +12892,14 @@ function App() {
           // Timeout для динамической загрузки
           setTimeout(() => {
             console.warn('⏰ Таймаут динамической загрузки QRCode.js');
-            resolve(generateSimpleQRCode(qrData, size));
+            resolve(generateStandardQRCode(qrData, size));
           }, 3000);
         });
       }
 
       // Если ничего не сработало - fallback
       console.warn('⚠️ Все попытки загрузки QRCode.js неудачны, используем fallback');
-      return generateSimpleQRCode(qrData, size);
+      return generateStandardQRCode(qrData, size);
 
     } catch (error) {
       console.error('💥 Критическая ошибка генерации QR кода:', error);
