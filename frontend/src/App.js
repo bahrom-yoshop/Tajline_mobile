@@ -12138,7 +12138,7 @@ function App() {
       // Отправляем данные в backend
       const response = await apiCall('/api/operator/cargo/accept', 'POST', requestData);
       
-      // Генерируем QR коды для каждой единицы груза
+      // Генерируем настоящие QR коды для каждой единицы груза
       const qrCodes = [];
       const application_number = response.cargo_number || '000000000';
       
@@ -12153,7 +12153,7 @@ function App() {
             cargo_index: cargoIndex + 1,
             item_number: i,
             total_items: item.quantity,
-            qr_code: `QR_CODE_${item_id}` // В реальности здесь будет настоящий QR код
+            qr_code_image: generateActualQRCode(item_id, 200) // Генерируем настоящий QR код
           });
         }
       });
