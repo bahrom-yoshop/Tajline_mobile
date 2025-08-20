@@ -4154,7 +4154,7 @@ function App() {
   // Функция для запуска размещения с внешним сканером
   const startExternalScannerPlacement = async () => {
     try {
-      console.log('🖥️ Запуск размещения груза с внешним сканером...');
+      console.log('🖥️ ФАЗА 3: Запуск размещения груза с внешним сканером...');
       
       setExternalScannerActive(true);
       setExternalScannerStep('cargo');
@@ -4165,6 +4165,19 @@ function App() {
       setScannerMode('external-scanner');
       setScannerMessage('Отсканируйте QR код груза с помощью внешнего сканера');
       
+      // ФАЗА 3: Активация защиты от кликов и автофокуса
+      setScannerClickProtection(true);
+      setScannerAutoFocusTarget('cargo');
+      
+      // ФАЗА 3: Автоматический фокус на поле груза
+      setTimeout(() => {
+        const cargoInput = document.querySelector('input[placeholder*="Отсканируйте QR код груза"]');
+        if (cargoInput) {
+          cargoInput.focus();
+          console.log('🖥️ ФАЗА 3: Автофокус установлен на поле груза');
+        }
+      }, 200);
+      
       // Fetch statistics and available cells
       await fetchPlacementStatistics();
       await getAvailableWarehouseCells();
@@ -4172,7 +4185,7 @@ function App() {
       showAlert('🖥️ Режим внешнего сканера активирован! Отсканируйте QR код груза.', 'info');
       
     } catch (error) {
-      console.error('Ошибка запуска внешнего сканера:', error);
+      console.error('Ошибка при запуске внешнего сканера:', error);
       showAlert('Ошибка при запуске внешнего сканера', 'error');
     }
   };
