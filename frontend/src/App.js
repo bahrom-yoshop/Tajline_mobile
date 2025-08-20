@@ -3424,8 +3424,11 @@ function App() {
     try {
       console.log('🖨️ Печать QR кода для индивидуальной единицы:', individualNumber);
       
-      // Генерируем QR код для печати
-      const qrCodeImage = await generateActualQRCode(individualNumber, 300);
+      // Генерируем QR код для печати с улучшенным форматом
+      const qrCodeImage = await generateActualQRCode({
+        individual_number: individualNumber,
+        cargo_name: cargoName
+      }, 300, 'individual_unit');
       
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
@@ -3437,25 +3440,27 @@ function App() {
         <html>
           <head>
             <title>Печать QR кода - ${individualNumber}</title>
+            <meta charset="UTF-8">
             <style>
               @page {
                 size: 90mm 100mm;
                 margin: 2mm;
               }
               body { 
-                font-family: Arial, sans-serif; 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; 
                 text-align: center; 
                 margin: 0;
-                padding: 2mm;
+                padding: 3mm;
                 background: white;
-                width: 90mm;
-                height: 100mm;
+                width: 84mm;
+                height: 94mm;
                 display: flex;
                 flex-direction: column;
-                justify-content: center;
+                justify-content: space-between;
                 align-items: center;
+                box-sizing: border-box;
               }
-              .qr-container { 
+              .print-container { 
                 display: flex;
                 flex-direction: column;
                 align-items: center;
@@ -3465,9 +3470,73 @@ function App() {
                 border: 1px solid #000;
                 padding: 2mm;
                 box-sizing: border-box;
+                background: white;
+              }
+              .system-header {
+                font-size: 8px;
+                font-weight: 600;
+                color: #000;
+                margin-bottom: 1mm;
+                letter-spacing: 0.3px;
               }
               .qr-title { 
-                font-size: 10px; 
+                font-size: 11px; 
+                font-weight: 700; 
+                margin-bottom: 1mm;
+                color: #000;
+              }
+              .qr-number {
+                font-size: 9px;
+                font-weight: 600;
+                margin-bottom: 2mm;
+                font-family: 'Courier New', monospace;
+                background: #f0f0f0;
+                padding: 1mm 2mm;
+                border-radius: 2mm;
+                color: #000;
+              }
+              .qr-image {
+                border: 1px solid #ccc;
+                background: white;
+                padding: 1mm;
+              }
+              .cargo-name {
+                font-size: 8px;
+                font-weight: 600;
+                color: #000;
+                margin-top: 1mm;
+                margin-bottom: 1mm;
+                max-width: 100%;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+              }
+              .meta-info {
+                font-size: 6px;
+                color: #666;
+                margin-top: auto;
+              }
+              @media print {
+                .print-container {
+                  page-break-inside: avoid;
+                }
+              }
+            </style>
+          </head>
+          <body onload="window.print(); window.close();">
+            <div class="print-container">
+              <div class="system-header">TAJLINE.TJ</div>
+              <div class="qr-title">QR КОД ГРУЗА</div>
+              <div class="qr-number">${individualNumber}</div>
+              <img src="${qrCodeImage}" alt="QR код" class="qr-image" style="width: 60mm; height: 60mm;" />
+              <div class="cargo-name">${cargoName}</div>
+              <div class="meta-info">
+                ${new Date().toLocaleDateString('ru-RU')} | v2.0
+              </div>
+            </div>
+          </body>
+        </html>
+      `); 
                 font-weight: bold; 
                 margin-bottom: 2mm;
                 color: #000;
