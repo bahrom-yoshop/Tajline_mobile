@@ -319,7 +319,7 @@ class QRSimpleSystemTester:
             qr_sizes = []
             
             for test_text in test_cases:
-                request_data = {"text": test_text}
+                request_data = {"qr_text": test_text}
                 response = self.session.post(f"{BACKEND_URL}/backend/generate-simple-qr", json=request_data)
                 
                 if response.status_code == 200:
