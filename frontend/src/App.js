@@ -18350,14 +18350,172 @@ function App() {
                           </Badge>
                         </CardTitle>
                         <CardDescription>
-                          Активные заявки на забор груза со статусами и информацией о курьерах
+                          Активные заявки на забор груза со статусами и информацией о курьерах. 
+                          Выполненные заявки перемещены в "Историю забора груза".
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-center py-8">
-                          <Truck className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                          <p className="text-gray-500">Содержимое будет перенесено из старой вкладки "На Забор"</p>
-                        </div>
+                        {/* Интерфейс массового удаления заявок на забор */}
+                        {allPickupRequests.length > 0 && (
+                          <div className="mb-4 flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="selectAllPickupRequests"
+                                  checked={selectAllPickupRequests}
+                                  onCheckedChange={(checked) => 
+                                    handleSelectAllPickupRequests(checked, allPickupRequests)
+                                  }
+                                />
+                                <Label htmlFor="selectAllPickupRequests" className="text-sm font-medium">
+                                  Выбрать все
+                                </Label>
+                              </div>
+                              {selectedPickupRequests.length > 0 && (
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                                  {selectedPickupRequests.length} выбрано
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            {/* Кнопки массовых действий */}
+                            {selectedPickupRequests.length > 0 && (
+                              <div className="flex items-center space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleBulkDeletePickupRequests()}
+                                  disabled={bulkActionLoading}
+                                  className="text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
+                                >
+                                  {bulkActionLoading ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600 mr-1"></div>
+                                      Удаление...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Trash2 className="mr-1 h-3 w-3" />
+                                      Удалить ({selectedPickupRequests.length})
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {allPickupRequests.length === 0 ? (
+                          <div className="text-center py-12">
+                            <Truck className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">Нет активных заявок</h3>
+                            <p className="text-gray-600 mb-4">
+                              Заявки на забор груза будут отображаться здесь после их создания
+                            </p>
+                            <Button onClick={() => setActiveTab('cargo-pickup-create')}>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Создать заявку на забор
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="grid gap-4">
+                            {allPickupRequests.map((request) => (
+                              <Card key={request.request_id} className="relative">
+                                <CardContent className="p-4">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex items-center space-x-3">
+                                      <Checkbox
+                                        checked={selectedPickupRequests.includes(request.request_id)}
+                                        onCheckedChange={(checked) => {
+                                          setSelectedPickupRequests(prev => 
+                                            checked 
+                                              ? [...prev, request.request_id]
+                                              : prev.filter(id => id !== request.request_id)
+                                          )
+                                        }}
+                                        className="mt-1"
+                                      />
+                                      <div className="flex-1">
+                                        <div className="flex items-center space-x-2 mb-2">
+                                          <Badge variant="outline" className="text-blue-600 border-blue-200">
+                                            ID: {request.request_id}
+                                          </Badge>
+                                          <Badge 
+                                            className={
+                                              request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                              request.status === 'assigned' ? 'bg-blue-100 text-blue-800' :
+                                              request.status === 'picked_up' ? 'bg-green-100 text-green-800' :
+                                              'bg-red-100 text-red-800'
+                                            }
+                                          >
+                                            {request.status === 'pending' ? 'Ожидает' :
+                                             request.status === 'assigned' ? 'Назначено' :
+                                             request.status === 'picked_up' ? 'Забрано' :
+                                             request.status}
+                                          </Badge>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                          <div>
+                                            <p className="text-gray-500">Отправитель</p>
+                                            <p className="font-medium">{request.sender_name}</p>
+                                          </div>
+                                          <div>
+                                            <p className="text-gray-500">Адрес забора</p>
+                                            <p className="font-medium">{request.pickup_address}</p>
+                                          </div>
+                                          <div>
+                                            <p className="text-gray-500">Груз</p>
+                                            <p className="font-medium">{request.cargo_description || 'Не указано'}</p>
+                                          </div>
+                                          <div>
+                                            <p className="text-gray-500">Дата забора</p>
+                                            <p className="font-medium">
+                                              {request.pickup_date} {request.pickup_time_from}-{request.pickup_time_to}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center space-x-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={async () => {
+                                          const confirmDelete = window.confirm(
+                                            `Вы уверены, что хотите удалить заявку на забор ${request.request_id}?`
+                                          );
+                                          
+                                          if (confirmDelete) {
+                                            try {
+                                              const response = await apiCall(`/api/operator/pickup-requests/${request.request_id}`, 'DELETE');
+                                              
+                                              if (response && response.success) {
+                                                showAlert('Заявка успешно удалена', 'success');
+                                                // Обновляем список заявок на забор
+                                                await fetchAllPickupRequests();
+                                              } else {
+                                                showAlert(`Ошибка при удалении заявки: ${response.message || 'Неизвестная ошибка'}`, 'error');
+                                              }
+                                            } catch (error) {
+                                              console.error('Ошибка удаления заявки на забор:', error);
+                                              showAlert(`Ошибка при удалении: ${error.message}`, 'error');
+                                            }
+                                          }
+                                        }}
+                                        className="flex items-center text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
+                                      >
+                                        <Trash2 className="mr-1 h-3 w-3" />
+                                        Удалить заявку
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   )}
