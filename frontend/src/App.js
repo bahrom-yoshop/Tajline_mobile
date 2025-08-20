@@ -4214,8 +4214,12 @@ function App() {
   // Функция обработки ввода от внешнего сканера для груза
   const handleExternalCargoScan = async (cargoData) => {
     try {
+      // ФАЗА 3: Активация индикатора обработки
+      setScannerProcessingInput(true);
+      setScannerClickProtection(true);
+      
       const extractedData = extractCargoNumber(cargoData);
-      console.log('🖥️ Сканирование груза внешним сканером:', extractedData);
+      console.log('🖥️ ФАЗА 3: Сканирование груза внешним сканером:', extractedData);
       
       let foundCargo = null;
       let foundIndividualUnit = null;
@@ -4224,7 +4228,7 @@ function App() {
       switch (extractedData.type) {
         case 'individual_unit':
           // Поиск по индивидуальному номеру 250101/01/01
-          console.log('🔍 Поиск индивидуальной единицы:', extractedData.full_number);
+          console.log('🔍 ФАЗА 3: Поиск индивидуальной единицы:', extractedData.full_number);
           
           // Поиск заявки по номеру
           const requestCargo = availableCargoForPlacement.find(item => 
@@ -4307,19 +4311,21 @@ function App() {
           'success'
         );
         
-        // УЛУЧШЕНИЕ: МГНОВЕННЫЙ переход к сканированию ячейки
+        // ФАЗА 3: УЛУЧШЕННЫЙ переход к сканированию ячейки с автофокусом
         setExternalScannerStep('cell');
+        setScannerAutoFocusTarget('cell');
         setScannerMessage(`📍 Отсканируйте QR код ячейки для размещения ${foundIndividualUnit ? 
           `единицы ${extractedData.full_number}` : 
           `груза ${foundCargo.cargo_number}`}`);
         
-        // Мгновенно фокусируемся на поле ячейки
+        // ФАЗА 3: Автофокус с улучшенной задержкой
         setTimeout(() => {
           const cellInput = document.querySelector('input[placeholder*="QR код ячейки"]');
           if (cellInput) {
             cellInput.focus();
+            console.log('🖥️ ФАЗА 3: Автофокус установлен на поле ячейки');
           }
-        }, 50);
+        }, 200);
         
       } else {
         let errorMessage = '';
@@ -4334,9 +4340,17 @@ function App() {
         showAlert(errorMessage, 'error');
       }
     } catch (error) {
-      console.error('Ошибка обработки сканирования груза:', error);
+      console.error('ФАЗА 3: Ошибка обработки сканирования груза:', error);
       setScannerError('Ошибка обработки данных груза');
       showAlert('Ошибка обработки данных груза', 'error');
+    } finally {
+      // ФАЗА 3: Сброс индикатора обработки с задержкой
+      setTimeout(() => {
+        setScannerProcessingInput(false);
+        if (externalScannerStep !== 'cell') {
+          setScannerClickProtection(false);
+        }
+      }, 500);
     }
   };
 
