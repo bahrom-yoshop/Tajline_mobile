@@ -270,7 +270,7 @@ class BackendTester:
             return False
 
     def test_warehouse_cell_status(self):
-        """Test GET /api/warehouses/cell/status"""
+        """Test POST /api/warehouse/cell/status"""
         try:
             # Get operator warehouses first
             warehouses_response = self.session.get(f"{BACKEND_URL}/operator/warehouses")
@@ -280,48 +280,48 @@ class BackendTester:
                 if warehouses:
                     self.warehouse_id = warehouses[0].get("id")
                     
-                    # Test cell status endpoint
-                    params = {
+                    # Test cell status endpoint - it's POST, not GET
+                    cell_data = {
                         "warehouse_id": self.warehouse_id,
                         "block_number": 1,
                         "shelf_number": 1,
                         "cell_number": 1
                     }
                     
-                    response = self.session.get(f"{BACKEND_URL}/warehouses/cell/status", params=params)
+                    response = self.session.post(f"{BACKEND_URL}/warehouse/cell/status", json=cell_data)
                     
                     if response.status_code == 200:
                         data = response.json()
                         self.log_test(
-                            "GET /api/warehouses/cell/status",
+                            "POST /api/warehouse/cell/status",
                             True,
                             f"Статус ячейки: {'занята' if data.get('is_occupied') else 'свободна'}"
                         )
                         return True
                     else:
                         self.log_test(
-                            "GET /api/warehouses/cell/status",
+                            "POST /api/warehouse/cell/status",
                             False,
                             error=f"HTTP {response.status_code}: {response.text}"
                         )
                         return False
                 else:
                     self.log_test(
-                        "GET /api/warehouses/cell/status",
+                        "POST /api/warehouse/cell/status",
                         False,
                         error="Нет доступных складов для тестирования"
                     )
                     return False
             else:
                 self.log_test(
-                    "GET /api/warehouses/cell/status",
+                    "POST /api/warehouse/cell/status",
                     False,
                     error=f"Не удалось получить склады: HTTP {warehouses_response.status_code}"
                 )
                 return False
                 
         except Exception as e:
-            self.log_test("GET /api/warehouses/cell/status", False, error=str(e))
+            self.log_test("POST /api/warehouse/cell/status", False, error=str(e))
             return False
 
     def test_qr_format_compatibility(self):
