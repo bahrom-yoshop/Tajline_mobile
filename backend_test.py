@@ -36,6 +36,7 @@ class TajlineBackendTester:
         self.admin_token = None
         self.operator_token = None
         self.test_results = []
+        self.test_cargo_number = None  # Для хранения номера созданного груза
         
     def log_test(self, test_name, success, details="", error=""):
         """Логирование результатов тестов"""
