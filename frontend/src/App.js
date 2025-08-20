@@ -4102,7 +4102,7 @@ function App() {
 
   // НОВЫЕ СОСТОЯНИЯ: Модальное окно детального размещения грузов
   const [showPlacementDetailsModal, setShowPlacementDetailsModal] = useState(false); // Модальное окно деталей размещения
-  const [selectedCargoForPlacement, setSelectedCargoForPlacement] = useState(null); // Выбранная заявка для детального размещения  
+  const [selectedCargoForDetails, setSelectedCargoForDetails] = useState(null); // Выбранная заявка для детального размещения  
   const [placementDetails, setPlacementDetails] = useState(null); // Детальная информация о размещении
   const [placementDetailsLoading, setPlacementDetailsLoading] = useState(false); // Загрузка деталей размещения
   
