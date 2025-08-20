@@ -13967,7 +13967,7 @@ function App() {
         
         // Создаем QR код для каждой единицы груза
         for (let i = 1; i <= item.quantity; i++) {
-          const item_id = `${cargo_id_base}/${i}`;
+          const item_id = `${cargo_id_base}/${String(i).padStart(2, '0')}`;  // ИСПРАВЛЕНИЕ: Ведущие нули для unit_index
           
           console.log(`🔄 Генерируем QR код для единицы ${i}/${item.quantity}: ${item_id}`);
           
