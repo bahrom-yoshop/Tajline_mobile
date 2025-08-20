@@ -601,8 +601,10 @@ class WarehouseCell(BaseModel):
 # Модель для отдельного груза в заявке с индивидуальной ценой
 class CargoItem(BaseModel):
     cargo_name: str = Field(..., min_length=1, max_length=100)
+    quantity: int = Field(..., gt=0, le=100, description="Количество единиц груза")
     weight: float = Field(..., gt=0, le=1000)
     price_per_kg: float = Field(..., gt=0, le=10000)  # Индивидуальная цена за кг для каждого груза
+    total_amount: float = Field(..., gt=0, description="Общая стоимость груза")
     
     @property
     def total_cost(self) -> float:
