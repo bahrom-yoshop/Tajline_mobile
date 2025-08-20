@@ -189,14 +189,14 @@ class TajlineBackendTester:
             )
             return False
 
-    def verify_cargo_items_in_database(self, cargo_id, expected_items):
+    def verify_cargo_items_in_database(self, cargo_number, expected_items):
         """Проверка сохранения cargo_items с новыми полями в базе данных"""
         print("🔍 ПРОВЕРКА СОХРАНЕНИЯ CARGO_ITEMS В БАЗЕ ДАННЫХ")
         print("=" * 60)
         
         try:
-            # Получаем данные груза для проверки сохранения
-            response = self.session.get(f"{API_BASE}/cargo/{cargo_id}")
+            # Получаем данные груза для проверки сохранения через tracking endpoint
+            response = self.session.get(f"{API_BASE}/cargo/track/{cargo_number}")
             
             if response.status_code == 200:
                 cargo_data = response.json()
