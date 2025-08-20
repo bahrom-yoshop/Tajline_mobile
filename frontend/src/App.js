@@ -31930,8 +31930,10 @@ function App() {
               <Button 
                 variant="outline" 
                 onClick={() => setShowCargoPlacementModal(false)}
+                disabled={scannerClickProtection}
+                className={scannerClickProtection ? 'opacity-50 cursor-not-allowed' : ''}
               >
-                Закрыть
+                {scannerClickProtection ? 'Обработка...' : 'Закрыть'}
               </Button>
             </div>
           </div>
