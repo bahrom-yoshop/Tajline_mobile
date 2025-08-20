@@ -527,7 +527,7 @@ class FinalFixesTester:
                 self.log_test(
                     "Создание заявки с deferred payment",
                     True,
-                    f"Заявка создана: {cargo_number} (ID: {cargo_id}). Способ оплаты: deferred (в долг). Дата погашения: 2025-02-15"
+                    f"Заявка создана: {cargo_number} (ID: {cargo_id}). Способ оплаты: credit (в долг). Дата погашения: 2025-02-15"
                 )
                 return True
             else:
