@@ -37,7 +37,7 @@ import sys
 from datetime import datetime
 
 # Конфигурация
-BACKEND_URL = "https://tajline-logistics-1.preview.emergentagent.com/api"
+BACKEND_URL = "https://freight-qr-system.preview.emergentagent.com/api"
 
 def test_inactive_couriers_functionality():
     """Тестирование функциональности неактивных курьеров"""

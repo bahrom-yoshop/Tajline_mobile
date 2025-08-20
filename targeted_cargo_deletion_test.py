@@ -7,7 +7,7 @@ import requests
 import json
 
 # Конфигурация
-BACKEND_URL = "https://tajline-logistics-1.preview.emergentagent.com/api"
+BACKEND_URL = "https://freight-qr-system.preview.emergentagent.com/api"
 
 def test_specific_cargo_deletion():
     """Тестирование конкретного удаления груза 100008/02"""

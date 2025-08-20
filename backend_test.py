@@ -18,7 +18,7 @@ import sys
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://tajline-logistics-1.preview.emergentagent.com/api"
+BACKEND_URL = "https://freight-qr-system.preview.emergentagent.com/api"
 
 def test_operator_cargo_accept_with_quantity_and_total_amount():
     """

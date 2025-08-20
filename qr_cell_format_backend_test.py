@@ -37,7 +37,7 @@ import os
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://tajline-logistics-1.preview.emergentagent.com/api"
+BACKEND_URL = "https://freight-qr-system.preview.emergentagent.com/api"
 
 # Test credentials
 WAREHOUSE_OPERATOR = {

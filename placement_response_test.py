@@ -12,7 +12,7 @@ import sys
 from datetime import datetime
 
 # Конфигурация
-BACKEND_URL = "https://tajline-logistics-1.preview.emergentagent.com/api"
+BACKEND_URL = "https://freight-qr-system.preview.emergentagent.com/api"
 
 # Учетные данные оператора склада
 WAREHOUSE_OPERATOR = {
