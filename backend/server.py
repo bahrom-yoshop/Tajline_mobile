@@ -737,6 +737,7 @@ class CargoWithLocation(BaseModel):
     cell_number: Optional[int] = None
     placed_by_operator: Optional[str] = None  # ФИО оператора, разместившего груз
     placed_by_operator_id: Optional[str] = None  # ID оператора
+    cargo_items: Optional[List[CargoItem]] = []  # ИСПРАВЛЕНИЕ: Включаем cargo_items для генерации QR кодов
 
 class PaymentTransaction(BaseModel):
     id: str
