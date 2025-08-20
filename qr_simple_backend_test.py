@@ -160,9 +160,9 @@ class QRSimpleSystemTester:
             print(f"\n📋 Подтест: {test_case['name']} - {test_case['description']}")
             
             try:
-                # Данные для запроса
+                # Данные для запроса (используем правильное поле qr_text)
                 request_data = {
-                    "text": test_case["data"]
+                    "qr_text": test_case["data"]
                 }
                 
                 response = self.session.post(f"{BACKEND_URL}/backend/generate-simple-qr", json=request_data)
