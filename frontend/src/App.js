@@ -13320,10 +13320,13 @@ function App() {
         for (let i = 1; i <= item.quantity; i++) {
           const item_id = `${cargo_id_base}/${i}`;
           
-          console.log(`🔄 Генерируем настоящий QR код для единицы ${i}/${item.quantity}: ${item_id}`);
+          console.log(`🔄 Генерируем QR код для единицы ${i}/${item.quantity}: ${item_id}`);
           
-          // ИСПРАВЛЕНИЕ: Генерируем настоящий QR код с библиотекой QRCode.js
-          const qrCodeImage = await generateActualQRCode(item_id, 200);
+          // ИСПРАВЛЕНИЕ: Используем правильный формат для генерации QR кода индивидуальной единицы
+          const qrCodeImage = await generateActualQRCode({
+            individual_number: item_id,
+            cargo_name: item.cargo_name
+          }, 200, 'individual_unit');
           
           qrCodes.push({
             id: item_id,
@@ -13337,7 +13340,7 @@ function App() {
             qr_code_image: qrCodeImage
           });
           
-          console.log(`✅ Настоящий QR код сгенерирован для: ${item_id}`);
+          console.log(`✅ QR код сгенерирован для: ${item_id}`);
         }
       }
       
