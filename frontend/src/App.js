@@ -18231,7 +18231,138 @@ function App() {
                     </Card>
                   )}
 
-                  {/* Список грузов */}
+                  {/* НОВАЯ ВКЛАДКА: Оформить забор груза */}
+                  {activeTab === 'cargo-pickup-create' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Truck className="mr-2 h-5 w-5 text-orange-600" />
+                          Оформить забор груза
+                        </CardTitle>
+                        <CardDescription>
+                          Заполните форму для создания заявки на забор груза курьером
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="xl:p-8">
+                        <form onSubmit={handlePickupCargoSubmit} className="space-y-4 max-w-2xl xl:max-w-4xl">
+                          <div className="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-6">
+                            <h3 className="font-semibold text-orange-800 mb-2 flex items-center">
+                              <Truck className="mr-2 h-5 w-5" />
+                              Заявка на забор груза
+                            </h3>
+                            <p className="text-sm text-orange-700">
+                              Заполните только основные данные для отправки заявки курьеру на забор груза
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                            {/* ФИО отправителя */}
+                            <div>
+                              <Label htmlFor="pickup_sender_name" className="text-orange-700 font-medium">
+                                ФИО отправителя *
+                              </Label>
+                              <Input
+                                id="pickup_sender_name"
+                                value={operatorCargoForm.sender_full_name}
+                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, sender_full_name: e.target.value})}
+                                placeholder="Иванов Иван Иванович"
+                                className="border-orange-200 focus:border-orange-400 xl:h-12 xl:text-base"
+                                required
+                              />
+                            </div>
+
+                            {/* Наименование груза */}
+                            <div>
+                              <Label htmlFor="pickup_cargo_name" className="text-orange-700 font-medium">
+                                Наименование груза *
+                              </Label>
+                              <Input
+                                id="pickup_cargo_name"
+                                value={operatorCargoForm.cargo_name}
+                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, cargo_name: e.target.value})}
+                                placeholder="Документы, коробка, сумка"
+                                className="border-orange-200 focus:border-orange-400 xl:h-12 xl:text-base"
+                                required
+                              />
+                            </div>
+
+                            {/* Вес груза */}
+                            <div>
+                              <Label htmlFor="pickup_weight" className="text-orange-700 font-medium">
+                                Примерный вес (кг) *
+                              </Label>
+                              <Input
+                                id="pickup_weight"
+                                type="number"
+                                step="0.1"
+                                min="0.1"
+                                value={operatorCargoForm.weight}
+                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, weight: e.target.value})}
+                                placeholder="1.5"
+                                className="border-orange-200 focus:border-orange-400 xl:h-12 xl:text-base"
+                                required
+                              />
+                            </div>
+
+                            {/* Адрес места нахождения груза */}
+                            <div>
+                              <Label htmlFor="pickup_address" className="text-orange-700 font-medium">
+                                Адрес места нахождения груза *
+                              </Label>
+                              <Input
+                                id="pickup_address"
+                                value={operatorCargoForm.pickup_address}
+                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, pickup_address: e.target.value})}
+                                placeholder="Москва, ул. Ленина, 15, офис 203"
+                                className="border-orange-200 focus:border-orange-400 xl:h-12 xl:text-base"
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          {/* Кнопка отправки заявки */}
+                          <div className="pt-4">
+                            <Button 
+                              type="submit" 
+                              className="w-full bg-orange-600 hover:bg-orange-700 text-white xl:h-14 xl:text-lg" 
+                              size="lg"
+                            >
+                              <Truck className="mr-2 h-4 w-4 xl:h-5 xl:w-5" />
+                              Отправить заявку на забор груза
+                            </Button>
+                          </div>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* ПЕРЕИМЕНОВАННАЯ ВКЛАДКА: На забор (перенесено из Размещение груза) */}
+                  {activeTab === 'cargo-pickup-list' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Truck className="mr-2 h-5 w-5" />
+                            Заявки на забор груза
+                          </div>
+                          <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                            {allPickupRequests.length} заявок
+                          </Badge>
+                        </CardTitle>
+                        <CardDescription>
+                          Активные заявки на забор груза со статусами и информацией о курьерах
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-center py-8">
+                          <Truck className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                          <p className="text-gray-500">Содержимое будет перенесено из старой вкладки "На Забор"</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Список грузов */}}
                   {(activeTab === 'cargo-list' || !activeTab || activeTab === 'cargo-management') && (
                     <Card>
                       <CardHeader>
