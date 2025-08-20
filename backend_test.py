@@ -179,7 +179,7 @@ class QRSystemTester:
                 data = response.json()
                 
                 # Check response structure
-                required_fields = ["cargo", "total_count", "pagination"]
+                required_fields = ["items", "pagination"]
                 missing_fields = [field for field in required_fields if field not in data]
                 
                 if missing_fields:
@@ -190,8 +190,9 @@ class QRSystemTester:
                     )
                     return False
                 
-                cargo_list = data.get("cargo", [])
-                total_count = data.get("total_count", 0)
+                cargo_list = data.get("items", [])
+                pagination = data.get("pagination", {})
+                total_count = pagination.get("total_count", len(cargo_list))
                 
                 self.log_test(
                     "API endpoint available-for-placement",
