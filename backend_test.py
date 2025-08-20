@@ -321,7 +321,7 @@ class QRSystemTester:
             
             if response.status_code == 200:
                 data = response.json()
-                cargo_list = data.get("cargo", [])
+                cargo_list = data.get("items", [])
                 
                 qr_compatibility_check = {
                     "simple_format_ready": 0,
