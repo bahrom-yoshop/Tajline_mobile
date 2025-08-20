@@ -17797,26 +17797,28 @@ function App() {
                                       <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500 h-12 flex items-center">
                                         {!selectedDeliveryCity 
                                           ? 'Сначала выберите город' 
-                                          : availableWarehousesForCity.length === 0 
-                                      ? 'Нет доступных складов для выбранного города' 
-                                      : 'Загрузка складов...'}
+                                            ? 'Нет доступных складов для выбранного города' 
+                                            : 'Загрузка складов...'}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                              )}
-                            </div>
-                          </div>
 
-                          {/* Адрес получения груза - перемещен после выбора города */}
-                          <div>
-                            <Label htmlFor="recipient_address">Адрес получения груза</Label>
-                            <Input
-                              id="recipient_address"
-                              value={operatorCargoForm.recipient_address}
-                              onChange={(e) => setOperatorCargoForm({...operatorCargoForm, recipient_address: e.target.value})}
-                              placeholder="Душанбе, ул. Рудаки, 10, кв. 5"
-                              className="xl:h-12 xl:text-base"
-                              required
-                            />
-                          </div>
+                                {/* Адрес получения груза - перемещен после выбора города */}
+                                <div>
+                                  <Label htmlFor="recipient_address">Адрес получения груза *</Label>
+                                  <Input
+                                    id="recipient_address"
+                                    value={operatorCargoForm.recipient_address}
+                                    onChange={(e) => setOperatorCargoForm({...operatorCargoForm, recipient_address: e.target.value})}
+                                    placeholder="Душанбе, ул. Рудаки, 10, кв. 5"
+                                    className="h-12 text-base"
+                                    required
+                                  />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
 
                           {/* Переключатель между режимами */}
                           <div className="mb-4 p-4 bg-gray-50 rounded-lg">
