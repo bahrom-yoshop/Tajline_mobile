@@ -18243,8 +18243,8 @@ function App() {
                             {/* Кнопки действий */}
                             <div className="flex flex-col space-y-3">
                               {/* Главная кнопка приема груза */}
-                              <Button type="submit" className="w-full xl:h-14 xl:text-lg" size="lg" variant="default">
-                                <Plus className="mr-2 h-4 w-4 xl:h-5 xl:w-5" />
+                              <Button type="submit" className="w-full h-12 md:h-14 text-base md:text-lg" size="lg" variant="default">
+                                <Plus className="mr-2 h-4 w-4 md:h-5 md:w-5" />
                                 Принять груз
                               </Button>
                               
@@ -18253,20 +18253,20 @@ function App() {
                                 <Button 
                                   type="button"
                                   onClick={() => handleSendToCourier()}
-                                  className="w-full bg-blue-600 hover:bg-blue-700" 
+                                  className="w-full bg-blue-600 hover:bg-blue-700 h-12 md:h-14 text-base md:text-lg" 
                                   size="lg"
                                 >
-                                  <Truck className="mr-2 h-4 w-4" />
+                                  <Truck className="mr-2 h-4 w-4 md:h-5 md:w-5" />
                                   Отправить курьером
                                 </Button>
                               )}
                             </div>
                             
                             {/* Информация о статусе */}
-                            <div className="text-sm text-gray-600 text-center bg-blue-50 p-3 rounded-lg">
+                            <div className="text-sm text-gray-600 text-center bg-blue-50 p-3 rounded-lg border border-blue-200">
                               <div className="flex items-center justify-center mb-2">
                                 <Clock className="mr-2 h-4 w-4" />
-                                <span className="font-medium">После приема груз поступает в:</span>
+                                <span className="font-medium">После приема груз поступит в:</span>
                               </div>
                               <div className="text-blue-800 font-semibold">
                                 Касса → Не оплачено
@@ -18276,6 +18276,8 @@ function App() {
                               </div>
                             </div>
                           </div>
+                            </CardContent>
+                          </Card>
                         </form>
                       </CardContent>
                     </Card>
