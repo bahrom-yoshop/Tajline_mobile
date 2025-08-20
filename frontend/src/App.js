@@ -12916,8 +12916,10 @@ function App() {
       // Обновляем статус груза на "размещен" во ВСЕХ таблицах
       await updateCargoProcessingStatus(cargoId, 'placed');
       
-      // Обновляем все списки для синхронизации
-      fetchAvailableCargoForPlacement(); // Убираем из "Ожидает размещение"
+      // НОВОЕ: Обновляем статус размещения и проверяем автоматическое перемещение
+      await handlePlacementStatusUpdate(cargoId);
+      
+      // Обновляем размещенные грузы
       fetchPlacedCargo(); // Добавляем в "Размещенные грузы"
       fetchOperatorCargo(operatorCargoFilter, operatorCargoPage, operatorCargoPerPage);
       fetchAllCargo(); // Админский список
