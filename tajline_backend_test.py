@@ -142,28 +142,28 @@ class TajlineBackendTester:
     def test_get_all_cities(self):
         """4. ПОЛУЧЕНИЕ ВСЕХ ГОРОДОВ ДЛЯ АВТОКОМПЛИТА"""
         try:
-            response = self.session.get(f"{API_BASE}/admin/warehouses/cities")
+            response = self.session.get(f"{API_BASE}/warehouses/all-cities")
             
             if response.status_code == 200:
                 cities_data = response.json()
                 cities = cities_data.get("cities", [])
                 
                 self.log_result(
-                    "GET /api/admin/warehouses/cities - получение всех городов для автокомплита",
+                    "GET /api/warehouses/all-cities - получение всех городов для автокомплита",
                     True,
-                    f"Получено {len(cities)} городов для автокомплита 'Город выдачи груза': {cities[:5]}..." if len(cities) > 5 else f"Получено {len(cities)} городов: {cities}"
+                    f"Получено {len(cities)} городов для автокомплита 'Город выдачи груза': {cities[:3]}..." if len(cities) > 3 else f"Получено {len(cities)} городов: {cities}"
                 )
                 return True
             else:
                 self.log_result(
-                    "GET /api/admin/warehouses/cities - получение всех городов для автокомплита",
+                    "GET /api/warehouses/all-cities - получение всех городов для автокомплита",
                     False,
                     f"HTTP {response.status_code}: {response.text}"
                 )
                 return False
                 
         except Exception as e:
-            self.log_result("GET /api/admin/warehouses/cities - получение всех городов для автокомплита", False, f"Ошибка: {str(e)}")
+            self.log_result("GET /api/warehouses/all-cities - получение всех городов для автокомплита", False, f"Ошибка: {str(e)}")
             return False
     
     def test_get_operator_analytics(self):
