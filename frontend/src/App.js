@@ -3207,12 +3207,27 @@ function App() {
   };
 
   // НОВАЯ ФУНКЦИЯ: Обработчик кнопки "Действия" для детального размещения груза
-  const handleOpenCargoPlacementDetails = (cargoItem) => {
-    // Открываем модальное окно с деталями размещения каждого груза
-    console.log('🔧 Открытие деталей размещения для заявки:', cargoItem.cargo_number);
-    
-    // Пока используем существующее модальное окно просмотра груза
-    handleViewCargo(cargoItem);
+  const handleOpenCargoPlacementDetails = async (cargoItem) => {
+    try {
+      console.log('🔧 Открытие деталей размещения для заявки:', cargoItem.cargo_number);
+      
+      setPlacementDetailsLoading(true);
+      setSelectedCargoForDetails(cargoItem);
+      setShowPlacementDetailsModal(true);
+      
+      // Загружаем детальную информацию о размещении
+      const response = await apiCall(`/api/operator/cargo/${cargoItem.id}/placement-status`, 'GET');
+      
+      console.log('📋 Получены детали размещения:', response);
+      setPlacementDetails(response);
+      
+    } catch (error) {
+      console.error('❌ Ошибка загрузки деталей размещения:', error);
+      showAlert(`Ошибка загрузки деталей размещения: ${error.message}`, 'error');
+      setShowPlacementDetailsModal(false);
+    } finally {
+      setPlacementDetailsLoading(false);
+    }
   };
 
   // Функция печати QR кода номера заявки (90мм x 100мм)
