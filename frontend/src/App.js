@@ -4493,7 +4493,33 @@ function App() {
           showAlert(`⚠️ Не удалось проверить статус ячейки, но продолжаем размещение в ${cellDisplayFormat}`, 'warning');
           
           if (externalScannedCargo) {
+            console.log('🖥️ ФАЗА 4: Размещение (fallback) с автосбросом...');
             await performExternalScannerPlacement(externalScannedCargo, cellInfo);
+            
+            // ФАЗА 4: Автоматический сброс даже при fallback
+            setTimeout(() => {
+              if (scannerAutoTransition) {
+                console.log('🖥️ ФАЗА 4: Автоматический сброс после fallback размещения...');
+                setScannerCompletionCount(prev => prev + 1);
+                setExternalScannedCargo(null);
+                setExternalScannedCell(null);
+                setExternalCargoInput('');
+                setExternalCellInput('');
+                setExternalScannerStep('cargo');
+                setScannerAutoFocusTarget('cargo');
+                setScannerMessage('✅ Размещение завершено! Отсканируйте следующий груз');
+                
+                // ФАЗА 4: Автофокус на новый цикл
+                setTimeout(() => {
+                  const cargoInput = document.querySelector('input[placeholder*="Отсканируйте QR код груза"]');
+                  if (cargoInput) {
+                    cargoInput.focus();
+                    cargoInput.select();
+                    console.log('🖥️ ФАЗА 4: Автопереход к новому циклу после fallback');
+                  }
+                }, 100);
+              }
+            }, 1500);
           }
         }
       } else {
