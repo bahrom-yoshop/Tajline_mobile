@@ -298,30 +298,44 @@ def test_placement_status_with_individual_units():
         
         log_success(f"Обязательные поля присутствуют: {present_fields}/{len(required_fields)}")
         
-        # Проверяем individual_units
-        individual_units = status_data.get('individual_units', [])
-        if individual_units:
-            log_success(f"individual_units присутствует: {len(individual_units)} единиц")
+        # Проверяем cargo_types с individual_units
+        cargo_types = status_data.get('cargo_types', [])
+        if cargo_types:
+            log_success(f"cargo_types присутствует: {len(cargo_types)} типов груза")
             
-            for i, unit in enumerate(individual_units, 1):
-                individual_number = unit.get('individual_number')
-                type_number = unit.get('type_number')
-                unit_index = unit.get('unit_index')
-                is_placed = unit.get('is_placed', False)
-                status = unit.get('status', 'unknown')
+            total_individual_units = 0
+            for i, cargo_type in enumerate(cargo_types, 1):
+                cargo_name = cargo_type.get('cargo_name', f'Груз #{i}')
+                quantity = cargo_type.get('quantity', 0)
+                individual_units = cargo_type.get('individual_units', [])
                 
-                log_info(f"  Единица #{i}: {individual_number}")
-                log_info(f"    type_number: {type_number}, unit_index: {unit_index}")
-                log_info(f"    is_placed: {is_placed}, status: {status}")
+                log_info(f"  Тип груза #{i}: {cargo_name} (количество: {quantity})")
+                log_info(f"    individual_units: {len(individual_units)} единиц")
+                
+                total_individual_units += len(individual_units)
+                
+                # Проверяем структуру individual_units
+                for j, unit in enumerate(individual_units):
+                    individual_number = unit.get('individual_number')
+                    type_number = unit.get('type_number')
+                    unit_index = unit.get('unit_index')
+                    is_placed = unit.get('is_placed', False)
+                    status = unit.get('status', 'unknown')
+                    
+                    log_info(f"      Единица #{j+1}: {individual_number}")
+                    log_info(f"        type_number: {type_number}, unit_index: {unit_index}")
+                    log_info(f"        is_placed: {is_placed}, status: {status}")
             
-            if len(individual_units) == 5:  # Ожидаем 5 единиц (2+3)
+            log_success(f"Общее количество individual_units: {total_individual_units}")
+            
+            if total_individual_units == 5:  # Ожидаем 5 единиц (2+3)
                 log_success("✅ Количество individual_units соответствует ожидаемому (5)")
                 return True
             else:
-                log_error(f"❌ Ожидалось 5 individual_units, получено {len(individual_units)}")
+                log_error(f"❌ Ожидалось 5 individual_units, получено {total_individual_units}")
                 return False
         else:
-            log_error("individual_units отсутствует в ответе")
+            log_error("cargo_types отсутствует в ответе")
             return False
         
     except Exception as e:
