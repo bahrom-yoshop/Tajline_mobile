@@ -3439,12 +3439,12 @@ function App() {
     }
   };
 
-  // Печать QR кода для индивидуальной единицы груза  
+  // ОБНОВЛЕННАЯ ФУНКЦИЯ: Упрощенная печать QR кода для индивидуальной единицы
   const handlePrintIndividualQR = async (individualNumber, cargoName) => {
     try {
-      console.log('🖨️ Печать QR кода для индивидуальной единицы:', individualNumber);
+      console.log('🖨️ Упрощенная печать QR кода:', individualNumber);
       
-      // Генерируем QR код для печати с улучшенным форматом
+      // Генерируем QR код для печати
       const qrCodeImage = await generateActualQRCode({
         individual_number: individualNumber,
         cargo_name: cargoName
@@ -3456,102 +3456,59 @@ function App() {
         return;
       }
       
+      // УПРОЩЕННЫЙ ДИЗАЙН: только наименование груза, QR код и номер
       printWindow.document.write(`
         <html>
           <head>
-            <title>Печать QR кода - ${individualNumber}</title>
+            <title>QR код - ${individualNumber}</title>
             <meta charset="UTF-8">
             <style>
               @page {
                 size: 90mm 100mm;
-                margin: 2mm;
+                margin: 3mm;
               }
               body { 
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; 
+                font-family: Arial, sans-serif; 
                 text-align: center; 
                 margin: 0;
-                padding: 3mm;
+                padding: 5mm;
                 background: white;
-                width: 84mm;
-                height: 94mm;
                 display: flex;
                 flex-direction: column;
-                justify-content: space-between;
-                align-items: center;
-                box-sizing: border-box;
-              }
-              .print-container { 
-                display: flex;
-                flex-direction: column;
-                align-items: center;
                 justify-content: center;
-                width: 100%;
-                height: 100%;
-                border: 1px solid #000;
-                padding: 2mm;
-                box-sizing: border-box;
-                background: white;
-              }
-              .system-header {
-                font-size: 8px;
-                font-weight: 600;
-                color: #000;
-                margin-bottom: 1mm;
-                letter-spacing: 0.3px;
-              }
-              .qr-title { 
-                font-size: 11px; 
-                font-weight: 700; 
-                margin-bottom: 1mm;
-                color: #000;
-              }
-              .qr-number {
-                font-size: 9px;
-                font-weight: 600;
-                margin-bottom: 2mm;
-                font-family: 'Courier New', monospace;
-                background: #f0f0f0;
-                padding: 1mm 2mm;
-                border-radius: 2mm;
-                color: #000;
-              }
-              .qr-image {
-                border: 1px solid #ccc;
-                background: white;
-                padding: 1mm;
+                align-items: center;
+                min-height: 94mm;
               }
               .cargo-name {
-                font-size: 8px;
-                font-weight: 600;
+                font-size: 14px;
+                font-weight: bold;
                 color: #000;
-                margin-top: 1mm;
-                margin-bottom: 1mm;
-                max-width: 100%;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
+                margin-bottom: 8mm;
+                word-wrap: break-word;
+                max-width: 80mm;
+                line-height: 1.2;
               }
-              .meta-info {
-                font-size: 6px;
-                color: #666;
-                margin-top: auto;
+              .qr-image {
+                margin: 3mm 0;
+              }
+              .cargo-number {
+                font-size: 12px;
+                font-weight: bold;
+                color: #000;
+                margin-top: 8mm;
+                font-family: 'Courier New', monospace;
+                letter-spacing: 1px;
               }
             </style>
           </head>
           <body onload="window.print(); window.close();">
-            <div class="print-container">
-              <div class="system-header">TAJLINE.TJ</div>
-              <div class="qr-title">QR КОД ГРУЗА</div>
-              <div class="qr-number">${individualNumber}</div>
-              <img src="${qrCodeImage}" alt="QR код" class="qr-image" style="width: 60mm; height: 60mm;" />
-              <div class="cargo-name">${cargoName}</div>
-              <div class="meta-info">
-                ${new Date().toLocaleDateString('ru-RU')} | v2.0
-              </div>
-            </div>
+            <div class="cargo-name">${cargoName}</div>
+            <img src="${qrCodeImage}" alt="QR код" class="qr-image" style="width: 60mm; height: 60mm;" />
+            <div class="cargo-number">${individualNumber}</div>
           </body>
         </html>
-      `); 
+      `);
+      
       printWindow.document.close();
       
       showAlert(`QR код ${individualNumber} отправлен на печать!`, 'success');
