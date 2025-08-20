@@ -4357,7 +4357,11 @@ function App() {
   // Функция обработки ввода от внешнего сканера для ячейки
   const handleExternalCellScan = async (cellData) => {
     try {
-      console.log('🖥️ ФАЗА 2: Улучшенное сканирование ячейки:', cellData);
+      // ФАЗА 3: Активация индикатора обработки
+      setScannerProcessingInput(true);
+      setScannerClickProtection(true);
+      
+      console.log('🖥️ ФАЗА 3: Улучшенное сканирование ячейки:', cellData);
       
       const cellInfo = parseCellQRCode(cellData);
       if (cellInfo) {
