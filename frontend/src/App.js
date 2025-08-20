@@ -4272,6 +4272,7 @@ function App() {
                   const individualUnit = targetCargoItem.individual_items.find(unit => 
                     unit.unit_index == extractedData.unit_number || 
                     String(unit.unit_index).padStart(2, '0') === extractedData.unit_number ||
+                    String(unit.unit_index) === extractedData.unit_number ||
                     unit.individual_number === extractedData.full_number
                   );
                   
