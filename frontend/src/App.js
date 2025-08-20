@@ -4410,24 +4410,62 @@ function App() {
         case 'JSON_REQUEST':
         case 'PREFIXED_CARGO':
         case 'GENERIC_NUMBER':
-          // Стандартный поиск для остальных типов
+          // Улучшенный поиск для остальных типов
+          console.log('🔍 СОВМЕСТИМОСТЬ: Поиск для типа', extractedData.type);
           const searchNumber = extractedData.cargo_number || extractedData.request_number;
+          
+          // Попробовать прямое совпадение
           foundCargo = availableCargoForPlacement.find(item => 
             item.cargo_number === searchNumber || 
-            item.id === searchNumber ||
-            extractedData.full_number.includes(item.cargo_number)
+            item.id === searchNumber
           );
-          console.log(`✅ ЭТАП 2: Поиск ${extractedData.type}:`, searchNumber, foundCargo ? 'найден' : 'не найден');
+          
+          // Если не найден, попробовать частичное совпадение
+          if (!foundCargo) {
+            foundCargo = availableCargoForPlacement.find(item => 
+              extractedData.full_number.includes(item.cargo_number) ||
+              item.cargo_number.includes(searchNumber)
+            );
+          }
+          
+          console.log(`${foundCargo ? '✅' : '❌'} СОВМЕСТИМОСТЬ: Поиск ${extractedData.type}:`, 
+                     searchNumber, foundCargo ? 'найден' : 'не найден');
           break;
           
         default:
-          // Fallback поиск для неизвестных типов
-          console.log('🔍 ЭТАП 2: Fallback поиск для:', extractedData.type);
+          // Улучшенный fallback поиск для неизвестных типов
+          console.log('🔍 FALLBACK: Поиск для неизвестного типа:', extractedData.type);
+          console.log('   → Исходные данные:', cargoData);
+          
+          // 1. Попробовать точное совпадение номера заявки
           foundCargo = availableCargoForPlacement.find(item => 
             item.cargo_number === cargoData || 
-            item.id === cargoData ||
-            cargoData.includes(item.cargo_number)
+            item.id === cargoData
           );
+          
+          // 2. Если не найден, попробовать частичное совпадение
+          if (!foundCargo) {
+            foundCargo = availableCargoForPlacement.find(item => 
+              cargoData.includes(item.cargo_number) ||
+              item.cargo_number.includes(cargoData)
+            );
+          }
+          
+          // 3. Если все еще не найден, попробовать извлечь любые цифры
+          if (!foundCargo) {
+            const anyNumbers = cargoData.match(/\d+/g);
+            if (anyNumbers && anyNumbers.length > 0) {
+              for (const number of anyNumbers) {
+                foundCargo = availableCargoForPlacement.find(item => 
+                  item.cargo_number === number || item.id === number
+                );
+                if (foundCargo) break;
+              }
+            }
+          }
+          
+          console.log(`${foundCargo ? '✅' : '❌'} FALLBACK: Результат поиска:`, 
+                     foundCargo ? foundCargo.cargo_number : 'не найден');
       }
 
       if (foundCargo) {
