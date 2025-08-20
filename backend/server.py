@@ -646,6 +646,9 @@ class OperatorCargoCreate(BaseModel):
     delivery_method: DeliveryMethod = Field(default=DeliveryMethod.PICKUP, description="Способ получения груза")
     courier_fee: Optional[float] = Field(None, ge=0, description="Стоимость курьерских услуг")
     
+    # ИСПРАВЛЕНИЕ: Поддержка предварительно сгенерированного номера заявки
+    preferred_cargo_number: Optional[str] = Field(None, min_length=6, max_length=20, description="Предварительно сгенерированный номер заявки")
+    
     # Computed fields
     @property
     def total_weight(self) -> float:
