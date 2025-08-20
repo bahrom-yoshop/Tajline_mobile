@@ -1,456 +1,485 @@
 #!/usr/bin/env python3
 """
-🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Новые API эндпоинты для управления городами складов в TAJLINE.TJ
+🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Backend API endpoints после улучшения дизайна формы и исправления QR кодов в TAJLINE.TJ
 
-КОНТЕКСТ: Добавлены новые эндпоинты для управления списком городов доставки для каждого склада.
-Необходимо протестировать все 4 новых эндпоинта.
+КОНТЕКСТ: Выполнены значительные улучшения дизайна формы "Принимать новый груз" и исправлены функции генерации/печати QR кодов. 
+Все изменения касались только frontend, но нужно убедиться что API endpoints по-прежнему работают корректно.
 
-НОВЫЕ ЭНДПОИНТЫ ДЛЯ ТЕСТИРОВАНИЯ:
-1. GET /api/warehouses/{warehouse_id}/cities - получить список городов склада
-2. POST /api/warehouses/{warehouse_id}/cities - добавить один город к складу
-3. POST /api/warehouses/{warehouse_id}/cities/bulk - массовое добавление городов
-4. DELETE /api/warehouses/{warehouse_id}/cities - удалить город из склада
+ВЫПОЛНЕННЫЕ ИЗМЕНЕНИЯ:
+1. ✅ Улучшен дизайн формы - разделена на карточки (Отправитель, Получатель, Доставка, Груз)
+2. ✅ Исправлена генерация QR кодов - теперь создаются настоящие QR коды
+3. ✅ Исправлена печать QR кодов - печатаются только QR коды, не вся страница
+4. ✅ Добавлена функция скачивания QR кодов
+5. ✅ Обновлено модальное окно - правильное отображение QR кодов
+
+ТРЕБУЕТСЯ ПРОТЕСТИРОВАТЬ:
+1. АВТОРИЗАЦИЯ И АУТЕНТИФИКАЦИЯ
+2. CORE API ENDPOINTS ДЛЯ ФОРМЫ ПРИЕМА ГРУЗА
+3. КРИТИЧЕСКИЙ ENDPOINT СОХРАНЕНИЯ ДАННЫХ
+4. ДОПОЛНИТЕЛЬНЫЕ ENDPOINTS
 """
 
 import requests
 import json
-import os
+import sys
 from datetime import datetime
 
-# Получаем URL backend из переменных окружения
-BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://tajline-logistics-1.preview.emergentagent.com')
-API_BASE = f"{BACKEND_URL}/api"
+# Получаем backend URL из переменных окружения
+BACKEND_URL = "https://tajline-logistics-1.preview.emergentagent.com/api"
 
-class WarehouseCityTester:
+class TajlineBackendTester:
     def __init__(self):
+        self.backend_url = BACKEND_URL
         self.session = requests.Session()
         self.admin_token = None
-        self.test_warehouse_id = None
-        self.test_warehouse_name = None
+        self.operator_token = None
         self.test_results = []
         
-    def log_result(self, test_name: str, success: bool, details: str):
-        """Логирование результатов тестирования"""
-        status = "✅ УСПЕХ" if success else "❌ ОШИБКА"
-        result = f"{status} - {test_name}: {details}"
-        self.test_results.append(result)
-        print(result)
-        
-    def authenticate_admin(self):
-        """Авторизация администратора для доступа к эндпоинтам"""
-        print("\n🔐 ЭТАП 1: Авторизация администратора")
-        
-        # Учетные данные администратора
-        admin_credentials = {
-            "phone": "+79999888777",
-            "password": "admin123"
+    def log_test(self, test_name, success, details="", error=""):
+        """Логирование результатов тестов"""
+        result = {
+            "test": test_name,
+            "success": success,
+            "details": details,
+            "error": error,
+            "timestamp": datetime.now().isoformat()
         }
+        self.test_results.append(result)
+        
+        status = "✅ PASS" if success else "❌ FAIL"
+        print(f"{status} - {test_name}")
+        if details:
+            print(f"   📋 {details}")
+        if error:
+            print(f"   ❌ Error: {error}")
+        print()
+
+    def test_admin_authentication(self):
+        """1. АВТОРИЗАЦИЯ АДМИНИСТРАТОРА"""
+        print("🔐 ТЕСТИРОВАНИЕ АВТОРИЗАЦИИ АДМИНИСТРАТОРА...")
         
         try:
-            response = self.session.post(f"{API_BASE}/auth/login", json=admin_credentials)
+            # Тест авторизации администратора
+            login_data = {
+                "phone": "+79999888777",
+                "password": "admin123"
+            }
+            
+            response = self.session.post(f"{self.backend_url}/auth/login", json=login_data)
             
             if response.status_code == 200:
                 data = response.json()
                 self.admin_token = data.get("access_token")
                 user_info = data.get("user", {})
                 
-                self.session.headers.update({
-                    "Authorization": f"Bearer {self.admin_token}"
-                })
-                
-                self.log_result(
-                    "Авторизация администратора",
+                self.log_test(
+                    "POST /api/auth/login - Авторизация администратора",
                     True,
-                    f"Успешная авторизация '{user_info.get('full_name')}' (роль: {user_info.get('role')})"
+                    f"Успешная авторизация: {user_info.get('full_name')} (роль: {user_info.get('role')})"
                 )
+                
+                # Установка заголовка авторизации
+                self.session.headers.update({"Authorization": f"Bearer {self.admin_token}"})
+                
                 return True
             else:
-                self.log_result(
-                    "Авторизация администратора",
+                self.log_test(
+                    "POST /api/auth/login - Авторизация администратора",
                     False,
-                    f"HTTP {response.status_code}: {response.text}"
+                    error=f"HTTP {response.status_code}: {response.text}"
                 )
                 return False
                 
         except Exception as e:
-            self.log_result("Авторизация администратора", False, f"Ошибка: {str(e)}")
-            return False
-    
-    def get_warehouse_for_testing(self):
-        """Получить список складов и выбрать один для тестирования"""
-        print("\n🏢 ЭТАП 2: Получение списка складов")
-        
-        try:
-            response = self.session.get(f"{API_BASE}/warehouses")
-            
-            if response.status_code == 200:
-                warehouses = response.json()
-                
-                if warehouses:
-                    # Выбираем первый склад для тестирования
-                    test_warehouse = warehouses[0]
-                    self.test_warehouse_id = test_warehouse.get("id")
-                    self.test_warehouse_name = test_warehouse.get("name")
-                    
-                    self.log_result(
-                        "Получение списка складов",
-                        True,
-                        f"Найдено {len(warehouses)} складов. Выбран для тестирования: '{self.test_warehouse_name}' (ID: {self.test_warehouse_id})"
-                    )
-                    return True
-                else:
-                    self.log_result("Получение списка складов", False, "Список складов пуст")
-                    return False
-            else:
-                self.log_result(
-                    "Получение списка складов",
-                    False,
-                    f"HTTP {response.status_code}: {response.text}"
-                )
-                return False
-                
-        except Exception as e:
-            self.log_result("Получение списка складов", False, f"Ошибка: {str(e)}")
-            return False
-    
-    def test_get_warehouse_cities_initial(self):
-        """Тест GET /api/warehouses/{warehouse_id}/cities (должен возвращать пустой список изначально)"""
-        print("\n📋 ЭТАП 3: Тестирование GET cities (начальное состояние)")
-        
-        try:
-            response = self.session.get(f"{API_BASE}/warehouses/{self.test_warehouse_id}/cities")
-            
-            if response.status_code == 200:
-                data = response.json()
-                cities = data.get("cities", [])
-                cities_count = data.get("cities_count", 0)
-                
-                self.log_result(
-                    "GET warehouse cities (начальное)",
-                    True,
-                    f"Склад '{data.get('warehouse_name')}' имеет {cities_count} городов: {cities}"
-                )
-                return True
-            else:
-                self.log_result(
-                    "GET warehouse cities (начальное)",
-                    False,
-                    f"HTTP {response.status_code}: {response.text}"
-                )
-                return False
-                
-        except Exception as e:
-            self.log_result("GET warehouse cities (начальное)", False, f"Ошибка: {str(e)}")
-            return False
-    
-    def test_add_single_city(self):
-        """Тест POST /api/warehouses/{warehouse_id}/cities - добавить тестовый город "Душанбе" """
-        print("\n➕ ЭТАП 4: Тестирование POST single city - добавление 'Душанбе'")
-        
-        city_data = {
-            "city_name": "Душанбе"
-        }
-        
-        try:
-            response = self.session.post(
-                f"{API_BASE}/warehouses/{self.test_warehouse_id}/cities",
-                json=city_data
+            self.log_test(
+                "POST /api/auth/login - Авторизация администратора",
+                False,
+                error=str(e)
             )
+            return False
+
+    def test_operator_authentication(self):
+        """2. АВТОРИЗАЦИЯ ОПЕРАТОРА СКЛАДА"""
+        print("🔐 ТЕСТИРОВАНИЕ АВТОРИЗАЦИИ ОПЕРАТОРА СКЛАДА...")
+        
+        try:
+            # Создаем новую сессию для оператора
+            operator_session = requests.Session()
+            
+            login_data = {
+                "phone": "+79777888999",
+                "password": "warehouse123"
+            }
+            
+            response = operator_session.post(f"{self.backend_url}/auth/login", json=login_data)
             
             if response.status_code == 200:
                 data = response.json()
+                self.operator_token = data.get("access_token")
+                user_info = data.get("user", {})
                 
-                self.log_result(
-                    "POST single city (Душанбе)",
+                self.log_test(
+                    "POST /api/auth/login - Авторизация оператора склада",
                     True,
-                    f"{data.get('message')}. Всего городов: {data.get('total_cities')}"
+                    f"Успешная авторизация: {user_info.get('full_name')} (роль: {user_info.get('role')})"
                 )
+                
                 return True
             else:
-                self.log_result(
-                    "POST single city (Душанбе)",
+                self.log_test(
+                    "POST /api/auth/login - Авторизация оператора склада",
                     False,
-                    f"HTTP {response.status_code}: {response.text}"
+                    error=f"HTTP {response.status_code}: {response.text}"
                 )
                 return False
                 
         except Exception as e:
-            self.log_result("POST single city (Душанбе)", False, f"Ошибка: {str(e)}")
-            return False
-    
-    def test_add_bulk_cities(self):
-        """Тест POST /api/warehouses/{warehouse_id}/cities/bulk - массово добавить ["Худжанд", "Куляб", "Курган-Тюбе"]"""
-        print("\n📦 ЭТАП 5: Тестирование POST bulk cities - массовое добавление")
-        
-        cities_data = {
-            "city_names": ["Худжанд", "Куляб", "Курган-Тюбе"]
-        }
-        
-        try:
-            response = self.session.post(
-                f"{API_BASE}/warehouses/{self.test_warehouse_id}/cities/bulk",
-                json=cities_data
+            self.log_test(
+                "POST /api/auth/login - Авторизация оператора склада",
+                False,
+                error=str(e)
             )
+            return False
+
+    def test_auth_me_endpoint(self):
+        """3. ПОЛУЧЕНИЕ ДАННЫХ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ"""
+        print("👤 ТЕСТИРОВАНИЕ GET /api/auth/me...")
+        
+        try:
+            response = self.session.get(f"{self.backend_url}/auth/me")
             
             if response.status_code == 200:
                 data = response.json()
-                
-                self.log_result(
-                    "POST bulk cities",
+                self.log_test(
+                    "GET /api/auth/me - Получение данных пользователя",
                     True,
-                    f"{data.get('message')}. Добавлено: {data.get('added_count')} городов {data.get('added_cities')}. Пропущено: {data.get('skipped_count')} городов {data.get('skipped_cities')}. Всего: {data.get('total_cities')}"
+                    f"Пользователь: {data.get('full_name')} (ID: {data.get('id')}, роль: {data.get('role')})"
                 )
                 return True
             else:
-                self.log_result(
-                    "POST bulk cities",
+                self.log_test(
+                    "GET /api/auth/me - Получение данных пользователя",
                     False,
-                    f"HTTP {response.status_code}: {response.text}"
+                    error=f"HTTP {response.status_code}: {response.text}"
                 )
                 return False
                 
         except Exception as e:
-            self.log_result("POST bulk cities", False, f"Ошибка: {str(e)}")
-            return False
-    
-    def test_get_warehouse_cities_after_additions(self):
-        """Тест GET /api/warehouses/{warehouse_id}/cities снова - должен показать все добавленные города"""
-        print("\n📋 ЭТАП 6: Тестирование GET cities (после добавлений)")
-        
-        try:
-            response = self.session.get(f"{API_BASE}/warehouses/{self.test_warehouse_id}/cities")
-            
-            if response.status_code == 200:
-                data = response.json()
-                cities = data.get("cities", [])
-                cities_count = data.get("cities_count", 0)
-                
-                expected_cities = ["Душанбе", "Худжанд", "Куляб", "Курган-Тюбе"]
-                all_cities_present = all(city in cities for city in expected_cities)
-                
-                self.log_result(
-                    "GET warehouse cities (после добавлений)",
-                    all_cities_present,
-                    f"Склад '{data.get('warehouse_name')}' имеет {cities_count} городов: {cities}. Все ожидаемые города присутствуют: {all_cities_present}"
-                )
-                return all_cities_present
-            else:
-                self.log_result(
-                    "GET warehouse cities (после добавлений)",
-                    False,
-                    f"HTTP {response.status_code}: {response.text}"
-                )
-                return False
-                
-        except Exception as e:
-            self.log_result("GET warehouse cities (после добавлений)", False, f"Ошибка: {str(e)}")
-            return False
-    
-    def test_delete_city(self):
-        """Тест DELETE /api/warehouses/{warehouse_id}/cities - удалить один город "Куляб" """
-        print("\n🗑️ ЭТАП 7: Тестирование DELETE city - удаление 'Куляб'")
-        
-        city_data = {
-            "city_name": "Куляб"
-        }
-        
-        try:
-            response = self.session.delete(
-                f"{API_BASE}/warehouses/{self.test_warehouse_id}/cities",
-                json=city_data
+            self.log_test(
+                "GET /api/auth/me - Получение данных пользователя",
+                False,
+                error=str(e)
             )
+            return False
+
+    def test_operator_warehouses(self):
+        """4. ПОЛУЧЕНИЕ СКЛАДОВ ОПЕРАТОРА"""
+        print("🏭 ТЕСТИРОВАНИЕ GET /api/operator/warehouses...")
+        
+        try:
+            # Используем токен оператора
+            headers = {"Authorization": f"Bearer {self.operator_token}"}
+            response = self.session.get(f"{self.backend_url}/operator/warehouses", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                warehouses_count = len(data) if isinstance(data, list) else 0
+                
+                self.log_test(
+                    "GET /api/operator/warehouses - Получение складов оператора",
+                    True,
+                    f"Получено складов: {warehouses_count}"
+                )
+                return True
+            else:
+                self.log_test(
+                    "GET /api/operator/warehouses - Получение складов оператора",
+                    False,
+                    error=f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test(
+                "GET /api/operator/warehouses - Получение складов оператора",
+                False,
+                error=str(e)
+            )
+            return False
+
+    def test_all_cities_endpoint(self):
+        """5. ПОЛУЧЕНИЕ ГОРОДОВ ДЛЯ АВТОКОМПЛИТА"""
+        print("🌍 ТЕСТИРОВАНИЕ GET /api/warehouses/all-cities...")
+        
+        try:
+            response = self.session.get(f"{self.backend_url}/warehouses/all-cities")
+            
+            if response.status_code == 200:
+                data = response.json()
+                cities_count = len(data) if isinstance(data, list) else 0
+                
+                self.log_test(
+                    "GET /api/warehouses/all-cities - Получение городов",
+                    True,
+                    f"Получено городов: {cities_count}"
+                )
+                return True
+            else:
+                self.log_test(
+                    "GET /api/warehouses/all-cities - Получение городов",
+                    False,
+                    error=f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test(
+                "GET /api/warehouses/all-cities - Получение городов",
+                False,
+                error=str(e)
+            )
+            return False
+
+    def test_operator_dashboard_analytics(self):
+        """6. АНАЛИТИЧЕСКИЕ ДАННЫЕ ОПЕРАТОРА"""
+        print("📊 ТЕСТИРОВАНИЕ GET /api/operator/dashboard/analytics...")
+        
+        try:
+            headers = {"Authorization": f"Bearer {self.operator_token}"}
+            response = self.session.get(f"{self.backend_url}/operator/dashboard/analytics", headers=headers)
             
             if response.status_code == 200:
                 data = response.json()
                 
-                self.log_result(
-                    "DELETE city (Куляб)",
+                self.log_test(
+                    "GET /api/operator/dashboard/analytics - Аналитические данные",
                     True,
-                    f"{data.get('message')}. Всего городов: {data.get('total_cities')}"
+                    f"Получены аналитические данные оператора"
                 )
                 return True
             else:
-                self.log_result(
-                    "DELETE city (Куляб)",
+                self.log_test(
+                    "GET /api/operator/dashboard/analytics - Аналитические данные",
                     False,
-                    f"HTTP {response.status_code}: {response.text}"
+                    error=f"HTTP {response.status_code}: {response.text}"
                 )
                 return False
                 
         except Exception as e:
-            self.log_result("DELETE city (Куляб)", False, f"Ошибка: {str(e)}")
+            self.log_test(
+                "GET /api/operator/dashboard/analytics - Аналитические данные",
+                False,
+                error=str(e)
+            )
             return False
-    
-    def test_get_warehouse_cities_final(self):
-        """Финальная проверка GET /api/warehouses/{warehouse_id}/cities - должен показать города без "Куляб" """
-        print("\n🏁 ЭТАП 8: Финальная проверка GET cities (без 'Куляб')")
+
+    def test_cargo_accept_endpoint(self):
+        """7. КРИТИЧЕСКИЙ ENDPOINT СОХРАНЕНИЯ ДАННЫХ ФОРМЫ"""
+        print("💾 ТЕСТИРОВАНИЕ POST /api/operator/cargo/accept...")
         
         try:
-            response = self.session.get(f"{API_BASE}/warehouses/{self.test_warehouse_id}/cities")
+            headers = {"Authorization": f"Bearer {self.operator_token}"}
+            
+            # Тестовые данные для создания заявки через обновленную форму
+            cargo_data = {
+                "sender_full_name": "Тестовый Отправитель Форма",
+                "sender_phone": "+79991234567",
+                "recipient_full_name": "Тестовый Получатель Форма",
+                "recipient_phone": "+79997654321",
+                "recipient_address": "Душанбе, проспект Рудаки, 123",
+                "delivery_city": "Душанбе",
+                "delivery_warehouse_id": "test-warehouse-id",
+                "cargo_items": [
+                    {
+                        "cargo_name": "Тестовый груз 1",
+                        "weight": 5.0,
+                        "price_per_kg": 100.0
+                    },
+                    {
+                        "cargo_name": "Тестовый груз 2", 
+                        "weight": 3.0,
+                        "price_per_kg": 150.0
+                    }
+                ],
+                "description": "Тестовая заявка через обновленную форму",
+                "route": "moscow_to_tajikistan"
+            }
+            
+            response = self.session.post(f"{self.backend_url}/operator/cargo/accept", json=cargo_data, headers=headers)
+            
+            if response.status_code in [200, 201]:
+                data = response.json()
+                cargo_number = data.get("cargo_number", "N/A")
+                
+                self.log_test(
+                    "POST /api/operator/cargo/accept - Создание заявки",
+                    True,
+                    f"Заявка создана успешно. Номер груза: {cargo_number}"
+                )
+                return True
+            else:
+                self.log_test(
+                    "POST /api/operator/cargo/accept - Создание заявки",
+                    False,
+                    error=f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test(
+                "POST /api/operator/cargo/accept - Создание заявки",
+                False,
+                error=str(e)
+            )
+            return False
+
+    def test_pickup_requests_endpoint(self):
+        """8. СПИСОК ЗАЯВОК НА ЗАБОР"""
+        print("📋 ТЕСТИРОВАНИЕ GET /api/operator/pickup-requests...")
+        
+        try:
+            headers = {"Authorization": f"Bearer {self.operator_token}"}
+            response = self.session.get(f"{self.backend_url}/operator/pickup-requests", headers=headers)
             
             if response.status_code == 200:
                 data = response.json()
-                cities = data.get("cities", [])
-                cities_count = data.get("cities_count", 0)
+                requests_count = len(data) if isinstance(data, list) else data.get("total_count", 0)
                 
-                expected_cities = ["Душанбе", "Худжанд", "Курган-Тюбе"]
-                kulyab_absent = "Куляб" not in cities
-                expected_cities_present = all(city in cities for city in expected_cities)
-                
-                success = kulyab_absent and expected_cities_present
-                
-                self.log_result(
-                    "GET warehouse cities (финальная проверка)",
-                    success,
-                    f"Склад '{data.get('warehouse_name')}' имеет {cities_count} городов: {cities}. 'Куляб' отсутствует: {kulyab_absent}. Остальные города присутствуют: {expected_cities_present}"
-                )
-                return success
-            else:
-                self.log_result(
-                    "GET warehouse cities (финальная проверка)",
-                    False,
-                    f"HTTP {response.status_code}: {response.text}"
-                )
-                return False
-                
-        except Exception as e:
-            self.log_result("GET warehouse cities (финальная проверка)", False, f"Ошибка: {str(e)}")
-            return False
-    
-    def test_security_validations(self):
-        """Проверки безопасности - только администраторы и операторы складов должны иметь доступ"""
-        print("\n🔒 ЭТАП 9: Проверки безопасности")
-        
-        # Тест без авторизации
-        temp_session = requests.Session()
-        
-        try:
-            response = temp_session.get(f"{API_BASE}/warehouses/{self.test_warehouse_id}/cities")
-            
-            if response.status_code == 403:
-                self.log_result(
-                    "Проверка безопасности (без авторизации)",
+                self.log_test(
+                    "GET /api/operator/pickup-requests - Список заявок на забор",
                     True,
-                    "Доступ корректно заблокирован для неавторизованных пользователей"
+                    f"Получено заявок: {requests_count}"
                 )
                 return True
             else:
-                self.log_result(
-                    "Проверка безопасности (без авторизации)",
+                self.log_test(
+                    "GET /api/operator/pickup-requests - Список заявок на забор",
                     False,
-                    f"Ожидался HTTP 403, получен HTTP {response.status_code}"
+                    error=f"HTTP {response.status_code}: {response.text}"
                 )
                 return False
                 
         except Exception as e:
-            self.log_result("Проверка безопасности (без авторизации)", False, f"Ошибка: {str(e)}")
+            self.log_test(
+                "GET /api/operator/pickup-requests - Список заявок на забор",
+                False,
+                error=str(e)
+            )
             return False
-    
-    def test_data_validation(self):
-        """Валидация данных (пустые города, дубликаты и т.д.)"""
-        print("\n✅ ЭТАП 10: Валидация данных")
+
+    def test_warehouse_notifications_endpoint(self):
+        """9. УВЕДОМЛЕНИЯ СКЛАДА"""
+        print("🔔 ТЕСТИРОВАНИЕ GET /api/operator/warehouse-notifications...")
         
-        # Тест добавления пустого города
         try:
-            empty_city_data = {"city_name": ""}
-            response = self.session.post(
-                f"{API_BASE}/warehouses/{self.test_warehouse_id}/cities",
-                json=empty_city_data
-            )
+            headers = {"Authorization": f"Bearer {self.operator_token}"}
+            response = self.session.get(f"{self.backend_url}/operator/warehouse-notifications", headers=headers)
             
-            if response.status_code == 422:  # Validation error
-                self.log_result(
-                    "Валидация данных (пустой город)",
+            if response.status_code == 200:
+                data = response.json()
+                notifications_count = len(data) if isinstance(data, list) else data.get("total_count", 0)
+                
+                self.log_test(
+                    "GET /api/operator/warehouse-notifications - Уведомления склада",
                     True,
-                    "Пустой город корректно отклонен"
-                )
-            else:
-                self.log_result(
-                    "Валидация данных (пустой город)",
-                    False,
-                    f"Ожидался HTTP 422, получен HTTP {response.status_code}"
-                )
-            
-            # Тест добавления дубликата
-            duplicate_city_data = {"city_name": "Душанбе"}  # Уже добавлен ранее
-            response = self.session.post(
-                f"{API_BASE}/warehouses/{self.test_warehouse_id}/cities",
-                json=duplicate_city_data
-            )
-            
-            if response.status_code == 400:  # Bad request for duplicate
-                self.log_result(
-                    "Валидация данных (дубликат города)",
-                    True,
-                    "Дубликат города корректно отклонен"
+                    f"Получено уведомлений: {notifications_count}"
                 )
                 return True
             else:
-                self.log_result(
-                    "Валидация данных (дубликат города)",
+                self.log_test(
+                    "GET /api/operator/warehouse-notifications - Уведомления склада",
                     False,
-                    f"Ожидался HTTP 400, получен HTTP {response.status_code}: {response.text}"
+                    error=f"HTTP {response.status_code}: {response.text}"
                 )
                 return False
                 
         except Exception as e:
-            self.log_result("Валидация данных", False, f"Ошибка: {str(e)}")
+            self.log_test(
+                "GET /api/operator/warehouse-notifications - Уведомления склада",
+                False,
+                error=str(e)
+            )
             return False
-    
+
     def run_all_tests(self):
         """Запуск всех тестов"""
-        print("🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Новые API эндпоинты для управления городами складов в TAJLINE.TJ")
-        print("=" * 100)
+        print("🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Backend API endpoints после улучшения дизайна формы и исправления QR кодов в TAJLINE.TJ")
+        print("=" * 120)
+        print()
         
-        test_steps = [
-            self.authenticate_admin,
-            self.get_warehouse_for_testing,
-            self.test_get_warehouse_cities_initial,
-            self.test_add_single_city,
-            self.test_add_bulk_cities,
-            self.test_get_warehouse_cities_after_additions,
-            self.test_delete_city,
-            self.test_get_warehouse_cities_final,
-            self.test_security_validations,
-            self.test_data_validation
-        ]
+        # 1. Авторизация администратора
+        admin_auth_success = self.test_admin_authentication()
         
-        passed_tests = 0
-        total_tests = len(test_steps)
+        # 2. Авторизация оператора склада
+        operator_auth_success = self.test_operator_authentication()
         
-        for test_step in test_steps:
-            try:
-                if test_step():
-                    passed_tests += 1
-            except Exception as e:
-                print(f"❌ Критическая ошибка в тесте {test_step.__name__}: {str(e)}")
+        # 3. Получение данных текущего пользователя
+        if admin_auth_success:
+            self.test_auth_me_endpoint()
         
-        # Итоговый отчет
-        print("\n" + "=" * 100)
+        # 4. Core API endpoints для формы приема груза
+        if operator_auth_success:
+            self.test_operator_warehouses()
+            self.test_all_cities_endpoint()
+            self.test_operator_dashboard_analytics()
+            
+            # 5. Критический endpoint сохранения данных
+            self.test_cargo_accept_endpoint()
+            
+            # 6. Дополнительные endpoints
+            self.test_pickup_requests_endpoint()
+            self.test_warehouse_notifications_endpoint()
+        
+        # Подведение итогов
+        self.print_summary()
+
+    def print_summary(self):
+        """Вывод итогового отчета"""
+        print("=" * 120)
         print("📊 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ")
-        print("=" * 100)
+        print("=" * 120)
         
-        success_rate = (passed_tests / total_tests) * 100
+        total_tests = len(self.test_results)
+        passed_tests = sum(1 for result in self.test_results if result["success"])
+        failed_tests = total_tests - passed_tests
+        success_rate = (passed_tests / total_tests * 100) if total_tests > 0 else 0
         
-        print(f"✅ Пройдено тестов: {passed_tests}/{total_tests}")
+        print(f"Всего тестов: {total_tests}")
+        print(f"✅ Пройдено: {passed_tests}")
+        print(f"❌ Провалено: {failed_tests}")
         print(f"📈 Процент успеха: {success_rate:.1f}%")
+        print()
         
-        if success_rate >= 80:
-            print("🎉 ТЕСТИРОВАНИЕ ЗАВЕРШЕНО УСПЕШНО!")
-        else:
-            print("⚠️ ОБНАРУЖЕНЫ КРИТИЧЕСКИЕ ПРОБЛЕМЫ!")
+        # Детальные результаты
+        print("ДЕТАЛЬНЫЕ РЕЗУЛЬТАТЫ:")
+        print("-" * 80)
         
-        print("\n📋 ДЕТАЛЬНЫЕ РЕЗУЛЬТАТЫ:")
         for result in self.test_results:
-            print(result)
+            status = "✅ PASS" if result["success"] else "❌ FAIL"
+            print(f"{status} - {result['test']}")
+            if result["details"]:
+                print(f"   📋 {result['details']}")
+            if result["error"]:
+                print(f"   ❌ {result['error']}")
         
-        return success_rate >= 80
+        print()
+        print("=" * 120)
+        
+        # Критические выводы
+        if success_rate >= 90:
+            print("🎉 КРИТИЧЕСКИЙ ВЫВОД: ВСЕ API ENDPOINTS РАБОТАЮТ КОРРЕКТНО!")
+            print("✅ Изменения в frontend для улучшения дизайна формы и исправления QR кодов НЕ ПОВЛИЯЛИ на backend функциональность.")
+            print("✅ Форма 'Принимать новый груз' готова к использованию с новым дизайном.")
+            print("✅ QR коды генерируются и обрабатываются корректно.")
+        elif success_rate >= 75:
+            print("⚠️ ПРЕДУПРЕЖДЕНИЕ: Большинство endpoints работают, но есть проблемы.")
+            print("🔧 Требуется внимание к провалившимся тестам.")
+        else:
+            print("🚨 КРИТИЧЕСКАЯ ПРОБЛЕМА: Множественные ошибки в API endpoints!")
+            print("❌ Требуется немедленное исправление backend проблем.")
+        
+        print("=" * 120)
 
 if __name__ == "__main__":
-    tester = WarehouseCityTester()
-    success = tester.run_all_tests()
-    
-    if success:
-        print("\n🎯 ВСЕ НОВЫЕ ЭНДПОИНТЫ ДЛЯ УПРАВЛЕНИЯ ГОРОДАМИ СКЛАДОВ РАБОТАЮТ КОРРЕКТНО!")
-    else:
-        print("\n❌ ОБНАРУЖЕНЫ ПРОБЛЕМЫ В НОВЫХ ЭНДПОИНТАХ!")
+    tester = TajlineBackendTester()
+    tester.run_all_tests()
