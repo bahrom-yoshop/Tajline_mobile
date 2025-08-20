@@ -17717,87 +17717,87 @@ function App() {
                               <div className="space-y-4">
                                 {/* Город и склад выдачи груза */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor="delivery_city">Город выдачи груза *</Label>
-                              {allCitiesLoading ? (
-                                <div className="flex items-center px-3 py-2 border border-gray-300 rounded-md">
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                                  <span className="text-sm text-gray-500">Загрузка городов...</span>
-                                </div>
-                              ) : (
-                                <div className="relative city-autocomplete">
-                                  <Input
-                                    id="delivery_city"
-                                    type="text"
-                                    value={citySearchQuery}
-                                    onChange={(e) => handleCitySearchChange(e.target.value)}
-                                    onFocus={() => {
-                                      if (filteredCities.length > 0) setShowCityDropdown(true);
-                                    }}
-                                    placeholder="Начните вводить название города..."
-                                    className="w-full xl:h-12 xl:text-base"
-                                    required
-                                  />
-                                  
-                                  {/* Выпадающий список с найденными городами */}
-                                  {showCityDropdown && filteredCities.length > 0 && (
-                                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                                      {filteredCities.map((cityData, index) => (
-                                        <div
-                                          key={index}
-                                          onClick={() => handleDeliveryCityChange(cityData.city_name)}
-                                          className="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                                        >
-                                          <div className="font-medium text-gray-900">{cityData.city_name}</div>
-                                          <div className="text-sm text-gray-500">
-                                            {cityData.warehouses_count} {cityData.warehouses_count === 1 ? 'склад' : 'складов'}
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                  
-                                  {/* Показать сообщение если ничего не найдено */}
-                                  {citySearchQuery.length > 0 && filteredCities.length === 0 && (
-                                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg p-4 text-center text-gray-500">
-                                      Городов не найдено
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div>
-                              <Label htmlFor="delivery_warehouse">Склад для выдачи груза *</Label>
-                              {selectedDeliveryCity && availableWarehousesForCity.length > 0 ? (
-                                <div className="space-y-2">
-                                  <select
-                                    id="delivery_warehouse"
-                                    value={selectedDeliveryWarehouse}
-                                    onChange={(e) => handleDeliveryWarehouseChange(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 xl:h-12 xl:text-base"
-                                    required
-                                  >
-                                    {availableWarehousesForCity.map((warehouse, index) => (
-                                      <option key={index} value={warehouse.warehouse_id}>
-                                        {warehouse.warehouse_name} ({warehouse.warehouse_location})
-                                      </option>
-                                    ))}
-                                  </select>
-                                  {selectedDeliveryWarehouse && (
-                                    <div className="bg-green-50 p-2 rounded-md border border-green-200">
-                                      <div className="text-sm text-green-700 flex items-center">
-                                        <CheckCircle className="h-4 w-4 mr-1" />
-                                        Автоматически выбран: {availableWarehousesForCity.find(w => w.warehouse_id === selectedDeliveryWarehouse)?.warehouse_name}
+                                  <div>
+                                    <Label htmlFor="delivery_city">Город выдачи груза *</Label>
+                                    {allCitiesLoading ? (
+                                      <div className="flex items-center px-3 py-2 border border-gray-300 rounded-md">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                                        <span className="text-sm text-gray-500">Загрузка городов...</span>
                                       </div>
-                                    </div>
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500">
-                                  {!selectedDeliveryCity 
-                                    ? 'Сначала выберите город' 
-                                    : availableWarehousesForCity.length === 0 
+                                    ) : (
+                                      <div className="relative city-autocomplete">
+                                        <Input
+                                          id="delivery_city"
+                                          type="text"
+                                          value={citySearchQuery}
+                                          onChange={(e) => handleCitySearchChange(e.target.value)}
+                                          onFocus={() => {
+                                            if (filteredCities.length > 0) setShowCityDropdown(true);
+                                          }}
+                                          placeholder="Начните вводить название города..."
+                                          className="w-full h-12 text-base"
+                                          required
+                                        />
+                                        
+                                        {/* Выпадающий список с найденными городами */}
+                                        {showCityDropdown && filteredCities.length > 0 && (
+                                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                            {filteredCities.map((cityData, index) => (
+                                              <div
+                                                key={index}
+                                                onClick={() => handleDeliveryCityChange(cityData.city_name)}
+                                                className="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                              >
+                                                <div className="font-medium text-gray-900">{cityData.city_name}</div>
+                                                <div className="text-sm text-gray-500">
+                                                  {cityData.warehouses_count} {cityData.warehouses_count === 1 ? 'склад' : 'складов'}
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                        
+                                        {/* Показать сообщение если ничего не найдено */}
+                                        {citySearchQuery.length > 0 && filteredCities.length === 0 && (
+                                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg p-4 text-center text-gray-500">
+                                            Городов не найдено
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  <div>
+                                    <Label htmlFor="delivery_warehouse">Склад для выдачи груза *</Label>
+                                    {selectedDeliveryCity && availableWarehousesForCity.length > 0 ? (
+                                      <div className="space-y-2">
+                                        <select
+                                          id="delivery_warehouse"
+                                          value={selectedDeliveryWarehouse}
+                                          onChange={(e) => handleDeliveryWarehouseChange(e.target.value)}
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-12 text-base"
+                                          required
+                                        >
+                                          {availableWarehousesForCity.map((warehouse, index) => (
+                                            <option key={index} value={warehouse.warehouse_id}>
+                                              {warehouse.warehouse_name} ({warehouse.warehouse_location})
+                                            </option>
+                                          ))}
+                                        </select>
+                                        {selectedDeliveryWarehouse && (
+                                          <div className="bg-green-50 p-2 rounded-md border border-green-200">
+                                            <div className="text-sm text-green-700 flex items-center">
+                                              <CheckCircle className="h-4 w-4 mr-1" />
+                                              Автоматически выбран: {availableWarehousesForCity.find(w => w.warehouse_id === selectedDeliveryWarehouse)?.warehouse_name}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500 h-12 flex items-center">
+                                        {!selectedDeliveryCity 
+                                          ? 'Сначала выберите город' 
+                                          : availableWarehousesForCity.length === 0 
                                       ? 'Нет доступных складов для выбранного города' 
                                       : 'Загрузка складов...'}
                                 </div>
