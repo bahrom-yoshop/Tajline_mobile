@@ -293,11 +293,18 @@ class FinalFixesTester:
             
             if response.status_code == 200:
                 data = response.json()
-                individual_units = data.get("individual_units", [])
+                
+                # individual_units are nested inside cargo_types
+                all_individual_units = []
+                cargo_types = data.get("cargo_types", [])
+                
+                for cargo_type in cargo_types:
+                    individual_units = cargo_type.get("individual_units", [])
+                    all_individual_units.extend(individual_units)
                 
                 # Find first unplaced unit
                 target_unit = None
-                for unit in individual_units:
+                for unit in all_individual_units:
                     if not unit.get("is_placed", False):
                         target_unit = unit
                         break
