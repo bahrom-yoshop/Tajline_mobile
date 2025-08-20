@@ -31905,7 +31905,7 @@ function App() {
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && externalCargoInput.trim() && externalScannerStep === 'cargo' && !scannerProcessingInput) {
                           handleExternalCargoScan(externalCargoInput.trim());
-                          setExternalCargoInput('');
+                          // ФАЗА 4: НЕ очищаем поле сразу, очистка будет автоматической при переходе
                         }
                       }}
                       disabled={externalScannerStep !== 'cargo' || scannerProcessingInput}
