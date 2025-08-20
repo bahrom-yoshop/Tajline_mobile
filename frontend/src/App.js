@@ -17682,18 +17682,6 @@ function App() {
                             </div>
                           </div>
 
-                          <div>
-                            <Label htmlFor="recipient_address">Адрес получения груза</Label>
-                            <Input
-                              id="recipient_address"
-                              value={operatorCargoForm.recipient_address}
-                              onChange={(e) => setOperatorCargoForm({...operatorCargoForm, recipient_address: e.target.value})}
-                              placeholder="Душанбе, ул. Рудаки, 10, кв. 5"
-                              className="xl:h-12 xl:text-base"
-                              required
-                            />
-                          </div>
-
                           {/* НОВЫЕ ПОЛЯ: Город и склад выдачи груза */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
