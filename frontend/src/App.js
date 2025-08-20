@@ -6137,17 +6137,19 @@ function App() {
           if (scannedData.includes(item.cargo_number)) return true;
           if (item.request_number && scannedData.includes(item.request_number)) return true;
           
-          // Поиск в исходных JSON данных, если они есть
-          if (scannedData.includes(item.id)) return true;
-          
-          return false;
-        });
+        }
 
-        if (cargo) {
-          console.log('✅ Груз найден:', cargo);
-          setScannedCargoData(cargo);
+        if (foundCargo) {
+          console.log('✅ Груз найден:', foundCargo);
+          setScannedCargoData(foundCargo);
           setScannerActive(false);
-          showAlert(`Груз ${cargo.cargo_number} найден! Автоматический переход к сканированию ячейки...`, 'success');
+          
+          // Сообщение в зависимости от типа найденного груза
+          if (extractedData.type === 'individual_unit') {
+            showAlert(`Индивидуальная единица ${extractedData.full_number} найдена! Автоматический переход к сканированию ячейки...`, 'success');
+          } else {
+            showAlert(`Груз ${foundCargo.cargo_number} найден! Автоматический переход к сканированию ячейки...`, 'success');
+          }
           
           // УЛУЧШЕНИЕ: МГНОВЕННЫЙ автоматический переход к сканированию ячейки
           setTimeout(() => {
@@ -6156,7 +6158,14 @@ function App() {
         } else {
           console.log('❌ Груз не найден. Доступные грузы:', availableCargoForPlacement.map(c => c.cargo_number));
           setScannerError('Груз не найден в списке ожидающих размещение');
-          showAlert(`Груз с номером "${cargoNumber}" не найден в списке ожидающих размещение. Проверьте номер груза.`, 'error');
+          
+          // Сообщение в зависимости от типа поиска
+          if (extractedData.type === 'individual_unit') {
+            showAlert(`Индивидуальная единица "${extractedData.full_number}" не найдена в списке ожидающих размещение. Проверьте номер.`, 'error');
+          } else {
+            const searchValue = extractedData.cargo_number || extractedData.number || scannedData;
+            showAlert(`Груз с номером "${searchValue}" не найден в списке ожидающих размещение. Проверьте номер груза.`, 'error');
+          }
         }
       } else if (scannerMode === 'cell-qr') {
         // Парсим QR-код ячейки
