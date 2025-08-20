@@ -173,8 +173,12 @@ class FinalFixesTester:
             
             if response.status_code == 200:
                 data = response.json()
-                self.test_cargo_id = data.get("cargo_id")
-                self.test_cargo_number = data.get("cargo_number")
+                # Check different possible response structures
+                self.test_cargo_id = data.get("cargo_id") or data.get("id")
+                self.test_cargo_number = data.get("cargo_number") or data.get("number")
+                
+                # Debug: print the actual response structure
+                print(f"    🔍 Response data: {json.dumps(data, indent=2)}")
                 
                 self.log_test(
                     "Создание заявки с cash_on_delivery",
