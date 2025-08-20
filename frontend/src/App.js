@@ -3168,6 +3168,142 @@ function App() {
     showAlert('QR код заявки отправлен на печать!', 'success');
   };
 
+  // НОВАЯ ФУНКЦИЯ: Генерация QR кода номера заявки с размером печати 90мм x 100мм
+  const handleGenerateCargoNumberQR = async () => {
+    try {
+      setCargoNumberQRLoading(true);
+      console.log('🎯 Генерация QR кода для номера заявки из формы приема груза');
+
+      // Генерируем номер заявки (6-значный номер)
+      const today = new Date();
+      const year = today.getFullYear().toString().slice(-2); // Последние 2 цифры года
+      const month = (today.getMonth() + 1).toString().padStart(2, '0');
+      const day = today.getDate().toString().padStart(2, '0');
+      
+      // Генерируем случайный номер заявки в формате YYMMDD (например: 250127 для 27 января 2025)
+      const baseNumber = `${year}${month}${day}`;
+      
+      console.log(`📦 Сгенерированный номер заявки: ${baseNumber}`);
+
+      // Создаем QR код только для номера заявки
+      const qrCodeImage = await generateActualQRCode(baseNumber, 300);
+
+      setCargoNumberQRCode({
+        number: baseNumber,
+        image: qrCodeImage,
+        generated_at: new Date().toLocaleString('ru-RU')
+      });
+      setShowCargoNumberQRModal(true);
+
+      console.log('✅ QR код номера заявки сгенерирован успешно');
+      showAlert(`QR код для номера заявки ${baseNumber} готов!`, 'success');
+
+    } catch (error) {
+      console.error('❌ Ошибка генерации QR кода номера заявки:', error);
+      showAlert(`Ошибка генерации QR кода: ${error.message}`, 'error');
+    } finally {
+      setCargoNumberQRLoading(false);
+    }
+  };
+
+  // Функция печати QR кода номера заявки (90мм x 100мм)
+  const handlePrintCargoNumberQR = () => {
+    if (!cargoNumberQRCode) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showAlert('Не удалось открыть окно печати', 'error');
+      return;
+    }
+    
+    // Размеры: 90мм ширина, 100мм высота
+    const printWidth = '90mm';
+    const printHeight = '100mm';
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>QR Код №${cargoNumberQRCode.number}</title>
+          <style>
+            @page {
+              size: ${printWidth} ${printHeight};
+              margin: 2mm;
+            }
+            body { 
+              font-family: Arial, sans-serif; 
+              text-align: center; 
+              margin: 0;
+              padding: 2mm;
+              background: white;
+              width: ${printWidth};
+              height: ${printHeight};
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
+            }
+            .qr-container { 
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              width: 100%;
+              height: 100%;
+              border: 1px solid #000;
+              padding: 2mm;
+              box-sizing: border-box;
+            }
+            .qr-title { 
+              font-size: 12px; 
+              font-weight: bold; 
+              margin-bottom: 3mm;
+              color: #000;
+            }
+            .qr-image { 
+              margin: 2mm 0;
+            }
+            .qr-info {
+              font-size: 8px;
+              margin-top: 2mm;
+              color: #333;
+            }
+            @media print {
+              body { 
+                margin: 0; 
+                padding: 2mm;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="qr-container">
+            <div class="qr-title">НОМЕР ЗАЯВКИ</div>
+            <div class="qr-title" style="font-size: 14px; color: #000;">${cargoNumberQRCode.number}</div>
+            <div class="qr-image">
+              <img src="${cargoNumberQRCode.image}" alt="QR код номера заявки" style="width: 60mm; height: 60mm;" />
+            </div>
+            <div class="qr-info">
+              Сгенерирован: ${cargoNumberQRCode.generated_at}
+            </div>
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+                window.close();
+              }, 500);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    
+    showAlert('QR код номера заявки отправлен на печать (90мм x 100мм)!', 'success');
+  };
+
   // Функция для генерации QR кода отдельной ячейки
   const generateSingleCellQR = async () => {
     if (!singleCellBlock || !singleCellShelf || !singleCellNumber) {
@@ -30157,6 +30293,104 @@ function App() {
                 setShowRequestQRModal(false);
                 setSelectedRequestForQR(null);
                 setRequestQRCode(null);
+              }}
+            >
+              Закрыть
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* НОВОЕ МОДАЛЬНОЕ ОКНО: QR код номера заявки из формы приема груза */}
+      <Dialog open={showCargoNumberQRModal} onOpenChange={setShowCargoNumberQRModal}>
+        <DialogContent className="w-full max-w-md p-4 sm:p-6">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="flex items-center text-lg">
+              <QrCode className="mr-2 h-5 w-5 text-orange-600" />
+              QR код номера заявки
+            </DialogTitle>
+            <DialogDescription className="text-sm">
+              QR код содержит только номер заявки. Размер печати: 90мм × 100мм
+            </DialogDescription>
+          </DialogHeader>
+          
+          {cargoNumberQRLoading ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <RefreshCw className="h-8 w-8 animate-spin text-orange-600 mb-4" />
+              <p className="text-sm text-gray-600">Генерация QR кода номера заявки...</p>
+            </div>
+          ) : cargoNumberQRCode ? (
+            <div className="space-y-6">
+              {/* QR код */}
+              <div className="text-center">
+                <div className="bg-white p-6 rounded-lg border-2 border-orange-200 inline-block">
+                  <img 
+                    src={cargoNumberQRCode.image} 
+                    alt={`QR код номера заявки ${cargoNumberQRCode.number}`}
+                    className="w-48 h-48 mx-auto"
+                  />
+                </div>
+                <p className="text-lg font-bold text-gray-800 mt-3">
+                  Номер заявки: {cargoNumberQRCode.number}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Отсканируйте для получения номера заявки
+                </p>
+              </div>
+
+              {/* Информация о QR коде */}
+              <div className="bg-orange-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-2 text-gray-800">Содержимое QR кода:</h4>
+                <div className="text-center">
+                  <div className="text-2xl font-mono font-bold text-orange-800 bg-white px-4 py-2 rounded border">
+                    {cargoNumberQRCode.number}
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 mt-2">
+                  QR код содержит только номер заявки без дополнительной информации
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Сгенерирован: {cargoNumberQRCode.generated_at}
+                </p>
+              </div>
+
+              {/* Кнопки действий */}
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handlePrintCargoNumberQR}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700"
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Печать (90×100мм)
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = cargoNumberQRCode.image;
+                    link.download = `QR_номер_заявки_${cargoNumberQRCode.number}.png`;
+                    link.click();
+                    showAlert('QR код номера заявки сохранен!', 'success');
+                  }}
+                  className="flex-1"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Скачать
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Ошибка генерации QR кода</p>
+            </div>
+          )}
+
+          <div className="flex justify-end mt-6">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowCargoNumberQRModal(false);
+                setCargoNumberQRCode(null);
               }}
             >
               Закрыть
