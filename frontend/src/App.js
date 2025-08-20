@@ -19954,7 +19954,6 @@ function App() {
                                 </Button>
                               </div>
                             ) : (
-                              {/* НОВЫЕ КАРТОЧКИ ГРУЗОВ ДЛЯ РАЗМЕЩЕНИЯ */}
                               <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
                                 {availableCargoForPlacement.filter(item => item && item.id).map((item) => {
                                   const warehouseColors = getWarehouseColor(item.warehouse_name);
