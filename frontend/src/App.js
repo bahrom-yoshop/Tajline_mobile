@@ -31833,14 +31833,14 @@ function App() {
                       value={externalCargoInput}
                       onChange={(e) => setExternalCargoInput(e.target.value)}
                       onKeyPress={(e) => {
-                        if (e.key === 'Enter' && externalCargoInput.trim() && externalScannerStep === 'cargo') {
+                        if (e.key === 'Enter' && externalCargoInput.trim() && externalScannerStep === 'cargo' && !scannerProcessingInput) {
                           handleExternalCargoScan(externalCargoInput.trim());
                           setExternalCargoInput('');
                         }
                       }}
-                      disabled={externalScannerStep !== 'cargo'}
-                      className={`mt-1 ${externalScannerStep === 'cargo' ? 'bg-yellow-50 border-yellow-300' : 'bg-gray-100'}`}
-                      autoFocus={externalScannerStep === 'cargo'}
+                      disabled={externalScannerStep !== 'cargo' || scannerProcessingInput}
+                      className={`mt-1 ${externalScannerStep === 'cargo' && !scannerProcessingInput ? 'bg-yellow-50 border-yellow-300' : 'bg-gray-100'} ${scannerProcessingInput ? 'opacity-50' : ''}`}
+                      autoFocus={externalScannerStep === 'cargo' && !scannerProcessingInput}
                     />
                     {externalScannedCargo && (
                       <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
