@@ -18416,8 +18416,8 @@ function App() {
                             {/* Кнопки действий */}
                             <div className="flex flex-col space-y-3">
                               {/* Главная кнопка приема груза */}
-                              <Button type="submit" className="w-full" size="lg" variant="default">
-                                <Plus className="mr-2 h-4 w-4" />
+                              <Button type="submit" className="w-full xl:h-14 xl:text-lg" size="lg" variant="default">
+                                <Plus className="mr-2 h-4 w-4 xl:h-5 xl:w-5" />
                                 Принять груз
                               </Button>
                               
