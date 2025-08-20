@@ -17880,6 +17880,7 @@ function App() {
                                 value={operatorCargoForm.sender_phone}
                                 onChange={(e) => setOperatorCargoForm({...operatorCargoForm, sender_phone: e.target.value})}
                                 placeholder="+7XXXXXXXXXX"
+                                className="xl:h-12 xl:text-base"
                                 required
                               />
                             </div>
