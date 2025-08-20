@@ -357,7 +357,8 @@ class ImprovedCargoSearchTester:
             response = self.session.get(f"{BACKEND_URL}/operator/cargo/available-for-placement")
             
             if response.status_code == 200:
-                cargo_list = response.json()
+                data = response.json()
+                cargo_list = data.get("items", []) if isinstance(data, dict) else data
                 
                 # Проверяем наличие наших тестовых грузов
                 found_cargos = []
