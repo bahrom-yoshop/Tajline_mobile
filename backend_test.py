@@ -153,7 +153,7 @@ class ModalFixTester:
         try:
             # Тестируем генерацию QR кода с простым текстом
             qr_data = {
-                "text": "TEST_QR_MODAL_FIX_123"
+                "qr_text": "TEST_QR_MODAL_FIX_123"
             }
             
             response = self.session.post(f"{BACKEND_URL}/backend/generate-simple-qr", json=qr_data)
