@@ -20202,18 +20202,7 @@ function App() {
                               {/* НОВЫЕ КАРТОЧКИ ГРУЗОВ ДЛЯ РАЗМЕЩЕНИЯ */}
                               <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
                                 {availableCargoForPlacement.filter(item => item && item.id).map((item) => {
-                                  const warehouseColors = getWarehouseColor(item.warehouse_name);
-                                  return (
-                                    <div key={`cargo-${item.id}`}>
-                                      {/* Временная карточка пока создаем новый компонент */}
-                                      <Card className={`${warehouseColors.border} ${warehouseColors.bg} border-l-4`}>
-                                        <CardContent className="p-4">
-                                          <h3 className="font-bold text-lg text-blue-600 mb-2">№{item.cargo_number}</h3>
-                                          <p className="text-sm text-gray-600">Создание новых карточек...</p>
-                                        </CardContent>
-                                      </Card>
-                                    </div>
-                                  );
+                                  return <CargoPlacementCard key={`cargo-${item.id}`} item={item} />;
                                 })}
                               </div>
                             )}
