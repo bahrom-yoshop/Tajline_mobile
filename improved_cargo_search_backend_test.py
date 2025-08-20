@@ -401,26 +401,47 @@ class ImprovedCargoSearchTester:
         """Тестировать API для получения статуса размещения с поддержкой individual_units"""
         try:
             success_count = 0
-            total_tests = len(self.test_cargo_ids)
+            total_tests = 0
             
-            for cargo_id in self.test_cargo_ids:
-                response = self.session.get(f"{BACKEND_URL}/operator/cargo/{cargo_id}/placement-status")
-                
-                if response.status_code == 200:
-                    status_data = response.json()
+            # Получаем актуальные ID тестовых грузов
+            response = self.session.get(f"{BACKEND_URL}/operator/cargo/available-for-placement")
+            if response.status_code != 200:
+                self.log_test("API placement-status", False, error="Не удалось получить список грузов")
+                return False
+            
+            data = response.json()
+            cargo_list = data.get("items", []) if isinstance(data, dict) else data
+            
+            # Собираем номера тестовых грузов
+            test_numbers = []
+            if "scenario_1" in self.test_scenarios:
+                test_numbers.extend([cargo["number"] for cargo in self.test_scenarios["scenario_1"]])
+            if "scenario_2" in self.test_scenarios:
+                test_numbers.append(self.test_scenarios["scenario_2"]["number"])
+            if "scenario_3" in self.test_scenarios:
+                test_numbers.append(self.test_scenarios["scenario_3"]["number"])
+            
+            # Тестируем placement-status для наших тестовых грузов
+            for cargo in cargo_list:
+                if cargo.get("cargo_number") in test_numbers:
+                    total_tests += 1
+                    cargo_id = cargo.get("id")
                     
-                    # Проверяем наличие обязательных полей для улучшенной логики поиска
-                    required_fields = ["cargo_id", "cargo_number", "total_quantity", "total_placed", "placement_progress"]
-                    has_all_fields = all(field in status_data for field in required_fields)
+                    response = self.session.get(f"{BACKEND_URL}/operator/cargo/{cargo_id}/placement-status")
                     
-                    # Проверяем наличие cargo_types и individual_units для новой логики
-                    has_cargo_types = "cargo_types" in status_data
-                    has_individual_units = "individual_units" in status_data
-                    
-                    if has_all_fields and has_cargo_types and has_individual_units:
-                        success_count += 1
-                else:
-                    continue
+                    if response.status_code == 200:
+                        status_data = response.json()
+                        
+                        # Проверяем наличие обязательных полей для улучшенной логики поиска
+                        required_fields = ["cargo_id", "cargo_number", "total_quantity", "total_placed", "placement_progress"]
+                        has_all_fields = all(field in status_data for field in required_fields)
+                        
+                        # Проверяем наличие cargo_types и individual_units для новой логики
+                        has_cargo_types = "cargo_types" in status_data
+                        has_individual_units = "individual_units" in status_data
+                        
+                        if has_all_fields and (has_cargo_types or has_individual_units):
+                            success_count += 1
             
             success_rate = (success_count / total_tests) * 100 if total_tests > 0 else 0
             
