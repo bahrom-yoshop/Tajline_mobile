@@ -5971,7 +5971,7 @@ async def get_available_cargo_for_placement(
                     individual_items.append({
                         'individual_number': individual_number,
                         'type_number': type_number,
-                        'unit_index': unit_index,
+                        'unit_index': str(unit_index).zfill(2),  # ИСПРАВЛЕНИЕ: unit_index как строка с ведущими нулями
                         'is_placed': is_placed,
                         'placement_info': placement_info,
                         'status': 'placed' if is_placed else 'awaiting_placement'
