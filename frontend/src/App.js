@@ -4475,7 +4475,7 @@ function App() {
           selected_individual_unit: foundIndividualUnit
         });
         
-        // ЭТАП 3: Формируем сообщения в зависимости от типа QR кода
+        // ЭТАП 4: ТОЧНЫЕ UI СООБЩЕНИЯ в зависимости от типа QR кода
         let successMessage = '';
         let alertMessage = '';
         
@@ -4483,48 +4483,65 @@ function App() {
           // Обработка индивидуальных единиц
           switch (foundIndividualUnit.search_type) {
             case 'UNIT_IN_CARGO_TYPE':
-              // ТИП 3: Единица груза внутри типа (010101.01.01)
+              // ТИП 3: "✅ Единица 01 груза типа 01 из заявки 010101 найдена!"
               successMessage = `✅ Единица ${extractedData.unit_number} груза типа ${extractedData.cargo_type} из заявки ${extractedData.request_number} найдена!
-                Груз: ${foundIndividualUnit.cargo_item?.cargo_name || 'Неизвестный груз'}
-                Отсканируйте ячейку для размещения.`;
-              alertMessage = `Единица ${extractedData.full_number} найдена! Отсканируйте ячейку.`;
+📦 Груз: ${foundIndividualUnit.cargo_item?.cargo_name || 'Неизвестный груз'}
+📊 Статус: Готов к размещению
+🎯 Следующий шаг: Отсканируйте ячейку для размещения`;
+              alertMessage = `✅ Единица ${extractedData.unit_number} груза типа ${extractedData.cargo_type} из заявки ${extractedData.request_number} найдена!`;
               break;
               
             case 'CARGO_IN_REQUEST':
-              // ТИП 2: Груз внутри заявки (010101.01)
+              // ТИП 2: "✅ Груз 01 из заявки 010101 найден!"
               if (foundIndividualUnit.represents_all_units) {
-                successMessage = `✅ Груз типа ${extractedData.cargo_type} из заявки ${extractedData.request_number} найден!
-                  Груз: ${foundIndividualUnit.cargo_item?.cargo_name || 'Неизвестный груз'}
-                  Количество единиц: ${foundIndividualUnit.cargo_item?.quantity || 1}
-                  Отсканируйте ячейку для размещения.`;
-                alertMessage = `Груз ${extractedData.full_number} найден! Отсканируйте ячейку.`;
+                successMessage = `✅ Груз ${extractedData.cargo_type} из заявки ${extractedData.request_number} найден!
+📦 Груз: ${foundIndividualUnit.cargo_item?.cargo_name || 'Неизвестный груз'}
+📊 Количество единиц: ${foundIndividualUnit.total_units || foundIndividualUnit.cargo_item?.quantity || 1}
+🎯 Действие: Размещение всех единиц типа ${extractedData.cargo_type}
+🎯 Следующий шаг: Отсканируйте ячейку для размещения`;
+                alertMessage = `✅ Груз ${extractedData.cargo_type} из заявки ${extractedData.request_number} найден!`;
               } else {
-                successMessage = `✅ Груз ${extractedData.full_number} найден!
-                  Груз: ${foundIndividualUnit.cargo_item?.cargo_name || 'Неизвестный груз'}
-                  Отсканируйте ячейку для размещения.`;
-                alertMessage = `Груз ${extractedData.full_number} найден! Отсканируйте ячейку.`;
+                successMessage = `✅ Груз ${extractedData.cargo_type} из заявки ${extractedData.request_number} найден!
+📦 Груз: ${foundIndividualUnit.cargo_item?.cargo_name || 'Неизвестный груз'}  
+🎯 Следующий шаг: Отсканируйте ячейку для размещения`;
+                alertMessage = `✅ Груз ${extractedData.cargo_type} из заявки ${extractedData.request_number} найден!`;
               }
+              break;
+              
+            case 'SIMPLE_CARGO':
+              // ТИП 1 с cargo_items: "✅ Груз 123456 найден!"
+              successMessage = `✅ Груз ${extractedData.cargo_number} найден!
+📦 Груз: ${foundIndividualUnit.cargo_name || 'Неизвестный груз'}
+📊 Количество: ${foundIndividualUnit.quantity || 1} шт.
+💡 Тип: Простой груз с одним количеством
+🎯 Следующий шаг: Отсканируйте ячейку для размещения`;
+              alertMessage = `✅ Груз ${extractedData.cargo_number} найден!`;
               break;
               
             default:
               // Для совместимости со старыми форматами
-              successMessage = `✅ Индивидуальная единица ${extractedData.full_number} найдена!
-                Груз: ${foundIndividualUnit.cargo_item?.cargo_name || 'Неизвестный груз'}
-                Заявка: ${foundCargo.cargo_number}
-                Отсканируйте ячейку для размещения.`;
-              alertMessage = `Единица ${extractedData.full_number} найдена! Отсканируйте ячейку.`;
+              successMessage = `✅ Груз ${extractedData.full_number} найден!
+📦 Груз: ${foundIndividualUnit.cargo_item?.cargo_name || 'Неизвестный груз'}
+📋 Заявка: ${foundCargo.cargo_number}
+🎯 Следующий шаг: Отсканируйте ячейку для размещения`;
+              alertMessage = `✅ Груз ${extractedData.full_number} найден!`;
           }
         } else {
-          // ТИП 1: Простой груз (123456)
+          // ТИП 1: Простой груз без cargo_items - "✅ Груз 123456 найден!"
           if (extractedData.type === 'SIMPLE_CARGO') {
-            successMessage = `✅ Простой груз ${extractedData.cargo_number} найден!
-              Это единый груз с одним количеством.
-              Отсканируйте ячейку для размещения.`;
-            alertMessage = `Груз ${extractedData.cargo_number} найден! Отсканируйте ячейку.`;
+            successMessage = `✅ Груз ${extractedData.cargo_number} найден!
+📦 Название: ${foundCargo.cargo_name || 'Простой груз'}
+💡 Тип: Единый груз с одним количеством (классический формат)
+📊 ID заявки: ${foundCargo.id}
+🎯 Следующий шаг: Отсканируйте ячейку для размещения`;
+            alertMessage = `✅ Груз ${extractedData.cargo_number} найден!`;
           } else {
             // Для остальных типов
-            successMessage = `✅ Груз ${foundCargo.cargo_number} найден! Переходим к сканированию ячейки.`;
-            alertMessage = `Груз ${foundCargo.cargo_number} найден! Отсканируйте ячейку.`;
+            successMessage = `✅ Груз ${foundCargo.cargo_number} найден!
+📦 Название: ${foundCargo.cargo_name || 'Неизвестный груз'}
+💡 Формат: ${extractedData.type}
+🎯 Следующий шаг: Отсканируйте ячейку для размещения`;
+            alertMessage = `✅ Груз ${foundCargo.cargo_number} найден!`;
           }
         }
         
