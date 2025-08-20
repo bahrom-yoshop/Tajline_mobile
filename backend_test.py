@@ -445,32 +445,35 @@ class TajlineBackendTester:
 
     def run_all_tests(self):
         """Запуск всех тестов"""
-        print("🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Backend API endpoints после улучшения дизайна формы и исправления QR кодов в TAJLINE.TJ")
+        print("🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Backend API после ИСПРАВЛЕНИЯ генерации QR кодов в TAJLINE.TJ")
         print("=" * 120)
         print()
         
-        # 1. Авторизация администратора
-        admin_auth_success = self.test_admin_authentication()
-        
-        # 2. Авторизация оператора склада
+        # 1. Авторизация оператора склада (основной тест)
         operator_auth_success = self.test_operator_authentication()
         
-        # 3. Получение данных текущего пользователя
+        if not operator_auth_success:
+            print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось авторизоваться как оператор склада!")
+            print("🔧 Проверьте учетные данные: +79777888999/warehouse123")
+            return
+        
+        # 2. Получение данных для формы
+        print("📋 ТЕСТИРОВАНИЕ ПОЛУЧЕНИЯ ДАННЫХ ДЛЯ ФОРМЫ...")
+        self.test_operator_warehouses()
+        self.test_all_cities_endpoint()
+        
+        # 3. КРИТИЧЕСКИЙ ТЕСТ: Создание заявки с несколькими типами груза
+        print("🎯 КРИТИЧЕСКИЙ ТЕСТ: СОЗДАНИЕ ЗАЯВКИ С НЕСКОЛЬКИМИ ТИПАМИ ГРУЗА...")
+        cargo_creation_success = self.test_cargo_accept_endpoint_with_multiple_cargo_types()
+        
+        # 4. Проверка уникальности генерации номеров груза
+        if cargo_creation_success:
+            self.test_cargo_number_generation_uniqueness()
+        
+        # 5. Дополнительная авторизация администратора для полноты тестирования
+        admin_auth_success = self.test_admin_authentication()
         if admin_auth_success:
             self.test_auth_me_endpoint()
-        
-        # 4. Core API endpoints для формы приема груза
-        if operator_auth_success:
-            self.test_operator_warehouses()
-            self.test_all_cities_endpoint()
-            self.test_operator_dashboard_analytics()
-            
-            # 5. Критический endpoint сохранения данных
-            self.test_cargo_accept_endpoint()
-            
-            # 6. Дополнительные endpoints
-            self.test_pickup_requests_endpoint()
-            self.test_warehouse_notifications_endpoint()
         
         # Подведение итогов
         self.print_summary()
