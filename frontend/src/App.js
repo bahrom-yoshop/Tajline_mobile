@@ -3680,13 +3680,17 @@ function App() {
   };
 
   // Массовая печать QR кодов для типа груза
+  // ОБНОВЛЕННАЯ ФУНКЦИЯ: Упрощенная массовая печать QR кодов
   const handlePrintMassQRForType = async (cargoType) => {
     try {
-      console.log('🖨️ Массовая печать QR кодов для типа груза:', cargoType.type_number);
+      console.log('🖨️ Упрощенная массовая печать QR кодов:', cargoType.type_number);
       
       const qrCodes = [];
       for (const unit of cargoType.individual_units || []) {
-        const qrCodeImage = await generateActualQRCode(unit.individual_number, 300);
+        const qrCodeImage = await generateActualQRCode({
+          individual_number: unit.individual_number,
+          cargo_name: cargoType.cargo_name
+        }, 300, 'individual_unit');
         qrCodes.push({
           individual_number: unit.individual_number,
           qr_image: qrCodeImage
@@ -3699,10 +3703,12 @@ function App() {
         return;
       }
       
+      // УПРОЩЕННЫЙ ДИЗАЙН МАССОВОЙ ПЕЧАТИ
       printWindow.document.write(`
         <html>
           <head>
-            <title>Печать QR кодов - ${cargoType.type_number}</title>
+            <title>QR коды - ${cargoType.type_number}</title>
+            <meta charset="UTF-8">
             <style>
               @page {
                 size: A4;
@@ -3731,20 +3737,25 @@ function App() {
                 justify-content: center;
                 align-items: center;
               }
-              .qr-title { 
-                font-size: 10px; 
-                font-weight: bold; 
-                margin-bottom: 3mm;
+              .cargo-name {
+                font-size: 14px;
+                font-weight: bold;
+                color: #000;
+                margin-bottom: 8mm;
+                word-wrap: break-word;
+                max-width: 80mm;
+                line-height: 1.2;
               }
-              .qr-number {
+              .qr-image {
+                margin: 3mm 0;
+              }
+              .cargo-number {
                 font-size: 12px;
                 font-weight: bold;
-                margin-bottom: 3mm;
-              }
-              .qr-name {
-                font-size: 8px;
-                margin-top: 3mm;
-                word-wrap: break-word;
+                color: #000;
+                margin-top: 8mm;
+                font-family: 'Courier New', monospace;
+                letter-spacing: 1px;
               }
               @media print {
                 body { margin: 0; padding: 0; }
@@ -3756,10 +3767,9 @@ function App() {
             <div class="qr-grid">
               ${qrCodes.map(qr => `
                 <div class="qr-item">
-                  <div class="qr-title">ГРУЗ</div>
-                  <div class="qr-number">${qr.individual_number}</div>
-                  <img src="${qr.qr_image}" style="width: 60mm; height: 60mm;" />
-                  <div class="qr-name">${cargoType.cargo_name}</div>
+                  <div class="cargo-name">${cargoType.cargo_name}</div>
+                  <img src="${qr.qr_image}" class="qr-image" style="width: 60mm; height: 60mm;" />
+                  <div class="cargo-number">${qr.individual_number}</div>
                 </div>
               `).join('')}
             </div>
