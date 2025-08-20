@@ -21,7 +21,7 @@ from datetime import datetime
 # Configuration
 BACKEND_URL = "https://cargo-system.preview.emergentagent.com/api"
 
-class QRSystemTester:
+class ModalFixTester:
     def __init__(self):
         self.session = requests.Session()
         self.token = None
@@ -90,112 +90,49 @@ class QRSystemTester:
             )
             return False
     
-    def test_existing_data_check(self):
-        """2. Проверка существующих данных с индивидуальными номерами"""
-        print("📊 ТЕСТ 2: Проверка существующих данных с индивидуальными номерами")
+    def test_cargo_accept_endpoint(self):
+        """2. Проверка API endpoint - POST /api/operator/cargo/accept"""
+        print("📦 ТЕСТ 2: Проверка API endpoint - POST /api/operator/cargo/accept")
         
         try:
-            # Check available cargo for placement
-            response = self.session.get(f"{BACKEND_URL}/operator/cargo/available-for-placement")
+            # Создаем тестовую заявку для проверки endpoint
+            cargo_data = {
+                "sender_full_name": "Тестовый Отправитель Модального Окна",
+                "sender_phone": "+79777888999",
+                "recipient_full_name": "Тестовый Получатель Модального Окна", 
+                "recipient_phone": "+992987654321",
+                "recipient_address": "г. Душанбе, ул. Рудаки, дом 45, кв. 12",
+                "description": "Тестовая заявка для проверки исправлений модального окна",
+                "route": "moscow_to_tajikistan",
+                "payment_method": "cash",
+                "delivery_method": "pickup",
+                "cargo_items": [
+                    {
+                        "cargo_name": "Тестовый груз для модального окна",
+                        "quantity": 1,
+                        "weight": 5.0,
+                        "price_per_kg": 100.0,
+                        "total_amount": 500.0
+                    }
+                ]
+            }
+            
+            response = self.session.post(f"{BACKEND_URL}/operator/cargo/accept", json=cargo_data)
             
             if response.status_code == 200:
                 data = response.json()
-                cargo_list = data.get("items", [])
-                
-                if not cargo_list:
-                    self.log_test(
-                        "Проверка существующих данных",
-                        False,
-                        "Нет доступных грузов для размещения"
-                    )
-                    return False
-                
-                # Look for cargo with individual items
-                cargo_with_individual_items = 0
-                total_individual_items = 0
-                sample_individual_numbers = []
-                
-                for cargo in cargo_list[:5]:  # Check first 5 cargo items
-                    cargo_items = cargo.get("cargo_items", [])
-                    for item in cargo_items:
-                        individual_items = item.get("individual_items", [])
-                        if individual_items:
-                            cargo_with_individual_items += 1
-                            total_individual_items += len(individual_items)
-                            
-                            # Collect sample individual numbers
-                            for ind_item in individual_items[:3]:  # First 3 items
-                                individual_number = ind_item.get("individual_number")
-                                if individual_number:
-                                    sample_individual_numbers.append(individual_number)
-                
-                if cargo_with_individual_items > 0:
-                    self.log_test(
-                        "Проверка существующих данных",
-                        True,
-                        f"Найдено {cargo_with_individual_items} грузов с индивидуальными номерами. "
-                        f"Всего индивидуальных единиц: {total_individual_items}. "
-                        f"Примеры номеров: {', '.join(sample_individual_numbers[:5])}"
-                    )
-                    return True
-                else:
-                    self.log_test(
-                        "Проверка существующих данных",
-                        False,
-                        f"Из {len(cargo_list)} грузов ни один не содержит individual_items"
-                    )
-                    return False
-            else:
-                self.log_test(
-                    "Проверка существующих данных",
-                    False,
-                    f"HTTP {response.status_code}: {response.text}"
-                )
-                return False
-                
-        except Exception as e:
-            self.log_test(
-                "Проверка существующих данных",
-                False,
-                f"Ошибка: {str(e)}"
-            )
-            return False
-    
-    def test_api_endpoint(self):
-        """3. Проверка API endpoint - GET /api/operator/cargo/available-for-placement"""
-        print("🔗 ТЕСТ 3: Проверка API endpoint available-for-placement")
-        
-        try:
-            response = self.session.get(f"{BACKEND_URL}/operator/cargo/available-for-placement")
-            
-            if response.status_code == 200:
-                data = response.json()
-                
-                # Check response structure
-                required_fields = ["items", "pagination"]
-                missing_fields = [field for field in required_fields if field not in data]
-                
-                if missing_fields:
-                    self.log_test(
-                        "API endpoint структура",
-                        False,
-                        f"Отсутствуют обязательные поля: {', '.join(missing_fields)}"
-                    )
-                    return False
-                
-                cargo_list = data.get("items", [])
-                pagination = data.get("pagination", {})
-                total_count = pagination.get("total_count", len(cargo_list))
+                cargo_id = data.get("id")
+                cargo_number = data.get("cargo_number")
                 
                 self.log_test(
-                    "API endpoint available-for-placement",
+                    "POST /api/operator/cargo/accept",
                     True,
-                    f"Endpoint работает корректно. Получено {len(cargo_list)} грузов из {total_count} общих"
+                    f"Endpoint работает корректно. Заявка создана: {cargo_number} (ID: {cargo_id})"
                 )
                 return True
             else:
                 self.log_test(
-                    "API endpoint available-for-placement",
+                    "POST /api/operator/cargo/accept",
                     False,
                     f"HTTP {response.status_code}: {response.text}"
                 )
@@ -203,95 +140,45 @@ class QRSystemTester:
                 
         except Exception as e:
             self.log_test(
-                "API endpoint available-for-placement",
+                "POST /api/operator/cargo/accept",
                 False,
                 f"Ошибка: {str(e)}"
             )
             return False
     
-    def test_data_structure(self):
-        """4. Проверка структуры данных - убедиться что individual_items присутствует"""
-        print("🏗️ ТЕСТ 4: Проверка структуры данных для QR генерации")
+    def test_qr_generate_endpoint(self):
+        """3. Проверка нового QR endpoint - POST /api/backend/generate-simple-qr"""
+        print("🔲 ТЕСТ 3: Проверка нового QR endpoint - POST /api/backend/generate-simple-qr")
         
         try:
-            response = self.session.get(f"{BACKEND_URL}/operator/cargo/available-for-placement")
+            # Тестируем генерацию QR кода с простым текстом
+            qr_data = {
+                "text": "TEST_QR_MODAL_FIX_123"
+            }
+            
+            response = self.session.post(f"{BACKEND_URL}/backend/generate-simple-qr", json=qr_data)
             
             if response.status_code == 200:
                 data = response.json()
-                cargo_list = data.get("items", [])
+                qr_code = data.get("qr_code")
                 
-                if not cargo_list:
+                if qr_code and qr_code.startswith("data:image/png;base64,"):
                     self.log_test(
-                        "Структура данных",
+                        "POST /api/backend/generate-simple-qr",
+                        True,
+                        f"Endpoint работает корректно. QR код сгенерирован (размер: {len(qr_code)} символов)"
+                    )
+                    return True
+                else:
+                    self.log_test(
+                        "POST /api/backend/generate-simple-qr",
                         False,
-                        "Нет грузов для анализа структуры"
+                        "QR код не сгенерирован или неправильный формат"
                     )
                     return False
-                
-                # Analyze data structure for QR generation
-                structure_analysis = {
-                    "total_cargo": len(cargo_list),
-                    "cargo_with_items": 0,
-                    "cargo_with_individual_items": 0,
-                    "total_individual_units": 0,
-                    "qr_ready_format": 0,
-                    "sample_structures": []
-                }
-                
-                for cargo in cargo_list[:10]:  # Analyze first 10 cargo items
-                    cargo_number = cargo.get("cargo_number", "Unknown")
-                    cargo_items = cargo.get("cargo_items", [])
-                    
-                    if cargo_items:
-                        structure_analysis["cargo_with_items"] += 1
-                        
-                        for idx, item in enumerate(cargo_items):
-                            individual_items = item.get("individual_items", [])
-                            
-                            if individual_items:
-                                structure_analysis["cargo_with_individual_items"] += 1
-                                structure_analysis["total_individual_units"] += len(individual_items)
-                                
-                                # Check if ready for QR generation
-                                for ind_item in individual_items:
-                                    individual_number = ind_item.get("individual_number")
-                                    if individual_number and "/" in individual_number:
-                                        structure_analysis["qr_ready_format"] += 1
-                                        
-                                        # Sample structure for QR generation
-                                        if len(structure_analysis["sample_structures"]) < 5:
-                                            structure_analysis["sample_structures"].append({
-                                                "cargo_number": cargo_number,
-                                                "individual_number": individual_number,
-                                                "qr_format": f"TAJLINE|UNIT|{individual_number}|{datetime.now().strftime('%Y%m%d%H%M')}"
-                                            })
-                
-                # Determine success
-                success = (
-                    structure_analysis["cargo_with_individual_items"] > 0 and
-                    structure_analysis["qr_ready_format"] > 0
-                )
-                
-                details = (
-                    f"Всего грузов: {structure_analysis['total_cargo']}, "
-                    f"С cargo_items: {structure_analysis['cargo_with_items']}, "
-                    f"С individual_items: {structure_analysis['cargo_with_individual_items']}, "
-                    f"Всего индивидуальных единиц: {structure_analysis['total_individual_units']}, "
-                    f"Готовых для QR: {structure_analysis['qr_ready_format']}"
-                )
-                
-                if structure_analysis["sample_structures"]:
-                    details += f"\nПримеры QR форматов: {structure_analysis['sample_structures'][:3]}"
-                
-                self.log_test(
-                    "Структура данных для QR генерации",
-                    success,
-                    details
-                )
-                return success
             else:
                 self.log_test(
-                    "Структура данных для QR генерации",
+                    "POST /api/backend/generate-simple-qr",
                     False,
                     f"HTTP {response.status_code}: {response.text}"
                 )
@@ -299,97 +186,80 @@ class QRSystemTester:
                 
         except Exception as e:
             self.log_test(
-                "Структура данных для QR генерации",
+                "POST /api/backend/generate-simple-qr",
                 False,
                 f"Ошибка: {str(e)}"
             )
             return False
     
-    def test_qr_format_compatibility(self):
-        """5. Дополнительный тест: Проверка совместимости с новым форматом QR"""
-        print("🔄 ТЕСТ 5: Проверка совместимости с новым форматом QR")
+    def test_backend_stability(self):
+        """4. Дополнительная проверка стабильности backend"""
+        print("🔧 ТЕСТ 4: Проверка стабильности backend после исправлений")
         
         try:
-            response = self.session.get(f"{BACKEND_URL}/operator/cargo/available-for-placement")
+            # Проверяем основные endpoints для стабильности
+            endpoints_to_check = [
+                ("/operator/warehouses", "GET"),
+                ("/operator/dashboard/analytics", "GET"),
+                ("/auth/me", "GET")
+            ]
             
-            if response.status_code == 200:
-                data = response.json()
-                cargo_list = data.get("items", [])
-                
-                qr_compatibility_check = {
-                    "simple_format_ready": 0,
-                    "complex_json_format": 0,
-                    "format_examples": []
-                }
-                
-                for cargo in cargo_list[:5]:
-                    cargo_items = cargo.get("cargo_items", [])
-                    for item in cargo_items:
-                        individual_items = item.get("individual_items", [])
-                        for ind_item in individual_items:
-                            individual_number = ind_item.get("individual_number")
-                            if individual_number:
-                                # Check if it's in simple format (250XXX/01/01)
-                                if "/" in individual_number and individual_number.count("/") == 2:
-                                    qr_compatibility_check["simple_format_ready"] += 1
-                                    
-                                    # Generate new QR format
-                                    timestamp = datetime.now().strftime('%Y%m%d%H%M')
-                                    new_qr_format = f"TAJLINE|UNIT|{individual_number}|{timestamp}"
-                                    
-                                    if len(qr_compatibility_check["format_examples"]) < 3:
-                                        qr_compatibility_check["format_examples"].append({
-                                            "old_individual_number": individual_number,
-                                            "new_qr_format": new_qr_format
-                                        })
-                                else:
-                                    qr_compatibility_check["complex_json_format"] += 1
-                
-                success = qr_compatibility_check["simple_format_ready"] > 0
-                
-                details = (
-                    f"Простой формат готов: {qr_compatibility_check['simple_format_ready']}, "
-                    f"Сложный JSON формат: {qr_compatibility_check['complex_json_format']}"
-                )
-                
-                if qr_compatibility_check["format_examples"]:
-                    details += f"\nПримеры нового формата QR: {qr_compatibility_check['format_examples']}"
-                
+            stable_endpoints = 0
+            total_endpoints = len(endpoints_to_check)
+            
+            for endpoint, method in endpoints_to_check:
+                try:
+                    if method == "GET":
+                        response = self.session.get(f"{BACKEND_URL}{endpoint}")
+                    else:
+                        response = self.session.post(f"{BACKEND_URL}{endpoint}")
+                    
+                    if response.status_code in [200, 201]:
+                        stable_endpoints += 1
+                        print(f"   ✅ {method} {endpoint} - стабилен")
+                    else:
+                        print(f"   ❌ {method} {endpoint} - HTTP {response.status_code}")
+                        
+                except Exception as e:
+                    print(f"   ❌ {method} {endpoint} - ошибка: {str(e)}")
+            
+            stability_rate = (stable_endpoints / total_endpoints) * 100
+            
+            if stability_rate >= 80:
                 self.log_test(
-                    "Совместимость с новым форматом QR",
-                    success,
-                    details
+                    "Стабильность backend",
+                    True,
+                    f"Backend стабилен: {stable_endpoints}/{total_endpoints} endpoints работают ({stability_rate:.1f}%)"
                 )
-                return success
+                return True
             else:
                 self.log_test(
-                    "Совместимость с новым форматом QR",
+                    "Стабильность backend",
                     False,
-                    f"HTTP {response.status_code}: {response.text}"
+                    f"Backend нестабилен: {stable_endpoints}/{total_endpoints} endpoints работают ({stability_rate:.1f}%)"
                 )
                 return False
                 
         except Exception as e:
             self.log_test(
-                "Совместимость с новым форматом QR",
+                "Стабильность backend",
                 False,
-                f"Ошибка: {str(e)}"
+                f"Ошибка проверки стабильности: {str(e)}"
             )
             return False
     
     def run_all_tests(self):
         """Запустить все тесты"""
-        print("🎯 БЫСТРЫЙ ТЕСТ: Проверка готовности данных для исправленной системы QR кодов TAJLINE.TJ")
+        print("🔧 БЫСТРАЯ ПРОВЕРКА: Готовность системы после исправлений модального окна")
         print("=" * 80)
         print()
         
         # Run tests in sequence
         tests = [
             self.test_operator_authorization,
-            self.test_existing_data_check,
-            self.test_api_endpoint,
-            self.test_data_structure,
-            self.test_qr_format_compatibility
+            self.test_cargo_accept_endpoint,
+            self.test_qr_generate_endpoint,
+            self.test_backend_stability
         ]
         
         passed_tests = 0
@@ -401,7 +271,7 @@ class QRSystemTester:
         
         # Summary
         print("=" * 80)
-        print("📊 ИТОГОВЫЕ РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ")
+        print("📊 ИТОГОВЫЕ РЕЗУЛЬТАТЫ ПРОВЕРКИ")
         print("=" * 80)
         
         success_rate = (passed_tests / total_tests) * 100
@@ -415,24 +285,26 @@ class QRSystemTester:
         print()
         print(f"🎯 ОБЩИЙ РЕЗУЛЬТАТ: {passed_tests}/{total_tests} тестов пройдено ({success_rate:.1f}%)")
         
-        if success_rate >= 80:
-            print("✅ BACKEND ГОТОВ для новой системы QR кодов!")
-            print("✅ Данные готовы для генерации простых числово-символьных QR кодов")
-            print("✅ Индивидуальные номера в формате 250XXX/01/01 доступны для QR генерации")
+        if success_rate >= 75:
+            print("✅ BACKEND ГОТОВ для исправленного frontend функционала!")
+            print("✅ Модальное окно 'Информация о доставке' может работать корректно")
+            print("✅ Функция подтверждения приема груза поддерживается")
         else:
-            print("❌ BACKEND НЕ ГОТОВ для новой системы QR кодов")
+            print("❌ BACKEND НЕ ГОТОВ для исправленного frontend функционала")
             print("❌ Требуются дополнительные исправления")
         
         print()
-        print("🔧 НОВЫЙ ФОРМАТ QR КОДОВ:")
-        print("   Формат: TAJLINE|UNIT|250143/01/01|202501271145")
-        print("   Преимущества: Лучшее распознавание сканерами, простота обработки")
+        print("🔧 ПРОВЕРЕННЫЕ КОМПОНЕНТЫ:")
+        print("   - Авторизация оператора склада")
+        print("   - API endpoint для приема груза")
+        print("   - Новый QR endpoint для генерации")
+        print("   - Общая стабильность системы")
         
-        return success_rate >= 80
+        return success_rate >= 75
 
 def main():
     """Main function"""
-    tester = QRSystemTester()
+    tester = ModalFixTester()
     success = tester.run_all_tests()
     
     # Exit with appropriate code
