@@ -11848,31 +11848,42 @@ function App() {
   };
 
   // НОВАЯ ФУНКЦИЯ: Фактическая отправка груза после подтверждения
-  // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Генерация настоящих QR кодов с использованием qrcode библиотеки
-  const generateActualQRCode = async (data, size = 200) => {
-    try {
-      // Используем глобальную QRCode библиотеку
-      if (window.QRCode && window.QRCode.toDataURL) {
-        // Генерируем QR код как Data URL
-        const qrDataURL = await window.QRCode.toDataURL(data, {
-          width: size,
-          height: size,
-          margin: 2,
-          color: {
-            dark: '#000000',
-            light: '#FFFFFF'
-          },
-          errorCorrectionLevel: 'M'
-        });
-        return qrDataURL;
-      } else {
-        console.warn('QRCode library not loaded, using fallback');
-        return await generateSimpleQRCode(data, size);
+  // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Генерация настоящих QR кодов
+  const generateActualQRCode = (data, size = 200) => {
+    return new Promise((resolve) => {
+      try {
+        console.log(`🔄 Генерируем QR код для: ${data}`);
+        
+        // Проверяем доступность библиотеки QRCode
+        if (typeof window.QRCode !== 'undefined' && window.QRCode.toDataURL) {
+          console.log('✅ Используем библиотеку QRCode.js');
+          
+          // Генерируем QR код с использованием библиотеки
+          window.QRCode.toDataURL(data, {
+            width: size,
+            height: size,
+            margin: 2,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF'
+            },
+            errorCorrectionLevel: 'M'
+          }).then(dataURL => {
+            console.log('✅ QR код сгенерирован успешно');
+            resolve(dataURL);
+          }).catch(error => {
+            console.error('❌ Ошибка при генерации QR кода:', error);
+            resolve(generateSimpleQRCode(data, size));
+          });
+        } else {
+          console.warn('⚠️ Библиотека QRCode.js недоступна, используем fallback');
+          resolve(generateSimpleQRCode(data, size));
+        }
+      } catch (error) {
+        console.error('❌ Критическая ошибка генерации QR кода:', error);
+        resolve(generateSimpleQRCode(data, size));
       }
-    } catch (error) {
-      console.error('Error generating QR code:', error);
-      return await generateSimpleQRCode(data, size);
-    }
+    });
   };
 
   // Fallback функция для создания простого QR кода
