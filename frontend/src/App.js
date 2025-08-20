@@ -14661,7 +14661,7 @@ function App() {
                           Рассчитайте стоимость и оформите груз для доставки
                         </CardDescription>
                       </CardHeader>
-                      <CardContent>
+                      <CardContent className="xl:p-8">
                         <form onSubmit={handleCreateCargoOrder} className="space-y-6">
                           {/* Основная информация о грузе */}
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
