@@ -13533,20 +13533,49 @@ function App() {
                         {item.subsections && activeSection === item.section && (
                           <div className="ml-6 mt-2 space-y-1">
                             {item.subsections.map((sub) => (
-                              <button
-                                key={sub.id}
-                                onClick={() => {
-                                  setActiveTab(sub.id);
-                                  setMobileMenuOpen(false);
-                                }}
-                                className={`block w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
-                                  activeTab === sub.id 
-                                    ? 'bg-blue-50 text-blue-600 font-medium' 
-                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                                }`}
-                              >
-                                {sub.label}
-                              </button>
+                              <div key={sub.id}>
+                                <button
+                                  onClick={() => {
+                                    if (sub.subsections) {
+                                      // Если есть вложенные подразделы, показываем их
+                                      // Можно добавить состояние для показа/скрытия вложенных
+                                    } else {
+                                      setActiveTab(sub.id);
+                                    }
+                                    setMobileMenuOpen(false);
+                                  }}
+                                  className={`block w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
+                                    activeTab === sub.id 
+                                      ? 'bg-blue-50 text-blue-600 font-medium' 
+                                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  {sub.subsections && <span className="mr-1">🚚</span>}
+                                  {sub.label}
+                                </button>
+                                
+                                {/* Вложенные подразделы */}
+                                {sub.subsections && (
+                                  <div className="ml-4 mt-1 space-y-1">
+                                    {sub.subsections.map((nested) => (
+                                      <button
+                                        key={nested.id}
+                                        onClick={() => {
+                                          setActiveTab(nested.id);
+                                          setMobileMenuOpen(false);
+                                        }}
+                                        className={`block w-full text-left px-3 py-2 text-xs rounded-lg transition-colors ${
+                                          activeTab === nested.id 
+                                            ? 'bg-green-50 text-green-600 font-medium' 
+                                            : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                      >
+                                        {nested.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             ))}
                           </div>
                         )}
