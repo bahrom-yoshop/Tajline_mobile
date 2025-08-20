@@ -17387,10 +17387,7 @@ function App() {
                           Принимать новый груз
                         </CardTitle>
                         <CardDescription>
-                          {isPickupMode 
-                            ? 'Упрощенная форма для заявки на забор груза курьером'
-                            : 'Заполните форму для приема нового груза от клиента'
-                          }
+                          Заполните форму для приема нового груза от клиента
                         </CardDescription>
                         {isFilledFromProfile && profileSourceUser && (
                           <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
