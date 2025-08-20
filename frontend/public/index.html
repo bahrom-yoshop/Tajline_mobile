@@ -155,44 +155,35 @@
           })(window);
         </script>
         <script>
-          // Детальная диагностика загрузки библиотеки QRCode
-          console.log('🔄 Начало загрузки QRCode.js...');
+          // Детальная диагностика загрузки встроенной QR библиотеки
+          console.log('🔄 Проверка встроенной QR библиотеки...');
           
           window.addEventListener('DOMContentLoaded', function() {
-            console.log('📄 DOMContentLoaded - проверка QRCode.js');
+            console.log('📄 DOMContentLoaded - проверка встроенного QRCode');
             
             if (window.QRCode) {
-              console.log('✅ QRCode.js библиотека загружена успешно!');
+              console.log('✅ Встроенная QR библиотека доступна!');
               console.log('🔍 Доступные методы:', Object.keys(window.QRCode));
               console.log('🎯 toDataURL доступен:', typeof window.QRCode.toDataURL === 'function');
               
-              // Тестовая генерация QR кода для проверки функциональности
+              // Тестовая генерация QR кода
               if (typeof window.QRCode.toDataURL === 'function') {
-                window.QRCode.toDataURL('test', { width: 100, height: 100 })
+                window.QRCode.toDataURL('TEST|UNIT|12345|202501271200', { width: 100, height: 100 })
                   .then(dataURL => {
-                    console.log('🎉 Тестовая генерация QR кода успешна!');
+                    console.log('🎉 Тестовая генерация встроенного QR кода успешна!');
+                    console.log('📊 Размер QR данных:', dataURL.length, 'символов');
                   })
                   .catch(error => {
-                    console.error('⚠️ Ошибка при тестовой генерации QR кода:', error);
+                    console.error('⚠️ Ошибка при тестовой генерации встроенного QR кода:', error);
                   });
               }
             } else {
-              console.error('❌ QRCode.js библиотека НЕ ЗАГРУЖЕНА!');
-              console.log('🔍 window.QRCode:', window.QRCode);
-              console.log('🔍 Попытка повторной загрузки...');
-              
-              // Попытка повторной загрузки
-              const script = document.createElement('script');
-              script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
-              script.onload = () => console.log('📦 QRCode.js перезагружена');
-              script.onerror = () => console.error('❌ Ошибка перезагрузки QRCode.js');
-              document.head.appendChild(script);
+              console.error('❌ Встроенная QR библиотека НЕ ЗАГРУЖЕНА!');
             }
           });
           
-          // Проверяем загрузку сразу после загрузки скрипта
           window.addEventListener('load', function() {
-            console.log('🌐 Window load - финальная проверка QRCode.js');
+            console.log('🌐 Window load - финальная проверка встроенного QRCode');
             console.log('🔍 window.QRCode доступен:', !!window.QRCode);
             console.log('🔍 window.QRCode.toDataURL доступен:', !!(window.QRCode && window.QRCode.toDataURL));
           });
