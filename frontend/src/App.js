@@ -3190,20 +3190,25 @@ function App() {
       setCargoNumberQRLoading(true);
       console.log('🎯 Генерация QR кода для номера заявки (НОВЫЙ РАБОЧИЙ МЕТОД)');
 
-      // Генерируем номер заявки (6-значный номер)
+      // ИСПРАВЛЕНИЕ: Генерируем уникальный номер заявки для последующего использования
       const today = new Date();
       const year = today.getFullYear().toString().slice(-2); // Последние 2 цифры года
       const month = (today.getMonth() + 1).toString().padStart(2, '0');
       const day = today.getDate().toString().padStart(2, '0');
       
-      // Генерируем случайный номер заявки в формате YYMMDD (например: 250127 для 27 января 2025)
+      // Генерируем уникальный номер заявки с добавлением случайных цифр для уникальности
       const baseNumber = `${year}${month}${day}`;
+      const randomSuffix = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+      const uniqueCargoNumber = `${baseNumber}${randomSuffix}`;
       
-      console.log(`📦 Сгенерированный номер заявки: ${baseNumber}`);
+      // ИСПРАВЛЕНИЕ: Сохраняем сгенерированный номер для использования при подтверждении заявки
+      setPreGeneratedCargoNumber(uniqueCargoNumber);
+      
+      console.log(`📦 Сгенерированный уникальный номер заявки: ${uniqueCargoNumber}`);
 
       // Создаем структурированные данные для QR кода заявки
       const requestData = {
-        cargo_number: baseNumber,
+        cargo_number: uniqueCargoNumber,
         sender_full_name: operatorCargoForm.sender_full_name || 'Не указан',
         recipient_full_name: operatorCargoForm.recipient_full_name || 'Не указан',
         recipient_address: operatorCargoForm.recipient_address || 'Не указан',
@@ -3215,15 +3220,15 @@ function App() {
       const qrCodeImage = await generateActualQRCode(requestData, 300, 'cargo_request');
 
       setCargoNumberQRCode({
-        number: baseNumber,
+        number: uniqueCargoNumber, // ИСПРАВЛЕНИЕ: Используем уникальный номер
         image: qrCodeImage,
         generated_at: new Date().toLocaleString('ru-RU'),
         request_data: requestData
       });
       setShowCargoNumberQRModal(true);
 
-      console.log('✅ QR код номера заявки сгенерирован с использованием РАБОЧЕГО МЕТОДА');
-      showAlert(`QR код для заявки ${baseNumber} готов! (Рабочий формат)`, 'success');
+      console.log('✅ QR код номера заявки сгенерирован с уникальным номером:', uniqueCargoNumber);
+      showAlert(`QR код для заявки ${uniqueCargoNumber} готов! Этот номер будет сохранен при подтверждении заявки.`, 'success');
 
     } catch (error) {
       console.error('❌ Ошибка генерации QR кода номера заявки:', error);
