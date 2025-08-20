@@ -20061,23 +20061,71 @@ function App() {
                                         </div>
                                         
                                         <div className="bg-gray-50 p-3 rounded-lg mt-3">
-                                          <h4 className="font-medium text-sm mb-2">📦 Список грузов</h4>
+                                          <h4 className="font-medium text-sm mb-2">📦 Список грузов ({(item.cargo_items || []).length} типов)</h4>
                                           {(item.cargo_items || []).length > 0 ? (
                                             item.cargo_items.map((cargoItem, index) => (
                                               <div key={index} className="bg-white p-2 rounded border text-xs mb-1">
-                                                <div className="flex justify-between">
-                                                  <span>Груз{item.cargo_number}/{String(index + 1).padStart(2, '0')}</span>
-                                                  <span className="font-medium text-blue-600">
-                                                    Размещено {cargoItem.placed_count || 0}/{cargoItem.quantity || 1}
-                                                  </span>
+                                                <div className="flex justify-between items-center">
+                                                  <div>
+                                                    <p className="font-medium text-gray-800">
+                                                      Груз{item.cargo_number}/{String(index + 1).padStart(2, '0')} "{cargoItem.cargo_name || `Груз №${index + 1}`}"
+                                                    </p>
+                                                    <p className="text-gray-500 text-xs">
+                                                      {cargoItem.quantity || 1} шт • {cargoItem.weight || 0} кг
+                                                    </p>
+                                                    {/* НОВОЕ: Показываем индивидуальные номера */}
+                                                    {cargoItem.individual_items && cargoItem.individual_items.length > 0 && (
+                                                      <div className="mt-1 flex flex-wrap gap-1">
+                                                        {cargoItem.individual_items.slice(0, 3).map((unit, unitIndex) => (
+                                                          <span 
+                                                            key={unitIndex} 
+                                                            className={`px-1 py-0.5 text-xs rounded ${
+                                                              unit.is_placed 
+                                                                ? 'bg-green-100 text-green-700' 
+                                                                : 'bg-gray-100 text-gray-600'
+                                                            }`}
+                                                            title={unit.individual_number}
+                                                          >
+                                                            {unit.individual_number.split('/').slice(-1)[0]}
+                                                          </span>
+                                                        ))}
+                                                        {cargoItem.individual_items.length > 3 && (
+                                                          <span className="px-1 py-0.5 text-xs bg-gray-100 text-gray-500 rounded">
+                                                            +{cargoItem.individual_items.length - 3}
+                                                          </span>
+                                                        )}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                  <div className="text-right">
+                                                    <p className="font-medium text-blue-600">
+                                                      Размещено {cargoItem.placed_count || 0}/{cargoItem.quantity || 1}
+                                                    </p>
+                                                    <p className={`text-xs ${
+                                                      (cargoItem.placed_count || 0) === (cargoItem.quantity || 1) 
+                                                        ? 'text-green-600' 
+                                                        : (cargoItem.placed_count || 0) > 0 
+                                                          ? 'text-yellow-600' 
+                                                          : 'text-red-600'
+                                                    }`}>
+                                                      {(cargoItem.placed_count || 0) === (cargoItem.quantity || 1) 
+                                                        ? 'Размещено' 
+                                                        : (cargoItem.placed_count || 0) > 0 
+                                                          ? 'Частично' 
+                                                          : 'Ждёт'}
+                                                    </p>
+                                                  </div>
                                                 </div>
                                               </div>
                                             ))
                                           ) : (
                                             <div className="bg-white p-2 rounded border text-xs">
                                               <div className="flex justify-between">
-                                                <span>Груз{item.cargo_number}/01</span>
-                                                <span className="text-red-600">Ждёт размещение</span>
+                                                <div>
+                                                  <p className="font-medium">Груз{item.cargo_number}/01 №1</p>
+                                                  <p className="text-gray-500">1 шт • {item.weight || 0} кг</p>
+                                                </div>
+                                                <span className="text-red-600 text-xs">Ждёт размещение</span>
                                               </div>
                                             </div>
                                           )}
