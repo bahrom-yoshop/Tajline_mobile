@@ -7,7 +7,7 @@ import requests
 import json
 
 def debug_notifications():
-    base_url = "https://cargo-tracker-31.preview.emergentagent.com"
+    base_url = "https://tajline-logistics-1.preview.emergentagent.com"
     
     # Login as operator
     login_data = {

@@ -33,7 +33,7 @@ import sys
 from datetime import datetime
 
 # Конфигурация
-BACKEND_URL = "https://cargo-tracker-31.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-logistics-1.preview.emergentagent.com/api"
 
 def test_modal_error_handling():
     """Тестирование модальных окон ошибок авторизации"""

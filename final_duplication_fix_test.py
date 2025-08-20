@@ -30,7 +30,7 @@ from datetime import datetime
 from collections import Counter
 
 # Получаем URL backend из переменной окружения
-BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cargo-tracker-31.preview.emergentagent.com')
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://tajline-logistics-1.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 class FinalDuplicationFixTester:

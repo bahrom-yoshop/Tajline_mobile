@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime
 
 # Конфигурация
-BACKEND_URL = "https://cargo-tracker-31.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-logistics-1.preview.emergentagent.com/api"
 ADMIN_CREDENTIALS = {
     "phone": "+79999888777",
     "password": "admin123"
