@@ -3802,6 +3802,12 @@ function App() {
     current: 0,
     results: []
   }); // Состояние массовой генерации QR кодов
+
+  // НОВЫЕ СОСТОЯНИЯ: QR код для заявки с информацией о всех грузах
+  const [showRequestQRModal, setShowRequestQRModal] = useState(false); // Модальное окно QR кода заявки
+  const [selectedRequestForQR, setSelectedRequestForQR] = useState(null); // Выбранная заявка для QR
+  const [requestQRCode, setRequestQRCode] = useState(null); // Сгенерированный QR код заявки
+  const [requestQRLoading, setRequestQRLoading] = useState(false); // Загрузка генерации QR заявки
   
   // ИСПРАВЛЕНИЕ: Глобальный обработчик ошибок removeChild
   useEffect(() => {
