@@ -17919,6 +17919,7 @@ function App() {
                               value={operatorCargoForm.recipient_address}
                               onChange={(e) => setOperatorCargoForm({...operatorCargoForm, recipient_address: e.target.value})}
                               placeholder="Душанбе, ул. Рудаки, 10, кв. 5"
+                              className="xl:h-12 xl:text-base"
                               required
                             />
                           </div>
