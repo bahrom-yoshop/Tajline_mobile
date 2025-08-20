@@ -18840,6 +18840,18 @@ function App() {
                                 Принять груз
                               </Button>
                               
+                              {/* НОВАЯ КНОПКА: Генерация QR кода номера заявки */}
+                              <Button 
+                                type="button"
+                                onClick={handleGenerateCargoNumberQR}
+                                className="w-full bg-orange-600 hover:bg-orange-700 h-12 md:h-14 text-base md:text-lg" 
+                                size="lg"
+                                title="Генерировать QR код только для номера заявки (размер печати: 90мм x 100мм)"
+                              >
+                                <QrCode className="mr-2 h-4 w-4 md:h-5 md:w-5" />
+                                Генерация и Печать QR номера заявки
+                              </Button>
+                              
                               {/* Кнопка для курьерского забора */}
                               {operatorCargoForm.pickup_required && (
                                 <Button 
