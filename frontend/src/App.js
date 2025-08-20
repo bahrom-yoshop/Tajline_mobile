@@ -4516,18 +4516,15 @@ function App() {
           if (cargoInput) {
             cargoInput.focus();
           }
-        }, 1000); // 1 секунда чтобы пользователь успел увидеть успешное сообщение
-          const cargoInput = document.querySelector('input[placeholder*="QR код груза"]');
-          if (cargoInput) {
-            cargoInput.focus();
           }
-        }, 100);
+        }, 1000); // 1 секунда чтобы пользователь успел увидеть успешное сообщение
+        
       } else {
         throw new Error(response?.message || 'Неизвестная ошибка размещения');
       }
       
     } catch (error) {
-      console.error('Ошибка размещения с внешним сканером:', error);
+      console.error('❌ ФАЗА 2: Ошибка размещения с внешним сканером:', error);
       setScannerError(`Ошибка при размещении груза: ${error.message}`);
       showAlert(`Ошибка при размещении груза: ${error.message}`, 'error');
     }
