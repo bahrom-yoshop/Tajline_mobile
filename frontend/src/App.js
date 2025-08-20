@@ -3532,57 +3532,6 @@ function App() {
           </body>
         </html>
       `); 
-                font-weight: bold; 
-                margin-bottom: 2mm;
-                color: #000;
-              }
-              .qr-number {
-                font-size: 12px;
-                font-weight: bold;
-                color: #000;
-                margin-bottom: 3mm;
-              }
-              .qr-image { 
-                margin: 2mm 0;
-              }
-              .qr-name {
-                font-size: 8px;
-                color: #333;
-                margin-top: 2mm;
-                text-align: center;
-                word-wrap: break-word;
-                max-width: 80mm;
-              }
-              @media print {
-                body { 
-                  margin: 0; 
-                  padding: 2mm;
-                  -webkit-print-color-adjust: exact;
-                  print-color-adjust: exact;
-                }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="qr-container">
-              <div class="qr-title">ГРУЗ</div>
-              <div class="qr-number">${individualNumber}</div>
-              <div class="qr-image">
-                <img src="${qrCodeImage}" alt="QR код груза" style="width: 60mm; height: 60mm;" />
-              </div>
-              <div class="qr-name">${cargoName}</div>
-            </div>
-            <script>
-              window.onload = function() {
-                setTimeout(function() {
-                  window.print();
-                  window.close();
-                }, 500);
-              }
-            </script>
-          </body>
-        </html>
-      `);
       printWindow.document.close();
       
       showAlert(`QR код ${individualNumber} отправлен на печать!`, 'success');
