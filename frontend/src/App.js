@@ -31866,14 +31866,14 @@ function App() {
                       value={externalCellInput}
                       onChange={(e) => setExternalCellInput(e.target.value)}
                       onKeyPress={(e) => {
-                        if (e.key === 'Enter' && externalCellInput.trim() && externalScannerStep === 'cell') {
+                        if (e.key === 'Enter' && externalCellInput.trim() && externalScannerStep === 'cell' && !scannerProcessingInput) {
                           handleExternalCellScan(externalCellInput.trim());
                           // НЕ очищаем поле, чтобы пользователь видел отсканированные данные
                         }
                       }}
-                      disabled={externalScannerStep !== 'cell'}
-                      className={`mt-1 ${externalScannerStep === 'cell' ? 'bg-yellow-50 border-yellow-300' : 'bg-gray-100'}`}
-                      autoFocus={externalScannerStep === 'cell'}
+                      disabled={externalScannerStep !== 'cell' || scannerProcessingInput}
+                      className={`mt-1 ${externalScannerStep === 'cell' && !scannerProcessingInput ? 'bg-yellow-50 border-yellow-300' : 'bg-gray-100'} ${scannerProcessingInput ? 'opacity-50' : ''}`}
+                      autoFocus={externalScannerStep === 'cell' && !scannerProcessingInput}
                     />
                     {externalScannedCell && (
                       <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
