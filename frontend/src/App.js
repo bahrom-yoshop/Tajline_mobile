@@ -4154,7 +4154,7 @@ function App() {
   // Функция для запуска размещения с внешним сканером
   const startExternalScannerPlacement = async () => {
     try {
-      console.log('🖥️ ФАЗА 3: Запуск размещения груза с внешним сканером...');
+      console.log('🖥️ ФАЗА 4: Запуск размещения груза с внешним сканером...');
       
       setExternalScannerActive(true);
       setExternalScannerStep('cargo');
@@ -4169,14 +4169,20 @@ function App() {
       setScannerClickProtection(true);
       setScannerAutoFocusTarget('cargo');
       
-      // ФАЗА 3: Автоматический фокус на поле груза
+      // ФАЗА 4: Активация автоматических переходов
+      setScannerAutoTransition(true);
+      setScannerCompletionCount(0);
+      setScannerAutoReset(false);
+      
+      // ФАЗА 4: Улучшенный автоматический фокус на поле груза
       setTimeout(() => {
         const cargoInput = document.querySelector('input[placeholder*="Отсканируйте QR код груза"]');
         if (cargoInput) {
           cargoInput.focus();
-          console.log('🖥️ ФАЗА 3: Автофокус установлен на поле груза');
+          cargoInput.select(); // ФАЗА 4: Выделяем текст для быстрой замены
+          console.log('🖥️ ФАЗА 4: Автофокус с выделением установлен на поле груза');
         }
-      }, 200);
+      }, 100); // ФАЗА 4: Быстрее переход
       
       // Fetch statistics and available cells
       await fetchPlacementStatistics();
