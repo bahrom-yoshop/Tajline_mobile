@@ -1,5 +1,455 @@
 #!/usr/bin/env python3
 """
+🎯 ФИНАЛЬНОЕ ТЕСТИРОВАНИЕ: Backend API после добавления полей quantity и total_amount в CargoItem модель TAJLINE.TJ
+
+КОНТЕКСТ: Добавлены недостающие поля в модель CargoItem - quantity и total_amount. 
+Теперь backend должен корректно обрабатывать создание заявок с QR кодами для каждой единицы груза по количеству.
+
+ДОБАВЛЕННЫЕ ПОЛЯ В CargoItem:
+- quantity: int - количество единиц груза (1-100)
+- total_amount: float - общая стоимость груза
+
+ТРЕБУЕТСЯ ПРОТЕСТИРОВАТЬ:
+1. АВТОРИЗАЦИЯ - POST /api/auth/login - авторизация оператора склада
+2. КРИТИЧЕСКИЙ ENDPOINT С НОВЫМИ ПОЛЯМИ - POST /api/operator/cargo/accept
+3. ВАЛИДАЦИЯ НОВЫХ ПОЛЕЙ - проверить что quantity и total_amount валидируются корректно
+
+ТЕСТОВЫЕ ДАННЫЕ:
+- Оператор: +79777888999/warehouse123
+- Создать заявку с 2 типами груза:
+  * Груз 1: название="Электроника", quantity=2, weight=10.0, price_per_kg=200.0, total_amount=4000.0
+  * Груз 2: название="Одежда", quantity=3, weight=5.0, price_per_kg=150.0, total_amount=2250.0
+  * Всего единиц: 5, общая сумма: 6250.0
+
+ОЖИДАЕМЫЙ РЕЗУЛЬТАТ:
+- Заявка создается успешно с новыми полями
+- Все поля cargo_items корректно сохраняются
+- cargo_number генерируется для создания 5 QR кодов (2+3)
+- Backend готов для frontend генерации QR кодов каждой единицы
+"""
+
+import requests
+import json
+import sys
+from datetime import datetime
+
+# Получаем backend URL из переменных окружения
+import os
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://tajline-logistics-1.preview.emergentagent.com')
+API_BASE = f"{BACKEND_URL}/api"
+
+class TajlineBackendTester:
+    def __init__(self):
+        self.session = requests.Session()
+        self.admin_token = None
+        self.operator_token = None
+        self.test_results = []
+        
+    def log_test(self, test_name, success, details=""):
+        """Логирование результатов тестов"""
+        status = "✅ PASS" if success else "❌ FAIL"
+        self.test_results.append({
+            "test": test_name,
+            "success": success,
+            "details": details,
+            "timestamp": datetime.now().isoformat()
+        })
+        print(f"{status}: {test_name}")
+        if details:
+            print(f"   📋 {details}")
+        print()
+
+    def authenticate_operator(self):
+        """Авторизация оператора склада"""
+        print("🔐 ТЕСТИРОВАНИЕ АВТОРИЗАЦИИ ОПЕРАТОРА СКЛАДА")
+        print("=" * 60)
+        
+        try:
+            # Данные для авторизации оператора
+            login_data = {
+                "phone": "+79777888999",
+                "password": "warehouse123"
+            }
+            
+            response = self.session.post(f"{API_BASE}/auth/login", json=login_data)
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.operator_token = data.get("access_token")
+                user_info = data.get("user", {})
+                
+                self.log_test(
+                    "Авторизация оператора склада",
+                    True,
+                    f"Пользователь: {user_info.get('full_name')}, Роль: {user_info.get('role')}, Номер: {user_info.get('user_number')}"
+                )
+                
+                # Устанавливаем заголовок авторизации
+                self.session.headers.update({
+                    "Authorization": f"Bearer {self.operator_token}"
+                })
+                
+                return True
+            else:
+                self.log_test(
+                    "Авторизация оператора склада",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test(
+                "Авторизация оператора склада",
+                False,
+                f"Ошибка: {str(e)}"
+            )
+            return False
+
+    def test_cargo_accept_with_new_fields(self):
+        """Тестирование POST /api/operator/cargo/accept с новыми полями quantity и total_amount"""
+        print("🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: POST /api/operator/cargo/accept С НОВЫМИ ПОЛЯМИ")
+        print("=" * 80)
+        
+        try:
+            # Подготавливаем тестовые данные с новыми полями quantity и total_amount
+            cargo_data = {
+                "sender_full_name": "Тестовый Отправитель",
+                "sender_phone": "+79123456789",
+                "recipient_full_name": "Тестовый Получатель", 
+                "recipient_phone": "+79987654321",
+                "recipient_address": "Душанбе, ул. Рудаки, 123",
+                "description": "Тестовая заявка с новыми полями quantity и total_amount",
+                "route": "moscow_to_tajikistan",
+                "payment_method": "cash",
+                "delivery_method": "pickup",
+                "pickup_required": False,
+                
+                # КРИТИЧЕСКИЕ НОВЫЕ ПОЛЯ: cargo_items с quantity и total_amount
+                "cargo_items": [
+                    {
+                        "cargo_name": "Электроника",
+                        "quantity": 2,  # НОВОЕ ПОЛЕ
+                        "weight": 10.0,
+                        "price_per_kg": 200.0,
+                        "total_amount": 4000.0  # НОВОЕ ПОЛЕ
+                    },
+                    {
+                        "cargo_name": "Одежда", 
+                        "quantity": 3,  # НОВОЕ ПОЛЕ
+                        "weight": 5.0,
+                        "price_per_kg": 150.0,
+                        "total_amount": 2250.0  # НОВОЕ ПОЛЕ
+                    }
+                ]
+            }
+            
+            print(f"📦 Отправляем заявку с cargo_items:")
+            for i, item in enumerate(cargo_data["cargo_items"], 1):
+                print(f"   Груз #{i}: {item['cargo_name']}")
+                print(f"   - Количество: {item['quantity']} единиц")
+                print(f"   - Вес: {item['weight']} кг")
+                print(f"   - Цена за кг: {item['price_per_kg']} ₽")
+                print(f"   - Общая стоимость: {item['total_amount']} ₽")
+            
+            total_quantity = sum(item['quantity'] for item in cargo_data["cargo_items"])
+            total_amount = sum(item['total_amount'] for item in cargo_data["cargo_items"])
+            print(f"📊 Итого: {total_quantity} единиц груза, общая сумма: {total_amount} ₽")
+            print()
+            
+            response = self.session.post(f"{API_BASE}/operator/cargo/accept", json=cargo_data)
+            
+            if response.status_code == 200:
+                data = response.json()
+                cargo_number = data.get("cargo_number")
+                cargo_id = data.get("cargo_id")
+                
+                self.log_test(
+                    "Создание заявки с новыми полями quantity и total_amount",
+                    True,
+                    f"Заявка создана: ID={cargo_id}, Номер={cargo_number}, Готов для генерации {total_quantity} QR кодов"
+                )
+                
+                # Проверяем сохранение данных в базе
+                return self.verify_cargo_items_in_database(cargo_id, cargo_data["cargo_items"])
+                
+            else:
+                self.log_test(
+                    "Создание заявки с новыми полями quantity и total_amount",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test(
+                "Создание заявки с новыми полями quantity и total_amount",
+                False,
+                f"Ошибка: {str(e)}"
+            )
+            return False
+
+    def verify_cargo_items_in_database(self, cargo_id, expected_items):
+        """Проверка сохранения cargo_items с новыми полями в базе данных"""
+        print("🔍 ПРОВЕРКА СОХРАНЕНИЯ CARGO_ITEMS В БАЗЕ ДАННЫХ")
+        print("=" * 60)
+        
+        try:
+            # Получаем данные груза для проверки сохранения
+            response = self.session.get(f"{API_BASE}/cargo/{cargo_id}")
+            
+            if response.status_code == 200:
+                cargo_data = response.json()
+                cargo_items = cargo_data.get("cargo_items", [])
+                
+                print(f"📋 Найдено cargo_items в базе данных: {len(cargo_items)} элементов")
+                
+                # Проверяем каждый элемент cargo_items
+                all_fields_present = True
+                missing_fields = []
+                
+                for i, item in enumerate(cargo_items):
+                    print(f"   Груз #{i+1}: {item.get('cargo_name', 'Неизвестно')}")
+                    
+                    # Проверяем наличие всех полей
+                    required_fields = ['cargo_name', 'quantity', 'weight', 'price_per_kg', 'total_amount']
+                    for field in required_fields:
+                        if field in item:
+                            print(f"   ✅ {field}: {item[field]}")
+                        else:
+                            print(f"   ❌ {field}: ОТСУТСТВУЕТ!")
+                            missing_fields.append(f"Груз #{i+1}.{field}")
+                            all_fields_present = False
+                    print()
+                
+                if all_fields_present:
+                    self.log_test(
+                        "Проверка сохранения полей quantity и total_amount",
+                        True,
+                        f"Все поля корректно сохранены в {len(cargo_items)} элементах cargo_items"
+                    )
+                    
+                    # Проверяем математику
+                    return self.verify_quantity_math(cargo_items)
+                else:
+                    self.log_test(
+                        "Проверка сохранения полей quantity и total_amount",
+                        False,
+                        f"Отсутствующие поля: {', '.join(missing_fields)}"
+                    )
+                    return False
+                    
+            else:
+                self.log_test(
+                    "Получение данных груза для проверки",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test(
+                "Проверка сохранения cargo_items в базе данных",
+                False,
+                f"Ошибка: {str(e)}"
+            )
+            return False
+
+    def verify_quantity_math(self, cargo_items):
+        """Проверка математических расчетов с новыми полями"""
+        print("🧮 ПРОВЕРКА МАТЕМАТИЧЕСКИХ РАСЧЕТОВ")
+        print("=" * 50)
+        
+        try:
+            total_quantity = 0
+            total_amount = 0.0
+            calculation_correct = True
+            
+            for i, item in enumerate(cargo_items, 1):
+                quantity = item.get('quantity', 0)
+                weight = item.get('weight', 0.0)
+                price_per_kg = item.get('price_per_kg', 0.0)
+                total_amount_item = item.get('total_amount', 0.0)
+                
+                # Проверяем расчет total_amount
+                expected_total = weight * price_per_kg
+                
+                print(f"Груз #{i}:")
+                print(f"   Количество: {quantity} единиц")
+                print(f"   Вес: {weight} кг × Цена: {price_per_kg} ₽/кг = {expected_total} ₽")
+                print(f"   Сохраненная общая стоимость: {total_amount_item} ₽")
+                
+                if abs(expected_total - total_amount_item) > 0.01:  # Допуск на округление
+                    print(f"   ❌ Ошибка расчета! Ожидалось: {expected_total}, получено: {total_amount_item}")
+                    calculation_correct = False
+                else:
+                    print(f"   ✅ Расчет корректен")
+                
+                total_quantity += quantity
+                total_amount += total_amount_item
+                print()
+            
+            print(f"📊 ИТОГОВЫЕ РАСЧЕТЫ:")
+            print(f"   Общее количество единиц груза: {total_quantity}")
+            print(f"   Общая стоимость всех грузов: {total_amount} ₽")
+            print(f"   Ожидаемое количество QR кодов: {total_quantity}")
+            
+            if calculation_correct:
+                self.log_test(
+                    "Математические расчеты с новыми полями",
+                    True,
+                    f"Все расчеты корректны. Готов для генерации {total_quantity} QR кодов"
+                )
+                return True
+            else:
+                self.log_test(
+                    "Математические расчеты с новыми полями",
+                    False,
+                    "Найдены ошибки в расчетах total_amount"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test(
+                "Проверка математических расчетов",
+                False,
+                f"Ошибка: {str(e)}"
+            )
+            return False
+
+    def test_field_validation(self):
+        """Тестирование валидации новых полей quantity и total_amount"""
+        print("🔒 ТЕСТИРОВАНИЕ ВАЛИДАЦИИ НОВЫХ ПОЛЕЙ")
+        print("=" * 50)
+        
+        validation_tests = [
+            {
+                "name": "Валидация quantity = 0 (должно быть > 0)",
+                "cargo_items": [{"cargo_name": "Тест", "quantity": 0, "weight": 1.0, "price_per_kg": 100.0, "total_amount": 100.0}],
+                "should_fail": True
+            },
+            {
+                "name": "Валидация quantity = 101 (должно быть <= 100)",
+                "cargo_items": [{"cargo_name": "Тест", "quantity": 101, "weight": 1.0, "price_per_kg": 100.0, "total_amount": 100.0}],
+                "should_fail": True
+            },
+            {
+                "name": "Валидация total_amount = 0 (должно быть > 0)",
+                "cargo_items": [{"cargo_name": "Тест", "quantity": 1, "weight": 1.0, "price_per_kg": 100.0, "total_amount": 0.0}],
+                "should_fail": True
+            },
+            {
+                "name": "Валидация корректных значений",
+                "cargo_items": [{"cargo_name": "Тест", "quantity": 50, "weight": 1.0, "price_per_kg": 100.0, "total_amount": 100.0}],
+                "should_fail": False
+            }
+        ]
+        
+        validation_success_count = 0
+        
+        for test_case in validation_tests:
+            try:
+                cargo_data = {
+                    "sender_full_name": "Тест Валидации",
+                    "sender_phone": "+79123456789",
+                    "recipient_full_name": "Тест Получатель",
+                    "recipient_phone": "+79987654321",
+                    "recipient_address": "Тестовый адрес",
+                    "description": "Тест валидации полей",
+                    "route": "moscow_to_tajikistan",
+                    "payment_method": "cash",
+                    "delivery_method": "pickup",
+                    "cargo_items": test_case["cargo_items"]
+                }
+                
+                response = self.session.post(f"{API_BASE}/operator/cargo/accept", json=cargo_data)
+                
+                if test_case["should_fail"]:
+                    # Ожидаем ошибку валидации
+                    if response.status_code != 200:
+                        self.log_test(test_case["name"], True, f"Корректно отклонено: HTTP {response.status_code}")
+                        validation_success_count += 1
+                    else:
+                        self.log_test(test_case["name"], False, "Некорректные данные были приняты!")
+                else:
+                    # Ожидаем успех
+                    if response.status_code == 200:
+                        data = response.json()
+                        self.log_test(test_case["name"], True, f"Корректно принято: {data.get('cargo_number')}")
+                        validation_success_count += 1
+                    else:
+                        self.log_test(test_case["name"], False, f"Корректные данные отклонены: HTTP {response.status_code}")
+                        
+            except Exception as e:
+                self.log_test(test_case["name"], False, f"Ошибка: {str(e)}")
+        
+        return validation_success_count == len(validation_tests)
+
+    def run_comprehensive_test(self):
+        """Запуск полного тестирования"""
+        print("🎯 ФИНАЛЬНОЕ ТЕСТИРОВАНИЕ: Backend API после добавления полей quantity и total_amount")
+        print("=" * 90)
+        print(f"🌐 Backend URL: {BACKEND_URL}")
+        print(f"📅 Время тестирования: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print()
+        
+        # Счетчики успешных тестов
+        total_tests = 0
+        successful_tests = 0
+        
+        # 1. Авторизация оператора
+        if self.authenticate_operator():
+            successful_tests += 1
+        total_tests += 1
+        
+        # 2. Тестирование создания заявки с новыми полями
+        if self.test_cargo_accept_with_new_fields():
+            successful_tests += 1
+        total_tests += 1
+        
+        # 3. Тестирование валидации полей
+        if self.test_field_validation():
+            successful_tests += 1
+        total_tests += 1
+        
+        # Финальный отчет
+        print("\n" + "=" * 90)
+        print("📊 ФИНАЛЬНЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ")
+        print("=" * 90)
+        
+        success_rate = (successful_tests / total_tests) * 100 if total_tests > 0 else 0
+        
+        print(f"✅ Успешных тестов: {successful_tests}/{total_tests}")
+        print(f"📈 Процент успеха: {success_rate:.1f}%")
+        print()
+        
+        if success_rate >= 90:
+            print("🎉 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ ЗАВЕРШЕНО УСПЕШНО!")
+            print("✅ Backend API готов для работы с новыми полями quantity и total_amount")
+            print("✅ Заявки создаются корректно с поддержкой генерации QR кодов для каждой единицы груза")
+            print("✅ Валидация полей работает правильно")
+        elif success_rate >= 70:
+            print("⚠️ ТЕСТИРОВАНИЕ ЗАВЕРШЕНО С ПРЕДУПРЕЖДЕНИЯМИ")
+            print("⚠️ Основная функциональность работает, но есть проблемы")
+        else:
+            print("❌ КРИТИЧЕСКИЕ ПРОБЛЕМЫ ОБНАРУЖЕНЫ!")
+            print("❌ Backend требует исправлений перед использованием")
+        
+        print()
+        print("📋 ДЕТАЛЬНЫЕ РЕЗУЛЬТАТЫ:")
+        for result in self.test_results:
+            status = "✅" if result["success"] else "❌"
+            print(f"{status} {result['test']}")
+            if result["details"]:
+                print(f"   📋 {result['details']}")
+        
+        return success_rate >= 90
+
+if __name__ == "__main__":
+    tester = TajlineBackendTester()
+    success = tester.run_comprehensive_test()
+    sys.exit(0 if success else 1)
+"""
 🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Backend API после исправления генерации QR кодов для каждой единицы груза в TAJLINE.TJ
 
 КОНТЕКСТ: Исправлена критическая проблема с QR кодами - теперь генерируются QR коды для КАЖДОЙ ЕДИНИЦЫ груза по количеству. 
