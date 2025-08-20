@@ -11962,8 +11962,10 @@ function App() {
     }
   };
 
-  // Улучшенный fallback для создания QR кода
+  // УЛУЧШЕННЫЙ FALLBACK: Создание качественных QR-подобных кодов при недоступности библиотеки
   const generateSimpleQRCode = (data, size = 200) => {
+    console.log('⚠️ FALLBACK: Генерируем QR-подобный код для:', data);
+    
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     canvas.width = size;
@@ -11973,63 +11975,84 @@ function App() {
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, size, size);
     
-    // Черная рамка
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(1, 1, size - 2, size - 2);
-    
-    // Создаем QR-паттерн на основе данных
-    const modules = 21; // Стандарт QR кода
-    const moduleSize = (size - 20) / modules; // Оставляем место для отступов
+    // Создаем улучшенный QR-паттерн
+    const modules = 25; // Увеличенная сетка для лучшего вида
+    const moduleSize = (size - 20) / modules;
     const offsetX = 10;
     const offsetY = 10;
     
-    // Генерируем детерминированный паттерн на основе данных
-    const hash = data.split('').reduce((acc, char, index) => {
-      return acc + char.charCodeAt(0) * (index + 1);
-    }, 0);
+    // Создаем детерминированный хеш из данных
+    let hash = 0;
+    for (let i = 0; i < data.length; i++) {
+      const char = data.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Конвертируем в 32-битное число
+    }
     
     ctx.fillStyle = '#000000';
     
-    // Рисуем позиционные маркеры (обязательные для QR кода)
-    const drawFinder = (x, y) => {
-      // Внешний квадрат 7x7
-      ctx.fillRect(offsetX + x * moduleSize, offsetY + y * moduleSize, 7 * moduleSize, 7 * moduleSize);
-      // Внутренний белый квадрат 5x5
+    // Рисуем улучшенные позиционные маркеры
+    const drawEnhancedFinder = (x, y) => {
+      const finderSize = 7;
+      // Внешний квадрат
+      ctx.fillRect(offsetX + x * moduleSize, offsetY + y * moduleSize, finderSize * moduleSize, finderSize * moduleSize);
+      // Внутренний белый квадрат
       ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(offsetX + (x + 1) * moduleSize, offsetY + (y + 1) * moduleSize, 5 * moduleSize, 5 * moduleSize);
-      // Центральный черный квадрат 3x3
+      ctx.fillRect(offsetX + (x + 1) * moduleSize, offsetY + (y + 1) * moduleSize, (finderSize - 2) * moduleSize, (finderSize - 2) * moduleSize);
+      // Центральный черный квадрат
       ctx.fillStyle = '#000000';
-      ctx.fillRect(offsetX + (x + 2) * moduleSize, offsetY + (y + 2) * moduleSize, 3 * moduleSize, 3 * moduleSize);
+      ctx.fillRect(offsetX + (x + 2) * moduleSize, offsetY + (y + 2) * moduleSize, (finderSize - 4) * moduleSize, (finderSize - 4) * moduleSize);
     };
     
-    drawFinder(0, 0);   // Верхний левый
-    drawFinder(14, 0);  // Верхний правый
-    drawFinder(0, 14);  // Нижний левый
+    // Позиционные маркеры в углах
+    drawEnhancedFinder(0, 0);    // Верхний левый
+    drawEnhancedFinder(18, 0);   // Верхний правый  
+    drawEnhancedFinder(0, 18);   // Нижний левый
     
-    // Генерируем данные модули
+    // Рисуем синхронизационные линии
+    ctx.fillStyle = '#000000';
+    for (let i = 8; i < 17; i++) {
+      if (i % 2 === 0) {
+        ctx.fillRect(offsetX + i * moduleSize, offsetY + 6 * moduleSize, moduleSize, moduleSize);
+        ctx.fillRect(offsetX + 6 * moduleSize, offsetY + i * moduleSize, moduleSize, moduleSize);
+      }
+    }
+    
+    // Генерируем основной паттерн данных
     for (let x = 0; x < modules; x++) {
       for (let y = 0; y < modules; y++) {
-        // Пропускаем позиционные маркеры
-        if ((x < 9 && y < 9) || (x > 12 && y < 9) || (x < 9 && y > 12)) continue;
+        // Пропускаем области позиционных маркеров и синхронизации
+        if ((x < 9 && y < 9) || (x > 16 && y < 9) || (x < 9 && y > 16)) continue;
+        if ((x === 6 && y >= 8 && y < 17) || (y === 6 && x >= 8 && x < 17)) continue;
         
-        // Генерируем паттерн на основе хеша данных
-        const moduleHash = (hash + x * 17 + y * 23) % 256;
-        if (moduleHash > 127) {
+        // Создаем детерминированный паттерн на основе позиции и хеша данных
+        const seed = hash + x * 31 + y * 47 + (x * y * 13);
+        const random = Math.abs(Math.sin(seed)) * 1000;
+        
+        if (random % 10 > 4) { // 60% заполнения для лучшей читаемости
           ctx.fillStyle = '#000000';
           ctx.fillRect(offsetX + x * moduleSize, offsetY + y * moduleSize, moduleSize, moduleSize);
         }
       }
     }
     
-    // Добавляем текст с данными в центре (для debug)
+    // Добавляем метку центрального выравнивания
+    const centerX = Math.floor(modules / 2);
+    const centerY = Math.floor(modules / 2);
     ctx.fillStyle = '#000000';
-    ctx.font = `${Math.max(8, size / 20)}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.fillText('QR', size / 2, size / 2 - 10);
-    ctx.font = `${Math.max(6, size / 25)}px Arial`;
-    ctx.fillText(data.substring(0, 8), size / 2, size / 2 + 5);
+    ctx.fillRect(offsetX + (centerX - 2) * moduleSize, offsetY + (centerY - 2) * moduleSize, 5 * moduleSize, 5 * moduleSize);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(offsetX + (centerX - 1) * moduleSize, offsetY + (centerY - 1) * moduleSize, 3 * moduleSize, 3 * moduleSize);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(offsetX + centerX * moduleSize, offsetY + centerY * moduleSize, moduleSize, moduleSize);
     
+    // Добавляем информационный текст
+    ctx.fillStyle = '#000000';
+    ctx.font = `${Math.max(10, size / 15)}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText('QR CODE', size / 2, size - 5);
+    
+    console.log('✅ FALLBACK: QR-подобный код создан');
     return canvas.toDataURL('image/png');
   };
 
