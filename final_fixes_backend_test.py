@@ -432,8 +432,15 @@ class FinalFixesTester:
             total_quantity = initial_data.get("total_quantity", 0)
             
             # Step 2: Try to place another unit if available
-            individual_units = initial_data.get("individual_units", [])
-            unplaced_units = [unit for unit in individual_units if not unit.get("is_placed", False)]
+            # individual_units are nested inside cargo_types
+            all_individual_units = []
+            cargo_types = initial_data.get("cargo_types", [])
+            
+            for cargo_type in cargo_types:
+                individual_units = cargo_type.get("individual_units", [])
+                all_individual_units.extend(individual_units)
+            
+            unplaced_units = [unit for unit in all_individual_units if not unit.get("is_placed", False)]
             
             if unplaced_units:
                 target_unit = unplaced_units[0]
