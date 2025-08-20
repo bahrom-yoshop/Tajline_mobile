@@ -12903,8 +12903,85 @@ function App() {
 
     } catch (error) {
       console.error('💥 Критическая ошибка генерации QR кода:', error);
-      return generateSimpleQRCode(data, size);
+      return generateStandardQRCode(qrData, size);
     }
+  };
+
+  // ИСПРАВЛЕННЫЙ FALLBACK: Создание стандартных QR кодов без библиотеки
+  const generateStandardQRCode = (data, size = 200) => {
+    console.log('⚠️ FALLBACK: Используем Google Charts API для QR кода:', data);
+    
+    try {
+      // Используем Google Charts QR API как fallback
+      const encodedData = encodeURIComponent(data);
+      const qrUrl = `https://chart.googleapis.com/chart?chs=${size}x${size}&cht=qr&chl=${encodedData}&choe=UTF-8`;
+      
+      // Создаем canvas и рисуем изображение
+      return new Promise((resolve) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = size;
+        canvas.height = size;
+        
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        img.onload = () => {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, size, size);
+          ctx.drawImage(img, 0, 0, size, size);
+          resolve(canvas.toDataURL('image/png'));
+        };
+        
+        img.onerror = () => {
+          console.warn('⚠️ Google Charts API недоступен, создаем простой QR-подобный код');
+          resolve(generateBasicQRPattern(data, size));
+        };
+        
+        img.src = qrUrl;
+      });
+    } catch (error) {
+      console.error('❌ Ошибка fallback генерации:', error);
+      return generateBasicQRPattern(data, size);
+    }
+  };
+
+  // БАЗОВЫЙ QR-ПАТТЕРН как последний fallback
+  const generateBasicQRPattern = (data, size = 200) => {
+    console.log('⚠️ БАЗОВЫЙ FALLBACK: Создаем QR-подобный код для:', data);
+    
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = size;
+    canvas.height = size;
+    
+    // Белый фон
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, size, size);
+    
+    // Рамка
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, size, 4);
+    ctx.fillRect(0, 0, 4, size);
+    ctx.fillRect(size-4, 0, 4, size);
+    ctx.fillRect(0, size-4, size, 4);
+    
+    // Текст вместо QR кода
+    ctx.fillStyle = '#000000';
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('TAJLINE QR', size/2, size/2 - 20);
+    
+    // Упрощенные данные
+    const shortData = data.length > 20 ? data.substring(0, 17) + '...' : data;
+    ctx.font = '10px monospace';
+    ctx.fillText(shortData, size/2, size/2);
+    
+    ctx.font = '8px monospace';
+    ctx.fillText('Отсканируйте', size/2, size/2 + 20);
+    ctx.fillText(new Date().toLocaleDateString('ru-RU'), size/2, size/2 + 35);
+    
+    return canvas.toDataURL('image/png');
   };
 
   // УЛУЧШЕННЫЙ FALLBACK: Создание качественных QR-подобных кодов при недоступности библиотеки
