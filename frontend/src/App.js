@@ -4362,16 +4362,46 @@ function App() {
           
         case 'SIMPLE_CARGO':
           // ТИП 1: Поиск простого груза (123456)
-          console.log('🔍 ЭТАП 2: Поиск простого груза:', extractedData.cargo_number);
+          console.log('🔍 СЦЕНАРИЙ 1: Поиск простого груза по номеру:', extractedData.cargo_number);
           
+          // Поиск: availableCargoForPlacement.find(cargo => cargo.cargo_number === qrCode)
           foundCargo = availableCargoForPlacement.find(item => 
             item.cargo_number === extractedData.cargo_number ||
-            item.id === extractedData.cargo_number
+            item.id === extractedData.cargo_number ||
+            String(item.cargo_number) === String(extractedData.cargo_number)
           );
           
           if (foundCargo) {
-            // Для простого груза не нужны индивидуальные единицы
-            console.log('✅ ЭТАП 2: Найден простой груз:', foundCargo.cargo_number);
+            console.log('✅ СЦЕНАРИЙ 1: Простой груз найден:', foundCargo.cargo_number);
+            console.log('   → Название:', foundCargo.cargo_name || 'Не указано');
+            console.log('   → ID:', foundCargo.id);
+            console.log('   → Количество cargo_items:', foundCargo.cargo_items?.length || 0);
+            
+            // Для простого груза проверяем, есть ли cargo_items
+            if (foundCargo.cargo_items && foundCargo.cargo_items.length > 0) {
+              console.log('📦 СЦЕНАРИЙ 1: У простого груза есть cargo_items, берем первый элемент как основной');
+              const mainCargoItem = foundCargo.cargo_items[0];
+              
+              // Создаем представительную единицу для простого груза
+              foundIndividualUnit = {
+                cargo_item: mainCargoItem,
+                cargo_type_number: mainCargoItem.type_number || '01',
+                search_type: 'SIMPLE_CARGO',
+                represents_simple_cargo: true,
+                cargo_name: mainCargoItem.cargo_name || foundCargo.cargo_name || 'Простой груз',
+                quantity: mainCargoItem.quantity || 1
+              };
+              console.log('✅ СЦЕНАРИЙ 1: Представительная единица простого груза создана:', foundIndividualUnit);
+            } else {
+              console.log('📦 СЦЕНАРИЙ 1: Простой груз без cargo_items - это полноценная заявка');
+              // Груз без cargo_items - это старый формат или единичный груз
+            }
+          } else {
+            console.log('❌ СЦЕНАРИЙ 1: Простой груз не найден');
+            console.log('   → Искали номер:', extractedData.cargo_number);
+            console.log('   → Доступные грузы:', availableCargoForPlacement.map(item => 
+              `${item.cargo_number} (ID: ${item.id})`
+            ));
           }
           break;
           
