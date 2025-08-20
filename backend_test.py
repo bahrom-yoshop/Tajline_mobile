@@ -171,7 +171,7 @@ class TajlineBackendTester:
                 )
                 
                 # Проверяем сохранение данных в базе
-                return self.verify_cargo_items_in_database(cargo_id, cargo_data["cargo_items"])
+                return self.verify_cargo_items_in_database(cargo_number, cargo_data["cargo_items"])
                 
             else:
                 self.log_test(
