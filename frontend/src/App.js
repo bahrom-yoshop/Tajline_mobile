@@ -12007,18 +12007,17 @@ function App() {
             <div class="qr-container">
       `;
 
-      // Добавляем каждый QR код для типа груза
+      // Добавляем каждый QR код для единицы груза
       qrCodes.forEach((qr, index) => {
-        const qrCodeImage = generateActualQRCode(qr.id, 200);
         printContent += `
           <div class="qr-item">
             <div class="cargo-name">${qr.cargo_name}</div>
-            ${qrCodeImage ? `<img src="${qrCodeImage}" class="qr-code-img" alt="QR код ${qr.id}">` : `<div class="qr-code-img" style="display: flex; align-items: center; justify-content: center; background: #f0f0f0;">QR код</div>`}
+            ${qr.qr_code_image ? `<img src="${qr.qr_code_image}" class="qr-code-img" alt="QR код ${qr.id}">` : `<div class="qr-code-img" style="display: flex; align-items: center; justify-content: center; background: #f0f0f0;">QR код</div>`}
             <div class="cargo-number">${qr.id}</div>
             <div class="item-info">
-              <div>Количество: <strong>${qr.quantity} шт</strong></div>
-              <div>Вес: <strong>${qr.weight} кг</strong></div>
-              <div>Сумма: <strong>${qr.total_amount?.toFixed(2)} ₽</strong></div>
+              <div>Единица: <strong>${qr.item_number} из ${qr.total_items}</strong></div>
+              <div>Вес единицы: <strong>${(qr.weight / qr.total_items).toFixed(2)} кг</strong></div>
+              <div>Стоимость: <strong>${qr.total_amount?.toFixed(2)} ₽</strong></div>
             </div>
           </div>
         `;
