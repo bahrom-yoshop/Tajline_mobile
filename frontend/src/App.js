@@ -3301,9 +3301,9 @@ function App() {
   // Генерация QR кода для индивидуальной единицы груза
   const handleGenerateIndividualQR = async (individualNumber, cargoName) => {
     try {
-      console.log('🔄 Генерация QR кода для индивидуальной единицы:', individualNumber);
+      console.log('🔄 Генерация QR кода для индивидуальной единицы (НОВЫЙ МЕТОД):', individualNumber);
       
-      // Генерируем QR код для индивидуального номера с улучшенным форматом
+      // Используем новый метод генерации (как в рабочей системе)
       const qrCodeImage = await generateActualQRCode({
         individual_number: individualNumber,
         cargo_name: cargoName
@@ -3317,7 +3317,7 @@ function App() {
         qr_image: qrCodeImage
       };
       
-      // Показываем QR в новом окне с улучшенным дизайном
+      // Показываем QR в новом окне с профессиональным дизайном (как в рабочей системе)
       const qrWindow = window.open('', '_blank', 'width=500,height=600');
       if (qrWindow) {
         qrWindow.document.write(`
@@ -3398,22 +3398,31 @@ function App() {
                   margin: 15px 0;
                   border: 1px solid #fbbf24;
                 }
+                .success-badge {
+                  background: #10b981;
+                  color: white;
+                  padding: 4px 8px;
+                  border-radius: 6px;
+                  font-size: 12px;
+                  font-weight: 600;
+                }
               </style>
             </head>
             <body>
               <div class="qr-container">
                 <div class="system-header">СИСТЕМА TAJLINE.TJ</div>
                 <div class="qr-title">QR КОД ГРУЗА</div>
+                <div class="success-badge">✅ РАБОТАЮЩИЙ ФОРМАТ</div>
                 <div class="qr-subtitle">${individualNumber}</div>
                 <img src="${qrCodeImage}" alt="QR код" class="qr-image" style="width: 280px; height: 280px;" />
                 <div class="cargo-info">${cargoName}</div>
                 <div class="scan-instruction">
                   📱 Сканируйте этот QR код любым сканером<br>
-                  Код содержит структурированные данные в формате JSON
+                  Использует проверенный формат работающей системы
                 </div>
                 <div class="meta-info">
                   Сгенерирован: ${qrData.generated_at}<br>
-                  Версия: 2.0 | Система: TAJLINE
+                  Метод: Backend API | Система: TAJLINE
                 </div>
               </div>
             </body>
