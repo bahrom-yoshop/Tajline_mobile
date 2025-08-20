@@ -31938,7 +31938,7 @@ function App() {
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && externalCellInput.trim() && externalScannerStep === 'cell' && !scannerProcessingInput) {
                           handleExternalCellScan(externalCellInput.trim());
-                          // НЕ очищаем поле, чтобы пользователь видел отсканированные данные
+                          // ФАЗА 4: НЕ очищаем поле ячейки, автоматическая очистка при автосбросе
                         }
                       }}
                       disabled={externalScannerStep !== 'cell' || scannerProcessingInput}
