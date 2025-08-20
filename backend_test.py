@@ -215,7 +215,9 @@ class TajlineBackendTester:
         print("🌍 ТЕСТИРОВАНИЕ GET /api/warehouses/all-cities...")
         
         try:
-            response = self.session.get(f"{self.backend_url}/warehouses/all-cities")
+            # Используем токен оператора для аутентификации
+            headers = {"Authorization": f"Bearer {self.operator_token}"}
+            response = self.session.get(f"{self.backend_url}/warehouses/all-cities", headers=headers)
             
             if response.status_code == 200:
                 data = response.json()
