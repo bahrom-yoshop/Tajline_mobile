@@ -3516,11 +3516,6 @@ function App() {
                 color: #666;
                 margin-top: auto;
               }
-              @media print {
-                .print-container {
-                  page-break-inside: avoid;
-                }
-              }
             </style>
           </head>
           <body onload="window.print(); window.close();">
