@@ -12138,24 +12138,24 @@ function App() {
       // Отправляем данные в backend
       const response = await apiCall('/api/operator/cargo/accept', 'POST', requestData);
       
-      // Генерируем настоящие QR коды для каждой единицы груза
+      // Генерируем QR коды - ОДИН КОД ДЛЯ КАЖДОГО ТИПА ГРУЗА
       const qrCodes = [];
       const application_number = response.cargo_number || '000000000';
       
       data.cargo_items.forEach((item, cargoIndex) => {
+        // Создаем ОДИН QR код для каждого типа груза (не на каждую единицу)
         const cargo_id = `${application_number}/${String(cargoIndex + 1).padStart(2, '0')}`;
         
-        for (let i = 1; i <= item.quantity; i++) {
-          const item_id = `${cargo_id}/${i}`;
-          qrCodes.push({
-            id: item_id,
-            cargo_name: item.name,
-            cargo_index: cargoIndex + 1,
-            item_number: i,
-            total_items: item.quantity,
-            qr_code_image: generateActualQRCode(item_id, 200) // Генерируем настоящий QR код
-          });
-        }
+        qrCodes.push({
+          id: cargo_id,
+          cargo_name: item.name,
+          cargo_index: cargoIndex + 1,
+          quantity: item.quantity,
+          weight: item.weight,
+          price_per_kg: item.price_per_kg,
+          total_amount: item.total_amount,
+          qr_code_image: generateActualQRCode(cargo_id, 200) // Один QR код на тип груза
+        });
       });
       
       setGeneratedQRCodes(qrCodes);
