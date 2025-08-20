@@ -11958,7 +11958,7 @@ function App() {
 
     } catch (error) {
       console.error('💥 Критическая ошибка генерации QR кода:', error);
-      return generateEnhancedFallbackQR(data, size);
+      return generateSimpleQRCode(data, size);
     }
   };
 
