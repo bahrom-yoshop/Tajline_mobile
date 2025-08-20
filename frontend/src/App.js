@@ -12099,6 +12099,9 @@ function App() {
       showAlert('Ошибка при скачивании QR кодов: ' + error.message, 'error');
     }
   };
+
+  // НОВАЯ ФУНКЦИЯ: Фактическая отправка груза после подтверждения
+  const handleConfirmCargoAcceptance = async () => {
     try {
       setQrGenerationInProgress(true);
       
