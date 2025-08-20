@@ -231,7 +231,7 @@ class QRSimpleSystemTester:
             test_data = "250144"  # Простой номер заявки
             
             request_data = {
-                "text": test_data
+                "qr_text": test_data
             }
             
             response = self.session.post(f"{BACKEND_URL}/backend/generate-simple-qr", json=request_data)
