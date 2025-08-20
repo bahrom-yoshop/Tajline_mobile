@@ -36326,6 +36326,8 @@ function App() {
                         {confirmationCargoData.payment_info?.method === 'cash' ? '💸 Наличными' :
                          confirmationCargoData.payment_info?.method === 'card' ? '💳 Картой' :
                          confirmationCargoData.payment_info?.method === 'transfer' ? '🏦 Переводом' :
+                         confirmationCargoData.payment_info?.method === 'cash_on_delivery' ? '📦 Наложенный платеж' :
+                         confirmationCargoData.payment_info?.method === 'deferred' ? '⏳ В долг' :
                          confirmationCargoData.payment_info?.method || 'Не указан'}
                       </p>
                     </div>
