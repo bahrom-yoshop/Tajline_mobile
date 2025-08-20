@@ -18194,9 +18194,9 @@ function App() {
                                   type="button"
                                   variant="outline"
                                   onClick={addCargoItem}
-                                  className="w-full"
+                                  className="w-full border-dashed border-gray-300 text-gray-600 hover:border-gray-400 xl:h-12 xl:text-base"
                                 >
-                                  <Plus className="mr-2 h-4 w-4" />
+                                  <Plus className="mr-2 h-4 w-4 xl:h-5 xl:w-5" />
                                   Добавить еще груз
                                 </Button>
                               </div>
