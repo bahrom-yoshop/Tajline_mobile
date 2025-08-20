@@ -6094,7 +6094,7 @@ async def get_cargo_placement_status(
             'total_placed': total_placed,
             'placement_progress': f"{total_placed}/{total_quantity}",
             'overall_status': overall_status,
-            'cargo_items': detailed_items,
+            'cargo_types': detailed_items,  # ИЗМЕНЕНО: cargo_types вместо cargo_items для ясности
             'created_at': cargo.get('created_at'),
             'updated_at': cargo.get('updated_at')
         }
