@@ -30297,6 +30297,243 @@ function App() {
         </DialogContent>
       </Dialog>
 
+      {/* НОВОЕ МОДАЛЬНОЕ ОКНО: Детальное размещение грузов (аналог модального окна "Принять груз") */}
+      <Dialog open={showPlacementDetailsModal} onOpenChange={setShowPlacementDetailsModal}>
+        <DialogContent className="w-full max-w-[95vw] max-h-[95vh] p-4 sm:p-6 overflow-y-auto">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="flex items-center text-lg">
+              <Settings className="mr-2 h-5 w-5 text-purple-600" />
+              Детальное размещение - Заявка №{selectedCargoForDetails?.cargo_number}
+            </DialogTitle>
+            <DialogDescription className="text-sm">
+              Статус размещения каждого груза в заявке. Показаны размещенные и ожидающие размещения грузы.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {placementDetailsLoading ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <RefreshCw className="h-8 w-8 animate-spin text-purple-600 mb-4" />
+              <p className="text-sm text-gray-600">Загрузка деталей размещения...</p>
+            </div>
+          ) : placementDetails && selectedCargoForDetails ? (
+            <div className="space-y-6">
+              {/* Общая информация о заявке */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-3 text-gray-800">📋 Информация о заявке</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="font-medium text-gray-600">Номер заявки:</span>
+                    <p>№{selectedCargoForDetails.cargo_number}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Отправитель:</span>
+                    <p>{selectedCargoForDetails.sender_full_name}</p>
+                    <p className="text-gray-500">{selectedCargoForDetails.sender_phone}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Получатель:</span>
+                    <p>{selectedCargoForDetails.recipient_full_name}</p>
+                    <p className="text-gray-500">{selectedCargoForDetails.recipient_phone}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Общий прогресс:</span>
+                    <p className="font-bold text-blue-600 text-lg">
+                      {placementDetails.placement_progress}
+                    </p>
+                    <p className={`text-sm ${
+                      placementDetails.overall_status === 'fully_placed' ? 'text-green-600' :
+                      placementDetails.overall_status === 'partially_placed' ? 'text-yellow-600' :
+                      'text-red-600'
+                    }`}>
+                      {placementDetails.overall_status === 'fully_placed' ? '✅ Полностью размещено' :
+                       placementDetails.overall_status === 'partially_placed' ? '🔄 Частично размещено' :
+                       '⏳ Ждёт размещение'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Список грузов с детальным статусом */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-4 text-gray-800 flex items-center">
+                  <Package className="mr-2 h-5 w-5" />
+                  Грузы в заявке ({placementDetails.cargo_items?.length || 0} типов)
+                </h4>
+                <div className="space-y-4">
+                  {(placementDetails.cargo_items || []).map((item, index) => (
+                    <div key={index} className="bg-white p-4 rounded-lg border">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h5 className="font-medium text-lg">{item.id}</h5>
+                          <p className="text-gray-600">{item.cargo_name}</p>
+                          <p className="text-sm text-gray-500">
+                            Количество: {item.quantity} шт • Вес: {item.weight} кг • Сумма: {item.total_amount} ₽
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-xl text-blue-600">
+                            {item.placed_count}/{item.quantity}
+                          </p>
+                          <p className={`text-sm font-medium ${
+                            item.placement_status === 'fully_placed' ? 'text-green-600' :
+                            item.placement_status === 'partially_placed' ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            {item.placement_status_label}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Статус размещения для каждого груза */}
+                      <div className="space-y-2">
+                        <h6 className="font-medium text-sm text-gray-700">Статус размещения:</h6>
+                        
+                        {item.placed_locations && item.placed_locations.length > 0 ? (
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-green-600">✅ Размещенные единицы:</p>
+                            {item.placed_locations.map((location, locIndex) => (
+                              <div key={locIndex} className="bg-green-50 p-3 rounded border-l-4 border-green-400">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                                  <div>
+                                    <span className="font-medium">Блок:</span> {location.block_number || 'Не указан'}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Полка:</span> {location.shelf_number || 'Не указан'}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Ячейка:</span> {location.cell_number || 'Не указан'}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Размещено:</span> {
+                                      location.placed_at ? new Date(location.placed_at).toLocaleDateString('ru-RU') : 'Не указано'
+                                    }
+                                  </div>
+                                </div>
+                                {location.placed_by && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Оператор: {location.placed_by}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="bg-red-50 p-3 rounded border-l-4 border-red-400">
+                            <p className="text-sm text-red-700">❌ Груз не размещен</p>
+                            <p className="text-xs text-gray-500 mt-1">Статус: Ждёт размещение</p>
+                          </div>
+                        )}
+
+                        {/* Показываем сколько единиц еще нужно разместить */}
+                        {item.remaining_count > 0 && (
+                          <div className="bg-yellow-50 p-3 rounded border-l-4 border-yellow-400">
+                            <p className="text-sm text-yellow-700">
+                              ⏳ Осталось разместить: {item.remaining_count} из {item.quantity} единиц
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Кнопки действий для конкретного груза */}
+                      <div className="flex gap-2 mt-4">
+                        {item.remaining_count > 0 && (
+                          <Button
+                            onClick={() => {
+                              // Переход к размещению конкретного груза
+                              setShowPlacementDetailsModal(false);
+                              openEnhancedPlacementModal(selectedCargoForDetails);
+                            }}
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <Grid3X3 className="mr-1 h-3 w-3" />
+                            Разместить оставшиеся
+                          </Button>
+                        )}
+                        
+                        <Button
+                          onClick={() => {
+                            setQrGenerateCargoNumber(selectedCargoForDetails.cargo_number);
+                            setShowQRGenerateModal(true);
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                        >
+                          <QrCode className="mr-1 h-3 w-3" />
+                          QR код
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Действия для всей заявки */}
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-3 text-gray-800">🔧 Действия с заявкой</h4>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => {
+                      setShowPlacementDetailsModal(false);
+                      openEnhancedPlacementModal(selectedCargoForDetails);
+                    }}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Grid3X3 className="mr-2 h-4 w-4" />
+                    Разместить грузы
+                  </Button>
+                  
+                  <Button
+                    onClick={() => handleViewCargo(selectedCargoForDetails)}
+                    variant="outline"
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    Просмотр заявки
+                  </Button>
+                  
+                  {placementDetails.overall_status === 'fully_placed' && (
+                    <Button
+                      onClick={async () => {
+                        try {
+                          await apiCall(`/api/operator/cargo/${selectedCargoForDetails.id}/update-placement-status`, 'POST');
+                          showAlert('Заявка перемещена в список грузов!', 'success');
+                          setShowPlacementDetailsModal(false);
+                          fetchAvailableCargoForPlacement();
+                        } catch (error) {
+                          showAlert(`Ошибка перемещения: ${error.message}`, 'error');
+                        }
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Truck className="mr-2 h-4 w-4" />
+                      Переместить в список грузов
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Ошибка загрузки деталей размещения</p>
+            </div>
+          )}
+
+          <div className="flex justify-end mt-6">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowPlacementDetailsModal(false);
+                setSelectedCargoForDetails(null);
+                setPlacementDetails(null);
+              }}
+            >
+              Закрыть
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* External Scanner Modal - Simplified */}
       <Dialog open={showCargoPlacementModal} onOpenChange={setShowCargoPlacementModal}>
         <DialogContent className="w-full max-w-[95vw] max-h-[95vh] p-3 sm:p-6 overflow-y-auto">
