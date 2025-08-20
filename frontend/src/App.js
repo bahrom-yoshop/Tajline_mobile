@@ -31895,29 +31895,65 @@ function App() {
                                     </span>
                                   </div>
                                   
-                                  {/* Информация о размещении */}
+                                  {/* УЛУЧШЕННАЯ Информация о размещении */}
                                   {unit.is_placed && unit.placement_info ? (
-                                    <div className="mt-2 text-sm text-gray-600">
-                                      <p>
-                                        📍 <strong>Размещено:</strong> Блок {unit.placement_info.block_number}, 
-                                        Полка {unit.placement_info.shelf_number}, 
-                                        Ячейка {unit.placement_info.cell_number}
-                                      </p>
-                                      {unit.placement_info.placed_at && (
-                                        <p>
-                                          🕒 <strong>Дата:</strong> {new Date(unit.placement_info.placed_at).toLocaleDateString('ru-RU')}
-                                        </p>
-                                      )}
-                                      {unit.placement_info.placed_by && (
-                                        <p>
-                                          👤 <strong>Оператор:</strong> {unit.placement_info.placed_by}
-                                        </p>
-                                      )}
+                                    <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                      <div className="flex items-center mb-2">
+                                        <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                                        <span className="font-medium text-green-800">Размещено</span>
+                                      </div>
+                                      
+                                      <div className="space-y-1 text-sm">
+                                        <div className="flex items-center text-gray-700">
+                                          <span className="font-semibold text-lg text-blue-700 bg-blue-100 px-2 py-1 rounded-md">
+                                            Б{unit.placement_info.block_number}-П{unit.placement_info.shelf_number}-Я{unit.placement_info.cell_number}
+                                          </span>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+                                          <div className="text-gray-600">
+                                            📍 <strong>Блок:</strong> {unit.placement_info.block_number}
+                                          </div>
+                                          <div className="text-gray-600">
+                                            📚 <strong>Полка:</strong> {unit.placement_info.shelf_number}
+                                          </div>
+                                          <div className="text-gray-600">
+                                            📦 <strong>Ячейка:</strong> {unit.placement_info.cell_number}
+                                          </div>
+                                          <div className="text-gray-600">
+                                            🏭 <strong>Склад:</strong> {unit.placement_info.warehouse_name || 'Не указан'}
+                                          </div>
+                                        </div>
+                                        
+                                        {unit.placement_info.placed_at && (
+                                          <div className="text-gray-600 text-xs mt-2 pt-2 border-t border-green-200">
+                                            🕒 <strong>Размещено:</strong> {new Date(unit.placement_info.placed_at).toLocaleString('ru-RU', {
+                                              day: '2-digit',
+                                              month: '2-digit', 
+                                              year: 'numeric',
+                                              hour: '2-digit',
+                                              minute: '2-digit'
+                                            })}
+                                          </div>
+                                        )}
+                                        
+                                        {unit.placement_info.placed_by && (
+                                          <div className="text-gray-600 text-xs">
+                                            👤 <strong>Оператор:</strong> {unit.placement_info.placed_by}
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
                                   ) : (
-                                    <p className="mt-2 text-sm text-red-600">
-                                      ⏳ Ожидает размещения на складе
-                                    </p>
+                                    <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                                      <div className="flex items-center">
+                                        <div className="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
+                                        <span className="font-medium text-orange-800">Ожидает размещения</span>
+                                      </div>
+                                      <p className="mt-1 text-sm text-orange-600">
+                                        ⏳ Груз готов к размещению на складе
+                                      </p>
+                                    </div>
                                   )}
                                 </div>
 
