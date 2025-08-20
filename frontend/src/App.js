@@ -13924,7 +13924,7 @@ function App() {
         payment_method: data.payment_info.method,
         payment_amount: data.payment_info.amount ? parseFloat(data.payment_info.amount) : null,
         debt_due_date: data.payment_info.due_date || null,
-        delivery_method: data.delivery_info.method
+        delivery_method: data.delivery_info.method === 'city_delivery' ? 'home_delivery' : data.delivery_info.method
       };
       
       // Устанавливаем флаг генерации QR кодов
