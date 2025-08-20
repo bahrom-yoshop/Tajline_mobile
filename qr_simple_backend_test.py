@@ -390,7 +390,7 @@ class QRSimpleSystemTester:
             test_number = "250144"
             
             # Тестируем новый endpoint
-            new_request_data = {"text": test_number}
+            new_request_data = {"qr_text": test_number}
             new_response = self.session.post(f"{BACKEND_URL}/backend/generate-simple-qr", json=new_request_data)
             
             # Тестируем старый endpoint (если существует)
