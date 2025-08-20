@@ -5918,6 +5918,134 @@ async def get_available_cargo_for_placement(
             detail=f"Ошибка получения грузов для размещения: {str(e)}"
         )
 
+@app.get("/api/operator/cargo/{cargo_id}/placement-status")
+async def get_cargo_placement_status(
+    cargo_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    НОВЫЙ ENDPOINT: Получение детального статуса размещения для конкретной заявки
+    Возвращает информацию о каждом грузе в заявке и их статусе размещения
+    """
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        # Ищем заявку в коллекциях 
+        cargo = db.operator_cargo.find_one({"id": cargo_id})
+        collection_name = "operator_cargo"
+        
+        if not cargo:
+            cargo = db.cargo.find_one({"id": cargo_id})
+            collection_name = "cargo"
+            
+        if not cargo:
+            raise HTTPException(status_code=404, detail="Cargo not found")
+        
+        # Получаем cargo_items с детальным статусом размещения
+        cargo_items = cargo.get('cargo_items', [])
+        if not cargo_items:
+            # Создаем один элемент если нет cargo_items
+            cargo_items = [{
+                'id': f"{cargo_id}/01",
+                'cargo_name': cargo.get('cargo_name', cargo.get('description', 'Груз')[:30]),
+                'quantity': 1,
+                'weight': cargo.get('weight', 0),
+                'total_amount': cargo.get('declared_value', 0)
+            }]
+        
+        # Обрабатываем каждый груз для получения статуса размещения
+        detailed_items = []
+        for index, item in enumerate(cargo_items):
+            item_id = item.get('id', f"{cargo_id}/{str(index + 1).zfill(2)}")
+            
+            # Проверяем размещение в коллекции placement_records (если существует)
+            placement_records = []
+            if hasattr(db, 'placement_records'):
+                placement_records = list(db.placement_records.find({"cargo_item_id": item_id}))
+            
+            placed_locations = []
+            placed_count = 0
+            
+            for record in placement_records:
+                placed_locations.append({
+                    'warehouse_location': record.get('warehouse_location'),
+                    'block_number': record.get('block_number'),
+                    'shelf_number': record.get('shelf_number'),
+                    'cell_number': record.get('cell_number'),
+                    'placed_at': record.get('placed_at'),
+                    'placed_by': record.get('placed_by_operator')
+                })
+                placed_count += 1
+            
+            # Если нет placement_records, проверяем основные поля груза
+            if not placement_records and cargo.get('warehouse_location'):
+                placed_locations.append({
+                    'warehouse_location': cargo.get('warehouse_location'),
+                    'block_number': cargo.get('block_number'),
+                    'shelf_number': cargo.get('shelf_number'),
+                    'cell_number': cargo.get('cell_number'),
+                    'placed_at': cargo.get('updated_at'),
+                    'placed_by': cargo.get('placed_by_operator')
+                })
+                placed_count = 1
+            
+            quantity = item.get('quantity', 1)
+            
+            # Определяем статус
+            if placed_count == 0:
+                status = 'awaiting_placement'
+                status_label = 'Ждёт размещение'
+            elif placed_count < quantity:
+                status = 'partially_placed'
+                status_label = f'Частично размещено ({placed_count}/{quantity})'
+            else:
+                status = 'fully_placed'
+                status_label = 'Полностью размещено'
+            
+            detailed_items.append({
+                'id': item_id,
+                'cargo_name': item.get('cargo_name', 'Груз'),
+                'quantity': quantity,
+                'weight': item.get('weight', 0),
+                'total_amount': item.get('total_amount', 0),
+                'placed_count': placed_count,
+                'remaining_count': quantity - placed_count,
+                'placement_status': status,
+                'placement_status_label': status_label,
+                'placed_locations': placed_locations
+            })
+        
+        # Общая статистика
+        total_quantity = sum(item['quantity'] for item in detailed_items)
+        total_placed = sum(item['placed_count'] for item in detailed_items)
+        
+        overall_status = 'awaiting_placement'
+        if total_placed == total_quantity:
+            overall_status = 'fully_placed'
+        elif total_placed > 0:
+            overall_status = 'partially_placed'
+        
+        return {
+            'cargo_id': cargo_id,
+            'cargo_number': cargo.get('cargo_number'),
+            'total_quantity': total_quantity,
+            'total_placed': total_placed,
+            'placement_progress': f"{total_placed}/{total_quantity}",
+            'overall_status': overall_status,
+            'cargo_items': detailed_items,
+            'created_at': cargo.get('created_at'),
+            'updated_at': cargo.get('updated_at')
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка получения статуса размещения: {str(e)}"
+        )
+
 # НОВОЕ: Endpoint для массового удаления грузов из списка размещения
 @app.delete("/api/operator/cargo/bulk-remove-from-placement")
 async def bulk_remove_cargo_from_placement(
