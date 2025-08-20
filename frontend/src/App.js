@@ -2899,65 +2899,81 @@ function App() {
     }
   };
   
+  // ОБНОВЛЕННАЯ ФУНКЦИЯ: Упрощенная печать QR кода заявки
   const handlePrintQR = () => {
     if (selectedRequest) {
-      // Генерируем QR код ТОЛЬКО с номером заявки в цифрах
+      // Генерируем QR код ТОЛЬКО с номером заявки
       const requestNumber = selectedRequest.request_number || selectedRequest.id;
-      const qrData = requestNumber; // Только номер заявки без префиксов
+      const cargoName = selectedRequest.cargo_name || 'Груз';
       
-      // Создаем QR код (используем простую библиотеку или API)
-      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
-      
-      // Создаем новое окно для печати QR кода
+      // Создаем новое окно для печати упрощенного QR кода
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
         showAlert('Не удалось открыть окно печати. Пожалуйста, разрешите всплывающие окна в настройках браузера.', 'error');
         return;
       }
-      printWindow.document.write(`
-        <html>
-        <head>
-          <title>QR Код - Заявка №${requestNumber}</title>
-          <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              text-align: center; 
-              margin: 20px;
-            }
-            .qr-container {
-              display: inline-block;
-              border: 2px solid #333;
-              padding: 20px;
-              margin: 20px;
-            }
-            .qr-info {
-              margin: 10px 0;
-              font-size: 12px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="qr-container">
-            <h2>QR КОД ЗАЯВКИ</h2>
-            <img src="${qrApiUrl}" alt="QR Code" />
-            <div class="qr-info">
-              <strong>Номер заявки: ${requestNumber}</strong><br>
-              <strong>Отправитель:</strong> ${selectedRequest.sender_full_name}<br>
-              <strong>Телефон:</strong> ${selectedRequest.sender_phone}<br>
-              <strong>Груз:</strong> ${selectedRequest.cargo_name}<br>
-              <strong>Курьер:</strong> ${user?.full_name}<br>
-              <strong>Статус оплаты:</strong> ${selectedRequest.payment_status === 'paid' ? 'Оплачено' : 
-                                             selectedRequest.payment_status === 'not_paid' ? 'Не оплачено' : 
-                                             'При получении'}
-            </div>
-          </div>
-          <script>window.print();</script>
-        </body>
-        </html>
-      `);
-      printWindow.document.close();
       
-      showAlert('QR код отправлен на печать', 'success');
+      // Используем наш улучшенный API для генерации QR
+      generateActualQRCode(requestNumber, 300, 'cargo_request').then(qrCodeImage => {
+        printWindow.document.write(`
+          <html>
+          <head>
+            <title>QR код - ${requestNumber}</title>
+            <meta charset="UTF-8">
+            <style>
+              @page {
+                size: 90mm 100mm;
+                margin: 3mm;
+              }
+              body { 
+                font-family: Arial, sans-serif; 
+                text-align: center; 
+                margin: 0;
+                padding: 5mm;
+                background: white;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                min-height: 94mm;
+              }
+              .cargo-name {
+                font-size: 14px;
+                font-weight: bold;
+                color: #000;
+                margin-bottom: 8mm;
+                word-wrap: break-word;
+                max-width: 80mm;
+                line-height: 1.2;
+              }
+              .qr-image {
+                margin: 3mm 0;
+              }
+              .cargo-number {
+                font-size: 12px;
+                font-weight: bold;
+                color: #000;
+                margin-top: 8mm;
+                font-family: 'Courier New', monospace;
+                letter-spacing: 1px;
+              }
+            </style>
+          </head>
+          <body onload="window.print(); window.close();">
+            <div class="cargo-name">${cargoName}</div>
+            <img src="${qrCodeImage}" alt="QR код" class="qr-image" style="width: 60mm; height: 60mm;" />
+            <div class="cargo-number">${requestNumber}</div>
+          </body>
+          </html>
+        `);
+        printWindow.document.close();
+        
+        showAlert('QR код отправлен на печать', 'success');
+      }).catch(error => {
+        console.error('Ошибка генерации QR:', error);
+        printWindow.close();
+        showAlert('Ошибка генерации QR кода', 'error');
+      });
     }
   };
   
