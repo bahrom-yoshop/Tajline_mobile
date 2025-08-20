@@ -3292,8 +3292,11 @@ function App() {
     try {
       console.log('🔄 Генерация QR кода для индивидуальной единицы:', individualNumber);
       
-      // Генерируем QR код для индивидуального номера
-      const qrCodeImage = await generateActualQRCode(individualNumber, 300);
+      // Генерируем QR код для индивидуального номера с улучшенным форматом
+      const qrCodeImage = await generateActualQRCode({
+        individual_number: individualNumber,
+        cargo_name: cargoName
+      }, 300, 'individual_unit');
       
       // Создаем модальное окно или показываем QR код
       const qrData = {
@@ -3303,46 +3306,103 @@ function App() {
         qr_image: qrCodeImage
       };
       
-      // Пока показываем QR в новом окне (позже можно создать отдельное модальное окно)
-      const qrWindow = window.open('', '_blank', 'width=400,height=500');
+      // Показываем QR в новом окне с улучшенным дизайном
+      const qrWindow = window.open('', '_blank', 'width=500,height=600');
       if (qrWindow) {
         qrWindow.document.write(`
           <html>
             <head>
               <title>QR код - ${individualNumber}</title>
+              <meta charset="UTF-8">
               <style>
                 body { 
-                  font-family: Arial, sans-serif; 
+                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; 
                   text-align: center; 
-                  padding: 20px;
-                  background: white;
+                  padding: 30px 20px;
+                  background: #f8fafc;
+                  color: #1e293b;
+                  margin: 0;
                 }
                 .qr-container { 
-                  border: 2px solid #333;
-                  padding: 20px;
+                  background: white;
+                  border-radius: 16px;
+                  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+                  padding: 30px;
                   margin: 20px auto;
-                  max-width: 350px;
+                  max-width: 400px;
+                  border: 1px solid #e2e8f0;
+                }
+                .system-header {
+                  color: #3b82f6;
+                  font-size: 14px;
+                  font-weight: 600;
+                  margin-bottom: 5px;
+                  letter-spacing: 0.5px;
                 }
                 .qr-title { 
-                  font-size: 18px; 
-                  font-weight: bold; 
-                  margin-bottom: 10px;
+                  font-size: 24px; 
+                  font-weight: 700; 
+                  color: #0f172a;
+                  margin-bottom: 8px;
                 }
                 .qr-subtitle {
+                  font-size: 16px;
+                  color: #64748b;
+                  margin-bottom: 25px;
+                  background: #f1f5f9;
+                  padding: 8px 16px;
+                  border-radius: 8px;
+                  font-family: 'Courier New', monospace;
+                }
+                .qr-image {
+                  border: 2px solid #e2e8f0;
+                  border-radius: 12px;
+                  background: white;
+                  padding: 10px;
+                  margin: 20px 0;
+                }
+                .cargo-info {
+                  font-size: 18px;
+                  font-weight: 600;
+                  color: #059669;
+                  margin: 15px 0;
+                  padding: 12px;
+                  background: #ecfdf5;
+                  border-radius: 8px;
+                  border: 1px solid #a7f3d0;
+                }
+                .meta-info {
+                  font-size: 12px; 
+                  color: #94a3b8; 
+                  margin-top: 20px;
+                  padding-top: 20px;
+                  border-top: 1px solid #e2e8f0;
+                }
+                .scan-instruction {
                   font-size: 14px;
-                  color: #666;
-                  margin-bottom: 15px;
+                  color: #475569;
+                  background: #fef3c7;
+                  padding: 12px;
+                  border-radius: 8px;
+                  margin: 15px 0;
+                  border: 1px solid #fbbf24;
                 }
               </style>
             </head>
             <body>
               <div class="qr-container">
+                <div class="system-header">СИСТЕМА TAJLINE.TJ</div>
                 <div class="qr-title">QR КОД ГРУЗА</div>
                 <div class="qr-subtitle">${individualNumber}</div>
-                <img src="${qrCodeImage}" alt="QR код" style="width: 250px; height: 250px;" />
-                <div class="qr-subtitle">${cargoName}</div>
-                <div style="font-size: 12px; color: #999; margin-top: 10px;">
-                  Сгенерирован: ${qrData.generated_at}
+                <img src="${qrCodeImage}" alt="QR код" class="qr-image" style="width: 280px; height: 280px;" />
+                <div class="cargo-info">${cargoName}</div>
+                <div class="scan-instruction">
+                  📱 Сканируйте этот QR код любым сканером<br>
+                  Код содержит структурированные данные в формате JSON
+                </div>
+                <div class="meta-info">
+                  Сгенерирован: ${qrData.generated_at}<br>
+                  Версия: 2.0 | Система: TAJLINE
                 </div>
               </div>
             </body>
