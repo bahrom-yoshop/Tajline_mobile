@@ -6469,85 +6469,133 @@ function App() {
   };
 
   const extractCargoNumber = (scannedData) => {
-    console.log('🔍 Извлечение номера груза из:', scannedData);
+    console.log('🔍 ЭТАП 1: Извлечение номера груза из:', scannedData);
     
-    // ОБНОВЛЕНИЕ: Поддержка нового формата индивидуальных единиц ххххххххх/хх/хх
+    // НОВАЯ ЛОГИКА: Поддержка трех типов QR кодов для размещения грузов
     try {
-      // 1. НОВЫЙ ФОРМАТ: Индивидуальные единицы груза (250101/01/01)
-      const individualUnitMatch = scannedData.match(/^(\d{6})\/(\d{2})\/(\d{2})$/);
-      if (individualUnitMatch) {
-        console.log('✅ Найден НОВЫЙ формат индивидуальной единицы:', individualUnitMatch);
+      const cleanData = scannedData.trim();
+      
+      // ПРОВЕРКА НА ПУСТЫЕ ДАННЫЕ
+      if (!cleanData) {
+        console.log('❌ Пустые данные QR кода');
+        return { type: 'empty', error: 'Пустые данные QR кода' };
+      }
+      
+      // ТИП 3: Единица груза внутри типа (010101.01.01 или 010101/01/01)
+      const unitInCargoTypeMatch = cleanData.match(/^(\d{1,10})[\./](\d{1,2})[\./](\d{1,2})$/);
+      if (unitInCargoTypeMatch) {
+        console.log('✅ ТИП 3: Единица груза внутри типа найдена:', unitInCargoTypeMatch);
         return {
-          type: 'individual_unit',
-          request_number: individualUnitMatch[1],      // 250101
-          cargo_type: individualUnitMatch[2],          // 01  
-          unit_number: individualUnitMatch[3],         // 01
-          full_number: scannedData                     // 250101/01/01
+          type: 'UNIT_IN_CARGO_TYPE',
+          request_number: unitInCargoTypeMatch[1],    // 010101
+          cargo_type: unitInCargoTypeMatch[2],        // 01
+          unit_number: unitInCargoTypeMatch[3],       // 01
+          full_number: cleanData,                     // 010101.01.01
+          description: `Единица ${unitInCargoTypeMatch[3]} груза типа ${unitInCargoTypeMatch[2]} из заявки ${unitInCargoTypeMatch[1]}`
         };
       }
       
-      // 2. Если это JSON данные (например, из QR кода забора)
-      if (scannedData.includes('{') && scannedData.includes('}')) {
-        const parsed = JSON.parse(scannedData);
-        if (parsed.cargo_number) {
-          console.log('✅ Найден номер груза в JSON:', parsed.cargo_number);
-          return {
-            type: 'json_cargo',
-            cargo_number: parsed.cargo_number,
-            original_data: parsed
-          };
+      // ТИП 2: Груз внутри заявки (010101.01 или 010101/01)
+      const cargoInRequestMatch = cleanData.match(/^(\d{1,10})[\./](\d{1,2})$/);
+      if (cargoInRequestMatch) {
+        console.log('✅ ТИП 2: Груз внутри заявки найден:', cargoInRequestMatch);
+        return {
+          type: 'CARGO_IN_REQUEST',
+          request_number: cargoInRequestMatch[1],     // 010101
+          cargo_type: cargoInRequestMatch[2],         // 01
+          full_number: cleanData,                     // 010101.01
+          description: `Груз типа ${cargoInRequestMatch[2]} из заявки ${cargoInRequestMatch[1]}`
+        };
+      }
+      
+      // ТИП 1: Простой номер груза (1-10 цифр)
+      const simpleCargoMatch = cleanData.match(/^(\d{1,10})$/);
+      if (simpleCargoMatch) {
+        console.log('✅ ТИП 1: Простой номер груза найден:', simpleCargoMatch[1]);
+        return {
+          type: 'SIMPLE_CARGO',
+          cargo_number: simpleCargoMatch[1],          // 123456
+          request_number: simpleCargoMatch[1],        // То же самое для совместимости
+          full_number: cleanData,                     // 123456
+          description: `Простой груз с номером ${simpleCargoMatch[1]}`
+        };
+      }
+      
+      // ДОПОЛНИТЕЛЬНЫЕ ФОРМАТЫ ДЛЯ СОВМЕСТИМОСТИ
+      
+      // JSON формат (для старых QR кодов)
+      if (cleanData.includes('{') && cleanData.includes('}')) {
+        try {
+          const parsed = JSON.parse(cleanData);
+          if (parsed.cargo_number) {
+            console.log('✅ JSON: Найден номер груза:', parsed.cargo_number);
+            return {
+              type: 'JSON_CARGO',
+              cargo_number: parsed.cargo_number,
+              full_number: parsed.cargo_number,
+              description: `Груз из JSON: ${parsed.cargo_number}`,
+              original_data: parsed
+            };
+          }
+          if (parsed.request_number) {
+            console.log('✅ JSON: Найден номер заявки:', parsed.request_number);
+            return {
+              type: 'JSON_REQUEST',
+              request_number: parsed.request_number,
+              full_number: parsed.request_number,
+              description: `Заявка из JSON: ${parsed.request_number}`,
+              original_data: parsed
+            };
+          }
+        } catch (jsonError) {
+          console.log('⚠️ Ошибка парсинга JSON, продолжаем как текст');
         }
-        if (parsed.request_number) {
-          console.log('✅ Найден номер заявки в JSON:', parsed.request_number);
-          return {
-            type: 'json_request',
-            request_number: parsed.request_number,
-            original_data: parsed
-          };
-        }
       }
       
-      // 3. Поддерживаем различные форматы номеров: TEMP-123456, REQ-123456, и т.д.
-      const tempMatch = scannedData.match(/(?:TEMP-|REQ-)?\d+/);
-      if (tempMatch) {
-        console.log('✅ Найден номер груза по паттерну:', tempMatch[0]);
+      // Префиксные форматы (TEMP-, REQ-, и т.д.)
+      const prefixMatch = cleanData.match(/^[A-Z]+-(\d+)$/);
+      if (prefixMatch) {
+        console.log('✅ ПРЕФИКС: Найден номер с префиксом:', prefixMatch[1]);
         return {
-          type: 'standard_cargo',
-          cargo_number: tempMatch[0]
+          type: 'PREFIXED_CARGO',
+          cargo_number: prefixMatch[1],
+          full_number: cleanData,
+          description: `Груз с префиксом: ${cleanData}`
         };
       }
       
-      // 4. Если это просто 6-значный номер (может быть номер заявки)
-      const sixDigitMatch = scannedData.match(/^\d{6}$/);
-      if (sixDigitMatch) {
-        console.log('✅ Найден 6-значный номер заявки:', sixDigitMatch[0]);
+      // Любые другие цифровые данные
+      const anyNumberMatch = cleanData.match(/(\d+)/);
+      if (anyNumberMatch) {
+        console.log('✅ ОБЩИЙ: Найден любой номер:', anyNumberMatch[1]);
         return {
-          type: 'request_number',
-          request_number: sixDigitMatch[0]
+          type: 'GENERIC_NUMBER',
+          cargo_number: anyNumberMatch[1],
+          full_number: cleanData,
+          description: `Общий номер: ${anyNumberMatch[1]}`
         };
       }
       
-      // 5. Если это просто номер
-      const numberMatch = scannedData.match(/\d+/);
-      if (numberMatch) {
-        console.log('✅ Найден числовой номер:', numberMatch[0]);
-        return {
-          type: 'generic_number',
-          number: numberMatch[0]
-        };
-      }
-      
-      // 6. Возвращаем исходные данные если не удалось распарсить
-      console.log('⚠️ Используем исходные данные как номер груза:', scannedData);
+      // Неизвестный формат
+      console.log('⚠️ НЕИЗВЕСТНЫЙ формат QR кода:', cleanData);
       return {
-        type: 'raw_data',
-        raw_data: scannedData
+        type: 'UNKNOWN',
+        raw_data: cleanData,
+        full_number: cleanData,
+        description: `Неизвестный формат: ${cleanData}`,
+        error: 'Неизвестный формат QR кода'
       };
       
     } catch (error) {
       console.error('❌ Ошибка парсинга номера груза:', error);
       return {
-        type: 'error',
+        type: 'ERROR',
+        error: error.message,
+        raw_data: scannedData,
+        description: `Ошибка парсинга: ${error.message}`
+      };
+    }
+  };
         raw_data: scannedData,
         error: error.message
       };
