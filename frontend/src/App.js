@@ -17984,7 +17984,7 @@ function App() {
                                     id="delivery_warehouse"
                                     value={selectedDeliveryWarehouse}
                                     onChange={(e) => handleDeliveryWarehouseChange(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 xl:h-12 xl:text-base"
                                     required
                                   >
                                     {availableWarehousesForCity.map((warehouse, index) => (
