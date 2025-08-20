@@ -3285,6 +3285,351 @@ function App() {
     showAlert('Груз успешно размещен на складе!', 'success');
   };
 
+  // НОВЫЕ ФУНКЦИИ: QR генерация и печать для индивидуальных номеров
+
+  // Генерация QR кода для индивидуальной единицы груза
+  const handleGenerateIndividualQR = async (individualNumber, cargoName) => {
+    try {
+      console.log('🔄 Генерация QR кода для индивидуальной единицы:', individualNumber);
+      
+      // Генерируем QR код для индивидуального номера
+      const qrCodeImage = await generateActualQRCode(individualNumber, 300);
+      
+      // Создаем модальное окно или показываем QR код
+      const qrData = {
+        individual_number: individualNumber,
+        cargo_name: cargoName,
+        generated_at: new Date().toLocaleString('ru-RU'),
+        qr_image: qrCodeImage
+      };
+      
+      // Пока показываем QR в новом окне (позже можно создать отдельное модальное окно)
+      const qrWindow = window.open('', '_blank', 'width=400,height=500');
+      if (qrWindow) {
+        qrWindow.document.write(`
+          <html>
+            <head>
+              <title>QR код - ${individualNumber}</title>
+              <style>
+                body { 
+                  font-family: Arial, sans-serif; 
+                  text-align: center; 
+                  padding: 20px;
+                  background: white;
+                }
+                .qr-container { 
+                  border: 2px solid #333;
+                  padding: 20px;
+                  margin: 20px auto;
+                  max-width: 350px;
+                }
+                .qr-title { 
+                  font-size: 18px; 
+                  font-weight: bold; 
+                  margin-bottom: 10px;
+                }
+                .qr-subtitle {
+                  font-size: 14px;
+                  color: #666;
+                  margin-bottom: 15px;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="qr-container">
+                <div class="qr-title">QR КОД ГРУЗА</div>
+                <div class="qr-subtitle">${individualNumber}</div>
+                <img src="${qrCodeImage}" alt="QR код" style="width: 250px; height: 250px;" />
+                <div class="qr-subtitle">${cargoName}</div>
+                <div style="font-size: 12px; color: #999; margin-top: 10px;">
+                  Сгенерирован: ${qrData.generated_at}
+                </div>
+              </div>
+            </body>
+          </html>
+        `);
+        qrWindow.document.close();
+      }
+      
+      showAlert(`QR код для ${individualNumber} сгенерирован!`, 'success');
+      
+    } catch (error) {
+      console.error('❌ Ошибка генерации QR кода:', error);
+      showAlert(`Ошибка генерации QR кода: ${error.message}`, 'error');
+    }
+  };
+
+  // Печать QR кода для индивидуальной единицы груза  
+  const handlePrintIndividualQR = async (individualNumber, cargoName) => {
+    try {
+      console.log('🖨️ Печать QR кода для индивидуальной единицы:', individualNumber);
+      
+      // Генерируем QR код для печати
+      const qrCodeImage = await generateActualQRCode(individualNumber, 300);
+      
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        showAlert('Не удалось открыть окно печати', 'error');
+        return;
+      }
+      
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Печать QR кода - ${individualNumber}</title>
+            <style>
+              @page {
+                size: 90mm 100mm;
+                margin: 2mm;
+              }
+              body { 
+                font-family: Arial, sans-serif; 
+                text-align: center; 
+                margin: 0;
+                padding: 2mm;
+                background: white;
+                width: 90mm;
+                height: 100mm;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+              }
+              .qr-container { 
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                height: 100%;
+                border: 1px solid #000;
+                padding: 2mm;
+                box-sizing: border-box;
+              }
+              .qr-title { 
+                font-size: 10px; 
+                font-weight: bold; 
+                margin-bottom: 2mm;
+                color: #000;
+              }
+              .qr-number {
+                font-size: 12px;
+                font-weight: bold;
+                color: #000;
+                margin-bottom: 3mm;
+              }
+              .qr-image { 
+                margin: 2mm 0;
+              }
+              .qr-name {
+                font-size: 8px;
+                color: #333;
+                margin-top: 2mm;
+                text-align: center;
+                word-wrap: break-word;
+                max-width: 80mm;
+              }
+              @media print {
+                body { 
+                  margin: 0; 
+                  padding: 2mm;
+                  -webkit-print-color-adjust: exact;
+                  print-color-adjust: exact;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="qr-container">
+              <div class="qr-title">ГРУЗ</div>
+              <div class="qr-number">${individualNumber}</div>
+              <div class="qr-image">
+                <img src="${qrCodeImage}" alt="QR код груза" style="width: 60mm; height: 60mm;" />
+              </div>
+              <div class="qr-name">${cargoName}</div>
+            </div>
+            <script>
+              window.onload = function() {
+                setTimeout(function() {
+                  window.print();
+                  window.close();
+                }, 500);
+              }
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      
+      showAlert(`QR код ${individualNumber} отправлен на печать (90мм x 100мм)!`, 'success');
+      
+    } catch (error) {
+      console.error('❌ Ошибка печати QR кода:', error);
+      showAlert(`Ошибка печати QR кода: ${error.message}`, 'error');
+    }
+  };
+
+  // Массовая генерация QR кодов для типа груза
+  const handleGenerateMassQRForType = async (cargoType) => {
+    try {
+      console.log('🔄 Массовая генерация QR кодов для типа груза:', cargoType.type_number);
+      
+      const qrCodes = [];
+      for (const unit of cargoType.individual_units || []) {
+        const qrCodeImage = await generateActualQRCode(unit.individual_number, 200);
+        qrCodes.push({
+          individual_number: unit.individual_number,
+          qr_image: qrCodeImage,
+          is_placed: unit.is_placed
+        });
+      }
+      
+      // Открываем окно с массовыми QR кодами
+      const qrWindow = window.open('', '_blank', 'width=800,height=600');
+      if (qrWindow) {
+        qrWindow.document.write(`
+          <html>
+            <head>
+              <title>QR коды - ${cargoType.type_number}</title>
+              <style>
+                body { font-family: Arial, sans-serif; padding: 20px; }
+                .qr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+                .qr-item { text-align: center; border: 1px solid #ddd; padding: 15px; }
+                .qr-title { font-size: 14px; font-weight: bold; margin-bottom: 10px; }
+              </style>
+            </head>
+            <body>
+              <h2>QR коды для ${cargoType.type_number} "${cargoType.cargo_name}"</h2>
+              <div class="qr-grid">
+                ${qrCodes.map(qr => `
+                  <div class="qr-item">
+                    <div class="qr-title">${qr.individual_number}</div>
+                    <img src="${qr.qr_image}" style="width: 150px; height: 150px;" />
+                    <div style="font-size: 12px; color: ${qr.is_placed ? 'green' : 'red'};">
+                      ${qr.is_placed ? 'Размещено' : 'Ждёт размещение'}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </body>
+          </html>
+        `);
+        qrWindow.document.close();
+      }
+      
+      showAlert(`Сгенерировано ${qrCodes.length} QR кодов для ${cargoType.type_number}!`, 'success');
+      
+    } catch (error) {
+      console.error('❌ Ошибка массовой генерации QR кодов:', error);
+      showAlert(`Ошибка генерации QR кодов: ${error.message}`, 'error');
+    }
+  };
+
+  // Массовая печать QR кодов для типа груза
+  const handlePrintMassQRForType = async (cargoType) => {
+    try {
+      console.log('🖨️ Массовая печать QR кодов для типа груза:', cargoType.type_number);
+      
+      const qrCodes = [];
+      for (const unit of cargoType.individual_units || []) {
+        const qrCodeImage = await generateActualQRCode(unit.individual_number, 300);
+        qrCodes.push({
+          individual_number: unit.individual_number,
+          qr_image: qrCodeImage
+        });
+      }
+      
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        showAlert('Не удалось открыть окно печати', 'error');
+        return;
+      }
+      
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Печать QR кодов - ${cargoType.type_number}</title>
+            <style>
+              @page {
+                size: A4;
+                margin: 10mm;
+              }
+              body { 
+                font-family: Arial, sans-serif; 
+                margin: 0;
+                padding: 0;
+              }
+              .qr-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10mm;
+                page-break-inside: avoid;
+              }
+              .qr-item {
+                border: 1px solid #000;
+                padding: 5mm;
+                text-align: center;
+                page-break-inside: avoid;
+                width: 90mm;
+                height: 100mm;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+              }
+              .qr-title { 
+                font-size: 10px; 
+                font-weight: bold; 
+                margin-bottom: 3mm;
+              }
+              .qr-number {
+                font-size: 12px;
+                font-weight: bold;
+                margin-bottom: 3mm;
+              }
+              .qr-name {
+                font-size: 8px;
+                margin-top: 3mm;
+                word-wrap: break-word;
+              }
+              @media print {
+                body { margin: 0; padding: 0; }
+                .qr-item { break-inside: avoid; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="qr-grid">
+              ${qrCodes.map(qr => `
+                <div class="qr-item">
+                  <div class="qr-title">ГРУЗ</div>
+                  <div class="qr-number">${qr.individual_number}</div>
+                  <img src="${qr.qr_image}" style="width: 60mm; height: 60mm;" />
+                  <div class="qr-name">${cargoType.cargo_name}</div>
+                </div>
+              `).join('')}
+            </div>
+            <script>
+              window.onload = function() {
+                setTimeout(function() {
+                  window.print();
+                  window.close();
+                }, 1000);
+              }
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      
+      showAlert(`${qrCodes.length} QR кодов отправлены на печать!`, 'success');
+      
+    } catch (error) {
+      console.error('❌ Ошибка массовой печати QR кодов:', error);
+      showAlert(`Ошибка печати QR кодов: ${error.message}`, 'error');
+    }
+  };
+
   // Функция печати QR кода номера заявки (90мм x 100мм)
   const handlePrintCargoNumberQR = () => {
     if (!cargoNumberQRCode) return;
