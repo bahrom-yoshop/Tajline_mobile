@@ -22,13 +22,46 @@
         <!-- QRCode.js библиотека для генерации QR кодов -->
         <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
         <script>
-          // Проверяем загрузку библиотеки QRCode
+          // Детальная диагностика загрузки библиотеки QRCode
+          console.log('🔄 Начало загрузки QRCode.js...');
+          
           window.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOMContentLoaded - проверка QRCode.js');
+            
             if (window.QRCode) {
-              console.log('✅ QRCode.js библиотека загружена успешно');
+              console.log('✅ QRCode.js библиотека загружена успешно!');
+              console.log('🔍 Доступные методы:', Object.keys(window.QRCode));
+              console.log('🎯 toDataURL доступен:', typeof window.QRCode.toDataURL === 'function');
+              
+              // Тестовая генерация QR кода для проверки функциональности
+              if (typeof window.QRCode.toDataURL === 'function') {
+                window.QRCode.toDataURL('test', { width: 100, height: 100 })
+                  .then(dataURL => {
+                    console.log('🎉 Тестовая генерация QR кода успешна!');
+                  })
+                  .catch(error => {
+                    console.error('⚠️ Ошибка при тестовой генерации QR кода:', error);
+                  });
+              }
             } else {
-              console.error('❌ QRCode.js библиотека не загружена');
+              console.error('❌ QRCode.js библиотека НЕ ЗАГРУЖЕНА!');
+              console.log('🔍 window.QRCode:', window.QRCode);
+              console.log('🔍 Попытка повторной загрузки...');
+              
+              // Попытка повторной загрузки
+              const script = document.createElement('script');
+              script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+              script.onload = () => console.log('📦 QRCode.js перезагружена');
+              script.onerror = () => console.error('❌ Ошибка перезагрузки QRCode.js');
+              document.head.appendChild(script);
             }
+          });
+          
+          // Проверяем загрузку сразу после загрузки скрипта
+          window.addEventListener('load', function() {
+            console.log('🌐 Window load - финальная проверка QRCode.js');
+            console.log('🔍 window.QRCode доступен:', !!window.QRCode);
+            console.log('🔍 window.QRCode.toDataURL доступен:', !!(window.QRCode && window.QRCode.toDataURL));
           });
         </script>
     </head>
