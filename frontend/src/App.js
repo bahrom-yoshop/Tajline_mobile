@@ -13345,9 +13345,16 @@ function App() {
         section: 'cargo-management',
         subsections: [
           { id: 'cargo-accept', label: 'Принимать новый груз' },
+          {
+            id: 'cargo-pickup-requests',
+            label: 'Заявки на забор',
+            subsections: [
+              { id: 'cargo-pickup-create', label: 'Оформить забор груза' },
+              { id: 'cargo-pickup-list', label: 'На забор' }
+            ]
+          },
           { id: 'cargo-list', label: 'Список грузов' },
           { id: 'cargo-placement', label: 'Размещение груза' },
-          { id: 'cargo-pickup-requests', label: 'На Забор' },
           { id: 'cargo-pickup-history', label: 'История забора груза' },
           { id: 'cargo-history', label: 'История грузов' }
         ]
