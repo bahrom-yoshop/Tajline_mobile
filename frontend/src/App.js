@@ -18121,6 +18121,7 @@ function App() {
                                             }));
                                           }}
                                           placeholder="Документы, одежда, электроника"
+                                          className="xl:h-11 xl:text-base"
                                           required
                                         />
                                       </div>
