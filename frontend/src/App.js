@@ -12071,10 +12071,12 @@ function App() {
         ctx.font = 'bold 14px monospace';
         ctx.fillText(qr.id, x + 200, y + 320);
         
-        // Информация о позиции
+        // Информация о грузе
         ctx.font = '12px Arial';
         ctx.fillStyle = '#666';
-        ctx.fillText(`Позиция ${qr.item_number} из ${qr.total_items}`, x + 200, y + 350);
+        ctx.fillText(`Количество: ${qr.quantity} шт`, x + 200, y + 340);
+        ctx.fillText(`Вес: ${qr.weight} кг`, x + 200, y + 355);
+        ctx.fillText(`Сумма: ${qr.total_amount?.toFixed(2)} ₽`, x + 200, y + 370);
         
         // Переходим к следующей позиции
         currentX++;
