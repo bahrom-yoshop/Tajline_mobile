@@ -3811,6 +3811,7 @@ function App() {
   };
 
   // Функция печати QR кода номера заявки (90мм x 100мм)
+  // ОБНОВЛЕННАЯ ФУНКЦИЯ: Упрощенная печать QR кода номера заявки
   const handlePrintCargoNumberQR = () => {
     if (!cargoNumberQRCode) return;
     
@@ -3820,86 +3821,68 @@ function App() {
       return;
     }
     
-    // Размеры: 90мм ширина, 100мм высота
-    const printWidth = '90mm';
-    const printHeight = '100mm';
+    // Получаем название груза из данных заявки
+    const cargoName = cargoNumberQRCode.request_data?.sender_full_name ? 
+                      `Заявка от ${cargoNumberQRCode.request_data.sender_full_name}` : 
+                      'Заявка на груз';
     
+    // УПРОЩЕННЫЙ ДИЗАЙН печати номера заявки
     printWindow.document.write(`
       <html>
         <head>
-          <title>QR Код №${cargoNumberQRCode.number}</title>
+          <title>QR код - ${cargoNumberQRCode.number}</title>
+          <meta charset="UTF-8">
           <style>
             @page {
-              size: ${printWidth} ${printHeight};
-              margin: 2mm;
+              size: 90mm 100mm;
+              margin: 3mm;
             }
             body { 
               font-family: Arial, sans-serif; 
               text-align: center; 
               margin: 0;
-              padding: 2mm;
+              padding: 5mm;
               background: white;
-              width: ${printWidth};
-              height: ${printHeight};
               display: flex;
               flex-direction: column;
               justify-content: center;
               align-items: center;
+              min-height: 94mm;
             }
-            .qr-container { 
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              width: 100%;
-              height: 100%;
-              border: 1px solid #000;
-              padding: 2mm;
-              box-sizing: border-box;
-            }
-            .qr-title { 
-              font-size: 12px; 
-              font-weight: bold; 
-              margin-bottom: 3mm;
+            .cargo-name {
+              font-size: 14px;
+              font-weight: bold;
               color: #000;
+              margin-bottom: 8mm;
+              word-wrap: break-word;
+              max-width: 80mm;
+              line-height: 1.2;
             }
-            .qr-image { 
-              margin: 2mm 0;
+            .qr-image {
+              margin: 3mm 0;
             }
-            .qr-info {
-              font-size: 8px;
-              margin-top: 2mm;
-              color: #333;
+            .cargo-number {
+              font-size: 12px;
+              font-weight: bold;
+              color: #000;
+              margin-top: 8mm;
+              font-family: 'Courier New', monospace;
+              letter-spacing: 1px;
             }
             @media print {
               body { 
                 margin: 0; 
-                padding: 2mm;
+                padding: 5mm;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
               }
             }
           </style>
         </head>
-        <body>
-          <div class="qr-container">
-            <div class="qr-title">НОМЕР ЗАЯВКИ</div>
-            <div class="qr-title" style="font-size: 14px; color: #000;">${cargoNumberQRCode.number}</div>
-            <div class="qr-image">
-              <img src="${cargoNumberQRCode.image}" alt="QR код номера заявки" style="width: 60mm; height: 60mm;" />
-            </div>
-            <div class="qr-info">
-              Сгенерирован: ${cargoNumberQRCode.generated_at}
-            </div>
-          </div>
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-                window.close();
-              }, 500);
-            }
-          </script>
+        <body onload="setTimeout(function(){ window.print(); window.close(); }, 500);">
+          <div class="cargo-name">${cargoName}</div>
+          <img src="${cargoNumberQRCode.image}" alt="QR код" class="qr-image" style="width: 60mm; height: 60mm;" />
+          <div class="cargo-number">${cargoNumberQRCode.number}</div>
         </body>
       </html>
     `);
