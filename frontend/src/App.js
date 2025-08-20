@@ -19253,6 +19253,18 @@ function App() {
                                           QR код
                                         </Button>
                                         
+                                        {/* НОВАЯ КНОПКА: Генерация и Печать QR кодов для заявки */}
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => handleGenerateRequestQR(item)}
+                                          className="flex items-center text-xs px-2 py-1 text-orange-600 border-orange-300 hover:bg-orange-50"
+                                          title="Генерировать QR код для номера заявки с информацией о всех грузах"
+                                        >
+                                          <QrCode className="mr-1 h-3 w-3" />
+                                          QR заявки
+                                        </Button>
+                                        
                                         {/* Кнопка быстрого размещения для оплаченных грузов */}
                                         {(item.processing_status === 'paid' || item.processing_status === 'invoice_printed') && !item.warehouse_location && (
                                           <Button
