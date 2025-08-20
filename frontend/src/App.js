@@ -17821,29 +17821,42 @@ function App() {
                             </CardContent>
                           </Card>
 
-                          {/* Переключатель между режимами */}
-                          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                            <Label className="flex items-center space-x-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={operatorCargoForm.use_multi_cargo}
-                                onChange={(e) => {
-                                  setOperatorCargoForm({
-                                    ...operatorCargoForm,
-                                    use_multi_cargo: e.target.checked
-                                  });
-                                  if (!e.target.checked) {
-                                    setTotalWeight(0);
-                                    setTotalCost(0);
-                                  }
-                                }}
-                                className="rounded"
-                              />
-                              <span className="text-sm font-medium">
-                                Несколько видов груза (с калькулятором)
-                              </span>
-                            </Label>
-                          </div>
+                          {/* Информация о грузе и калькулятор */}
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="text-lg flex items-center">
+                                <Package className="mr-2 h-5 w-5 text-purple-600" />
+                                Информация о грузе
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              {/* Переключатель между режимами */}
+                              <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                                <Label className="flex items-center space-x-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={operatorCargoForm.use_multi_cargo}
+                                    onChange={(e) => {
+                                      setOperatorCargoForm({
+                                        ...operatorCargoForm,
+                                        use_multi_cargo: e.target.checked
+                                      });
+                                      if (!e.target.checked) {
+                                        setTotalWeight(0);
+                                        setTotalCost(0);
+                                      }
+                                    }}
+                                    className="rounded h-4 w-4"
+                                  />
+                                  <span className="text-base font-medium flex items-center">
+                                    <Calculator className="mr-2 h-4 w-4" />
+                                    Несколько видов груза (с автоматическим калькулятором)
+                                  </span>
+                                </Label>
+                                <div className="text-sm text-gray-600 mt-1 ml-6">
+                                  Включите для добавления нескольких позиций с автоматическим расчетом стоимости
+                                </div>
+                              </div>
 
                           {!operatorCargoForm.use_multi_cargo ? (
                             // Старая форма для одного груза
