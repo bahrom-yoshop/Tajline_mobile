@@ -4434,31 +4434,65 @@ function App() {
     }
   };
 
-  // Функция выполнения размещения с внешним сканером
+  // ФАЗА 2: ОБНОВЛЕННАЯ функция размещения с поддержкой индивидуальных единиц
   const performExternalScannerPlacement = async (cargo, cell) => {
     try {
-      console.log('🖥️ Выполняем размещение груза:', cargo.cargo_number, 'в ячейку:', cell.readable_name);
+      console.log('🖥️ ФАЗА 2: Выполняем размещение груза:', cargo.cargo_number, 'в ячейку:', cell.readable_name);
       console.log('🖥️ Формат ячейки:', cell.format);
       console.log('🖥️ Код ячейки для размещения:', cell.cell_code);
       
-      // API call для размещения груза
-      const response = await apiCall('/api/cargo/place-in-cell', 'POST', {
+      // ФАЗА 2: НОВОЕ - Проверяем есть ли выбранная индивидуальная единица
+      let apiEndpoint = '/api/cargo/place-in-cell';
+      let requestPayload = {
         cargo_number: cargo.cargo_number,
-        cell_code: cell.cell_code  // Используем новый cell_code который поддерживает ID формат
-      });
+        cell_code: cell.cell_code
+      };
+      
+      // ФАЗА 2: Если есть информация об индивидуальной единице - используем новый API
+      if (cargo.selected_individual_unit) {
+        console.log('🔍 ФАЗА 2: Размещаем конкретную индивидуальную единицу:', cargo.selected_individual_unit.individual_number);
+        
+        // Используем API для размещения индивидуальных единиц
+        apiEndpoint = '/api/operator/cargo/place-individual';
+        requestPayload = {
+          cargo_id: cargo.id,
+          individual_number: cargo.selected_individual_unit.individual_number,
+          placement_location: {
+            warehouse: cell.warehouse_name || `Склад №${cell.warehouse_number}`,
+            block: cell.block_name || `Блок ${cell.block_number}`,
+            shelf: cell.shelf_name || `Полка ${cell.shelf_number}`, 
+            cell: cell.cell_name || `Ячейка ${cell.cell_number}`,
+            cell_code: cell.cell_code
+          }
+        };
+      }
+      
+      console.log('📡 ФАЗА 2: API запрос:', apiEndpoint, requestPayload);
+      const response = await apiCall(apiEndpoint, 'POST', requestPayload);
       
       if (response && response.success) {
         setExternalScannerStep('complete');
-        setScannerMessage(`🎉 Груз ${cargo.cargo_number} успешно размещен на ${cell.readable_name}!`);
         
-        showAlert(`🎉 Груз ${cargo.cargo_number} размещен на ${cell.readable_name}!`, 'success');
+        // ФАЗА 2: Различные сообщения для разных типов размещения
+        let successMessage = '';
+        if (cargo.selected_individual_unit) {
+          successMessage = `🎉 Единица ${cargo.selected_individual_unit.individual_number} груза "${cargo.selected_individual_unit.cargo_item.cargo_name}" размещена на ${cell.readable_name}!`;
+        } else {
+          successMessage = `🎉 Груз ${cargo.cargo_number} успешно размещен на ${cell.readable_name}!`;
+        }
         
-        // НОВОЕ: Добавляем информацию о размещенном грузе в список сессии
+        setScannerMessage(successMessage);
+        showAlert(successMessage, 'success');
+        
+        // ФАЗА 2: Добавляем информацию о размещенном грузе/единице в список сессии
         const placedCargoInfo = {
           cargo_number: cargo.cargo_number,
+          individual_unit: cargo.selected_individual_unit?.individual_number || null,
+          cargo_name: cargo.selected_individual_unit?.cargo_item?.cargo_name || 'Груз',
           location: cell.readable_name,
           warehouse_name: cell.warehouse_name || `Склад №${cell.warehouse_number}`,
-          placed_at: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+          placed_at: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+          placement_type: cargo.selected_individual_unit ? 'individual_unit' : 'full_cargo'
         };
         
         setSessionPlacedCargo(prev => [...prev, placedCargoInfo]);
@@ -4466,18 +4500,23 @@ function App() {
         
         // Обновляем статистику размещения
         await fetchPlacementStatistics();
+        await fetchAvailableCargoForPlacement(); // Обновляем список доступных грузов
         
-        // УЛУЧШЕНИЕ: МГНОВЕННЫЙ переход к сканированию следующего груза для непрерывного процесса
-        // Сбрасываем состояние и сразу переходим к сканированию следующего груза
-        setExternalScannerStep('cargo');
-        setExternalCargoInput('');
-        setExternalCellInput('');
-        setExternalScannedCargo(null);
-        setExternalScannedCell(null);
-        setScannerMessage('🔄 Груз размещен! Отсканируйте следующий груз для размещения.');
-        
-        // Мгновенно фокусируемся на поле груза для непрерывной работы
+        // ФАЗА 2: МГНОВЕННЫЙ переход к сканированию следующего груза
         setTimeout(() => {
+          setExternalScannerStep('cargo');
+          setExternalCargoInput('');
+          setExternalCellInput('');
+          setExternalScannedCargo(null);
+          setExternalScannedCell(null);
+          setScannerMessage('🔄 Груз размещен! Отсканируйте следующий груз для размещения.');
+          
+          // Мгновенно фокусируемся на поле груза для непрерывной работы
+          const cargoInput = document.querySelector('input[placeholder*="QR код груза"]');
+          if (cargoInput) {
+            cargoInput.focus();
+          }
+        }, 1000); // 1 секунда чтобы пользователь успел увидеть успешное сообщение
           const cargoInput = document.querySelector('input[placeholder*="QR код груза"]');
           if (cargoInput) {
             cargoInput.focus();
