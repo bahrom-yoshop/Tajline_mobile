@@ -3027,6 +3027,147 @@ function App() {
     }
   };
 
+  // НОВАЯ ФУНКЦИЯ: Генерация QR кода для заявки с информацией о всех грузах
+  const handleGenerateRequestQR = async (cargoItem) => {
+    try {
+      console.log('🎯 Генерация QR кода для заявки:', cargoItem.cargo_number);
+      
+      setRequestQRLoading(true);
+      
+      // Получаем полную информацию о заявке и её грузах
+      const response = await apiCall(`/api/operator/cargo/${cargoItem.id}/full-info`, 'GET');
+      
+      // Подготавливаем данные для QR кода
+      const qrData = {
+        request_number: cargoItem.cargo_number,
+        sender: {
+          name: cargoItem.sender_full_name,
+          phone: cargoItem.sender_phone
+        },
+        recipient: {
+          name: cargoItem.recipient_full_name,
+          phone: cargoItem.recipient_phone,
+          address: cargoItem.recipient_address
+        },
+        cargo_items: response.cargo_items || [{
+          name: cargoItem.cargo_name,
+          weight: cargoItem.weight,
+          quantity: 1,
+          total_amount: cargoItem.declared_value
+        }],
+        total_weight: cargoItem.weight,
+        total_value: cargoItem.declared_value,
+        status: cargoItem.processing_status,
+        created_date: new Date(cargoItem.created_at).toLocaleDateString('ru-RU')
+      };
+      
+      // Генерируем QR код с данными заявки
+      const qrCodeImage = await generateActualQRCode(JSON.stringify(qrData), 300);
+      
+      setSelectedRequestForQR(cargoItem);
+      setRequestQRCode({
+        image: qrCodeImage,
+        data: qrData,
+        raw_data: JSON.stringify(qrData, null, 2)
+      });
+      setShowRequestQRModal(true);
+      
+      console.log('✅ QR код заявки сгенерирован успешно');
+      showAlert('QR код заявки сгенерирован!', 'success');
+      
+    } catch (error) {
+      console.error('❌ Ошибка генерации QR кода заявки:', error);
+      showAlert(`Ошибка генерации QR кода: ${error.message}`, 'error');
+    } finally {
+      setRequestQRLoading(false);
+    }
+  };
+
+  // Функция печати QR кода заявки
+  const handlePrintRequestQR = () => {
+    if (!requestQRCode || !selectedRequestForQR) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showAlert('Не удалось открыть окно печати', 'error');
+      return;
+    }
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>QR Код Заявки №${selectedRequestForQR.cargo_number}</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              text-align: center; 
+              margin: 0;
+              padding: 20px;
+              background: white;
+            }
+            .qr-container { 
+              display: inline-block;
+              border: 2px solid #333;
+              padding: 20px;
+              background: white;
+              margin: 20px;
+            }
+            .qr-title { 
+              font-size: 20px; 
+              font-weight: bold; 
+              margin-bottom: 15px;
+              color: #333;
+            }
+            .qr-image { 
+              margin: 15px 0;
+            }
+            .qr-info {
+              text-align: left;
+              font-size: 12px;
+              margin-top: 15px;
+              border-top: 1px solid #ddd;
+              padding-top: 10px;
+            }
+            .info-row {
+              margin: 5px 0;
+            }
+            @media print {
+              body { margin: 0; padding: 10px; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="qr-container">
+            <div class="qr-title">QR КОД ЗАЯВКИ №${selectedRequestForQR.cargo_number}</div>
+            <div class="qr-image">
+              <img src="${requestQRCode.image}" alt="QR код заявки" style="width: 250px; height: 250px;" />
+            </div>
+            <div class="qr-info">
+              <div class="info-row"><strong>Отправитель:</strong> ${requestQRCode.data.sender.name}</div>
+              <div class="info-row"><strong>Телефон:</strong> ${requestQRCode.data.sender.phone}</div>
+              <div class="info-row"><strong>Получатель:</strong> ${requestQRCode.data.recipient.name}</div>
+              <div class="info-row"><strong>Адрес:</strong> ${requestQRCode.data.recipient.address}</div>
+              <div class="info-row"><strong>Общий вес:</strong> ${requestQRCode.data.total_weight} кг</div>
+              <div class="info-row"><strong>Стоимость:</strong> ${requestQRCode.data.total_value} ₽</div>
+              <div class="info-row"><strong>Дата:</strong> ${requestQRCode.data.created_date}</div>
+              <div class="info-row"><strong>Грузов:</strong> ${requestQRCode.data.cargo_items.length} шт.</div>
+            </div>
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 500);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    
+    showAlert('QR код заявки отправлен на печать!', 'success');
+  };
+
   // Функция для генерации QR кода отдельной ячейки
   const generateSingleCellQR = async () => {
     if (!singleCellBlock || !singleCellShelf || !singleCellNumber) {
