@@ -12246,9 +12246,11 @@ function App() {
       console.log(`🎉 Всего сгенерировано QR кодов: ${qrCodes.length}`);
       
       setGeneratedQRCodes(qrCodes);
+      setShowCargoConfirmationModal(true);
       setQrGenerationInProgress(false);
       
-      showAlert('Груз успешно принят и QR коды сгенерированы!', 'success');
+      console.log('🎉 Модальное окно с QR кодами отображено');
+      showAlert('Груз успешно принят! Сгенерированы QR коды для каждой единицы.', 'success');
       
       // Сброс формы
       const warehouseId = operatorWarehouses.length === 1 ? operatorWarehouses[0].id : '';
