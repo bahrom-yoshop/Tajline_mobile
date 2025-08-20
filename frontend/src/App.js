@@ -4196,24 +4196,104 @@ function App() {
   // Функция обработки ввода от внешнего сканера для груза
   const handleExternalCargoScan = async (cargoData) => {
     try {
-      const cargoNumber = extractCargoNumber(cargoData);
-      console.log('🖥️ Сканирование груза внешним сканером:', cargoNumber);
+      const extractedData = extractCargoNumber(cargoData);
+      console.log('🖥️ Сканирование груза внешним сканером:', extractedData);
       
-      // Ищем груз в списке ожидающих размещение
-      const cargo = availableCargoForPlacement.find(item => 
-        item.cargo_number === cargoNumber || 
-        item.id === cargoNumber ||
-        cargoData.includes(cargoNumber)
-      );
+      let foundCargo = null;
+      let foundIndividualUnit = null;
+      
+      // НОВОЕ: Обработка разных типов отсканированных данных
+      switch (extractedData.type) {
+        case 'individual_unit':
+          // Поиск по индивидуальному номеру 250101/01/01
+          console.log('🔍 Поиск индивидуальной единицы:', extractedData.full_number);
+          
+          // Поиск заявки по номеру
+          const requestCargo = availableCargoForPlacement.find(item => 
+            item.cargo_number === extractedData.request_number
+          );
+          
+          if (requestCargo && requestCargo.cargo_items) {
+            // Поиск конкретной единицы в cargo_items
+            for (const cargoItem of requestCargo.cargo_items) {
+              if (cargoItem.individual_items) {
+                const individualUnit = cargoItem.individual_items.find(unit => 
+                  unit.individual_number === extractedData.full_number
+                );
+                if (individualUnit) {
+                  foundCargo = requestCargo;
+                  foundIndividualUnit = {
+                    ...individualUnit,
+                    cargo_item: cargoItem,
+                    cargo_type_number: cargoItem.type_number
+                  };
+                  break;
+                }
+              }
+            }
+          }
+          break;
+          
+        case 'request_number':
+        case 'json_request':
+          // Поиск по номеру заявки (6 цифр)
+          const requestNumber = extractedData.request_number;
+          foundCargo = availableCargoForPlacement.find(item => 
+            item.cargo_number === requestNumber
+          );
+          break;
+          
+        case 'standard_cargo':
+        case 'json_cargo':
+        case 'generic_number':
+          // Стандартный поиск по номеру груза
+          const searchNumber = extractedData.cargo_number || extractedData.number;
+          foundCargo = availableCargoForPlacement.find(item => 
+            item.cargo_number === searchNumber || 
+            item.id === searchNumber ||
+            cargoData.includes(searchNumber)
+          );
+          break;
+          
+        default:
+          // Fallback - пытаемся найти по исходным данным
+          foundCargo = availableCargoForPlacement.find(item => 
+            item.cargo_number === cargoData || 
+            item.id === cargoData ||
+            cargoData.includes(item.cargo_number)
+          );
+      }
 
-      if (cargo) {
-        setExternalScannedCargo(cargo);
-        setScannerMessage(`✅ Груз ${cargo.cargo_number} найден! Переходим к сканированию ячейки.`);
-        showAlert(`Груз ${cargo.cargo_number} найден! Отсканируйте ячейку.`, 'success');
+      if (foundCargo) {
+        // Сохраняем информацию о найденном грузе и единице
+        setExternalScannedCargo({
+          ...foundCargo,
+          selected_individual_unit: foundIndividualUnit
+        });
         
-        // УЛУЧШЕНИЕ: МГНОВЕННЫЙ переход к сканированию ячейки без задержек
+        // Формируем сообщение в зависимости от типа
+        let successMessage = '';
+        if (foundIndividualUnit) {
+          successMessage = `✅ Индивидуальная единица ${extractedData.full_number} найдена!
+            Груз: ${foundIndividualUnit.cargo_item.cargo_name}
+            Заявка: ${foundCargo.cargo_number}
+            Отсканируйте ячейку для размещения.`;
+        } else {
+          successMessage = `✅ Груз ${foundCargo.cargo_number} найден! Переходим к сканированию ячейки.`;
+        }
+        
+        setScannerMessage(successMessage);
+        showAlert(foundIndividualUnit ? 
+          `Единица ${extractedData.full_number} найдена! Отсканируйте ячейку.` :
+          `Груз ${foundCargo.cargo_number} найден! Отсканируйте ячейку.`, 
+          'success'
+        );
+        
+        // УЛУЧШЕНИЕ: МГНОВЕННЫЙ переход к сканированию ячейки
         setExternalScannerStep('cell');
-        setScannerMessage(`📍 Отсканируйте QR код ячейки для размещения груза ${cargo.cargo_number}`);
+        setScannerMessage(`📍 Отсканируйте QR код ячейки для размещения ${foundIndividualUnit ? 
+          `единицы ${extractedData.full_number}` : 
+          `груза ${foundCargo.cargo_number}`}`);
         
         // Мгновенно фокусируемся на поле ячейки
         setTimeout(() => {
@@ -4221,11 +4301,19 @@ function App() {
           if (cellInput) {
             cellInput.focus();
           }
-        }, 50); // Минимальная задержка только для DOM
+        }, 50);
         
       } else {
-        setScannerError('Груз не найден в списке ожидающих размещение');
-        showAlert('Груз не найден в списке ожидающих размещение. Проверьте номер груза.', 'error');
+        let errorMessage = '';
+        if (extractedData.type === 'individual_unit') {
+          errorMessage = `Индивидуальная единица ${extractedData.full_number} не найдена в списке ожидающих размещение.
+            Проверьте номер или убедитесь что груз принят на склад.`;
+        } else {
+          errorMessage = 'Груз не найден в списке ожидающих размещение';
+        }
+        
+        setScannerError(errorMessage);
+        showAlert(errorMessage, 'error');
       }
     } catch (error) {
       console.error('Ошибка обработки сканирования груза:', error);
