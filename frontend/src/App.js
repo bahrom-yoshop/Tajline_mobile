@@ -21396,9 +21396,33 @@ function App() {
                                           )}
                                           
                                           <div className="mt-2 pt-2 border-t text-sm">
-                                            <div className="flex justify-between">
+                                            <div className="flex justify-between items-center">
                                               <span className="font-medium">Общий прогресс:</span>
-                                              <span className="font-bold text-blue-600">{item.placement_progress || '0/1'}</span>
+                                              <div className="flex items-center space-x-2">
+                                                {(() => {
+                                                  // Подсчитываем общий прогресс размещения
+                                                  const totalItems = (item.cargo_items || []).reduce((sum, cargoItem) => sum + (cargoItem.quantity || 1), 0);
+                                                  const placedItems = (item.cargo_items || []).reduce((sum, cargoItem) => sum + (cargoItem.placed_count || 0), 0);
+                                                  
+                                                  const progressText = `${placedItems}/${totalItems}`;
+                                                  const statusText = placedItems === totalItems ? 'Размещено' : 
+                                                                    placedItems > 0 ? 'Частично размещено' : 'Ожидает размещения';
+                                                  const statusColor = placedItems === totalItems ? 'text-green-600' : 
+                                                                     placedItems > 0 ? 'text-yellow-600' : 'text-red-600';
+                                                  
+                                                  return (
+                                                    <>
+                                                      <span className={`font-bold ${statusColor}`}>{progressText}</span>
+                                                      <span className={`text-xs px-2 py-1 rounded-full ${
+                                                        placedItems === totalItems ? 'bg-green-100 text-green-700' : 
+                                                        placedItems > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                                                      }`}>
+                                                        {statusText}
+                                                      </span>
+                                                    </>
+                                                  );
+                                                })()}
+                                              </div>
                                             </div>
                                           </div>
                                         </div>
