@@ -6226,7 +6226,7 @@ async def get_cargo_placement_status(
                 individual_units.append({
                     'individual_number': individual_number,
                     'type_number': type_number,
-                    'unit_index': unit_index,
+                    'unit_index': str(unit_index).zfill(2),  # ИСПРАВЛЕНИЕ: unit_index как строка с ведущими нулями
                     'is_placed': is_placed,
                     'placement_info': placement_info,
                     'status': unit_status,
