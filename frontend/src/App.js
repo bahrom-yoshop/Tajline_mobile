@@ -12567,8 +12567,73 @@ function App() {
 
   // НОВАЯ ФУНКЦИЯ: Фактическая отправка груза после подтверждения
   // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Приоритет настоящим QR кодам с библиотекой QRCode.js
-  const generateActualQRCode = async (data, size = 200) => {
-    console.log(`🎯 ГЕНЕРАЦИЯ НАСТОЯЩЕГО QR КОДА для: ${data}`);
+  // НОВАЯ УЛУЧШЕННАЯ ФУНКЦИЯ: Создание структурированных данных для QR кода
+  const createStructuredQRData = (type, data) => {
+    const timestamp = new Date().toISOString();
+    const systemPrefix = "TAJLINE";
+    
+    let structuredData = {};
+    
+    switch (type) {
+      case 'individual_unit':
+        // Для индивидуальных единиц груза: 250101/01/01
+        structuredData = {
+          sys: systemPrefix,
+          type: "UNIT",
+          id: data.individual_number || data,
+          cargo: data.cargo_name || "Груз",
+          ts: timestamp,
+          ver: "2.0"
+        };
+        break;
+        
+      case 'cargo_request':
+        // Для номера заявки: 250101
+        structuredData = {
+          sys: systemPrefix,
+          type: "REQUEST",
+          id: data.cargo_number || data,
+          sender: data.sender_full_name || "",
+          recipient: data.recipient_full_name || "",
+          ts: timestamp,
+          ver: "2.0"
+        };
+        break;
+        
+      case 'warehouse_cell':
+        // Для ячеек склада: 001-01-01-001
+        structuredData = {
+          sys: systemPrefix,
+          type: "CELL",
+          id: data.cell_id || data,
+          warehouse: data.warehouse_name || "",
+          location: data.location || "",
+          ts: timestamp,
+          ver: "2.0"
+        };
+        break;
+        
+      default:
+        // Универсальный формат для совместимости
+        structuredData = {
+          sys: systemPrefix,
+          type: "DATA",
+          id: data.toString(),
+          ts: timestamp,
+          ver: "2.0"
+        };
+    }
+    
+    // Конвертируем в JSON строку для QR кода
+    return JSON.stringify(structuredData);
+  };
+
+  const generateActualQRCode = async (data, size = 200, type = 'data') => {
+    console.log(`🎯 ГЕНЕРАЦИЯ ПРОДВИНУТОГО QR КОДА для: ${data} (тип: ${type})`);
+    
+    // Создаем структурированные данные
+    const qrData = createStructuredQRData(type, data);
+    console.log('📊 Структурированные данные QR:', qrData);
     
     try {
       // Функция проверки доступности QRCode.js
@@ -12582,14 +12647,19 @@ function App() {
       if (checkQRCodeLibrary()) {
         console.log('✅ Библиотека QRCode.js уже доступна');
         try {
-          const dataURL = await window.QRCode.toDataURL(data, {
+          const dataURL = await window.QRCode.toDataURL(qrData, {
             width: size,
             height: size,
-            margin: 2,
+            margin: 4,
             color: { dark: '#000000', light: '#FFFFFF' },
-            errorCorrectionLevel: 'M'
+            errorCorrectionLevel: 'H', // Высокий уровень коррекции ошибок для лучшего сканирования
+            type: 'image/png',
+            quality: 0.92,
+            rendererOpts: {
+              quality: 0.92
+            }
           });
-          console.log('🎉 НАСТОЯЩИЙ QR код сгенерирован успешно!');
+          console.log('🎉 ПРОДВИНУТЫЙ QR код сгенерирован успешно!');
           return dataURL;
         } catch (error) {
           console.error('❌ Ошибка при генерации с доступной библиотекой:', error);
