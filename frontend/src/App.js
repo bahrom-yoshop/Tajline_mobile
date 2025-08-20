@@ -17382,27 +17382,9 @@ function App() {
                   {activeTab === 'cargo-accept' && (
                     <Card>
                       <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <Plus className="mr-2 h-5 w-5" />
-                            Принимать новый груз
-                          </div>
-                          {/* УЛУЧШЕНИЕ: Две отдельные кнопки */}
-                          <div className="flex space-x-3">
-                            {/* Кнопка для забора груза */}
-                            <Button
-                              type="button"
-                              onClick={togglePickupMode}
-                              variant={isPickupMode ? "default" : "outline"}
-                              className={`${isPickupMode 
-                                ? 'bg-orange-600 hover:bg-orange-700 text-white' 
-                                : 'border-orange-300 text-orange-700 hover:bg-orange-100'
-                              }`}
-                            >
-                              <Truck className="mr-2 h-4 w-4" />
-                              Забор груза
-                            </Button>
-                          </div>
+                        <CardTitle className="flex items-center">
+                          <Plus className="mr-2 h-5 w-5" />
+                          Принимать новый груз
                         </CardTitle>
                         <CardDescription>
                           {isPickupMode 
