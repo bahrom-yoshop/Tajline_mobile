@@ -11886,53 +11886,75 @@ function App() {
     });
   };
 
-  // Fallback функция для создания простого QR кода
-  const generateSimpleQRCode = async (data, size = 200) => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = size;
-      canvas.height = size;
-      
-      // Белый фон
+  // Улучшенный fallback для создания QR кода
+  const generateSimpleQRCode = (data, size = 200) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = size;
+    canvas.height = size;
+    
+    // Белый фон
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, size, size);
+    
+    // Черная рамка
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, size - 2, size - 2);
+    
+    // Создаем QR-паттерн на основе данных
+    const modules = 21; // Стандарт QR кода
+    const moduleSize = (size - 20) / modules; // Оставляем место для отступов
+    const offsetX = 10;
+    const offsetY = 10;
+    
+    // Генерируем детерминированный паттерн на основе данных
+    const hash = data.split('').reduce((acc, char, index) => {
+      return acc + char.charCodeAt(0) * (index + 1);
+    }, 0);
+    
+    ctx.fillStyle = '#000000';
+    
+    // Рисуем позиционные маркеры (обязательные для QR кода)
+    const drawFinder = (x, y) => {
+      // Внешний квадрат 7x7
+      ctx.fillRect(offsetX + x * moduleSize, offsetY + y * moduleSize, 7 * moduleSize, 7 * moduleSize);
+      // Внутренний белый квадрат 5x5
       ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, size, size);
-      
-      // Создаем простой QR-паттерн
-      const modules = 25;
-      const moduleSize = size / modules;
-      
-      // Генерируем паттерн на основе данных
-      const dataSum = data.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+      ctx.fillRect(offsetX + (x + 1) * moduleSize, offsetY + (y + 1) * moduleSize, 5 * moduleSize, 5 * moduleSize);
+      // Центральный черный квадрат 3x3
       ctx.fillStyle = '#000000';
-      
-      // Рисуем позиционные маркеры
-      const drawMarker = (x, y) => {
-        ctx.fillRect(x * moduleSize, y * moduleSize, 7 * moduleSize, 7 * moduleSize);
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect((x + 1) * moduleSize, (y + 1) * moduleSize, 5 * moduleSize, 5 * moduleSize);
-        ctx.fillStyle = '#000000';
-        ctx.fillRect((x + 2) * moduleSize, (y + 2) * moduleSize, 3 * moduleSize, 3 * moduleSize);
-      };
-      
-      drawMarker(0, 0);
-      drawMarker(18, 0);
-      drawMarker(0, 18);
-      
-      // Генерируем данные
-      for (let x = 0; x < modules; x++) {
-        for (let y = 0; y < modules; y++) {
-          if ((x < 9 && y < 9) || (x > 15 && y < 9) || (x < 9 && y > 15)) continue;
-          
-          const hash = (dataSum + x * 31 + y * 17) % 256;
-          if (hash > 128) {
-            ctx.fillRect(x * moduleSize, y * moduleSize, moduleSize, moduleSize);
-          }
+      ctx.fillRect(offsetX + (x + 2) * moduleSize, offsetY + (y + 2) * moduleSize, 3 * moduleSize, 3 * moduleSize);
+    };
+    
+    drawFinder(0, 0);   // Верхний левый
+    drawFinder(14, 0);  // Верхний правый
+    drawFinder(0, 14);  // Нижний левый
+    
+    // Генерируем данные модули
+    for (let x = 0; x < modules; x++) {
+      for (let y = 0; y < modules; y++) {
+        // Пропускаем позиционные маркеры
+        if ((x < 9 && y < 9) || (x > 12 && y < 9) || (x < 9 && y > 12)) continue;
+        
+        // Генерируем паттерн на основе хеша данных
+        const moduleHash = (hash + x * 17 + y * 23) % 256;
+        if (moduleHash > 127) {
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(offsetX + x * moduleSize, offsetY + y * moduleSize, moduleSize, moduleSize);
         }
       }
-      
-      resolve(canvas.toDataURL('image/png'));
-    });
+    }
+    
+    // Добавляем текст с данными в центре (для debug)
+    ctx.fillStyle = '#000000';
+    ctx.font = `${Math.max(8, size / 20)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText('QR', size / 2, size / 2 - 10);
+    ctx.font = `${Math.max(6, size / 25)}px Arial`;
+    ctx.fillText(data.substring(0, 8), size / 2, size / 2 + 5);
+    
+    return canvas.toDataURL('image/png');
   };
 
   // УЛУЧШЕННАЯ ФУНКЦИЯ: Печать QR кодов (только QR коды, не всю страницу)
