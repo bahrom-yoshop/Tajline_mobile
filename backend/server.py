@@ -5815,6 +5815,98 @@ async def get_available_cargo_for_placement(
             cargo_data['ready_for_placement'] = True
             cargo_data['placement_status'] = 'awaiting_placement'
             
+            # НОВЫЕ ПОЛЯ: Дополнительная информация для новых карточек грузов
+            
+            # 1. Город выдачи груза 
+            cargo_data['delivery_city'] = cargo.get('delivery_city', cargo.get('recipient_address', 'Не указан'))
+            
+            # 2. Склад-отправитель и склад-получатель
+            source_warehouse_id = cargo.get('source_warehouse_id') or cargo.get('created_warehouse_id')
+            if source_warehouse_id:
+                source_warehouse = db.warehouses.find_one({"id": source_warehouse_id})
+                cargo_data['source_warehouse_name'] = source_warehouse.get('name', 'Неизвестен') if source_warehouse else 'Неизвестен'
+            else:
+                cargo_data['source_warehouse_name'] = cargo.get('source_warehouse_name', 'Неизвестен')
+            
+            target_warehouse_id = cargo.get('target_warehouse_id') or warehouse_id
+            if target_warehouse_id:
+                target_warehouse = db.warehouses.find_one({"id": target_warehouse_id})  
+                cargo_data['target_warehouse_name'] = target_warehouse.get('name', 'Неизвестен') if target_warehouse else 'Неизвестен'
+            else:
+                cargo_data['target_warehouse_name'] = cargo_data.get('warehouse_name', 'Неизвестен')
+                
+            # 3. Дата и время оформления и приема груза
+            cargo_data['created_date'] = cargo.get('created_at')
+            cargo_data['accepted_date'] = cargo.get('updated_at', cargo.get('created_at'))
+            
+            # 4. Способ получения груза
+            cargo_data['delivery_method'] = cargo.get('delivery_method', cargo.get('pickup_method', 'Не указан'))
+            
+            # 5. КРИТИЧЕСКИ ВАЖНО: Список грузов по типам с количеством (cargo_items)
+            cargo_items = cargo.get('cargo_items', [])
+            if not cargo_items:
+                # Если нет cargo_items, создаем один элемент из основной информации
+                cargo_items = [{
+                    'cargo_name': cargo.get('cargo_name', cargo.get('description', 'Груз')[:30]),
+                    'quantity': 1,
+                    'weight': cargo.get('weight', 0),
+                    'price_per_kg': cargo.get('declared_value', 0) / max(cargo.get('weight', 1), 1),
+                    'total_amount': cargo.get('declared_value', 0),
+                    'placement_status': 'awaiting_placement',
+                    'placed_count': 0,
+                    'warehouse_location': None,
+                    'block_number': None,
+                    'shelf_number': None, 
+                    'cell_number': None
+                }]
+            else:
+                # Обрабатываем каждый cargo_item для определения статуса размещения
+                for item in cargo_items:
+                    item['placement_status'] = 'awaiting_placement'
+                    item['placed_count'] = 0
+                    
+                    # Проверяем размещение каждого груза
+                    placed_count = 0
+                    if cargo.get('warehouse_location') and cargo.get('block_number') and cargo.get('shelf_number') and cargo.get('cell_number'):
+                        # Если основной груз размещен, считаем что размещена одна единица
+                        placed_count = 1
+                        item['warehouse_location'] = cargo.get('warehouse_location')
+                        item['block_number'] = cargo.get('block_number')
+                        item['shelf_number'] = cargo.get('shelf_number')
+                        item['cell_number'] = cargo.get('cell_number')
+                    else:
+                        item['warehouse_location'] = None
+                        item['block_number'] = None
+                        item['shelf_number'] = None
+                        item['cell_number'] = None
+                    
+                    item['placed_count'] = placed_count
+                    
+                    # Определяем статус размещения
+                    if placed_count == 0:
+                        item['placement_status'] = 'awaiting_placement'
+                    elif placed_count < item.get('quantity', 1):
+                        item['placement_status'] = 'partially_placed'
+                    else:
+                        item['placement_status'] = 'fully_placed'
+            
+            cargo_data['cargo_items'] = cargo_items
+            
+            # 6. Общая статистика размещения для заявки
+            total_quantity = sum(item.get('quantity', 1) for item in cargo_items)
+            total_placed = sum(item.get('placed_count', 0) for item in cargo_items)
+            cargo_data['total_quantity'] = total_quantity
+            cargo_data['total_placed'] = total_placed
+            cargo_data['placement_progress'] = f"{total_placed}/{total_quantity}"
+            
+            # Определяем общий статус заявки
+            if total_placed == 0:
+                cargo_data['overall_placement_status'] = 'awaiting_placement'
+            elif total_placed < total_quantity:
+                cargo_data['overall_placement_status'] = 'partially_placed'  
+            else:
+                cargo_data['overall_placement_status'] = 'fully_placed'
+            
             normalized_cargo.append(cargo_data)
         
         # Создаем ответ с пагинацией
