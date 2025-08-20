@@ -17628,62 +17628,95 @@ function App() {
                           </Card>
                         )}
                         
-                        <form onSubmit={handleAcceptCargo} className="space-y-4 max-w-2xl xl:max-w-4xl">
-                          {/* ОБЫЧНАЯ ФОРМА ПРИЁМА ГРУЗА */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                            <div>
-                              <Label htmlFor="sender_full_name">ФИО отправителя</Label>
-                              <Input
-                                id="sender_full_name"
-                                value={operatorCargoForm.sender_full_name}
-                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, sender_full_name: e.target.value})}
-                                placeholder="Иванов Иван Иванович"
-                                className="xl:h-12 xl:text-base"
-                                required
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="sender_phone">Телефон отправителя</Label>
-                              <Input
-                                id="sender_phone"
-                                type="tel"
-                                value={operatorCargoForm.sender_phone}
-                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, sender_phone: e.target.value})}
-                                placeholder="+7XXXXXXXXXX"
-                                className="xl:h-12 xl:text-base"
-                                required
-                              />
-                            </div>
-                          </div>
+                        <form onSubmit={handleAcceptCargo} className="space-y-6 max-w-4xl xl:max-w-6xl">
+                          {/* УЛУЧШЕННАЯ ФОРМА ПРИЁМА ГРУЗА */}
+                          
+                          {/* Информация об отправителе */}
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="text-lg flex items-center">
+                                <User className="mr-2 h-5 w-5 text-blue-600" />
+                                Отправитель
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <Label htmlFor="sender_full_name">ФИО отправителя *</Label>
+                                  <Input
+                                    id="sender_full_name"
+                                    value={operatorCargoForm.sender_full_name}
+                                    onChange={(e) => setOperatorCargoForm({...operatorCargoForm, sender_full_name: e.target.value})}
+                                    placeholder="Иванов Иван Иванович"
+                                    className="h-12 text-base"
+                                    required
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="sender_phone">Телефон отправителя *</Label>
+                                  <Input
+                                    id="sender_phone"
+                                    type="tel"
+                                    value={operatorCargoForm.sender_phone}
+                                    onChange={(e) => setOperatorCargoForm({...operatorCargoForm, sender_phone: e.target.value})}
+                                    placeholder="+7XXXXXXXXXX"
+                                    className="h-12 text-base"
+                                    required
+                                  />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor="recipient_full_name">ФИО получателя</Label>
-                              <Input
-                                id="recipient_full_name"
-                                value={operatorCargoForm.recipient_full_name}
-                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, recipient_full_name: e.target.value})}
-                                placeholder="Петров Петр Петрович"
-                                className="xl:h-12 xl:text-base"
-                                required
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="recipient_phone">Телефон получателя</Label>
-                              <Input
-                                id="recipient_phone"
-                                type="tel"
-                                value={operatorCargoForm.recipient_phone}
-                                onChange={(e) => setOperatorCargoForm({...operatorCargoForm, recipient_phone: e.target.value})}
-                                placeholder="+992XXXXXXXXX"
-                                className="xl:h-12 xl:text-base"
-                                required
-                              />
-                            </div>
-                          </div>
+                          {/* Информация о получателе */}
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="text-lg flex items-center">
+                                <User className="mr-2 h-5 w-5 text-green-600" />
+                                Получатель
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <Label htmlFor="recipient_full_name">ФИО получателя *</Label>
+                                  <Input
+                                    id="recipient_full_name"
+                                    value={operatorCargoForm.recipient_full_name}
+                                    onChange={(e) => setOperatorCargoForm({...operatorCargoForm, recipient_full_name: e.target.value})}
+                                    placeholder="Петров Петр Петрович"
+                                    className="h-12 text-base"
+                                    required
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="recipient_phone">Телефон получателя *</Label>
+                                  <Input
+                                    id="recipient_phone"
+                                    type="tel"
+                                    value={operatorCargoForm.recipient_phone}
+                                    onChange={(e) => setOperatorCargoForm({...operatorCargoForm, recipient_phone: e.target.value})}
+                                    placeholder="+992XXXXXXXXX"
+                                    className="h-12 text-base"
+                                    required
+                                  />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
 
-                          {/* НОВЫЕ ПОЛЯ: Город и склад выдачи груза */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {/* Информация о доставке */}
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="text-lg flex items-center">
+                                <MapPin className="mr-2 h-5 w-5 text-orange-600" />
+                                Доставка
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-4">
+                                {/* Город и склад выдачи груза */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <Label htmlFor="delivery_city">Город выдачи груза *</Label>
                               {allCitiesLoading ? (
