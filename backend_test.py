@@ -107,11 +107,19 @@ def test_qr_code_functionality_for_operator():
         if cargo_response.status_code == 200:
             cargo_result = cargo_response.json()
             cargo_number = cargo_result.get("cargo_number", "Unknown")
-            cargo_id = cargo_result.get("cargo_id", "Unknown")
+            cargo_id = cargo_result.get("id", "Unknown")  # Use 'id' instead of 'cargo_id'
             
             print(f"   ✅ Заявка создана успешно!")
             print(f"   📋 Номер заявки: {cargo_number}")
             print(f"   🆔 ID заявки: {cargo_id}")
+            
+            # Debug: Print all available fields in response
+            print(f"   🔍 Доступные поля в ответе: {list(cargo_result.keys())}")
+            
+            if cargo_id == "Unknown":
+                print(f"   ⚠️ Внимание: ID заявки не найден в ответе")
+                print(f"   📄 Полный ответ: {json.dumps(cargo_result, indent=2, ensure_ascii=False)[:500]}...")
+                return False
         else:
             print(f"   ❌ Ошибка создания заявки: {cargo_response.status_code}")
             print(f"   📄 Ответ: {cargo_response.text}")
