@@ -333,12 +333,26 @@ class IndividualNumberingTester:
             return False
         
         try:
+            # Сначала получаем склады оператора для получения warehouse_id
+            warehouses_response = self.session.get(f"{BACKEND_URL}/operator/warehouses")
+            warehouse_id = None
+            
+            if warehouses_response.status_code == 200:
+                warehouses_data = warehouses_response.json()
+                warehouses = warehouses_data.get('warehouses', [])
+                if warehouses:
+                    warehouse_id = warehouses[0].get('id')
+            
+            if not warehouse_id:
+                # Используем тестовый ID если не удалось получить реальный
+                warehouse_id = "test-warehouse-id"
+            
             # Тестируем размещение первой индивидуальной единицы
             individual_unit_number = f"{self.test_cargo_number}/01/01"
             
             placement_data = {
                 "individual_number": individual_unit_number,
-                "warehouse_id": "test-warehouse-id",  # Используем тестовый ID склада
+                "warehouse_id": warehouse_id,
                 "block_number": 1,
                 "shelf_number": 1,
                 "cell_number": 1
@@ -352,7 +366,7 @@ class IndividualNumberingTester:
                 # Проверяем успешное размещение индивидуальной единицы
                 success_indicators = [
                     'success' in data and data.get('success'),
-                    'individual_unit_number' in data,
+                    'individual_number' in data,
                     'placement_record_id' in data or 'record_id' in data
                 ]
                 
@@ -361,7 +375,7 @@ class IndividualNumberingTester:
                 self.log_test(
                     "POST place-individual",
                     success,
-                    f"Размещение индивидуальной единицы {individual_unit_number}. Индикаторы успеха: {sum(success_indicators)}/3"
+                    f"Размещение индивидуальной единицы {individual_unit_number}. Индикаторы успеха: {sum(success_indicators)}/3. Warehouse ID: {warehouse_id}"
                 )
                 return success
                 
@@ -380,7 +394,7 @@ class IndividualNumberingTester:
                     self.log_test(
                         "POST place-individual",
                         True,
-                        "Endpoint работает (ячейка занята или другая валидационная ошибка - нормально для тестовой среды)"
+                        f"Endpoint работает (ячейка занята или другая валидационная ошибка - нормально для тестовой среды). Warehouse ID: {warehouse_id}"
                     )
                     return True
                 
@@ -388,7 +402,7 @@ class IndividualNumberingTester:
                 self.log_test(
                     "POST place-individual",
                     False,
-                    f"HTTP {response.status_code}",
+                    f"HTTP {response.status_code}. Warehouse ID: {warehouse_id}",
                     response.text
                 )
                 return False
