@@ -17894,6 +17894,7 @@ function App() {
                                 value={operatorCargoForm.recipient_full_name}
                                 onChange={(e) => setOperatorCargoForm({...operatorCargoForm, recipient_full_name: e.target.value})}
                                 placeholder="Петров Петр Петрович"
+                                className="xl:h-12 xl:text-base"
                                 required
                               />
                             </div>
