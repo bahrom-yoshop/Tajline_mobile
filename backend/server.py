@@ -6480,6 +6480,53 @@ async def get_cargo_history(
             cargo['cargo_name'] = cargo.get('description', 'Груз')[:50] if cargo.get('description') else 'Груз'
     return [CargoWithLocation(**cargo) for cargo in cargo_list]
 
+@app.get("/api/operator/cargo/{cargo_id}/full-info")
+async def get_cargo_full_info(
+    cargo_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    НОВЫЙ ENDPOINT: Получение полной информации о заявке для генерации QR кода
+    Возвращает детальные данные о заявке включая все cargo_items
+    """
+    # Проверяем права доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Ищем заявку по ID
+    cargo = db.operator_cargo.find_one({"id": cargo_id})
+    if not cargo:
+        raise HTTPException(status_code=404, detail="Cargo not found")
+    
+    # Проверяем права доступа к конкретной заявке (оператор может видеть только свои заявки)
+    if current_user.role == UserRole.WAREHOUSE_OPERATOR and cargo.get("created_by") != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied to this cargo")
+    
+    # Возвращаем полную информацию включая cargo_items для QR генерации
+    response_data = {
+        "id": cargo["id"],
+        "cargo_number": cargo["cargo_number"], 
+        "sender_full_name": cargo["sender_full_name"],
+        "sender_phone": cargo["sender_phone"],
+        "recipient_full_name": cargo["recipient_full_name"],
+        "recipient_phone": cargo["recipient_phone"],
+        "recipient_address": cargo["recipient_address"],
+        "weight": cargo["weight"],
+        "declared_value": cargo["declared_value"],
+        "cargo_name": cargo.get("cargo_name", cargo.get("description", "Груз")[:50]),
+        "description": cargo["description"],
+        "status": cargo["status"],
+        "processing_status": cargo.get("processing_status", "received"),
+        "payment_status": cargo.get("payment_status", "pending"),
+        "created_at": cargo["created_at"],
+        "updated_at": cargo["updated_at"],
+        "cargo_items": cargo.get("cargo_items", [])  # КЛЮЧЕВОЕ ПОЛЕ для QR генерации
+    }
+    
+    print(f"🔍 Возвращаем полную информацию о заявке {cargo['cargo_number']} с {len(cargo.get('cargo_items', []))} грузами")
+    
+    return response_data
+
 @app.get("/api/warehouses/{warehouse_id}/available-cells")
 async def get_available_cells(
     warehouse_id: str,
