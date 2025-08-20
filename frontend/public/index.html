@@ -21,6 +21,16 @@
         <title>Emergent | Fullstack App</title>
         <!-- QRCode.js библиотека для генерации QR кодов -->
         <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+        <script>
+          // Проверяем загрузку библиотеки QRCode
+          window.addEventListener('DOMContentLoaded', function() {
+            if (window.QRCode) {
+              console.log('✅ QRCode.js библиотека загружена успешно');
+            } else {
+              console.error('❌ QRCode.js библиотека не загружена');
+            }
+          });
+        </script>
     </head>
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>
