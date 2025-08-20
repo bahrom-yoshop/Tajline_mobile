@@ -6520,6 +6520,8 @@ async def get_cargo_full_info(
         "payment_status": cargo.get("payment_status", "pending"),
         "created_at": cargo["created_at"],
         "updated_at": cargo["updated_at"],
+        "created_by": cargo.get("created_by"),  # Добавляем для проверки безопасности
+        "created_by_operator": cargo.get("created_by_operator"),  # Добавляем для проверки безопасности
         "cargo_items": cargo.get("cargo_items", [])  # КЛЮЧЕВОЕ ПОЛЕ для QR генерации
     }
     
