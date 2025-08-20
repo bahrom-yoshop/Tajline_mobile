@@ -5955,6 +5955,124 @@ async def get_available_cargo_for_placement(
             detail=f"Ошибка получения грузов для размещения: {str(e)}"
         )
 
+# НОВОЕ: Модель для размещения индивидуальных единиц груза
+class IndividualCargoPlacement(BaseModel):
+    individual_number: str  # Например: 250101/01/01
+    warehouse_id: str
+    block_number: int
+    shelf_number: int
+    cell_number: int
+
+@app.post("/api/operator/cargo/place-individual")
+async def place_individual_cargo_unit(
+    placement_data: IndividualCargoPlacement,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    НОВЫЙ ENDPOINT: Размещение индивидуальной единицы груза с уникальным номером
+    Поддерживает новую систему нумерации: 250101/01/01, 250101/01/02 и.т.д.
+    """
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        # Разбираем индивидуальный номер: 250101/01/01
+        parts = placement_data.individual_number.split('/')
+        if len(parts) != 3:
+            raise HTTPException(status_code=400, detail="Invalid individual number format. Expected: cargo_number/type_index/unit_index")
+        
+        cargo_number, type_index, unit_index = parts
+        
+        # Ищем основную заявку
+        cargo = db.operator_cargo.find_one({"cargo_number": cargo_number})
+        if not cargo:
+            raise HTTPException(status_code=404, detail="Cargo not found")
+        
+        # Проверяем существование склада
+        warehouse = db.warehouses.find_one({"id": placement_data.warehouse_id, "is_active": True})
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+        
+        # Проверяем валидность позиции
+        if (placement_data.block_number < 1 or placement_data.block_number > warehouse["blocks_count"] or
+            placement_data.shelf_number < 1 or placement_data.shelf_number > warehouse["shelves_per_block"] or
+            placement_data.cell_number < 1 or placement_data.cell_number > warehouse["cells_per_shelf"]):
+            raise HTTPException(status_code=400, detail="Invalid warehouse position")
+        
+        location_code = f"B{placement_data.block_number}-S{placement_data.shelf_number}-C{placement_data.cell_number}"
+        
+        # Проверяем, свободна ли ячейка
+        existing_cell = db.warehouse_cells.find_one({
+            "warehouse_id": placement_data.warehouse_id,
+            "location_code": location_code,
+            "is_occupied": True
+        })
+        
+        if existing_cell:
+            raise HTTPException(status_code=400, detail="Cell is already occupied")
+        
+        # Создаем или обновляем таблицу размещений индивидуальных единиц
+        placement_record = {
+            "individual_number": placement_data.individual_number,
+            "cargo_number": cargo_number,
+            "type_index": int(type_index),
+            "unit_index": int(unit_index),
+            "cargo_id": cargo["id"],
+            "warehouse_id": placement_data.warehouse_id,
+            "warehouse_name": warehouse["name"],
+            "location_code": location_code,
+            "block_number": placement_data.block_number,
+            "shelf_number": placement_data.shelf_number,
+            "cell_number": placement_data.cell_number,
+            "placed_at": datetime.utcnow(),
+            "placed_by_operator": current_user.full_name,
+            "placed_by_operator_id": current_user.id,
+            "status": "placed"
+        }
+        
+        # Создаем коллекцию placement_records если не существует
+        if not hasattr(db, 'placement_records'):
+            # Инициализируем коллекцию
+            db.create_collection('placement_records')
+        
+        # Сохраняем запись о размещении
+        db.placement_records.insert_one(placement_record)
+        
+        # Обновляем ячейку
+        db.warehouse_cells.update_one(
+            {
+                "warehouse_id": placement_data.warehouse_id,
+                "location_code": location_code
+            },
+            {"$set": {"is_occupied": True, "individual_number": placement_data.individual_number}}
+        )
+        
+        # Создаем уведомление
+        create_notification(
+            current_user.id,
+            f"Груз {placement_data.individual_number} размещен в {warehouse['name']}: {location_code}",
+            cargo["id"]
+        )
+        
+        print(f"✅ Индивидуальная единица груза {placement_data.individual_number} размещена в {location_code}")
+        
+        return {
+            "message": "Individual cargo unit placed successfully",
+            "individual_number": placement_data.individual_number,
+            "warehouse_name": warehouse["name"],
+            "location_code": location_code,
+            "cargo_number": cargo_number,
+            "placed_at": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка размещения индивидуальной единицы груза: {str(e)}"
+        )
+
 @app.get("/api/operator/cargo/{cargo_id}/placement-status")
 async def get_cargo_placement_status(
     cargo_id: str,
