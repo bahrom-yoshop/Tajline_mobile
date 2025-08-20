@@ -3230,6 +3230,61 @@ function App() {
     }
   };
 
+  // НОВАЯ ФУНКЦИЯ: Обновление статуса размещения и автоматическое перемещение заявок
+  const handlePlacementStatusUpdate = async (cargoId) => {
+    try {
+      console.log('🔄 Обновление статуса размещения для заявки:', cargoId);
+      
+      // Вызываем API для проверки и обновления статуса
+      const response = await apiCall(`/api/operator/cargo/${cargoId}/update-placement-status`, 'POST');
+      
+      console.log('✅ Статус размещения обновлен:', response);
+      
+      // Если заявка полностью размещена, обновляем список
+      if (response.moved_to_cargo_list) {
+        showAlert(response.message, 'success');
+        
+        // Обновляем список грузов для размещения
+        await fetchAvailableCargoForPlacement();
+        
+        // Если открыто модальное окно деталей, закрываем его
+        if (showPlacementDetailsModal) {
+          setShowPlacementDetailsModal(false);
+          setSelectedCargoForDetails(null);
+          setPlacementDetails(null);
+        }
+      } else {
+        showAlert(response.message, 'info');
+        
+        // Обновляем детали размещения если модальное окно открыто
+        if (showPlacementDetailsModal && selectedCargoForDetails?.id === cargoId) {
+          await handleOpenCargoPlacementDetails(selectedCargoForDetails);
+        }
+        
+        // Обновляем список в любом случае
+        await fetchAvailableCargoForPlacement();
+      }
+      
+      return response;
+      
+    } catch (error) {
+      console.error('❌ Ошибка обновления статуса размещения:', error);
+      showAlert(`Ошибка обновления статуса: ${error.message}`, 'error');
+      return null;
+    }
+  };
+
+  // НОВАЯ ФУНКЦИЯ: Обработчик успешного размещения груза
+  const handleSuccessfulPlacement = async (cargoId, placedCargoData) => {
+    console.log('🎉 Груз успешно размещен:', cargoId, placedCargoData);
+    
+    // Обновляем статус размещения
+    await handlePlacementStatusUpdate(cargoId);
+    
+    // Показываем уведомление
+    showAlert('Груз успешно размещен на складе!', 'success');
+  };
+
   // Функция печати QR кода номера заявки (90мм x 100мм)
   const handlePrintCargoNumberQR = () => {
     if (!cargoNumberQRCode) return;
