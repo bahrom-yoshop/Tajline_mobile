@@ -3556,11 +3556,14 @@ function App() {
   // Массовая генерация QR кодов для типа груза
   const handleGenerateMassQRForType = async (cargoType) => {
     try {
-      console.log('🔄 Массовая генерация QR кодов для типа груза:', cargoType.type_number);
+      console.log('🔄 Массовая генерация продвинутых QR кодов для типа груза:', cargoType.type_number);
       
       const qrCodes = [];
       for (const unit of cargoType.individual_units || []) {
-        const qrCodeImage = await generateActualQRCode(unit.individual_number, 200);
+        const qrCodeImage = await generateActualQRCode({
+          individual_number: unit.individual_number,
+          cargo_name: cargoType.cargo_name
+        }, 200, 'individual_unit');
         qrCodes.push({
           individual_number: unit.individual_number,
           qr_image: qrCodeImage,
@@ -3568,32 +3571,133 @@ function App() {
         });
       }
       
-      // Открываем окно с массовыми QR кодами
-      const qrWindow = window.open('', '_blank', 'width=800,height=600');
+      // Открываем окно с массовыми QR кодами в улучшенном дизайне
+      const qrWindow = window.open('', '_blank', 'width=900,height=700');
       if (qrWindow) {
         qrWindow.document.write(`
           <html>
             <head>
               <title>QR коды - ${cargoType.type_number}</title>
+              <meta charset="UTF-8">
               <style>
-                body { font-family: Arial, sans-serif; padding: 20px; }
-                .qr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
-                .qr-item { text-align: center; border: 1px solid #ddd; padding: 15px; }
-                .qr-title { font-size: 14px; font-weight: bold; margin-bottom: 10px; }
+                body { 
+                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; 
+                  padding: 30px; 
+                  background: #f8fafc;
+                  color: #1e293b;
+                  margin: 0;
+                }
+                .header {
+                  text-align: center;
+                  margin-bottom: 30px;
+                  padding: 20px;
+                  background: white;
+                  border-radius: 16px;
+                  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                }
+                .system-title {
+                  color: #3b82f6;
+                  font-size: 14px;
+                  font-weight: 600;
+                  margin-bottom: 5px;
+                }
+                .main-title {
+                  font-size: 28px;
+                  font-weight: 700;
+                  color: #0f172a;
+                  margin: 10px 0;
+                }
+                .cargo-info {
+                  font-size: 18px;
+                  color: #059669;
+                  font-weight: 600;
+                }
+                .qr-grid { 
+                  display: grid; 
+                  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+                  gap: 25px; 
+                }
+                .qr-item { 
+                  text-align: center; 
+                  background: white;
+                  border-radius: 12px;
+                  padding: 20px; 
+                  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                  border: 1px solid #e2e8f0;
+                }
+                .qr-number { 
+                  font-size: 16px; 
+                  font-weight: 700; 
+                  margin-bottom: 15px;
+                  font-family: 'Courier New', monospace;
+                  color: #1e293b;
+                  background: #f1f5f9;
+                  padding: 8px 12px;
+                  border-radius: 8px;
+                }
+                .qr-image {
+                  border: 2px solid #e2e8f0;
+                  border-radius: 8px;
+                  background: white;
+                  padding: 8px;
+                  margin: 15px 0;
+                }
+                .status-badge {
+                  font-size: 12px;
+                  padding: 6px 12px;
+                  border-radius: 20px;
+                  font-weight: 600;
+                  margin-top: 10px;
+                }
+                .status-placed {
+                  background: #d1fae5;
+                  color: #047857;
+                  border: 1px solid #a7f3d0;
+                }
+                .status-waiting {
+                  background: #fef3c7;
+                  color: #d97706;
+                  border: 1px solid #fbbf24;
+                }
+                .footer {
+                  text-align: center;
+                  margin-top: 30px;
+                  padding: 15px;
+                  background: white;
+                  border-radius: 12px;
+                  color: #64748b;
+                  font-size: 14px;
+                }
+                @media print {
+                  body { background: white; }
+                  .qr-item { 
+                    page-break-inside: avoid;
+                    box-shadow: none;
+                    border: 1px solid #000;
+                  }
+                }
               </style>
             </head>
             <body>
-              <h2>QR коды для ${cargoType.type_number} "${cargoType.cargo_name}"</h2>
+              <div class="header">
+                <div class="system-title">СИСТЕМА TAJLINE.TJ</div>
+                <div class="main-title">QR КОДЫ ГРУЗА</div>
+                <div class="cargo-info">${cargoType.type_number} "${cargoType.cargo_name}"</div>
+              </div>
               <div class="qr-grid">
                 ${qrCodes.map(qr => `
                   <div class="qr-item">
-                    <div class="qr-title">${qr.individual_number}</div>
-                    <img src="${qr.qr_image}" style="width: 150px; height: 150px;" />
-                    <div style="font-size: 12px; color: ${qr.is_placed ? 'green' : 'red'};">
-                      ${qr.is_placed ? 'Размещено' : 'Ждёт размещение'}
+                    <div class="qr-number">${qr.individual_number}</div>
+                    <img src="${qr.qr_image}" class="qr-image" style="width: 180px; height: 180px;" />
+                    <div class="status-badge ${qr.is_placed ? 'status-placed' : 'status-waiting'}">
+                      ${qr.is_placed ? '✅ Размещено' : '⏳ Ждёт размещение'}
                     </div>
                   </div>
                 `).join('')}
+              </div>
+              <div class="footer">
+                Сгенерировано: ${new Date().toLocaleString('ru-RU')} | Система: TAJLINE v2.0<br>
+                QR коды содержат структурированные JSON данные для лучшего распознавания
               </div>
             </body>
           </html>
@@ -3601,7 +3705,7 @@ function App() {
         qrWindow.document.close();
       }
       
-      showAlert(`Сгенерировано ${qrCodes.length} QR кодов для ${cargoType.type_number}!`, 'success');
+      showAlert(`Сгенерировано ${qrCodes.length} продвинутых QR кодов для ${cargoType.type_number}!`, 'success');
       
     } catch (error) {
       console.error('❌ Ошибка массовой генерации QR кодов:', error);
