@@ -18134,6 +18134,7 @@ function App() {
                                           value={item.quantity || 1}
                                           onChange={(e) => updateCargoItem(index, 'quantity', e.target.value)}
                                           placeholder="1"
+                                          className="xl:h-11 xl:text-base"
                                           required
                                         />
                                       </div>
