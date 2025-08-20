@@ -187,6 +187,8 @@ class IndividualNumberingTester:
                 data = response.json()
                 cargo_list = data.get('cargo', [])
                 
+                print(f"   📊 Получено {len(cargo_list)} грузов для размещения")
+                
                 if not cargo_list:
                     self.log_test(
                         "GET available-for-placement с индивидуальными номерами",
@@ -202,7 +204,27 @@ class IndividualNumberingTester:
                         test_cargo = cargo
                         break
                 
-                if not test_cargo:
+                if test_cargo:
+                    # Проверяем нашу тестовую заявку на индивидуальные номера
+                    cargo_items = test_cargo.get('cargo_items', [])
+                    individual_units = test_cargo.get('individual_units', [])
+                    total_quantity = test_cargo.get('total_quantity', 0)
+                    total_placed = test_cargo.get('total_placed', 0)
+                    placement_progress = test_cargo.get('placement_progress', '')
+                    
+                    expected_units = []
+                    for i, item in enumerate(cargo_items, 1):
+                        quantity = item.get('quantity', 0)
+                        for unit in range(1, quantity + 1):
+                            expected_units.append(f"{self.test_cargo_number}/{i:02d}/{unit:02d}")
+                    
+                    self.log_test(
+                        "GET available-for-placement с индивидуальными номерами",
+                        len(expected_units) > 0,
+                        f"Тестовая заявка найдена! Cargo items: {len(cargo_items)}, Individual units: {len(individual_units)}, Total quantity: {total_quantity}, Placed: {total_placed}, Progress: {placement_progress}. Ожидаемые номера: {len(expected_units)} ({', '.join(expected_units)})"
+                    )
+                    return True
+                else:
                     # Проверяем первый груз на наличие индивидуальных полей
                     first_cargo = cargo_list[0]
                     individual_fields = [
@@ -220,26 +242,9 @@ class IndividualNumberingTester:
                     self.log_test(
                         "GET available-for-placement с индивидуальными номерами",
                         success_rate >= 60,
-                        f"Получено {len(cargo_list)} грузов. Поля индивидуальной нумерации: {success_rate:.1f}% ({len(present_fields)}/{len(individual_fields)}). Присутствуют: {', '.join(present_fields)}"
+                        f"Тестовая заявка не найдена в списке, но проверен первый груз. Поля индивидуальной нумерации: {success_rate:.1f}% ({len(present_fields)}/{len(individual_fields)}). Присутствуют: {', '.join(present_fields)}"
                     )
                     return success_rate >= 60
-                else:
-                    # Проверяем нашу тестовую заявку на индивидуальные номера
-                    cargo_items = test_cargo.get('cargo_items', [])
-                    individual_units = test_cargo.get('individual_units', [])
-                    
-                    expected_units = []
-                    for i, item in enumerate(cargo_items, 1):
-                        quantity = item.get('quantity', 0)
-                        for unit in range(1, quantity + 1):
-                            expected_units.append(f"{self.test_cargo_number}/{i:02d}/{unit:02d}")
-                    
-                    self.log_test(
-                        "GET available-for-placement с индивидуальными номерами",
-                        len(individual_units) > 0 or len(expected_units) > 0,
-                        f"Тестовая заявка найдена. Cargo items: {len(cargo_items)}, Individual units: {len(individual_units)}, Ожидаемые номера: {len(expected_units)} ({', '.join(expected_units[:3])}{'...' if len(expected_units) > 3 else ''})"
-                    )
-                    return True
                 
             else:
                 self.log_test(
