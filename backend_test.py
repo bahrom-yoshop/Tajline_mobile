@@ -581,12 +581,16 @@ class TajlineBackendTester:
         
         # 4. Проверка сохранения cargo_items в базе данных
         if cargo_creation_success:
-            self.test_cargo_items_saved_in_database()
+            # Сначала авторизуемся как админ для доступа к данным
+            admin_auth_success = self.test_admin_authentication()
+            if admin_auth_success:
+                self.test_cargo_items_saved_in_database()
             self.test_cargo_number_generation_uniqueness()
         
-        # 5. Дополнительная авторизация администратора для полноты тестирования
-        admin_auth_success = self.test_admin_authentication()
-        if admin_auth_success:
+        # 5. Дополнительные тесты
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            admin_auth_success = self.test_admin_authentication()
+        if self.admin_token:
             self.test_auth_me_endpoint()
         
         # Подведение итогов
