@@ -6164,42 +6164,86 @@ function App() {
   const extractCargoNumber = (scannedData) => {
     console.log('🔍 Извлечение номера груза из:', scannedData);
     
-    // ИСПРАВЛЕНИЕ: Поддержка различных форматов QR кодов грузов
+    // ОБНОВЛЕНИЕ: Поддержка нового формата индивидуальных единиц ххххххххх/хх/хх
     try {
-      // Если это JSON данные (например, из QR кода забора)
+      // 1. НОВЫЙ ФОРМАТ: Индивидуальные единицы груза (250101/01/01)
+      const individualUnitMatch = scannedData.match(/^(\d{6})\/(\d{2})\/(\d{2})$/);
+      if (individualUnitMatch) {
+        console.log('✅ Найден НОВЫЙ формат индивидуальной единицы:', individualUnitMatch);
+        return {
+          type: 'individual_unit',
+          request_number: individualUnitMatch[1],      // 250101
+          cargo_type: individualUnitMatch[2],          // 01  
+          unit_number: individualUnitMatch[3],         // 01
+          full_number: scannedData                     // 250101/01/01
+        };
+      }
+      
+      // 2. Если это JSON данные (например, из QR кода забора)
       if (scannedData.includes('{') && scannedData.includes('}')) {
         const parsed = JSON.parse(scannedData);
         if (parsed.cargo_number) {
           console.log('✅ Найден номер груза в JSON:', parsed.cargo_number);
-          return parsed.cargo_number;
+          return {
+            type: 'json_cargo',
+            cargo_number: parsed.cargo_number,
+            original_data: parsed
+          };
         }
         if (parsed.request_number) {
           console.log('✅ Найден номер заявки в JSON:', parsed.request_number);
-          return parsed.request_number;
+          return {
+            type: 'json_request',
+            request_number: parsed.request_number,
+            original_data: parsed
+          };
         }
       }
       
-      // Поддерживаем различные форматы номеров: TEMP-123456, REQ-123456, и т.д.
+      // 3. Поддерживаем различные форматы номеров: TEMP-123456, REQ-123456, и т.д.
       const tempMatch = scannedData.match(/(?:TEMP-|REQ-)?\d+/);
       if (tempMatch) {
         console.log('✅ Найден номер груза по паттерну:', tempMatch[0]);
-        return tempMatch[0];
+        return {
+          type: 'standard_cargo',
+          cargo_number: tempMatch[0]
+        };
       }
       
-      // Если это просто номер
+      // 4. Если это просто 6-значный номер (может быть номер заявки)
+      const sixDigitMatch = scannedData.match(/^\d{6}$/);
+      if (sixDigitMatch) {
+        console.log('✅ Найден 6-значный номер заявки:', sixDigitMatch[0]);
+        return {
+          type: 'request_number',
+          request_number: sixDigitMatch[0]
+        };
+      }
+      
+      // 5. Если это просто номер
       const numberMatch = scannedData.match(/\d+/);
       if (numberMatch) {
         console.log('✅ Найден числовой номер:', numberMatch[0]);
-        return numberMatch[0];
+        return {
+          type: 'generic_number',
+          number: numberMatch[0]
+        };
       }
       
-      // Возвращаем исходные данные если не удалось распарсить
+      // 6. Возвращаем исходные данные если не удалось распарсить
       console.log('⚠️ Используем исходные данные как номер груза:', scannedData);
-      return scannedData;
+      return {
+        type: 'raw_data',
+        raw_data: scannedData
+      };
       
     } catch (error) {
       console.error('❌ Ошибка парсинга номера груза:', error);
-      return scannedData;
+      return {
+        type: 'error',
+        raw_data: scannedData,
+        error: error.message
+      };
     }
   };
 
