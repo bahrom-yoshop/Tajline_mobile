@@ -5115,7 +5115,18 @@ async def accept_new_cargo(
                 raise HTTPException(status_code=400, detail="No active warehouses available for cargo acceptance")
     
     cargo_id = str(uuid.uuid4())
-    cargo_number = generate_cargo_number()
+    
+    # ИСПРАВЛЕНИЕ: Используем предварительно сгенерированный номер или генерируем новый
+    if cargo_data.preferred_cargo_number:
+        # Проверяем уникальность предварительно сгенерированного номера
+        existing_cargo = db.cargo.find_one({"cargo_number": cargo_data.preferred_cargo_number})
+        if existing_cargo:
+            raise HTTPException(status_code=400, detail=f"Cargo number {cargo_data.preferred_cargo_number} already exists. Please generate a new QR code.")
+        cargo_number = cargo_data.preferred_cargo_number
+        print(f"✅ Используем предварительно сгенерированный номер заявки: {cargo_number}")
+    else:
+        cargo_number = generate_cargo_number()
+        print(f"✅ Сгенерирован новый номер заявки: {cargo_number}")
     
     # Обрабатываем множественные грузы с индивидуальными ценами или одиночный груз для совместимости
     if cargo_data.cargo_items and len(cargo_data.cargo_items) > 0:
