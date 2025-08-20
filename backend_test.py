@@ -579,8 +579,9 @@ class TajlineBackendTester:
         print("🎯 КРИТИЧЕСКИЙ ТЕСТ: СОЗДАНИЕ ЗАЯВКИ С НЕСКОЛЬКИМИ ТИПАМИ ГРУЗА...")
         cargo_creation_success = self.test_cargo_accept_endpoint_with_multiple_cargo_types()
         
-        # 4. Проверка уникальности генерации номеров груза
+        # 4. Проверка сохранения cargo_items в базе данных
         if cargo_creation_success:
+            self.test_cargo_items_saved_in_database()
             self.test_cargo_number_generation_uniqueness()
         
         # 5. Дополнительная авторизация администратора для полноты тестирования
