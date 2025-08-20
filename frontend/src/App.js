@@ -12145,53 +12145,15 @@ function App() {
   };
 
   // НОВАЯ ФУНКЦИЯ: Фактическая отправка груза после подтверждения
-  // НОВЫЙ КОМПОНЕНТ: Карточка груза для размещения с новым дизайном
+  // НОВЫЙ КОМПОНЕНТ: Упрощенная карточка груза для размещения  
   const CargoPlacementCard = ({ item }) => {
     const warehouseColors = getWarehouseColor(item.warehouse_name);
     
-    // Форматирование даты
-    const formatDate = (dateString) => {
-      if (!dateString) return 'Не указано';
-      return new Date(dateString).toLocaleString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit', 
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    };
-    
-    // Форматирование способа получения
-    const formatDeliveryMethod = (method) => {
-      const methods = {
-        'pickup': 'Самовывоз',
-        'delivery_to_city': 'Доставка до города получателя',
-        'delivery_to_home': 'Доставка до дома',
-        'courier_delivery': 'Курьерская доставка'
-      };
-      return methods[method] || method || 'Не указан';
-    };
-    
-    // Форматирование способа оплаты  
-    const formatPaymentMethod = (method) => {
-      const methods = {
-        'cash': 'Наличные',
-        'card': 'Банковская карта',
-        'transfer': 'Банковский перевод',
-        'debt': 'В долг',
-        'prepaid': 'Предоплачено',
-        'online_payment': 'Онлайн оплата'
-      };
-      return methods[method] || method || 'Не указан';
-    };
-    
     return (
       <Card className={`${warehouseColors.border} ${warehouseColors.bg} border-l-4 hover:shadow-lg transition-shadow`}>
-        <CardContent className="p-4 space-y-4">
-          {/* Заголовок карточки */}
+        <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              {/* Чекбокс для выбора */}
               <label className="flex items-center">
                 <input
                   type="checkbox"
@@ -12200,198 +12162,75 @@ function App() {
                   className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
                 />
               </label>
-              
-              {/* Номер заявки */}
               <div>
                 <h3 className="font-bold text-lg text-blue-600">№{item.cargo_number}</h3>
                 <p className="text-xs text-gray-500">Заявка</p>
               </div>
             </div>
-            
-            {/* Статусы и бейджи */}
             <div className="flex flex-wrap gap-1 text-xs">
               <Badge variant={getProcessingStatusBadgeVariant(item.processing_status)}>
                 {getProcessingStatusLabel(item.processing_status)}
               </Badge>
-              {item.pickup_request_id && (
-                <Badge className="bg-orange-100 text-orange-700 border-orange-200">
-                  🚚 Забор
-                </Badge>
-              )}
             </div>
           </div>
           
-          {/* Основная информация */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            {/* Город выдачи */}
-            <div className="flex items-center space-x-2">
-              <span className="text-gray-500">🏙️</span>
-              <div>
-                <p className="font-medium">Город выдачи:</p>
-                <p className="text-gray-700">{item.delivery_city || 'Не указан'}</p>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+            <div>
+              <p className="font-medium">🏙️ Город выдачи:</p>
+              <p className="text-gray-700">{item.delivery_city || 'Не указан'}</p>
             </div>
-            
-            {/* Склады */}
-            <div className="flex items-center space-x-2">
-              <span className="text-gray-500">🏢</span>
-              <div>
-                <p className="font-medium">Маршрут:</p>
-                <p className="text-gray-700 text-xs">
-                  {(item.source_warehouse_name || 'Неизвестен')} → {(item.target_warehouse_name || 'Неизвестен')}
-                </p>
-              </div>
+            <div>
+              <p className="font-medium">🏢 Маршрут:</p>
+              <p className="text-gray-700 text-xs">
+                {(item.source_warehouse_name || 'Неизвестен')} → {(item.target_warehouse_name || 'Неизвестен')}
+              </p>
             </div>
-            
-            {/* Получатель */}
-            <div className="flex items-center space-x-2">
-              <span className="text-gray-500">👤</span>
-              <div>
-                <p className="font-medium">Получатель:</p>
-                <p className="text-gray-700">{item.recipient_full_name || 'Не указан'}</p>
-                <p className="text-xs text-gray-500">{item.recipient_phone || 'Нет телефона'}</p>
-              </div>
+            <div>
+              <p className="font-medium">👤 Получатель:</p>
+              <p className="text-gray-700">{item.recipient_full_name || 'Не указан'}</p>
             </div>
-            
-            {/* Дата приема */}
-            <div className="flex items-center space-x-2">
-              <span className="text-gray-500">📅</span>
-              <div>
-                <p className="font-medium">Принят:</p>
-                <p className="text-gray-700 text-xs">{formatDate(item.created_date)}</p>
-              </div>
-            </div>
-            
-            {/* Способ получения */}
-            <div className="flex items-center space-x-2">
-              <span className="text-gray-500">🚚</span>
-              <div>
-                <p className="font-medium">Способ получения:</p>
-                <p className="text-gray-700 text-xs">{formatDeliveryMethod(item.delivery_method)}</p>
-              </div>
-            </div>
-            
-            {/* Оплата */}
-            <div className="flex items-center space-x-2">
-              <span className="text-gray-500">💰</span>
-              <div>
-                <p className="font-medium">Оплата:</p>
-                <p className="text-gray-700 text-xs">{formatPaymentMethod(item.payment_method)}</p>
-              </div>
+            <div>
+              <p className="font-medium">📅 Принят:</p>
+              <p className="text-gray-700 text-xs">
+                {item.created_date ? new Date(item.created_date).toLocaleDateString('ru-RU') : 'Не указано'}
+              </p>
             </div>
           </div>
           
-          {/* Список грузов */}
           <div className="bg-gray-50 p-3 rounded-lg">
-            <h4 className="font-medium text-sm text-gray-700 mb-2 flex items-center">
-              <Package className="mr-1 h-4 w-4" />
-              Список грузов
-            </h4>
-            <div className="space-y-2">
+            <h4 className="font-medium text-sm text-gray-700 mb-2">📦 Список грузов</h4>
+            <div className="space-y-1">
               {(item.cargo_items || []).length > 0 ? (
                 item.cargo_items.map((cargoItem, index) => (
                   <div key={index} className="bg-white p-2 rounded border text-xs">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">
-                          Груз{item.cargo_number}/{String(index + 1).padStart(2, '0')} №{index + 1}
-                        </p>
-                        <p className="text-gray-600">
-                          {cargoItem.cargo_name || 'Груз'} • {cargoItem.quantity || 1}шт • {cargoItem.weight || 0}кг
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium text-blue-600">
-                          Размещено {cargoItem.placed_count || 0}/{cargoItem.quantity || 1}
-                        </p>
-                        <p className={`text-xs ${
-                          (cargoItem.placed_count || 0) === (cargoItem.quantity || 1) 
-                            ? 'text-green-600' 
-                            : (cargoItem.placed_count || 0) > 0 
-                              ? 'text-yellow-600' 
-                              : 'text-red-600'
-                        }`}>
-                          {(cargoItem.placed_count || 0) === (cargoItem.quantity || 1) 
-                            ? 'Полностью размещено' 
-                            : (cargoItem.placed_count || 0) > 0 
-                              ? 'Частично размещено' 
-                              : 'Ждёт размещение'}
-                        </p>
-                      </div>
+                    <div className="flex justify-between">
+                      <span>Груз{item.cargo_number}/{String(index + 1).padStart(2, '0')} №{index + 1}</span>
+                      <span className="font-medium text-blue-600">
+                        Размещено {cargoItem.placed_count || 0}/{cargoItem.quantity || 1}
+                      </span>
                     </div>
                   </div>
                 ))
               ) : (
                 <div className="bg-white p-2 rounded border text-xs">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Груз{item.cargo_number}/01 №1</p>
-                      <p className="text-gray-600">
-                        {item.cargo_name || 'Груз'} • 1шт • {item.weight || 0}кг
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-blue-600">Размещено 0/1</p>
-                      <p className="text-xs text-red-600">Ждёт размещение</p>
-                    </div>
+                  <div className="flex justify-between">
+                    <span>Груз{item.cargo_number}/01 №1</span>
+                    <span className="font-medium text-blue-600">Размещено 0/1</span>
                   </div>
                 </div>
               )}
             </div>
-            
-            {/* Общий прогресс */}
-            <div className="mt-3 pt-2 border-t border-gray-200">
-              <div className="flex justify-between items-center text-sm">
-                <span className="font-medium text-gray-700">Общий прогресс:</span>
-                <span className="font-bold text-blue-600">
-                  {item.placement_progress || '0/1'}
-                </span>
-              </div>
-            </div>
           </div>
           
-          {/* Кнопки действий */}
           <div className="flex flex-wrap gap-2">
-            <Button
-              onClick={() => handleViewCargo(item)}
-              variant="outline"
-              size="sm"
-              className="flex items-center text-orange-600 border-orange-300 hover:bg-orange-50"
-            >
-              <Eye className="mr-1 h-3 w-3" />
-              Просмотр
+            <Button onClick={() => handleViewCargo(item)} variant="outline" size="sm">
+              <Eye className="mr-1 h-3 w-3" />Просмотр
             </Button>
-            
-            <Button
-              onClick={() => {
-                setQrGenerateCargoNumber(item.cargo_number);
-                setShowQRGenerateModal(true);
-              }}
-              variant="outline"
-              size="sm"
-              className="flex items-center text-blue-600 border-blue-300 hover:bg-blue-50"
-            >
-              <QrCode className="mr-1 h-3 w-3" />
-              QR код
+            <Button onClick={() => openEnhancedPlacementModal(item)} size="sm" className="bg-green-600 hover:bg-green-700">
+              <Grid3X3 className="mr-1 h-3 w-3" />Разместить
             </Button>
-            
-            <Button
-              onClick={() => openEnhancedPlacementModal(item)}
-              size="sm"
-              className="bg-green-600 hover:bg-green-700 text-white flex items-center"
-            >
-              <Grid3X3 className="mr-1 h-3 w-3" />
-              Разместить
-            </Button>
-            
-            {/* НОВАЯ КНОПКА: Действия с деталями размещения */}
-            <Button
-              onClick={() => handleOpenCargoPlacementDetails(item)}
-              size="sm"
-              className="bg-purple-600 hover:bg-purple-700 text-white flex items-center"
-            >
-              <Settings className="mr-1 h-3 w-3" />
-              Действия
+            <Button onClick={() => handleOpenCargoPlacementDetails(item)} size="sm" className="bg-purple-600 hover:bg-purple-700">
+              <Settings className="mr-1 h-3 w-3" />Действия
             </Button>
           </div>
         </CardContent>
