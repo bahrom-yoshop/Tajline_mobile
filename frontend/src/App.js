@@ -30455,116 +30455,178 @@ function App() {
                 </div>
               </div>
 
-              {/* Список грузов с детальным статусом */}
+              {/* ОБНОВЛЕННЫЙ СПИСОК: Грузы с индивидуальными номерами и QR кодами */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h4 className="font-medium mb-4 text-gray-800 flex items-center">
                   <Package className="mr-2 h-5 w-5" />
-                  Грузы в заявке ({placementDetails.cargo_items?.length || 0} типов)
+                  Грузы в заявке ({placementDetails.cargo_types?.length || 0} типов)
                 </h4>
                 <div className="space-y-4">
-                  {(placementDetails.cargo_items || []).map((item, index) => (
-                    <div key={index} className="bg-white p-4 rounded-lg border">
+                  {(placementDetails.cargo_types || []).map((cargoType, typeIndex) => (
+                    <div key={typeIndex} className="bg-white p-4 rounded-lg border">
+                      {/* Заголовок типа груза */}
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <h5 className="font-medium text-lg">{item.id}</h5>
-                          <p className="text-gray-600">{item.cargo_name}</p>
+                          <h5 className="font-medium text-lg text-purple-700">
+                            📦 {cargoType.type_number} "{cargoType.cargo_name}"
+                          </h5>
                           <p className="text-sm text-gray-500">
-                            Количество: {item.quantity} шт • Вес: {item.weight} кг • Сумма: {item.total_amount} ₽
+                            Количество: {cargoType.quantity} шт • Вес: {cargoType.weight} кг • Сумма: {cargoType.total_amount} ₽
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-xl text-blue-600">
-                            {item.placed_count}/{item.quantity}
+                            {cargoType.placed_count}/{cargoType.quantity}
                           </p>
                           <p className={`text-sm font-medium ${
-                            item.placement_status === 'fully_placed' ? 'text-green-600' :
-                            item.placement_status === 'partially_placed' ? 'text-yellow-600' :
+                            cargoType.placement_status === 'fully_placed' ? 'text-green-600' :
+                            cargoType.placement_status === 'partially_placed' ? 'text-yellow-600' :
                             'text-red-600'
                           }`}>
-                            {item.placement_status_label}
+                            {cargoType.placement_status_label}
                           </p>
                         </div>
                       </div>
 
-                      {/* Статус размещения для каждого груза */}
-                      <div className="space-y-2">
-                        <h6 className="font-medium text-sm text-gray-700">Статус размещения:</h6>
+                      {/* НОВОЕ: Индивидуальные единицы груза */}
+                      <div className="space-y-3">
+                        <h6 className="font-medium text-sm text-gray-700 border-b pb-1">
+                          Индивидуальные единицы груза:
+                        </h6>
                         
-                        {item.placed_locations && item.placed_locations.length > 0 ? (
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium text-green-600">✅ Размещенные единицы:</p>
-                            {item.placed_locations.map((location, locIndex) => (
-                              <div key={locIndex} className="bg-green-50 p-3 rounded border-l-4 border-green-400">
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                                  <div>
-                                    <span className="font-medium">Блок:</span> {location.block_number || 'Не указан'}
+                        <div className="grid gap-3">
+                          {(cargoType.individual_units || []).map((unit, unitIndex) => (
+                            <div 
+                              key={unitIndex} 
+                              className={`p-3 rounded-lg border-l-4 ${
+                                unit.is_placed 
+                                  ? 'bg-green-50 border-green-400' 
+                                  : 'bg-red-50 border-red-400'
+                              }`}
+                            >
+                              <div className="flex justify-between items-start">
+                                {/* Информация о единице */}
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-2">
+                                    <span className={`font-mono font-bold ${
+                                      unit.is_placed ? 'text-green-700' : 'text-red-700'
+                                    }`}>
+                                      {unit.individual_number}
+                                    </span>
+                                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                      unit.is_placed 
+                                        ? 'bg-green-100 text-green-800' 
+                                        : 'bg-red-100 text-red-800'
+                                    }`}>
+                                      {unit.status_label}
+                                    </span>
                                   </div>
-                                  <div>
-                                    <span className="font-medium">Полка:</span> {location.shelf_number || 'Не указан'}
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">Ячейка:</span> {location.cell_number || 'Не указан'}
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">Размещено:</span> {
-                                      location.placed_at ? new Date(location.placed_at).toLocaleDateString('ru-RU') : 'Не указано'
-                                    }
-                                  </div>
+                                  
+                                  {/* Информация о размещении */}
+                                  {unit.is_placed && unit.placement_info ? (
+                                    <div className="mt-2 text-sm text-gray-600">
+                                      <p>
+                                        📍 <strong>Размещено:</strong> Блок {unit.placement_info.block_number}, 
+                                        Полка {unit.placement_info.shelf_number}, 
+                                        Ячейка {unit.placement_info.cell_number}
+                                      </p>
+                                      {unit.placement_info.placed_at && (
+                                        <p>
+                                          🕒 <strong>Дата:</strong> {new Date(unit.placement_info.placed_at).toLocaleDateString('ru-RU')}
+                                        </p>
+                                      )}
+                                      {unit.placement_info.placed_by && (
+                                        <p>
+                                          👤 <strong>Оператор:</strong> {unit.placement_info.placed_by}
+                                        </p>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <p className="mt-2 text-sm text-red-600">
+                                      ⏳ Ожидает размещения на складе
+                                    </p>
+                                  )}
                                 </div>
-                                {location.placed_by && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Оператор: {location.placed_by}
-                                  </p>
-                                )}
+
+                                {/* Кнопки действий для каждой единицы */}
+                                <div className="flex flex-col gap-1 ml-4">
+                                  <Button
+                                    onClick={() => handleGenerateIndividualQR(unit.individual_number, cargoType.cargo_name)}
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-blue-600 border-blue-300 hover:bg-blue-50 text-xs"
+                                  >
+                                    <QrCode className="mr-1 h-3 w-3" />
+                                    QR код
+                                  </Button>
+                                  
+                                  <Button
+                                    onClick={() => handlePrintIndividualQR(unit.individual_number, cargoType.cargo_name)}
+                                    size="sm"
+                                    variant="outline" 
+                                    className="text-orange-600 border-orange-300 hover:bg-orange-50 text-xs"
+                                  >
+                                    <Printer className="mr-1 h-3 w-3" />
+                                    Печать
+                                  </Button>
+
+                                  {!unit.is_placed && (
+                                    <Button
+                                      onClick={() => {
+                                        setShowPlacementDetailsModal(false);
+                                        openEnhancedPlacementModal(selectedCargoForDetails);
+                                      }}
+                                      size="sm"
+                                      className="bg-green-600 hover:bg-green-700 text-xs"
+                                    >
+                                      <Grid3X3 className="mr-1 h-3 w-3" />
+                                      Разместить
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="bg-red-50 p-3 rounded border-l-4 border-red-400">
-                            <p className="text-sm text-red-700">❌ Груз не размещен</p>
-                            <p className="text-xs text-gray-500 mt-1">Статус: Ждёт размещение</p>
-                          </div>
-                        )}
+                            </div>
+                          ))}
+                        </div>
 
-                        {/* Показываем сколько единиц еще нужно разместить */}
-                        {item.remaining_count > 0 && (
-                          <div className="bg-yellow-50 p-3 rounded border-l-4 border-yellow-400">
-                            <p className="text-sm text-yellow-700">
-                              ⏳ Осталось разместить: {item.remaining_count} из {item.quantity} единиц
-                            </p>
-                          </div>
-                        )}
-                      </div>
+                        {/* Массовые действия для типа груза */}
+                        <div className="mt-4 pt-3 border-t border-gray-200">
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              onClick={() => handleGenerateMassQRForType(cargoType)}
+                              variant="outline"
+                              size="sm"
+                              className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                            >
+                              <QrCode className="mr-1 h-3 w-3" />
+                              QR для всех ({cargoType.quantity} шт)
+                            </Button>
+                            
+                            <Button
+                              onClick={() => handlePrintMassQRForType(cargoType)}
+                              variant="outline"
+                              size="sm"
+                              className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                            >
+                              <Printer className="mr-1 h-3 w-3" />
+                              Печать всех QR
+                            </Button>
 
-                      {/* Кнопки действий для конкретного груза */}
-                      <div className="flex gap-2 mt-4">
-                        {item.remaining_count > 0 && (
-                          <Button
-                            onClick={() => {
-                              // Переход к размещению конкретного груза
-                              setShowPlacementDetailsModal(false);
-                              openEnhancedPlacementModal(selectedCargoForDetails);
-                            }}
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <Grid3X3 className="mr-1 h-3 w-3" />
-                            Разместить оставшиеся
-                          </Button>
-                        )}
-                        
-                        <Button
-                          onClick={() => {
-                            setQrGenerateCargoNumber(selectedCargoForDetails.cargo_number);
-                            setShowQRGenerateModal(true);
-                          }}
-                          variant="outline"
-                          size="sm"
-                          className="text-blue-600 border-blue-300 hover:bg-blue-50"
-                        >
-                          <QrCode className="mr-1 h-3 w-3" />
-                          QR код
-                        </Button>
+                            {cargoType.remaining_count > 0 && (
+                              <Button
+                                onClick={() => {
+                                  setShowPlacementDetailsModal(false);
+                                  openEnhancedPlacementModal(selectedCargoForDetails);
+                                }}
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                <Grid3X3 className="mr-1 h-3 w-3" />
+                                Разместить оставшиеся ({cargoType.remaining_count})
+                              </Button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
