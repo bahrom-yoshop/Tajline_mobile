@@ -12015,7 +12015,7 @@ function App() {
   };
 
   // УЛУЧШЕННАЯ ФУНКЦИЯ: Скачивание QR кодов
-  const downloadQRCodes = async (qrCodes) => {
+  const downloadQRCodes = (qrCodes) => {
     try {
       if (!qrCodes || qrCodes.length === 0) {
         showAlert('Нет QR кодов для скачивания', 'warning');
