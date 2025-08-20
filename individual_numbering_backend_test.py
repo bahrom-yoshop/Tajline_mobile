@@ -339,9 +339,13 @@ class IndividualNumberingTester:
             
             if warehouses_response.status_code == 200:
                 warehouses_data = warehouses_response.json()
-                warehouses = warehouses_data.get('warehouses', [])
-                if warehouses:
-                    warehouse_id = warehouses[0].get('id')
+                # Проверяем разные возможные структуры ответа
+                if isinstance(warehouses_data, list) and warehouses_data:
+                    warehouse_id = warehouses_data[0].get('id')
+                elif isinstance(warehouses_data, dict):
+                    warehouses = warehouses_data.get('warehouses', [])
+                    if warehouses:
+                        warehouse_id = warehouses[0].get('id')
             
             if not warehouse_id:
                 # Используем тестовый ID если не удалось получить реальный
