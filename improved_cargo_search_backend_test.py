@@ -470,6 +470,7 @@ class ImprovedCargoSearchTester:
             
             placement_data = {
                 "individual_number": individual_number,
+                "warehouse_id": self.warehouse_id,  # Добавляем обязательное поле
                 "block_number": 1,
                 "shelf_number": 1,
                 "cell_number": 1
@@ -491,7 +492,7 @@ class ImprovedCargoSearchTester:
                 )
                 return True
             else:
-                self.log_test("API place-individual", False, error=f"HTTP {response.status_code}")
+                self.log_test("API place-individual", False, error=f"HTTP {response.status_code}: {response.text}")
                 return False
                 
         except Exception as e:
