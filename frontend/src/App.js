@@ -3172,7 +3172,7 @@ function App() {
   const handleGenerateCargoNumberQR = async () => {
     try {
       setCargoNumberQRLoading(true);
-      console.log('🎯 Генерация QR кода для номера заявки из формы приема груза');
+      console.log('🎯 Генерация продвинутого QR кода для номера заявки из формы приема груза');
 
       // Генерируем номер заявки (6-значный номер)
       const today = new Date();
@@ -3185,18 +3185,29 @@ function App() {
       
       console.log(`📦 Сгенерированный номер заявки: ${baseNumber}`);
 
-      // Создаем QR код только для номера заявки
-      const qrCodeImage = await generateActualQRCode(baseNumber, 300);
+      // Создаем структурированные данные для QR кода заявки
+      const requestData = {
+        cargo_number: baseNumber,
+        sender_full_name: operatorCargoForm.sender_full_name || 'Не указан',
+        recipient_full_name: operatorCargoForm.recipient_full_name || 'Не указан',
+        recipient_address: operatorCargoForm.recipient_address || 'Не указан',
+        cargo_count: operatorCargoForm.cargo_items?.length || 1,
+        generated_at: new Date().toISOString()
+      };
+
+      // Создаем QR код с улучшенным форматом для заявки
+      const qrCodeImage = await generateActualQRCode(requestData, 300, 'cargo_request');
 
       setCargoNumberQRCode({
         number: baseNumber,
         image: qrCodeImage,
-        generated_at: new Date().toLocaleString('ru-RU')
+        generated_at: new Date().toLocaleString('ru-RU'),
+        request_data: requestData
       });
       setShowCargoNumberQRModal(true);
 
-      console.log('✅ QR код номера заявки сгенерирован успешно');
-      showAlert(`QR код для номера заявки ${baseNumber} готов!`, 'success');
+      console.log('✅ Продвинутый QR код номера заявки сгенерирован успешно');
+      showAlert(`Продвинутый QR код для заявки ${baseNumber} готов!`, 'success');
 
     } catch (error) {
       console.error('❌ Ошибка генерации QR кода номера заявки:', error);
