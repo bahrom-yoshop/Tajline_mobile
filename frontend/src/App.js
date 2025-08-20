@@ -18362,7 +18362,7 @@ function App() {
                     </Card>
                   )}
 
-                  {/* Список грузов */}}
+                  {/* Список грузов */}
                   {(activeTab === 'cargo-list' || !activeTab || activeTab === 'cargo-management') && (
                     <Card>
                       <CardHeader>
