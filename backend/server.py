@@ -6046,6 +6046,71 @@ async def get_cargo_placement_status(
             detail=f"Ошибка получения статуса размещения: {str(e)}"
         )
 
+@app.post("/api/operator/cargo/{cargo_id}/update-placement-status")
+async def update_cargo_placement_status(
+    cargo_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    НОВЫЙ ENDPOINT: Обновление статуса размещения заявки и автоматическое перемещение
+    Проверяет статус размещения всех грузов в заявке и перемещает в "Список грузов" если все размещены
+    """
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        # Получаем статус размещения
+        placement_status_response = await get_cargo_placement_status(cargo_id, current_user)
+        
+        # Если все грузы размещены, обновляем статус и перемещаем
+        if placement_status_response['overall_status'] == 'fully_placed':
+            # Ищем заявку
+            cargo = db.operator_cargo.find_one({"id": cargo_id})
+            collection = db.operator_cargo
+            
+            if not cargo:
+                cargo = db.cargo.find_one({"id": cargo_id})
+                collection = db.cargo
+                
+            if not cargo:
+                raise HTTPException(status_code=404, detail="Cargo not found")
+                
+            # Обновляем статус на "размещено на складе"
+            update_data = {
+                "status": "placed_in_warehouse",
+                "processing_status": "placed",
+                "placement_completed_at": datetime.utcnow(),
+                "placement_completed_by": current_user.id,
+                "updated_at": datetime.utcnow()
+            }
+            
+            collection.update_one({"id": cargo_id}, {"$set": update_data})
+            
+            print(f"✅ Заявка {cargo.get('cargo_number')} полностью размещена и перемещена в список грузов")
+            
+            return {
+                "message": f"Заявка {cargo.get('cargo_number')} полностью размещена и перемещена в список грузов",
+                "cargo_number": cargo.get('cargo_number'),
+                "placement_status": "fully_placed",
+                "moved_to_cargo_list": True
+            }
+        else:
+            return {
+                "message": f"Заявка {placement_status_response.get('cargo_number')} еще не полностью размещена",
+                "cargo_number": placement_status_response.get('cargo_number'),
+                "placement_progress": placement_status_response['placement_progress'],
+                "placement_status": placement_status_response['overall_status'],
+                "moved_to_cargo_list": False
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка обновления статуса размещения: {str(e)}"
+        )
+
 # НОВОЕ: Endpoint для массового удаления грузов из списка размещения
 @app.delete("/api/operator/cargo/bulk-remove-from-placement")
 async def bulk_remove_cargo_from_placement(
