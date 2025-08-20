@@ -11851,32 +11851,24 @@ function App() {
   // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Генерация настоящих QR кодов с использованием qrcode библиотеки
   const generateActualQRCode = async (data, size = 200) => {
     try {
-      // Используем внешнюю библиотеку QRCode для создания настоящих QR кодов
-      const QRCode = window.QRCode;
-      
-      if (!QRCode) {
-        // Если библиотека не загружена, создаем простой QR код вручную
+      // Используем глобальную QRCode библиотеку
+      if (window.QRCode && window.QRCode.toDataURL) {
+        // Генерируем QR код как Data URL
+        const qrDataURL = await window.QRCode.toDataURL(data, {
+          width: size,
+          height: size,
+          margin: 2,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+          },
+          errorCorrectionLevel: 'M'
+        });
+        return qrDataURL;
+      } else {
+        console.warn('QRCode library not loaded, using fallback');
         return await generateSimpleQRCode(data, size);
       }
-      
-      // Создаем canvas
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = size;
-      canvas.height = size;
-      
-      // Генерируем QR код с помощью библиотеки
-      await QRCode.toCanvas(canvas, data, {
-        width: size,
-        height: size,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      });
-      
-      return canvas.toDataURL('image/png');
     } catch (error) {
       console.error('Error generating QR code:', error);
       return await generateSimpleQRCode(data, size);
