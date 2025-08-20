@@ -17944,7 +17944,7 @@ function App() {
                                       if (filteredCities.length > 0) setShowCityDropdown(true);
                                     }}
                                     placeholder="Начните вводить название города..."
-                                    className="w-full"
+                                    className="w-full xl:h-12 xl:text-base"
                                     required
                                   />
                                   
