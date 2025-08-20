@@ -386,7 +386,91 @@ class TajlineBackendTester:
             )
             return False
 
-    def test_cargo_number_generation_uniqueness(self):
+    def test_cargo_items_saved_in_database(self):
+        """8. ПРОВЕРКА СОХРАНЕНИЯ CARGO_ITEMS В БАЗЕ ДАННЫХ"""
+        print("💾 ТЕСТИРОВАНИЕ СОХРАНЕНИЯ cargo_items в базе данных...")
+        
+        try:
+            if not hasattr(self, 'test_cargo_number') or not self.test_cargo_number:
+                self.log_test(
+                    "Проверка сохранения cargo_items в базе данных",
+                    False,
+                    error="Не удалось получить номер груза из предыдущего теста"
+                )
+                return False
+            
+            # Используем админский токен для прямого доступа к данным
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            
+            # Попробуем получить груз через админский endpoint
+            response = self.session.get(f"{self.backend_url}/cargo/all", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                cargo_list = data.get("items", data) if isinstance(data, dict) else data
+                
+                # Ищем наш тестовый груз
+                test_cargo = None
+                for cargo in cargo_list:
+                    if cargo.get("cargo_number") == self.test_cargo_number:
+                        test_cargo = cargo
+                        break
+                
+                if test_cargo:
+                    cargo_items = test_cargo.get("cargo_items")
+                    has_quantity_field = False
+                    
+                    details = f"Груз {self.test_cargo_number} найден в базе данных. "
+                    
+                    if cargo_items:
+                        details += f"cargo_items присутствует ({len(cargo_items)} элементов). "
+                        
+                        # Проверяем структуру первого элемента
+                        if cargo_items and len(cargo_items) > 0:
+                            first_item = cargo_items[0]
+                            item_fields = list(first_item.keys())
+                            details += f"Поля первого элемента: {item_fields}. "
+                            
+                            # Проверяем наличие поля quantity
+                            if "quantity" in first_item:
+                                has_quantity_field = True
+                                details += f"Поле 'quantity' найдено: {first_item['quantity']}. "
+                            
+                            # Проверяем другие обязательные поля
+                            required_fields = ["cargo_name", "weight", "price_per_kg"]
+                            present_fields = [field for field in required_fields if field in first_item]
+                            details += f"Обязательные поля: {present_fields}"
+                    else:
+                        details += "cargo_items отсутствует в сохраненном грузе"
+                    
+                    self.log_test(
+                        "Проверка сохранения cargo_items в базе данных",
+                        cargo_items is not None,
+                        details
+                    )
+                    return cargo_items is not None
+                else:
+                    self.log_test(
+                        "Проверка сохранения cargo_items в базе данных",
+                        False,
+                        error=f"Груз {self.test_cargo_number} не найден в базе данных"
+                    )
+                    return False
+            else:
+                self.log_test(
+                    "Проверка сохранения cargo_items в базе данных",
+                    False,
+                    error=f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test(
+                "Проверка сохранения cargo_items в базе данных",
+                False,
+                error=str(e)
+            )
+            return False
         """8. ПРОВЕРКА УНИКАЛЬНОСТИ ГЕНЕРАЦИИ НОМЕРОВ ГРУЗА ДЛЯ КАЖДОЙ ЕДИНИЦЫ"""
         print("🔢 ТЕСТИРОВАНИЕ УНИКАЛЬНОСТИ ГЕНЕРАЦИИ cargo_number для каждой единицы...")
         
