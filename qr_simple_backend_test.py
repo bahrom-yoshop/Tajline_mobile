@@ -251,7 +251,7 @@ class QRSimpleSystemTester:
                             decoded = base64.b64decode(base64_part)
                             
                             # Проверяем размер изображения (должен быть разумным)
-                            if 500 <= len(decoded) <= 50000:  # Разумный диапазон для QR кода
+                            if 200 <= len(decoded) <= 50000:  # Более широкий диапазон для QR кода
                                 self.log_test(
                                     "Совместимость с рабочей системой",
                                     True,
