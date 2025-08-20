@@ -225,7 +225,7 @@ class QRSystemTester:
             
             if response.status_code == 200:
                 data = response.json()
-                cargo_list = data.get("cargo", [])
+                cargo_list = data.get("items", [])
                 
                 if not cargo_list:
                     self.log_test(
