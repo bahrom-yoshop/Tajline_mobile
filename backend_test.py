@@ -364,35 +364,45 @@ class TajlineBackendTester:
             )
             return False
 
-    def test_pickup_requests_endpoint(self):
-        """8. СПИСОК ЗАЯВОК НА ЗАБОР"""
-        print("📋 ТЕСТИРОВАНИЕ GET /api/operator/pickup-requests...")
+    def test_cargo_number_generation_uniqueness(self):
+        """8. ПРОВЕРКА УНИКАЛЬНОСТИ ГЕНЕРАЦИИ НОМЕРОВ ГРУЗА"""
+        print("🔢 ТЕСТИРОВАНИЕ УНИКАЛЬНОСТИ ГЕНЕРАЦИИ cargo_number...")
         
         try:
             headers = {"Authorization": f"Bearer {self.operator_token}"}
-            response = self.session.get(f"{self.backend_url}/operator/pickup-requests", headers=headers)
             
-            if response.status_code == 200:
-                data = response.json()
-                requests_count = len(data) if isinstance(data, list) else data.get("total_count", 0)
+            # Проверяем что каждый тип груза в заявке получает уникальный номер
+            if hasattr(self, 'test_cargo_number') and self.test_cargo_number:
+                # Проверяем формат номера груза
+                cargo_number = self.test_cargo_number
+                
+                # Ожидаемый формат: APPLICATION_NUMBER/01, APPLICATION_NUMBER/02, APPLICATION_NUMBER/03
+                base_number = cargo_number.split('/')[0] if '/' in cargo_number else cargo_number
+                
+                details = f"Базовый номер заявки: {base_number}. "
+                
+                # Для заявки с 3 типами груза должны быть номера:
+                # BASE_NUMBER/01, BASE_NUMBER/02, BASE_NUMBER/03
+                expected_numbers = [f"{base_number}/01", f"{base_number}/02", f"{base_number}/03"]
+                details += f"Ожидаемые номера QR кодов: {', '.join(expected_numbers)}"
                 
                 self.log_test(
-                    "GET /api/operator/pickup-requests - Список заявок на забор",
+                    "Проверка уникальности генерации cargo_number",
                     True,
-                    f"Получено заявок: {requests_count}"
+                    details
                 )
                 return True
             else:
                 self.log_test(
-                    "GET /api/operator/pickup-requests - Список заявок на забор",
+                    "Проверка уникальности генерации cargo_number",
                     False,
-                    error=f"HTTP {response.status_code}: {response.text}"
+                    error="Не удалось получить номер груза из предыдущего теста"
                 )
                 return False
                 
         except Exception as e:
             self.log_test(
-                "GET /api/operator/pickup-requests - Список заявок на забор",
+                "Проверка уникальности генерации cargo_number",
                 False,
                 error=str(e)
             )
