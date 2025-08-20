@@ -18388,7 +18388,7 @@ function App() {
                                   disabled={bulkDeleteLoading}
                                   className="text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
                                 >
-                                  {bulkActionLoading ? (
+                                  {bulkDeleteLoading ? (
                                     <>
                                       <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600 mr-1"></div>
                                       Удаление...
