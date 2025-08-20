@@ -5137,6 +5137,11 @@ function App() {
   const [scannerAutoFocusTarget, setScannerAutoFocusTarget] = useState(null);
   const [scannerClickProtection, setScannerClickProtection] = useState(false);
   
+  // ФАЗА 4: Новые состояния для автоматических переходов без курсора
+  const [scannerAutoTransition, setScannerAutoTransition] = useState(false);
+  const [scannerCompletionCount, setScannerCompletionCount] = useState(0);
+  const [scannerAutoReset, setScannerAutoReset] = useState(false);
+  
   // Состояния для камеры - разделены для каждого сканера
   const [html5QrCode, setHtml5QrCode] = useState(null);  // Основной сканер
   const [html5QrCodePlacement, setHtml5QrCodePlacement] = useState(null);  // Сканер размещения
