@@ -31047,7 +31047,7 @@ function App() {
               {/* Общая информация о заявке */}
               <div className="bg-blue-50 p-4 rounded-lg">
                 <h4 className="font-medium mb-3 text-gray-800">📋 Информация о заявке</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
                   <div>
                     <span className="font-medium text-gray-600">Номер заявки:</span>
                     <p>№{selectedCargoForDetails.cargo_number}</p>
@@ -31062,6 +31062,90 @@ function App() {
                     <p>{selectedCargoForDetails.recipient_full_name}</p>
                     <p className="text-gray-500">{selectedCargoForDetails.recipient_phone}</p>
                   </div>
+                  
+                  {/* НОВОЕ: Способ получения груза */}
+                  <div>
+                    <span className="font-medium text-gray-600">Способ получения:</span>
+                    <p className="font-semibold text-green-600">
+                      {selectedCargoForDetails.delivery_method === 'pickup' ? '🏪 Самовывоз' :
+                       selectedCargoForDetails.delivery_method === 'city_delivery' ? '🚚 Доставка до города' :
+                       selectedCargoForDetails.delivery_method === 'home_delivery' ? '🏠 Доставка до дома' :
+                       selectedCargoForDetails.delivery_method || 'Не указан'}
+                    </p>
+                  </div>
+                  
+                  {/* НОВОЕ: Способ оплаты */}
+                  <div>
+                    <span className="font-medium text-gray-600">Способ оплаты:</span>
+                    <p className="font-semibold text-blue-600">
+                      {selectedCargoForDetails.payment_method === 'cash' ? '💸 Наличными' :
+                       selectedCargoForDetails.payment_method === 'card' ? '💳 Картой' :
+                       selectedCargoForDetails.payment_method === 'transfer' ? '🏦 Переводом' :
+                       selectedCargoForDetails.payment_method === 'debt' ? '📋 В долг' :
+                       selectedCargoForDetails.payment_method === 'not_paid' ? '⏳ Не оплачено' :
+                       selectedCargoForDetails.payment_method || 'Не указан'}
+                    </p>
+                  </div>
+                  
+                  {/* НОВОЕ: Город получения груза */}
+                  <div>
+                    <span className="font-medium text-gray-600">Город получения:</span>
+                    <p className="font-semibold text-purple-600">
+                      🏙️ {selectedCargoForDetails.delivery_city || selectedCargoForDetails.recipient_address?.split(',')[0] || 'Не указан'}
+                    </p>
+                  </div>
+                  
+                  {/* НОВОЕ: Склад который принял груз */}
+                  <div>
+                    <span className="font-medium text-gray-600">Склад приема:</span>
+                    <p className="font-semibold text-indigo-600">
+                      🏭 {selectedCargoForDetails.source_warehouse_name || 
+                           selectedCargoForDetails.warehouse_name || 
+                           'Не указан'}
+                    </p>
+                  </div>
+                  
+                  {/* НОВОЕ: Склад который будет выдавать груз */}
+                  <div>
+                    <span className="font-medium text-gray-600">Склад выдачи:</span>
+                    <p className="font-semibold text-teal-600">
+                      🏪 {selectedCargoForDetails.target_warehouse_name || 
+                           selectedCargoForDetails.delivery_warehouse_name || 
+                           'Не указан'}
+                    </p>
+                  </div>
+                  
+                  {/* НОВОЕ: Информация об операторе */}
+                  <div>
+                    <span className="font-medium text-gray-600">Оператор приема:</span>
+                    <p className="font-semibold text-green-600">
+                      👤 {selectedCargoForDetails.operator_name || 
+                           selectedCargoForDetails.created_by || 
+                           user?.full_name || 
+                           'Не указан'}
+                    </p>
+                    {(selectedCargoForDetails.operator_phone || user?.phone) && (
+                      <p className="text-gray-500 text-xs">
+                        {selectedCargoForDetails.operator_phone || user?.phone}
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Дата создания заявки */}
+                  <div>
+                    <span className="font-medium text-gray-600">Дата приема:</span>
+                    <p className="font-semibold text-gray-700">
+                      📅 {selectedCargoForDetails.created_date ? 
+                          new Date(selectedCargoForDetails.created_date).toLocaleDateString('ru-RU') : 
+                          'Не указана'} 
+                      {selectedCargoForDetails.created_date && (
+                        <span className="text-xs text-gray-500 block">
+                          в {new Date(selectedCargoForDetails.created_date).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  
                   <div>
                     <span className="font-medium text-gray-600">Общий прогресс:</span>
                     <p className="font-bold text-blue-600 text-lg">
