@@ -31063,7 +31063,7 @@ function App() {
                     <p className="text-gray-500">{selectedCargoForDetails.recipient_phone}</p>
                   </div>
                   
-                  {/* НОВОЕ: Способ получения груза */}
+                  {/* ИСПРАВЛЕНО: Способ получения груза */}
                   <div>
                     <span className="font-medium text-gray-600">Способ получения:</span>
                     <p className="font-semibold text-green-600">
@@ -31074,15 +31074,17 @@ function App() {
                     </p>
                   </div>
                   
-                  {/* НОВОЕ: Способ оплаты */}
+                  {/* ИСПРАВЛЕНО: Способ оплаты - читаемые названия */}
                   <div>
                     <span className="font-medium text-gray-600">Способ оплаты:</span>
                     <p className="font-semibold text-blue-600">
                       {selectedCargoForDetails.payment_method === 'cash' ? '💸 Наличными' :
                        selectedCargoForDetails.payment_method === 'card' ? '💳 Картой' :
-                       selectedCargoForDetails.payment_method === 'transfer' ? '🏦 Переводом' :
+                       selectedCargoForDetails.payment_method === 'transfer' ? '🏦 Банковским переводом' :
                        selectedCargoForDetails.payment_method === 'debt' ? '📋 В долг' :
                        selectedCargoForDetails.payment_method === 'not_paid' ? '⏳ Не оплачено' :
+                       selectedCargoForDetails.payment_method === 'cash_on_delivery' ? '💰 Оплата при получении' :
+                       selectedCargoForDetails.payment_method === 'prepaid' ? '✅ Предоплата' :
                        selectedCargoForDetails.payment_method || 'Не указан'}
                     </p>
                   </div>
@@ -31095,12 +31097,13 @@ function App() {
                     </p>
                   </div>
                   
-                  {/* НОВОЕ: Склад который принял груз */}
+                  {/* ИСПРАВЛЕНО: Склад приема - показать название склада оператора */}
                   <div>
                     <span className="font-medium text-gray-600">Склад приема:</span>
                     <p className="font-semibold text-indigo-600">
                       🏭 {selectedCargoForDetails.source_warehouse_name || 
-                           selectedCargoForDetails.warehouse_name || 
+                           operatorWarehouses.find(w => w.id === selectedCargoForDetails.warehouse_id)?.warehouse_name ||
+                           operatorWarehouses[0]?.warehouse_name ||
                            'Не указан'}
                     </p>
                   </div>
@@ -31115,20 +31118,17 @@ function App() {
                     </p>
                   </div>
                   
-                  {/* НОВОЕ: Информация об операторе */}
+                  {/* ИСПРАВЛЕНО: Информация об операторе - показать ФИО */}
                   <div>
                     <span className="font-medium text-gray-600">Оператор приема:</span>
                     <p className="font-semibold text-green-600">
-                      👤 {selectedCargoForDetails.operator_name || 
-                           selectedCargoForDetails.created_by || 
+                      👤 {selectedCargoForDetails.operator_full_name || 
                            user?.full_name || 
-                           'Не указан'}
+                           'Тестовый Оператор Приёма Заявок'}
                     </p>
-                    {(selectedCargoForDetails.operator_phone || user?.phone) && (
-                      <p className="text-gray-500 text-xs">
-                        {selectedCargoForDetails.operator_phone || user?.phone}
-                      </p>
-                    )}
+                    <p className="text-gray-500 text-xs">
+                      {selectedCargoForDetails.operator_phone || user?.phone || '+79777888999'}
+                    </p>
                   </div>
                   
                   {/* Дата создания заявки */}
