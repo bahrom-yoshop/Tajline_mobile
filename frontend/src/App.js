@@ -31828,6 +31828,81 @@ function App() {
                 </div>
               </div>
 
+              {/* НОВОЕ: Сводка размещенных мест */}
+              {placementDetails.overall_status === 'partially_placed' || placementDetails.overall_status === 'fully_placed' ? (
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border border-green-200">
+                  <h4 className="font-medium mb-3 text-gray-800 flex items-center">
+                    <Grid3X3 className="mr-2 h-5 w-5 text-green-600" />
+                    Сводка размещенных мест
+                  </h4>
+                  
+                  {(() => {
+                    // Собираем информацию о всех размещенных местах
+                    const placedLocations = [];
+                    (placementDetails.cargo_types || []).forEach(cargoType => {
+                      (cargoType.individual_units || []).forEach(unit => {
+                        if (unit.is_placed && unit.placement_info) {
+                          placedLocations.push({
+                            individual_number: unit.individual_number,
+                            cargo_name: cargoType.cargo_name,
+                            location: `Б${unit.placement_info.block_number}-П${unit.placement_info.shelf_number}-Я${unit.placement_info.cell_number}`,
+                            placed_at: unit.placement_info.placed_at
+                          });
+                        }
+                      });
+                    });
+                    
+                    // Группируем по местоположению
+                    const locationGroups = placedLocations.reduce((groups, item) => {
+                      if (!groups[item.location]) {
+                        groups[item.location] = [];
+                      }
+                      groups[item.location].push(item);
+                      return groups;
+                    }, {});
+                    
+                    return (
+                      <div className="grid gap-3">
+                        {Object.entries(locationGroups).length === 0 ? (
+                          <p className="text-gray-500 text-center py-4">Нет размещенных грузов</p>
+                        ) : (
+                          Object.entries(locationGroups).map(([location, items]) => (
+                            <div key={location} className="bg-white p-3 rounded-lg border">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-semibold text-lg text-blue-700 bg-blue-100 px-3 py-1 rounded-md">
+                                  📍 {location}
+                                </span>
+                                <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                                  {items.length} {items.length === 1 ? 'единица' : items.length < 5 ? 'единицы' : 'единиц'}
+                                </span>
+                              </div>
+                              
+                              <div className="flex flex-wrap gap-1">
+                                {items.map((item, index) => (
+                                  <span 
+                                    key={index} 
+                                    className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded"
+                                    title={`${item.cargo_name} - ${item.individual_number}`}
+                                  >
+                                    {item.individual_number.split('/').slice(-1)[0]}
+                                  </span>
+                                ))}
+                              </div>
+                              
+                              {items[0]?.placed_at && (
+                                <div className="text-xs text-gray-500 mt-2">
+                                  🕒 Размещено: {new Date(items[0].placed_at).toLocaleDateString('ru-RU')}
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : null}
+
               {/* ОБНОВЛЕННЫЙ СПИСОК: Грузы с индивидуальными номерами и QR кодами */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h4 className="font-medium mb-4 text-gray-800 flex items-center">
