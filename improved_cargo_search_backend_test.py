@@ -475,7 +475,8 @@ class ImprovedCargoSearchTester:
                 self.log_test("Тестирование сценариев поиска", False, error="Не удалось получить список грузов")
                 return False
             
-            available_cargos = response.json()
+            data = response.json()
+            available_cargos = data.get("items", []) if isinstance(data, dict) else data
             
             # Тестируем СЦЕНАРИЙ 1: Поиск простого груза по номеру
             scenario_1_success = 0
@@ -505,8 +506,13 @@ class ImprovedCargoSearchTester:
                 
                 # Проверяем, что заявка найдена и имеет individual_items
                 found_cargo = next((cargo for cargo in available_cargos if cargo.get("cargo_number") == base_number), None)
-                if found_cargo and found_cargo.get("individual_items"):
-                    scenario_3_success = 1
+                if found_cargo and found_cargo.get("cargo_items"):
+                    # Проверяем наличие individual_items внутри cargo_items
+                    has_individual_items = any(
+                        item.get("individual_items") for item in found_cargo.get("cargo_items", [])
+                    )
+                    if has_individual_items:
+                        scenario_3_success = 1
             
             total_scenarios = 3
             successful_scenarios = (1 if scenario_1_success > 0 else 0) + scenario_2_success + scenario_3_success
