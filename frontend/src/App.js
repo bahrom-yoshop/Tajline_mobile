@@ -17797,6 +17797,7 @@ function App() {
                                       <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500 h-12 flex items-center">
                                         {!selectedDeliveryCity 
                                           ? 'Сначала выберите город' 
+                                          : availableWarehousesForCity.length === 0
                                             ? 'Нет доступных складов для выбранного города' 
                                             : 'Загрузка складов...'}
                                       </div>
