@@ -4417,9 +4417,29 @@ function App() {
         // ФАЗА 4: АВТОМАТИЧЕСКИЕ ПЕРЕХОДЫ - улучшенный переход к сканированию ячейки
         setExternalScannerStep('cell');
         setScannerAutoFocusTarget('cell');
-        setScannerMessage(`📍 Отсканируйте QR код ячейки для размещения ${foundIndividualUnit ? 
-          `единицы ${extractedData.full_number}` : 
-          `груза ${foundCargo.cargo_number}`}`);
+        // ЭТАП 3: Улучшенное сообщение для размещения с типом QR кода
+        let placementMessage = '';
+        
+        if (foundIndividualUnit) {
+          switch (foundIndividualUnit.search_type) {
+            case 'UNIT_IN_CARGO_TYPE':
+              placementMessage = `📍 Отсканируйте QR код ячейки для размещения единицы ${extractedData.unit_number} груза типа ${extractedData.cargo_type} из заявки ${extractedData.request_number}`;
+              break;
+            case 'CARGO_IN_REQUEST':
+              placementMessage = `📍 Отсканируйте QR код ячейки для размещения груза типа ${extractedData.cargo_type} из заявки ${extractedData.request_number}`;
+              break;
+            default:
+              placementMessage = `📍 Отсканируйте QR код ячейки для размещения единицы ${extractedData.full_number}`;
+          }
+        } else {
+          if (extractedData.type === 'SIMPLE_CARGO') {
+            placementMessage = `📍 Отсканируйте QR код ячейки для размещения простого груза ${extractedData.cargo_number}`;
+          } else {
+            placementMessage = `📍 Отсканируйте QR код ячейки для размещения груза ${foundCargo.cargo_number}`;
+          }
+        }
+        
+        setScannerMessage(placementMessage);
         
         // ФАЗА 4: Автоматическая очистка поля груза и быстрый переход к ячейке
         setTimeout(() => {
