@@ -12193,6 +12193,14 @@ function App() {
         delivery_method: data.delivery_info.method
       };
       
+      // Устанавливаем флаг генерации QR кодов
+      setQrGenerationInProgress(true);
+      
+      // Сохраняем данные груза для отображения в модальном окне
+      setConfirmationCargoData(data);
+      
+      console.log('🔄 Отправляем данные на сервер...');
+      
       // Отправляем данные в backend
       const response = await apiCall('/api/operator/cargo/accept', 'POST', requestData);
       
