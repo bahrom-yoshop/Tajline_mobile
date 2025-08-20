@@ -4099,6 +4099,12 @@ function App() {
   const [showCargoNumberQRModal, setShowCargoNumberQRModal] = useState(false); // Модальное окно QR номера заявки
   const [cargoNumberQRCode, setCargoNumberQRCode] = useState(null); // Сгенерированный QR код номера
   const [cargoNumberQRLoading, setCargoNumberQRLoading] = useState(false); // Загрузка генерации
+
+  // НОВЫЕ СОСТОЯНИЯ: Модальное окно детального размещения грузов
+  const [showPlacementDetailsModal, setShowPlacementDetailsModal] = useState(false); // Модальное окно деталей размещения
+  const [selectedCargoForPlacement, setSelectedCargoForPlacement] = useState(null); // Выбранная заявка для детального размещения  
+  const [placementDetails, setPlacementDetails] = useState(null); // Детальная информация о размещении
+  const [placementDetailsLoading, setPlacementDetailsLoading] = useState(false); // Загрузка деталей размещения
   
   // ИСПРАВЛЕНИЕ: Глобальный обработчик ошибок removeChild
   useEffect(() => {
