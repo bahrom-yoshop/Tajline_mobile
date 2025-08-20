@@ -351,17 +351,42 @@ def test_place_individual_unit():
         log_error("test_cargo_number не установлен")
         return False
     
+    # Сначала получаем warehouse_id оператора
+    warehouses_response = make_request('GET', '/operator/warehouses')
+    if not warehouses_response or warehouses_response.status_code != 200:
+        log_error("Не удалось получить склады оператора")
+        return False
+    
+    try:
+        warehouses_data = warehouses_response.json()
+        if not warehouses_data:
+            log_error("У оператора нет привязанных складов")
+            return False
+        
+        warehouse_id = warehouses_data[0].get('id')
+        if not warehouse_id:
+            log_error("warehouse_id не найден")
+            return False
+        
+        log_success(f"Получен warehouse_id: {warehouse_id}")
+        
+    except Exception as e:
+        log_error(f"Ошибка получения warehouse_id: {str(e)}")
+        return False
+    
     # Пытаемся разместить первую единицу электроники
     individual_number = f"{test_cargo_number}/01/01"
     
     placement_data = {
         "individual_number": individual_number,
+        "warehouse_id": warehouse_id,
         "block_number": 1,
         "shelf_number": 1,
         "cell_number": 1
     }
     
     log_info(f"Размещаем индивидуальную единицу: {individual_number}")
+    log_info(f"Склад: {warehouse_id}")
     log_info(f"Местоположение: Блок 1, Полка 1, Ячейка 1")
     
     response = make_request('POST', '/operator/cargo/place-individual', placement_data)
