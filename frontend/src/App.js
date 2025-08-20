@@ -5090,6 +5090,11 @@ function App() {
   const [externalScannedCell, setExternalScannedCell] = useState(null);
   const [scannerMessage, setScannerMessage] = useState('');
   
+  // ФАЗА 3: Новые состояния для автоактивации и защиты от кликов
+  const [scannerProcessingInput, setScannerProcessingInput] = useState(false);
+  const [scannerAutoFocusTarget, setScannerAutoFocusTarget] = useState(null);
+  const [scannerClickProtection, setScannerClickProtection] = useState(false);
+  
   // Состояния для камеры - разделены для каждого сканера
   const [html5QrCode, setHtml5QrCode] = useState(null);  // Основной сканер
   const [html5QrCodePlacement, setHtml5QrCodePlacement] = useState(null);  // Сканер размещения
