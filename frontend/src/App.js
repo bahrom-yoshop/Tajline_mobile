@@ -12755,65 +12755,30 @@ function App() {
 
   // НОВАЯ ФУНКЦИЯ: Фактическая отправка груза после подтверждения
   // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Приоритет настоящим QR кодам с библиотекой QRCode.js
-  // НОВАЯ УЛУЧШЕННАЯ ФУНКЦИЯ: Создание структурированных данных для QR кода
-  const createStructuredQRData = (type, data) => {
-    const timestamp = new Date().toISOString();
-    const systemPrefix = "TAJLINE";
-    
-    let structuredData = {};
+  // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Простые числово-символьные данные для QR кода
+  const createSimpleQRData = (type, data) => {
+    const timestamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, ''); // YYYYMMDDHHMM
     
     switch (type) {
       case 'individual_unit':
-        // Для индивидуальных единиц груза: 250101/01/01
-        structuredData = {
-          sys: systemPrefix,
-          type: "UNIT",
-          id: data.individual_number || data,
-          cargo: data.cargo_name || "Груз",
-          ts: timestamp,
-          ver: "2.0"
-        };
-        break;
+        // Для индивидуальных единиц: TAJLINE|UNIT|250101/01/01|YYYYMMDDHHMM
+        const individualNumber = data.individual_number || data;
+        return `TAJLINE|UNIT|${individualNumber}|${timestamp}`;
         
       case 'cargo_request':
-        // Для номера заявки: 250101
-        structuredData = {
-          sys: systemPrefix,
-          type: "REQUEST",
-          id: data.cargo_number || data,
-          sender: data.sender_full_name || "",
-          recipient: data.recipient_full_name || "",
-          ts: timestamp,
-          ver: "2.0"
-        };
-        break;
+        // Для заявки: TAJLINE|REQ|250101|YYYYMMDDHHMM
+        const cargoNumber = data.cargo_number || data;
+        return `TAJLINE|REQ|${cargoNumber}|${timestamp}`;
         
       case 'warehouse_cell':
-        // Для ячеек склада: 001-01-01-001
-        structuredData = {
-          sys: systemPrefix,
-          type: "CELL",
-          id: data.cell_id || data,
-          warehouse: data.warehouse_name || "",
-          location: data.location || "",
-          ts: timestamp,
-          ver: "2.0"
-        };
-        break;
+        // Для ячеек: TAJLINE|CELL|001-01-01-001|YYYYMMDDHHMM
+        const cellId = data.cell_id || data;
+        return `TAJLINE|CELL|${cellId}|${timestamp}`;
         
       default:
-        // Универсальный формат для совместимости
-        structuredData = {
-          sys: systemPrefix,
-          type: "DATA",
-          id: data.toString(),
-          ts: timestamp,
-          ver: "2.0"
-        };
+        // Простой формат: TAJLINE|DATA|значение|timestamp
+        return `TAJLINE|DATA|${data.toString()}|${timestamp}`;
     }
-    
-    // Конвертируем в JSON строку для QR кода
-    return JSON.stringify(structuredData);
   };
 
   const generateActualQRCode = async (data, size = 200, type = 'data') => {
