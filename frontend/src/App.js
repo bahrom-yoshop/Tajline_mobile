@@ -18385,7 +18385,7 @@ function App() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleBulkDeleteRequests()}
-                                  disabled={bulkActionLoading}
+                                  disabled={bulkDeleteLoading}
                                   className="text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
                                 >
                                   {bulkActionLoading ? (
