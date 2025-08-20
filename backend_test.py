@@ -435,11 +435,19 @@ class TajlineBackendTester:
                             if "quantity" in first_item:
                                 has_quantity_field = True
                                 details += f"Поле 'quantity' найдено: {first_item['quantity']}. "
+                            else:
+                                details += f"⚠️ КРИТИЧЕСКАЯ ПРОБЛЕМА: Поле 'quantity' отсутствует! "
                             
                             # Проверяем другие обязательные поля
                             required_fields = ["cargo_name", "weight", "price_per_kg"]
                             present_fields = [field for field in required_fields if field in first_item]
                             details += f"Обязательные поля: {present_fields}"
+                            
+                            # Проверяем наличие total_amount
+                            if "total_amount" in first_item:
+                                details += f", total_amount: {first_item['total_amount']}"
+                            else:
+                                details += f", ⚠️ total_amount отсутствует"
                     else:
                         details += "cargo_items отсутствует в сохраненном грузе"
                     
