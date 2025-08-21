@@ -5710,7 +5710,7 @@ function App() {
   });
   const [frequentRecipients, setFrequentRecipients] = useState([]);
   const [selectedRecipient, setSelectedRecipient] = useState(null);
-  const [operatorCargoFilter, setOperatorCargoFilter] = useState(''); // Фильтр для списка грузов
+  const [operatorCargoFilter, setOperatorCargoFilter] = useState('all'); // Фильтр для списка грузов
   const [operatorCargoPagination, setOperatorCargoPagination] = useState({}); // Пагинация для списка грузов
   const [operatorCargoPage, setOperatorCargoPage] = useState(1);
   const [operatorCargoPerPage, setOperatorCargoPerPage] = useState(25);
