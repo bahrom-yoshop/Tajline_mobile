@@ -3417,7 +3417,253 @@ function App() {
     console.log('🏁 Сессия размещения завершена');
   };
 
-  // НОВЫЕ ОБРАБОТЧИКИ ДЛЯ QR СКАНЕРА
+  // НОВЫЕ ФУНКЦИИ: Печать QR кодов для Individual Units
+
+  // Получение опций макетов печати
+  const fetchPrintLayoutOptions = async () => {
+    try {
+      console.log('🖨️ Загрузка опций макетов печати...');
+
+      const response = await apiCall('/api/operator/qr/print-layout', 'GET');
+
+      if (response.success) {
+        setPrintLayoutOptions(response.layout_options);
+        console.log('✅ Опции макетов загружены:', Object.keys(response.layout_options));
+      }
+    } catch (error) {
+      console.error('❌ Ошибка загрузки опций печати:', error);
+      showAlert(`Ошибка загрузки опций печати: ${error.message}`, 'error');
+    }
+  };
+
+  // Генерация QR кода для одной единицы груза
+  const generateSingleQR = async (individualNumber) => {
+    try {
+      console.log('🖨️ Генерация QR для единицы:', individualNumber);
+      setQrGenerationProgress({ type: 'single', current: 0, total: 1 });
+
+      const response = await apiCall('/api/operator/qr/generate-individual', 'POST', {
+        individual_number: individualNumber
+      });
+
+      if (response.success) {
+        console.log('✅ QR код сгенерирован:', response.qr_info);
+        setQrGenerationProgress(null);
+        return response.qr_info;
+      } else {
+        throw new Error(response.message || 'Ошибка генерации QR кода');
+      }
+    } catch (error) {
+      console.error('❌ Ошибка генерации QR:', error);
+      setQrGenerationProgress(null);
+      showAlert(`Ошибка генерации QR: ${error.message}`, 'error');
+      return null;
+    }
+  };
+
+  // Массовая генерация QR кодов
+  const generateBatchQR = async (individualNumbers) => {
+    try {
+      console.log('🖨️ Массовая генерация QR для', individualNumbers.length, 'единиц');
+      setQrGenerationProgress({ type: 'batch', current: 0, total: individualNumbers.length });
+
+      const response = await apiCall('/api/operator/qr/generate-batch', 'POST', {
+        individual_numbers: individualNumbers
+      });
+
+      if (response.success) {
+        console.log('✅ Массовая генерация завершена:', response.total_generated, 'успешно');
+        setGeneratedQrBatch(response);
+        setQrGenerationProgress(null);
+        
+        if (response.total_failed > 0) {
+          showAlert(`Сгенерировано ${response.total_generated} QR кодов. ${response.total_failed} ошибок.`, 'warning');
+        } else {
+          showAlert(`Успешно сгенерировано ${response.total_generated} QR кодов!`, 'success');
+        }
+        
+        return response;
+      } else {
+        throw new Error(response.message || 'Ошибка массовой генерации QR кодов');
+      }
+    } catch (error) {
+      console.error('❌ Ошибка массовой генерации QR:', error);
+      setQrGenerationProgress(null);
+      showAlert(`Ошибка массовой генерации QR: ${error.message}`, 'error');
+      return null;
+    }
+  };
+
+  // Обработчик печати QR для одной единицы
+  const handlePrintSingleQR = async (unit) => {
+    try {
+      console.log('🖨️ Печать QR для единицы:', unit.individual_number);
+      
+      const qrInfo = await generateSingleQR(unit.individual_number);
+      if (qrInfo) {
+        // Открываем модалку предварительного просмотра
+        setSelectedUnitsForPrint([{ ...unit, qr_info: qrInfo }]);
+        setQrPrintMode(true);
+      }
+    } catch (error) {
+      console.error('❌ Ошибка печати QR:', error);
+      showAlert(`Ошибка печати QR: ${error.message}`, 'error');
+    }
+  };
+
+  // Обработчик массовой печати QR
+  const handleMassPrintQR = async () => {
+    try {
+      console.log('🖨️ Массовая печать QR для', individualUnitsForPlacement.length, 'единиц');
+      
+      if (individualUnitsForPlacement.length === 0) {
+        showAlert('Нет единиц для печати QR кодов', 'warning');
+        return;
+      }
+
+      const individualNumbers = individualUnitsForPlacement.map(unit => unit.individual_number);
+      const batchResult = await generateBatchQR(individualNumbers);
+      
+      if (batchResult && batchResult.qr_batch.length > 0) {
+        // Открываем модалку массовой печати
+        setQrPrintMode(true);
+      }
+    } catch (error) {
+      console.error('❌ Ошибка массовой печати QR:', error);
+      showAlert(`Ошибка массовой печати QR: ${error.message}`, 'error');
+    }
+  };
+
+  // Печать QR кодов через браузер
+  const executePrint = (qrData, layout = 'grid_3x3') => {
+    try {
+      console.log('🖨️ Выполнение печати с макетом:', layout);
+      
+      // Создаем окно печати
+      const printWindow = window.open('', '_blank');
+      
+      // Получаем опции выбранного макета
+      const layoutOption = printLayoutOptions?.[layout] || printLayoutOptions?.['grid_3x3'];
+      const perPage = layoutOption?.per_page || 9;
+      
+      // Создаем HTML для печати
+      let printHTML = `
+        <html>
+          <head>
+            <title>QR Коды - TAJLINE.TJ</title>
+            <style>
+              body { 
+                font-family: Arial, sans-serif; 
+                margin: 20px; 
+                print-color-adjust: exact;
+              }
+              .print-page { 
+                page-break-after: always; 
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                align-items: flex-start;
+              }
+              .qr-item { 
+                text-align: center; 
+                margin: 10px;
+                border: 1px solid #ddd;
+                padding: 10px;
+                display: inline-block;
+              }
+              .qr-single { width: 300px; }
+              .qr-grid-2x2 { width: 200px; }
+              .qr-grid-3x3 { width: 150px; }
+              .qr-compact { width: 100px; }
+              .qr-image { 
+                max-width: 100%; 
+                height: auto; 
+              }
+              .qr-info { 
+                font-size: 12px; 
+                margin-top: 5px;
+                line-height: 1.2;
+              }
+              .qr-title { 
+                font-weight: bold; 
+                font-size: 10px;
+                margin-bottom: 3px;
+              }
+              @media print {
+                body { margin: 0; }
+                .print-page { margin: 0; padding: 10mm; }
+              }
+            </style>
+          </head>
+          <body>
+      `;
+      
+      // Добавляем QR коды
+      const items = Array.isArray(qrData) ? qrData : [qrData];
+      let currentPage = 0;
+      
+      items.forEach((item, index) => {
+        if (index % perPage === 0) {
+          if (index > 0) printHTML += '</div>'; // Закрываем предыдущую страницу
+          printHTML += '<div class="print-page">';
+          currentPage++;
+        }
+        
+        const qrBase64 = item.qr_info?.qr_base64 || item.qr_base64;
+        const individualNumber = item.individual_number;
+        const cargoName = item.cargo_name || item.qr_info?.cargo_name;
+        
+        printHTML += `
+          <div class="qr-item qr-${layout}">
+            <img src="data:image/png;base64,${qrBase64}" alt="QR Code" class="qr-image" />
+            <div class="qr-title">${individualNumber}</div>
+            ${layoutOption?.includes_info ? `
+              <div class="qr-info">
+                <div>Груз: ${cargoName}</div>
+                <div>Заявка: ${individualNumber.split('/')[0]}</div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      });
+      
+      printHTML += `
+          </div>
+        </body>
+      </html>
+      `;
+      
+      printWindow.document.write(printHTML);
+      printWindow.document.close();
+      
+      // Запускаем печать после загрузки
+      printWindow.onload = () => {
+        printWindow.print();
+        printWindow.close();
+      };
+      
+      console.log('✅ Окно печати создано');
+      
+    } catch (error) {
+      console.error('❌ Ошибка печати:', error);
+      showAlert(`Ошибка печати: ${error.message}`, 'error');
+    }
+  };
+
+  // Закрытие режима печати QR
+  const closePrintMode = () => {
+    setQrPrintMode(false);
+    setSelectedUnitsForPrint([]);
+    setGeneratedQrBatch(null);
+    setQrGenerationProgress(null);
+  };
+
+  // Инициализация опций печати при загрузке
+  useEffect(() => {
+    if (user && user.role === 'warehouse_operator' && !printLayoutOptions) {
+      fetchPrintLayoutOptions();
+    }
+  }, [user, printLayoutOptions]);
   
   // Обработчик сканирования QR груза (новый интерфейс)
   const handleNewCargoQRScan = async (qrCode) => {
