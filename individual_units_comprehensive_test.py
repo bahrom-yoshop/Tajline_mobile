@@ -12,7 +12,7 @@ from datetime import datetime
 import uuid
 
 # Конфигурация
-BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://cargo-tracker-33.preview.emergentagent.com')
+BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://tajline-cargo-6.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 class IndividualUnitsComprehensiveTester:

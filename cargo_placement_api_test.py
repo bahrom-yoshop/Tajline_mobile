@@ -34,7 +34,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional, List
 
 # Configuration
-BACKEND_URL = "https://cargo-tracker-33.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-cargo-6.preview.emergentagent.com/api"
 
 # Test credentials
 ADMIN_CREDENTIALS = {

@@ -25,7 +25,7 @@ from datetime import datetime
 import time
 
 # Конфигурация для тестирования
-BACKEND_URL = "https://cargo-tracker-33.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-cargo-6.preview.emergentagent.com/api"
 
 # Тестовые данные оператора склада
 OPERATOR_CREDENTIALS = {
@@ -658,7 +658,7 @@ from datetime import datetime
 import os
 
 # Конфигурация
-BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cargo-tracker-33.preview.emergentagent.com')
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://tajline-cargo-6.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 # Тестовые данные
@@ -1310,7 +1310,7 @@ import os
 from datetime import datetime
 
 # Конфигурация
-BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://cargo-tracker-33.preview.emergentagent.com')
+BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://tajline-cargo-6.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 class IndividualUnitsAPITester:
