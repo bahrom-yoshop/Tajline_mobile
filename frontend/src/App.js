@@ -7147,18 +7147,18 @@ function App() {
       
       // Защита от множественных сканирований одного и того же QR кода
       const currentTime = Date.now();
-      if (scannedData === lastScannedData && (currentTime - lastScanTime) < 3000) {
-        console.log('Ignoring duplicate scan within 3 seconds:', scannedData);
+      if (processedData === lastScannedData && (currentTime - lastScanTime) < 3000) {
+        console.log('Ignoring duplicate scan within 3 seconds:', processedData);
         return;
       }
       
       // Обновляем информацию о последнем сканировании
-      setLastScannedData(scannedData);
+      setLastScannedData(processedData);
       setLastScanTime(currentTime);
       
       if (scannerMode === 'cargo-barcode') {
-        // ОБНОВЛЕНО: Используем новую систему парсинга QR кодов
-        const extractedData = extractCargoNumber(scannedData);
+        // ОБНОВЛЕНО: Используем новую систему парсинга QR кодов с отфильтрованными данными
+        const extractedData = extractCargoNumber(processedData);
         console.log('🔍 Поиск груза с данными:', extractedData);
         
         let foundCargo = null;
