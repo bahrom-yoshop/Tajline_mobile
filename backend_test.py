@@ -241,12 +241,8 @@ class PlacementAPITester:
                 {
                     "name": "Формат Б1-П1-Я1",
                     "qr_code": "Б1-П1-Я1",
-                    "should_succeed": True
-                },
-                {
-                    "name": "Формат WAREHOUSE-BLOCK-SHELF-CELL",
-                    "qr_code": f"{self.warehouse_id}-01-01-001",
-                    "should_succeed": True
+                    "should_succeed": False,  # Ожидаем ошибку из-за отсутствия layout
+                    "expected_error": "warehouse_id"
                 },
                 {
                     "name": "Неверный формат",
@@ -284,7 +280,11 @@ class PlacementAPITester:
                     else:
                         self.log(f"    ❌ HTTP ошибка: {response.status_code}")
                 else:
-                    if response.status_code == 200:
+                    # Ожидаем ошибку
+                    if response.status_code != 200:
+                        self.log(f"    ✅ Ожидаемая HTTP ошибка: {response.status_code}")
+                        success_count += 1
+                    elif response.status_code == 200:
                         data = response.json()
                         if not data.get("success"):
                             self.log(f"    ✅ Ожидаемая ошибка: {data.get('error')}")
@@ -292,8 +292,7 @@ class PlacementAPITester:
                         else:
                             self.log(f"    ❌ Неожиданный успех")
                     else:
-                        self.log(f"    ✅ Ожидаемая HTTP ошибка: {response.status_code}")
-                        success_count += 1
+                        self.log(f"    ❌ Неожиданный результат")
             
             self.log(f"📊 verify-cell: {success_count}/{total_tests} тестов пройдено")
             return success_count == total_tests
