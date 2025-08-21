@@ -132,12 +132,26 @@ class QRCodeErrorDiagnosticTester:
             response = self.session.get(f"{BACKEND_URL}/operator/cargo/available-for-placement")
             
             if response.status_code == 200:
-                cargo_list = response.json()
+                data = response.json()
+                
+                # Handle both list and dict responses
+                if isinstance(data, dict):
+                    cargo_list = data.get("items", []) or data.get("cargo_list", []) or []
+                elif isinstance(data, list):
+                    cargo_list = data
+                else:
+                    cargo_list = []
+                
+                self.log_test(
+                    "Получение списка available-for-placement",
+                    True,
+                    f"Получено {len(cargo_list)} грузов для размещения"
+                )
                 
                 # Search for our target cargo
                 target_cargo = None
                 for cargo in cargo_list:
-                    if cargo.get("cargo_number") == self.target_cargo_number:
+                    if isinstance(cargo, dict) and cargo.get("cargo_number") == self.target_cargo_number:
                         target_cargo = cargo
                         break
                 
