@@ -300,7 +300,7 @@ class IndividualUnitsAPITester:
             print("🎯 ТЕСТ 3: ФОРМАТ INDIVIDUAL_NUMBER")
             
             individual_units = api_data.get("individual_units", [])
-            test_units = [unit for unit in individual_units if unit.get("cargo_number") == test_cargo_number]
+            test_units = [unit for unit in individual_units if unit.get("cargo_request_number") == test_cargo_number]
             
             if not test_units:
                 self.log_test("Формат individual_number", False, "Нет тестовых units для проверки формата")
