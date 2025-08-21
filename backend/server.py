@@ -6147,7 +6147,7 @@ async def get_available_cargo_for_placement(
 # НОВОЕ: Модель для размещения индивидуальных единиц груза
 class IndividualCargoPlacement(BaseModel):
     individual_number: str  # Например: 250101/01/01
-    warehouse_id: str
+    warehouse_id: Optional[str] = None  # Опциональный, будет определяться автоматически
     block_number: int
     shelf_number: int
     cell_number: int
