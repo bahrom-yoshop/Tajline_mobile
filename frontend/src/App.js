@@ -11725,14 +11725,15 @@ function App() {
     return variants[status] || 'outline';
   };
 
-  const fetchOperatorCargo = async (filterStatus = '', page = operatorCargoPage, perPage = operatorCargoPerPage) => {
+  const fetchOperatorCargo = async (filterStatus = 'all', page = operatorCargoPage, perPage = operatorCargoPerPage) => {
     try {
       const params = { 
         page: page,
         per_page: perPage
       };
       
-      if (filterStatus) {
+      // Только добавляем фильтр если это не "all" (все грузы)
+      if (filterStatus && filterStatus !== 'all') {
         params.filter_status = filterStatus;
       }
       
