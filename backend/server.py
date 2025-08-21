@@ -6169,7 +6169,9 @@ async def get_individual_units_for_placement(
             "$or": [
                 {"overall_status": "awaiting_placement"},
                 {"status": "awaiting_placement"},
-                {"cargo_status": "awaiting_placement"}
+                {"cargo_status": "awaiting_placement"},
+                {"status": "accepted"},  # Добавляем accepted статус
+                {"overall_status": "accepted"}
             ]
         }
         
