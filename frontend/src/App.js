@@ -10578,9 +10578,9 @@ function App() {
         }
         
         // Количество курьеров (только для админов)
-        if (user?.role === 'admin' && allCouriers?.length) {
-          const activeCouriers = allCouriers.filter(c => !c.deleted && !c.is_active === false);
-          const inactiveCouriers = allCouriers.filter(c => c.deleted || c.is_active === false);
+        if (user?.role === 'admin' && couriers?.length) {
+          const activeCouriers = couriers.filter(c => !c.deleted && c.is_active !== false);
+          const inactiveCouriers = couriers.filter(c => c.deleted || c.is_active === false);
           counters.couriers_list = activeCouriers.length;
           counters.couriers_inactive = inactiveCouriers.length;
         }
