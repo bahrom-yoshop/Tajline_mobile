@@ -7097,6 +7097,54 @@ function App() {
 
   const handleBarcodeScan = async (scannedData) => {
     try {
+      // УЛУЧШЕНИЕ: ФАЗА 3 - Исправление языка сканирования
+      // Фильтруем входящие символы, заменяя "." на "/" для корректной работы независимо от языка системы
+      let filteredData = scannedData;
+      
+      // Замена точек на слеши для QR-кодов вида 001.01.01.001 -> 001-01-01-001
+      // и 250101.01.01 -> 250101/01/01
+      if (filteredData.includes('.')) {
+        console.log('🌐 УЛУЧШЕНИЕ: Обнаружены точки в QR коде, конвертируем:', filteredData);
+        
+        // Для кодов ячеек (формат: XXX.XX.XX.XXX)
+        if (/^\d{3}\.\d{2}\.\d{2}\.\d{3}$/.test(filteredData)) {
+          filteredData = filteredData.replace(/\./g, '-');
+          console.log('✅ Конвертирован код ячейки:', scannedData, '->', filteredData);
+        }
+        // Для кодов грузов (формат: XXXXXX.XX.XX)
+        else if (/^\d{6}\.\d{2}\.\d{2}$/.test(filteredData)) {
+          filteredData = filteredData.replace(/\./g, '/');
+          console.log('✅ Конвертирован код груза:', scannedData, '->', filteredData);
+        }
+        // Универсальная замена для других форматов
+        else {
+          // Сначала пытаемся определить тип по структуре
+          const parts = filteredData.split('.');
+          if (parts.length === 3 && parts[0].length === 6) {
+            // Формат груза
+            filteredData = filteredData.replace(/\./g, '/');
+            console.log('✅ Конвертирован код груза (универсальный):', scannedData, '->', filteredData);
+          } else if (parts.length === 4 && parts[0].length === 3) {
+            // Формат ячейки
+            filteredData = filteredData.replace(/\./g, '-');
+            console.log('✅ Конвертирован код ячейки (универсальный):', scannedData, '->', filteredData);
+          }
+        }
+      }
+      
+      // Программно устанавливаем язык в EN для предотвращения проблем в будущем
+      try {
+        if (document.activeElement && typeof document.activeElement.setAttribute === 'function') {
+          document.activeElement.setAttribute('inputmode', 'latin');
+          document.activeElement.setAttribute('lang', 'en');
+        }
+      } catch (langError) {
+        console.debug('Не удалось установить язык EN:', langError);
+      }
+      
+      // Используем отфильтрованные данные
+      const processedData = filteredData;
+      
       // Защита от множественных сканирований одного и того же QR кода
       const currentTime = Date.now();
       if (scannedData === lastScannedData && (currentTime - lastScanTime) < 3000) {
