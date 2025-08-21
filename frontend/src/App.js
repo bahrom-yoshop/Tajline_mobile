@@ -7896,8 +7896,9 @@ function App() {
         return;
       }
       
-      console.log('🚀 Отправляем запрос на размещение груза:');
-      console.log('- Cargo ID:', scannedCargoData.id);
+      // ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 1: Используем правильный API для Individual Units
+      console.log('🎯 РАЗМЕЩЕНИЕ INDIVIDUAL UNIT');
+      console.log('- Individual Number:', scannedCargoData.individual_number);
       console.log('- Warehouse ID:', warehouseId);
       console.log('- Block Number:', scannedCellData.block_number);
       console.log('- Shelf Number:', scannedCellData.shelf_number);
@@ -7919,13 +7920,16 @@ function App() {
         })
       };
       
-      await handlePlaceCargo(
-        scannedCargoData.id,
-        warehouseId,
-        scannedCellData.block_number,
-        scannedCellData.shelf_number,
-        scannedCellData.cell_number
-      );
+      // ИСПРАВЛЕНО: Используем правильный API для individual units
+      const placementResponse = await apiCall('/api/operator/cargo/place-individual', 'POST', {
+        individual_number: scannedCargoData.individual_number,
+        // warehouse_id определяется автоматически для оператора
+        block_number: scannedCellData.block_number,
+        shelf_number: scannedCellData.shelf_number,
+        cell_number: scannedCellData.cell_number
+      });
+      
+      console.log('✅ Individual unit размещена успешно:', placementResponse);
       
       // ЭТАП 4: УЛУЧШЕННОЕ УВЕДОМЛЕНИЕ С ДЕТАЛЬНОЙ ИНФОРМАЦИЕЙ
       const detailMessage = `🎉 ГРУЗ УСПЕШНО РАЗМЕЩЕН!\n\n` +
