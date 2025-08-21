@@ -1,5 +1,669 @@
 #!/usr/bin/env python3
 """
+🎯 ТЕСТИРОВАНИЕ НОВЫХ API: Полнофункциональное размещение груза со сканером в TAJLINE.TJ
+
+КОНТЕКСТ: Реализованы новые backend API endpoints для полнофункционального размещения груза 
+с QR сканером, аналитикой и контролем качества.
+
+НОВЫЕ API ENDPOINTS:
+1. POST /api/operator/placement/verify-cargo - Проверка существования груза по QR коду
+2. POST /api/operator/placement/verify-cell - Проверка существования ячейки по QR коду  
+3. POST /api/operator/placement/place-cargo - Размещение груза в ячейку со сканером
+4. GET /api/operator/placement/session-history - Получение истории размещения за сессию
+5. DELETE /api/operator/placement/undo-last - Отмена последнего размещения в сессии
+"""
+
+import requests
+import json
+import uuid
+from datetime import datetime
+import os
+
+# Конфигурация
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://logistics-dash-6.preview.emergentagent.com')
+API_BASE = f"{BACKEND_URL}/api"
+
+# Тестовые данные
+WAREHOUSE_OPERATOR_CREDENTIALS = {
+    "phone": "+79777888999",
+    "password": "warehouse123"
+}
+
+class PlacementAPITester:
+    def __init__(self):
+        self.session = requests.Session()
+        self.auth_token = None
+        self.operator_user = None
+        self.warehouse_id = None
+        self.test_cargo_id = None
+        self.test_cargo_number = None
+        self.session_id = str(uuid.uuid4())
+        
+    def log(self, message, level="INFO"):
+        """Логирование с временной меткой"""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        print(f"[{timestamp}] {level}: {message}")
+        
+    def authenticate_operator(self):
+        """Авторизация оператора склада"""
+        try:
+            self.log("🔐 Авторизация оператора склада...")
+            
+            response = self.session.post(
+                f"{API_BASE}/auth/login",
+                json=WAREHOUSE_OPERATOR_CREDENTIALS,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.auth_token = data.get("access_token")
+                self.session.headers.update({
+                    "Authorization": f"Bearer {self.auth_token}"
+                })
+                
+                # Получаем информацию о пользователе
+                user_response = self.session.get(f"{API_BASE}/auth/me", timeout=30)
+                if user_response.status_code == 200:
+                    self.operator_user = user_response.json()
+                    self.log(f"✅ Авторизован: {self.operator_user.get('full_name')} (роль: {self.operator_user.get('role')})")
+                    return True
+                else:
+                    self.log(f"❌ Ошибка получения данных пользователя: {user_response.status_code}", "ERROR")
+                    return False
+            else:
+                self.log(f"❌ Ошибка авторизации: {response.status_code} - {response.text}", "ERROR")
+                return False
+                
+        except Exception as e:
+            self.log(f"❌ Исключение при авторизации: {str(e)}", "ERROR")
+            return False
+    
+    def get_operator_warehouse(self):
+        """Получение склада оператора"""
+        try:
+            self.log("🏢 Получение склада оператора...")
+            
+            response = self.session.get(f"{API_BASE}/operator/warehouses", timeout=30)
+            
+            if response.status_code == 200:
+                warehouses = response.json()
+                if warehouses:
+                    warehouse = warehouses[0]
+                    self.warehouse_id = warehouse.get("id")
+                    self.log(f"✅ Склад получен: {warehouse.get('name')} (ID: {self.warehouse_id})")
+                    return True
+                else:
+                    self.log("❌ У оператора нет привязанных складов", "ERROR")
+                    return False
+            else:
+                self.log(f"❌ Ошибка получения складов: {response.status_code}", "ERROR")
+                return False
+                
+        except Exception as e:
+            self.log(f"❌ Исключение при получении складов: {str(e)}", "ERROR")
+            return False
+    
+    def create_test_cargo(self):
+        """Создание тестового груза для размещения"""
+        try:
+            self.log("📦 Создание тестового груза...")
+            
+            cargo_data = {
+                "sender_full_name": "Тестовый Отправитель",
+                "sender_phone": "+79991234567",
+                "recipient_full_name": "Тестовый Получатель", 
+                "recipient_phone": "+79997654321",
+                "recipient_address": "г. Душанбе, ул. Рудаки, дом 123",
+                "cargo_items": [
+                    {
+                        "cargo_name": "Электроника Samsung",
+                        "quantity": 2,
+                        "weight": 5.0,
+                        "price_per_kg": 100.0,
+                        "total_amount": 500.0
+                    },
+                    {
+                        "cargo_name": "Бытовая техника LG",
+                        "quantity": 3,
+                        "weight": 8.0,
+                        "price_per_kg": 80.0,
+                        "total_amount": 640.0
+                    }
+                ],
+                "description": "Тестовый груз для размещения",
+                "route": "moscow_to_tajikistan",
+                "payment_method": "cash_on_delivery",
+                "delivery_method": "pickup"
+            }
+            
+            response = self.session.post(
+                f"{API_BASE}/operator/cargo/accept",
+                json=cargo_data,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                self.test_cargo_id = result.get("cargo_id")
+                self.test_cargo_number = result.get("cargo_number")
+                self.log(f"✅ Тестовый груз создан: {self.test_cargo_number} (ID: {self.test_cargo_id})")
+                return True
+            else:
+                self.log(f"❌ Ошибка создания груза: {response.status_code} - {response.text}", "ERROR")
+                return False
+                
+        except Exception as e:
+            self.log(f"❌ Исключение при создании груза: {str(e)}", "ERROR")
+            return False
+    
+    def test_verify_cargo_endpoint(self):
+        """Тестирование POST /api/operator/placement/verify-cargo"""
+        try:
+            self.log("🔍 Тестирование verify-cargo endpoint...")
+            
+            test_cases = [
+                {
+                    "name": "Простой номер груза",
+                    "qr_code": self.test_cargo_number,
+                    "should_succeed": True
+                },
+                {
+                    "name": "Формат individual_number",
+                    "qr_code": f"{self.test_cargo_number}/01/01",
+                    "should_succeed": True
+                },
+                {
+                    "name": "Формат TAJLINE",
+                    "qr_code": f"TAJLINE|UNIT|{self.test_cargo_id}|{datetime.now().isoformat()}",
+                    "should_succeed": True
+                },
+                {
+                    "name": "Несуществующий груз",
+                    "qr_code": "999999999",
+                    "should_succeed": False
+                },
+                {
+                    "name": "Пустой QR код",
+                    "qr_code": "",
+                    "should_succeed": False
+                }
+            ]
+            
+            success_count = 0
+            total_tests = len(test_cases)
+            
+            for test_case in test_cases:
+                self.log(f"  📋 Тест: {test_case['name']}")
+                
+                response = self.session.post(
+                    f"{API_BASE}/operator/placement/verify-cargo",
+                    json={"qr_code": test_case["qr_code"]},
+                    timeout=30
+                )
+                
+                if test_case["should_succeed"]:
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get("success"):
+                            cargo_info = data.get("cargo_info", {})
+                            self.log(f"    ✅ Груз найден: {cargo_info.get('cargo_number')}")
+                            success_count += 1
+                        else:
+                            self.log(f"    ❌ Груз не найден: {data.get('error')}")
+                    else:
+                        self.log(f"    ❌ HTTP ошибка: {response.status_code}")
+                else:
+                    if response.status_code == 200:
+                        data = response.json()
+                        if not data.get("success"):
+                            self.log(f"    ✅ Ожидаемая ошибка: {data.get('error')}")
+                            success_count += 1
+                        else:
+                            self.log(f"    ❌ Неожиданный успех")
+                    else:
+                        self.log(f"    ✅ Ожидаемая HTTP ошибка: {response.status_code}")
+                        success_count += 1
+            
+            self.log(f"📊 verify-cargo: {success_count}/{total_tests} тестов пройдено")
+            return success_count == total_tests
+            
+        except Exception as e:
+            self.log(f"❌ Исключение в verify-cargo: {str(e)}", "ERROR")
+            return False
+    
+    def test_verify_cell_endpoint(self):
+        """Тестирование POST /api/operator/placement/verify-cell"""
+        try:
+            self.log("🔍 Тестирование verify-cell endpoint...")
+            
+            test_cases = [
+                {
+                    "name": "Формат Б1-П1-Я1",
+                    "qr_code": "Б1-П1-Я1",
+                    "should_succeed": True
+                },
+                {
+                    "name": "Формат WAREHOUSE-BLOCK-SHELF-CELL",
+                    "qr_code": f"{self.warehouse_id}-01-01-001",
+                    "should_succeed": True
+                },
+                {
+                    "name": "Неверный формат",
+                    "qr_code": "invalid_format",
+                    "should_succeed": False
+                },
+                {
+                    "name": "Пустой QR код",
+                    "qr_code": "",
+                    "should_succeed": False
+                }
+            ]
+            
+            success_count = 0
+            total_tests = len(test_cases)
+            
+            for test_case in test_cases:
+                self.log(f"  📋 Тест: {test_case['name']}")
+                
+                response = self.session.post(
+                    f"{API_BASE}/operator/placement/verify-cell",
+                    json={"qr_code": test_case["qr_code"]},
+                    timeout=30
+                )
+                
+                if test_case["should_succeed"]:
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get("success"):
+                            cell_info = data.get("cell_info", {})
+                            self.log(f"    ✅ Ячейка найдена: {cell_info.get('cell_address')} (грузов: {cell_info.get('current_cargo_count', 0)})")
+                            success_count += 1
+                        else:
+                            self.log(f"    ❌ Ячейка не найдена: {data.get('error')}")
+                    else:
+                        self.log(f"    ❌ HTTP ошибка: {response.status_code}")
+                else:
+                    if response.status_code == 200:
+                        data = response.json()
+                        if not data.get("success"):
+                            self.log(f"    ✅ Ожидаемая ошибка: {data.get('error')}")
+                            success_count += 1
+                        else:
+                            self.log(f"    ❌ Неожиданный успех")
+                    else:
+                        self.log(f"    ✅ Ожидаемая HTTP ошибка: {response.status_code}")
+                        success_count += 1
+            
+            self.log(f"📊 verify-cell: {success_count}/{total_tests} тестов пройдено")
+            return success_count == total_tests
+            
+        except Exception as e:
+            self.log(f"❌ Исключение в verify-cell: {str(e)}", "ERROR")
+            return False
+    
+    def test_place_cargo_endpoint(self):
+        """Тестирование POST /api/operator/placement/place-cargo"""
+        try:
+            self.log("📦 Тестирование place-cargo endpoint...")
+            
+            test_cases = [
+                {
+                    "name": "Размещение груза в ячейку Б1-П1-Я1",
+                    "cargo_qr": self.test_cargo_number,
+                    "cell_qr": "Б1-П1-Я1",
+                    "should_succeed": True
+                },
+                {
+                    "name": "Размещение individual unit",
+                    "cargo_qr": f"{self.test_cargo_number}/01/02",
+                    "cell_qr": "Б1-П1-Я2",
+                    "should_succeed": True
+                },
+                {
+                    "name": "Несуществующий груз",
+                    "cargo_qr": "999999999",
+                    "cell_qr": "Б1-П1-Я3",
+                    "should_succeed": False
+                },
+                {
+                    "name": "Пустые QR коды",
+                    "cargo_qr": "",
+                    "cell_qr": "",
+                    "should_succeed": False
+                }
+            ]
+            
+            success_count = 0
+            total_tests = len(test_cases)
+            
+            for test_case in test_cases:
+                self.log(f"  📋 Тест: {test_case['name']}")
+                
+                response = self.session.post(
+                    f"{API_BASE}/operator/placement/place-cargo",
+                    json={
+                        "cargo_qr_code": test_case["cargo_qr"],
+                        "cell_qr_code": test_case["cell_qr"],
+                        "session_id": self.session_id
+                    },
+                    timeout=30
+                )
+                
+                if test_case["should_succeed"]:
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get("success"):
+                            placement_info = data.get("placement_info", {})
+                            self.log(f"    ✅ Груз размещен: {placement_info.get('cargo_number')} → {placement_info.get('cell_address')}")
+                            success_count += 1
+                        else:
+                            self.log(f"    ❌ Размещение не удалось: {data.get('error')}")
+                    else:
+                        self.log(f"    ❌ HTTP ошибка: {response.status_code}")
+                else:
+                    if response.status_code == 200:
+                        data = response.json()
+                        if not data.get("success"):
+                            self.log(f"    ✅ Ожидаемая ошибка: {data.get('error')}")
+                            success_count += 1
+                        else:
+                            self.log(f"    ❌ Неожиданный успех")
+                    else:
+                        self.log(f"    ✅ Ожидаемая HTTP ошибка: {response.status_code}")
+                        success_count += 1
+            
+            self.log(f"📊 place-cargo: {success_count}/{total_tests} тестов пройдено")
+            return success_count == total_tests
+            
+        except Exception as e:
+            self.log(f"❌ Исключение в place-cargo: {str(e)}", "ERROR")
+            return False
+    
+    def test_session_history_endpoint(self):
+        """Тестирование GET /api/operator/placement/session-history"""
+        try:
+            self.log("📊 Тестирование session-history endpoint...")
+            
+            test_cases = [
+                {
+                    "name": "История конкретной сессии",
+                    "params": {"session_id": self.session_id},
+                    "should_succeed": True
+                },
+                {
+                    "name": "История без указания сессии",
+                    "params": {},
+                    "should_succeed": True
+                },
+                {
+                    "name": "История с лимитом",
+                    "params": {"limit": 10},
+                    "should_succeed": True
+                }
+            ]
+            
+            success_count = 0
+            total_tests = len(test_cases)
+            
+            for test_case in test_cases:
+                self.log(f"  📋 Тест: {test_case['name']}")
+                
+                response = self.session.get(
+                    f"{API_BASE}/operator/placement/session-history",
+                    params=test_case["params"],
+                    timeout=30
+                )
+                
+                if test_case["should_succeed"]:
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get("success"):
+                            history = data.get("history", [])
+                            sessions = data.get("sessions", [])
+                            statistics = data.get("statistics", {})
+                            
+                            self.log(f"    ✅ История получена: {len(history)} размещений, {len(sessions)} сессий")
+                            self.log(f"    📊 Статистика: {statistics.get('total_placements')} размещений оператором {statistics.get('operator_name')}")
+                            success_count += 1
+                        else:
+                            self.log(f"    ❌ Ошибка получения истории: {data.get('error')}")
+                    else:
+                        self.log(f"    ❌ HTTP ошибка: {response.status_code}")
+                else:
+                    self.log(f"    ❌ Неожиданный тест")
+            
+            self.log(f"📊 session-history: {success_count}/{total_tests} тестов пройдено")
+            return success_count == total_tests
+            
+        except Exception as e:
+            self.log(f"❌ Исключение в session-history: {str(e)}", "ERROR")
+            return False
+    
+    def test_undo_last_endpoint(self):
+        """Тестирование DELETE /api/operator/placement/undo-last"""
+        try:
+            self.log("↩️ Тестирование undo-last endpoint...")
+            
+            test_cases = [
+                {
+                    "name": "Отмена последнего размещения в сессии",
+                    "session_id": self.session_id,
+                    "should_succeed": True
+                },
+                {
+                    "name": "Отмена в несуществующей сессии",
+                    "session_id": "nonexistent_session",
+                    "should_succeed": False
+                }
+            ]
+            
+            success_count = 0
+            total_tests = len(test_cases)
+            
+            for test_case in test_cases:
+                self.log(f"  📋 Тест: {test_case['name']}")
+                
+                response = self.session.delete(
+                    f"{API_BASE}/operator/placement/undo-last",
+                    params={"session_id": test_case["session_id"]},
+                    timeout=30
+                )
+                
+                if test_case["should_succeed"]:
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get("success"):
+                            self.log(f"    ✅ Размещение отменено успешно")
+                            success_count += 1
+                        else:
+                            self.log(f"    ❌ Отмена не удалась: {data.get('error')}")
+                    else:
+                        self.log(f"    ❌ HTTP ошибка: {response.status_code}")
+                else:
+                    if response.status_code == 200:
+                        data = response.json()
+                        if not data.get("success"):
+                            self.log(f"    ✅ Ожидаемая ошибка: {data.get('error')}")
+                            success_count += 1
+                        else:
+                            self.log(f"    ❌ Неожиданный успех")
+                    else:
+                        self.log(f"    ✅ Ожидаемая HTTP ошибка: {response.status_code}")
+                        success_count += 1
+            
+            self.log(f"📊 undo-last: {success_count}/{total_tests} тестов пройдено")
+            return success_count == total_tests
+            
+        except Exception as e:
+            self.log(f"❌ Исключение в undo-last: {str(e)}", "ERROR")
+            return False
+    
+    def test_full_placement_workflow(self):
+        """Тестирование полного цикла размещения груза"""
+        try:
+            self.log("🔄 Тестирование полного цикла размещения груза...")
+            
+            workflow_session_id = str(uuid.uuid4())
+            
+            # Шаг 1: Проверяем груз
+            self.log("  1️⃣ Проверка груза...")
+            cargo_response = self.session.post(
+                f"{API_BASE}/operator/placement/verify-cargo",
+                json={"qr_code": self.test_cargo_number},
+                timeout=30
+            )
+            
+            if cargo_response.status_code != 200 or not cargo_response.json().get("success"):
+                self.log("    ❌ Ошибка проверки груза")
+                return False
+            
+            self.log("    ✅ Груз проверен успешно")
+            
+            # Шаг 2: Проверяем ячейку
+            self.log("  2️⃣ Проверка ячейки...")
+            cell_response = self.session.post(
+                f"{API_BASE}/operator/placement/verify-cell",
+                json={"qr_code": "Б1-П1-Я5"},
+                timeout=30
+            )
+            
+            if cell_response.status_code != 200 or not cell_response.json().get("success"):
+                self.log("    ❌ Ошибка проверки ячейки")
+                return False
+            
+            self.log("    ✅ Ячейка проверена успешно")
+            
+            # Шаг 3: Размещаем груз
+            self.log("  3️⃣ Размещение груза...")
+            placement_response = self.session.post(
+                f"{API_BASE}/operator/placement/place-cargo",
+                json={
+                    "cargo_qr_code": self.test_cargo_number,
+                    "cell_qr_code": "Б1-П1-Я5",
+                    "session_id": workflow_session_id
+                },
+                timeout=30
+            )
+            
+            if placement_response.status_code != 200 or not placement_response.json().get("success"):
+                self.log("    ❌ Ошибка размещения груза")
+                return False
+            
+            self.log("    ✅ Груз размещен успешно")
+            
+            # Шаг 4: Проверяем историю
+            self.log("  4️⃣ Проверка истории размещения...")
+            history_response = self.session.get(
+                f"{API_BASE}/operator/placement/session-history",
+                params={"session_id": workflow_session_id},
+                timeout=30
+            )
+            
+            if history_response.status_code != 200 or not history_response.json().get("success"):
+                self.log("    ❌ Ошибка получения истории")
+                return False
+            
+            history_data = history_response.json()
+            history = history_data.get("history", [])
+            
+            if not history:
+                self.log("    ❌ История размещения пуста")
+                return False
+            
+            self.log(f"    ✅ История получена: {len(history)} записей")
+            
+            # Шаг 5: Отменяем размещение
+            self.log("  5️⃣ Отмена размещения...")
+            undo_response = self.session.delete(
+                f"{API_BASE}/operator/placement/undo-last",
+                params={"session_id": workflow_session_id},
+                timeout=30
+            )
+            
+            if undo_response.status_code != 200 or not undo_response.json().get("success"):
+                self.log("    ❌ Ошибка отмены размещения")
+                return False
+            
+            self.log("    ✅ Размещение отменено успешно")
+            
+            self.log("🎉 Полный цикл размещения груза завершен успешно!")
+            return True
+            
+        except Exception as e:
+            self.log(f"❌ Исключение в полном цикле: {str(e)}", "ERROR")
+            return False
+    
+    def run_all_tests(self):
+        """Запуск всех тестов"""
+        self.log("🚀 Начало тестирования новых API endpoints для размещения груза")
+        self.log("=" * 80)
+        
+        # Подготовка
+        if not self.authenticate_operator():
+            self.log("❌ Не удалось авторизоваться", "ERROR")
+            return False
+        
+        if not self.get_operator_warehouse():
+            self.log("❌ Не удалось получить склад оператора", "ERROR")
+            return False
+        
+        if not self.create_test_cargo():
+            self.log("❌ Не удалось создать тестовый груз", "ERROR")
+            return False
+        
+        # Тестирование endpoints
+        test_results = []
+        
+        test_results.append(("verify-cargo", self.test_verify_cargo_endpoint()))
+        test_results.append(("verify-cell", self.test_verify_cell_endpoint()))
+        test_results.append(("place-cargo", self.test_place_cargo_endpoint()))
+        test_results.append(("session-history", self.test_session_history_endpoint()))
+        test_results.append(("undo-last", self.test_undo_last_endpoint()))
+        test_results.append(("full-workflow", self.test_full_placement_workflow()))
+        
+        # Подведение итогов
+        self.log("=" * 80)
+        self.log("📊 РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ:")
+        
+        passed_tests = 0
+        total_tests = len(test_results)
+        
+        for test_name, result in test_results:
+            status = "✅ ПРОЙДЕН" if result else "❌ ПРОВАЛЕН"
+            self.log(f"  {test_name}: {status}")
+            if result:
+                passed_tests += 1
+        
+        success_rate = (passed_tests / total_tests) * 100
+        self.log(f"📈 ОБЩИЙ РЕЗУЛЬТАТ: {passed_tests}/{total_tests} тестов пройдено ({success_rate:.1f}%)")
+        
+        if success_rate == 100:
+            self.log("🎉 ВСЕ ТЕСТЫ ПРОЙДЕНЫ УСПЕШНО! API endpoints готовы к продакшену")
+        elif success_rate >= 80:
+            self.log("⚠️ Большинство тестов пройдено, но есть проблемы требующие внимания")
+        else:
+            self.log("❌ КРИТИЧЕСКИЕ ПРОБЛЕМЫ! Требуется исправление перед продакшеном")
+        
+        return success_rate == 100
+
+def main():
+    """Главная функция"""
+    tester = PlacementAPITester()
+    success = tester.run_all_tests()
+    
+    if success:
+        print("\n🎯 ТЕСТИРОВАНИЕ ЗАВЕРШЕНО УСПЕШНО!")
+        print("Все новые API endpoints для размещения груза работают корректно")
+    else:
+        print("\n❌ ТЕСТИРОВАНИЕ ВЫЯВИЛО ПРОБЛЕМЫ!")
+        print("Требуется исправление найденных ошибок")
+    
+    return success
+
+if __name__ == "__main__":
+    main()
+"""
 🎯 ТЕСТИРОВАНИЕ НОВОГО API: individual-units-for-placement
 КОНТЕКСТ: Создан новый backend endpoint для индивидуальных единиц груза вместо заявок
 ЦЕЛЬ: Протестировать GET /api/operator/cargo/individual-units-for-placement
