@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+console.log('🔍 DEBUG: BACKEND_URL:', process.env.REACT_APP_BACKEND_URL);
 
 function App() {
   const [user, setUser] = useState(null);
