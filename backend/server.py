@@ -5228,6 +5228,37 @@ async def accept_new_cargo(
     cargo_qr_code = generate_cargo_qr_code(cargo)
     cargo["qr_code"] = cargo_qr_code
     
+    # НОВОЕ: Генерируем individual_items для каждого cargo_item
+    if cargo_data.cargo_items:
+        processed_cargo_items = []
+        for type_index, item in enumerate(cargo_data.cargo_items, 1):
+            # Конвертируем в dict
+            item_dict = item.dict()
+            
+            # Генерируем individual_items для этого типа груза
+            individual_items = []
+            quantity = item.quantity
+            
+            for unit_index in range(1, quantity + 1):
+                # Индивидуальный номер: 250108/01/01, 250108/01/02
+                individual_number = f"{cargo_number}/{str(type_index).zfill(2)}/{str(unit_index).zfill(2)}"
+                
+                individual_items.append({
+                    'individual_number': individual_number,
+                    'type_index': str(type_index).zfill(2),
+                    'unit_index': str(unit_index).zfill(2),
+                    'is_placed': False,
+                    'placement_status': 'awaiting_placement',
+                    'placement_info': None,
+                    'created_at': datetime.utcnow().isoformat()
+                })
+            
+            # Добавляем individual_items к cargo_item
+            item_dict['individual_items'] = individual_items
+            processed_cargo_items.append(item_dict)
+        
+        cargo["cargo_items"] = processed_cargo_items
+    
     db.operator_cargo.insert_one(cargo)
     
     # ОБНОВЛЕНО: Создание записи о долге, если требуется
