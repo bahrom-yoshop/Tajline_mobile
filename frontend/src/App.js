@@ -9807,6 +9807,52 @@ function App() {
     }
   };
 
+  // НОВАЯ ФУНКЦИЯ: Получение individual units для размещения
+  const fetchIndividualUnitsForPlacement = async (
+    page = individualUnitsPage, 
+    perPage = individualUnitsPerPage,
+    cargoType = cargoTypeFilter,
+    status = placementStatusFilter
+  ) => {
+    try {
+      console.log('🔄 Загрузка individual units для размещения...');
+      
+      const params = {
+        page: page,
+        per_page: perPage
+      };
+      
+      // Добавляем фильтры если они указаны
+      if (cargoType) {
+        params.cargo_type_filter = cargoType;
+      }
+      if (status) {
+        params.status_filter = status;
+      }
+      
+      const response = await apiCall('/api/operator/cargo/individual-units-for-placement', 'GET', null, params);
+      
+      console.log('✅ Individual units получены:', response);
+      
+      // Устанавливаем данные
+      setIndividualUnitsForPlacement(response.individual_units || []);
+      setGroupedUnitsForPlacement(response.items || []);
+      setIndividualUnitsPagination({
+        total: response.total || 0,
+        page: response.page || 1,
+        per_page: response.per_page || 25,
+        total_pages: response.total_pages || 1
+      });
+      
+    } catch (error) {
+      console.error('❌ Ошибка получения individual units:', error);
+      setIndividualUnitsForPlacement([]);
+      setGroupedUnitsForPlacement([]);
+      setIndividualUnitsPagination({});
+      showAlert(`Ошибка загрузки данных: ${error.message}`, 'error');
+    }
+  };
+
   // Обработчики пагинации для списка грузов
   const handleOperatorCargoPageChange = (newPage) => {
     setOperatorCargoPage(newPage);
