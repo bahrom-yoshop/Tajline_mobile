@@ -19320,272 +19320,239 @@ function App() {
                   )}
 
                   {/* Размещение груза */}
+                  {/* НОВОЕ: Полнофункциональное размещение груза со сканером */}
                   {activeTab === 'operations-placement' && (
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center">
                           <Target className="mr-2 h-5 w-5" />
-                          Размещение груза
+                          Полнофункциональное размещение груза
                         </CardTitle>
-                        <CardDescription>Сканирование QR кода груза и ячейки для размещения</CardDescription>
+                        <CardDescription>
+                          Размещение груза с QR сканером, аналитикой и контролем качества
+                        </CardDescription>
                       </CardHeader>
-                      <CardContent className="space-y-4">
-                        {mobilePlacementStep === 'start' && (
-                          <div className="space-y-4">
-                            {/* Показываем контейнер камеры сначала */}
-                            <div 
-                              id="qr-reader-placement-main" 
-                              className="camera-placeholder w-full bg-black rounded-lg flex items-center justify-center"
-                              style={{
-                                width: '300px',
-                                height: '300px',
-                                maxWidth: '300px',
-                                maxHeight: '300px',
-                                minWidth: '300px',
-                                minHeight: '300px',
-                                margin: '0 auto',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#a0aec0',
-                                fontSize: '14px',
-                                fontWeight: '500'
-                              }}
-                            >
-                              📷 Камера будет активна здесь
+                      <CardContent className="space-y-6">
+                        
+                        {/* Панель управления сессией */}
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <h3 className="font-semibold text-blue-800">Сессия размещения</h3>
+                              {placementSessionId && (
+                                <p className="text-sm text-blue-600">ID: {placementSessionId}</p>
+                              )}
                             </div>
-
-                            {/* Кнопка запуска размещения внизу */}
-                            <div className="text-center">
-                              <Button 
-                                onClick={() => startMobilePlacement()}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                            
+                            {!scannerPlacementMode ? (
+                              <Button
+                                onClick={initializePlacementSession}
+                                className="bg-green-600 hover:bg-green-700 text-white"
                                 size="lg"
                               >
-                                <Camera className="mr-2 h-5 w-5" />
-                                Начать размещение
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Начать сессию
                               </Button>
-                            </div>
-                          </div>
-                        )}
-
-                        {mobilePlacementStep === 'scan-cargo' && (
-                          <div className="space-y-4">
-                            <div className="text-center">
-                              <h3 className="font-semibold text-blue-600">Шаг 1: Сканирование груза</h3>
-                              <p className="text-sm text-gray-600">Наведите камеру на QR код груза</p>
-                            </div>
-                            
-                            <div 
-                              id="qr-reader-placement-cargo" 
-                              className="w-full bg-black rounded-lg"
-                              style={{
-                                width: '300px',
-                                height: '300px',
-                                maxWidth: '300px',
-                                maxHeight: '300px',
-                                minWidth: '300px',
-                                minHeight: '300px',
-                                margin: '0 auto'
-                              }}
-                            />
-
-                            {/* Кнопка переключения камеры для размещения */}
-                            {availableCameras.length > 1 && (
-                              <div className="text-center mt-2">
-                                <Button 
-                                  onClick={() => switchCamera()}
-                                  variant="outline"
-                                  size="sm"
-                                >
-                                  <RefreshCw className="mr-2 h-4 w-4" />
-                                  Переключить камеру
-                                </Button>
-                              </div>
-                            )}
-
-                            {/* Кнопка закрытия сканирования для размещения */}
-                            {scannerActive && (
-                              <div className="text-center mt-3">
-                                <Button 
-                                  onClick={stopMobileScanning}
-                                  variant="destructive"
-                                  size="sm"
-                                >
-                                  <X className="mr-2 h-4 w-4" />
-                                  Закрыть сканирование
-                                </Button>
-                              </div>
-                            )}
-
-                            {/* Информационная панель размещения */}
-                            {placementInfoMessage && (
-                              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                <p className="text-sm text-blue-800 text-center">
-                                  {placementInfoMessage}
-                                </p>
-                              </div>
-                            )}
-
-                            {scannedCargo && (
-                              <div className="p-3 bg-green-50 border border-green-200 rounded">
-                                <p className="text-sm text-green-800">
-                                  ✓ Груз отсканирован: {scannedCargo.cargo_number}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {mobilePlacementStep === 'scan-cell' && (
-                          <div className="space-y-4">
-                            <div className="text-center">
-                              <h3 className="font-semibold text-purple-600">Шаг 2: Сканирование ячейки</h3>
-                              <p className="text-sm text-gray-600">Наведите камеру на QR код свободной ячейки</p>
-                            </div>
-                            
-                            <div 
-                              id="qr-reader-placement-mobile" 
-                              className="w-full bg-black rounded-lg"
-                              style={{
-                                width: '300px',
-                                height: '300px',
-                                maxWidth: '300px',
-                                maxHeight: '300px',
-                                minWidth: '300px',
-                                minHeight: '300px',
-                                margin: '0 auto'
-                              }}
-                            />
-
-                            {/* Кнопка переключения камеры для сканирования ячейки */}
-                            {availableCameras.length > 1 && (
-                              <div className="text-center mt-2">
-                                <Button 
-                                  onClick={() => switchCamera()}
-                                  variant="outline"
-                                  size="sm"
-                                >
-                                  <RefreshCw className="mr-2 h-4 w-4" />
-                                  Переключить камеру
-                                </Button>
-                              </div>
-                            )}
-
-                            {/* Кнопка закрытия сканирования */}
-                            {scannerActive && (
-                              <div className="text-center mt-3">
-                                <Button 
-                                  onClick={stopMobileScanning}
-                                  variant="destructive"
-                                  size="sm"
-                                >
-                                  <X className="mr-2 h-4 w-4" />
-                                  Закрыть сканирование
-                                </Button>
-                              </div>
-                            )}
-
-                            {/* Информационная панель размещения для шага 2 */}
-                            {placementInfoMessage && (
-                              <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                                <p className="text-sm text-purple-800 text-center">
-                                  {placementInfoMessage}
-                                </p>
-                              </div>
-                            )}
-
-                            {scannedCargo && (
-                              <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-                                <p className="text-sm text-blue-800">
-                                  Груз для размещения: {scannedCargo.cargo_number}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {mobilePlacementStep === 'confirm' && (
-                          <div className="space-y-4">
-                            <div className="text-center">
-                              <h3 className="font-semibold text-green-600">Подтверждение размещения</h3>
-                            </div>
-                            
-                            <div className="bg-gray-50 p-4 rounded space-y-2">
-                              <div className="flex justify-between">
-                                <span>Груз:</span>
-                                <span className="font-medium">{scannedCargo?.cargo_number}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Ячейка:</span>
-                                <span className="font-medium">{scannedCell?.cell_code}</span>
-                              </div>
-                            </div>
-
-                            <div className="flex space-x-2">
-                              <Button 
-                                onClick={() => confirmMobilePlacement()}
-                                className="flex-1 bg-green-600 hover:bg-green-700"
-                              >
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                Подтвердить размещение
-                              </Button>
-                              <Button 
-                                onClick={() => resetMobilePlacement()}
+                            ) : (
+                              <Button
+                                onClick={finalizePlacementSession}
                                 variant="outline"
-                                className="flex-1"
+                                className="border-red-300 text-red-600 hover:bg-red-50"
                               >
                                 <X className="mr-2 h-4 w-4" />
-                                Отменить
+                                Завершить сессию
                               </Button>
-                            </div>
+                            )}
                           </div>
-                        )}
+                          
+                          {/* Статистика сессии */}
+                          {sessionStats && (
+                            <div className="grid grid-cols-3 gap-4 text-center">
+                              <div className="bg-white p-3 rounded-lg">
+                                <div className="text-2xl font-bold text-green-600">{sessionStats.total_placements || 0}</div>
+                                <div className="text-xs text-gray-600">Размещено</div>
+                              </div>
+                              <div className="bg-white p-3 rounded-lg">
+                                <div className="text-2xl font-bold text-blue-600">{sessionStats.sessions_count || 0}</div>
+                                <div className="text-xs text-gray-600">Сессий</div>
+                              </div>
+                              <div className="bg-white p-3 rounded-lg">
+                                <div className="text-lg font-bold text-purple-600">{sessionStats.operator_name || 'N/A'}</div>
+                                <div className="text-xs text-gray-600">Оператор</div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
 
-                        {/* Панель статистики сессии размещения */}
-                        {(sessionPlacementCount > 0 || sessionPlacements.length > 0 || placementStatistics) && (
-                          <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                            <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
-                              <BarChart className="mr-2 h-4 w-4" />
-                              Статистика размещения
-                            </h4>
+                        {/* Основной интерфейс сканера */}
+                        {scannerPlacementMode && (
+                          <div className="space-y-6">
                             
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                              <div className="text-center">
-                                <div className="text-2xl font-bold text-blue-600">
-                                  {sessionPlacementCount}
+                            {/* Индикатор шагов */}
+                            <div className="flex items-center justify-center space-x-4 mb-6">
+                              <div className={`flex items-center ${placementStep === 'scan-cargo' ? 'text-blue-600' : placementStep === 'scan-cell' ? 'text-gray-400' : 'text-green-600'}`}>
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                                  placementStep === 'scan-cargo' ? 'bg-blue-600 text-white' : 
+                                  placementStep === 'scan-cell' || placementStep === 'idle' ? 'bg-green-100 text-green-600' : 'bg-gray-200'
+                                }`}>
+                                  1
                                 </div>
-                                <div className="text-sm text-gray-600">За эту сессию</div>
+                                <span className="ml-2 font-medium">Сканировать груз</span>
                               </div>
-                              <div className="text-center">
-                                <div className="text-2xl font-bold text-green-600">
-                                  {placementStatistics?.today_placements || 0}
+                              
+                              <div className="w-8 h-0.5 bg-gray-300"></div>
+                              
+                              <div className={`flex items-center ${placementStep === 'scan-cell' ? 'text-blue-600' : placementStep === 'idle' ? 'text-green-600' : 'text-gray-400'}`}>
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                                  placementStep === 'scan-cell' ? 'bg-blue-600 text-white' : 
+                                  placementStep === 'idle' ? 'bg-green-100 text-green-600' : 'bg-gray-200'
+                                }`}>
+                                  2
                                 </div>
-                                <div className="text-sm text-gray-600">Сегодня размещено</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-2xl font-bold text-purple-600">
-                                  {placementStatistics?.session_placements || sessionPlacementCount}
-                                </div>
-                                <div className="text-sm text-gray-600">Общее за сессию</div>
+                                <span className="ml-2 font-medium">Сканировать ячейку</span>
                               </div>
                             </div>
 
-                            {/* Список размещенных грузов текущей сессии */}
-                            {sessionPlacements.length > 0 && (
-                              <div>
-                                <h5 className="font-medium text-gray-700 mb-2">Размещено в этой сессии:</h5>
-                                <div className="max-h-32 overflow-y-auto space-y-1">
-                                  {sessionPlacements.map((placement, index) => (
-                                    <div key={index} className="text-xs bg-white p-2 rounded border">
-                                      {placement}
+                            {/* Поля для QR сканера */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              
+                              {/* Поле для QR груза */}
+                              <div className={`p-4 rounded-lg border-2 ${
+                                placementStep === 'scan-cargo' ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                              }`}>
+                                <label className="block text-sm font-medium mb-2">
+                                  📦 QR код груза
+                                </label>
+                                <Input
+                                  id="cargo-qr-input"
+                                  type="text"
+                                  placeholder="Сканируйте QR код груза..."
+                                  value={currentCargoQR}
+                                  onChange={(e) => setCurrentCargoQR(e.target.value)}
+                                  onKeyPress={async (e) => {
+                                    if (e.key === 'Enter' || e.key === 'Tab') {
+                                      e.preventDefault();
+                                      if (e.target.value.trim()) {
+                                        await handleNewCargoQRScan(e.target.value.trim());
+                                      }
+                                    }
+                                  }}
+                                  className={`text-center font-mono ${
+                                    placementStep === 'scan-cargo' ? 'border-blue-400 focus:border-blue-600' : ''
+                                  }`}
+                                  disabled={placementStep !== 'scan-cargo' || isPlacementProcessing}
+                                  autoFocus={placementStep === 'scan-cargo'}
+                                />
+                                
+                                {verifiedCargo && (
+                                  <div className="mt-2 p-2 bg-green-100 rounded text-sm">
+                                    <div className="font-medium text-green-800">✅ {verifiedCargo.cargo_number}</div>
+                                    <div className="text-green-600">{verifiedCargo.sender_name}</div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Поле для QR ячейки */}
+                              <div className={`p-4 rounded-lg border-2 ${
+                                placementStep === 'scan-cell' ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                              }`}>
+                                <label className="block text-sm font-medium mb-2">
+                                  🏠 QR код ячейки
+                                </label>
+                                <Input
+                                  id="cell-qr-input"
+                                  type="text"
+                                  placeholder="Сканируйте QR код ячейки..."
+                                  value={currentCellQR}
+                                  onChange={(e) => setCurrentCellQR(e.target.value)}
+                                  onKeyPress={async (e) => {
+                                    if (e.key === 'Enter' || e.key === 'Tab') {
+                                      e.preventDefault();
+                                      if (e.target.value.trim()) {
+                                        await handleNewCellQRScan(e.target.value.trim());
+                                      }
+                                    }
+                                  }}
+                                  className={`text-center font-mono ${
+                                    placementStep === 'scan-cell' ? 'border-blue-400 focus:border-blue-600' : ''
+                                  }`}
+                                  disabled={placementStep !== 'scan-cell' || isPlacementProcessing}
+                                />
+                                
+                                {verifiedCell && (
+                                  <div className="mt-2 p-2 bg-green-100 rounded text-sm">
+                                    <div className="font-medium text-green-800">✅ {verifiedCell.cell_address}</div>
+                                    <div className="text-green-600">
+                                      {verifiedCell.current_cargo_count} грузов в ячейке
                                     </div>
-                                  ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Загрузка процесса */}
+                            {isPlacementProcessing && (
+                              <div className="text-center py-4">
+                                <div className="inline-flex items-center">
+                                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                  Обработка...
                                 </div>
                               </div>
                             )}
+
                           </div>
                         )}
+
+                        {/* История размещения */}
+                        {scannerPlacementMode && placementHistory.length > 0 && (
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="font-semibold text-gray-800">📊 История размещения</h3>
+                              
+                              <div className="flex items-center space-x-2">
+                                <Button
+                                  onClick={() => fetchPlacementHistory(placementSessionId)}
+                                  size="sm"
+                                  variant="outline"
+                                >
+                                  <RefreshCw className="mr-1 h-3 w-3" />
+                                  Обновить
+                                </Button>
+                                
+                                {placementHistory.length > 0 && (
+                                  <Button
+                                    onClick={() => undoLastPlacement(placementSessionId)}
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-red-300 text-red-600 hover:bg-red-50"
+                                  >
+                                    <RotateCw className="mr-1 h-3 w-3" />
+                                    Отменить последнее
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2 max-h-60 overflow-y-auto">
+                              {placementHistory.slice(0, 10).map((record, index) => (
+                                <div key={record.id || index} className="flex items-center justify-between p-2 bg-white rounded border">
+                                  <div className="flex-1">
+                                    <div className="font-medium text-sm">
+                                      {record.cargo_number} → {record.cell_address}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      {new Date(record.placement_timestamp).toLocaleTimeString('ru-RU')}
+                                    </div>
+                                  </div>
+                                  <div className="text-xs text-gray-400">
+                                    #{index + 1}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                       </CardContent>
                     </Card>
                   )}
