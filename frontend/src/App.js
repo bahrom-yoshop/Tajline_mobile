@@ -3796,14 +3796,10 @@ function App() {
         return;
       }
       
-      // Открываем модальное окно выбора ячейки или используем быстрое размещение
-      // Для простоты пока используем авто-размещение в первую доступную ячейку
+      // УЛУЧШЕНИЕ: Используем новый улучшенный API с автоматическим определением склада
       const response = await apiCall('/api/operator/cargo/place-individual', 'POST', {
-        cargo_id: unit.cargo_id,
         individual_number: unit.individual_number,
-        type_number: unit.type_number,
-        unit_index: unit.unit_index,
-        // Авто-размещение в первую доступную ячейку
+        // warehouse_id определяется автоматически для оператора
         block_number: 1,
         shelf_number: 1,
         cell_number: 1
