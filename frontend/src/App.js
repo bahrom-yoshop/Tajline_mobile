@@ -3383,28 +3383,7 @@ function App() {
     }
   };
 
-  // Обработчик сканирования QR грузов (автоматический)
-  const handleCargoQRScan = async (qrCode) => {
-    console.log('📱 Сканирование QR груза:', qrCode);
-    
-    if (!qrCode.trim()) return;
 
-    setCurrentCargoQR(qrCode);
-    const cargoInfo = await verifyCargoByQR(qrCode);
-    
-    if (cargoInfo) {
-      // Автоматически переходим к сканированию ячейки
-      setPlacementStep('scan-cell');
-      
-      // Автофокус на поле ячейки через небольшую задержку
-      setTimeout(() => {
-        const cellInput = document.getElementById('cell-qr-input');
-        if (cellInput) {
-          cellInput.focus();
-        }
-      }, 100);
-    }
-  };
 
   // Обработчик сканирования QR ячеек (автоматический)
   const handleCellQRScan = async (qrCode) => {
