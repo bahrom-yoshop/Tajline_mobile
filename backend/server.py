@@ -14172,6 +14172,129 @@ async def update_warehouse_structure(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating warehouse structure: {str(e)}")
 
+@app.post("/api/warehouses/{warehouse_id}/create-layout")
+async def create_warehouse_layout(
+    warehouse_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    🏗️ НОВЫЙ API: Создание полной структуры склада с блоками, полками и ячейками
+    """
+    try:
+        print(f"🏗️ Создание layout структуры для склада {warehouse_id}")
+        
+        # Проверяем права доступа
+        if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+            raise HTTPException(
+                status_code=403,
+                detail="Недостаточно прав доступа для создания структуры склада"
+            )
+        
+        # Проверяем существование склада
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            # Проверяем по warehouse_id_number
+            warehouse = db.warehouses.find_one({"warehouse_id_number": warehouse_id})
+        
+        if not warehouse:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Склад с ID {warehouse_id} не найден"
+            )
+        
+        # Получаем конфигурацию склада
+        blocks_count = warehouse.get("blocks_count", 3)
+        shelves_per_block = warehouse.get("shelves_per_block", 4) 
+        cells_per_shelf = warehouse.get("cells_per_shelf", 10)
+        
+        print(f"🏗️ Создание структуры: {blocks_count} блоков, {shelves_per_block} полок/блок, {cells_per_shelf} ячеек/полку")
+        
+        # Создаем полную структуру layout
+        layout = {
+            "blocks": []
+        }
+        
+        for block_num in range(1, blocks_count + 1):
+            block = {
+                "number": block_num,
+                "name": f"Блок {block_num}",
+                "shelves": []
+            }
+            
+            for shelf_num in range(1, shelves_per_block + 1):
+                shelf = {
+                    "number": shelf_num,
+                    "name": f"Полка {shelf_num}",
+                    "cells": []
+                }
+                
+                for cell_num in range(1, cells_per_shelf + 1):
+                    cell = {
+                        "number": cell_num,
+                        "name": f"Ячейка {cell_num}",
+                        "location": f"Б{block_num}-П{shelf_num}-Я{cell_num}",
+                        "is_occupied": False,
+                        "capacity": 100,  # кг
+                        "dimensions": {
+                            "width": 50,   # см
+                            "height": 50,  # см  
+                            "depth": 50    # см
+                        }
+                    }
+                    shelf["cells"].append(cell)
+                
+                block["shelves"].append(shelf)
+            
+            layout["blocks"].append(block)
+        
+        # Обновляем склад с новой структурой
+        update_result = db.warehouses.update_one(
+            {"id": warehouse.get("id")},
+            {
+                "$set": {
+                    "layout": layout,
+                    "layout_created_at": datetime.utcnow(),
+                    "layout_created_by": current_user.full_name,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        if update_result.modified_count > 0:
+            total_cells = blocks_count * shelves_per_block * cells_per_shelf
+            
+            print(f"✅ Layout структура создана: {total_cells} ячеек")
+            
+            return {
+                "success": True,
+                "message": f"Layout структура склада создана успешно",
+                "warehouse_id": warehouse.get("id"),
+                "warehouse_name": warehouse.get("name"),
+                "layout_statistics": {
+                    "blocks_count": blocks_count,
+                    "shelves_per_block": shelves_per_block,
+                    "cells_per_shelf": cells_per_shelf,
+                    "total_shelves": blocks_count * shelves_per_block,
+                    "total_cells": total_cells
+                },
+                "created_at": datetime.utcnow().isoformat(),
+                "created_by": current_user.full_name
+            }
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail="Не удалось обновить склад с layout структурой"
+            )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка создания layout структуры: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка создания layout структуры: {str(e)}"
+        )
+
 @app.get("/api/warehouses/cells/{cell_id}/qr")
 async def generate_cell_qr(
     cell_id: str,
