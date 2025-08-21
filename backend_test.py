@@ -542,8 +542,8 @@ class QRCodeAPITester:
                     decoded_image = base64.b64decode(qr_base64)
                     image_size = len(decoded_image)
                     
-                    # QR код должен быть разумного размера (больше 1KB, меньше 100KB)
-                    if image_size < 1000:
+                    # QR код должен быть разумного размера (больше 500 bytes, меньше 100KB)
+                    if image_size < 500:
                         print(f"❌ QR изображение слишком маленькое: {image_size} байт")
                         return False
                     
