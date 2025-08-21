@@ -25468,7 +25468,8 @@ function App() {
               
               {/* УПРОЩЕННАЯ Главная страница курьера - ТОЛЬКО КНОПКИ */}
               {activeSection === 'courier-dashboard' && user?.role === 'courier' && (
-                <div className="space-y-6 p-4 md:p-6">
+                <div className="space-y-6 p-4 md:p-6 relative">
+                  <DevBadge id={getDevNumber('pages', 'courier-dashboard').id} type="page" label={getDevNumber('pages', 'courier-dashboard').label} />
                   {/* GPS Трекер - добавляем в начало дашборда */}
                   <CourierGPSTracker
                     courierTracking={courierTracking}
