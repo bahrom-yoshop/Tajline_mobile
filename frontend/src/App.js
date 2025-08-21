@@ -5813,6 +5813,7 @@ function App() {
   const [qrGenerationProgress, setQrGenerationProgress] = useState(null); // Прогресс генерации QR
   const [generatedQrBatch, setGeneratedQrBatch] = useState(null); // Сгенерированные QR коды
   const [printLayoutOptions, setPrintLayoutOptions] = useState(null); // Опции макетов печати
+  const [selectedUnitForActions, setSelectedUnitForActions] = useState(null); // Выбранная единица для действий
   
   const [selectedCargoForDetailView, setSelectedCargoForDetailView] = useState(null); // Выбранный груз для просмотра деталей
   const [cargoDetailsModal, setCargoDetailsModal] = useState(false); // Модальное окно деталей груза
