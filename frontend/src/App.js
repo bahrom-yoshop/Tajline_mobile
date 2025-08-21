@@ -5731,6 +5731,16 @@ function App() {
   const [isPlacementProcessing, setIsPlacementProcessing] = useState(false); // Процесс размещения
   const [useIndividualCards, setUseIndividualCards] = useState(true); // Переключатель между старым и новым режимом
   
+  // УЛУЧШЕНИЕ: Состояние для общего прогресса размещения (0/20)
+  const [placementProgress, setPlacementProgress] = useState({
+    total_units: 0,
+    placed_units: 0,
+    pending_units: 0,
+    progress_percentage: 0,
+    progress_text: 'Размещено: 0/0',
+    last_updated: null
+  });
+  
   
   const [selectedCargoForDetailView, setSelectedCargoForDetailView] = useState(null); // Выбранный груз для просмотра деталей
   const [cargoDetailsModal, setCargoDetailsModal] = useState(false); // Модальное окно деталей груза
