@@ -3806,7 +3806,17 @@ function App() {
       });
       
       console.log('✅ Individual unit размещен:', response);
-      showAlert(`Единица ${unit.individual_number} успешно размещена!`, 'success');
+      
+      // УЛУЧШЕНИЕ: Показываем детальную информацию о размещении
+      if (response.cargo_name && response.application_progress) {
+        const detailMessage = `✅ Размещен груз: ${response.cargo_name}\n📦 Заявка: ${response.application_number} (${response.application_progress.progress_text})\n📍 Местоположение: ${response.location_code}`;
+        showAlert(detailMessage, 'success');
+      } else {
+        showAlert(`Единица ${unit.individual_number} успешно размещена!`, 'success');
+      }
+      
+      // УЛУЧШЕНИЕ: Мгновенно обновляем прогресс размещения
+      await fetchPlacementProgress();
       
       // Обновляем список individual units
       await fetchIndividualUnitsForPlacement(individualUnitsPage, individualUnitsPerPage, cargoTypeFilter, placementStatusFilter);
