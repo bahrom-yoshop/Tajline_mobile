@@ -22199,7 +22199,6 @@ function App() {
                         )}
                       </CardContent>
                     </Card>
-                  )}
 
                   {/* Размещение груза - Улучшенный интерфейс со сканером */}
                   {activeTab === 'cargo-placement' && (
