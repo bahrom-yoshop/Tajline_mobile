@@ -27008,7 +27008,8 @@ function App() {
 
       {/* НОВОЕ МОДАЛЬНОЕ ОКНО: Полное оформление груза из уведомления */}
       <Dialog open={showCargoAcceptanceModal} onOpenChange={setShowCargoAcceptanceModal}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto relative">
+          <DevBadge id={getDevNumber('modals', 'cargo-acceptance').id} type="modal" label={getDevNumber('modals', 'cargo-acceptance').label} />
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Package className="mr-2 h-5 w-5 text-blue-600" />
