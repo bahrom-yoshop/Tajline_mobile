@@ -166,11 +166,11 @@ class IndividualUnitsAPITester:
                 data = response.json()
                 
                 # Проверяем структуру ответа
-                required_fields = ["individual_units", "total_count", "page", "per_page"]
+                required_fields = ["individual_units", "total", "page", "per_page"]
                 missing_fields = [field for field in required_fields if field not in data]
                 
                 if not missing_fields:
-                    total_units = data.get("total_count", 0)
+                    total_units = data.get("total", 0)
                     individual_units = data.get("individual_units", [])
                     
                     self.log_test(
