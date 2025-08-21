@@ -5995,9 +5995,32 @@ async def get_available_cargo_for_placement(
         # Объединяем списки
         cargo_list = cargo_list_main + cargo_list_operator
         
+        # ИСПРАВЛЕНИЕ ПРОБЛЕМЫ: Фильтруем полностью размещенные заявки
+        filtered_cargo_list = []
+        for cargo in cargo_list:
+            # Подсчитываем общее количество единиц в заявке
+            total_units = 0
+            cargo_items = cargo.get('cargo_items', [])
+            
+            for item in cargo_items:
+                quantity = item.get('quantity', 1)
+                total_units += quantity
+            
+            # Подсчитываем размещенные единицы для этой заявки
+            placed_units = db.placement_records.count_documents({"cargo_number": cargo["cargo_number"]})
+            
+            # Если НЕ все единицы размещены, добавляем в список для размещения
+            if total_units == 0 or placed_units < total_units:
+                filtered_cargo_list.append(cargo)
+            else:
+                print(f"🎯 ИСКЛЮЧЕНИЕ: Заявка {cargo['cargo_number']} полностью размещена ({placed_units}/{total_units}) - исключаем из списка размещения")
+        
+        # Обновляем общий счетчик после фильтрации
+        total_count_after_filter = len(filtered_cargo_list)
+        
         # Обрабатываем данные и добавляем информацию об операторах и складах
         normalized_cargo = []
-        for cargo in cargo_list:
+        for cargo in filtered_cargo_list:
             # Сериализуем данные
             cargo_data = serialize_mongo_document(cargo)
             
