@@ -8271,6 +8271,12 @@ function App() {
     try {
       // Build URL with query parameters if provided
       let url = `${BACKEND_URL}${endpoint}`;
+      
+      // DEBUG: Логируем фактические значения
+      console.log('🔍 API DEBUG: BACKEND_URL =', BACKEND_URL);
+      console.log('🔍 API DEBUG: endpoint =', endpoint);
+      console.log('🔍 API DEBUG: final url =', url);
+      
       if (params) {
         const urlParams = new URLSearchParams(params);
         url += `?${urlParams.toString()}`;
