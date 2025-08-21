@@ -741,11 +741,23 @@ class QRComprehensiveTester:
                 )
                 return False
             
+            if not self.operator_warehouses:
+                self.log_result(
+                    "Place Individual Unit - No Warehouse",
+                    False,
+                    error_details="No warehouse available for placement testing"
+                )
+                return False
+            
             test_individual_number = self.individual_units[0]
+            warehouse_id = self.operator_warehouses[0]["id"]
             
             request_data = {
                 "individual_number": test_individual_number,
-                "location_code": "B1-S1-C1"  # Test location
+                "warehouse_id": warehouse_id,
+                "block_number": 1,
+                "shelf_number": 1,
+                "cell_number": 1
             }
             
             response = self.session.post(
@@ -762,7 +774,7 @@ class QRComprehensiveTester:
                     self.log_result(
                         "Place Individual Unit",
                         True,
-                        f"Successfully placed individual unit {test_individual_number} at location {placement_info.get('location_code', 'N/A')}"
+                        f"Successfully placed individual unit {test_individual_number} at location {placement_info.get('location_code', 'B1-S1-C1')}"
                     )
                     return True
                 else:
