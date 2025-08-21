@@ -18040,8 +18040,23 @@ async def verify_cell_for_placement(
                     block_number = int(parts[0][1:])  # Убираем 'Б'
                     shelf_number = int(parts[1][1:])  # Убираем 'П'
                     cell_number = int(parts[2][1:])   # Убираем 'Я'
-                    # Используем склад текущего пользователя
+                    # ИСПРАВЛЕНИЕ: Безопасное получение склада текущего пользователя
                     warehouse_id = current_user.warehouse_id
+                    if not warehouse_id:
+                        # Пытаемся получить склад из привязки оператора
+                        operator_binding = db.operator_warehouse_bindings.find_one({"operator_id": current_user.id})
+                        if operator_binding:
+                            warehouse_id = operator_binding.get("warehouse_id")
+                        else:
+                            # Используем первый доступный склад
+                            warehouses = list(db.warehouses.find({}))
+                            if warehouses:
+                                warehouse_id = warehouses[0].get("id")
+                            else:
+                                raise HTTPException(
+                                    status_code=400,
+                                    detail="Не найден склад для текущего оператора"
+                                )
                 except (ValueError, IndexError):
                     raise HTTPException(
                         status_code=400,
