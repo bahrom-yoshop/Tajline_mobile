@@ -6264,8 +6264,8 @@ async def get_available_cargo_for_placement(
             
             normalized_cargo.append(cargo_data)
         
-        # Создаем ответ с пагинацией
-        return create_pagination_response(normalized_cargo, total_count, pagination.page, pagination.per_page)
+        # Создаем ответ с пагинацией (используем отфильтрованное количество)
+        return create_pagination_response(normalized_cargo, total_count_after_filter, pagination.page, pagination.per_page)
         
     except Exception as e:
         raise HTTPException(
