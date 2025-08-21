@@ -17859,7 +17859,322 @@ async def cleanup_duplicate_notifications(current_user: User = Depends(get_curre
         raise HTTPException(status_code=500, detail="Internal server error")
 
 # ====================================
-# НОВЫЕ API ENDPOINTS: ПОЛНОФУНКЦИОНАЛЬНОЕ РАЗМЕЩЕНИЕ ГРУЗА СО СКАНЕРОМ
+# НОВЫЕ API ENDPOINTS: ПЕЧАТЬ QR КОДОВ ДЛЯ INDIVIDUAL UNITS
+# ====================================
+
+@app.post("/api/operator/qr/generate-individual")
+async def generate_individual_qr(
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    🖨️ НОВЫЙ API: Генерация QR кода для индивидуальной единицы груза
+    """
+    try:
+        print(f"🖨️ Генерация QR для individual unit: {request}")
+        
+        # Проверяем права доступа
+        if current_user.role not in ["warehouse_operator"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Недостаточно прав доступа для генерации QR кодов"
+            )
+        
+        individual_number = request.get("individual_number", "").strip()
+        if not individual_number:
+            raise HTTPException(
+                status_code=400,
+                detail="Individual number не указан"
+            )
+        
+        print(f"🖨️ Генерация QR для: {individual_number}")
+        
+        # Ищем груз с данным individual_number
+        cargo = db.operator_cargo.find_one({
+            "cargo_items.individual_items.individual_number": individual_number
+        })
+        
+        if not cargo:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Individual unit {individual_number} не найден"
+            )
+        
+        # Находим конкретный individual_item
+        individual_item = None
+        cargo_item_info = None
+        
+        for cargo_item in cargo.get("cargo_items", []):
+            for unit in cargo_item.get("individual_items", []):
+                if unit.get("individual_number") == individual_number:
+                    individual_item = unit
+                    cargo_item_info = cargo_item
+                    break
+            if individual_item:
+                break
+        
+        if not individual_item:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Individual unit {individual_number} не найден в данных груза"
+            )
+        
+        # Формируем QR данные
+        timestamp = int(datetime.now().timestamp())
+        qr_data = f"TAJLINE|INDIVIDUAL|{individual_number}|{timestamp}"
+        
+        print(f"🖨️ QR данные: {qr_data}")
+        
+        # Генерируем QR код
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        
+        # Создаем изображение QR кода
+        qr_image = qr.make_image(fill_color="black", back_color="white")
+        
+        # Конвертируем в base64
+        buffered = BytesIO()
+        qr_image.save(buffered, format="PNG")
+        qr_base64 = base64.b64encode(buffered.getvalue()).decode()
+        
+        # Формируем информацию о грузе для печати
+        qr_info = {
+            "individual_number": individual_number,
+            "cargo_number": cargo.get("cargo_number"),
+            "cargo_name": cargo_item_info.get("cargo_name", "Неизвестный груз"),
+            "sender_name": cargo.get("sender_full_name", "Неизвестно"),
+            "recipient_name": cargo.get("recipient_full_name", "Неизвестно"),
+            "recipient_address": cargo.get("recipient_address", "Неизвестно"),
+            "weight": cargo_item_info.get("weight", 0),
+            "placement_status": individual_item.get("placement_status", "awaiting_placement"),
+            "is_placed": individual_item.get("is_placed", False),
+            "placement_info": individual_item.get("placement_info"),
+            "qr_data": qr_data,
+            "qr_base64": qr_base64,
+            "generated_at": datetime.now().isoformat()
+        }
+        
+        print(f"✅ QR код сгенерирован для {individual_number}")
+        
+        return {
+            "success": True,
+            "qr_info": qr_info,
+            "message": f"QR код для {individual_number} готов к печати"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка генерации QR: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка генерации QR кода: {str(e)}"
+        )
+
+@app.post("/api/operator/qr/generate-batch")
+async def generate_batch_qr(
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    🖨️ НОВЫЙ API: Массовая генерация QR кодов для списка individual units
+    """
+    try:
+        print(f"🖨️ Массовая генерация QR: {request}")
+        
+        # Проверяем права доступа
+        if current_user.role not in ["warehouse_operator"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Недостаточно прав доступа для генерации QR кодов"
+            )
+        
+        individual_numbers = request.get("individual_numbers", [])
+        if not individual_numbers:
+            raise HTTPException(
+                status_code=400,
+                detail="Список individual numbers не указан"
+            )
+        
+        print(f"🖨️ Генерация QR для {len(individual_numbers)} единиц")
+        
+        qr_batch = []
+        failed_items = []
+        
+        for individual_number in individual_numbers:
+            try:
+                # Ищем груз с данным individual_number
+                cargo = db.operator_cargo.find_one({
+                    "cargo_items.individual_items.individual_number": individual_number
+                })
+                
+                if not cargo:
+                    failed_items.append({
+                        "individual_number": individual_number,
+                        "error": "Груз не найден"
+                    })
+                    continue
+                
+                # Находим конкретный individual_item
+                individual_item = None
+                cargo_item_info = None
+                
+                for cargo_item in cargo.get("cargo_items", []):
+                    for unit in cargo_item.get("individual_items", []):
+                        if unit.get("individual_number") == individual_number:
+                            individual_item = unit
+                            cargo_item_info = cargo_item
+                            break
+                    if individual_item:
+                        break
+                
+                if not individual_item:
+                    failed_items.append({
+                        "individual_number": individual_number,
+                        "error": "Individual unit не найден в данных груза"
+                    })
+                    continue
+                
+                # Формируем QR данные
+                timestamp = int(datetime.now().timestamp())
+                qr_data = f"TAJLINE|INDIVIDUAL|{individual_number}|{timestamp}"
+                
+                # Генерируем QR код
+                qr = qrcode.QRCode(
+                    version=1,
+                    error_correction=qrcode.constants.ERROR_CORRECT_L,
+                    box_size=8,  # Меньший размер для массовой печати
+                    border=2,
+                )
+                qr.add_data(qr_data)
+                qr.make(fit=True)
+                
+                # Создаем изображение QR кода
+                qr_image = qr.make_image(fill_color="black", back_color="white")
+                
+                # Конвертируем в base64
+                buffered = BytesIO()
+                qr_image.save(buffered, format="PNG")
+                qr_base64 = base64.b64encode(buffered.getvalue()).decode()
+                
+                # Добавляем в batch
+                qr_batch.append({
+                    "individual_number": individual_number,
+                    "cargo_number": cargo.get("cargo_number"),
+                    "cargo_name": cargo_item_info.get("cargo_name", "Неизвестный груз"),
+                    "sender_name": cargo.get("sender_full_name", "Неизвестно"),
+                    "recipient_name": cargo.get("recipient_full_name", "Неизвестно"),
+                    "qr_data": qr_data,
+                    "qr_base64": qr_base64,
+                    "is_placed": individual_item.get("is_placed", False),
+                    "placement_info": individual_item.get("placement_info")
+                })
+                
+            except Exception as item_error:
+                failed_items.append({
+                    "individual_number": individual_number,
+                    "error": str(item_error)
+                })
+        
+        print(f"✅ Массовая генерация QR завершена: {len(qr_batch)} успешно, {len(failed_items)} ошибок")
+        
+        return {
+            "success": True,
+            "qr_batch": qr_batch,
+            "failed_items": failed_items,
+            "total_generated": len(qr_batch),
+            "total_failed": len(failed_items),
+            "generated_at": datetime.now().isoformat(),
+            "message": f"Сгенерировано {len(qr_batch)} QR кодов для печати"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка массовой генерации QR: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка массовой генерации QR кодов: {str(e)}"
+        )
+
+@app.get("/api/operator/qr/print-layout")
+async def get_print_layout_options(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    🖨️ НОВЫЙ API: Получение опций макетов для печати QR кодов
+    """
+    try:
+        print("🖨️ Получение опций макетов печати")
+        
+        # Проверяем права доступа
+        if current_user.role not in ["warehouse_operator"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Недостаточно прав доступа"
+            )
+        
+        layout_options = {
+            "single": {
+                "name": "Одиночный QR",
+                "description": "1 QR код на страницу с подробной информацией",
+                "qr_size": "200x200px",
+                "per_page": 1,
+                "includes_info": True,
+                "recommended_for": "Крупные грузы, детальная печать"
+            },
+            "grid_2x2": {
+                "name": "Сетка 2x2", 
+                "description": "4 QR кода на страницу",
+                "qr_size": "150x150px", 
+                "per_page": 4,
+                "includes_info": True,
+                "recommended_for": "Средние партии грузов"
+            },
+            "grid_3x3": {
+                "name": "Сетка 3x3",
+                "description": "9 QR кодов на страницу", 
+                "qr_size": "100x100px",
+                "per_page": 9,
+                "includes_info": False,
+                "recommended_for": "Массовая печать, экономия бумаги"
+            },
+            "compact": {
+                "name": "Компактные наклейки",
+                "description": "16 QR кодов на страницу",
+                "qr_size": "80x80px",
+                "per_page": 16, 
+                "includes_info": False,
+                "recommended_for": "Наклейки, максимальная плотность"
+            }
+        }
+        
+        print("✅ Опции макетов печати получены")
+        
+        return {
+            "success": True,
+            "layout_options": layout_options,
+            "default_layout": "grid_3x3",
+            "message": "Опции макетов печати загружены"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка получения опций печати: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка получения опций печати: {str(e)}"
+        )
+
+# ====================================
+# КОНЕЦ НОВЫХ API ENDPOINTS ДЛЯ ПЕЧАТИ QR
 # ====================================
 
 @app.post("/api/operator/placement/verify-cargo")
