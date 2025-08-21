@@ -5197,6 +5197,16 @@ function App() {
   const [availableCargoPage, setAvailableCargoPage] = useState(1);
   const [availableCargoPerPage, setAvailableCargoPerPage] = useState(25);
   
+  // НОВОЕ: Состояния для individual units карточек
+  const [individualUnitsForPlacement, setIndividualUnitsForPlacement] = useState([]); // Individual units для размещения
+  const [groupedUnitsForPlacement, setGroupedUnitsForPlacement] = useState([]); // Сгруппированные по заявкам units
+  const [individualUnitsPagination, setIndividualUnitsPagination] = useState({}); // Пагинация для individual units
+  const [individualUnitsPage, setIndividualUnitsPage] = useState(1);
+  const [individualUnitsPerPage, setIndividualUnitsPerPage] = useState(25);
+  const [cargoTypeFilter, setCargoTypeFilter] = useState(''); // Фильтр по типу груза
+  const [placementStatusFilter, setPlacementStatusFilter] = useState(''); // Фильтр по статусу размещения
+  const [useIndividualCards, setUseIndividualCards] = useState(true); // Переключатель между старым и новым режимом
+  
   const [selectedCargoForDetailView, setSelectedCargoForDetailView] = useState(null); // Выбранный груз для просмотра деталей
   const [cargoDetailsModal, setCargoDetailsModal] = useState(false); // Модальное окно деталей груза
   const [quickPlacementModal, setQuickPlacementModal] = useState(false); // Быстрое размещение
