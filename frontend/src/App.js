@@ -7231,13 +7231,13 @@ function App() {
           if (extractedData.type === 'individual_unit') {
             showAlert(`Индивидуальная единица "${extractedData.full_number}" не найдена в списке ожидающих размещение. Проверьте номер.`, 'error');
           } else {
-            const searchValue = extractedData.cargo_number || extractedData.number || scannedData;
+            const searchValue = extractedData.cargo_number || extractedData.number || processedData;
             showAlert(`Груз с номером "${searchValue}" не найден в списке ожидающих размещение. Проверьте номер груза.`, 'error');
           }
         }
       } else if (scannerMode === 'cell-qr') {
         // Парсим QR-код ячейки
-        const cellData = parseCellQRCode(scannedData);
+        const cellData = parseCellQRCode(processedData);
         if (cellData) {
           console.log('✅ Ячейка успешно распознана:', cellData);
           setScannedCellData(cellData);
@@ -7265,13 +7265,13 @@ function App() {
             await performAutoPlacement();
           }
         } else {
-          console.log('❌ Неверный формат QR-кода ячейки:', scannedData);
+          console.log('❌ Неверный формат QR-кода ячейки:', processedData);
           setScannerError('Неверный формат QR-кода ячейки');
-          showAlert(`Неверный формат QR-кода ячейки: "${scannedData}". Ожидается формат: '003010101' (9 цифр), '03010101' (8 цифр), '001-01-01-001' или 'Б1-П1-Я1'`, 'error');
+          showAlert(`Неверный формат QR-кода ячейки: "${processedData}". Ожидается формат: '003010101' (9 цифр), '03010101' (8 цифр), '001-01-01-001' или 'Б1-П1-Я1'`, 'error');
         }
       } else if (scannerMode === 'cargo-qr-search') {
         // Режим поиска груза
-        const cargoNumber = extractCargoNumber(scannedData);
+        const cargoNumber = extractCargoNumber(processedData);
         const cargoInfo = await getCargoByNumber(cargoNumber);
         
         if (cargoInfo) {
