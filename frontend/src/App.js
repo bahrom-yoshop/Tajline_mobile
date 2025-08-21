@@ -10654,7 +10654,7 @@ function App() {
       fetchMenuCounters();
     }
   }, [
-    operatorCargo,
+    fullyPlacedCargo,
     availableCargoForPlacement, 
     allPickupRequests,
     warehouses,
