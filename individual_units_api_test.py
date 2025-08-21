@@ -530,7 +530,7 @@ class IndividualUnitsAPITester:
                 # Ищем наши тестовые единицы со статусом "awaiting_placement"
                 test_awaiting_units = [
                     unit for unit in individual_units 
-                    if unit.get("cargo_number") == test_cargo_number and unit.get("placement_status") == "awaiting_placement"
+                    if unit.get("cargo_request_number") == test_cargo_number and unit.get("placement_status") == "awaiting_placement"
                 ]
                 
                 if len(test_awaiting_units) == 5:  # Все 5 единиц должны иметь статус "awaiting_placement"
