@@ -17857,6 +17857,297 @@ async def cleanup_duplicate_notifications(current_user: User = Depends(get_curre
         print(f"Error cleaning up duplicates: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+# ====================================
+# НОВЫЕ API ENDPOINTS: ПОЛНОФУНКЦИОНАЛЬНОЕ РАЗМЕЩЕНИЕ ГРУЗА СО СКАНЕРОМ
+# ====================================
+
+@app.post("/api/operator/placement/verify-cargo")
+async def verify_cargo_for_placement(
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    🎯 НОВЫЙ API: Проверка существования груза по QR коду для размещения
+    """
+    try:
+        print(f"🔍 Проверка груза для размещения: {request}")
+        
+        # Проверяем права доступа
+        if current_user.role not in ["warehouse_operator"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Недостаточно прав доступа для проверки грузов"
+            )
+        
+        qr_code = request.get("qr_code", "").strip()
+        if not qr_code:
+            raise HTTPException(
+                status_code=400,
+                detail="QR код груза не указан"
+            )
+        
+        print(f"🔍 Парсинг QR кода груза: {qr_code}")
+        
+        # Парсим QR код груза (формат: CARGO_NUMBER/TYPE/UNIT или TAJLINE|TYPE|ID|TIMESTAMP)
+        cargo_info = None
+        individual_number = None
+        
+        if '|' in qr_code:
+            # Новый формат QR: TAJLINE|TYPE|ID|TIMESTAMP
+            parts = qr_code.split('|')
+            if len(parts) >= 3 and parts[0] == "TAJLINE":
+                cargo_id = parts[2]
+                # Ищем груз по ID
+                cargo_query = {"id": cargo_id}
+        elif '/' in qr_code:
+            # Формат individual_number: CARGO_NUMBER/TYPE/UNIT
+            individual_number = qr_code
+            parts = qr_code.split('/')
+            if len(parts) >= 1:
+                cargo_number = parts[0]
+                cargo_query = {"cargo_number": cargo_number}
+        else:
+            # Простой формат - номер груза
+            cargo_query = {"cargo_number": qr_code}
+        
+        # Ищем груз в базе данных
+        cargo = db.operator_cargo.find_one(cargo_query)
+        
+        if not cargo:
+            return {
+                "success": False,
+                "error": "Груз не найден в системе",
+                "error_code": "CARGO_NOT_FOUND"
+            }
+        
+        # Проверяем статус груза
+        cargo_status = cargo.get("status", "")
+        if cargo_status == "removed_from_placement":
+            return {
+                "success": False,
+                "error": "Груз исключен из размещения",
+                "error_code": "CARGO_REMOVED"
+            }
+        
+        # Проверяем, можно ли размещать этот груз
+        payment_status = cargo.get("payment_status", "unpaid")
+        if payment_status != "paid":
+            return {
+                "success": False,
+                "error": "Груз не оплачен, размещение невозможно",
+                "error_code": "CARGO_UNPAID"
+            }
+        
+        # Если это individual unit - проверяем его статус
+        individual_unit_info = None
+        if individual_number:
+            cargo_items = cargo.get("cargo_items", [])
+            for cargo_item in cargo_items:
+                individual_items = cargo_item.get("individual_items", [])
+                for unit in individual_items:
+                    if unit.get("individual_number") == individual_number:
+                        individual_unit_info = unit
+                        break
+                if individual_unit_info:
+                    break
+            
+            if individual_unit_info:
+                if individual_unit_info.get("is_placed", False):
+                    placement_info = individual_unit_info.get("placement_info", "Неизвестно")
+                    return {
+                        "success": False,
+                        "error": f"Единица груза уже размещена: {placement_info}",
+                        "error_code": "UNIT_ALREADY_PLACED"
+                    }
+        
+        # Формируем информацию о грузе
+        cargo_info = {
+            "cargo_id": cargo["id"],
+            "cargo_number": cargo.get("cargo_number"),
+            "individual_number": individual_number,
+            "sender_name": cargo.get("sender_full_name", "Неизвестно"),
+            "recipient_name": cargo.get("recipient_full_name", "Неизвестно"),
+            "cargo_items": cargo.get("cargo_items", []),
+            "warehouse_id": cargo.get("warehouse_id"),
+            "status": cargo_status,
+            "payment_status": payment_status
+        }
+        
+        print(f"✅ Груз найден и готов к размещению: {cargo_info['cargo_number']}")
+        
+        return {
+            "success": True,
+            "cargo_info": cargo_info,
+            "message": f"Груз {cargo_info['cargo_number']} готов к размещению"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка проверки груза: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка проверки груза: {str(e)}"
+        )
+
+@app.post("/api/operator/placement/verify-cell")
+async def verify_cell_for_placement(
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    🎯 НОВЫЙ API: Проверка существования ячейки по QR коду для размещения
+    """
+    try:
+        print(f"🔍 Проверка ячейки для размещения: {request}")
+        
+        # Проверяем права доступа
+        if current_user.role not in ["warehouse_operator"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Недостаточно прав доступа для проверки ячеек"
+            )
+        
+        qr_code = request.get("qr_code", "").strip()
+        if not qr_code:
+            raise HTTPException(
+                status_code=400,
+                detail="QR код ячейки не указан"
+            )
+        
+        print(f"🔍 Парсинг QR кода ячейки: {qr_code}")
+        
+        # Парсим QR код ячейки (формат: WAREHOUSE_ID-BLOCK-SHELF-CELL или Б1-П2-Я3)
+        cell_info = None
+        warehouse_id = None
+        block_number = None
+        shelf_number = None
+        cell_number = None
+        
+        # Пробуем разные форматы
+        if '-' in qr_code:
+            parts = qr_code.split('-')
+            if len(parts) >= 4:
+                # Формат: WAREHOUSE_ID-BLOCK-SHELF-CELL
+                warehouse_id = parts[0]
+                block_number = int(parts[1])
+                shelf_number = int(parts[2])
+                cell_number = int(parts[3])
+            elif len(parts) == 3:
+                # Формат: Б1-П2-Я3
+                try:
+                    block_number = int(parts[0][1:])  # Убираем 'Б'
+                    shelf_number = int(parts[1][1:])  # Убираем 'П'
+                    cell_number = int(parts[2][1:])   # Убираем 'Я'
+                    # Используем склад текущего пользователя
+                    warehouse_id = current_user.warehouse_id
+                except (ValueError, IndexError):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Неверный формат QR кода ячейки. Ожидается: Б1-П2-Я3"
+                    )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Неверный формат QR кода ячейки. Ожидается: Б1-П2-Я3 или WAREHOUSE-BLOCK-SHELF-CELL"
+            )
+        
+        # Если warehouse_id не определен, используем склад текущего пользователя
+        if not warehouse_id:
+            warehouse_id = current_user.warehouse_id
+        
+        print(f"🔍 Проверка ячейки: Склад {warehouse_id}, Блок {block_number}, Полка {shelf_number}, Ячейка {cell_number}")
+        
+        # Проверяем существование склада
+        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        if not warehouse:
+            return {
+                "success": False,
+                "error": "Склад не найден",
+                "error_code": "WAREHOUSE_NOT_FOUND"
+            }
+        
+        # Проверяем существование ячейки в структуре склада
+        warehouse_layout = warehouse.get("layout", {})
+        blocks = warehouse_layout.get("blocks", [])
+        
+        cell_exists = False
+        for block in blocks:
+            if block.get("number") == block_number:
+                shelves = block.get("shelves", [])
+                for shelf in shelves:
+                    if shelf.get("number") == shelf_number:
+                        cells = shelf.get("cells", [])
+                        for cell in cells:
+                            if cell.get("number") == cell_number:
+                                cell_exists = True
+                                break
+                        break
+                break
+        
+        if not cell_exists:
+            return {
+                "success": False,
+                "error": f"Ячейка Б{block_number}-П{shelf_number}-Я{cell_number} не существует на складе",
+                "error_code": "CELL_NOT_EXISTS"
+            }
+        
+        # Проверяем текущее содержимое ячейки
+        cell_address = f"Б{block_number}-П{shelf_number}-Я{cell_number}"
+        
+        # Ищем грузы, размещенные в этой ячейке
+        placed_cargo = list(db.operator_cargo.find({
+            "warehouse_id": warehouse_id,
+            "cargo_items.individual_items.placement_info": {"$regex": cell_address}
+        }))
+        
+        current_cargo_count = 0
+        current_cargo_list = []
+        
+        for cargo in placed_cargo:
+            cargo_items = cargo.get("cargo_items", [])
+            for cargo_item in cargo_items:
+                individual_items = cargo_item.get("individual_items", [])
+                for unit in individual_items:
+                    placement_info = unit.get("placement_info", "")
+                    if cell_address in placement_info and unit.get("is_placed", False):
+                        current_cargo_count += 1
+                        current_cargo_list.append({
+                            "cargo_number": cargo.get("cargo_number"),
+                            "individual_number": unit.get("individual_number"),
+                            "cargo_name": cargo_item.get("cargo_name", "Неизвестно")
+                        })
+        
+        # Формируем информацию о ячейке
+        cell_info = {
+            "warehouse_id": warehouse_id,
+            "warehouse_name": warehouse.get("name", "Неизвестен"),
+            "block_number": block_number,
+            "shelf_number": shelf_number,
+            "cell_number": cell_number,
+            "cell_address": cell_address,
+            "current_cargo_count": current_cargo_count,
+            "current_cargo_list": current_cargo_list,
+            "is_available": True  # Пока считаем ячейку доступной для размещения
+        }
+        
+        print(f"✅ Ячейка найдена: {cell_address}, содержит {current_cargo_count} грузов")
+        
+        return {
+            "success": True,
+            "cell_info": cell_info,
+            "message": f"Ячейка {cell_address} готова к размещению (содержит {current_cargo_count} грузов)"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка проверки ячейки: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка проверки ячейки: {str(e)}"
+        )
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
