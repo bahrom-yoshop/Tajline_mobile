@@ -7964,7 +7964,8 @@ function App() {
       
       // ЭТАП 3: МГНОВЕННОЕ ОБНОВЛЕНИЕ ПРОГРЕССА И СТАТИСТИКИ
       await fetchPlacementProgress(); // Обновляем общий прогресс размещения
-      await fetchAvailableCargoForPlacement(); // Обновляем список грузов
+      await fetchAvailableCargoForPlacement(); // Обновляем список грузов для размещения
+      await fetchFullyPlacedCargo(fullyPlacedPage, fullyPlacedPerPage); // ИСПРАВЛЕНИЕ: Обновляем список полностью размещенных
       
       // ЭТАП 2: МГНОВЕННОЕ ПРОДОЛЖЕНИЕ РАБОТЫ (убираем задержки)
       const remainingCargo = availableCargoForPlacement.length;
