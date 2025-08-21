@@ -18999,7 +18999,8 @@ function App() {
 
               {/* Dashboard - ТОЛЬКО ДЛЯ АДМИНОВ И ОПЕРАТОРОВ */}
               {activeSection === 'dashboard' && user.role !== 'courier' && (
-                <div className="space-y-6">
+                <div className="space-y-6 relative">
+                  <DevBadge id={getDevNumber('pages', 'dashboard').id} type="page" label={getDevNumber('pages', 'dashboard').label} />
                   {/* Кнопка обновления аналитики */}
                   <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-bold">Аналитический дашборд</h2>
