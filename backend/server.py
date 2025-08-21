@@ -6240,12 +6240,33 @@ async def get_individual_units_for_placement(
 
             for i, cargo_item in enumerate(cargo_items):
                 type_number = f"{i+1:02d}"  # 01, 02, 03...
-                individual_items = cargo_item.get("individual_items", [])
                 
                 # Применяем фильтр по типу груза
                 if cargo_type_filter and type_number != cargo_type_filter:
                     continue
                 
+                # ИСПРАВЛЕНИЕ: Получаем individual_items или создаем их динамически
+                individual_items = cargo_item.get("individual_items", [])
+                
+                # Если нет готовых individual_items, создаем их динамически из quantity
+                if not individual_items:
+                    quantity = cargo_item.get("quantity", 1)
+                    print(f"🔧 Создаем {quantity} individual units для типа {type_number}")
+                    
+                    for unit_index in range(1, quantity + 1):
+                        unit_index_str = f"{unit_index:02d}"  # 01, 02, 03...
+                        individual_number = f"{cargo.get('cargo_number')}/{type_number}/{unit_index_str}"
+                        
+                        dynamic_unit = {
+                            "individual_number": individual_number,
+                            "unit_index": unit_index_str,
+                            "placement_status": "awaiting_placement",
+                            "is_placed": False,
+                            "placement_info": None
+                        }
+                        individual_items.append(dynamic_unit)
+                
+                # Обрабатываем все individual_items (готовые или созданные динамически)
                 for unit in individual_items:
                     placement_status = unit.get("placement_status", "awaiting_placement")
                     
