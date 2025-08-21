@@ -16926,7 +16926,8 @@ function App() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 flex items-center justify-center p-4 relative">
+        <DevBadge id={getDevNumber('pages', 'login').id} type="page" label={getDevNumber('pages', 'login').label} />
         <div className="w-full max-w-md">
           {/* Заголовок с логотипом */}
           <div className="text-center mb-8">
