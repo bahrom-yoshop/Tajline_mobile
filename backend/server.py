@@ -6199,6 +6199,20 @@ async def get_individual_units_for_placement(
         
         print(f"📦 Найдено {len(cargo_list)} заявок ожидающих размещения")
         
+        # DEBUG: Проверяем первую заявку
+        if cargo_list:
+            first_cargo = cargo_list[0]
+            print(f"🔍 DEBUG: Первая заявка {first_cargo.get('cargo_number')} имеет cargo_items: {'cargo_items' in first_cargo}")
+            if 'cargo_items' in first_cargo:
+                cargo_items = first_cargo.get('cargo_items', [])
+                print(f"🔍 DEBUG: Количество cargo_items: {len(cargo_items)}")
+                if cargo_items:
+                    first_item = cargo_items[0]
+                    print(f"🔍 DEBUG: Первый cargo_item имеет individual_items: {'individual_items' in first_item}")
+                    if 'individual_items' in first_item:
+                        individual_items = first_item.get('individual_items', [])
+                        print(f"🔍 DEBUG: Количество individual_items: {len(individual_items)}")
+        
         # Преобразуем заявки в individual units
         individual_units = []
         
