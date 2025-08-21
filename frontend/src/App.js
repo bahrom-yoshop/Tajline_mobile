@@ -21289,6 +21289,139 @@ function App() {
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
+                          {/* НОВОЕ: Переключатель режимов и фильтры */}
+                          <div className="mb-6 space-y-4">
+                            {/* Переключатель режимов */}
+                            <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-gray-800">Режим отображения</h4>
+                                <div className="flex items-center space-x-4">
+                                  <label className="flex items-center space-x-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      checked={!useIndividualCards}
+                                      onChange={() => setUseIndividualCards(false)}
+                                      className="w-4 h-4 text-blue-600"
+                                    />
+                                    <span className="text-sm">Карточки заявок</span>
+                                  </label>
+                                  <label className="flex items-center space-x-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      checked={useIndividualCards}
+                                      onChange={() => setUseIndividualCards(true)}
+                                      className="w-4 h-4 text-blue-600"
+                                    />
+                                    <span className="text-sm font-medium text-blue-600">Individual Units карточки</span>
+                                  </label>
+                                </div>
+                              </div>
+                              <Button
+                                onClick={() => {
+                                  if (useIndividualCards) {
+                                    fetchIndividualUnitsForPlacement(individualUnitsPage, individualUnitsPerPage, cargoTypeFilter, placementStatusFilter);
+                                  } else {
+                                    fetchAvailableCargoForPlacement(availableCargoPage, availableCargoPerPage);
+                                  }
+                                }}
+                                size="sm"
+                                variant="outline"
+                              >
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Обновить
+                              </Button>
+                            </div>
+
+                            {/* Фильтры для individual units */}
+                            {useIndividualCards && (
+                              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                <h4 className="font-medium text-blue-800 mb-3 flex items-center">
+                                  <Filter className="mr-2 h-4 w-4" />
+                                  Фильтры и сортировка
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                  {/* Фильтр по типу груза */}
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Тип груза
+                                    </label>
+                                    <select
+                                      value={cargoTypeFilter}
+                                      onChange={(e) => handleCargoTypeFilterChange(e.target.value)}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                    >
+                                      <option value="">Все типы</option>
+                                      <option value="01">Тип 01</option>
+                                      <option value="02">Тип 02</option>
+                                      <option value="03">Тип 03</option>
+                                      <option value="04">Тип 04</option>
+                                      <option value="05">Тип 05</option>
+                                    </select>
+                                  </div>
+
+                                  {/* Фильтр по статусу размещения */}
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Статус размещения
+                                    </label>
+                                    <select
+                                      value={placementStatusFilter}
+                                      onChange={(e) => handlePlacementStatusFilterChange(e.target.value)}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                    >
+                                      <option value="">Все статусы</option>
+                                      <option value="awaiting">Ожидает размещения</option>
+                                      <option value="placed">Размещен</option>
+                                    </select>
+                                  </div>
+
+                                  {/* Информация о количестве */}
+                                  <div className="flex items-end">
+                                    <div className="text-sm text-gray-600">
+                                      <div className="font-medium">Найдено единиц: {individualUnitsPagination.total || 0}</div>
+                                      <div className="text-xs">Страница {individualUnitsPagination.page || 1} из {individualUnitsPagination.total_pages || 1}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {/* Быстрые фильтры */}
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  <button
+                                    onClick={() => {
+                                      setCargoTypeFilter('');
+                                      setPlacementStatusFilter('awaiting');
+                                      handlePlacementStatusFilterChange('awaiting');
+                                    }}
+                                    className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-full hover:bg-red-200 transition-colors"
+                                  >
+                                    Только ожидающие
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setCargoTypeFilter('');
+                                      setPlacementStatusFilter('placed');
+                                      handlePlacementStatusFilterChange('placed');
+                                    }}
+                                    className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors"
+                                  >
+                                    Только размещенные
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setCargoTypeFilter('');
+                                      setPlacementStatusFilter('');
+                                      handleCargoTypeFilterChange('');
+                                      handlePlacementStatusFilterChange('');
+                                    }}
+                                    className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+                                  >
+                                    Сбросить фильтры
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
                           <Button onClick={() => fetchAvailableCargoForPlacement(availableCargoPage, availableCargoPerPage)} className="mb-4">
                             <RefreshCw className="mr-2 h-4 w-4" />
                             Обновить список грузов
