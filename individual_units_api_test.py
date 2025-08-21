@@ -246,7 +246,7 @@ class IndividualUnitsAPITester:
                 return False
             
             # Проверяем структуру каждого individual unit
-            required_unit_fields = ["individual_number", "cargo_number", "type_number", "unit_index", "placement_status", "is_placed"]
+            required_unit_fields = ["individual_number", "cargo_request_number", "type_number", "unit_index", "placement_status", "is_placed"]
             
             structure_valid = True
             individual_numbers = []
