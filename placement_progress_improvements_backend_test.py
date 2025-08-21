@@ -348,7 +348,7 @@ class PlacementProgressTester:
                         self.log_test(
                             "Улучшенный endpoint размещения (POST /api/operator/cargo/place-individual)",
                             True,
-                            f"Endpoint значительно улучшен! Все новые поля присутствуют - cargo_name: '{cargo_name}', application_number: '{test_unit.get('cargo_request_number', '')}', placement_details (блок: {placement_details.get('блок')}, полка: {placement_details.get('полка')}, ячейка: {placement_details.get('ячейка')}, кем размещено, когда размещено), application_progress (total_units: {application_progress.get('total_units')}, placed_units: {application_progress.get('placed_units')}, remaining_units: {application_progress.get('remaining_units')}, progress_text: '{application_progress.get('progress_text')}'), детальная информация полностью функциональна",
+                            f"Endpoint значительно улучшен! Все новые поля присутствуют - cargo_name: '{cargo_name}', application_number: '{test_unit.get('cargo_request_number', '')}', placement_details (блок: {placement_details.get('block')}, полка: {placement_details.get('shelf')}, ячейка: {placement_details.get('cell')}, кем размещено, когда размещено), application_progress (total_units: {application_progress.get('total_units')}, placed_units: {application_progress.get('placed_units')}, remaining_units: {application_progress.get('remaining_units')}, progress_text: '{application_progress.get('progress_text')}'), детальная информация полностью функциональна",
                             performance_ms
                         )
                         return True
