@@ -3331,45 +3331,7 @@ function App() {
 
 
 
-  // Размещение груза в ячейку
-  const placeCargoInCell = async (cargoQR, cellQR, sessionId) => {
-    try {
-      console.log('📦 Размещение груза:', cargoQR, '→', cellQR);
-      setIsPlacementProcessing(true);
 
-      const response = await apiCall('/api/operator/placement/place-cargo', 'POST', {
-        cargo_qr_code: cargoQR.trim(),
-        cell_qr_code: cellQR.trim(),
-        session_id: sessionId
-      });
-
-      if (response.success) {
-        const placementInfo = response.placement_info;
-        showAlert(`🎉 Груз ${placementInfo.cargo_number} размещен в ${placementInfo.cell_address}!`, 'success');
-        
-        // Обновляем историю размещения
-        await fetchPlacementHistory(sessionId);
-        
-        // Очищаем текущие данные для следующего размещения
-        setCurrentCargoQR('');
-        setCurrentCellQR('');
-        setVerifiedCargo(null);
-        setVerifiedCell(null);
-        setPlacementStep('idle');
-
-        return response.placement_info;
-      } else {
-        showAlert(`❌ ${response.error}`, 'error');
-        return null;
-      }
-    } catch (error) {
-      console.error('❌ Ошибка размещения груза:', error);
-      showAlert(`Ошибка размещения: ${error.message}`, 'error');
-      return null;
-    } finally {
-      setIsPlacementProcessing(false);
-    }
-  };
 
   // Получение истории размещения
   const fetchPlacementHistory = async (sessionId) => {
