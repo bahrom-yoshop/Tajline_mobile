@@ -37492,6 +37492,187 @@ function App() {
           )}
         </DialogContent>
       </Dialog>
+
+        {/* НОВОЕ: Модальное окно действий для individual unit */}
+        {selectedUnitForActions && (
+          <Dialog open={true} onOpenChange={() => setSelectedUnitForActions(null)}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center">
+                  <Settings className="mr-2 h-5 w-5" />
+                  Действия для {selectedUnitForActions.individual_number}
+                </DialogTitle>
+                <DialogDescription>
+                  Выберите действие для единицы груза
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-3">
+                {/* Информация о единице */}
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="text-sm">
+                    <div><strong>Заявка:</strong> {selectedUnitForActions.cargo_request_number}</div>
+                    <div><strong>Груз:</strong> {selectedUnitForActions.cargo_name}</div>
+                    <div><strong>Тип/Единица:</strong> {selectedUnitForActions.type_number}/{selectedUnitForActions.unit_index}</div>
+                    <div><strong>Статус:</strong> {selectedUnitForActions.is_placed ? '✅ Размещен' : '🟡 Ожидает размещения'}</div>
+                    {selectedUnitForActions.placement_info && (
+                      <div><strong>Размещение:</strong> {selectedUnitForActions.placement_info}</div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Кнопки действий */}
+                <div className="space-y-2">
+                  {/* НОВОЕ: Кнопка печати QR */}
+                  <Button
+                    onClick={() => {
+                      setSelectedUnitForActions(null);
+                      handlePrintSingleQR(selectedUnitForActions);
+                    }}
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                  >
+                    <Printer className="mr-2 h-4 w-4" />
+                    Печать QR код
+                  </Button>
+                  
+                  {/* Генерация QR (без печати) */}
+                  <Button
+                    onClick={() => {
+                      const unit = selectedUnitForActions;
+                      setSelectedUnitForActions(null);
+                      generateSingleQR(unit.individual_number);
+                    }}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Grid3X3 className="mr-2 h-4 w-4" />
+                    Генерировать QR код
+                  </Button>
+                  
+                  {/* Размещение единицы */}
+                  {!selectedUnitForActions.is_placed && (
+                    <Button
+                      onClick={() => {
+                        const unit = selectedUnitForActions;
+                        setSelectedUnitForActions(null);
+                        handlePlaceIndividualUnit(unit);
+                      }}
+                      variant="outline"
+                      className="w-full bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
+                    >
+                      <Grid3X3 className="mr-2 h-4 w-4" />
+                      Разместить единицу
+                    </Button>
+                  )}
+                  
+                  {/* Закрыть */}
+                  <Button
+                    onClick={() => setSelectedUnitForActions(null)}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Закрыть
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* НОВОЕ: Модальное окно печати QR кодов */}
+        {qrPrintMode && (
+          <Dialog open={true} onOpenChange={closePrintMode}>
+            <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center">
+                  <Printer className="mr-2 h-5 w-5" />
+                  Печать QR кодов
+                </DialogTitle>
+                <DialogDescription>
+                  {generatedQrBatch ? 
+                    `Печать ${generatedQrBatch.total_generated} QR кодов` : 
+                    selectedUnitsForPrint.length > 0 ? 
+                      `Печать QR кода для ${selectedUnitsForPrint[0].individual_number}` : 
+                      'Настройка печати QR кодов'
+                  }
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                {/* Выбор макета печати */}
+                {printLayoutOptions && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Макет печати:</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {Object.entries(printLayoutOptions).map(([key, option]) => (
+                        <Button
+                          key={key}
+                          onClick={() => setQrPrintLayout(key)}
+                          variant={qrPrintLayout === key ? "default" : "outline"}
+                          className="text-left p-3 h-auto"
+                        >
+                          <div>
+                            <div className="font-medium">{option.name}</div>
+                            <div className="text-xs text-gray-500">{option.description}</div>
+                            <div className="text-xs text-blue-600">{option.per_page} QR на страницу</div>
+                          </div>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Предварительный просмотр QR кодов */}
+                {(generatedQrBatch?.qr_batch || selectedUnitsForPrint) && (
+                  <div className="border rounded-lg p-4 max-h-60 overflow-y-auto">
+                    <h4 className="font-medium mb-2">Предварительный просмотр:</h4>
+                    <div className="grid grid-cols-4 gap-2">
+                      {(generatedQrBatch?.qr_batch || selectedUnitsForPrint).slice(0, 12).map((item, index) => (
+                        <div key={index} className="text-center border rounded p-2">
+                          <img 
+                            src={`data:image/png;base64,${item.qr_base64 || item.qr_info?.qr_base64}`} 
+                            alt="QR" 
+                            className="w-16 h-16 mx-auto mb-1" 
+                          />
+                          <div className="text-xs truncate">{item.individual_number}</div>
+                        </div>
+                      ))}
+                      {(generatedQrBatch?.qr_batch?.length || selectedUnitsForPrint.length) > 12 && (
+                        <div className="text-center border rounded p-2 flex items-center justify-center">
+                          <div className="text-xs text-gray-500">
+                            +{(generatedQrBatch?.qr_batch?.length || selectedUnitsForPrint.length) - 12} ещё
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Кнопки действий */}
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    onClick={closePrintMode}
+                    variant="outline"
+                  >
+                    Отменить
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const printData = generatedQrBatch?.qr_batch || selectedUnitsForPrint;
+                      executePrint(printData, qrPrintLayout);
+                      closePrintMode();
+                    }}
+                    className="bg-purple-600 hover:bg-purple-700"
+                    disabled={!generatedQrBatch && selectedUnitsForPrint.length === 0}
+                  >
+                    <Printer className="mr-2 h-4 w-4" />
+                    Печать
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
     </div>
   );
 }
