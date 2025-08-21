@@ -139,9 +139,9 @@ class QRCodeAPITester:
             print(f"❌ Исключение при создании груза: {str(e)}")
             return False
     
-    def get_individual_numbers_from_cargo(self):
-        """Получение individual numbers из созданного груза"""
-        print("🔍 Получение individual numbers из груза...")
+    def get_individual_numbers_from_existing_cargo(self):
+        """Получение individual numbers из существующих грузов"""
+        print("🔍 Получение individual numbers из существующих грузов...")
         
         try:
             # Получаем список грузов для размещения
@@ -154,22 +154,24 @@ class QRCodeAPITester:
                 data = response.json()
                 cargos = data.get("items", [])
                 
-                # Ищем наш тестовый груз
+                # Берем первый доступный груз с individual_items
                 for cargo in cargos:
-                    if cargo.get("id") == self.test_cargo_id:
-                        cargo_items = cargo.get("cargo_items", [])
-                        
-                        for cargo_item in cargo_items:
-                            individual_items = cargo_item.get("individual_items", [])
-                            for item in individual_items:
-                                individual_number = item.get("individual_number")
-                                if individual_number:
-                                    self.test_individual_numbers.append(individual_number)
-                        
+                    cargo_items = cargo.get("cargo_items", [])
+                    
+                    for cargo_item in cargo_items:
+                        individual_items = cargo_item.get("individual_items", [])
+                        for item in individual_items:
+                            individual_number = item.get("individual_number")
+                            if individual_number:
+                                self.test_individual_numbers.append(individual_number)
+                    
+                    if self.test_individual_numbers:
+                        self.test_cargo_id = cargo.get("id")
                         print(f"✅ Найдено {len(self.test_individual_numbers)} individual numbers: {self.test_individual_numbers}")
+                        print(f"✅ Используем груз: {cargo.get('cargo_number')} (ID: {self.test_cargo_id})")
                         return True
                 
-                print("❌ Тестовый груз не найден в списке для размещения")
+                print("❌ Не найдено грузов с individual numbers")
                 return False
             else:
                 print(f"❌ Ошибка получения грузов для размещения: {response.status_code}")
