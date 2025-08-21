@@ -37510,15 +37510,52 @@ function App() {
               </DialogHeader>
               
               <div className="space-y-3">
-                {/* Информация о единице */}
+                {/* УЛУЧШЕНИЕ: Детальная информация о единице с историей размещения */}
                 <div className="bg-gray-50 p-3 rounded-lg">
-                  <div className="text-sm">
-                    <div><strong>Заявка:</strong> {selectedUnitForActions.cargo_request_number}</div>
-                    <div><strong>Груз:</strong> {selectedUnitForActions.cargo_name}</div>
-                    <div><strong>Тип/Единица:</strong> {selectedUnitForActions.type_number}/{selectedUnitForActions.unit_index}</div>
-                    <div><strong>Статус:</strong> {selectedUnitForActions.is_placed ? '✅ Размещен' : '🟡 Ожидает размещения'}</div>
-                    {selectedUnitForActions.placement_info && (
-                      <div><strong>Размещение:</strong> {selectedUnitForActions.placement_info}</div>
+                  <div className="text-sm space-y-2">
+                    <div><strong>📋 Заявка:</strong> {selectedUnitForActions.cargo_request_number}</div>
+                    <div><strong>📦 Груз:</strong> {selectedUnitForActions.cargo_name}</div>
+                    <div><strong>🔢 Тип/Единица:</strong> {selectedUnitForActions.type_number}/{selectedUnitForActions.unit_index}</div>
+                    <div><strong>📊 Статус:</strong> {selectedUnitForActions.is_placed ? '✅ Размещен' : '🟡 Ожидает размещения'}</div>
+                    
+                    {/* УЛУЧШЕНИЕ: Детали размещения если размещен */}
+                    {selectedUnitForActions.is_placed && selectedUnitForActions.placement_info && (
+                      <div className="bg-green-50 p-2 rounded border-l-4 border-green-400">
+                        <div><strong>📍 Местоположение:</strong> {selectedUnitForActions.placement_info}</div>
+                        {selectedUnitForActions.placed_by && (
+                          <div><strong>👤 Размещен оператором:</strong> {selectedUnitForActions.placed_by}</div>
+                        )}
+                        {selectedUnitForActions.placed_at && (
+                          <div><strong>🕒 Время размещения:</strong> {new Date(selectedUnitForActions.placed_at).toLocaleString('ru-RU')}</div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* УЛУЧШЕНИЕ: Прогресс заявки */}
+                    {selectedUnitForActions.cargo_request_number && (
+                      <div className="bg-blue-50 p-2 rounded border-l-4 border-blue-400">
+                        <div><strong>📊 Прогресс заявки:</strong></div>
+                        {/* Найдем прогресс текущей заявки */}
+                        {(() => {
+                          const currentGroup = groupedUnitsForPlacement.find(
+                            group => group.request_number === selectedUnitForActions.cargo_request_number
+                          );
+                          if (currentGroup) {
+                            return (
+                              <div className="text-xs mt-1">
+                                <div>✅ Размещено: {currentGroup.placed_units}/{currentGroup.total_units} единиц</div>
+                                <div className="w-full bg-blue-200 rounded-full h-2 mt-1">
+                                  <div 
+                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                    style={{ width: `${(currentGroup.placed_units / currentGroup.total_units) * 100}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return <div className="text-xs text-gray-500">Данные загружаются...</div>;
+                        })()}
+                      </div>
                     )}
                   </div>
                 </div>
