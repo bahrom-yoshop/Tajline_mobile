@@ -17728,7 +17728,8 @@ function App() {
                     </CardContent>
                   </Card>
 
-                  <Card>
+                  <Card className="relative">
+                    <DevBadge id={getDevNumber('cards', 'dashboard-stats').id} type="card" label="В пути" />
                     <CardContent className="p-6">
                       <div className="flex items-center">
                         <Clock className="h-8 w-8 text-yellow-600" />
