@@ -17122,6 +17122,52 @@ function App() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
+                    {/* ЭТАП 3: ПРОГРЕСС И АНАЛИТИКА В СКАНЕРЕ */}
+                    {placementProgress && (placementProgress.total_units > 0 || placementProgress.placed_units > 0) && (
+                      <div className="mb-6 p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg border border-emerald-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h3 className="font-semibold text-emerald-800 flex items-center">
+                              <BarChart3 className="mr-2 h-4 w-4" />
+                              Прогресс сессии размещения
+                            </h3>
+                            <p className="text-sm text-emerald-600 mt-1">{placementProgress.progress_text}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xl font-bold text-emerald-600">
+                              {placementProgress.progress_percentage.toFixed(1)}%
+                            </div>
+                            <div className="text-xs text-emerald-700">выполнено</div>
+                          </div>
+                        </div>
+                        
+                        {/* Визуальный прогресс-бар */}
+                        <div className="mb-2">
+                          <div className="w-full bg-emerald-200 rounded-full h-3">
+                            <div 
+                              className="bg-emerald-600 h-3 rounded-full transition-all duration-500 ease-in-out"
+                              style={{ width: `${placementProgress.progress_percentage}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        
+                        {/* Детальная статистика */}
+                        <div className="flex justify-between text-xs text-emerald-700">
+                          <span className="flex items-center">
+                            <Circle className="mr-1 h-3 w-3 fill-orange-400 text-orange-400" />
+                            Ожидают: {placementProgress.pending_units}
+                          </span>
+                          <span className="flex items-center">
+                            <Circle className="mr-1 h-3 w-3 fill-emerald-500 text-emerald-500" />
+                            Размещено: {placementProgress.placed_units}
+                          </span>
+                          <span className="flex items-center">
+                            <Target className="mr-1 h-3 w-3" />
+                            Всего: {placementProgress.total_units}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                       {/* Isolated Camera Scanner Container to prevent React conflicts */}
                       <div className="relative">
                         <div className="bg-black rounded-lg p-4 mb-4">
