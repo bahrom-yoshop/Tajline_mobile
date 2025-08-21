@@ -2786,6 +2786,101 @@ async def get_placement_statistics(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving placement statistics: {str(e)}")
 
+# НОВЫЙ ENDPOINT: Получить общий прогресс размещения для сканера
+@app.get("/api/operator/placement-progress")
+async def get_placement_progress(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    УЛУЧШЕНИЕ: Получить общий прогресс размещения (размещено/всего)
+    Возвращает данные для отображения прогресса в интерфейсе сканера
+    """
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для просмотра прогресса размещения"
+        )
+    
+    try:
+        print("📊 УЛУЧШЕНИЕ: Получение общего прогресса размещения...")
+        
+        # Получаем склады оператора
+        user_warehouses = []
+        if current_user.role == "warehouse_operator":
+            user_warehouses = get_operator_warehouse_ids(current_user.id)
+        
+        # Условия для поиска грузов ожидающих размещения
+        match_conditions = {
+            "status": {"$nin": ["placed_in_warehouse", "removed_from_placement"]},
+            "$and": [
+                {"$or": [
+                    {"warehouse_location": {"$exists": False}},
+                    {"warehouse_location": None},
+                    {"warehouse_location": ""}
+                ]},
+                {"$or": [
+                    {"block_number": {"$exists": False}},
+                    {"block_number": None},
+                    {"shelf_number": {"$exists": False}}, 
+                    {"shelf_number": None},
+                    {"cell_number": {"$exists": False}},
+                    {"cell_number": None}
+                ]}
+            ]
+        }
+        
+        # Получаем все заявки ожидающие размещения
+        cargo_list = list(db.cargo.find(match_conditions)) + list(db.operator_cargo.find(match_conditions))
+        
+        # Подсчитываем общее количество индивидуальных единиц и размещенных
+        total_individual_units = 0
+        total_placed_units = 0
+        
+        for cargo in cargo_list:
+            cargo_items = cargo.get("cargo_items", [])
+            cargo_number = cargo.get('cargo_number', 'UNKNOWN')
+            
+            # Если нет cargo_items, считаем как 1 единицу
+            if not cargo_items:
+                total_individual_units += 1
+                # Проверяем размещение для заявки без cargo_items
+                if cargo.get('warehouse_location'):
+                    total_placed_units += 1
+                continue
+            
+            for type_index, item in enumerate(cargo_items, 1):
+                quantity = item.get('quantity', 1)
+                total_individual_units += quantity
+                
+                # Подсчитываем размещенные единицы
+                for unit_index in range(1, quantity + 1):
+                    individual_number = f"{cargo_number}/{str(type_index).zfill(2)}/{str(unit_index).zfill(2)}"
+                    
+                    # Проверяем размещение в placement_records
+                    placement_record = db.placement_records.find_one({"individual_number": individual_number})
+                    if placement_record:
+                        total_placed_units += 1
+        
+        # Рассчитываем прогресс
+        progress_percentage = 0
+        if total_individual_units > 0:
+            progress_percentage = round((total_placed_units / total_individual_units) * 100, 1)
+        
+        print(f"📊 Общий прогресс: {total_placed_units}/{total_individual_units} ({progress_percentage}%)")
+        
+        return {
+            "total_units": total_individual_units,
+            "placed_units": total_placed_units,
+            "pending_units": total_individual_units - total_placed_units,
+            "progress_percentage": progress_percentage,
+            "progress_text": f"Размещено: {total_placed_units}/{total_individual_units}",
+            "last_updated": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения прогресса размещения: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving placement progress: {str(e)}")
+
 @app.get("/api/warehouses/{warehouse_id}/structure")
 async def get_warehouse_structure(
     warehouse_id: str,
