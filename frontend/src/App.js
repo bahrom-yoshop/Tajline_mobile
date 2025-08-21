@@ -7886,6 +7886,22 @@ function App() {
       console.log('- Shelf Number:', scannedCellData.shelf_number);
       console.log('- Cell Number:', scannedCellData.cell_number);
 
+      // ЭТАП 4: ДЕТАЛЬНАЯ ИНФОРМАЦИЯ О РАЗМЕЩЕНИИ
+      const placementDetails = {
+        cargo_name: scannedCargoData.cargo_name || scannedCargoData.items?.[0]?.name || 'Груз без названия',
+        application_number: scannedCargoData.request_number || scannedCargoData.cargo_number,
+        location_name: scannedCellData.readable_name || `Б${scannedCellData.block_number}-П${scannedCellData.shelf_number}-Я${scannedCellData.cell_number}`,
+        warehouse_name: scannedCellData.warehouse_name || `Склад №${scannedCellData.warehouse_number}`,
+        operator_name: user?.full_name || 'Неизвестный оператор',
+        placement_time: new Date().toLocaleString('ru-RU', { 
+          day: '2-digit', 
+          month: '2-digit', 
+          year: 'numeric',
+          hour: '2-digit', 
+          minute: '2-digit' 
+        })
+      };
+      
       await handlePlaceCargo(
         scannedCargoData.id,
         warehouseId,
@@ -7894,10 +7910,16 @@ function App() {
         scannedCellData.cell_number
       );
       
-      showAlert(
-        `Груз ${scannedCargoData.cargo_number} успешно размещен в ячейке ${scannedCellData.readable_name || `${scannedCellData.block_number}-${scannedCellData.shelf_number}-${scannedCellData.cell_number}`}!`,
-        'success'
-      );
+      // ЭТАП 4: УЛУЧШЕННОЕ УВЕДОМЛЕНИЕ С ДЕТАЛЬНОЙ ИНФОРМАЦИЕЙ
+      const detailMessage = `🎉 ГРУЗ УСПЕШНО РАЗМЕЩЕН!\n\n` +
+                           `📦 Груз: ${placementDetails.cargo_name}\n` +
+                           `📄 Заявка: ${placementDetails.application_number}\n` +
+                           `📍 Местоположение: ${placementDetails.location_name}\n` +
+                           `🏢 Склад: ${placementDetails.warehouse_name}\n` +
+                           `👤 Оператор: ${placementDetails.operator_name}\n` +
+                           `⏰ Время: ${placementDetails.placement_time}`;
+      
+      showAlert(detailMessage, 'success');
       
       // Увеличиваем счетчик размещенных грузов в сессии
       setSessionPlacedCount(prev => prev + 1);
