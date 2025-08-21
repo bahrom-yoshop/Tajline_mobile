@@ -6,7 +6,7 @@ Check notification status
 import requests
 import json
 
-BACKEND_URL = "https://logistics-dash-6.preview.emergentagent.com/api"
+BACKEND_URL = "https://cargo-qr-system.preview.emergentagent.com/api"
 
 WAREHOUSE_OPERATOR = {
     "phone": "+79777888999",

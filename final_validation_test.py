@@ -7,7 +7,7 @@ import requests
 import json
 
 # Конфигурация
-BACKEND_URL = "https://logistics-dash-6.preview.emergentagent.com/api"
+BACKEND_URL = "https://cargo-qr-system.preview.emergentagent.com/api"
 
 def final_validation_test():
     """Финальное тестирование исправления ValidationError"""

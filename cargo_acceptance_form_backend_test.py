@@ -33,7 +33,7 @@ import time
 from datetime import datetime
 
 # Конфигурация
-BACKEND_URL = "https://logistics-dash-6.preview.emergentagent.com/api"
+BACKEND_URL = "https://cargo-qr-system.preview.emergentagent.com/api"
 OPERATOR_CREDENTIALS = {
     "phone": "+79777888999",
     "password": "warehouse123"
