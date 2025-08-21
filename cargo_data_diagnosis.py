@@ -7,7 +7,7 @@ import requests
 import json
 
 # Конфигурация
-BACKEND_URL = "https://tajline-cargo-5.preview.emergentagent.com/api"
+BACKEND_URL = "https://logistics-dash-6.preview.emergentagent.com/api"
 
 def diagnose_cargo_data():
     """Диагностика данных груза"""
