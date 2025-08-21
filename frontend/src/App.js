@@ -5269,11 +5269,11 @@ function App() {
   const [currentCellQR, setCurrentCellQR] = useState(''); // Текущий QR код ячейки
   const [verifiedCargo, setVerifiedCargo] = useState(null); // Проверенный груз
   const [verifiedCell, setVerifiedCell] = useState(null); // Проверенная ячейка
-  const [placementStep, setPlacementStep] = useState(1); // Шаг размещения (1-груз, 2-ячейка)
   const [placementSessionId, setPlacementSessionId] = useState(null); // ID сессии размещения
   const [placementHistory, setPlacementHistory] = useState([]); // История размещения
   const [sessionStats, setSessionStats] = useState(null); // Статистика сессии
   const [isPlacementProcessing, setIsPlacementProcessing] = useState(false); // Процесс размещения
+  const [useIndividualCards, setUseIndividualCards] = useState(true); // Переключатель между старым и новым режимом
   
   const [selectedCargoForDetailView, setSelectedCargoForDetailView] = useState(null); // Выбранный груз для просмотра деталей
   const [cargoDetailsModal, setCargoDetailsModal] = useState(false); // Модальное окно деталей груза
