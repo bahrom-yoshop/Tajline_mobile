@@ -17758,7 +17758,8 @@ function App() {
                     </CardContent>
                   </Card>
 
-                  <Card>
+                  <Card className="relative">
+                    <DevBadge id={getDevNumber('cards', 'dashboard-stats').id} type="card" label="К оплате" />
                     <CardContent className="p-6">
                       <div className="flex items-center">
                         <CreditCard className="h-8 w-8 text-red-600" />
