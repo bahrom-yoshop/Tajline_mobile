@@ -652,7 +652,7 @@ class SidebarCountersTester:
             
             # Список endpoints для тестирования производительности
             endpoints = [
-                "/operator/cargo",
+                "/operator/cargo/list",
                 "/operator/warehouses", 
                 "/operator/placement-progress",
                 "/operator/cargo/individual-units-for-placement"
