@@ -22,6 +22,9 @@ import CourierTrackingMap from './components/CourierTrackingMap'; // Компо�
 import CourierHistoryAnalytics from './components/CourierHistoryAnalytics'; // Компонент истории и аналитики курьеров
 import RouteMap from './components/RouteMap'; // Компонент карты маршрута для оформления груза
 import SimpleRouteMap from './components/SimpleRouteMap'; // Простая тестовая карта
+import DevBadge from './components/DevBadge'; // Компонент номеров разработчика
+import DevControl from './components/DevControl'; // Управление номерами разработчика
+import { getDevNumber } from './constants/devNumbers'; // Система нумерации
 import { 
   Truck, Package, Users, Bell, Search, Plus, Edit, Trash2, CheckCircle, 
   Clock, MapPin, User, Shield, Warehouse, Menu, X, Building, 
