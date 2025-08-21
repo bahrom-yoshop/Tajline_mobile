@@ -7191,7 +7191,7 @@ function App() {
               // Поиск по номеру заявки
               if (item.request_number === searchNumber) return true;
               // Поиск в исходных данных
-              if (scannedData.includes(item.cargo_number)) return true;
+              if (processedData.includes(item.cargo_number)) return true;
               
               return false;
             });
@@ -7200,9 +7200,9 @@ function App() {
           default:
             // Fallback поиск
             foundCargo = availableCargoForPlacement.find(item => {
-              if (item.cargo_number === scannedData) return true;
-              if (item.id === scannedData) return true;
-              if (scannedData.includes(item.cargo_number)) return true;
+              if (item.cargo_number === processedData) return true;
+              if (item.id === processedData) return true;
+              if (processedData.includes(item.cargo_number)) return true;
               return false;
             });
         }
