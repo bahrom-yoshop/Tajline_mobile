@@ -21511,163 +21511,289 @@ function App() {
                           )}
                           
                           <div className="space-y-4">
-                            {availableCargoForPlacement.length === 0 ? (
-                              <div className="text-center py-8">
-                                <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                                <p className="text-gray-500">Нет грузов, ожидающих размещения</p>
-                                <p className="text-sm text-gray-400 mt-2">Оплаченные грузы из "Списка грузов" автоматически появятся здесь</p>
-                                <Button 
-                                  variant="outline" 
-                                  className="mt-4"
-                                  onClick={() => setActiveTab('cargo-list')}
-                                >
-                                  Перейти к списку грузов
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-                                {availableCargoForPlacement.filter(item => item && item.id).map((item) => {
-                                  const warehouseColors = getWarehouseColor(item.warehouse_name);
-                                  return (
-                                    <Card key={`cargo-${item.id}`} className={`${warehouseColors.border} ${warehouseColors.bg} border-l-4`}>
-                                      <CardContent className="p-4">
-                                        <h3 className="font-bold text-lg text-blue-600 mb-2">№{item.cargo_number}</h3>
-                                        <div className="space-y-2 text-sm">
-                                          <div>
-                                            <span className="font-medium">🏙️ Город выдачи:</span> {item.delivery_city || 'Не указан'}
-                                          </div>
-                                          <div>
-                                            <span className="font-medium">🏢 Маршрут:</span> {item.source_warehouse_name || 'Неизвестен'} → {item.target_warehouse_name || 'Неизвестен'}
-                                          </div>
-                                          <div>
-                                            <span className="font-medium">👤 Получатель:</span> {item.recipient_full_name || 'Не указан'}
-                                          </div>
-                                          <div>
-                                            <span className="font-medium">📅 Принят:</span> {item.created_date ? new Date(item.created_date).toLocaleDateString('ru-RU') : 'Не указано'}
-                                          </div>
-                                          <div>
-                                            <span className="font-medium">🚚 Способ:</span> {item.delivery_method || 'Не указан'}
-                                          </div>
-                                          <div>
-                                            <span className="font-medium">💰 Оплата:</span> {item.payment_method || 'Не указан'}
-                                          </div>
-                                        </div>
-                                        
-                                        <div className="bg-gray-50 p-3 rounded-lg mt-3">
-                                          <h4 className="font-medium text-sm mb-2">📦 Список грузов ({(item.cargo_items || []).length} типов)</h4>
-                                          {(item.cargo_items || []).length > 0 ? (
-                                            item.cargo_items.map((cargoItem, index) => (
-                                              <div key={index} className="bg-white p-2 rounded border text-xs mb-1">
-                                                <div className="flex justify-between items-center">
-                                                  <div>
-                                                    <p className="font-medium text-gray-800">
-                                                      Груз{item.cargo_number}/{String(index + 1).padStart(2, '0')} "{cargoItem.cargo_name || `Груз №${index + 1}`}"
-                                                    </p>
-                                                    <p className="text-gray-500 text-xs">
-                                                      {cargoItem.quantity || 1} шт • {cargoItem.weight || 0} кг
-                                                    </p>
-                                                    {/* НОВОЕ: Показываем индивидуальные номера */}
-                                                    {cargoItem.individual_items && cargoItem.individual_items.length > 0 && (
-                                                      <div className="mt-1 flex flex-wrap gap-1">
-                                                        {cargoItem.individual_items.slice(0, 3).map((unit, unitIndex) => (
-                                                          <span 
-                                                            key={unitIndex} 
-                                                            className={`px-1 py-0.5 text-xs rounded ${
-                                                              unit.is_placed 
-                                                                ? 'bg-green-100 text-green-700' 
-                                                                : 'bg-gray-100 text-gray-600'
-                                                            }`}
-                                                            title={unit.individual_number}
-                                                          >
-                                                            {unit.individual_number.split('/').slice(-1)[0]}
-                                                          </span>
-                                                        ))}
-                                                        {cargoItem.individual_items.length > 3 && (
-                                                          <span className="px-1 py-0.5 text-xs bg-gray-100 text-gray-500 rounded">
-                                                            +{cargoItem.individual_items.length - 3}
-                                                          </span>
-                                                        )}
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                  <div className="text-right">
-                                                    <p className="font-medium text-blue-600">
-                                                      Размещено {cargoItem.placed_count || 0}/{cargoItem.quantity || 1}
-                                                    </p>
-                                                    <p className={`text-xs ${
-                                                      (cargoItem.placed_count || 0) === (cargoItem.quantity || 1) 
-                                                        ? 'text-green-600' 
-                                                        : (cargoItem.placed_count || 0) > 0 
-                                                          ? 'text-yellow-600' 
-                                                          : 'text-red-600'
-                                                    }`}>
-                                                      {(cargoItem.placed_count || 0) === (cargoItem.quantity || 1) 
-                                                        ? 'Размещено' 
-                                                        : (cargoItem.placed_count || 0) > 0 
-                                                          ? 'Частично' 
-                                                          : 'Ждёт'}
-                                                    </p>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            ))
-                                          ) : (
-                                            <div className="bg-white p-2 rounded border text-xs">
-                                              <div className="flex justify-between">
-                                                <div>
-                                                  <p className="font-medium">Груз{item.cargo_number}/01 №1</p>
-                                                  <p className="text-gray-500">1 шт • {item.weight || 0} кг</p>
-                                                </div>
-                                                <span className="text-red-600 text-xs">Ждёт размещение</span>
-                                              </div>
+                            {/* УСЛОВНОЕ ОТОБРАЖЕНИЕ: Старый режим (карточки заявок) или новый режим (individual units) */}
+                            {!useIndividualCards ? (
+                              /* СТАРЫЙ РЕЖИМ: Request-based карточки */
+                              availableCargoForPlacement.length === 0 ? (
+                                <div className="text-center py-8">
+                                  <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                                  <p className="text-gray-500">Нет грузов, ожидающих размещения</p>
+                                  <p className="text-sm text-gray-400 mt-2">Оплаченные грузы из "Списка грузов" автоматически появятся здесь</p>
+                                  <Button 
+                                    variant="outline" 
+                                    className="mt-4"
+                                    onClick={() => setActiveTab('cargo-list')}
+                                  >
+                                    Перейти к списку грузов
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+                                  {availableCargoForPlacement.filter(item => item && item.id).map((item) => {
+                                    const warehouseColors = getWarehouseColor(item.warehouse_name);
+                                    return (
+                                      <Card key={`cargo-${item.id}`} className={`${warehouseColors.border} ${warehouseColors.bg} border-l-4`}>
+                                        <CardContent className="p-4">
+                                          <h3 className="font-bold text-lg text-blue-600 mb-2">№{item.cargo_number}</h3>
+                                          <div className="space-y-2 text-sm">
+                                            <div>
+                                              <span className="font-medium">🏙️ Город выдачи:</span> {item.delivery_city || 'Не указан'}
                                             </div>
-                                          )}
+                                            <div>
+                                              <span className="font-medium">🏢 Маршрут:</span> {item.source_warehouse_name || 'Неизвестен'} → {item.target_warehouse_name || 'Неизвестен'}
+                                            </div>
+                                            <div>
+                                              <span className="font-medium">👤 Получатель:</span> {item.recipient_full_name || 'Не указан'}
+                                            </div>
+                                            <div>
+                                              <span className="font-medium">📅 Принят:</span> {item.created_date ? new Date(item.created_date).toLocaleDateString('ru-RU') : 'Не указано'}
+                                            </div>
+                                            <div>
+                                              <span className="font-medium">🚚 Способ:</span> {item.delivery_method || 'Не указан'}
+                                            </div>
+                                            <div>
+                                              <span className="font-medium">💰 Оплата:</span> {item.payment_method || 'Не указан'}
+                                            </div>
+                                          </div>
                                           
-                                          <div className="mt-2 pt-2 border-t text-sm">
-                                            <div className="flex justify-between items-center">
-                                              <span className="font-medium">Общий прогресс:</span>
-                                              <div className="flex items-center space-x-2">
-                                                {(() => {
-                                                  // Подсчитываем общий прогресс размещения
-                                                  const totalItems = (item.cargo_items || []).reduce((sum, cargoItem) => sum + (cargoItem.quantity || 1), 0);
-                                                  const placedItems = (item.cargo_items || []).reduce((sum, cargoItem) => sum + (cargoItem.placed_count || 0), 0);
-                                                  
-                                                  const progressText = `${placedItems}/${totalItems}`;
-                                                  const statusText = placedItems === totalItems ? 'Размещено' : 
-                                                                    placedItems > 0 ? 'Частично размещено' : 'Ожидает размещения';
-                                                  const statusColor = placedItems === totalItems ? 'text-green-600' : 
-                                                                     placedItems > 0 ? 'text-yellow-600' : 'text-red-600';
-                                                  
-                                                  return (
-                                                    <>
-                                                      <span className={`font-bold ${statusColor}`}>{progressText}</span>
-                                                      <span className={`text-xs px-2 py-1 rounded-full ${
-                                                        placedItems === totalItems ? 'bg-green-100 text-green-700' : 
-                                                        placedItems > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                                          <div className="bg-gray-50 p-3 rounded-lg mt-3">
+                                            <h4 className="font-medium text-sm mb-2">📦 Список грузов ({(item.cargo_items || []).length} типов)</h4>
+                                            {(item.cargo_items || []).length > 0 ? (
+                                              item.cargo_items.map((cargoItem, index) => (
+                                                <div key={index} className="bg-white p-2 rounded border text-xs mb-1">
+                                                  <div className="flex justify-between items-center">
+                                                    <div>
+                                                      <p className="font-medium text-gray-800">
+                                                        Груз{item.cargo_number}/{String(index + 1).padStart(2, '0')} "{cargoItem.cargo_name || `Груз №${index + 1}`}"
+                                                      </p>
+                                                      <p className="text-gray-500 text-xs">
+                                                        {cargoItem.quantity || 1} шт • {cargoItem.weight || 0} кг
+                                                      </p>
+                                                      {/* НОВОЕ: Показываем индивидуальные номера */}
+                                                      {cargoItem.individual_items && cargoItem.individual_items.length > 0 && (
+                                                        <div className="mt-1 flex flex-wrap gap-1">
+                                                          {cargoItem.individual_items.slice(0, 3).map((unit, unitIndex) => (
+                                                            <span 
+                                                              key={unitIndex} 
+                                                              className={`px-1 py-0.5 text-xs rounded ${
+                                                                unit.is_placed 
+                                                                  ? 'bg-green-100 text-green-700' 
+                                                                  : 'bg-gray-100 text-gray-600'
+                                                              }`}
+                                                              title={unit.individual_number}
+                                                            >
+                                                              {unit.individual_number.split('/').slice(-1)[0]}
+                                                            </span>
+                                                          ))}
+                                                          {cargoItem.individual_items.length > 3 && (
+                                                            <span className="px-1 py-0.5 text-xs bg-gray-100 text-gray-500 rounded">
+                                                              +{cargoItem.individual_items.length - 3}
+                                                            </span>
+                                                          )}
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                    <div className="text-right">
+                                                      <p className="font-medium text-blue-600">
+                                                        Размещено {cargoItem.placed_count || 0}/{cargoItem.quantity || 1}
+                                                      </p>
+                                                      <p className={`text-xs ${
+                                                        (cargoItem.placed_count || 0) === (cargoItem.quantity || 1) 
+                                                          ? 'text-green-600' 
+                                                          : (cargoItem.placed_count || 0) > 0 
+                                                            ? 'text-yellow-600' 
+                                                            : 'text-red-600'
                                                       }`}>
-                                                        {statusText}
-                                                      </span>
-                                                    </>
-                                                  );
-                                                })()}
+                                                        {(cargoItem.placed_count || 0) === (cargoItem.quantity || 1) 
+                                                          ? 'Размещено' 
+                                                          : (cargoItem.placed_count || 0) > 0 
+                                                            ? 'Частично' 
+                                                            : 'Ждёт'}
+                                                      </p>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              ))
+                                            ) : (
+                                              <div className="bg-white p-2 rounded border text-xs">
+                                                <div className="flex justify-between">
+                                                  <div>
+                                                    <p className="font-medium">Груз{item.cargo_number}/01 №1</p>
+                                                    <p className="text-gray-500">1 шт • {item.weight || 0} кг</p>
+                                                  </div>
+                                                  <span className="text-red-600 text-xs">Ждёт размещение</span>
+                                                </div>
+                                              </div>
+                                            )}
+                                            
+                                            <div className="mt-2 pt-2 border-t text-sm">
+                                              <div className="flex justify-between items-center">
+                                                <span className="font-medium">Общий прогресс:</span>
+                                                <div className="flex items-center space-x-2">
+                                                  {(() => {
+                                                    // Подсчитываем общий прогресс размещения
+                                                    const totalItems = (item.cargo_items || []).reduce((sum, cargoItem) => sum + (cargoItem.quantity || 1), 0);
+                                                    const placedItems = (item.cargo_items || []).reduce((sum, cargoItem) => sum + (cargoItem.placed_count || 0), 0);
+                                                    
+                                                    const progressText = `${placedItems}/${totalItems}`;
+                                                    const statusText = placedItems === totalItems ? 'Размещено' : 
+                                                                      placedItems > 0 ? 'Частично размещено' : 'Ожидает размещения';
+                                                    const statusColor = placedItems === totalItems ? 'text-green-600' : 
+                                                                       placedItems > 0 ? 'text-yellow-600' : 'text-red-600';
+                                                    
+                                                    return (
+                                                      <>
+                                                        <span className={`font-bold ${statusColor}`}>{progressText}</span>
+                                                        <span className={`text-xs px-2 py-1 rounded-full ${
+                                                          placedItems === totalItems ? 'bg-green-100 text-green-700' : 
+                                                          placedItems > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                                                        }`}>
+                                                          {statusText}
+                                                        </span>
+                                                      </>
+                                                    );
+                                                  })()}
+                                                </div>
                                               </div>
                                             </div>
                                           </div>
-                                        </div>
-                                        
-                                        <div className="flex flex-wrap gap-2 mt-4">
-                                          <Button onClick={() => openEnhancedPlacementModal(item)} size="sm" className="bg-green-600 hover:bg-green-700">
-                                            <Grid3X3 className="mr-1 h-3 w-3" />Разместить
-                                          </Button>
-                                          <Button onClick={() => handleOpenCargoPlacementDetails(item)} size="sm" className="bg-purple-600 hover:bg-purple-700">
-                                            <Settings className="mr-1 h-3 w-3" />Действия
-                                          </Button>
-                                        </div>
-                                      </CardContent>
+                                          
+                                          <div className="flex flex-wrap gap-2 mt-4">
+                                            <Button onClick={() => openEnhancedPlacementModal(item)} size="sm" className="bg-green-600 hover:bg-green-700">
+                                              <Grid3X3 className="mr-1 h-3 w-3" />Разместить
+                                            </Button>
+                                            <Button onClick={() => handleOpenCargoPlacementDetails(item)} size="sm" className="bg-purple-600 hover:bg-purple-700">
+                                              <Settings className="mr-1 h-3 w-3" />Действия
+                                            </Button>
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+                                    );
+                                  })}
+                                </div>
+                              )
+                            ) : (
+                              /* НОВЫЙ РЕЖИМ: Individual Units карточки */
+                              individualUnitsForPlacement.length === 0 ? (
+                                <div className="text-center py-8">
+                                  <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                                  <p className="text-gray-500">Нет individual units, ожидающих размещения</p>
+                                  <p className="text-sm text-gray-400 mt-2">Individual units из принятых заявок автоматически появятся здесь</p>
+                                  <Button 
+                                    variant="outline" 
+                                    className="mt-4"
+                                    onClick={() => fetchIndividualUnitsForPlacement()}
+                                  >
+                                    Обновить данные
+                                  </Button>
+                                </div>
+                              ) : (
+                                /* Группировка по заявкам через Accordion */
+                                <div className="space-y-4">
+                                  {groupedUnitsForPlacement.map((group) => (
+                                    <Card key={group.request_number} className="border-2 border-blue-200">
+                                      <Accordion type="single" collapsible className="w-full">
+                                        <AccordionItem value={group.request_number} className="border-none">
+                                          <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                                            <div className="flex items-center justify-between w-full mr-4">
+                                              <div className="flex items-center space-x-4">
+                                                <h3 className="text-lg font-bold text-blue-600">
+                                                  Заявка {group.request_number}
+                                                </h3>
+                                                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                                                  {group.total_units} единиц
+                                                </Badge>
+                                                <Badge variant={group.placed_units === group.total_units ? "default" : group.placed_units > 0 ? "secondary" : "destructive"}>
+                                                  {group.placed_units}/{group.total_units} размещено
+                                                </Badge>
+                                              </div>
+                                              <div className="text-right text-sm text-gray-600">
+                                                <div>👤 {group.sender_name}</div>
+                                                <div>🏠 {group.warehouse_name}</div>
+                                              </div>
+                                            </div>
+                                          </AccordionTrigger>
+                                          <AccordionContent className="px-6 pb-4">
+                                            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                              {group.units.map((unit) => {
+                                                // Определяем цвет карточки по типу груза
+                                                const getCargoTypeColor = (typeNumber) => {
+                                                  const colors = {
+                                                    '01': 'border-blue-300 bg-blue-50',
+                                                    '02': 'border-green-300 bg-green-50', 
+                                                    '03': 'border-yellow-300 bg-yellow-50',
+                                                    '04': 'border-purple-300 bg-purple-50',
+                                                    '05': 'border-red-300 bg-red-50'
+                                                  };
+                                                  return colors[typeNumber] || 'border-gray-300 bg-gray-50';
+                                                };
+
+                                                return (
+                                                  <Card key={unit.individual_number} className={`${getCargoTypeColor(unit.type_number)} border-l-4`}>
+                                                    <CardHeader className="pb-2">
+                                                      <CardTitle className="text-sm font-bold text-gray-800">
+                                                        {unit.individual_number}
+                                                      </CardTitle>
+                                                      <Badge 
+                                                        variant={unit.is_placed ? "default" : "destructive"}
+                                                        className="text-xs"
+                                                      >
+                                                        {unit.is_placed ? '✅ Размещен' : '🟡 Ожидает размещения'}
+                                                      </Badge>
+                                                    </CardHeader>
+                                                    <CardContent className="pt-0 space-y-2 text-xs">
+                                                      <div>
+                                                        <span className="font-medium">📋 Заявка:</span> {unit.cargo_request_number}
+                                                      </div>
+                                                      <div>
+                                                        <span className="font-medium">📦 Груз:</span> {unit.cargo_name}
+                                                      </div>
+                                                      <div>
+                                                        <span className="font-medium">🔢 Тип:</span> {unit.type_number} | <span className="font-medium">Единица:</span> {unit.unit_index}
+                                                      </div>
+                                                      <div>
+                                                        <span className="font-medium">👤 Отправитель:</span> {unit.sender_full_name}
+                                                      </div>
+                                                      <div>
+                                                        <span className="font-medium">📍 Получатель:</span> {unit.recipient_full_name}
+                                                      </div>
+                                                      {unit.placement_info && (
+                                                        <div className="text-green-600 font-medium">
+                                                          📍 {unit.placement_info}
+                                                        </div>
+                                                      )}
+                                                      
+                                                      <div className="flex gap-1 mt-3">
+                                                        <Button 
+                                                          size="sm" 
+                                                          className="flex-1 bg-green-600 hover:bg-green-700 text-xs"
+                                                          onClick={() => handlePlaceIndividualUnit(unit)}
+                                                          disabled={unit.is_placed}
+                                                        >
+                                                          <Grid3X3 className="mr-1 h-3 w-3" />
+                                                          {unit.is_placed ? 'Размещен' : 'Разместить'}
+                                                        </Button>
+                                                        <Button 
+                                                          size="sm" 
+                                                          variant="outline"
+                                                          className="bg-purple-50 text-purple-600 border-purple-300 hover:bg-purple-100 text-xs"
+                                                          onClick={() => handleOpenIndividualUnitActions(unit)}
+                                                        >
+                                                          <Settings className="h-3 w-3" />
+                                                        </Button>
+                                                      </div>
+                                                    </CardContent>
+                                                  </Card>
+                                                );
+                                              })}
+                                            </div>
+                                          </AccordionContent>
+                                        </AccordionItem>
+                                      </Accordion>
                                     </Card>
-                                  );
-                                })}
-                              </div>
+                                  ))}
+                                </div>
+                              )
                             )}
                           </div>
                         </CardContent>
