@@ -10530,6 +10530,97 @@ function App() {
     }
   };
 
+  // НОВАЯ ФУНКЦИЯ: Загрузка счетчиков для бокового меню
+  const fetchMenuCounters = async () => {
+    try {
+      console.log('📊 Загрузка счетчиков для бокового меню...');
+      
+      const counters = {
+        cargo_list: 0,
+        cargo_placement: 0,
+        cargo_pickup_list: 0,
+        cargo_history: 0,
+        couriers_list: 0,
+        couriers_inactive: 0,
+        warehouses_list: 0,
+        notifications_orders: newOrdersCount || 0,
+        notifications_requests: 0,
+        notifications_system: 0,
+        cashier_unpaid: 0,
+        cashier_history: 0,
+        logistics_transport: 0,
+        logistics_in_transit: 0,
+        logistics_arrived: 0,
+        finances_transactions: 0,
+        placement_progress: placementProgress?.progress_text || '0/0'
+      };
+
+      // Загружаем основные счетчики
+      if (user?.role === 'admin' || user?.role === 'warehouse_operator') {
+        // Количество грузов в списке
+        if (operatorCargo?.length) {
+          counters.cargo_list = operatorCargo.length;
+        }
+        
+        // Количество грузов для размещения
+        if (availableCargoForPlacement?.length) {
+          counters.cargo_placement = availableCargoForPlacement.length;
+        }
+        
+        // Количество заявок на забор
+        if (allPickupRequests?.length) {
+          counters.cargo_pickup_list = allPickupRequests.length;
+        }
+        
+        // Количество складов
+        if (warehouses?.length) {
+          counters.warehouses_list = warehouses.length;
+        }
+        
+        // Количество курьеров (только для админов)
+        if (user?.role === 'admin' && allCouriers?.length) {
+          const activeCouriers = allCouriers.filter(c => !c.deleted && !c.is_active === false);
+          const inactiveCouriers = allCouriers.filter(c => c.deleted || c.is_active === false);
+          counters.couriers_list = activeCouriers.length;
+          counters.couriers_inactive = inactiveCouriers.length;
+        }
+        
+        // Количество неоплаченных заказов
+        if (unpaidCargo?.length) {
+          counters.cashier_unpaid = unpaidCargo.length;
+        }
+        
+        // Прогресс размещения
+        if (placementProgress?.progress_text) {
+          counters.placement_progress = placementProgress.progress_text;
+        }
+      }
+
+      setMenuCounters(counters);
+      console.log('✅ Счетчики меню обновлены:', counters);
+      
+    } catch (error) {
+      console.error('❌ Ошибка загрузки счетчиков меню:', error);
+    }
+  };
+
+  // Обновляем счетчики при изменении данных
+  useEffect(() => {
+    if (user && (user.role === 'admin' || user.role === 'warehouse_operator')) {
+      fetchMenuCounters();
+    }
+  }, [
+    operatorCargo,
+    availableCargoForPlacement, 
+    allPickupRequests,
+    warehouses,
+    allCouriers,
+    unpaidCargo,
+    newOrdersCount,
+    placementProgress,
+    user
+  ]);
+
   // УЛУЧШЕНИЕ: Функция для получения общего прогресса размещения
   const fetchPlacementProgress = async () => {
     try {
