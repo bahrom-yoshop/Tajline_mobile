@@ -341,7 +341,7 @@ class PlacementProgressTester:
                     missing_progress_fields = [field for field in progress_fields if field not in application_progress]
                     
                     # Проверяем структуру placement_details
-                    detail_fields = ["блок", "полка", "ячейка", "кем размещено", "когда размещено"]
+                    detail_fields = ["block", "shelf", "cell", "placed_by", "placed_at"]
                     missing_detail_fields = [field for field in detail_fields if field not in placement_details]
                     
                     if not missing_progress_fields and not missing_detail_fields:
