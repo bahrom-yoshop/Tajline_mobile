@@ -609,7 +609,7 @@ class SidebarCountersTester:
                 self.log_test("Возврат к оператору", False, "Не удалось авторизоваться как оператор")
                 return False
             
-            response = self.session.get(f"{API_BASE}/operator/unpaid-cargo", timeout=30)
+            response = self.session.get(f"{API_BASE}/cashier/unpaid-cargo", timeout=30)
             
             if response.status_code == 200:
                 data = response.json()
