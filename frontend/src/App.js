@@ -31,9 +31,8 @@ import {
   Scan, Target, MousePointer, Phone, MessageSquare, Send, ExternalLink, UserX, Lock, Grid, List, RotateCw
 } from 'lucide-react';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://logistics-dash-6.preview.emergentagent.com';
-console.log('🔍 DEBUG: BACKEND_URL:', process.env.REACT_APP_BACKEND_URL);
-console.log('🔍 DEBUG: FINAL BACKEND_URL:', BACKEND_URL);
+const BACKEND_URL = 'https://logistics-dash-6.preview.emergentagent.com';
+console.log('🔍 DEBUG: HARDCODED BACKEND_URL:', BACKEND_URL);
 
 function App() {
   const [user, setUser] = useState(null);
