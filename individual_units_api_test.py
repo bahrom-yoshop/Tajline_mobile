@@ -214,7 +214,7 @@ class IndividualUnitsAPITester:
             # Ищем нашу тестовую заявку среди individual units
             test_units = []
             for unit in individual_units:
-                if unit.get("cargo_number") == test_cargo_number:
+                if unit.get("cargo_request_number") == test_cargo_number:
                     test_units.append(unit)
             
             if not test_units:
