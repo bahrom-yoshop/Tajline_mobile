@@ -10,7 +10,7 @@ import json
 import os
 
 # Конфигурация
-BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://tajline-cargo-6.preview.emergentagent.com')
+BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://placement-manager.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 # Тестовые данные оператора склада
