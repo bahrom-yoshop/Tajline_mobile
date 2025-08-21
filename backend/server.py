@@ -6157,26 +6157,32 @@ async def get_individual_units_for_placement(
                 detail="Недостаточно прав для просмотра грузов"
             )
 
-        # Получаем склады пользователя
+        # Получаем склады пользователя (для совместимости, но не используем для фильтрации)
         user_warehouses = []
         if current_user.role == "warehouse_operator":
             user_warehouses = get_operator_warehouse_ids(current_user.id)
-            if not user_warehouses:
-                return {"items": [], "total": 0, "page": page, "per_page": per_page}
 
-        # Формируем условия поиска для заявок
+        # Формируем условия поиска для заявок (аналогично regular available-for-placement)
         match_conditions = {
-            "$or": [
-                {"overall_status": "awaiting_placement"},
-                {"status": "awaiting_placement"},
-                {"cargo_status": "awaiting_placement"},
-                {"status": "accepted"},  # Добавляем accepted статус
-                {"overall_status": "accepted"}
+            "status": {"$nin": ["placed_in_warehouse", "removed_from_placement"]},
+            "$and": [
+                {"$or": [
+                    {"warehouse_location": {"$exists": False}},
+                    {"warehouse_location": None},
+                    {"warehouse_location": ""}
+                ]},
+                {"$or": [
+                    {"block_number": {"$exists": False}},
+                    {"block_number": None},
+                    {"shelf_number": {"$exists": False}}, 
+                    {"shelf_number": None},
+                    {"cell_number": {"$exists": False}},
+                    {"cell_number": None}
+                ]}
             ]
         }
         
-        if current_user.role == "warehouse_operator":
-            match_conditions["warehouse_id"] = {"$in": user_warehouses}
+        # НЕ фильтруем по warehouse_id, как в оригинальном endpoint
 
         # Получаем все заявки ожидающие размещения
         pipeline = [
