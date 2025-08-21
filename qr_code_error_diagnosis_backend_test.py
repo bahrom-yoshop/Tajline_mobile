@@ -418,6 +418,7 @@ class QRCodeErrorDiagnosticTester:
             # Try to place the individual unit 25082198/01/01
             placement_data = {
                 "individual_number": self.target_qr_code,
+                "warehouse_id": self.warehouse_id,  # Add required warehouse_id
                 "block_number": 1,
                 "shelf_number": 1,
                 "cell_number": 1
