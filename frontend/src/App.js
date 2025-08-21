@@ -16969,7 +16969,8 @@ function App() {
                 </TabsTrigger>
               </TabsList>
               
-              <TabsContent value="login" className="p-6 pt-2">
+              <TabsContent value="login" className="p-6 pt-2 relative">
+                <DevBadge id={getDevNumber('forms', 'login').id} type="form" label={getDevNumber('forms', 'login').label} />
                 <form onSubmit={handleLogin} className="space-y-5">
                   <div className="text-center mb-6">
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Добро пожаловать!</h2>
