@@ -3318,6 +3318,63 @@ function App() {
     showAlert('Груз успешно размещен на складе!', 'success');
   };
 
+  // НОВЫЕ ФУНКЦИИ ДЛЯ INDIVIDUAL UNITS
+
+  // Размещение индивидуальной единицы груза
+  const handlePlaceIndividualUnit = async (unit) => {
+    try {
+      console.log('🎯 Размещение individual unit:', unit.individual_number);
+      
+      // Проверяем, что единица еще не размещена
+      if (unit.is_placed) {
+        showAlert('Эта единица груза уже размещена!', 'warning');
+        return;
+      }
+      
+      // Открываем модальное окно выбора ячейки или используем быстрое размещение
+      // Для простоты пока используем авто-размещение в первую доступную ячейку
+      const response = await apiCall('/api/operator/cargo/place-individual', 'POST', {
+        cargo_id: unit.cargo_id,
+        individual_number: unit.individual_number,
+        type_number: unit.type_number,
+        unit_index: unit.unit_index,
+        // Авто-размещение в первую доступную ячейку
+        block_number: 1,
+        shelf_number: 1,
+        cell_number: 1
+      });
+      
+      console.log('✅ Individual unit размещен:', response);
+      showAlert(`Единица ${unit.individual_number} успешно размещена!`, 'success');
+      
+      // Обновляем список individual units
+      await fetchIndividualUnitsForPlacement(individualUnitsPage, individualUnitsPerPage, cargoTypeFilter, placementStatusFilter);
+      
+    } catch (error) {
+      console.error('❌ Ошибка размещения individual unit:', error);
+      showAlert(`Ошибка размещения: ${error.message}`, 'error');
+    }
+  };
+
+  // Открытие модального окна действий для individual unit
+  const handleOpenIndividualUnitActions = async (unit) => {
+    try {
+      console.log('🔧 Открытие действий для individual unit:', unit.individual_number);
+      
+      // Здесь можно открыть модальное окно с действиями:
+      // - Генерация QR кода
+      // - Печать QR кода  
+      // - Просмотр деталей размещения
+      // - Изменение местоположения
+      
+      showAlert(`Действия для ${unit.individual_number} будут доступны в следующей итерации`, 'info');
+      
+    } catch (error) {
+      console.error('❌ Ошибка открытия действий:', error);
+      showAlert(`Ошибка: ${error.message}`, 'error');
+    }
+  };
+
   // НОВЫЕ ФУНКЦИИ: QR генерация и печать для индивидуальных номеров
 
   // Генерация QR кода для индивидуальной единицы груза
