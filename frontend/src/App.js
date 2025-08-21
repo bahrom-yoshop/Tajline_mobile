@@ -10601,9 +10601,9 @@ function App() {
 
       // Загружаем основные счетчики
       if (user?.role === 'admin' || user?.role === 'warehouse_operator') {
-        // Количество грузов в списке
-        if (operatorCargo?.length) {
-          counters.cargo_list = operatorCargo.length;
+        // Количество грузов в списке (полностью размещенные заявки)
+        if (fullyPlacedCargo?.length) {
+          counters.cargo_list = fullyPlacedCargo.length;
         }
         
         // Количество грузов для размещения
