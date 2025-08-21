@@ -3385,29 +3385,7 @@ function App() {
 
 
 
-  // Обработчик сканирования QR ячеек (автоматический)
-  const handleCellQRScan = async (qrCode) => {
-    console.log('📱 Сканирование QR ячейки:', qrCode);
-    
-    if (!qrCode.trim()) return;
 
-    setCurrentCellQR(qrCode);
-    const cellInfo = await verifyCellByQR(qrCode);
-    
-    if (cellInfo && verifiedCargo) {
-      // Автоматически размещаем груз
-      const sessionId = placementSessionId || generatePlacementSessionId();
-      await placeCargoInCell(currentCargoQR, qrCode, sessionId);
-      
-      // Возвращаемся к сканированию груза для следующего цикла
-      setTimeout(() => {
-        const cargoInput = document.getElementById('cargo-qr-input');
-        if (cargoInput) {
-          cargoInput.focus();
-        }
-      }, 1000);
-    }
-  };
 
   // Инициализация сессии размещения
   const initializePlacementSession = () => {
