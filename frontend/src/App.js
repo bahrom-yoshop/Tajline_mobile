@@ -21925,20 +21925,58 @@ function App() {
                       </CardContent>
                     </Card>
                   )}
-                            <div className="text-center py-8">
-                              <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                              <p className="text-gray-500 mb-4">
-                                {operatorCargoFilter 
-                                  ? `Нет грузов с фильтром "${operatorCargoFilter === 'new_request' ? 'Новые заявки' : operatorCargoFilter === 'awaiting_payment' ? 'Ожидается оплата' : 'Ожидает размещение'}"` 
-                                  : 'Нет принятых грузов'
-                                }
-                              </p>
-                              <Button onClick={() => setActiveTab('cargo-accept')}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Принять первый груз
-                              </Button>
-                            </div>
-                          ) : (
+
+                  {/* Список принятых грузов */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Package className="h-5 w-5" />
+                          <span>Принятые грузы</span>
+                          <Badge variant="outline">{operatorCargo.length}</Badge>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {/* Фильтр по статусу */}
+                          <Select value={operatorCargoFilter} onValueChange={setOperatorCargoFilter}>
+                            <SelectTrigger className="w-48">
+                              <SelectValue placeholder="Все грузы" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">Все грузы</SelectItem>
+                              <SelectItem value="new_request">Новые заявки</SelectItem>
+                              <SelectItem value="awaiting_payment">Ожидается оплата</SelectItem>
+                              <SelectItem value="awaiting_placement">Ожидает размещение</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button onClick={() => fetchOperatorCargo()} size="sm" variant="outline">
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Обновить
+                          </Button>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {operatorCargoLoading ? (
+                          <div className="text-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                            <p className="text-gray-500">Загрузка принятых грузов...</p>
+                          </div>
+                        ) : operatorCargo.length === 0 ? (
+                          <div className="text-center py-8">
+                            <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                            <p className="text-gray-500 mb-4">
+                              {operatorCargoFilter 
+                                ? `Нет грузов с фильтром "${operatorCargoFilter === 'new_request' ? 'Новые заявки' : operatorCargoFilter === 'awaiting_payment' ? 'Ожидается оплата' : 'Ожидает размещение'}"` 
+                                : 'Нет принятых грузов'
+                              }
+                            </p>
+                            <Button onClick={() => setActiveTab('cargo-accept')}>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Принять первый груз
+                            </Button>
+                          </div>
+                        ) : (
                             <Table>
                               <TableHeader>
                                 <TableRow>
