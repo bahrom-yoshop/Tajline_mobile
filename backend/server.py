@@ -6160,7 +6160,7 @@ async def get_individual_units_for_placement(
         # Получаем склады пользователя
         user_warehouses = []
         if current_user.role == "warehouse_operator":
-            user_warehouses = current_user.warehouse_ids or []
+            user_warehouses = get_operator_warehouse_ids(current_user.id)
             if not user_warehouses:
                 return {"items": [], "total": 0, "page": page, "per_page": per_page}
 
