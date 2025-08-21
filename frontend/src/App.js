@@ -13236,8 +13236,8 @@ function App() {
       
     } catch (error) {
       console.error('Login error:', error);
-      console.log('Error status:', error.status);
-      console.log('Error detail:', error.detail);
+      console.log('Error status:', error.status || 'undefined');
+      console.log('Error detail:', error.detail || 'undefined');
       setIsLoggingIn(false);
       
       // Обработка заблокированного/удаленного пользователя
