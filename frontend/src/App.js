@@ -10614,7 +10614,7 @@ function App() {
     availableCargoForPlacement, 
     allPickupRequests,
     warehouses,
-    allCouriers,
+    couriers,
     unpaidCargo,
     newOrdersCount,
     placementProgress,
