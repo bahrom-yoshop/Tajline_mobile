@@ -18430,12 +18430,18 @@ async def verify_cell_for_placement(
         
         print(f"🔍 Проверка ячейки: Склад {warehouse_id}, Блок {block_number}, Полка {shelf_number}, Ячейка {cell_number}")
         
-        # Проверяем существование склада
-        warehouse = db.warehouses.find_one({"id": warehouse_id})
+        # ИСПРАВЛЕНИЕ: Проверяем существование склада по warehouse_id_number, а не по UUID id
+        if warehouse_id and warehouse_id.isdigit():
+            # Если warehouse_id это номер (например, "001"), ищем по warehouse_id_number
+            warehouse = db.warehouses.find_one({"warehouse_id_number": warehouse_id})
+        else:
+            # Если это UUID, ищем по id
+            warehouse = db.warehouses.find_one({"id": warehouse_id})
+            
         if not warehouse:
             return {
                 "success": False,
-                "error": "Склад не найден",
+                "error": f"Склад с номером {warehouse_id} не найден",
                 "error_code": "WAREHOUSE_NOT_FOUND"
             }
         
