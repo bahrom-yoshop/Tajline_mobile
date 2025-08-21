@@ -5204,8 +5204,8 @@ async def accept_new_cargo(
         "cell_number": None,
         "placed_by_operator": None,
         "placed_by_operator_id": None,
-        # Новые поля для множественных грузов
-        "cargo_items": [item.dict() for item in cargo_data.cargo_items] if cargo_data.cargo_items else None,
+        # Новые поля для множественных грузов с individual_items
+        "cargo_items": None,
         # НОВЫЕ ПОЛЯ ОПЛАТЫ
         "payment_method": cargo_data.payment_method.value,  # Способ оплаты
         "payment_amount": cargo_data.payment_amount,  # Сумма оплаты
