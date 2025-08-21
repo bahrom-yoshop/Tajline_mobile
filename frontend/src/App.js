@@ -19775,6 +19775,36 @@ function App() {
                             )}
                           </div>
                           
+                          {/* УЛУЧШЕНИЕ: Общий прогресс размещения */}
+                          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200 mb-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="font-semibold text-green-800">Общий прогресс размещения</h3>
+                                <p className="text-sm text-green-600">{placementProgress.progress_text}</p>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-2xl font-bold text-green-600">
+                                  {placementProgress.progress_percentage.toFixed(1)}%
+                                </div>
+                                <div className="text-xs text-green-700">выполнено</div>
+                              </div>
+                            </div>
+                            
+                            {/* Прогресс-бар */}
+                            <div className="mt-3">
+                              <div className="w-full bg-green-200 rounded-full h-3">
+                                <div 
+                                  className="bg-green-600 h-3 rounded-full transition-all duration-300"
+                                  style={{ width: `${placementProgress.progress_percentage}%` }}
+                                ></div>
+                              </div>
+                              <div className="flex justify-between text-xs text-green-700 mt-1">
+                                <span>Ожидают: {placementProgress.pending_units}</span>
+                                <span>Размещено: {placementProgress.placed_units}</span>
+                              </div>
+                            </div>
+                          </div>
+                          
                           {/* Статистика сессии */}
                           {sessionStats && (
                             <div className="grid grid-cols-3 gap-4 text-center">
