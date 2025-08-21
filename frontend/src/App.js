@@ -3329,32 +3329,7 @@ function App() {
 
 
 
-  // Проверка ячейки по QR коду
-  const verifyCellByQR = async (qrCode) => {
-    try {
-      console.log('🔍 Проверка ячейки по QR:', qrCode);
-      setIsPlacementProcessing(true);
 
-      const response = await apiCall('/api/operator/placement/verify-cell', 'POST', {
-        qr_code: qrCode.trim()
-      });
-
-      if (response.success) {
-        setVerifiedCell(response.cell_info);
-        showAlert(`✅ Ячейка проверена: ${response.cell_info.cell_address}`, 'success');
-        return response.cell_info;
-      } else {
-        showAlert(`❌ ${response.error}`, 'error');
-        return null;
-      }
-    } catch (error) {
-      console.error('❌ Ошибка проверки ячейки:', error);
-      showAlert(`Ошибка проверки ячейки: ${error.message}`, 'error');
-      return null;
-    } finally {
-      setIsPlacementProcessing(false);
-    }
-  };
 
   // Размещение груза в ячейку
   const placeCargoInCell = async (cargoQR, cellQR, sessionId) => {
