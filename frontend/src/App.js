@@ -5481,6 +5481,14 @@ function App() {
   const [isPlacementProcessing, setIsPlacementProcessing] = useState(false); // Процесс размещения
   const [useIndividualCards, setUseIndividualCards] = useState(true); // Переключатель между старым и новым режимом
   
+  // НОВЫЕ СОСТОЯНИЯ: Печать QR кодов для Individual Units
+  const [qrPrintMode, setQrPrintMode] = useState(false); // Режим печати QR кодов
+  const [selectedUnitsForPrint, setSelectedUnitsForPrint] = useState([]); // Выбранные units для печати
+  const [qrPrintLayout, setQrPrintLayout] = useState('grid_3x3'); // Макет печати
+  const [qrGenerationProgress, setQrGenerationProgress] = useState(null); // Прогресс генерации QR
+  const [generatedQrBatch, setGeneratedQrBatch] = useState(null); // Сгенерированные QR коды
+  const [printLayoutOptions, setPrintLayoutOptions] = useState(null); // Опции макетов печати
+  
   const [selectedCargoForDetailView, setSelectedCargoForDetailView] = useState(null); // Выбранный груз для просмотра деталей
   const [cargoDetailsModal, setCargoDetailsModal] = useState(false); // Модальное окно деталей груза
   const [quickPlacementModal, setQuickPlacementModal] = useState(false); // Быстрое размещение
