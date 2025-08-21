@@ -17713,7 +17713,8 @@ function App() {
               {/* Client Dashboard Stats */}
               {clientDashboard && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <Card>
+                  <Card className="relative">
+                    <DevBadge id={getDevNumber('cards', 'dashboard-stats').id} type="card" label="Всего грузов" />
                     <CardContent className="p-6">
                       <div className="flex items-center">
                         <Package className="h-8 w-8 text-blue-600" />
