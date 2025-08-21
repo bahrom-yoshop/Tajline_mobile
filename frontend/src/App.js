@@ -8321,6 +8321,15 @@ function App() {
     
   }, [activeSection, activeTab]); // Зависимости от активной секции и вкладки
 
+  // НОВЫЙ USEEFFECT: Автоматическая загрузка individual units при переключении режимов
+  useEffect(() => {
+    // Загружаем individual units если включен новый режим и пользователь - оператор склада
+    if (useIndividualCards && user && user.role === 'warehouse_operator' && activeTab === 'cargo-placement') {
+      console.log('🔄 Автоматическая загрузка individual units...');
+      fetchIndividualUnitsForPlacement(1, individualUnitsPerPage, cargoTypeFilter, placementStatusFilter);
+    }
+  }, [useIndividualCards, user, activeTab]); // Зависимости от режима, пользователя и активной вкладки
+
   // Функция загрузки данных личного кабинета
   const fetchPersonalDashboard = async () => {
     setDashboardLoading(true);
