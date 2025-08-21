@@ -533,7 +533,7 @@ class SidebarCountersTester:
                 return False
             
             # Проверяем список пользователей
-            users_response = self.session.get(f"{API_BASE}/users", timeout=30)
+            users_response = self.session.get(f"{API_BASE}/admin/users", timeout=30)
             
             if users_response.status_code == 200:
                 users_data = users_response.json()
