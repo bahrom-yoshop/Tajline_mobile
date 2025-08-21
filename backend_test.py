@@ -623,9 +623,9 @@ class QRCodeAPITester:
             print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось авторизоваться")
             return False
         
-        # Создание тестовых данных
-        if not self.create_test_cargo_with_individual_units():
-            print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось создать тестовые данные")
+        # Создание тестовых данных (или использование существующих)
+        if not self.get_individual_numbers_from_existing_cargo():
+            print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось получить тестовые данные")
             return False
         
         # Запуск тестов
