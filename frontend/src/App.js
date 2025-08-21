@@ -7167,19 +7167,45 @@ function App() {
         console.debug('Не удалось установить язык EN:', langError);
       }
       
-      // Используем отфильтрованные данные
       const processedData = filteredData;
       
-      // Защита от множественных сканирований одного и того же QR кода
+      // ЭТАП 5: ЗАЩИТА ОТ ДУБЛИРОВАНИЯ И АВТОСБРОС
       const currentTime = Date.now();
-      if (processedData === lastScannedData && (currentTime - lastScanTime) < 3000) {
-        console.log('Ignoring duplicate scan within 3 seconds:', processedData);
+      
+      // Проверка на дублирование сканирования
+      if (processedData === lastScannedData && (currentTime - lastScanTime) < 2000) {
+        console.log('⚡ Игнорируем дублированное сканирование:', processedData);
         return;
       }
       
       // Обновляем информацию о последнем сканировании
       setLastScannedData(processedData);
       setLastScanTime(currentTime);
+      
+      // ЭТАП 5: АВТОСБРОС ПРИ НЕПРАВИЛЬНОМ СКАНИРОВАНИИ
+      const resetScannerOnError = () => {
+        console.log('🔄 АВТОСБРОС: Очищаем поля и сбрасываем состояние сканера');
+        
+        // Очищаем все поля ввода
+        const inputs = document.querySelectorAll('input[type="text"], input[type="number"]');
+        inputs.forEach(input => {
+          if (input.value) {
+            input.value = '';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        });
+        
+        // Сбрасываем состояние ошибки
+        setScannerError(null);
+        
+        // Возвращаем фокус на сканер через короткую задержку
+        setTimeout(() => {
+          const scannerInput = document.querySelector('input[placeholder*="сканер"], input[placeholder*="QR"]');
+          if (scannerInput) {
+            scannerInput.focus();
+          }
+        }, 100);
+      };
       
       if (scannerMode === 'cargo-barcode') {
         // ОБНОВЛЕНО: Используем новую систему парсинга QR кодов с отфильтрованными данными
