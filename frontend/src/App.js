@@ -7287,7 +7287,7 @@ function App() {
         }
       } else if (scannerMode === 'mobile-placement-cargo') {
         // Мобильное размещение - сканирование груза
-        const cargoNumber = extractCargoNumber(scannedData);
+        const cargoNumber = extractCargoNumber(processedData);
         const cargoInfo = await getCargoByNumber(cargoNumber);
         
         if (cargoInfo) {
@@ -7306,7 +7306,7 @@ function App() {
         }
       } else if (scannerMode === 'mobile-placement-cell') {
         // Мобильное размещение - сканирование ячейки
-        const cellData = parseCellQRCode(scannedData);
+        const cellData = parseCellQRCode(processedData);
         if (cellData) {
           setScannedCell(cellData);
           
@@ -7326,7 +7326,7 @@ function App() {
         }
       } else if (scannerMode === 'mobile-receive-cargo') {
         // Мобильный приём - сканирование груза
-        const cargoNumber = extractCargoNumber(scannedData);
+        const cargoNumber = extractCargoNumber(processedData);
         const cargoInfo = await getCargoByNumber(cargoNumber);
         
         if (cargoInfo) {
@@ -7341,7 +7341,7 @@ function App() {
         }
       } else if (scannerMode === 'mobile-receive-cell') {
         // Мобильный приём - сканирование новой ячейки
-        const cellData = parseCellQRCode(scannedData);
+        const cellData = parseCellQRCode(processedData);
         if (cellData) {
           setNewCell(cellData);
           setReceiveStep('confirm');
