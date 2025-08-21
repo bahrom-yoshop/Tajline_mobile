@@ -16641,7 +16641,13 @@ function App() {
                                             : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                                         }`}
                                       >
-                                        {nested.label}
+                                        <span className="flex-1">{nested.label}</span>
+                                        {/* Счетчик для вложенного подпункта */}
+                                        {getMenuCounter(nested.id) > 0 && (
+                                          <span className="ml-2 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[16px] text-center">
+                                            {formatCounter(getMenuCounter(nested.id))}
+                                          </span>
+                                        )}
                                       </button>
                                     ))}
                                   </div>
