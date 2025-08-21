@@ -8,7 +8,7 @@ import json
 from datetime import datetime
 
 def test_fresh_pickup_acceptance():
-    base_url = "https://cargo-qr-system.preview.emergentagent.com"
+    base_url = "https://cargo-tracker-33.preview.emergentagent.com"
     
     print("🎯 TESTING FRESH PICKUP REQUEST ACCEPTANCE")
     print("=" * 60)

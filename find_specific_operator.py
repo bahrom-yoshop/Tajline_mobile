@@ -7,7 +7,7 @@ import requests
 import json
 
 # Конфигурация
-BACKEND_URL = "https://cargo-qr-system.preview.emergentagent.com/api"
+BACKEND_URL = "https://cargo-tracker-33.preview.emergentagent.com/api"
 ADMIN_CREDENTIALS = {
     "phone": "+79999888777",
     "password": "admin123"

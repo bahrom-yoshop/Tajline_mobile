@@ -13,7 +13,7 @@ from datetime import datetime
 import time
 
 # Конфигурация
-BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cargo-qr-system.preview.emergentagent.com')
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cargo-tracker-33.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 class WarehouseStructureOperatorTester:

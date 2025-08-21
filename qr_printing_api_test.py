@@ -26,7 +26,7 @@ import time
 from datetime import datetime
 
 # Конфигурация для тестирования
-BACKEND_URL = "https://cargo-qr-system.preview.emergentagent.com/api"
+BACKEND_URL = "https://cargo-tracker-33.preview.emergentagent.com/api"
 
 # Тестовые данные оператора склада
 OPERATOR_CREDENTIALS = {
