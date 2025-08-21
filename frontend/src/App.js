@@ -21839,10 +21839,32 @@ function App() {
                             {/* Фильтры для individual units */}
                             {useIndividualCards && (
                               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                                <h4 className="font-medium text-blue-800 mb-3 flex items-center">
-                                  <Filter className="mr-2 h-4 w-4" />
-                                  Фильтры и сортировка
-                                </h4>
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="font-medium text-blue-800 flex items-center">
+                                    <Filter className="mr-2 h-4 w-4" />
+                                    Фильтры и сортировка
+                                  </h4>
+                                  
+                                  {/* НОВОЕ: Кнопка массовой печати QR */}
+                                  <Button
+                                    onClick={handleMassPrintQR}
+                                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                                    size="sm"
+                                    disabled={individualUnitsForPlacement.length === 0 || qrGenerationProgress}
+                                  >
+                                    {qrGenerationProgress ? (
+                                      <>
+                                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                        Генерация QR...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Printer className="mr-2 h-4 w-4" />
+                                        Печать QR для всех ({individualUnitsForPlacement.length} единиц)
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                   {/* Фильтр по типу груза */}
                                   <div>
