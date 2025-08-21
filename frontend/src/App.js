@@ -17743,7 +17743,8 @@ function App() {
                     </CardContent>
                   </Card>
 
-                  <Card>
+                  <Card className="relative">
+                    <DevBadge id={getDevNumber('cards', 'dashboard-stats').id} type="card" label="Доставлено" />
                     <CardContent className="p-6">
                       <div className="flex items-center">
                         <CheckCircle className="h-8 w-8 text-green-600" />
