@@ -21957,12 +21957,7 @@ function App() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {operatorCargoLoading ? (
-                          <div className="text-center py-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                            <p className="text-gray-500">Загрузка принятых грузов...</p>
-                          </div>
-                        ) : operatorCargo.length === 0 ? (
+                        {operatorCargo.length === 0 ? (
                           <div className="text-center py-8">
                             <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                             <p className="text-gray-500 mb-4">
