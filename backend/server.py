@@ -18141,11 +18141,391 @@ async def verify_cell_for_placement(
         
     except HTTPException:
         raise
+@app.post("/api/operator/placement/place-cargo")
+async def place_cargo_in_cell(
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    🎯 НОВЫЙ API: Размещение груза в ячейку со сканером
+    """
+    try:
+        print(f"📦 Размещение груза в ячейку: {request}")
+        
+        # Проверяем права доступа
+        if current_user.role not in ["warehouse_operator"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Недостаточно прав доступа для размещения грузов"
+            )
+        
+        cargo_qr = request.get("cargo_qr_code", "").strip()
+        cell_qr = request.get("cell_qr_code", "").strip()
+        
+        if not cargo_qr or not cell_qr:
+            raise HTTPException(
+                status_code=400,
+                detail="Необходимо указать QR коды груза и ячейки"
+            )
+        
+        # Проверяем груз
+        cargo_verification = await verify_cargo_for_placement(
+            {"qr_code": cargo_qr}, 
+            current_user
+        )
+        
+        if not cargo_verification["success"]:
+            return {
+                "success": False,
+                "error": cargo_verification["error"],
+                "error_code": cargo_verification.get("error_code")
+            }
+        
+        # Проверяем ячейку
+        cell_verification = await verify_cell_for_placement(
+            {"qr_code": cell_qr}, 
+            current_user
+        )
+        
+        if not cell_verification["success"]:
+            return {
+                "success": False,
+                "error": cell_verification["error"],
+                "error_code": cell_verification.get("error_code")
+            }
+        
+        cargo_info = cargo_verification["cargo_info"]
+        cell_info = cell_verification["cell_info"]
+        
+        print(f"📦 Размещаем груз {cargo_info['cargo_number']} в ячейку {cell_info['cell_address']}")
+        
+        # Формируем placement_info
+        placement_info = f"📍 {cell_info['cell_address']}"
+        placement_timestamp = datetime.now()
+        
+        # Обновляем груз в базе данных
+        cargo_id = cargo_info["cargo_id"]
+        individual_number = cargo_info.get("individual_number")
+        
+        update_result = None
+        
+        if individual_number:
+            # Размещаем конкретную единицу груза
+            print(f"📦 Размещение individual unit: {individual_number}")
+            
+            update_result = db.operator_cargo.update_one(
+                {
+                    "id": cargo_id,
+                    "cargo_items.individual_items.individual_number": individual_number
+                },
+                {
+                    "$set": {
+                        "cargo_items.$[item].individual_items.$[unit].is_placed": True,
+                        "cargo_items.$[item].individual_items.$[unit].placement_info": placement_info,
+                        "cargo_items.$[item].individual_items.$[unit].placement_timestamp": placement_timestamp.isoformat(),
+                        "cargo_items.$[item].individual_items.$[unit].placed_by": current_user.full_name,
+                        "cargo_items.$[item].individual_items.$[unit].placement_session_id": request.get("session_id", "")
+                    }
+                },
+                array_filters=[
+                    {"unit.individual_number": individual_number},
+                    {"item.individual_items": {"$exists": True}}
+                ]
+            )
+        else:
+            # Размещаем весь груз (все individual_items)
+            print(f"📦 Размещение всего груза: {cargo_info['cargo_number']}")
+            
+            # Находим груз и обновляем все individual_items
+            cargo = db.operator_cargo.find_one({"id": cargo_id})
+            if cargo:
+                cargo_items = cargo.get("cargo_items", [])
+                
+                # Обновляем каждый individual_item
+                for i, cargo_item in enumerate(cargo_items):
+                    individual_items = cargo_item.get("individual_items", [])
+                    for j, unit in enumerate(individual_items):
+                        if not unit.get("is_placed", False):  # Только неразмещенные единицы
+                            unit_placement_info = f"📍 {cell_info['cell_address']}"
+                            
+                            db.operator_cargo.update_one(
+                                {"id": cargo_id},
+                                {
+                                    "$set": {
+                                        f"cargo_items.{i}.individual_items.{j}.is_placed": True,
+                                        f"cargo_items.{i}.individual_items.{j}.placement_info": unit_placement_info,
+                                        f"cargo_items.{i}.individual_items.{j}.placement_timestamp": placement_timestamp.isoformat(),
+                                        f"cargo_items.{i}.individual_items.{j}.placed_by": current_user.full_name,
+                                        f"cargo_items.{i}.individual_items.{j}.placement_session_id": request.get("session_id", "")
+                                    }
+                                }
+                            )
+                
+                update_result = type('obj', (object,), {'modified_count': 1})()
+        
+        if not update_result or update_result.modified_count == 0:
+            return {
+                "success": False,
+                "error": "Не удалось обновить статус размещения груза",
+                "error_code": "UPDATE_FAILED"
+            }
+        
+        # Создаем запись в истории размещения
+        placement_record = {
+            "id": str(uuid.uuid4()),
+            "session_id": request.get("session_id", str(uuid.uuid4())),
+            "cargo_id": cargo_id,
+            "cargo_number": cargo_info["cargo_number"],
+            "individual_number": individual_number,
+            "cell_address": cell_info["cell_address"],
+            "warehouse_id": cell_info["warehouse_id"],
+            "warehouse_name": cell_info["warehouse_name"],
+            "block_number": cell_info["block_number"],
+            "shelf_number": cell_info["shelf_number"],
+            "cell_number": cell_info["cell_number"],
+            "placed_by": current_user.full_name,
+            "placed_by_id": current_user.id,
+            "placement_timestamp": placement_timestamp.isoformat(),
+            "sender_name": cargo_info["sender_name"],
+            "recipient_name": cargo_info["recipient_name"],
+            "cargo_qr_code": cargo_qr,
+            "cell_qr_code": cell_qr
+        }
+        
+        # Сохраняем в коллекцию истории размещения
+        placement_history_collection = db.placement_history
+        placement_history_collection.insert_one(placement_record)
+        
+        print(f"✅ Груз успешно размещен: {cargo_info['cargo_number']} → {cell_info['cell_address']}")
+        
+        return {
+            "success": True,
+            "placement_info": {
+                "cargo_number": cargo_info["cargo_number"],
+                "individual_number": individual_number,
+                "cell_address": cell_info["cell_address"],
+                "placement_timestamp": placement_timestamp.isoformat(),
+                "session_id": placement_record["session_id"]
+            },
+            "message": f"Груз {cargo_info['cargo_number']} успешно размещен в ячейку {cell_info['cell_address']}"
+        }
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"❌ Ошибка проверки ячейки: {str(e)}")
+        print(f"❌ Ошибка размещения груза: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Ошибка проверки ячейки: {str(e)}"
+            detail=f"Ошибка размещения груза: {str(e)}"
+        )
+
+@app.get("/api/operator/placement/session-history")
+async def get_placement_session_history(
+    session_id: str = None,
+    limit: int = 50,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    🎯 НОВЫЙ API: Получение истории размещения за сессию
+    """
+    try:
+        print(f"📊 Получение истории размещения, сессия: {session_id}")
+        
+        # Проверяем права доступа
+        if current_user.role not in ["warehouse_operator"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Недостаточно прав доступа для просмотра истории размещения"
+            )
+        
+        placement_history_collection = db.placement_history
+        
+        # Формируем запрос
+        query = {"placed_by_id": current_user.id}
+        
+        if session_id:
+            query["session_id"] = session_id
+        else:
+            # Если session_id не указан, показываем последние размещения
+            today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            query["placement_timestamp"] = {"$gte": today.isoformat()}
+        
+        # Получаем историю размещения
+        history = list(placement_history_collection.find(
+            query,
+            {"_id": 0}  # Исключаем _id из результата
+        ).sort("placement_timestamp", -1).limit(limit))
+        
+        # Группируем по сессиям
+        sessions = {}
+        total_placements = len(history)
+        
+        for record in history:
+            session_id_key = record.get("session_id", "unknown")
+            
+            if session_id_key not in sessions:
+                sessions[session_id_key] = {
+                    "session_id": session_id_key,
+                    "placements": [],
+                    "count": 0,
+                    "start_time": record.get("placement_timestamp"),
+                    "end_time": record.get("placement_timestamp"),
+                    "warehouses": set(),
+                    "cells": set()
+                }
+            
+            sessions[session_id_key]["placements"].append(record)
+            sessions[session_id_key]["count"] += 1
+            sessions[session_id_key]["warehouses"].add(record.get("warehouse_name", "Неизвестен"))
+            sessions[session_id_key]["cells"].add(record.get("cell_address", "Неизвестно"))
+            
+            # Обновляем время начала и конца сессии
+            record_time = record.get("placement_timestamp")
+            if record_time < sessions[session_id_key]["start_time"]:
+                sessions[session_id_key]["start_time"] = record_time
+            if record_time > sessions[session_id_key]["end_time"]:
+                sessions[session_id_key]["end_time"] = record_time
+        
+        # Преобразуем sets в lists для JSON сериализации
+        for session in sessions.values():
+            session["warehouses"] = list(session["warehouses"])
+            session["cells"] = list(session["cells"])
+        
+        # Статистика
+        statistics = {
+            "total_placements": total_placements,
+            "sessions_count": len(sessions),
+            "placements_today": total_placements,
+            "operator_name": current_user.full_name
+        }
+        
+        print(f"✅ История размещения получена: {total_placements} размещений в {len(sessions)} сессиях")
+        
+        return {
+            "success": True,
+            "history": history,
+            "sessions": list(sessions.values()),
+            "statistics": statistics
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка получения истории размещения: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка получения истории размещения: {str(e)}"
+        )
+
+@app.delete("/api/operator/placement/undo-last")
+async def undo_last_placement(
+    session_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    🎯 НОВЫЙ API: Отмена последнего размещения в сессии
+    """
+    try:
+        print(f"↩️ Отмена последнего размещения в сессии: {session_id}")
+        
+        # Проверяем права доступа
+        if current_user.role not in ["warehouse_operator"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Недостаточно прав доступа для отмены размещения"
+            )
+        
+        placement_history_collection = db.placement_history
+        
+        # Находим последнее размещение в сессии
+        last_placement = placement_history_collection.find_one(
+            {
+                "session_id": session_id,
+                "placed_by_id": current_user.id
+            },
+            sort=[("placement_timestamp", -1)]
+        )
+        
+        if not last_placement:
+            return {
+                "success": False,
+                "error": "Не найдено размещений для отмены в данной сессии",
+                "error_code": "NO_PLACEMENT_FOUND"
+            }
+        
+        cargo_id = last_placement.get("cargo_id")
+        individual_number = last_placement.get("individual_number")
+        
+        # Обновляем статус груза - убираем размещение
+        if individual_number:
+            # Отменяем размещение конкретной единицы
+            update_result = db.operator_cargo.update_one(
+                {
+                    "id": cargo_id,
+                    "cargo_items.individual_items.individual_number": individual_number
+                },
+                {
+                    "$set": {
+                        "cargo_items.$[item].individual_items.$[unit].is_placed": False,
+                        "cargo_items.$[item].individual_items.$[unit].placement_info": None,
+                        "cargo_items.$[item].individual_items.$[unit].placement_timestamp": None,
+                        "cargo_items.$[item].individual_items.$[unit].placed_by": None,
+                        "cargo_items.$[item].individual_items.$[unit].placement_session_id": None
+                    }
+                },
+                array_filters=[
+                    {"unit.individual_number": individual_number},
+                    {"item.individual_items": {"$exists": True}}
+                ]
+            )
+        else:
+            # Отменяем размещение всего груза
+            cargo = db.operator_cargo.find_one({"id": cargo_id})
+            if cargo:
+                cargo_items = cargo.get("cargo_items", [])
+                
+                for i, cargo_item in enumerate(cargo_items):
+                    individual_items = cargo_item.get("individual_items", [])
+                    for j, unit in enumerate(individual_items):
+                        if unit.get("placement_session_id") == session_id:
+                            db.operator_cargo.update_one(
+                                {"id": cargo_id},
+                                {
+                                    "$set": {
+                                        f"cargo_items.{i}.individual_items.{j}.is_placed": False,
+                                        f"cargo_items.{i}.individual_items.{j}.placement_info": None,
+                                        f"cargo_items.{i}.individual_items.{j}.placement_timestamp": None,
+                                        f"cargo_items.{i}.individual_items.{j}.placed_by": None,
+                                        f"cargo_items.{i}.individual_items.{j}.placement_session_id": None
+                                    }
+                                }
+                            )
+            
+            update_result = type('obj', (object,), {'modified_count': 1})()
+        
+        # Удаляем запись из истории
+        placement_history_collection.delete_one({"id": last_placement["id"]})
+        
+        print(f"✅ Размещение отменено: {last_placement.get('cargo_number')} из {last_placement.get('cell_address')}")
+        
+        return {
+            "success": True,
+            "undone_placement": {
+                "cargo_number": last_placement.get("cargo_number"),
+                "individual_number": individual_number,
+                "cell_address": last_placement.get("cell_address"),
+                "placement_timestamp": last_placement.get("placement_timestamp")
+            },
+            "message": f"Размещение груза {last_placement.get('cargo_number')} отменено"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка отмены размещения: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка отмены размещения: {str(e)}"
         )
 
 if __name__ == "__main__":
