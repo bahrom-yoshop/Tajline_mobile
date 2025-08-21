@@ -251,6 +251,15 @@ function App() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [cargoOrderResult, setCargoOrderResult] = useState(null);
 
+  // СОСТОЯНИЯ ДЛЯ ПЕЧАТИ QR КОДОВ (перенесено выше для устранения ошибки инициализации)
+  const [qrPrintMode, setQrPrintMode] = useState(false); // Режим печати QR кодов
+  const [selectedUnitsForPrint, setSelectedUnitsForPrint] = useState([]); // Выбранные units для печати
+  const [qrPrintLayout, setQrPrintLayout] = useState('grid_3x3'); // Макет печати
+  const [qrGenerationProgress, setQrGenerationProgress] = useState(null); // Прогресс генерации QR
+  const [generatedQrBatch, setGeneratedQrBatch] = useState(null); // Сгенерированные QR коды
+  const [printLayoutOptions, setPrintLayoutOptions] = useState(null); // Опции макетов печати
+  const [selectedUnitForActions, setSelectedUnitForActions] = useState(null); // Выбранная единица для действий
+
   // НОВЫЕ ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ ЗАКАЗАМИ КЛИЕНТОВ
 
   // Функция для установки объявленной стоимости по умолчанию в зависимости от маршрута
