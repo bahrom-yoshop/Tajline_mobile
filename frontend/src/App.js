@@ -17045,7 +17045,8 @@ function App() {
                 </form>
               </TabsContent>
               
-              <TabsContent value="register" className="p-6 pt-2">
+              <TabsContent value="register" className="p-6 pt-2 relative">
+                <DevBadge id={getDevNumber('forms', 'register').id} type="form" label={getDevNumber('forms', 'register').label} />
                 <form onSubmit={handleRegister} className="space-y-5">
                   <div className="text-center mb-6">
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Создать аккаунт</h2>
