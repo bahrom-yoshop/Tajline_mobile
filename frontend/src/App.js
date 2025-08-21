@@ -5867,6 +5867,13 @@ function App() {
     route: 'moscow_to_tajikistan'
   });
 
+  // ПРОБЛЕМА 3: Состояния для полностью размещенных заявок в "Список грузов"
+  const [fullyPlacedCargo, setFullyPlacedCargo] = useState([]);
+  const [fullyPlacedPagination, setFullyPlacedPagination] = useState({});
+  const [fullyPlacedPage, setFullyPlacedPage] = useState(1);
+  const [fullyPlacedPerPage, setFullyPlacedPerPage] = useState(25);
+  const [fullyPlacedLoading, setFullyPlacedLoading] = useState(false);
+
   // Transport states
   const [transports, setTransports] = useState([]);
   const [transportForm, setTransportForm] = useState({
