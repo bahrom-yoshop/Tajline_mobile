@@ -17302,7 +17302,8 @@ function App() {
         <main className="container mx-auto px-4 py-8">
           {/* Cargo Placement Page */}
           {currentPage === 'cargo-placement' ? (
-            <div className="min-h-screen bg-gray-50">
+            <div className="min-h-screen bg-gray-50 relative">
+              <DevBadge id={getDevNumber('pages', 'cargo-placement').id} type="page" label={getDevNumber('pages', 'cargo-placement').label} />
               {/* Page Header */}
               <div className="bg-white shadow-sm rounded-lg mb-6 p-6">
                 <div className="flex items-center justify-between">
