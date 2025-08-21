@@ -16794,7 +16794,15 @@ function App() {
                                       : 'text-gray-500 hover:text-gray-300 hover:bg-white/10'
                                   }`}
                                 >
-                                  {nested.label}
+                                  <div className="flex items-center justify-between flex-1">
+                                    <span>{nested.label}</span>
+                                    {/* Счетчик для вложенного подпункта десктопного меню */}
+                                    {getMenuCounter(nested.id) > 0 && (
+                                      <span className="bg-green-500/30 text-green-200 text-xs px-1 py-0.5 rounded-full min-w-[16px] text-center ml-1">
+                                        {formatCounter(getMenuCounter(nested.id))}
+                                      </span>
+                                    )}
+                                  </div>
                                 </button>
                               ))}
                             </div>
