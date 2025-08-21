@@ -778,10 +778,11 @@ class QRComprehensiveTester:
                     )
                     return True
                 else:
+                    # Show full response for debugging
                     self.log_result(
                         "Place Individual Unit",
                         False,
-                        error_details=f"Placement failed: {result.get('error', 'Unknown error')}"
+                        error_details=f"Placement failed: {result.get('error', result.get('message', 'Unknown error'))}. Full response: {result}"
                     )
                     return False
             else:
