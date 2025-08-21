@@ -5752,6 +5752,27 @@ function App() {
   });
   
   
+  // НОВЫЕ СОСТОЯНИЯ: Счетчики для бокового меню
+  const [menuCounters, setMenuCounters] = useState({
+    cargo_list: 0,                    // Список грузов
+    cargo_placement: 0,               // Размещение груза  
+    cargo_pickup_list: 0,             // На забор
+    cargo_history: 0,                 // История грузов
+    couriers_list: 0,                 // Список курьеров
+    couriers_inactive: 0,             // Неактивные курьеры
+    warehouses_list: 0,               // Список складов
+    notifications_orders: 0,          // Новые заказы
+    notifications_requests: 0,        // Новые заявки
+    notifications_system: 0,          // Уведомления
+    cashier_unpaid: 0,               // Не оплачено
+    cashier_history: 0,              // История оплаты
+    logistics_transport: 0,           // Список транспортов
+    logistics_in_transit: 0,         // В пути
+    logistics_arrived: 0,            // На место назначения
+    finances_transactions: 0,        // Транзакции
+    placement_progress: '0/0'        // Прогресс размещения
+  });
+
   const [selectedCargoForDetailView, setSelectedCargoForDetailView] = useState(null); // Выбранный груз для просмотра деталей
   const [cargoDetailsModal, setCargoDetailsModal] = useState(false); // Модальное окно деталей груза
   const [quickPlacementModal, setQuickPlacementModal] = useState(false); // Быстрое размещение
