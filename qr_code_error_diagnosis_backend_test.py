@@ -229,7 +229,7 @@ class QRCodeErrorDiagnosticTester:
                     )
                     
                     # Show available cargo numbers for debugging
-                    available_numbers = [c.get("cargo_number") for c in cargo_list[:10]]  # First 10
+                    available_numbers = [c.get("cargo_number") for c in cargo_list[:10] if isinstance(c, dict)]  # First 10
                     self.log_test(
                         "Доступные номера грузов (первые 10)",
                         True,
