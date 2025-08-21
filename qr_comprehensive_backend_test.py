@@ -769,7 +769,15 @@ class QRComprehensiveTester:
             if response.status_code == 200:
                 result = response.json()
                 
-                if result.get("success"):
+                # Check if placement was successful - API doesn't return "success" field but returns placement info
+                if "individual_number" in result and "location_code" in result:
+                    self.log_result(
+                        "Place Individual Unit",
+                        True,
+                        f"Successfully placed individual unit {result.get('individual_number')} at location {result.get('location_code')} in warehouse {result.get('warehouse_name')}"
+                    )
+                    return True
+                elif result.get("success"):
                     placement_info = result.get("placement_info", {})
                     self.log_result(
                         "Place Individual Unit",
