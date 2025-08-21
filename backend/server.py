@@ -6369,6 +6369,63 @@ async def place_individual_cargo_unit(
         # Сохраняем запись о размещении
         db.placement_records.insert_one(placement_record)
         
+        # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Синхронизируем данные с основным документом груза
+        # Обновляем individual_items.is_placed = True в основном cargo документе
+        print(f"🔄 СИНХРОНИЗАЦИЯ: Обновляем статус is_placed для {placement_data.individual_number}")
+        
+        # Находим и обновляем individual_item в основном документе груза
+        cargo_update_result = db.operator_cargo.update_one(
+            {
+                "cargo_number": cargo_number,
+                "cargo_items.individual_items.individual_number": placement_data.individual_number
+            },
+            {
+                "$set": {
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].is_placed": True,
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placement_info": location_code,
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_by": current_user.full_name,
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_at": datetime.utcnow(),
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].warehouse_name": warehouse["name"]
+                }
+            },
+            array_filters=[
+                {"cargo_item.individual_items.individual_number": placement_data.individual_number},
+                {"individual_item.individual_number": placement_data.individual_number}
+            ]
+        )
+        
+        if cargo_update_result.modified_count > 0:
+            print(f"✅ СИНХРОНИЗАЦИЯ: Статус груза в основном документе обновлен")
+        else:
+            print(f"⚠️ СИНХРОНИЗАЦИЯ: Не удалось обновить основной документ груза")
+        
+        # Также попробуем обновить в коллекции cargo, если не нашли в operator_cargo
+        if cargo_update_result.modified_count == 0:
+            cargo_update_result_main = db.cargo.update_one(
+                {
+                    "cargo_number": cargo_number,
+                    "cargo_items.individual_items.individual_number": placement_data.individual_number
+                },
+                {
+                    "$set": {
+                        "cargo_items.$[cargo_item].individual_items.$[individual_item].is_placed": True,
+                        "cargo_items.$[cargo_item].individual_items.$[individual_item].placement_info": location_code,
+                        "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_by": current_user.full_name,
+                        "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_at": datetime.utcnow(),
+                        "cargo_items.$[cargo_item].individual_items.$[individual_item].warehouse_name": warehouse["name"]
+                    }
+                },
+                array_filters=[
+                    {"cargo_item.individual_items.individual_number": placement_data.individual_number},
+                    {"individual_item.individual_number": placement_data.individual_number}
+                ]
+            )
+            
+            if cargo_update_result_main.modified_count > 0:
+                print(f"✅ СИНХРОНИЗАЦИЯ: Статус груза в основной коллекции cargo обновлен")
+            else:
+                print(f"⚠️ СИНХРОНИЗАЦИЯ: Не удалось найти груз для обновления в обеих коллекциях")
+        
         # Обновляем ячейку
         db.warehouse_cells.update_one(
             {
