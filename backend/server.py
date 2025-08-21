@@ -6184,18 +6184,8 @@ async def get_individual_units_for_placement(
         
         # НЕ фильтруем по warehouse_id, как в оригинальном endpoint
 
-        # Получаем все заявки ожидающие размещения
-        pipeline = [
-            {"$match": match_conditions},
-            {"$lookup": {
-                "from": "warehouses",
-                "localField": "warehouse_id",
-                "foreignField": "id", 
-                "as": "warehouse_info"
-            }}
-        ]
-
-        cargo_list = list(db.cargo.aggregate(pipeline)) + list(db.operator_cargo.aggregate(pipeline))
+        # Получаем все заявки ожидающие размещения (без aggregation pipeline)
+        cargo_list = list(db.cargo.find(match_conditions)) + list(db.operator_cargo.find(match_conditions))
         
         print(f"📦 Найдено {len(cargo_list)} заявок ожидающих размещения")
         
