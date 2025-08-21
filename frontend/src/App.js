@@ -7263,17 +7263,33 @@ function App() {
           setScannedCargoData(foundCargo);
           setScannerActive(false);
           
-          // Сообщение в зависимости от типа найденного груза
+          // ЭТАП 4: ДЕТАЛЬНАЯ ИНФОРМАЦИЯ ПРИ РАЗМЕЩЕНИИ
+          const cargoDetails = {
+            cargo_name: foundCargo.cargo_name || foundCargo.items?.[0]?.name || 'Груз без названия',
+            application_number: foundCargo.request_number || foundCargo.cargo_number,
+            remaining_items: foundCargo.total_quantity || 1,
+            cargo_type: foundCargo.cargo_type || 'Не указан'
+          };
+          
+          // Сообщение с детальной информацией
+          let detailMessage = '';
           if (extractedData.type === 'individual_unit') {
-            showAlert(`Индивидуальная единица ${extractedData.full_number} найдена! Автоматический переход к сканированию ячейки...`, 'success');
+            detailMessage = `✅ Единица ${extractedData.full_number} найдена!\n` +
+                          `📦 Груз: ${cargoDetails.cargo_name}\n` +
+                          `📄 Заявка: ${cargoDetails.application_number}\n` +
+                          `📊 Тип: ${cargoDetails.cargo_type}`;
           } else {
-            showAlert(`Груз ${foundCargo.cargo_number} найден! Автоматический переход к сканированию ячейки...`, 'success');
+            detailMessage = `✅ Груз ${foundCargo.cargo_number} найден!\n` +
+                          `📦 Название: ${cargoDetails.cargo_name}\n` +
+                          `📄 Заявка: ${cargoDetails.application_number}\n` +
+                          `📊 Количество: ${cargoDetails.remaining_items}`;
           }
           
-          // УЛУЧШЕНИЕ: МГНОВЕННЫЙ автоматический переход к сканированию ячейки
-          setTimeout(() => {
-            startCellScanner();
-          }, 100); // Минимальная задержка только для плавности UI
+          showAlert(detailMessage, 'success');
+          
+          // ЭТАП 2: МГНОВЕННОЕ СКАНИРОВАНИЕ (убираем все задержки)
+          console.log('⚡ МГНОВЕННЫЙ переход к сканированию ячейки');
+          startCellScanner(); // Убрана задержка setTimeout
         } else {
           console.log('❌ Груз не найден. Доступные грузы:', availableCargoForPlacement.map(c => c.cargo_number));
           setScannerError('Груз не найден в списке ожидающих размещение');
