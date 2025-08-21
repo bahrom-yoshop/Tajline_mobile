@@ -21774,80 +21774,157 @@ function App() {
                     </Card>
                   )}
 
-                  {/* Список грузов */}
+                  {/* ПРОБЛЕМА 3: Список полностью размещенных грузов */}
                   {(activeTab === 'cargo-list' || !activeTab || activeTab === 'cargo-management') && (
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center justify-between">
                           <div className="flex items-center">
                             <Package className="mr-2 h-5 w-5" />
-                            Список грузов
+                            Полностью размещенные заявки
+                            {fullyPlacedCargo.length > 0 && (
+                              <Badge className="ml-2 bg-green-100 text-green-800">
+                                {fullyPlacedCargo.length}
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex space-x-2">
-                            {user?.role === 'admin' && selectedCargo.length > 0 && (
-                              <Button
-                                onClick={() => handleBulkDeleteCargo(operatorCargo)}
-                                variant="outline"
-                                className="text-red-600 border-red-300 hover:bg-red-50"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Удалить выбранные ({selectedCargo.length})
-                              </Button>
-                            )}
-                            <Button onClick={() => {setActiveTab('cargo-accept'); fetchOperatorCargo();}}>
-                              <Plus className="mr-2 h-4 w-4" />
-                              Принять груз
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => fetchFullyPlacedCargo(fullyPlacedPage, fullyPlacedPerPage)}
+                              loading={fullyPlacedLoading}
+                            >
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Обновить
                             </Button>
                           </div>
                         </CardTitle>
-                        
-                        {/* Чекбокс "Выбрать все" для админа */}
-                        {user?.role === 'admin' && operatorCargo.length > 0 && (
-                          <div className="flex items-center space-x-2 mt-4 p-3 bg-gray-50 rounded-lg">
-                            <input
-                              type="checkbox"
-                              checked={selectAllCargo}
-                              onChange={(e) => handleSelectAllCargo(e.target.checked, operatorCargo)}
-                              className="rounded border-gray-300"
-                            />
-                            <label className="text-sm font-medium text-gray-700">
-                              Выбрать все ({operatorCargo.length})
-                            </label>
-                          </div>
-                        )}
-                        
-                        {/* Фильтры */}
-                        <div className="flex items-center space-x-4 mt-4">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm font-medium">Фильтр:</span>
-                            <select 
-                              value={operatorCargoFilter}
-                              onChange={(e) => {
-                                setOperatorCargoFilter(e.target.value);
-                                setOperatorCargoPage(1); // Сбрасываем на первую страницу при изменении фильтра
-                                fetchOperatorCargo(e.target.value, 1, operatorCargoPerPage);
-                              }}
-                              className="border border-gray-300 rounded-md px-3 py-1 text-sm"
-                            >
-                              <option value="">Все грузы</option>
-                              <option value="new_request">Новые заявки</option>
-                              <option value="awaiting_payment">Ожидается оплата</option>
-                              <option value="awaiting_placement">Ожидает размещение</option>
-                            </select>
-                          </div>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => fetchOperatorCargo(operatorCargoFilter, operatorCargoPage, operatorCargoPerPage)}
-                          >
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Обновить
-                          </Button>
-                        </div>
+                        <CardDescription>
+                          Заявки со всеми размещенными грузами (5/5, 10/10, и т.д.)
+                        </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
-                          {operatorCargo.length === 0 ? (
+                          {fullyPlacedLoading ? (
+                            <div className="text-center py-8">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                              <p className="text-gray-500">Загрузка полностью размещенных заявок...</p>
+                            </div>
+                          ) : fullyPlacedCargo.length === 0 ? (
+                            <div className="text-center py-8">
+                              <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                              <p className="text-gray-500">Нет полностью размещенных заявок</p>
+                              <p className="text-sm text-gray-400 mt-2">
+                                Заявки появятся здесь когда все их грузы будут размещены
+                              </p>
+                            </div>
+                          ) : (
+                            fullyPlacedCargo.map((request) => (
+                              <Card key={request.id} className="border-l-4 border-l-green-500 bg-green-50">
+                                <CardContent className="p-4">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <div className="flex items-center space-x-2 mb-2">
+                                        <span className="font-semibold text-lg">{request.cargo_name}</span>
+                                        <Badge className="bg-green-100 text-green-800">
+                                          ✅ {request.progress_text}
+                                        </Badge>
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600 mb-3">
+                                        <div>
+                                          <span className="font-medium">📋 Заявка:</span>
+                                          <div>{request.request_number}</div>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium">👤 Оператор:</span>
+                                          <div>{request.operator_name}</div>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium">📦 Единиц:</span>
+                                          <div>{request.total_units}</div>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium">📅 Создано:</span>
+                                          <div>{new Date(request.created_at).toLocaleDateString('ru-RU')}</div>
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Individual units с теми же карточками и дизайном */}
+                                      {request.individual_units && request.individual_units.length > 0 && (
+                                        <div className="mt-4">
+                                          <h4 className="font-medium text-sm text-gray-700 mb-2 flex items-center">
+                                            <Grid3X3 className="mr-1 h-4 w-4" />
+                                            Размещенные единицы ({request.individual_units.length})
+                                          </h4>
+                                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                            {request.individual_units.map((unit) => (
+                                              <div key={unit.individual_number} className="bg-white border border-green-200 rounded-lg p-3">
+                                                <div className="flex items-center justify-between mb-2">
+                                                  <span className="font-mono text-sm font-medium text-green-700">
+                                                    {unit.individual_number}
+                                                  </span>
+                                                  <Badge className="bg-green-100 text-green-700 text-xs">
+                                                    ✅ Размещен
+                                                  </Badge>
+                                                </div>
+                                                
+                                                <div className="text-xs text-gray-600 space-y-1">
+                                                  <div>📍 <strong>Место:</strong> {unit.placement_info}</div>
+                                                  <div>🏢 <strong>Склад:</strong> {unit.warehouse_name}</div>
+                                                  <div>👤 <strong>Оператор:</strong> {unit.placed_by}</div>
+                                                  {unit.placed_at && (
+                                                    <div>🕒 <strong>Время:</strong> {new Date(unit.placed_at).toLocaleString('ru-RU')}</div>
+                                                  )}
+                                                </div>
+                                                
+                                                {/* Кнопка действий для individual unit */}
+                                                <Button
+                                                  onClick={() => handleOpenIndividualUnitActions(unit)}
+                                                  variant="outline"
+                                                  size="sm"
+                                                  className="w-full mt-2 text-xs"
+                                                >
+                                                  <Settings className="mr-1 h-3 w-3" />
+                                                  Действия
+                                                </Button>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))
+                          )}
+                          
+                          {/* Пагинация для полностью размещенных заявок */}
+                          {fullyPlacedPagination.total_pages > 1 && (
+                            <div className="mt-6">
+                              <DataPagination 
+                                currentPage={fullyPlacedPage}
+                                totalPages={fullyPlacedPagination.total_pages}
+                                totalItems={fullyPlacedPagination.total_items}
+                                itemsPerPage={fullyPlacedPerPage}
+                                onPageChange={(page) => {
+                                  setFullyPlacedPage(page);
+                                  fetchFullyPlacedCargo(page, fullyPlacedPerPage);
+                                }}
+                                onItemsPerPageChange={(perPage) => {
+                                  setFullyPlacedPerPage(perPage);
+                                  setFullyPlacedPage(1);
+                                  fetchFullyPlacedCargo(1, perPage);
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                             <div className="text-center py-8">
                               <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                               <p className="text-gray-500 mb-4">
