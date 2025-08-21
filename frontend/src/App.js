@@ -3327,32 +3327,7 @@ function App() {
     return sessionId;
   };
 
-  // Проверка груза по QR коду
-  const verifyCargoByQR = async (qrCode) => {
-    try {
-      console.log('🔍 Проверка груза по QR:', qrCode);
-      setIsPlacementProcessing(true);
 
-      const response = await apiCall('/api/operator/placement/verify-cargo', 'POST', {
-        qr_code: qrCode.trim()
-      });
-
-      if (response.success) {
-        setVerifiedCargo(response.cargo_info);
-        showAlert(`✅ Груз проверен: ${response.cargo_info.cargo_number}`, 'success');
-        return response.cargo_info;
-      } else {
-        showAlert(`❌ ${response.error}`, 'error');
-        return null;
-      }
-    } catch (error) {
-      console.error('❌ Ошибка проверки груза:', error);
-      showAlert(`Ошибка проверки груза: ${error.message}`, 'error');
-      return null;
-    } finally {
-      setIsPlacementProcessing(false);
-    }
-  };
 
   // Проверка ячейки по QR коду
   const verifyCellByQR = async (qrCode) => {
