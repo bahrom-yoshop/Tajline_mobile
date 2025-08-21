@@ -10621,6 +10621,39 @@ function App() {
     user
   ]);
 
+  // ФУНКЦИЯ: Получение счетчика для пункта меню
+  const getMenuCounter = (itemId) => {
+    const counterMap = {
+      'cargo-list': menuCounters.cargo_list,
+      'cargo-placement': menuCounters.cargo_placement,
+      'cargo-pickup-list': menuCounters.cargo_pickup_list,
+      'cargo-history': menuCounters.cargo_history,
+      'couriers-tracking-list': menuCounters.couriers_list,
+      'couriers-inactive': menuCounters.couriers_inactive,
+      'warehouses-list': menuCounters.warehouses_list,
+      'notifications-client-orders': menuCounters.notifications_orders,
+      'notifications-requests': menuCounters.notifications_requests,
+      'notifications-system': menuCounters.notifications_system,
+      'cashier-unpaid': menuCounters.cashier_unpaid,
+      'cashier-history': menuCounters.cashier_history,
+      'logistics-transport-list': menuCounters.logistics_transport,
+      'logistics-in-transit': menuCounters.logistics_in_transit,
+      'logistics-arrived': menuCounters.logistics_arrived,
+      'finances-transactions': menuCounters.finances_transactions,
+      'operations-placement': menuCounters.placement_progress
+    };
+    
+    return counterMap[itemId] || 0;
+  };
+
+  // ФУНКЦИЯ: Форматирование счетчика для отображения
+  const formatCounter = (counter) => {
+    if (typeof counter === 'string') return counter; // Для прогресса размещения
+    if (counter === 0) return null; // Не показываем ноль
+    if (counter > 99) return '99+'; // Максимум 99+
+    return counter.toString();
+  };
+
   // УЛУЧШЕНИЕ: Функция для получения общего прогресса размещения
   const fetchPlacementProgress = async () => {
     try {
