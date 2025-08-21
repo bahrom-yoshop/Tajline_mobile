@@ -27034,12 +27034,12 @@ function App() {
             <div className="relative">
               <DevBadge id={getDevNumber('forms', 'cargo-acceptance').id} type="form" label={getDevNumber('forms', 'cargo-acceptance').label} />
               <form onSubmit={(e) => { 
-              e.preventDefault(); 
-              
-              // Создаем расширенные данные с информацией о складах
-              const extendedCargoDetails = {
-                ...cargoAcceptanceForm,
-                // Добавляем информацию о маршруте складования
+                e.preventDefault(); 
+                
+                // Создаем расширенные данные с информацией о складах
+                const extendedCargoDetails = {
+                  ...cargoAcceptanceForm,
+                  // Добавляем информацию о маршруте складования
                 source_warehouse_id: operatorWarehouses[0]?.id, // Склад оператора (откуда)
                 source_warehouse_name: operatorWarehouses[0]?.name,
                 destination_warehouse_id: cargoAcceptanceForm.warehouse_id, // Выбранный склад (куда)
