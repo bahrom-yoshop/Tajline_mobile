@@ -3397,13 +3397,16 @@ function App() {
 
 
   // Инициализация сессии размещения
-  const initializePlacementSession = () => {
+  const initializePlacementSession = async () => {
     const newSessionId = generatePlacementSessionId();
     setPlacementStep('scan-cargo');
     setScannerPlacementMode(true);
     setPlacementHistory([]);
     setSessionStats(null);
     console.log('🚀 Сессия размещения инициализирована:', newSessionId);
+    
+    // УЛУЧШЕНИЕ: Загружаем общий прогресс размещения при инициализации
+    await fetchPlacementProgress();
     
     // Автофокус на поле груза
     setTimeout(() => {
