@@ -27031,7 +27031,9 @@ function App() {
           </DialogHeader>
           
           {currentCargoNotification && (
-            <form onSubmit={(e) => { 
+            <div className="relative">
+              <DevBadge id={getDevNumber('forms', 'cargo-acceptance').id} type="form" label={getDevNumber('forms', 'cargo-acceptance').label} />
+              <form onSubmit={(e) => { 
               e.preventDefault(); 
               
               // Создаем расширенные данные с информацией о складах
