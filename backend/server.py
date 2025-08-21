@@ -321,6 +321,7 @@ class User(BaseModel):
     address: Optional[str] = None
     is_active: bool = True
     token_version: int = 1  # Добавляем версионирование токенов
+    warehouse_id: Optional[str] = None  # ИСПРАВЛЕНИЕ: Добавляем warehouse_id
     created_at: datetime
 
 class CourierCreate(BaseModel):
