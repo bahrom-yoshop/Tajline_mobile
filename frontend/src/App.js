@@ -3318,7 +3318,235 @@ function App() {
     showAlert('Груз успешно размещен на складе!', 'success');
   };
 
-  // НОВЫЕ ФУНКЦИИ ДЛЯ INDIVIDUAL UNITS
+  // НОВЫЕ ФУНКЦИИ: Полнофункциональное размещение груза со сканером
+
+  // Генерация нового ID сессии размещения
+  const generatePlacementSessionId = () => {
+    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    setPlacementSessionId(sessionId);
+    return sessionId;
+  };
+
+  // Проверка груза по QR коду
+  const verifyCargoByQR = async (qrCode) => {
+    try {
+      console.log('🔍 Проверка груза по QR:', qrCode);
+      setIsPlacementProcessing(true);
+
+      const response = await apiCall('/api/operator/placement/verify-cargo', 'POST', {
+        qr_code: qrCode.trim()
+      });
+
+      if (response.success) {
+        setVerifiedCargo(response.cargo_info);
+        showAlert(`✅ Груз проверен: ${response.cargo_info.cargo_number}`, 'success');
+        return response.cargo_info;
+      } else {
+        showAlert(`❌ ${response.error}`, 'error');
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Ошибка проверки груза:', error);
+      showAlert(`Ошибка проверки груза: ${error.message}`, 'error');
+      return null;
+    } finally {
+      setIsPlacementProcessing(false);
+    }
+  };
+
+  // Проверка ячейки по QR коду
+  const verifyCellByQR = async (qrCode) => {
+    try {
+      console.log('🔍 Проверка ячейки по QR:', qrCode);
+      setIsPlacementProcessing(true);
+
+      const response = await apiCall('/api/operator/placement/verify-cell', 'POST', {
+        qr_code: qrCode.trim()
+      });
+
+      if (response.success) {
+        setVerifiedCell(response.cell_info);
+        showAlert(`✅ Ячейка проверена: ${response.cell_info.cell_address}`, 'success');
+        return response.cell_info;
+      } else {
+        showAlert(`❌ ${response.error}`, 'error');
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Ошибка проверки ячейки:', error);
+      showAlert(`Ошибка проверки ячейки: ${error.message}`, 'error');
+      return null;
+    } finally {
+      setIsPlacementProcessing(false);
+    }
+  };
+
+  // Размещение груза в ячейку
+  const placeCargoInCell = async (cargoQR, cellQR, sessionId) => {
+    try {
+      console.log('📦 Размещение груза:', cargoQR, '→', cellQR);
+      setIsPlacementProcessing(true);
+
+      const response = await apiCall('/api/operator/placement/place-cargo', 'POST', {
+        cargo_qr_code: cargoQR.trim(),
+        cell_qr_code: cellQR.trim(),
+        session_id: sessionId
+      });
+
+      if (response.success) {
+        const placementInfo = response.placement_info;
+        showAlert(`🎉 Груз ${placementInfo.cargo_number} размещен в ${placementInfo.cell_address}!`, 'success');
+        
+        // Обновляем историю размещения
+        await fetchPlacementHistory(sessionId);
+        
+        // Очищаем текущие данные для следующего размещения
+        setCurrentCargoQR('');
+        setCurrentCellQR('');
+        setVerifiedCargo(null);
+        setVerifiedCell(null);
+        setPlacementStep('idle');
+
+        return response.placement_info;
+      } else {
+        showAlert(`❌ ${response.error}`, 'error');
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Ошибка размещения груза:', error);
+      showAlert(`Ошибка размещения: ${error.message}`, 'error');
+      return null;
+    } finally {
+      setIsPlacementProcessing(false);
+    }
+  };
+
+  // Получение истории размещения
+  const fetchPlacementHistory = async (sessionId) => {
+    try {
+      console.log('📊 Загрузка истории размещения для сессии:', sessionId);
+
+      const params = sessionId ? { session_id: sessionId } : {};
+      const response = await apiCall('/api/operator/placement/session-history', 'GET', null, params);
+
+      if (response.success) {
+        setPlacementHistory(response.history || []);
+        setSessionStats(response.statistics || null);
+        console.log('✅ История загружена:', response.history?.length, 'записей');
+      } else {
+        console.error('❌ Ошибка загрузки истории:', response.error);
+      }
+    } catch (error) {
+      console.error('❌ Ошибка получения истории размещения:', error);
+      showAlert(`Ошибка загрузки истории: ${error.message}`, 'error');
+    }
+  };
+
+  // Отмена последнего размещения
+  const undoLastPlacement = async (sessionId) => {
+    try {
+      console.log('↩️ Отмена последнего размещения в сессии:', sessionId);
+      setIsPlacementProcessing(true);
+
+      const response = await apiCall(`/api/operator/placement/undo-last?session_id=${sessionId}`, 'DELETE');
+
+      if (response.success) {
+        const undoneInfo = response.undone_placement;
+        showAlert(`↩️ Размещение отменено: ${undoneInfo.cargo_number} из ${undoneInfo.cell_address}`, 'info');
+        
+        // Обновляем историю
+        await fetchPlacementHistory(sessionId);
+        
+        return undoneInfo;
+      } else {
+        showAlert(`❌ ${response.error}`, 'error');
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Ошибка отмены размещения:', error);
+      showAlert(`Ошибка отмены: ${error.message}`, 'error');
+      return null;
+    } finally {
+      setIsPlacementProcessing(false);
+    }
+  };
+
+  // Обработчик сканирования QR грузов (автоматический)
+  const handleCargoQRScan = async (qrCode) => {
+    console.log('📱 Сканирование QR груза:', qrCode);
+    
+    if (!qrCode.trim()) return;
+
+    setCurrentCargoQR(qrCode);
+    const cargoInfo = await verifyCargoByQR(qrCode);
+    
+    if (cargoInfo) {
+      // Автоматически переходим к сканированию ячейки
+      setPlacementStep('scan-cell');
+      
+      // Автофокус на поле ячейки через небольшую задержку
+      setTimeout(() => {
+        const cellInput = document.getElementById('cell-qr-input');
+        if (cellInput) {
+          cellInput.focus();
+        }
+      }, 100);
+    }
+  };
+
+  // Обработчик сканирования QR ячеек (автоматический)
+  const handleCellQRScan = async (qrCode) => {
+    console.log('📱 Сканирование QR ячейки:', qrCode);
+    
+    if (!qrCode.trim()) return;
+
+    setCurrentCellQR(qrCode);
+    const cellInfo = await verifyCellByQR(qrCode);
+    
+    if (cellInfo && verifiedCargo) {
+      // Автоматически размещаем груз
+      const sessionId = placementSessionId || generatePlacementSessionId();
+      await placeCargoInCell(currentCargoQR, qrCode, sessionId);
+      
+      // Возвращаемся к сканированию груза для следующего цикла
+      setTimeout(() => {
+        const cargoInput = document.getElementById('cargo-qr-input');
+        if (cargoInput) {
+          cargoInput.focus();
+        }
+      }, 1000);
+    }
+  };
+
+  // Инициализация сессии размещения
+  const initializePlacementSession = () => {
+    const newSessionId = generatePlacementSessionId();
+    setPlacementStep('scan-cargo');
+    setScannerPlacementMode(true);
+    setPlacementHistory([]);
+    setSessionStats(null);
+    console.log('🚀 Сессия размещения инициализирована:', newSessionId);
+    
+    // Автофокус на поле груза
+    setTimeout(() => {
+      const cargoInput = document.getElementById('cargo-qr-input');
+      if (cargoInput) {
+        cargoInput.focus();
+      }
+    }, 100);
+  };
+
+  // Завершение сессии размещения
+  const finalizePlacementSession = () => {
+    setScannerPlacementMode(false);
+    setPlacementStep('idle');
+    setCurrentCargoQR('');
+    setCurrentCellQR('');
+    setVerifiedCargo(null);
+    setVerifiedCell(null);
+    setPlacementSessionId(null);
+    console.log('🏁 Сессия размещения завершена');
+  };
 
   // Размещение индивидуальной единицы груза
   const handlePlaceIndividualUnit = async (unit) => {
