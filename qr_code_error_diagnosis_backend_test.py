@@ -251,7 +251,7 @@ class QRCodeErrorDiagnosticTester:
     def create_test_cargo_25082198(self):
         """Create test cargo with number 25082198 if it doesn't exist"""
         try:
-            # Create cargo with specific structure for QR code testing
+            # First, try to create with the specific number
             cargo_data = {
                 "sender_full_name": "Тестовый Отправитель QR",
                 "sender_phone": "+79111222333",
@@ -302,12 +302,22 @@ class QRCodeErrorDiagnosticTester:
                 return self.verify_created_cargo_structure(cargo_id)
             else:
                 error_text = response.text
-                self.log_test(
-                    f"Создание тестовой заявки {self.target_cargo_number}",
-                    False,
-                    error=f"HTTP {response.status_code}: {error_text}"
-                )
-                return False
+                
+                # If cargo already exists, that's actually good for our diagnosis
+                if "already exists" in error_text:
+                    self.log_test(
+                        f"Проверка существования заявки {self.target_cargo_number}",
+                        True,
+                        f"Заявка {self.target_cargo_number} уже существует в системе - это хорошо для диагностики!"
+                    )
+                    return True  # Continue with existing cargo
+                else:
+                    self.log_test(
+                        f"Создание тестовой заявки {self.target_cargo_number}",
+                        False,
+                        error=f"HTTP {response.status_code}: {error_text}"
+                    )
+                    return False
                 
         except Exception as e:
             self.log_test("Создание тестовой заявки", False, error=str(e))
