@@ -16616,7 +16616,13 @@ function App() {
                                   }`}
                                 >
                                   {sub.subsections && <span className="mr-1">🚚</span>}
-                                  {sub.label}
+                                  <span className="flex-1">{sub.label}</span>
+                                  {/* Счетчик для подпункта меню */}
+                                  {getMenuCounter(sub.id) > 0 && (
+                                    <span className="ml-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full min-w-[18px] text-center">
+                                      {formatCounter(getMenuCounter(sub.id))}
+                                    </span>
+                                  )}
                                 </button>
                                 
                                 {/* Вложенные подразделы */}
