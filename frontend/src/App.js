@@ -16586,7 +16586,13 @@ function App() {
                           }`}
                         >
                           {item.icon}
-                          <span className="ml-3 font-medium">{item.label}</span>
+                          <span className="ml-3 font-medium flex-1">{item.label}</span>
+                          {/* Счетчик для основного пункта меню */}
+                          {getMenuCounter(item.id) > 0 && (
+                            <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full min-w-[20px] text-center">
+                              {formatCounter(getMenuCounter(item.id))}
+                            </span>
+                          )}
                         </button>
                         
                         {item.subsections && activeSection === item.section && (
