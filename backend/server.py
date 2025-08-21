@@ -18068,9 +18068,19 @@ async def verify_cell_for_placement(
                 detail="Неверный формат QR кода ячейки. Ожидается: Б1-П2-Я3 или WAREHOUSE-BLOCK-SHELF-CELL"
             )
         
-        # Если warehouse_id не определен, используем склад текущего пользователя
+        # ИСПРАВЛЕНИЕ: Безопасное получение склада, если warehouse_id не определен
         if not warehouse_id:
             warehouse_id = current_user.warehouse_id
+            if not warehouse_id:
+                # Пытаемся получить склад из привязки оператора
+                operator_binding = db.operator_warehouse_bindings.find_one({"operator_id": current_user.id})
+                if operator_binding:
+                    warehouse_id = operator_binding.get("warehouse_id")
+                else:
+                    # Используем первый доступный склад
+                    warehouses = list(db.warehouses.find({}))
+                    if warehouses:
+                        warehouse_id = warehouses[0].get("id")
         
         print(f"🔍 Проверка ячейки: Склад {warehouse_id}, Блок {block_number}, Полка {shelf_number}, Ячейка {cell_number}")
         
