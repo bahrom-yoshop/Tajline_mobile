@@ -381,7 +381,7 @@ class IndividualUnitsAPITester:
             print("🎯 ТЕСТ 4: ЗНАЧЕНИЯ ПО УМОЛЧАНИЮ (placement_status, is_placed)")
             
             individual_units = api_data.get("individual_units", [])
-            test_units = [unit for unit in individual_units if unit.get("cargo_number") == test_cargo_number]
+            test_units = [unit for unit in individual_units if unit.get("cargo_request_number") == test_cargo_number]
             
             if not test_units:
                 self.log_test("Значения по умолчанию", False, "Нет тестовых units для проверки")
