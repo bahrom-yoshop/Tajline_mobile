@@ -9888,8 +9888,34 @@ function App() {
   const handleAvailableCargoPerPageChange = (newPerPage) => {
     const perPage = parseInt(newPerPage);
     setAvailableCargoPerPage(perPage);
-    setAvailableCargoPage(1); // Сбрасываем на первую страницу
+    setAvailableCargoPage(1);
     fetchAvailableCargoForPlacement(1, perPage);
+  };
+
+  // НОВЫЕ: Обработчики пагинации для individual units
+  const handleIndividualUnitsPageChange = (newPage) => {
+    setIndividualUnitsPage(newPage);
+    fetchIndividualUnitsForPlacement(newPage, individualUnitsPerPage, cargoTypeFilter, placementStatusFilter);
+  };
+
+  const handleIndividualUnitsPerPageChange = (newPerPage) => {
+    const perPage = parseInt(newPerPage);
+    setIndividualUnitsPerPage(perPage);
+    setIndividualUnitsPage(1);
+    fetchIndividualUnitsForPlacement(1, perPage, cargoTypeFilter, placementStatusFilter);
+  };
+
+  // НОВЫЕ: Обработчики фильтров
+  const handleCargoTypeFilterChange = (newFilter) => {
+    setCargoTypeFilter(newFilter);
+    setIndividualUnitsPage(1);
+    fetchIndividualUnitsForPlacement(1, individualUnitsPerPage, newFilter, placementStatusFilter);
+  };
+
+  const handlePlacementStatusFilterChange = (newFilter) => {
+    setPlacementStatusFilter(newFilter);
+    setIndividualUnitsPage(1);
+    fetchIndividualUnitsForPlacement(1, individualUnitsPerPage, cargoTypeFilter, newFilter);
   };
 
   const fetchWarehouseLayoutWithCargo = async (warehouseId) => {
