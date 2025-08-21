@@ -10541,6 +10541,39 @@ function App() {
     }
   };
 
+  // ПРОБЛЕМА 3: Функция для загрузки полностью размещенных заявок
+  const fetchFullyPlacedCargo = async (page = 1, perPage = 25) => {
+    try {
+      setFullyPlacedLoading(true);
+      console.log('📦 Загрузка полностью размещенных заявок...');
+      
+      const response = await apiCall(`/api/operator/cargo/fully-placed?page=${page}&per_page=${perPage}`);
+      
+      console.log('✅ Полностью размещенные заявки получены:', response);
+      
+      setFullyPlacedCargo(response.items || []);
+      setFullyPlacedPagination(response.pagination || {});
+      setFullyPlacedPage(page);
+      setFullyPlacedPerPage(perPage);
+      
+      console.log(`📊 Найдено ${response.items?.length || 0} полностью размещенных заявок`);
+      
+    } catch (error) {
+      console.error('❌ Ошибка загрузки полностью размещенных заявок:', error);
+      showAlert('Ошибка загрузки полностью размещенных заявок', 'error');
+      setFullyPlacedCargo([]);
+    } finally {
+      setFullyPlacedLoading(false);
+    }
+  };
+
+  // Загружаем полностью размещенные заявки при загрузке компонента
+  useEffect(() => {
+    if (user && (user.role === 'admin' || user.role === 'warehouse_operator')) {
+      fetchFullyPlacedCargo();
+    }
+  }, [user]);
+
   // НОВАЯ ФУНКЦИЯ: Загрузка счетчиков для бокового меню
   const fetchMenuCounters = async () => {
     try {
