@@ -6158,13 +6158,26 @@ async def place_individual_cargo_unit(
     current_user: User = Depends(get_current_user)
 ):
     """
-    НОВЫЙ ENDPOINT: Размещение индивидуальной единицы груза с уникальным номером
+    УЛУЧШЕННЫЙ ENDPOINT: Размещение индивидуальной единицы груза с автоматическим определением склада
     Поддерживает новую систему нумерации: 250101/01/01, 250101/01/02 и.т.д.
     """
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     try:
+        # УЛУЧШЕНИЕ: Автоматическое определение warehouse_id для оператора
+        warehouse_id = placement_data.warehouse_id
+        if not warehouse_id and current_user.role == UserRole.WAREHOUSE_OPERATOR:
+            # Получаем склад оператора автоматически
+            operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+            if operator_warehouse_ids:
+                warehouse_id = operator_warehouse_ids[0]
+                print(f"✅ УЛУЧШЕНИЕ: Автоматически определен склад {warehouse_id} для оператора {current_user.full_name}")
+            else:
+                raise HTTPException(status_code=400, detail="Operator has no assigned warehouses")
+        elif not warehouse_id:
+            raise HTTPException(status_code=400, detail="Warehouse ID is required for admin users")
+        
         # Разбираем индивидуальный номер: 250101/01/01
         parts = placement_data.individual_number.split('/')
         if len(parts) != 3:
@@ -6175,10 +6188,10 @@ async def place_individual_cargo_unit(
         # Ищем основную заявку
         cargo = db.operator_cargo.find_one({"cargo_number": cargo_number})
         if not cargo:
-            raise HTTPException(status_code=404, detail="Cargo not found")
+            raise HTTPException(status_code=404, detail=f"❌ Единица {unit_index} груза типа {type_index} из заявки {cargo_number} не найдена")
         
         # Проверяем существование склада
-        warehouse = db.warehouses.find_one({"id": placement_data.warehouse_id, "is_active": True})
+        warehouse = db.warehouses.find_one({"id": warehouse_id, "is_active": True})
         if not warehouse:
             raise HTTPException(status_code=404, detail="Warehouse not found")
         
@@ -6192,7 +6205,7 @@ async def place_individual_cargo_unit(
         
         # Проверяем, свободна ли ячейка
         existing_cell = db.warehouse_cells.find_one({
-            "warehouse_id": placement_data.warehouse_id,
+            "warehouse_id": warehouse_id,
             "location_code": location_code,
             "is_occupied": True
         })
@@ -6207,7 +6220,7 @@ async def place_individual_cargo_unit(
             "type_index": int(type_index),
             "unit_index": int(unit_index),
             "cargo_id": cargo["id"],
-            "warehouse_id": placement_data.warehouse_id,
+            "warehouse_id": warehouse_id,
             "warehouse_name": warehouse["name"],
             "location_code": location_code,
             "block_number": placement_data.block_number,
@@ -6230,10 +6243,11 @@ async def place_individual_cargo_unit(
         # Обновляем ячейку
         db.warehouse_cells.update_one(
             {
-                "warehouse_id": placement_data.warehouse_id,
+                "warehouse_id": warehouse_id,
                 "location_code": location_code
             },
-            {"$set": {"is_occupied": True, "individual_number": placement_data.individual_number}}
+            {"$set": {"is_occupied": True, "individual_number": placement_data.individual_number}},
+            upsert=True  # Создаем ячейку если не существует
         )
         
         # Создаем уведомление
