@@ -6245,13 +6245,51 @@ async def place_individual_cargo_unit(
         
         print(f"✅ Индивидуальная единица груза {placement_data.individual_number} размещена в {location_code}")
         
+        # УЛУЧШЕНИЕ: Получаем информацию о грузе для детального ответа
+        cargo_items = cargo.get('cargo_items', [])
+        cargo_name = "Неизвестный груз"
+        application_number = cargo_number
+        
+        # Найдем название груза по type_index
+        if cargo_items and len(cargo_items) >= int(type_index):
+            cargo_item = cargo_items[int(type_index) - 1]
+            cargo_name = cargo_item.get('cargo_name', cargo_name)
+        
+        # Подсчитаем оставшиеся единицы в заявке
+        total_units_in_application = 0
+        placed_units_in_application = 0
+        
+        for item in cargo_items:
+            quantity = item.get('quantity', 1)
+            total_units_in_application += quantity
+        
+        # Подсчитаем размещенные единицы в заявке
+        placed_records = db.placement_records.count_documents({"cargo_number": cargo_number})
+        placed_units_in_application = placed_records
+        
+        remaining_units = total_units_in_application - placed_units_in_application
+        
         return {
             "message": "Individual cargo unit placed successfully",
             "individual_number": placement_data.individual_number,
+            "cargo_name": cargo_name,
+            "application_number": application_number,
             "warehouse_name": warehouse["name"],
             "location_code": location_code,
-            "cargo_number": cargo_number,
-            "placed_at": datetime.utcnow().isoformat()
+            "placement_details": {
+                "block": placement_data.block_number,
+                "shelf": placement_data.shelf_number, 
+                "cell": placement_data.cell_number,
+                "placed_by": current_user.full_name,
+                "placed_at": placement_record["placed_at"].isoformat()
+            },
+            "application_progress": {
+                "total_units": total_units_in_application,
+                "placed_units": placed_units_in_application,
+                "remaining_units": remaining_units,
+                "progress_text": f"осталось: {remaining_units}/{total_units_in_application}"
+            },
+            "success": True
         }
         
     except HTTPException:
