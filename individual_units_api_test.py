@@ -448,7 +448,7 @@ class IndividualUnitsAPITester:
                 # Ищем наши тестовые единицы типа "01"
                 test_type_01_units = [
                     unit for unit in individual_units 
-                    if unit.get("cargo_number") == test_cargo_number and unit.get("type_number") == "01"
+                    if unit.get("cargo_request_number") == test_cargo_number and unit.get("type_number") == "01"
                 ]
                 
                 if len(test_type_01_units) == 2:  # Должно быть 2 единицы типа "01"
