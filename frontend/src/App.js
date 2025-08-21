@@ -16770,7 +16770,15 @@ function App() {
                             }`}
                           >
                             {sub.subsections && <span className="mr-1">🚚</span>}
-                            {sub.label}
+                            <div className="flex items-center justify-between flex-1">
+                              <span>{sub.label}</span>
+                              {/* Счетчик для подпункта десктопного меню */}
+                              {getMenuCounter(sub.id) > 0 && (
+                                <span className="bg-white/15 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[18px] text-center ml-2">
+                                  {formatCounter(getMenuCounter(sub.id))}
+                                </span>
+                              )}
+                            </div>
                           </button>
                           
                           {/* Вложенные подразделы для десктопа */}
