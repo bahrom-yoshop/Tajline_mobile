@@ -21942,7 +21942,7 @@ function App() {
                               <SelectValue placeholder="Все грузы" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Все грузы</SelectItem>
+                              <SelectItem value="all">Все грузы</SelectItem>
                               <SelectItem value="new_request">Новые заявки</SelectItem>
                               <SelectItem value="awaiting_payment">Ожидается оплата</SelectItem>
                               <SelectItem value="awaiting_placement">Ожидает размещение</SelectItem>
