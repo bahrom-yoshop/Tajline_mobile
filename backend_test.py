@@ -596,22 +596,7 @@ class QRCodeAPITester:
     def cleanup_test_data(self):
         """Очистка тестовых данных"""
         print("\n🧹 Очистка тестовых данных...")
-        
-        if self.test_cargo_id:
-            try:
-                # Удаляем тестовый груз
-                response = self.session.delete(
-                    f"{BACKEND_URL}/admin/cargo/{self.test_cargo_id}",
-                    headers={"Authorization": f"Bearer {self.auth_token}"}
-                )
-                
-                if response.status_code == 200:
-                    print(f"✅ Тестовый груз {self.test_cargo_id} удален")
-                else:
-                    print(f"⚠️ Не удалось удалить тестовый груз: {response.status_code}")
-                    
-            except Exception as e:
-                print(f"⚠️ Ошибка при удалении тестового груза: {str(e)}")
+        print("ℹ️ Используем существующие данные, очистка не требуется")
     
     def run_all_tests(self):
         """Запуск всех тестов"""
