@@ -10351,6 +10351,38 @@ function App() {
     }
   };
 
+  // УЛУЧШЕНИЕ: Функция для получения общего прогресса размещения
+  const fetchPlacementProgress = async () => {
+    try {
+      console.log('📊 УЛУЧШЕНИЕ: Получение общего прогресса размещения...');
+      
+      const response = await apiCall('/api/operator/placement-progress', 'GET');
+      
+      console.log('✅ Прогресс размещения получен:', response);
+      
+      setPlacementProgress({
+        total_units: response.total_units || 0,
+        placed_units: response.placed_units || 0,
+        pending_units: response.pending_units || 0,
+        progress_percentage: response.progress_percentage || 0,
+        progress_text: response.progress_text || 'Размещено: 0/0',
+        last_updated: response.last_updated
+      });
+      
+    } catch (error) {
+      console.error('❌ Ошибка получения прогресса размещения:', error);
+      // В случае ошибки устанавливаем значения по умолчанию
+      setPlacementProgress({
+        total_units: 0,
+        placed_units: 0,
+        pending_units: 0,
+        progress_percentage: 0,
+        progress_text: 'Размещено: 0/0',
+        last_updated: null
+      });
+    }
+  };
+
   // НОВАЯ ФУНКЦИЯ: Получение individual units для размещения
   const fetchIndividualUnitsForPlacement = async (
     page = individualUnitsPage, 
