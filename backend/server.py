@@ -6288,7 +6288,7 @@ async def get_individual_units_for_placement(
             "total": total_units,
             "page": page,
             "per_page": per_page,
-            "total_pages": (total_units + per_page - 1) // per_page
+            "total_pages": max(1, (total_units + per_page - 1) // per_page)
         }
         
     except HTTPException:
