@@ -151,7 +151,8 @@ class QRCodeAPITester:
             )
             
             if response.status_code == 200:
-                cargos = response.json()
+                data = response.json()
+                cargos = data.get("items", [])
                 
                 # Ищем наш тестовый груз
                 for cargo in cargos:
