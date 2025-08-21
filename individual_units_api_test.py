@@ -574,7 +574,7 @@ class IndividualUnitsAPITester:
                 
                 page = data.get("page")
                 per_page = data.get("per_page")
-                total_count = data.get("total_count")
+                total_count = data.get("total")
                 individual_units = data.get("individual_units", [])
                 
                 # Проверяем параметры пагинации
