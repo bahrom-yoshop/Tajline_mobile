@@ -3813,13 +3813,92 @@ function App() {
     try {
       console.log('🔧 Открытие действий для individual unit:', unit.individual_number);
       
-      // Здесь можно открыть модальное окно с действиями:
-      // - Генерация QR кода
-      // - Печать QR кода  
-      // - Просмотр деталей размещения
-      // - Изменение местоположения
+      // Создаем модальное окно с действиями
+      const actionsModal = (
+        <Dialog open={true} onOpenChange={() => setSelectedUnitForActions(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <Settings className="mr-2 h-5 w-5" />
+                Действия для {unit.individual_number}
+              </DialogTitle>
+              <DialogDescription>
+                Выберите действие для единицы груза
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-3">
+              {/* Информация о единице */}
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="text-sm">
+                  <div><strong>Заявка:</strong> {unit.cargo_request_number}</div>
+                  <div><strong>Груз:</strong> {unit.cargo_name}</div>
+                  <div><strong>Тип/Единица:</strong> {unit.type_number}/{unit.unit_index}</div>
+                  <div><strong>Статус:</strong> {unit.is_placed ? '✅ Размещен' : '🟡 Ожидает размещения'}</div>
+                  {unit.placement_info && (
+                    <div><strong>Размещение:</strong> {unit.placement_info}</div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Кнопки действий */}
+              <div className="space-y-2">
+                {/* НОВОЕ: Кнопка печати QR */}
+                <Button
+                  onClick={() => {
+                    setSelectedUnitForActions(null);
+                    handlePrintSingleQR(unit);
+                  }}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Печать QR код
+                </Button>
+                
+                {/* Генерация QR (без печати) */}
+                <Button
+                  onClick={() => {
+                    setSelectedUnitForActions(null);
+                    generateSingleQR(unit.individual_number);
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Grid3X3 className="mr-2 h-4 w-4" />
+                  Генерировать QR код
+                </Button>
+                
+                {/* Размещение единицы */}
+                {!unit.is_placed && (
+                  <Button
+                    onClick={() => {
+                      setSelectedUnitForActions(null);
+                      handlePlaceIndividualUnit(unit);
+                    }}
+                    variant="outline"
+                    className="w-full bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
+                  >
+                    <Grid3X3 className="mr-2 h-4 w-4" />
+                    Разместить единицу
+                  </Button>
+                )}
+                
+                {/* Закрыть */}
+                <Button
+                  onClick={() => setSelectedUnitForActions(null)}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Закрыть
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      );
       
-      showAlert(`Действия для ${unit.individual_number} будут доступны в следующей итерации`, 'info');
+      // Устанавливаем состояние для показа модалки
+      setSelectedUnitForActions(unit);
       
     } catch (error) {
       console.error('❌ Ошибка открытия действий:', error);
