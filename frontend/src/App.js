@@ -16740,7 +16740,17 @@ function App() {
                     }`}
                   >
                     {item.icon}
-                    {sidebarOpen && <span className="ml-3 font-medium">{item.label}</span>}
+                    {sidebarOpen && (
+                      <div className="ml-3 flex items-center justify-between flex-1">
+                        <span className="font-medium">{item.label}</span>
+                        {/* Счетчик для основного пункта десктопного меню */}
+                        {getMenuCounter(item.id) > 0 && (
+                          <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full min-w-[20px] text-center ml-2">
+                            {formatCounter(getMenuCounter(item.id))}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </button>
                   
                   {sidebarOpen && item.subsections && activeSection === item.section && (
