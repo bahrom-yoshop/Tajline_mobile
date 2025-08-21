@@ -310,6 +310,7 @@ class PlacementProgressTester:
             # Размещаем единицу
             placement_data = {
                 "individual_number": individual_number,
+                "warehouse_id": self.warehouse_id,  # Используем warehouse_id оператора
                 "block_number": 1,
                 "shelf_number": 1,
                 "cell_number": 1
