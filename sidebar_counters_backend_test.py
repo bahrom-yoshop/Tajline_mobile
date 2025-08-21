@@ -477,7 +477,7 @@ class SidebarCountersTester:
         try:
             print("🎯 ТЕСТ 4: ПРОВЕРКА СПИСКА ГРУЗОВ ДЛЯ ОСНОВНОГО СЧЕТЧИКА")
             
-            response = self.session.get(f"{API_BASE}/operator/cargo", timeout=30)
+            response = self.session.get(f"{API_BASE}/operator/cargo/list", timeout=30)
             
             if response.status_code == 200:
                 data = response.json()
