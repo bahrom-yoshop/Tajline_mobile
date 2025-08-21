@@ -7323,20 +7323,21 @@ function App() {
             await fetchWarehouseStatistics(cellData.warehouse_id);
           }
           
-          // ИСПРАВЛЕНИЕ: Улучшенное сообщение с информацией о складе
+          // ЭТАП 4: ДЕТАЛЬНАЯ ИНФОРМАЦИЯ О ЯЧЕЙКЕ
           let successMessage = '';
           if (cellData.format === 'compact' && cellData.full_address) {
-            successMessage = `Ячейка найдена: ${cellData.full_address}`;
+            successMessage = `✅ Ячейка: ${cellData.full_address}\n📍 Склад: ${cellData.warehouse_name || 'Склад №' + cellData.warehouse_number}\n🎯 Готов к размещению`;
           } else if (cellData.format === 'compact') {
-            successMessage = `Ячейка найдена: ${cellData.readable_name} (склад №${cellData.warehouse_number})`;
+            successMessage = `✅ Ячейка: ${cellData.readable_name}\n📍 Склад №${cellData.warehouse_number}\n🎯 Готов к размещению`;
           } else {
-            successMessage = `Ячейка найдена: ${cellData.readable_name}`;
+            successMessage = `✅ Ячейка: ${cellData.readable_name}\n🎯 Готов к размещению`;
           }
           
           showAlert(successMessage, 'success');
           
-          // Автоматически размещаем груз
+          // ЭТАП 2: МГНОВЕННОЕ РАЗМЕЩЕНИЕ (убираем задержки)
           if (scannedCargoData) {
+            console.log('⚡ МГНОВЕННОЕ размещение груза');
             await performAutoPlacement();
           }
         } else {
