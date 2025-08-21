@@ -6210,15 +6210,26 @@ async def get_individual_units_for_placement(
             cargo_items = cargo.get("cargo_items", [])
             warehouse_info = cargo.get("warehouse_info", [{}])[0] if cargo.get("warehouse_info") else {}
             
-            # ФИЛЬТР: Пропускаем заявки без individual_items
-            has_individual_items = False
+            # ИСПРАВЛЕНИЕ: Пропускаем заявки без cargo_items или с пустыми cargo_items
+            if not cargo_items:
+                print(f"⚠️ Пропускаем заявку {cargo.get('cargo_number')} - нет cargo_items")
+                continue
+                
+            has_individual_units = False
+            
+            # Проверяем наличие individual_items или возможность их создания из quantity
             for cargo_item in cargo_items:
+                # Если есть готовые individual_items, используем их
                 if cargo_item.get("individual_items"):
-                    has_individual_items = True
+                    has_individual_units = True
+                    break
+                # Если есть quantity > 0, можем создать individual_items динамически
+                elif cargo_item.get("quantity", 1) > 0:
+                    has_individual_units = True
                     break
             
-            if not has_individual_items:
-                print(f"⚠️ Пропускаем заявку {cargo.get('cargo_number')} - нет individual_items")
+            if not has_individual_units:
+                print(f"⚠️ Пропускаем заявку {cargo.get('cargo_number')} - нет individual_items и quantity")
                 continue
             
             # Получаем информацию о принявшем операторе
