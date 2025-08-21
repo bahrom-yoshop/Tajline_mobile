@@ -37946,11 +37946,12 @@ function App() {
                 
                 {/* Кнопки действий */}
                 <div className="space-y-2">
-                  {/* НОВОЕ: Кнопка печати QR */}
+                  {/* ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 2: Кнопка печати QR */}
                   <Button
                     onClick={() => {
+                      const unit = selectedUnitForActions; // Сохраняем до обнуления
                       setSelectedUnitForActions(null);
-                      handlePrintSingleQR(selectedUnitForActions);
+                      handlePrintSingleQR(unit); // Используем сохраненную единицу
                     }}
                     className="w-full bg-purple-600 hover:bg-purple-700 text-white"
                   >
