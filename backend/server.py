@@ -6220,6 +6220,17 @@ async def get_individual_units_for_placement(
             cargo_items = cargo.get("cargo_items", [])
             warehouse_info = cargo.get("warehouse_info", [{}])[0] if cargo.get("warehouse_info") else {}
             
+            # ФИЛЬТР: Пропускаем заявки без individual_items
+            has_individual_items = False
+            for cargo_item in cargo_items:
+                if cargo_item.get("individual_items"):
+                    has_individual_items = True
+                    break
+            
+            if not has_individual_items:
+                print(f"⚠️ Пропускаем заявку {cargo.get('cargo_number')} - нет individual_items")
+                continue
+            
             # Получаем информацию о принявшем операторе
             accepting_operator_info = {
                 'operator_name': cargo.get('accepting_operator', 'Неизвестно'),
