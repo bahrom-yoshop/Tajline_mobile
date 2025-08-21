@@ -1,5 +1,679 @@
 #!/usr/bin/env python3
 """
+🖨️ ТЕСТИРОВАНИЕ НОВЫХ API: Печать QR кодов для Individual Units в TAJLINE.TJ
+
+КОНТЕКСТ: Реализованы новые backend API endpoints для печати QR кодов Individual Units карточек в разделе "Грузы" → "Размещение груза".
+
+НОВЫЕ API ENDPOINTS:
+1. POST /api/operator/qr/generate-individual - Генерация QR кода для одной единицы груза
+2. POST /api/operator/qr/generate-batch - Массовая генерация QR кодов для списка единиц
+3. GET /api/operator/qr/print-layout - Получение опций макетов для печати QR кодов
+
+ЦЕЛЬ ТЕСТИРОВАНИЯ:
+- Проверить работу всех новых QR API endpoints
+- Убедиться в корректности генерации QR кодов с формат TAJLINE|INDIVIDUAL|{individual_number}|{timestamp}
+- Протестировать массовую генерацию QR кодов
+- Проверить возвращение base64 изображений QR кодов
+- Убедиться в работе опций макетов печати
+"""
+
+import requests
+import json
+import base64
+import re
+from datetime import datetime
+import time
+
+# Конфигурация для тестирования
+BACKEND_URL = "https://logistics-dash-6.preview.emergentagent.com/api"
+
+# Тестовые данные оператора склада
+OPERATOR_CREDENTIALS = {
+    "phone": "+79777888999",
+    "password": "warehouse123"
+}
+
+class QRCodeAPITester:
+    def __init__(self):
+        self.session = requests.Session()
+        self.auth_token = None
+        self.operator_user = None
+        self.test_cargo_id = None
+        self.test_individual_numbers = []
+        
+    def authenticate_operator(self):
+        """Авторизация оператора склада"""
+        print("🔐 Авторизация оператора склада...")
+        
+        try:
+            response = self.session.post(
+                f"{BACKEND_URL}/auth/login",
+                json=OPERATOR_CREDENTIALS,
+                headers={"Content-Type": "application/json"}
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.auth_token = data.get("access_token")
+                
+                # Получаем информацию о пользователе
+                user_response = self.session.get(
+                    f"{BACKEND_URL}/auth/me",
+                    headers={"Authorization": f"Bearer {self.auth_token}"}
+                )
+                
+                if user_response.status_code == 200:
+                    self.operator_user = user_response.json()
+                    print(f"✅ Авторизация успешна: {self.operator_user.get('full_name')} (роль: {self.operator_user.get('role')})")
+                    return True
+                else:
+                    print(f"❌ Ошибка получения данных пользователя: {user_response.status_code}")
+                    return False
+            else:
+                print(f"❌ Ошибка авторизации: {response.status_code} - {response.text}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Исключение при авторизации: {str(e)}")
+            return False
+    
+    def create_test_cargo_with_individual_units(self):
+        """Создание тестового груза с individual units для тестирования QR кодов"""
+        print("📦 Создание тестового груза с individual units...")
+        
+        try:
+            # Создаем груз с несколькими типами и единицами
+            cargo_data = {
+                "sender_full_name": "Алексей Петрович Смирнов",
+                "sender_phone": "+79161234567",
+                "recipient_full_name": "Фарход Рахимович Назаров",
+                "recipient_phone": "+992987654321",
+                "recipient_address": "г. Душанбе, ул. Рудаки, дом 125, кв. 45",
+                "description": "Тестовый груз для проверки QR кодов Individual Units",
+                "route": "moscow_to_tajikistan",
+                "payment_method": "cash_on_delivery",
+                "delivery_method": "pickup",
+                "cargo_items": [
+                    {
+                        "cargo_name": "Электроника Samsung",
+                        "quantity": 2,
+                        "weight": 5.5,
+                        "price_per_kg": 150.0,
+                        "total_amount": 825.0
+                    },
+                    {
+                        "cargo_name": "Бытовая техника LG",
+                        "quantity": 3,
+                        "weight": 8.2,
+                        "price_per_kg": 120.0,
+                        "total_amount": 984.0
+                    }
+                ]
+            }
+            
+            response = self.session.post(
+                f"{BACKEND_URL}/operator/cargo/accept",
+                json=cargo_data,
+                headers={
+                    "Authorization": f"Bearer {self.auth_token}",
+                    "Content-Type": "application/json"
+                }
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                self.test_cargo_id = result.get("cargo_id")
+                cargo_number = result.get("cargo_number")
+                
+                print(f"✅ Тестовый груз создан: {cargo_number} (ID: {self.test_cargo_id})")
+                
+                # Получаем individual numbers для тестирования
+                self.get_individual_numbers_from_cargo()
+                
+                return True
+            else:
+                print(f"❌ Ошибка создания груза: {response.status_code} - {response.text}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Исключение при создании груза: {str(e)}")
+            return False
+    
+    def get_individual_numbers_from_cargo(self):
+        """Получение individual numbers из созданного груза"""
+        print("🔍 Получение individual numbers из груза...")
+        
+        try:
+            # Получаем список грузов для размещения
+            response = self.session.get(
+                f"{BACKEND_URL}/operator/cargo/available-for-placement",
+                headers={"Authorization": f"Bearer {self.auth_token}"}
+            )
+            
+            if response.status_code == 200:
+                cargos = response.json()
+                
+                # Ищем наш тестовый груз
+                for cargo in cargos:
+                    if cargo.get("id") == self.test_cargo_id:
+                        cargo_items = cargo.get("cargo_items", [])
+                        
+                        for cargo_item in cargo_items:
+                            individual_items = cargo_item.get("individual_items", [])
+                            for item in individual_items:
+                                individual_number = item.get("individual_number")
+                                if individual_number:
+                                    self.test_individual_numbers.append(individual_number)
+                        
+                        print(f"✅ Найдено {len(self.test_individual_numbers)} individual numbers: {self.test_individual_numbers}")
+                        return True
+                
+                print("❌ Тестовый груз не найден в списке для размещения")
+                return False
+            else:
+                print(f"❌ Ошибка получения грузов для размещения: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Исключение при получении individual numbers: {str(e)}")
+            return False
+    
+    def test_generate_individual_qr(self):
+        """Тестирование генерации QR кода для одной единицы"""
+        print("\n🎯 ТЕСТ 1: Генерация QR кода для одной единицы")
+        
+        if not self.test_individual_numbers:
+            print("❌ Нет individual numbers для тестирования")
+            return False
+        
+        test_individual_number = self.test_individual_numbers[0]
+        print(f"🖨️ Тестируем генерацию QR для: {test_individual_number}")
+        
+        try:
+            request_data = {
+                "individual_number": test_individual_number
+            }
+            
+            response = self.session.post(
+                f"{BACKEND_URL}/operator/qr/generate-individual",
+                json=request_data,
+                headers={
+                    "Authorization": f"Bearer {self.auth_token}",
+                    "Content-Type": "application/json"
+                }
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                # Проверяем структуру ответа
+                required_fields = ["success", "qr_info", "message"]
+                for field in required_fields:
+                    if field not in result:
+                        print(f"❌ Отсутствует обязательное поле: {field}")
+                        return False
+                
+                qr_info = result.get("qr_info", {})
+                required_qr_fields = ["individual_number", "cargo_number", "cargo_name", "sender_name", "recipient_name", "qr_data", "qr_base64"]
+                
+                for field in required_qr_fields:
+                    if field not in qr_info:
+                        print(f"❌ Отсутствует обязательное поле в qr_info: {field}")
+                        return False
+                
+                # Проверяем формат QR данных
+                qr_data = qr_info.get("qr_data", "")
+                expected_pattern = r"TAJLINE\|INDIVIDUAL\|.+\|\d+"
+                
+                if not re.match(expected_pattern, qr_data):
+                    print(f"❌ Неправильный формат QR данных: {qr_data}")
+                    return False
+                
+                # Проверяем base64 изображение
+                qr_base64 = qr_info.get("qr_base64", "")
+                if not qr_base64:
+                    print("❌ QR base64 изображение отсутствует")
+                    return False
+                
+                try:
+                    # Проверяем валидность base64
+                    base64.b64decode(qr_base64)
+                    print("✅ QR base64 изображение валидно")
+                except:
+                    print("❌ QR base64 изображение невалидно")
+                    return False
+                
+                print(f"✅ ТЕСТ 1 ПРОЙДЕН: QR код сгенерирован для {test_individual_number}")
+                print(f"   📋 QR данные: {qr_data}")
+                print(f"   📦 Груз: {qr_info.get('cargo_name')} (№{qr_info.get('cargo_number')})")
+                print(f"   👤 Отправитель: {qr_info.get('sender_name')}")
+                print(f"   🎯 Получатель: {qr_info.get('recipient_name')}")
+                
+                return True
+            else:
+                print(f"❌ ТЕСТ 1 НЕ ПРОЙДЕН: {response.status_code} - {response.text}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ ТЕСТ 1 НЕ ПРОЙДЕН: Исключение - {str(e)}")
+            return False
+    
+    def test_generate_batch_qr(self):
+        """Тестирование массовой генерации QR кодов"""
+        print("\n🎯 ТЕСТ 2: Массовая генерация QR кодов")
+        
+        if len(self.test_individual_numbers) < 2:
+            print("❌ Недостаточно individual numbers для тестирования массовой генерации")
+            return False
+        
+        # Берем первые 3 номера для тестирования
+        test_numbers = self.test_individual_numbers[:3]
+        print(f"🖨️ Тестируем массовую генерацию для: {test_numbers}")
+        
+        try:
+            request_data = {
+                "individual_numbers": test_numbers
+            }
+            
+            response = self.session.post(
+                f"{BACKEND_URL}/operator/qr/generate-batch",
+                json=request_data,
+                headers={
+                    "Authorization": f"Bearer {self.auth_token}",
+                    "Content-Type": "application/json"
+                }
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                # Проверяем структуру ответа
+                required_fields = ["success", "qr_batch", "failed_items", "total_generated", "total_failed"]
+                for field in required_fields:
+                    if field not in result:
+                        print(f"❌ Отсутствует обязательное поле: {field}")
+                        return False
+                
+                qr_batch = result.get("qr_batch", [])
+                failed_items = result.get("failed_items", [])
+                total_generated = result.get("total_generated", 0)
+                total_failed = result.get("total_failed", 0)
+                
+                print(f"📊 Результаты массовой генерации:")
+                print(f"   ✅ Успешно сгенерировано: {total_generated}")
+                print(f"   ❌ Ошибок: {total_failed}")
+                
+                # Проверяем каждый сгенерированный QR код
+                for qr_item in qr_batch:
+                    required_qr_fields = ["individual_number", "cargo_number", "cargo_name", "qr_data", "qr_base64"]
+                    
+                    for field in required_qr_fields:
+                        if field not in qr_item:
+                            print(f"❌ Отсутствует поле {field} в QR элементе")
+                            return False
+                    
+                    # Проверяем формат QR данных
+                    qr_data = qr_item.get("qr_data", "")
+                    expected_pattern = r"TAJLINE\|INDIVIDUAL\|.+\|\d+"
+                    
+                    if not re.match(expected_pattern, qr_data):
+                        print(f"❌ Неправильный формат QR данных: {qr_data}")
+                        return False
+                    
+                    # Проверяем base64 изображение
+                    qr_base64 = qr_item.get("qr_base64", "")
+                    if not qr_base64:
+                        print(f"❌ QR base64 изображение отсутствует для {qr_item.get('individual_number')}")
+                        return False
+                
+                print(f"✅ ТЕСТ 2 ПРОЙДЕН: Массовая генерация QR кодов работает корректно")
+                print(f"   📋 Сгенерировано {len(qr_batch)} QR кодов")
+                
+                # Показываем примеры сгенерированных QR кодов
+                for i, qr_item in enumerate(qr_batch[:2]):  # Показываем первые 2
+                    print(f"   🖨️ QR #{i+1}: {qr_item.get('individual_number')} - {qr_item.get('cargo_name')}")
+                
+                return True
+            else:
+                print(f"❌ ТЕСТ 2 НЕ ПРОЙДЕН: {response.status_code} - {response.text}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ ТЕСТ 2 НЕ ПРОЙДЕН: Исключение - {str(e)}")
+            return False
+    
+    def test_print_layout_options(self):
+        """Тестирование получения опций макетов печати"""
+        print("\n🎯 ТЕСТ 3: Получение опций макетов печати")
+        
+        try:
+            response = self.session.get(
+                f"{BACKEND_URL}/operator/qr/print-layout",
+                headers={"Authorization": f"Bearer {self.auth_token}"}
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                # Проверяем структуру ответа
+                required_fields = ["success", "layout_options", "default_layout"]
+                for field in required_fields:
+                    if field not in result:
+                        print(f"❌ Отсутствует обязательное поле: {field}")
+                        return False
+                
+                layout_options = result.get("layout_options", {})
+                expected_layouts = ["single", "grid_2x2", "grid_3x3", "compact"]
+                
+                for layout in expected_layouts:
+                    if layout not in layout_options:
+                        print(f"❌ Отсутствует макет: {layout}")
+                        return False
+                    
+                    layout_info = layout_options[layout]
+                    required_layout_fields = ["name", "description", "qr_size", "per_page"]
+                    
+                    for field in required_layout_fields:
+                        if field not in layout_info:
+                            print(f"❌ Отсутствует поле {field} в макете {layout}")
+                            return False
+                
+                print(f"✅ ТЕСТ 3 ПРОЙДЕН: Опции макетов печати получены корректно")
+                print(f"   📋 Доступные макеты:")
+                
+                for layout_key, layout_info in layout_options.items():
+                    print(f"   🖨️ {layout_key}: {layout_info.get('name')} ({layout_info.get('per_page')} QR/страница)")
+                
+                default_layout = result.get("default_layout")
+                print(f"   🎯 Макет по умолчанию: {default_layout}")
+                
+                return True
+            else:
+                print(f"❌ ТЕСТ 3 НЕ ПРОЙДЕН: {response.status_code} - {response.text}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ ТЕСТ 3 НЕ ПРОЙДЕН: Исключение - {str(e)}")
+            return False
+    
+    def test_error_handling(self):
+        """Тестирование обработки ошибок"""
+        print("\n🎯 ТЕСТ 4: Обработка ошибок")
+        
+        tests_passed = 0
+        total_tests = 4
+        
+        # Тест 4.1: Несуществующий individual_number
+        print("🔍 Тест 4.1: Несуществующий individual_number")
+        try:
+            request_data = {"individual_number": "NONEXISTENT/99/99"}
+            
+            response = self.session.post(
+                f"{BACKEND_URL}/operator/qr/generate-individual",
+                json=request_data,
+                headers={
+                    "Authorization": f"Bearer {self.auth_token}",
+                    "Content-Type": "application/json"
+                }
+            )
+            
+            if response.status_code == 404:
+                print("✅ Тест 4.1 пройден: Корректная обработка несуществующего номера")
+                tests_passed += 1
+            else:
+                print(f"❌ Тест 4.1 не пройден: Ожидался 404, получен {response.status_code}")
+        except Exception as e:
+            print(f"❌ Тест 4.1 не пройден: {str(e)}")
+        
+        # Тест 4.2: Пустой individual_number
+        print("🔍 Тест 4.2: Пустой individual_number")
+        try:
+            request_data = {"individual_number": ""}
+            
+            response = self.session.post(
+                f"{BACKEND_URL}/operator/qr/generate-individual",
+                json=request_data,
+                headers={
+                    "Authorization": f"Bearer {self.auth_token}",
+                    "Content-Type": "application/json"
+                }
+            )
+            
+            if response.status_code == 400:
+                print("✅ Тест 4.2 пройден: Корректная обработка пустого номера")
+                tests_passed += 1
+            else:
+                print(f"❌ Тест 4.2 не пройден: Ожидался 400, получен {response.status_code}")
+        except Exception as e:
+            print(f"❌ Тест 4.2 не пройден: {str(e)}")
+        
+        # Тест 4.3: Пустой список для массовой генерации
+        print("🔍 Тест 4.3: Пустой список для массовой генерации")
+        try:
+            request_data = {"individual_numbers": []}
+            
+            response = self.session.post(
+                f"{BACKEND_URL}/operator/qr/generate-batch",
+                json=request_data,
+                headers={
+                    "Authorization": f"Bearer {self.auth_token}",
+                    "Content-Type": "application/json"
+                }
+            )
+            
+            if response.status_code == 400:
+                print("✅ Тест 4.3 пройден: Корректная обработка пустого списка")
+                tests_passed += 1
+            else:
+                print(f"❌ Тест 4.3 не пройден: Ожидался 400, получен {response.status_code}")
+        except Exception as e:
+            print(f"❌ Тест 4.3 не пройден: {str(e)}")
+        
+        # Тест 4.4: Смешанный список (валидные и невалидные номера)
+        print("🔍 Тест 4.4: Смешанный список номеров")
+        try:
+            mixed_numbers = [
+                self.test_individual_numbers[0] if self.test_individual_numbers else "VALID/01/01",
+                "INVALID/99/99",
+                "NONEXISTENT/88/88"
+            ]
+            
+            request_data = {"individual_numbers": mixed_numbers}
+            
+            response = self.session.post(
+                f"{BACKEND_URL}/operator/qr/generate-batch",
+                json=request_data,
+                headers={
+                    "Authorization": f"Bearer {self.auth_token}",
+                    "Content-Type": "application/json"
+                }
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                qr_batch = result.get("qr_batch", [])
+                failed_items = result.get("failed_items", [])
+                
+                if len(qr_batch) > 0 and len(failed_items) > 0:
+                    print(f"✅ Тест 4.4 пройден: Обработка смешанного списка (успешно: {len(qr_batch)}, ошибок: {len(failed_items)})")
+                    tests_passed += 1
+                else:
+                    print(f"❌ Тест 4.4 не пройден: Неожиданные результаты")
+            else:
+                print(f"❌ Тест 4.4 не пройден: {response.status_code}")
+        except Exception as e:
+            print(f"❌ Тест 4.4 не пройден: {str(e)}")
+        
+        print(f"📊 ТЕСТ 4 РЕЗУЛЬТАТ: {tests_passed}/{total_tests} тестов пройдено")
+        return tests_passed == total_tests
+    
+    def test_qr_code_quality(self):
+        """Тестирование качества QR кодов"""
+        print("\n🎯 ТЕСТ 5: Качество QR кодов")
+        
+        if not self.test_individual_numbers:
+            print("❌ Нет individual numbers для тестирования")
+            return False
+        
+        test_individual_number = self.test_individual_numbers[0]
+        
+        try:
+            request_data = {"individual_number": test_individual_number}
+            
+            response = self.session.post(
+                f"{BACKEND_URL}/operator/qr/generate-individual",
+                json=request_data,
+                headers={
+                    "Authorization": f"Bearer {self.auth_token}",
+                    "Content-Type": "application/json"
+                }
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                qr_info = result.get("qr_info", {})
+                qr_data = qr_info.get("qr_data", "")
+                qr_base64 = qr_info.get("qr_base64", "")
+                
+                # Проверяем формат TAJLINE
+                if not qr_data.startswith("TAJLINE|INDIVIDUAL|"):
+                    print(f"❌ QR код не соответствует формату TAJLINE: {qr_data}")
+                    return False
+                
+                # Проверяем наличие timestamp
+                parts = qr_data.split("|")
+                if len(parts) != 4:
+                    print(f"❌ QR код не содержит 4 части: {qr_data}")
+                    return False
+                
+                try:
+                    timestamp = int(parts[3])
+                    current_time = int(time.time())
+                    
+                    # Timestamp должен быть в разумных пределах (не старше 1 минуты)
+                    if abs(current_time - timestamp) > 60:
+                        print(f"❌ Timestamp QR кода слишком старый: {timestamp}")
+                        return False
+                except ValueError:
+                    print(f"❌ Невалидный timestamp в QR коде: {parts[3]}")
+                    return False
+                
+                # Проверяем размер base64 изображения
+                try:
+                    decoded_image = base64.b64decode(qr_base64)
+                    image_size = len(decoded_image)
+                    
+                    # QR код должен быть разумного размера (больше 1KB, меньше 100KB)
+                    if image_size < 1000:
+                        print(f"❌ QR изображение слишком маленькое: {image_size} байт")
+                        return False
+                    
+                    if image_size > 100000:
+                        print(f"❌ QR изображение слишком большое: {image_size} байт")
+                        return False
+                    
+                    print(f"✅ ТЕСТ 5 ПРОЙДЕН: QR код качественный")
+                    print(f"   📋 Формат: {qr_data}")
+                    print(f"   📏 Размер изображения: {image_size} байт")
+                    print(f"   ⏰ Timestamp: {timestamp} ({datetime.fromtimestamp(timestamp)})")
+                    
+                    return True
+                    
+                except Exception as decode_error:
+                    print(f"❌ Ошибка декодирования base64: {str(decode_error)}")
+                    return False
+            else:
+                print(f"❌ ТЕСТ 5 НЕ ПРОЙДЕН: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ ТЕСТ 5 НЕ ПРОЙДЕН: {str(e)}")
+            return False
+    
+    def cleanup_test_data(self):
+        """Очистка тестовых данных"""
+        print("\n🧹 Очистка тестовых данных...")
+        
+        if self.test_cargo_id:
+            try:
+                # Удаляем тестовый груз
+                response = self.session.delete(
+                    f"{BACKEND_URL}/admin/cargo/{self.test_cargo_id}",
+                    headers={"Authorization": f"Bearer {self.auth_token}"}
+                )
+                
+                if response.status_code == 200:
+                    print(f"✅ Тестовый груз {self.test_cargo_id} удален")
+                else:
+                    print(f"⚠️ Не удалось удалить тестовый груз: {response.status_code}")
+                    
+            except Exception as e:
+                print(f"⚠️ Ошибка при удалении тестового груза: {str(e)}")
+    
+    def run_all_tests(self):
+        """Запуск всех тестов"""
+        print("🖨️ НАЧАЛО ТЕСТИРОВАНИЯ НОВЫХ API: Печать QR кодов для Individual Units")
+        print("=" * 80)
+        
+        # Авторизация
+        if not self.authenticate_operator():
+            print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось авторизоваться")
+            return False
+        
+        # Создание тестовых данных
+        if not self.create_test_cargo_with_individual_units():
+            print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось создать тестовые данные")
+            return False
+        
+        # Запуск тестов
+        test_results = []
+        
+        test_results.append(("Генерация QR для одной единицы", self.test_generate_individual_qr()))
+        test_results.append(("Массовая генерация QR кодов", self.test_generate_batch_qr()))
+        test_results.append(("Опции макетов печати", self.test_print_layout_options()))
+        test_results.append(("Обработка ошибок", self.test_error_handling()))
+        test_results.append(("Качество QR кодов", self.test_qr_code_quality()))
+        
+        # Очистка
+        self.cleanup_test_data()
+        
+        # Подведение итогов
+        print("\n" + "=" * 80)
+        print("📊 ИТОГИ ТЕСТИРОВАНИЯ")
+        print("=" * 80)
+        
+        passed_tests = 0
+        total_tests = len(test_results)
+        
+        for test_name, result in test_results:
+            status = "✅ ПРОЙДЕН" if result else "❌ НЕ ПРОЙДЕН"
+            print(f"{status}: {test_name}")
+            if result:
+                passed_tests += 1
+        
+        success_rate = (passed_tests / total_tests) * 100
+        print(f"\n📈 ОБЩИЙ РЕЗУЛЬТАТ: {passed_tests}/{total_tests} тестов пройдено ({success_rate:.1f}%)")
+        
+        if success_rate == 100:
+            print("🎉 ВСЕ ТЕСТЫ ПРОЙДЕНЫ УСПЕШНО! API готов к использованию.")
+        elif success_rate >= 80:
+            print("⚠️ Большинство тестов пройдено, но есть проблемы требующие внимания.")
+        else:
+            print("❌ КРИТИЧЕСКИЕ ПРОБЛЕМЫ: Многие тесты не пройдены.")
+        
+        return success_rate == 100
+
+if __name__ == "__main__":
+    tester = QRCodeAPITester()
+    success = tester.run_all_tests()
+    
+    if success:
+        print("\n✅ Тестирование завершено успешно!")
+        exit(0)
+    else:
+        print("\n❌ Тестирование завершено с ошибками!")
+        exit(1)
+"""
 🎯 ТЕСТИРОВАНИЕ НОВЫХ API: Полнофункциональное размещение груза со сканером в TAJLINE.TJ
 
 КОНТЕКСТ: Реализованы новые backend API endpoints для полнофункционального размещения груза 
