@@ -16898,7 +16898,8 @@ function App() {
   // ИСПРАВЛЕНИЕ: Показ экрана загрузки при инициализации для предотвращения показа старых данных
   if (isInitializing && token) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center relative">
+        <DevBadge id={getDevNumber('pages', 'loading').id} type="page" label={getDevNumber('pages', 'loading').label} />
         <div className="text-center">
           <div className="flex items-center justify-center mb-6">
             <div className="bg-blue-600 rounded-2xl p-4 shadow-2xl">
