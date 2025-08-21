@@ -38242,6 +38242,9 @@ function App() {
             </DialogContent>
           </Dialog>
         )}
+        
+        {/* Компонент управления номерами разработчика */}
+        <DevControl />
     </div>
   );
 }
