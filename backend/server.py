@@ -6135,6 +6135,171 @@ async def place_individual_cargo_unit(
             detail=f"Ошибка размещения индивидуальной единицы груза: {str(e)}"
         )
 
+@app.get("/api/operator/cargo/individual-units-for-placement")
+async def get_individual_units_for_placement(
+    page: int = 1,
+    per_page: int = 25,
+    cargo_type_filter: str = None,
+    status_filter: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    НОВЫЙ ENDPOINT: Получить все individual units для размещения
+    Возвращает список individual units вместо заявок для упрощения размещения
+    """
+    try:
+        print(f"🔍 НОВЫЙ API: Получение individual units для размещения (стр. {page}, лимит: {per_page})")
+        
+        # Проверяем права доступа
+        if current_user.role not in ["warehouse_operator", "admin"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Недостаточно прав для просмотра грузов"
+            )
+
+        # Получаем склады пользователя
+        user_warehouses = []
+        if current_user.role == "warehouse_operator":
+            user_warehouses = current_user.warehouse_ids or []
+            if not user_warehouses:
+                return {"items": [], "total": 0, "page": page, "per_page": per_page}
+
+        # Формируем условия поиска для заявок
+        match_conditions = {
+            "$or": [
+                {"overall_status": "awaiting_placement"},
+                {"status": "awaiting_placement"},
+                {"cargo_status": "awaiting_placement"}
+            ]
+        }
+        
+        if current_user.role == "warehouse_operator":
+            match_conditions["warehouse_id"] = {"$in": user_warehouses}
+
+        # Получаем все заявки ожидающие размещения
+        pipeline = [
+            {"$match": match_conditions},
+            {"$lookup": {
+                "from": "warehouses",
+                "localField": "warehouse_id",
+                "foreignField": "id", 
+                "as": "warehouse_info"
+            }}
+        ]
+
+        cargo_list = list(db.cargo.aggregate(pipeline)) + list(db.operator_cargo.aggregate(pipeline))
+        
+        print(f"📦 Найдено {len(cargo_list)} заявок ожидающих размещения")
+        
+        # Преобразуем заявки в individual units
+        individual_units = []
+        
+        for cargo in cargo_list:
+            cargo_items = cargo.get("cargo_items", [])
+            warehouse_info = cargo.get("warehouse_info", [{}])[0] if cargo.get("warehouse_info") else {}
+            
+            # Получаем информацию о принявшем операторе
+            accepting_operator_info = {
+                'operator_name': cargo.get('accepting_operator', 'Неизвестно'),
+                'operator_phone': cargo.get('accepting_operator_phone', 'Не указан')
+            }
+
+            for i, cargo_item in enumerate(cargo_items):
+                type_number = f"{i+1:02d}"  # 01, 02, 03...
+                individual_items = cargo_item.get("individual_items", [])
+                
+                # Применяем фильтр по типу груза
+                if cargo_type_filter and type_number != cargo_type_filter:
+                    continue
+                
+                for unit in individual_items:
+                    placement_status = unit.get("placement_status", "awaiting_placement")
+                    
+                    # Применяем фильтр по статусу
+                    if status_filter:
+                        if status_filter == "placed" and placement_status != "placed":
+                            continue
+                        elif status_filter == "awaiting" and placement_status != "awaiting_placement":
+                            continue
+                    
+                    # Создаем individual unit карточку
+                    individual_unit = {
+                        "individual_number": unit.get("individual_number", f"{cargo.get('cargo_number')}/{type_number}/{unit.get('unit_index', '01')}"),
+                        "cargo_request_number": cargo.get("cargo_number"),
+                        "cargo_id": cargo.get("id"),
+                        "cargo_name": cargo_item.get("cargo_name", "Неизвестный груз"),
+                        "type_number": type_number,
+                        "unit_index": unit.get("unit_index", "01"),
+                        "placement_status": placement_status,
+                        "weight": cargo_item.get("weight", 0),
+                        "is_placed": unit.get("is_placed", False),
+                        "placement_info": unit.get("placement_info"),
+                        
+                        # Информация о заявке
+                        "sender_full_name": cargo.get("sender_full_name", "Неизвестно"),
+                        "recipient_full_name": cargo.get("recipient_full_name", "Неизвестно"),
+                        "recipient_address": cargo.get("recipient_address", "Неизвестно"),
+                        "delivery_method": cargo.get("delivery_method", "pickup"),
+                        "payment_method": cargo.get("payment_method", "cash"),
+                        "created_at": cargo.get("created_at"),
+                        
+                        # Информация о складе и операторе
+                        "warehouse_name": warehouse_info.get("name", "Неизвестен"),
+                        "warehouse_id": cargo.get("warehouse_id"),
+                        "accepting_operator": accepting_operator_info
+                    }
+                    
+                    individual_units.append(individual_unit)
+
+        # Сортировка по номеру заявки (как запросил пользователь)
+        individual_units.sort(key=lambda x: x["cargo_request_number"] or "")
+        
+        # Применяем пагинацию
+        total_units = len(individual_units)
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        paginated_units = individual_units[start_idx:end_idx]
+        
+        # Группируем по заявкам для frontend
+        grouped_units = {}
+        for unit in paginated_units:
+            request_number = unit["cargo_request_number"]
+            if request_number not in grouped_units:
+                grouped_units[request_number] = {
+                    "request_number": request_number,
+                    "sender_name": unit["sender_full_name"],
+                    "recipient_name": unit["recipient_full_name"],
+                    "warehouse_name": unit["warehouse_name"],
+                    "total_units": 0,
+                    "placed_units": 0,
+                    "units": []
+                }
+            
+            grouped_units[request_number]["units"].append(unit)
+            grouped_units[request_number]["total_units"] += 1
+            if unit["is_placed"]:
+                grouped_units[request_number]["placed_units"] += 1
+
+        print(f"✅ Сформировано {total_units} individual units, сгруппировано по {len(grouped_units)} заявкам")
+
+        return {
+            "items": list(grouped_units.values()),
+            "individual_units": paginated_units,  # Плоский список для совместимости
+            "total": total_units,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": (total_units + per_page - 1) // per_page
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка получения individual units: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка получения individual units для размещения: {str(e)}"
+        )
+
 @app.get("/api/operator/cargo/{cargo_id}/placement-status")
 async def get_cargo_placement_status(
     cargo_id: str,
