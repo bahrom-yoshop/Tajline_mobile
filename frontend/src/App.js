@@ -33358,18 +33358,43 @@ function App() {
                   
                   <div>
                     <span className="font-medium text-gray-600">Общий прогресс:</span>
-                    <p className="font-bold text-blue-600 text-lg">
-                      {placementDetails.placement_progress}
-                    </p>
-                    <p className={`text-sm ${
-                      placementDetails.overall_status === 'fully_placed' ? 'text-green-600' :
-                      placementDetails.overall_status === 'partially_placed' ? 'text-yellow-600' :
-                      'text-red-600'
-                    }`}>
-                      {placementDetails.overall_status === 'fully_placed' ? '✅ Полностью размещено' :
-                       placementDetails.overall_status === 'partially_placed' ? '🔄 Частично размещено' :
-                       '⏳ Ждёт размещение'}
-                    </p>
+                    {(() => {
+                      // ИСПРАВЛЕНИЕ: Пересчитываем прогресс на основе фактических individual_units
+                      let totalUnits = 0;
+                      let placedUnits = 0;
+                      
+                      (placementDetails.cargo_types || []).forEach(cargoType => {
+                        if (cargoType.individual_units && cargoType.individual_units.length > 0) {
+                          totalUnits += cargoType.individual_units.length;
+                          placedUnits += cargoType.individual_units.filter(unit => unit.is_placed === true).length;
+                        } else {
+                          // Fallback к quantity если individual_units нет
+                          totalUnits += cargoType.quantity || 0;
+                          placedUnits += cargoType.placed_count || 0;
+                        }
+                      });
+                      
+                      const progressText = `${placedUnits}/${totalUnits}`;
+                      const overallStatus = totalUnits > 0 && placedUnits === totalUnits ? 'fully_placed' : 
+                                           placedUnits > 0 ? 'partially_placed' : 'pending';
+                      
+                      return (
+                        <>
+                          <p className="font-bold text-blue-600 text-lg">
+                            {progressText}
+                          </p>
+                          <p className={`text-sm ${
+                            overallStatus === 'fully_placed' ? 'text-green-600' :
+                            overallStatus === 'partially_placed' ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            {overallStatus === 'fully_placed' ? '✅ Полностью размещено' :
+                             overallStatus === 'partially_placed' ? '🔄 Частично размещено' :
+                             '⏳ Ждёт размещение'}
+                          </p>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
