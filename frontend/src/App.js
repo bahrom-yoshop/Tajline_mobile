@@ -10898,6 +10898,59 @@ function App() {
     }
   };
 
+  const handleRemoveCargoFromCell = async (cargo) => {
+    if (!cargo || !cargo.individual_number) {
+      showAlert('Ошибка: не найден индивидуальный номер груза', 'error');
+      return;
+    }
+
+    // Подтверждение удаления
+    const confirmRemove = window.confirm(
+      `Вы уверены, что хотите удалить груз из ячейки?\n\n` +
+      `Груз: ${cargo.cargo_number}\n` +
+      `Индивидуальный номер: ${cargo.individual_number}\n` +
+      `Ячейка: ${cargo.placement_location}\n` +
+      `Получатель: ${cargo.recipient_full_name}\n\n` +
+      `Груз будет возвращен в список для повторного размещения.`
+    );
+    
+    if (!confirmRemove) {
+      return;
+    }
+
+    try {
+      console.log('🗑️ Удаление груза из ячейки:', cargo.individual_number);
+      
+      // Отправляем запрос на удаление груза из ячейки
+      const response = await apiCall(`/api/operator/cargo/remove-from-cell`, 'POST', {
+        individual_number: cargo.individual_number,
+        cargo_number: cargo.cargo_number,
+        reason: 'Удалено оператором через схему склада'
+      });
+      
+      if (response.success) {
+        showAlert(`Груз ${cargo.cargo_number} успешно удален из ячейки ${cargo.placement_location}!`, 'success');
+        
+        // Закрываем модальное окно
+        setCargoDetailsModal(false);
+        setSelectedCargoForDetailView(null);
+        
+        // Обновляем схему склада
+        if (selectedWarehouseForLayout) {
+          await fetchWarehouseLayoutWithCargo(selectedWarehouseForLayout.id || selectedWarehouseForLayout);
+        }
+        
+        console.log('✅ Груз успешно удален из ячейки и схема склада обновлена');
+      } else {
+        showAlert(`Ошибка удаления груза: ${response.message || 'Неизвестная ошибка'}`, 'error');
+      }
+      
+    } catch (error) {
+      console.error('❌ Ошибка при удалении груза из ячейки:', error);
+      showAlert(`Ошибка удаления груза: ${error.message}`, 'error');
+    }
+  };
+
   const handleCleanupTestData = async () => {
     if (!confirm('⚠️ ВНИМАНИЕ!\n\nЭто действие удалит ВСЕ тестовые данные из системы:\n- Тестовых пользователей\n- Тестовые грузы и заявки\n- Связанные уведомления\n- Данные о ячейках\n\nДействие НЕОБРАТИМО!\n\nВы уверены, что хотите продолжить?')) {
       return;
