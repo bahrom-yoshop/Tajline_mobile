@@ -39,7 +39,7 @@ import os
 from datetime import datetime
 
 # Конфигурация
-BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://tajline-cargo-8.preview.emergentagent.com')
+BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://placement-view.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 # Тестовые данные оператора склада

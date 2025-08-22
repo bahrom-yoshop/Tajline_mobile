@@ -24,7 +24,7 @@ import sys
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://tajline-cargo-8.preview.emergentagent.com/api"
+BACKEND_URL = "https://placement-view.preview.emergentagent.com/api"
 
 def test_cargo_items_in_api_response():
     """

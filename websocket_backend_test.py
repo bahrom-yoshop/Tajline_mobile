@@ -24,7 +24,7 @@ import os
 import sys
 
 # Configuration
-BACKEND_URL = "https://tajline-cargo-8.preview.emergentagent.com"
+BACKEND_URL = "https://placement-view.preview.emergentagent.com"
 API_BASE = f"{BACKEND_URL}/api"
 WS_BASE = BACKEND_URL.replace("https://", "wss://").replace("http://", "ws://")
 

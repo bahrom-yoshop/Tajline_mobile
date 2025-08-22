@@ -7,7 +7,7 @@ import requests
 import json
 
 def test_placed_cargo():
-    base_url = "https://tajline-cargo-8.preview.emergentagent.com"
+    base_url = "https://placement-view.preview.emergentagent.com"
     
     # Login as operator
     login_data = {
