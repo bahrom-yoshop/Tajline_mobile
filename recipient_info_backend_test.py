@@ -20,7 +20,7 @@ class RecipientInfoTester:
                         self.base_url = line.split('=')[1].strip()
                         break
         except:
-            self.base_url = "https://placement-manager.preview.emergentagent.com"
+            self.base_url = "https://tajline-cargo-7.preview.emergentagent.com"
         
         self.api_base = f"{self.base_url}/api"
         self.tokens = {}

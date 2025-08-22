@@ -11,7 +11,7 @@ import sys
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://placement-manager.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-cargo-7.preview.emergentagent.com/api"
 
 def test_final_qr_diagnosis():
     """
