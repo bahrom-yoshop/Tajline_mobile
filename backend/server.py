@@ -6869,20 +6869,20 @@ async def get_cargo_placement_status(
                             'placed_by': cargo.get('placed_by_operator')
                         }
                         placed_count += 1
-                
-                # Определяем статус конкретной единицы
-                unit_status = 'placed' if is_placed else 'awaiting_placement'
-                unit_status_label = 'Размещено' if is_placed else 'Ждёт размещение'
-                
-                individual_units.append({
-                    'individual_number': individual_number,
-                    'type_number': type_number,
-                    'unit_index': str(unit_index).zfill(2),  # ИСПРАВЛЕНИЕ: unit_index как строка с ведущими нулями
-                    'is_placed': is_placed,
-                    'placement_info': placement_info,
-                    'status': unit_status,
-                    'status_label': unit_status_label
-                })
+                    
+                    # Определяем статус конкретной единицы
+                    unit_status = 'placed' if is_placed else 'awaiting_placement'
+                    unit_status_label = 'Размещено' if is_placed else 'Ждёт размещение'
+                    
+                    individual_units.append({
+                        'individual_number': individual_number,
+                        'type_number': type_number,
+                        'unit_index': str(unit_index).zfill(2),
+                        'is_placed': is_placed,
+                        'placement_info': placement_info,
+                        'status': unit_status,
+                        'status_label': unit_status_label
+                    })
             
             # Определяем статус всего типа груза
             if placed_count == 0:
