@@ -16442,7 +16442,7 @@ function App() {
         subsections: [
           { id: 'operations-search', label: 'Поиск груза' },
           { id: 'operations-qr-generate', label: 'Генерация QR кодов' },
-          { id: 'operations-placement', label: 'Размещение' },
+          { id: 'operations-placement', label: 'Размещение груз' },
           { id: 'operations-receive', label: 'Приём груза' }
         ]
       },
