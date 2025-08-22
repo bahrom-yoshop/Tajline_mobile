@@ -7797,6 +7797,126 @@ async def quick_cargo_placement(
         "placed_by": current_user.full_name
     }
 
+@app.post("/api/admin/force-create-placement-record")
+async def force_create_placement_record(
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """ЭКСТРЕННОЕ ИСПРАВЛЕНИЕ: Принудительное создание placement_record"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    individual_number = request.get("individual_number")
+    cargo_number = request.get("cargo_number")
+    location = request.get("location")  # Например: "Б1-П3-Я3"
+    
+    if not all([individual_number, cargo_number, location]):
+        raise HTTPException(status_code=400, detail="Missing required fields")
+    
+    # Получаем warehouse_id оператора
+    operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+    if not operator_warehouse_ids:
+        raise HTTPException(status_code=400, detail="Оператор не привязан к складу")
+    
+    warehouse_id = operator_warehouse_ids[0]
+    
+    # Парсим location
+    try:
+        if location.startswith('Б'):
+            parts = location.split('-')
+            if len(parts) >= 3:
+                block_number = int(parts[0][1:])  # Убираем "Б"
+                shelf_number = int(parts[1][1:])  # Убираем "П"
+                cell_number = int(parts[2][1:])   # Убираем "Я"
+                location_code = f"B{block_number}-S{shelf_number}-C{cell_number}"
+            else:
+                raise HTTPException(status_code=400, detail=f"Неверный формат location: {location}")
+        else:
+            raise HTTPException(status_code=400, detail=f"Неподдерживаемый формат location: {location}")
+            
+    except (ValueError, IndexError) as e:
+        raise HTTPException(status_code=400, detail=f"Ошибка парсинга location: {location}: {e}")
+    
+    # Получаем информацию о складе
+    warehouse = db.warehouses.find_one({"id": warehouse_id})
+    warehouse_name = warehouse.get("name", "Unknown") if warehouse else "Unknown"
+    
+    # Парсим individual_number: 25082235/01/01
+    parts = individual_number.split('/')
+    if len(parts) != 3:
+        raise HTTPException(status_code=400, detail=f"Неверный формат individual_number: {individual_number}")
+        
+    try:
+        type_index = int(parts[1])
+        unit_index = int(parts[2])
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Ошибка парсинга индексов в individual_number: {individual_number}")
+    
+    # Проверяем существует ли уже placement_record
+    existing_record = db.placement_records.find_one({"individual_number": individual_number})
+    if existing_record:
+        return {
+            "success": False,
+            "message": f"placement_record уже существует для {individual_number}",
+            "existing_record": serialize_mongo_document(existing_record)
+        }
+    
+    # Создаем placement_record
+    placement_record = {
+        "individual_number": individual_number,
+        "cargo_number": cargo_number,
+        "type_index": type_index,
+        "unit_index": unit_index,
+        "cargo_id": cargo_number,
+        "warehouse_id": warehouse_id,
+        "warehouse_name": warehouse_name,
+        "location_code": location_code,
+        "location": location,
+        "block_number": block_number,
+        "shelf_number": shelf_number,
+        "cell_number": cell_number,
+        "placed_at": datetime.utcnow(),
+        "placed_by_operator": current_user.full_name,
+        "placed_by_operator_id": current_user.id,
+        "placed_by": current_user.full_name,
+        "status": "placed",
+        "force_created": True,
+        "force_created_at": datetime.utcnow()
+    }
+    
+    # Сохраняем placement_record
+    try:
+        db.placement_records.insert_one(placement_record)
+        
+        # Обновляем статус в operator_cargo
+        update_result = db.operator_cargo.update_one(
+            {"cargo_number": cargo_number, "cargo_items.individual_items.individual_number": individual_number},
+            {
+                "$set": {
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].is_placed": True,
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placement_info": f"📍 {location}",
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_at": datetime.utcnow(),
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_by_operator": current_user.full_name,
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_by_operator_id": current_user.id,
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].status": "placed"
+                }
+            },
+            array_filters=[
+                {"cargo_item.individual_items": {"$exists": True}},
+                {"individual_item.individual_number": individual_number}
+            ]
+        )
+        
+        return {
+            "success": True,
+            "message": f"placement_record принудительно создан для {individual_number}",
+            "placement_record": serialize_mongo_document(placement_record),
+            "operator_cargo_updated": update_result.modified_count > 0
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка создания placement_record: {e}")
+
 @app.get("/api/admin/fix-missing-placement-records")
 async def fix_missing_placement_records(current_user: User = Depends(get_current_user)):
     """ЭКСТРЕННОЕ ИСПРАВЛЕНИЕ: Создание отсутствующих placement_records для размещенных грузов"""
