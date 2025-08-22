@@ -34037,6 +34037,85 @@ function App() {
                 </div>
               )}
 
+              {/* НОВОЕ: Детальный список грузов с размещением */}
+              {selectedCargoForDetails.cargo_items && selectedCargoForDetails.cargo_items.length > 0 && (
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
+                  <h4 className="font-medium mb-3 text-gray-800 flex items-center">
+                    <Package className="mr-2 h-5 w-5 text-blue-600" />
+                    Список грузов с размещением
+                  </h4>
+                  <div className="space-y-4">
+                    {selectedCargoForDetails.cargo_items.map((cargoItem, itemIndex) => (
+                      <div key={itemIndex} className="bg-white p-4 rounded-lg border border-blue-200">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h5 className="font-semibold text-lg text-blue-700">
+                              📦 {cargoItem.cargo_name || 'Груз без названия'}
+                            </h5>
+                            <p className="text-sm text-gray-600">
+                              Вес: {cargoItem.weight || 'Не указан'} кг • 
+                              Сумма: {cargoItem.total_amount || 'Не указана'} ₽ •
+                              Количество: {cargoItem.quantity || 1} шт
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Individual units для каждого груза */}
+                        {cargoItem.individual_items && cargoItem.individual_items.length > 0 && (
+                          <div className="mt-3">
+                            <h6 className="font-medium text-sm text-gray-700 mb-2">Единицы груза:</h6>
+                            <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                              {cargoItem.individual_items.map((unit, unitIndex) => (
+                                <div key={unitIndex} className={`p-3 rounded-lg border-2 ${
+                                  unit.is_placed ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
+                                }`}>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="font-mono text-xs font-semibold">
+                                      {unit.individual_number}
+                                    </span>
+                                    <Badge variant={unit.is_placed ? "success" : "secondary"} className={
+                                      unit.is_placed ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                                    }>
+                                      {unit.is_placed ? 'Размещено' : 'Ждет размещения'}
+                                    </Badge>
+                                  </div>
+                                  
+                                  {unit.is_placed && unit.placement_info ? (
+                                    <div className="text-center">
+                                      <div className="font-bold text-lg text-blue-700 bg-blue-100 px-3 py-2 rounded-md mb-2">
+                                        Б{unit.placement_info.block_number || '?'}-П{unit.placement_info.shelf_number || '?'}-Я{unit.placement_info.cell_number || '?'}
+                                      </div>
+                                      <div className="text-xs text-gray-600 space-y-1">
+                                        <div>🏭 {unit.placement_info.warehouse_name || 'Склад не указан'}</div>
+                                        {unit.placement_info.placed_at && (
+                                          <div>🕒 {new Date(unit.placement_info.placed_at).toLocaleString('ru-RU')}</div>
+                                        )}
+                                        {unit.placement_info.placed_by && (
+                                          <div>👤 {unit.placement_info.placed_by}</div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="text-center">
+                                      <div className="font-bold text-lg text-gray-500 bg-gray-100 px-3 py-2 rounded-md mb-2">
+                                        Б?-П?-Я?
+                                      </div>
+                                      <div className="text-xs text-gray-500">
+                                        Ждет размещения
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Действия для всей заявки */}
               <div className="bg-purple-50 p-4 rounded-lg">
                 <h4 className="font-medium mb-3 text-gray-800">🔧 Действия с заявкой</h4>
