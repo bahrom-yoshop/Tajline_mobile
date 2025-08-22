@@ -419,9 +419,8 @@ def test_real_cargo_display(layout_data):
         return False
     
     try:
-        statistics = layout_data.get("statistics", {})
-        occupied_cells = statistics.get("occupied_cells", 0)
-        total_cargo = statistics.get("total_cargo", 0)
+        occupied_cells = layout_data.get("occupied_cells", 0)
+        total_cargo = layout_data.get("total_cargo", 0)
         
         if occupied_cells == 0 and total_cargo == 0:
             log_test_result(
