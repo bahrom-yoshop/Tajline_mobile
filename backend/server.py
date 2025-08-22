@@ -6741,6 +6741,131 @@ async def remove_cargo_from_cell(
             detail=f"Ошибка удаления груза из ячейки: {str(e)}"
         )
 
+@app.post("/api/admin/reconstruct-placement-records")
+async def reconstruct_placement_records(current_user: User = Depends(get_current_user)):
+    """
+    Восстановление отсутствующих placement_records на основе размещенных individual_items
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can run migrations")
+    
+    try:
+        reconstructed_count = 0
+        processed_count = 0
+        
+        # Ищем все заявки с размещенными грузами
+        placed_cargos = list(db.operator_cargo.find({
+            "cargo_items.individual_items.is_placed": True
+        }))
+        
+        for cargo in placed_cargos:
+            processed_count += 1
+            cargo_number = cargo.get("cargo_number")
+            
+            # Получаем склад для этого оператора
+            warehouse = None
+            if cargo.get("warehouse_id"):
+                warehouse = db.warehouses.find_one({"id": cargo["warehouse_id"]})
+            
+            # Если нет конкретного склада, найдем первый доступный
+            if not warehouse:
+                warehouse = db.warehouses.find_one({"is_active": True})
+            
+            if not warehouse:
+                continue
+                
+            # Проходим по всем cargo_items и их individual_items
+            for cargo_item in cargo.get("cargo_items", []):
+                for individual_item in cargo_item.get("individual_items", []):
+                    if individual_item.get("is_placed"):
+                        individual_number = individual_item.get("individual_number")
+                        
+                        # Проверяем, есть ли уже запись placement_record
+                        existing_record = db.placement_records.find_one({
+                            "individual_number": individual_number,
+                            "cargo_number": cargo_number
+                        })
+                        
+                        if not existing_record:
+                            # Восстанавливаем местоположение из placement_info
+                            placement_info = individual_item.get("placement_info")
+                            location = None
+                            block_num = shelf_num = cell_num = 1  # Значения по умолчанию
+                            
+                            if placement_info:
+                                # Парсим placement_info в различных форматах
+                                if placement_info.startswith("Б"):
+                                    # Формат "Б1-П2-Я9"
+                                    parts = placement_info.split("-")
+                                    if len(parts) >= 3:
+                                        block_num = int(parts[0][1:])
+                                        shelf_num = int(parts[1][1:])
+                                        cell_num = int(parts[2][1:])
+                                        location = placement_info
+                                elif placement_info.startswith("B"):
+                                    # Формат "B1-S2-C9"
+                                    parts = placement_info.split("-")
+                                    if len(parts) >= 3:
+                                        block_num = int(parts[0][1:])
+                                        shelf_num = int(parts[1][1:])
+                                        cell_num = int(parts[2][1:])
+                                        location = f"Б{block_num}-П{shelf_num}-Я{cell_num}"
+                                elif "-" in placement_info:
+                                    # Числовой формат "1-2-9"
+                                    parts = placement_info.split("-")
+                                    if len(parts) >= 3:
+                                        block_num = int(parts[0])
+                                        shelf_num = int(parts[1])
+                                        cell_num = int(parts[2])
+                                        location = f"Б{block_num}-П{shelf_num}-Я{cell_num}"
+                            
+                            # Если не удалось распарсить, используем значения по умолчанию
+                            if not location:
+                                location = f"Б{block_num}-П{shelf_num}-Я{cell_num}"
+                            
+                            # Создаем новую запись placement_record
+                            placement_record = {
+                                "individual_number": individual_number,
+                                "cargo_number": cargo_number,
+                                "cargo_id": cargo.get("id"),
+                                "warehouse_id": warehouse["id"],
+                                "warehouse_name": warehouse["name"],
+                                "location": location,
+                                "location_code": f"B{block_num}-S{shelf_num}-C{cell_num}",
+                                "block_number": block_num,
+                                "shelf_number": shelf_num,
+                                "cell_number": cell_num,
+                                "placed_at": individual_item.get("placed_at", datetime.utcnow()),
+                                "placed_by_operator": individual_item.get("placed_by_operator", "System Migration"),
+                                "placed_by_operator_id": individual_item.get("placed_by_operator_id"),
+                                "placed_by": individual_item.get("placed_by_operator", "System Migration"),
+                                "status": "placed",
+                                "reconstructed": True,
+                                "reconstructed_at": datetime.utcnow()
+                            }
+                            
+                            # Сохраняем запись
+                            db.placement_records.insert_one(placement_record)
+                            reconstructed_count += 1
+        
+        return {
+            "success": True,
+            "message": f"Placement records reconstruction completed",
+            "processed_cargos": processed_count,
+            "reconstructed_records": reconstructed_count,
+            "details": {
+                "searched_in": "operator_cargo collection",
+                "filter_criteria": "cargo_items.individual_items.is_placed = True",
+                "reconstruction_method": "Based on placement_info field"
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Reconstruction failed: {str(e)}"
+        )
+
 @app.post("/api/admin/migrate-placement-records")
 async def migrate_placement_records(current_user: User = Depends(get_current_user)):
     """
