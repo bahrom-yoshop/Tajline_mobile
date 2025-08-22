@@ -6787,27 +6787,63 @@ async def get_cargo_placement_status(
                 'total_amount': cargo.get('declared_value', 0)
             }]
         
-        # НОВОЕ: Обрабатываем каждый тип груза с индивидуальными номерами
+        # ИСПРАВЛЕНИЕ: Обрабатываем каждый тип груза с использованием фактических individual_items
         detailed_items = []
         for type_index, item in enumerate(cargo_items, 1):
             # Базовый номер типа груза: 250101/01, 250101/02
             type_number = f"{cargo_number}/{str(type_index).zfill(2)}"
             quantity = item.get('quantity', 1)
             
-            # НОВОЕ: Создаем список индивидуальных единиц груза
+            # ИСПРАВЛЕНИЕ: Используем фактические individual_items если они есть
             individual_units = []
             placed_count = 0
             
-            for unit_index in range(1, quantity + 1):
-                # Индивидуальный номер: 250101/01/01, 250101/01/02
-                individual_number = f"{type_number}/{str(unit_index).zfill(2)}"
-                
-                # Проверяем размещение конкретной единицы груза
-                placement_info = None
-                is_placed = False
-                
-                # Проверяем размещение в коллекции placement_records (если существует)
-                if hasattr(db, 'placement_records'):
+            existing_individual_items = item.get('individual_items', [])
+            if existing_individual_items:
+                # Используем существующие individual_items с их статусом is_placed
+                for unit in existing_individual_items:
+                    individual_number = unit.get('individual_number')
+                    is_placed = unit.get('is_placed', False)
+                    
+                    # Получаем информацию о размещении из placement_records
+                    placement_info = None
+                    if is_placed:
+                        placement_record = db.placement_records.find_one({"individual_number": individual_number})
+                        if placement_record:
+                            placement_info = {
+                                'warehouse_location': placement_record.get('warehouse_location'),
+                                'block_number': placement_record.get('block_number'),
+                                'shelf_number': placement_record.get('shelf_number'),
+                                'cell_number': placement_record.get('cell_number'),
+                                'placed_at': placement_record.get('placed_at'),
+                                'placed_by': placement_record.get('placed_by_operator')
+                            }
+                        placed_count += 1
+                    
+                    # Определяем статус конкретной единицы
+                    unit_status = 'placed' if is_placed else 'awaiting_placement'
+                    unit_status_label = 'Размещено' if is_placed else 'Ждёт размещение'
+                    
+                    individual_units.append({
+                        'individual_number': individual_number,
+                        'type_number': type_number,
+                        'unit_index': individual_number.split('/')[-1] if '/' in individual_number else '01',
+                        'is_placed': is_placed,
+                        'placement_info': placement_info,
+                        'status': unit_status,
+                        'status_label': unit_status_label
+                    })
+            else:
+                # Fallback: генерируем individual_units на основе quantity (старая логика)
+                for unit_index in range(1, quantity + 1):
+                    # Индивидуальный номер: 250101/01/01, 250101/01/02
+                    individual_number = f"{type_number}/{str(unit_index).zfill(2)}"
+                    
+                    # Проверяем размещение конкретной единицы груза
+                    placement_info = None
+                    is_placed = False
+                    
+                    # Проверяем размещение в коллекции placement_records
                     placement_record = db.placement_records.find_one({"individual_number": individual_number})
                     if placement_record:
                         is_placed = True
@@ -6820,14 +6856,14 @@ async def get_cargo_placement_status(
                             'placed_by': placement_record.get('placed_by_operator')
                         }
                         placed_count += 1
-                
-                # Если нет placement_records, проверяем основные поля груза (для совместимости)
-                if not is_placed and cargo.get('warehouse_location') and unit_index == 1:
-                    is_placed = True
-                    placement_info = {
-                        'warehouse_location': cargo.get('warehouse_location'),
-                        'block_number': cargo.get('block_number'),
-                        'shelf_number': cargo.get('shelf_number'),
+                    
+                    # Если нет placement_records, проверяем основные поля груза (для совместимости)
+                    elif cargo.get('warehouse_location') and unit_index == 1:
+                        is_placed = True
+                        placement_info = {
+                            'warehouse_location': cargo.get('warehouse_location'),
+                            'block_number': cargo.get('block_number'),
+                            'shelf_number': cargo.get('shelf_number'),
                         'cell_number': cargo.get('cell_number'),
                         'placed_at': cargo.get('updated_at'),
                         'placed_by': cargo.get('placed_by_operator')
