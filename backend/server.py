@@ -2813,42 +2813,40 @@ async def get_fully_placed_cargo_requests(
         fully_placed_requests = []
         
         for cargo in all_cargo:
-            # Подсчитываем общее количество единиц в заявке
-            total_units = 0
-            cargo_items = cargo.get('cargo_items', [])
+            # Получаем individual_items из cargo документа
+            individual_items = cargo.get('individual_items', [])
             
-            for item in cargo_items:
-                quantity = item.get('quantity', 1)
-                total_units += quantity
+            if not individual_items:
+                # Если нет individual_items, пропускаем эту заявку
+                continue
             
-            # Подсчитываем размещенные единицы для этой заявки
-            placed_units = db.placement_records.count_documents({"cargo_number": cargo["cargo_number"]})
+            # Подсчитываем общее количество единиц и размещенные единицы из individual_items
+            total_units = len(individual_items)
+            placed_units = sum(1 for item in individual_items if item.get('is_placed', False))
             
             # Если все единицы размещены (5/5, 10/10, и т.д.)
             if total_units > 0 and placed_units >= total_units:
-                # Получаем детальную информацию о размещении
-                placement_records = list(db.placement_records.find({"cargo_number": cargo["cargo_number"]}))
-                
-                # Создаем individual units для этой заявки
+                # Создаем individual units из individual_items
                 individual_units = []
-                for record in placement_records:
-                    individual_units.append({
-                        "individual_number": record["individual_number"],
-                        "type_number": record["type_index"],
-                        "unit_index": record["unit_index"],
-                        "is_placed": True,
-                        "placement_info": record["location_code"],
-                        "placed_by": record["placed_by_operator"],
-                        "placed_at": record["placed_at"].isoformat() if record.get("placed_at") else None,
-                        "warehouse_name": record.get("warehouse_name", "Неизвестный склад")
-                    })
+                for item in individual_items:
+                    if item.get('is_placed', False):
+                        individual_units.append({
+                            "individual_number": item.get("individual_number", ""),
+                            "type_number": item.get("type_index", 0),
+                            "unit_index": item.get("unit_index", 0),
+                            "is_placed": True,
+                            "placement_info": item.get("placement_info", "Не указано"),
+                            "placed_by": item.get("placed_by_operator", "Неизвестно"),
+                            "placed_at": item.get("placed_at", "").isoformat() if isinstance(item.get("placed_at"), datetime) else item.get("placed_at"),
+                            "warehouse_name": item.get("warehouse_name", "Неизвестный склад")
+                        })
                 
                 # Добавляем заявку в список полностью размещенных
                 cargo_info = {
                     "id": cargo["id"],
                     "cargo_number": cargo["cargo_number"],
                     "request_number": cargo["cargo_number"],
-                    "cargo_name": cargo_items[0].get('cargo_name', 'Груз без названия') if cargo_items else 'Груз без названия',
+                    "cargo_name": individual_items[0].get('cargo_name', 'Груз без названия') if individual_items else 'Груз без названия',
                     # Данные отправителя
                     "sender_full_name": cargo.get("sender_full_name", "Не указан"),
                     "sender_phone": cargo.get("sender_phone", "Не указан"),
