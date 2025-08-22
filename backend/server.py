@@ -7472,8 +7472,8 @@ async def get_warehouse_layout_with_cargo(
     
     # Проверяем доступ к складу
     if current_user.role == UserRole.WAREHOUSE_OPERATOR:
-        operator_warehouses = get_operator_warehouses(current_user.id)
-        if warehouse_id not in operator_warehouses:
+        operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+        if warehouse_id not in operator_warehouse_ids:
             raise HTTPException(status_code=403, detail="Access denied to this warehouse")
     
     # Получаем информацию о складе
