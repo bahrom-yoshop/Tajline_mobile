@@ -7484,77 +7484,88 @@ async def get_warehouse_layout_with_cargo(
     # Получаем все ячейки склада с грузами
     warehouse_cells = list(db.warehouse_cells.find({"warehouse_id": warehouse_id}))
     
-    # Получаем все грузы, размещенные на этом складе
-    cargo_in_warehouse = list(db.operator_cargo.find({
-        "warehouse_id": warehouse_id,
-        "warehouse_location": {"$ne": None}
-    }))
+    # ВАЖНО: Получаем реальные грузы, размещенные через сканирование QR-кодов (placement_records)
+    # а не просто по полю warehouse_location
+    placement_records = list(db.placement_records.find({"warehouse_id": warehouse_id}))
     
-    # Также ищем в коллекции cargo
-    user_cargo_in_warehouse = list(db.cargo.find({
-        "warehouse_id": warehouse_id,
-        "warehouse_location": {"$ne": None}
-    }))
-    
-    cargo_in_warehouse.extend(user_cargo_in_warehouse)
-    
-    # Создаем карту грузов по ячейкам
+    # Создаем карту грузов по ячейкам на основе placement_records
     cargo_by_location = {}
-    for cargo in cargo_in_warehouse:
-        location = cargo.get('warehouse_location')
-        if location and location != "Склад для грузов":  # Игнорируем общие локации
-            # Парсинг различных форматов местоположения
-            block_num = shelf_num = cell_num = None
+    
+    for record in placement_records:
+        # Получаем информацию о грузе из placement_record
+        cargo_number = record.get("cargo_number")
+        individual_number = record.get("individual_number")
+        location = record.get("location")
+        
+        if not location or not cargo_number:
+            continue
             
-            try:
-                # Формат "Б1-П2-Я15" (кириллица)
-                if location.startswith('Б'):
-                    parts = location.split('-')
-                    if len(parts) >= 3:
-                        block_num = int(parts[0][1:])  # Убираем "Б" и берем число
-                        shelf_num = int(parts[1][1:])  # Убираем "П" и берем число
-                        cell_num = int(parts[2][1:])   # Убираем "Я" и берем число
+        # Получаем полную информацию о грузе
+        cargo = db.operator_cargo.find_one({"cargo_number": cargo_number})
+        if not cargo:
+            cargo = db.cargo.find_one({"cargo_number": cargo_number})
+        
+        if not cargo:
+            continue
+            
+        # Парсинг различных форматов местоположения из placement_records
+        block_num = shelf_num = cell_num = None
+        
+        try:
+            # Формат "Б1-П2-Я15" (кириллица)
+            if location.startswith('Б'):
+                parts = location.split('-')
+                if len(parts) >= 3:
+                    block_num = int(parts[0][1:])  # Убираем "Б" и берем число
+                    shelf_num = int(parts[1][1:])  # Убираем "П" и берем число
+                    cell_num = int(parts[2][1:])   # Убираем "Я" и берем число
+            
+            # Формат "B1-S1-C1" (латиница)
+            elif location.startswith('B'):
+                parts = location.split('-')
+                if len(parts) >= 3:
+                    block_num = int(parts[0][1:])  # Убираем "B" и берем число
+                    shelf_num = int(parts[1][1:])  # Убираем "S" и берем число
+                    cell_num = int(parts[2][1:])   # Убираем "C" и берем число
+            
+            # Числовой формат "1-2-15"
+            elif '-' in location:
+                parts = location.split('-')
+                if len(parts) >= 3:
+                    block_num = int(parts[0])
+                    shelf_num = int(parts[1])
+                    cell_num = int(parts[2])
+            
+            if block_num and shelf_num and cell_num:
+                location_key = f"{block_num}-{shelf_num}-{cell_num}"
                 
-                # Формат "B1-S1-C1" (латиница)
-                elif location.startswith('B'):
-                    parts = location.split('-')
-                    if len(parts) >= 3:
-                        block_num = int(parts[0][1:])  # Убираем "B" и берем число
-                        shelf_num = int(parts[1][1:])  # Убираем "S" и берем число
-                        cell_num = int(parts[2][1:])   # Убираем "C" и берем число
+                # Если в этой ячейке уже есть груз, добавляем к списку
+                if location_key not in cargo_by_location:
+                    cargo_by_location[location_key] = []
                 
-                # Числовой формат "1-2-15"
-                elif '-' in location:
-                    parts = location.split('-')
-                    if len(parts) >= 3:
-                        block_num = int(parts[0])
-                        shelf_num = int(parts[1])
-                        cell_num = int(parts[2])
-                
-                if block_num and shelf_num and cell_num:
-                    location_key = f"{block_num}-{shelf_num}-{cell_num}"
-                    cargo_by_location[location_key] = {
-                        "id": cargo["id"],
-                        "cargo_number": cargo["cargo_number"],
-                        "cargo_name": cargo.get("cargo_name", "Груз"),
-                        "weight": cargo["weight"],
-                        "declared_value": cargo["declared_value"],
-                        "sender_full_name": cargo["sender_full_name"],
-                        "sender_phone": cargo["sender_phone"],
-                        "recipient_full_name": cargo["recipient_full_name"],
-                        "recipient_phone": cargo["recipient_phone"],
-                        "recipient_address": cargo["recipient_address"],
-                        "description": cargo.get("description", ""),
-                        "warehouse_location": location,
-                        "created_at": cargo["created_at"],
-                        "processing_status": cargo.get("processing_status", "placed"),
-                        "block_number": block_num,
-                        "shelf_number": shelf_num,
-                        "cell_number": cell_num
-                    }
-            except (ValueError, IndexError):
-                print(f"Warning: Could not parse warehouse location: {location}")
-                continue
+                cargo_by_location[location_key].append({
+                    "id": cargo["id"],
+                    "cargo_number": cargo["cargo_number"],
+                    "individual_number": individual_number,
+                    "cargo_name": cargo.get("cargo_name", "Груз"),
+                    "weight": cargo.get("weight", 0),
+                    "declared_value": cargo.get("declared_value", 0),
+                    "sender_full_name": cargo.get("sender_full_name", ""),
+                    "sender_phone": cargo.get("sender_phone", ""),
+                    "recipient_full_name": cargo.get("recipient_full_name", ""),
+                    "recipient_phone": cargo.get("recipient_phone", ""),
+                    "recipient_address": cargo.get("recipient_address", ""),
+                    "description": cargo.get("description", ""),
+                    "placement_location": location,
+                    "placed_at": record.get("placed_at"),
+                    "placed_by": record.get("placed_by"),
+                    "block_number": block_num,
+                    "shelf_number": shelf_num,
+                    "cell_number": cell_num
+                })
+        except (ValueError, IndexError):
+            print(f"Warning: Could not parse placement location: {location}")
+            continue
     
     # Создаем структуру склада с блоками, полками и ячейками
     blocks = {}
