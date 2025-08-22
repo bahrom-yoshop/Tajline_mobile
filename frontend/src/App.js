@@ -16474,6 +16474,7 @@ function App() {
         section: 'warehouses',
         subsections: [
           { id: 'warehouses-list', label: 'Список складов' },
+          { id: 'warehouses-placed-cargo', label: 'Размещенный груз' },
           { id: 'warehouses-create', label: 'Создать склад' },
           { id: 'warehouses-manage', label: 'Управление товарами' }
         ]
