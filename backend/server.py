@@ -7867,6 +7867,51 @@ async def quick_cargo_placement(
         "placed_by": current_user.full_name
     }
 
+@app.post("/api/admin/force-update-cargo-status")
+async def force_update_cargo_status(
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """ЭКСТРЕННОЕ ИСПРАВЛЕНИЕ: Принудительное обновление статуса груза"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    individual_number = request.get("individual_number")
+    cargo_number = request.get("cargo_number")
+    location = request.get("location")
+    
+    if not all([individual_number, cargo_number, location]):
+        raise HTTPException(status_code=400, detail="Missing required fields")
+    
+    print(f"🔧 Принудительно обновляем статус {individual_number}")
+    
+    # Обновляем статус в operator_cargo
+    update_result = db.operator_cargo.update_one(
+        {"cargo_number": cargo_number},
+        {
+            "$set": {
+                "cargo_items.$[cargoitem].individual_items.$[individualitem].is_placed": True,
+                "cargo_items.$[cargoitem].individual_items.$[individualitem].placement_info": f"📍 {location}",
+                "cargo_items.$[cargoitem].individual_items.$[individualitem].placed_at": datetime.utcnow(),
+                "cargo_items.$[cargoitem].individual_items.$[individualitem].placed_by_operator": current_user.full_name,
+                "cargo_items.$[cargoitem].individual_items.$[individualitem].placed_by_operator_id": current_user.id,
+                "cargo_items.$[cargoitem].individual_items.$[individualitem].status": "placed"
+            }
+        },
+        array_filters=[
+            {"cargoitem.individual_items": {"$exists": True}},
+            {"individualitem.individual_number": individual_number}
+        ]
+    )
+    
+    print(f"✅ Обновлено документов в operator_cargo: {update_result.modified_count}")
+    
+    return {
+        "success": True,
+        "message": f"Статус {individual_number} принудительно обновлен",
+        "modified_count": update_result.modified_count
+    }
+
 @app.post("/api/admin/cleanup-placement-records")
 async def cleanup_placement_records(current_user: User = Depends(get_current_user)):
     """ОЧИСТКА: Удаление неактуальных placement_records"""
