@@ -2849,6 +2849,15 @@ async def get_fully_placed_cargo_requests(
                     "cargo_number": cargo["cargo_number"],
                     "request_number": cargo["cargo_number"],
                     "cargo_name": cargo_items[0].get('cargo_name', 'Груз без названия') if cargo_items else 'Груз без названия',
+                    # Данные отправителя
+                    "sender_full_name": cargo.get("sender_full_name", "Не указан"),
+                    "sender_phone": cargo.get("sender_phone", "Не указан"),
+                    "sender_address": cargo.get("sender_address", "Не указан"),
+                    # Данные получателя
+                    "recipient_full_name": cargo.get("recipient_full_name", "Не указан"),
+                    "recipient_phone": cargo.get("recipient_phone", "Не указан"),
+                    "recipient_address": cargo.get("recipient_address", "Не указан"),
+                    # Информация о размещении
                     "total_units": total_units,
                     "placed_units": placed_units,
                     "progress_text": f"Размещено: {placed_units}/{total_units}",
