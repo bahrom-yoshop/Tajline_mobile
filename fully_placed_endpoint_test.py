@@ -469,7 +469,7 @@ class FullyPlacedEndpointTester:
                 self.log_test(
                     "Поле action_history",
                     True,
-                    f"action_history содержит все действия с операторами и временными метками в {items_with_correct_history}/{len(items)} заявках: cargo_accepted с оператором приема и временем, cargo_placed с оператором размещения и временем"
+                    f"action_history содержит все действия с операторами и временными метками в {items_with_correct_history}/{len(items)} заявках: cargo_accepted с оператором приема и временем"
                 )
                 return True
             else:
