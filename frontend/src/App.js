@@ -30297,7 +30297,17 @@ function App() {
                 <Button variant="outline" onClick={() => setCargoDetailsModal(false)}>
                   Закрыть
                 </Button>
-                {(selectedCargoForDetailView.processing_status === 'paid' || selectedCargoForDetailView.processing_status === 'invoice_printed') && !selectedCargoForDetailView.warehouse_location && (
+                {selectedCargoForDetailView.placement_location && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleRemoveCargoFromCell(selectedCargoForDetailView)}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Удалить из ячейки
+                  </Button>
+                )}
+                {(selectedCargoForDetailView.processing_status === 'paid' || selectedCargoForDetailView.processing_status === 'invoice_printed') && !selectedCargoForDetailView.placement_location && (
                   <Button
                     onClick={() => {
                       setCargoDetailsModal(false);
