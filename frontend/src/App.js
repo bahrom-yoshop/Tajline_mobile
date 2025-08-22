@@ -30264,15 +30264,28 @@ function App() {
                       {new Date(selectedCargoForDetailView.created_at).toLocaleTimeString('ru-RU')}
                     </p>
                   </div>
-                  {selectedCargoForDetailView.warehouse_location && (
+                  {selectedCargoForDetailView.placement_location && (
                     <>
                       <div>
-                        <p className="text-sm text-gray-600"><strong>Размещение:</strong></p>
-                        <p className="font-medium text-blue-600">{selectedCargoForDetailView.warehouse_location}</p>
+                        <p className="text-sm text-gray-600"><strong>Размещение (ячейка):</strong></p>
+                        <p className="font-medium text-blue-600">{selectedCargoForDetailView.placement_location}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600"><strong>Размещен оператором:</strong></p>
-                        <p className="font-medium">{selectedCargoForDetailView.placed_by_operator || 'Не размещен'}</p>
+                        <p className="font-medium">{selectedCargoForDetailView.placed_by || 'Не размещен'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600"><strong>Индивидуальный номер:</strong></p>
+                        <p className="font-medium">{selectedCargoForDetailView.individual_number}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600"><strong>Дата размещения:</strong></p>
+                        <p className="font-medium">
+                          {selectedCargoForDetailView.placed_at ? 
+                            new Date(selectedCargoForDetailView.placed_at).toLocaleString('ru-RU') : 
+                            'Не размещен'
+                          }
+                        </p>
                       </div>
                     </>
                   )}
