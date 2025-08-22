@@ -6466,13 +6466,15 @@ async def place_individual_cargo_unit(
             "cargo_id": cargo["id"],
             "warehouse_id": warehouse_id,
             "warehouse_name": warehouse["name"],
-            "location_code": location_code,
+            "location_code": location_code,  # B1-S1-C1 формат
+            "location": location,           # Б1-П1-Я1 формат для совместимости
             "block_number": placement_data.block_number,
             "shelf_number": placement_data.shelf_number,
             "cell_number": placement_data.cell_number,
             "placed_at": datetime.utcnow(),
             "placed_by_operator": current_user.full_name,
             "placed_by_operator_id": current_user.id,
+            "placed_by": current_user.full_name,  # Дублируем для совместимости
             "status": "placed"
         }
         
