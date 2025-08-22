@@ -5973,11 +5973,37 @@ async def get_warehouse_statistics(
             warehouse.get("cells_per_shelf", 0)
         )
         
-        # Подсчитываем занятые ячейки
-        occupied_cells = db.warehouse_cells.count_documents({
-            "warehouse_id": warehouse_id,
-            "is_occupied": True
-        })
+        # ИСПРАВЛЕНИЕ: Подсчитываем занятые ячейки на основе placement_records (реальные размещенные грузы)
+        # Получаем уникальные ячейки из placement_records
+        placement_records = list(db.placement_records.find(
+            {"warehouse_id": warehouse_id},
+            {"location_code": 1, "location": 1, "block_number": 1, "shelf_number": 1, "cell_number": 1}
+        ))
+        
+        # Создаем множество уникальных ячеек
+        unique_cells = set()
+        for record in placement_records:
+            location_code = record.get("location_code")
+            if location_code:
+                unique_cells.add(location_code)
+            else:
+                # Fallback: создаем location_code из компонентов
+                block_num = record.get("block_number", 0)
+                shelf_num = record.get("shelf_number", 0) 
+                cell_num = record.get("cell_number", 0)
+                if block_num and shelf_num and cell_num:
+                    unique_cells.add(f"{block_num}-{shelf_num}-{cell_num}")
+        
+        occupied_cells = len(unique_cells)
+        
+        # Подсчитываем общее количество размещенных грузов (individual_items) из placement_records
+        total_placed_cargo = len(placement_records)
+        
+        print(f"📊 СТАТИСТИКА СКЛАДА {warehouse_id}:")
+        print(f"   📦 placement_records найдено: {len(placement_records)}")
+        print(f"   📍 Уникальных занятых ячеек: {occupied_cells}")  
+        print(f"   🏷️ Размещенных грузов: {total_placed_cargo}")
+        print(f"   📏 Общее количество ячеек: {total_cells}")
         
         # Подсчитываем статистику
         free_cells = max(0, total_cells - occupied_cells)
