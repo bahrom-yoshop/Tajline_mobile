@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 
 # Конфигурация
-BACKEND_URL = "https://tajline-cargo-7.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-cargo-8.preview.emergentagent.com/api"
 
 # Учетные данные администратора
 ADMIN_CREDENTIALS = {

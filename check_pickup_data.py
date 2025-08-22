@@ -6,7 +6,7 @@ Check the actual pickup request data in the database
 import requests
 import json
 
-BACKEND_URL = "https://tajline-cargo-7.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-cargo-8.preview.emergentagent.com/api"
 
 WAREHOUSE_OPERATOR = {
     "phone": "+79777888999",

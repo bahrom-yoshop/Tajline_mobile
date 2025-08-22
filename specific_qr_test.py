@@ -9,7 +9,7 @@ import requests
 import json
 
 # Configuration
-BACKEND_URL = "https://tajline-cargo-7.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-cargo-8.preview.emergentagent.com/api"
 
 # Test credentials
 WAREHOUSE_OPERATOR_CREDENTIALS = {

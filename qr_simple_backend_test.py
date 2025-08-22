@@ -32,7 +32,7 @@ import re
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://tajline-cargo-7.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-cargo-8.preview.emergentagent.com/api"
 
 class QRSimpleSystemTester:
     def __init__(self):

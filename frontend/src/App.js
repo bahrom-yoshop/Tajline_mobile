@@ -34,7 +34,7 @@ import {
   Scan, Target, Circle, MousePointer, Phone, MessageSquare, Send, ExternalLink, UserX, Lock, Grid, List, RotateCw
 } from 'lucide-react';
 
-const BACKEND_URL = 'https://tajline-cargo-7.preview.emergentagent.com';
+const BACKEND_URL = 'https://tajline-cargo-8.preview.emergentagent.com';
 console.log('🔍 DEBUG: HARDCODED BACKEND_URL:', BACKEND_URL);
 
 function App() {

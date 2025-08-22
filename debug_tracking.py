@@ -7,7 +7,7 @@ import requests
 import json
 
 def debug_tracking_issue():
-    base_url = "https://tajline-cargo-7.preview.emergentagent.com"
+    base_url = "https://tajline-cargo-8.preview.emergentagent.com"
     
     # Login as admin
     admin_login = {
