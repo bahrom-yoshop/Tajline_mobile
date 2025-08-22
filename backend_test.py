@@ -708,7 +708,7 @@ def test_frontend_display_fields(layout_data):
         cargo_fields_check = []
         occupied_cells_found = 0
         
-        layout = warehouse_info.get("layout", {})
+        layout = layout_data.get("layout", {})
         blocks = layout.get("blocks", [])
         
         for block in blocks:
@@ -718,25 +718,27 @@ def test_frontend_display_fields(layout_data):
                 for cell in cells:
                     if cell.get("is_occupied", False):
                         occupied_cells_found += 1
-                        cargo_info = cell.get("cargo", {})
+                        cargo_list = cell.get("cargo", [])
                         
-                        # Проверяем обязательные поля для отображения деталей груза
-                        required_cargo_fields = [
-                            "individual_number", "cargo_number", "cargo_name", 
-                            "recipient_name", "placed_by", "placed_at"
-                        ]
-                        
-                        missing_cargo_fields = []
-                        present_cargo_fields = []
-                        
-                        for field in required_cargo_fields:
-                            if field in cargo_info and cargo_info[field]:
-                                present_cargo_fields.append(field)
-                            else:
-                                missing_cargo_fields.append(field)
-                        
-                        if missing_cargo_fields:
-                            cargo_fields_check.append(f"Ячейка {cell.get('location')}: отсутствуют поля {missing_cargo_fields}")
+                        if cargo_list:
+                            for cargo_info in cargo_list:
+                                # Проверяем обязательные поля для отображения деталей груза
+                                required_cargo_fields = [
+                                    "individual_number", "cargo_number", "cargo_name", 
+                                    "recipient_full_name", "placed_by", "placed_at"
+                                ]
+                                
+                                missing_cargo_fields = []
+                                present_cargo_fields = []
+                                
+                                for field in required_cargo_fields:
+                                    if field in cargo_info and cargo_info[field]:
+                                        present_cargo_fields.append(field)
+                                    else:
+                                        missing_cargo_fields.append(field)
+                                
+                                if missing_cargo_fields:
+                                    cargo_fields_check.append(f"Ячейка {cell.get('location_code')}: отсутствуют поля {missing_cargo_fields}")
                         
                         # Проверяем только первые 3 ячейки для краткости
                         if len(cargo_fields_check) >= 3:
