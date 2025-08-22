@@ -13595,7 +13595,7 @@ function App() {
     if (!confirmRemoval) return;
 
     try {
-      setLoading(true);
+      setNewWarehouseSchemeLoading(true);
       
       const requestData = {
         individual_number: cargoItem.individual_number,
@@ -13621,7 +13621,7 @@ function App() {
       console.error('❌ Error removing cargo from cell:', error);
       showAlert(`Ошибка удаления груза: ${error.message}`, 'error');
     } finally {
-      setLoading(false);
+      setNewWarehouseSchemeLoading(false);
     }
   };
 
