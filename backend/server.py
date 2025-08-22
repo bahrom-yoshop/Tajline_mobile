@@ -6613,6 +6613,130 @@ async def place_individual_cargo_unit(
             detail=f"Ошибка размещения индивидуальной единицы груза: {str(e)}"
         )
 
+@app.post("/api/operator/cargo/remove-from-cell")
+async def remove_cargo_from_cell(
+    request_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Удалить груз из ячейки склада
+    Удаляет запись из placement_records и сбрасывает статус is_placed в основном документе груза
+    """
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    individual_number = request_data.get("individual_number")
+    cargo_number = request_data.get("cargo_number") 
+    reason = request_data.get("reason", "Удалено оператором")
+    
+    if not individual_number or not cargo_number:
+        raise HTTPException(status_code=400, detail="Individual number and cargo number are required")
+    
+    try:
+        # Проверяем, существует ли запись о размещении
+        placement_record = db.placement_records.find_one({"individual_number": individual_number})
+        if not placement_record:
+            raise HTTPException(status_code=404, detail=f"Placement record not found for {individual_number}")
+        
+        # Проверяем доступ к складу
+        warehouse_id = placement_record.get("warehouse_id")
+        if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+            operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+            if warehouse_id not in operator_warehouse_ids:
+                raise HTTPException(status_code=403, detail="Access denied to this warehouse")
+        
+        # Удаляем запись из placement_records
+        delete_result = db.placement_records.delete_one({"individual_number": individual_number})
+        
+        if delete_result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Failed to delete placement record")
+        
+        # Сбрасываем статус is_placed в основном документе груза (operator_cargo)
+        cargo_update_result = db.operator_cargo.update_one(
+            {
+                "cargo_number": cargo_number,
+                "cargo_items.individual_items.individual_number": individual_number
+            },
+            {
+                "$set": {
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].is_placed": False,
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placement_info": None,
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_by_operator": None,
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_at": None,
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].warehouse_name": None,
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].removed_from_cell_at": datetime.utcnow(),
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].removed_by_operator": current_user.full_name,
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].removal_reason": reason
+                }
+            },
+            array_filters=[
+                {"cargo_item.individual_items.individual_number": individual_number},
+                {"individual_item.individual_number": individual_number}
+            ]
+        )
+        
+        # Если не найдено в operator_cargo, попробуем в cargo
+        if cargo_update_result.modified_count == 0:
+            cargo_update_result = db.cargo.update_one(
+                {
+                    "cargo_number": cargo_number,
+                    "cargo_items.individual_items.individual_number": individual_number
+                },
+                {
+                    "$set": {
+                        "cargo_items.$[cargo_item].individual_items.$[individual_item].is_placed": False,
+                        "cargo_items.$[cargo_item].individual_items.$[individual_item].placement_info": None,
+                        "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_by_operator": None,
+                        "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_at": None,
+                        "cargo_items.$[cargo_item].individual_items.$[individual_item].warehouse_name": None,
+                        "cargo_items.$[cargo_item].individual_items.$[individual_item].removed_from_cell_at": datetime.utcnow(),
+                        "cargo_items.$[cargo_item].individual_items.$[individual_item].removed_by_operator": current_user.full_name,
+                        "cargo_items.$[cargo_item].individual_items.$[individual_item].removal_reason": reason
+                    }
+                },
+                array_filters=[
+                    {"cargo_item.individual_items.individual_number": individual_number},
+                    {"individual_item.individual_number": individual_number}
+                ]
+            )
+        
+        # Логирование операции удаления
+        log_entry = {
+            "action": "cargo_removed_from_cell",
+            "individual_number": individual_number,
+            "cargo_number": cargo_number,
+            "warehouse_id": warehouse_id,
+            "location": placement_record.get("location", "Unknown"),
+            "removed_by": current_user.full_name,
+            "removed_by_id": current_user.id,
+            "reason": reason,
+            "timestamp": datetime.utcnow()
+        }
+        
+        # Сохраняем лог в коллекцию action_logs
+        try:
+            db.action_logs.insert_one(log_entry)
+        except Exception as log_error:
+            print(f"Warning: Failed to save action log: {log_error}")
+        
+        return {
+            "success": True,
+            "message": f"Груз {individual_number} успешно удален из ячейки {placement_record.get('location')}",
+            "individual_number": individual_number,
+            "cargo_number": cargo_number,
+            "removed_from": placement_record.get("location"),
+            "removed_by": current_user.full_name,
+            "removed_at": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка удаления груза из ячейки: {str(e)}"
+        )
+
 @app.get("/api/operator/cargo/individual-units-for-placement")
 async def get_individual_units_for_placement(
     page: int = 1,
