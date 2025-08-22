@@ -33570,10 +33570,10 @@ function App() {
                   <div>
                     <span className="font-medium text-gray-600">Способ получения:</span>
                     <p className="font-semibold text-green-600">
-                      {selectedCargoForDetails.delivery_method === 'pickup' ? '🏪 Самовывоз' :
-                       selectedCargoForDetails.delivery_method === 'city_delivery' ? '🚚 Доставка до города' :
-                       selectedCargoForDetails.delivery_method === 'home_delivery' ? '🏠 Доставка до дома' :
-                       selectedCargoForDetails.delivery_method || 'Не указан'}
+                      {placementDetails.delivery_method === 'pickup' ? '🏪 Самовывоз' :
+                       placementDetails.delivery_method === 'city_delivery' ? '🚚 Доставка до города' :
+                       placementDetails.delivery_method === 'home_delivery' ? '🏠 Доставка до дома' :
+                       placementDetails.delivery_method || 'Не указан'}
                     </p>
                   </div>
                   
@@ -33581,14 +33581,14 @@ function App() {
                   <div>
                     <span className="font-medium text-gray-600">Способ оплаты:</span>
                     <p className="font-semibold text-blue-600">
-                      {selectedCargoForDetails.payment_method === 'cash' ? '💸 Наличными' :
-                       selectedCargoForDetails.payment_method === 'card' ? '💳 Картой' :
-                       selectedCargoForDetails.payment_method === 'transfer' ? '🏦 Банковским переводом' :
-                       selectedCargoForDetails.payment_method === 'debt' ? '📋 В долг' :
-                       selectedCargoForDetails.payment_method === 'not_paid' ? '⏳ Не оплачено' :
-                       selectedCargoForDetails.payment_method === 'cash_on_delivery' ? '💰 Оплата при получении' :
-                       selectedCargoForDetails.payment_method === 'prepaid' ? '✅ Предоплата' :
-                       selectedCargoForDetails.payment_method || 'Не указан'}
+                      {placementDetails.payment_method === 'cash' ? '💸 Наличными' :
+                       placementDetails.payment_method === 'card' ? '💳 Картой' :
+                       placementDetails.payment_method === 'transfer' ? '🏦 Банковским переводом' :
+                       placementDetails.payment_method === 'debt' ? '📋 В долг' :
+                       placementDetails.payment_method === 'not_paid' ? '⏳ Не оплачено' :
+                       placementDetails.payment_method === 'cash_on_delivery' ? '💰 Оплата при получении' :
+                       placementDetails.payment_method === 'prepaid' ? '✅ Предоплата' :
+                       placementDetails.payment_method || 'Не указан'}
                     </p>
                   </div>
                   
