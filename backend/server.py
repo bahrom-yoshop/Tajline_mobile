@@ -8125,18 +8125,41 @@ async def get_warehouse_layout_with_cargo(
                 if location_key not in cargo_by_location:
                     cargo_by_location[location_key] = []
                 
+                # Получаем дополнительные данные из operator_cargo
+                recipient_name = ""
+                recipient_phone = ""
+                recipient_address = ""
+                cargo_name = "Груз"
+                weight = 0
+                declared_value = 0
+                
+                if operator_cargo_details:
+                    recipient_name = operator_cargo_details.get("recipient_full_name", "")
+                    recipient_phone = operator_cargo_details.get("recipient_phone", "")
+                    recipient_address = operator_cargo_details.get("recipient_address", "")
+                    cargo_name = operator_cargo_details.get("cargo_name", "Груз")
+                    weight = operator_cargo_details.get("weight", 0)
+                    declared_value = operator_cargo_details.get("declared_value", 0)
+                elif cargo:
+                    recipient_name = cargo.get("recipient_full_name", "")
+                    recipient_phone = cargo.get("recipient_phone", "")
+                    recipient_address = cargo.get("recipient_address", "")
+                    cargo_name = cargo.get("cargo_name") or cargo.get("name", "Груз")
+                    weight = cargo.get("weight", 0)
+                    declared_value = cargo.get("declared_value", 0)
+                
                 cargo_by_location[location_key].append({
                     "id": record.get("cargo_id", cargo_number),
                     "cargo_number": cargo_number,
                     "individual_number": individual_number,
-                    "cargo_name": record.get("cargo_name") or cargo.get("cargo_name", "Груз") if cargo else "Груз",
-                    "weight": cargo.get("weight", 0) if cargo else 0,
-                    "declared_value": cargo.get("declared_value", 0) if cargo else 0,
+                    "cargo_name": cargo_name,
+                    "weight": weight,
+                    "declared_value": declared_value,
                     "sender_full_name": cargo.get("sender_full_name", "") if cargo else "",
                     "sender_phone": cargo.get("sender_phone", "") if cargo else "",
-                    "recipient_full_name": cargo.get("recipient_full_name", "") if cargo else "",
-                    "recipient_phone": cargo.get("recipient_phone", "") if cargo else "",
-                    "recipient_address": cargo.get("recipient_address", "") if cargo else "",
+                    "recipient_full_name": recipient_name,
+                    "recipient_phone": recipient_phone,
+                    "recipient_address": recipient_address,
                     "description": cargo.get("description", "") if cargo else "",
                     "placement_location": location,
                     "placed_at": record.get("placed_at"),
