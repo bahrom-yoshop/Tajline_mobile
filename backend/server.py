@@ -6444,6 +6444,8 @@ async def place_individual_cargo_unit(
             raise HTTPException(status_code=400, detail="Invalid warehouse position")
         
         location_code = f"B{placement_data.block_number}-S{placement_data.shelf_number}-C{placement_data.cell_number}"
+        # Добавляем кириллическое представление местоположения для совместимости
+        location = f"Б{placement_data.block_number}-П{placement_data.shelf_number}-Я{placement_data.cell_number}"
         
         # Проверяем, свободна ли ячейка
         existing_cell = db.warehouse_cells.find_one({
