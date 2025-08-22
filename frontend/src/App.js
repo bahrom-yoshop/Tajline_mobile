@@ -10584,13 +10584,13 @@ function App() {
       console.log('📊 Загрузка счетчиков для бокового меню...');
       
       const counters = {
-        cargo_list: 0,
         cargo_placement: 0,
         cargo_pickup_list: 0,
         cargo_history: 0,
         couriers_list: 0,
         couriers_inactive: 0,
         warehouses_list: 0,
+        warehouses_placed_cargo: 0,
         notifications_orders: newOrdersCount || 0,
         notifications_requests: 0,
         notifications_system: 0,
@@ -10605,12 +10605,12 @@ function App() {
 
       // Загружаем основные счетчики
       if (user?.role === 'admin' || user?.role === 'warehouse_operator') {
-        // Количество грузов в списке (полностью размещенные заявки)
+        // Количество размещенных грузов (полностью размещенные заявки)
         if (fullyPlacedCargo?.length) {
-          counters.cargo_list = fullyPlacedCargo.length;
+          counters.warehouses_placed_cargo = fullyPlacedCargo.length;
         }
         
-        // Количество грузов для размещения
+        // Количество грузов готовых к размещению
         if (availableCargoForPlacement?.length) {
           counters.cargo_placement = availableCargoForPlacement.length;
         }
