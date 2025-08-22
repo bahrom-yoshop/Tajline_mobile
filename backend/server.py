@@ -7809,123 +7809,75 @@ async def fix_missing_placement_records(current_user: User = Depends(get_current
     processed_count = 0
     errors = []
     
-    # Ищем все грузы в operator_cargo которые имеют размещенные individual_items но нет placement_records
-    all_cargo = list(db.operator_cargo.find({}))
-    print(f"📦 Найдено {len(all_cargo)} грузов в operator_cargo")
+    # Получаем warehouse_id оператора
+    operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+    if not operator_warehouse_ids:
+        return {
+            "success": False,
+            "message": "Оператор не привязан к складу",
+            "processed_cargo": 0,
+            "fixed_placement_records": 0,
+            "errors": ["No warehouse assigned to operator"]
+        }
+    
+    warehouse_id = operator_warehouse_ids[0]  # Используем первый склад оператора
+    print(f"🏭 Используем склад: {warehouse_id}")
+    
+    # Используем логику из fully-placed API для поиска размещенных грузов
+    pipeline = [
+        {
+            "$match": {"$or": [
+                {"cargo_items.individual_items.is_placed": True},  # operator_cargo
+                {"individual_items.is_placed": True}               # cargo
+            ]}
+        },
+        {"$limit": 50}  # Ограничиваем для безопасности
+    ]
+    
+    # Проверяем обе коллекции
+    all_cargo = []
+    
+    # Поиск в operator_cargo
+    operator_cargo_results = list(db.operator_cargo.aggregate(pipeline))
+    all_cargo.extend(operator_cargo_results)
+    print(f"📦 Найдено {len(operator_cargo_results)} грузов в operator_cargo с размещенными единицами")
+    
+    # Поиск в cargo коллекции
+    cargo_results = list(db.cargo.aggregate(pipeline))
+    all_cargo.extend(cargo_results)
+    print(f"📦 Найдено {len(cargo_results)} грузов в cargo с размещенными единицами")
+    
+    print(f"📦 Всего найдено {len(all_cargo)} грузов для обработки")
     
     for cargo in all_cargo:
         processed_count += 1
         cargo_number = cargo.get("cargo_number")
-        warehouse_id = cargo.get("warehouse_id")
         
-        if not cargo_number or not warehouse_id:
+        if not cargo_number:
             continue
             
         print(f"🔍 Обрабатываем груз {cargo_number}")
         
-        # Проверяем cargo_items с individual_items
+        # Проверяем cargo_items с individual_items (operator_cargo формат)
         cargo_items = cargo.get("cargo_items", [])
+        if cargo_items:
+            for cargo_item in cargo_items:
+                individual_items = cargo_item.get("individual_items", [])
+                print(f"   📋 Найдено {len(individual_items)} individual_items в cargo_item")
+                
+                for individual_item in individual_items:
+                    result = process_individual_item(individual_item, cargo_number, warehouse_id, errors)
+                    if result:
+                        fixed_count += 1
         
-        for cargo_item in cargo_items:
-            individual_items = cargo_item.get("individual_items", [])
-            print(f"   📋 Найдено {len(individual_items)} individual_items")
-            
+        # Проверяем direct individual_items (cargo формат)
+        individual_items = cargo.get("individual_items", [])
+        if individual_items:
+            print(f"   📋 Найдено {len(individual_items)} direct individual_items")
             for individual_item in individual_items:
-                individual_number = individual_item.get("individual_number")
-                is_placed = individual_item.get("is_placed", False)
-                placement_info = individual_item.get("placement_info", "")
-                
-                print(f"   🔍 Проверяем {individual_number}: is_placed={is_placed}, placement_info='{placement_info}'")
-                
-                if not individual_number or not is_placed or not placement_info or placement_info == "Ждет размещения":
-                    continue
-                    
-                # Проверяем есть ли уже placement_record
-                existing_record = db.placement_records.find_one({"individual_number": individual_number})
-                if existing_record:
-                    print(f"   ✅ placement_record уже существует для {individual_number}")
-                    continue  # Уже есть запись
-                    
-                print(f"   🚨 MISSING: создаем placement_record для {individual_number}")
-                
-                # Парсим placement_info для получения location
-                location = placement_info.replace("📍 ", "").strip()
-                
-                # Парсим location для получения блока, полки, ячейки
-                try:
-                    if location.startswith('Б'):
-                        parts = location.split('-')
-                        if len(parts) >= 3:
-                            block_number = int(parts[0][1:])  # Убираем "Б"
-                            shelf_number = int(parts[1][1:])  # Убираем "П"
-                            cell_number = int(parts[2][1:])   # Убираем "Я"
-                            location_code = f"B{block_number}-S{shelf_number}-C{cell_number}"
-                        else:
-                            errors.append(f"Неверный формат location: {location} для {individual_number}")
-                            continue
-                    else:
-                        errors.append(f"Неподдерживаемый формат location: {location} для {individual_number}")
-                        continue
-                        
-                except (ValueError, IndexError) as e:
-                    error_msg = f"Ошибка парсинга location: {location} для {individual_number}: {e}"
-                    print(f"❌ {error_msg}")
-                    errors.append(error_msg)
-                    continue
-                
-                # Получаем информацию о складе
-                warehouse = db.warehouses.find_one({"id": warehouse_id})
-                warehouse_name = warehouse.get("name", "Unknown") if warehouse else "Unknown"
-                
-                # Парсим individual_number: 25082235/01/01
-                parts = individual_number.split('/')
-                if len(parts) != 3:
-                    errors.append(f"Неверный формат individual_number: {individual_number}")
-                    continue
-                    
-                try:
-                    type_index = int(parts[1])
-                    unit_index = int(parts[2])
-                except ValueError:
-                    errors.append(f"Ошибка парсинга индексов в individual_number: {individual_number}")
-                    continue
-                
-                # Создаем placement_record
-                placement_record = {
-                    "individual_number": individual_number,
-                    "cargo_number": cargo_number,
-                    "type_index": type_index,
-                    "unit_index": unit_index,
-                    "cargo_id": cargo.get("id"),
-                    "warehouse_id": warehouse_id,
-                    "warehouse_name": warehouse_name,
-                    "location_code": location_code,
-                    "location": location,
-                    "block_number": block_number,
-                    "shelf_number": shelf_number,
-                    "cell_number": cell_number,
-                    "placed_at": individual_item.get("placed_at", datetime.utcnow()),
-                    "placed_by_operator": individual_item.get("placed_by_operator", "System Recovery"),
-                    "placed_by_operator_id": individual_item.get("placed_by_operator_id"),
-                    "placed_by": individual_item.get("placed_by_operator", "System Recovery"),
-                    "status": "placed",
-                    "recovered": True,
-                    "recovered_at": datetime.utcnow()
-                }
-                
-                # Сохраняем placement_record
-                try:
-                    db.placement_records.insert_one(placement_record)
+                result = process_individual_item(individual_item, cargo_number, warehouse_id, errors)
+                if result:
                     fixed_count += 1
-                    print(f"✅ Восстановлен placement_record для {individual_number} на {location}")
-                except Exception as e:
-                    error_msg = f"Ошибка сохранения placement_record для {individual_number}: {e}"
-                    print(f"❌ {error_msg}")
-                    errors.append(error_msg)
-        
-        # Ограничиваем количество обрабатываемых грузов для тестирования
-        if processed_count >= 10:
-            break
     
     return {
         "success": True,
@@ -7935,10 +7887,106 @@ async def fix_missing_placement_records(current_user: User = Depends(get_current
         "errors": errors[:10],  # Первые 10 ошибок
         "total_errors": len(errors),
         "details": {
-            "searched_in": "operator_cargo collection",
-            "filter_criteria": "individual_items.is_placed = True без placement_records"
+            "searched_in": "operator_cargo and cargo collections",
+            "filter_criteria": "individual_items.is_placed = True без placement_records",
+            "warehouse_id": warehouse_id
         }
     }
+
+def process_individual_item(individual_item, cargo_number, warehouse_id, errors):
+    """Обработка individual_item для создания placement_record"""
+    individual_number = individual_item.get("individual_number")
+    is_placed = individual_item.get("is_placed", False)
+    placement_info = individual_item.get("placement_info", "")
+    
+    print(f"   🔍 Проверяем {individual_number}: is_placed={is_placed}, placement_info='{placement_info}'")
+    
+    if not individual_number or not is_placed or not placement_info or placement_info == "Ждет размещения":
+        return False
+        
+    # Проверяем есть ли уже placement_record
+    existing_record = db.placement_records.find_one({"individual_number": individual_number})
+    if existing_record:
+        print(f"   ✅ placement_record уже существует для {individual_number}")
+        return False
+        
+    print(f"   🚨 MISSING: создаем placement_record для {individual_number}")
+    
+    # Парсим placement_info для получения location
+    location = placement_info.replace("📍 ", "").strip()
+    
+    # Парсим location для получения блока, полки, ячейки
+    try:
+        if location.startswith('Б'):
+            parts = location.split('-')
+            if len(parts) >= 3:
+                block_number = int(parts[0][1:])  # Убираем "Б"
+                shelf_number = int(parts[1][1:])  # Убираем "П"
+                cell_number = int(parts[2][1:])   # Убираем "Я"
+                location_code = f"B{block_number}-S{shelf_number}-C{cell_number}"
+            else:
+                errors.append(f"Неверный формат location: {location} для {individual_number}")
+                return False
+        else:
+            errors.append(f"Неподдерживаемый формат location: {location} для {individual_number}")
+            return False
+            
+    except (ValueError, IndexError) as e:
+        error_msg = f"Ошибка парсинга location: {location} для {individual_number}: {e}"
+        print(f"❌ {error_msg}")
+        errors.append(error_msg)
+        return False
+    
+    # Получаем информацию о складе
+    warehouse = db.warehouses.find_one({"id": warehouse_id})
+    warehouse_name = warehouse.get("name", "Unknown") if warehouse else "Unknown"
+    
+    # Парсим individual_number: 25082235/01/01
+    parts = individual_number.split('/')
+    if len(parts) != 3:
+        errors.append(f"Неверный формат individual_number: {individual_number}")
+        return False
+        
+    try:
+        type_index = int(parts[1])
+        unit_index = int(parts[2])
+    except ValueError:
+        errors.append(f"Ошибка парсинга индексов в individual_number: {individual_number}")
+        return False
+    
+    # Создаем placement_record
+    placement_record = {
+        "individual_number": individual_number,
+        "cargo_number": cargo_number,
+        "type_index": type_index,
+        "unit_index": unit_index,
+        "cargo_id": cargo_number,  # Используем cargo_number как ID
+        "warehouse_id": warehouse_id,
+        "warehouse_name": warehouse_name,
+        "location_code": location_code,
+        "location": location,
+        "block_number": block_number,
+        "shelf_number": shelf_number,
+        "cell_number": cell_number,
+        "placed_at": individual_item.get("placed_at", datetime.utcnow()),
+        "placed_by_operator": individual_item.get("placed_by_operator", "System Recovery"),
+        "placed_by_operator_id": individual_item.get("placed_by_operator_id"),
+        "placed_by": individual_item.get("placed_by_operator", "System Recovery"),
+        "status": "placed",
+        "recovered": True,
+        "recovered_at": datetime.utcnow()
+    }
+    
+    # Сохраняем placement_record
+    try:
+        db.placement_records.insert_one(placement_record)
+        print(f"✅ Восстановлен placement_record для {individual_number} на {location}")
+        return True
+    except Exception as e:
+        error_msg = f"Ошибка сохранения placement_record для {individual_number}: {e}"
+        print(f"❌ {error_msg}")
+        errors.append(error_msg)
+        return False
 
 @app.get("/api/warehouses/{warehouse_id}/layout-with-cargo")
 async def get_warehouse_layout_with_cargo(
