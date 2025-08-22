@@ -2858,7 +2858,7 @@ async def get_fully_placed_cargo_requests(
                         "type_number": item.get("type_index", 0),
                         "unit_index": item.get("unit_index", 0),
                         "is_placed": item.get('is_placed', False),
-                        "placement_info": item.get("placement_info", "Ждет размещения" if not item.get('is_placed', False) else "Не указано"),
+                        "placement_info": item.get("placement_info") if item.get('is_placed', False) and item.get("placement_info") else "Ждет размещения",
                         "placed_by": item.get("placed_by_operator", "Неизвестно"),
                         "placed_at": item.get("placed_at", "").isoformat() if isinstance(item.get("placed_at"), datetime) else item.get("placed_at"),
                         "warehouse_name": item.get("warehouse_name", "Неизвестный склад"),
