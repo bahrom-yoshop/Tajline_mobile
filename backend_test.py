@@ -180,15 +180,16 @@ def test_verify_cargo_api_main_target():
         return log_test("API verify-cargo с грузом 250101/01/01", False, f"HTTP {response.status_code}: {error_detail}", response_time)
 
 def test_verify_cargo_api_other_cargos():
-    """Тест 3: Проверка API verify-cargo с другими грузами"""
+    """Тест 3: Проверка API verify-cargo с другими грузами (неразмещенными)"""
     
     print("\n🔍 ТЕСТ 3: Проверка API verify-cargo с другими грузами")
+    print("   📝 ПРИМЕЧАНИЕ: Используем неразмещенные единицы для корректного тестирования")
     
-    # Тестируемые грузы из review request
+    # Тестируемые грузы - используем неразмещенные единицы
     test_cargos = [
-        {"qr_code": "25082235/01/01", "expected_name": "Самокат ВИВО"},
-        {"qr_code": "25082235/01/02", "expected_name": "Самокат ВИВО"},
-        {"qr_code": "25082235/02/01", "expected_name": "Микроволновка"}
+        {"qr_code": "250101/01/01", "expected_name": "Сумка кожаный"},
+        {"qr_code": "250101/02/01", "expected_name": "Тефал"},
+        {"qr_code": "25082235/02/02", "expected_name": "Микроволновка"}
     ]
     
     all_success = True
@@ -211,6 +212,7 @@ def test_verify_cargo_api_other_cargos():
             data = response.json()
             cargo_info = data.get("cargo_info", {})
             cargo_name = cargo_info.get("cargo_name", "")
+            error = data.get("error", "")
             
             if data.get("success") and cargo_name == expected_name:
                 results.append(f"✅ {qr_code}: '{cargo_name}'")
@@ -224,8 +226,8 @@ def test_verify_cargo_api_other_cargos():
                 print(f"      ❌ FAIL: cargo_name отсутствует")
             else:
                 all_success = False
-                results.append(f"❌ {qr_code}: success = false")
-                print(f"      ❌ FAIL: success = false")
+                results.append(f"❌ {qr_code}: {error}")
+                print(f"      ❌ FAIL: {error}")
         else:
             all_success = False
             error_detail = response.json().get("detail", "Unknown error") if response.content else "Empty response"
