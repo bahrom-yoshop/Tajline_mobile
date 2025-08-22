@@ -2874,19 +2874,24 @@ async def get_fully_placed_cargo_requests(
                         "timestamp": cargo.get("created_at", datetime.utcnow()).isoformat() if isinstance(cargo.get("created_at"), datetime) else cargo.get("created_at"),
                         "description": "Груз принят на склад"
                     }
-                ] + [
-                    {
+                ]
+                
+                # Добавляем историю размещения для каждой размещенной единицы
+                placed_timestamps = set()
+                for unit in individual_units:
+                    if unit.get("is_placed") and unit.get("placed_at"):
+                        placed_timestamps.add((unit.get("placed_by", "Неизвестно"), unit.get("placed_at")))
+                
+                for operator, timestamp in placed_timestamps:
+                    action_history.append({
                         "action": "cargo_placed",
                         "operator": operator,
                         "timestamp": timestamp,
                         "description": f"Размещение груза выполнено оператором {operator}"
-                    }
-                    for operator, timestamp in set(
-                        (unit.get("placed_by", "Неизвестно"), unit.get("placed_at"))
-                        for unit in individual_units
-                        if unit.get("is_placed") and unit.get("placed_at")
-                    )
-                ]
+                    })
+                
+                # Сортируем историю по времени
+                action_history.sort(key=lambda x: x.get("timestamp", ""))
                 
                 # Добавляем заявку в список размещенных (частично или полностью)
                 cargo_info = {
