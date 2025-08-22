@@ -19550,10 +19550,8 @@ async def verify_cargo_for_placement(
                         
         print(f"🔍 operator_cargo_details найдены для {individual_number}: {bool(operator_cargo_details)}")
         
-        # Ищем груз в базе данных
-        cargo = db.operator_cargo.find_one(cargo_query)
-        
         if not cargo:
+            print(f"⚠️ Cargo не найден для {cargo_number}, пропускаем запись")
             return {
                 "success": False,
                 "error": "Груз не найден в системе",
