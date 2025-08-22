@@ -680,18 +680,21 @@ def test_frontend_display_fields(layout_data):
         main_fields_check = []
         
         # Основная информация о складе
-        warehouse_fields = ["warehouse_id", "warehouse_name", "warehouse_id_number"]
+        warehouse_info = layout_data.get("warehouse", {})
+        statistics = layout_data.get("statistics", {})
+        
+        warehouse_fields = ["id", "name", "warehouse_id_number"]
         for field in warehouse_fields:
-            if field in layout_data and layout_data[field]:
-                main_fields_check.append(f"✅ {field}: {layout_data[field]}")
+            if field in warehouse_info and warehouse_info[field]:
+                main_fields_check.append(f"✅ {field}: {warehouse_info[field]}")
             else:
                 main_fields_check.append(f"❌ {field}: отсутствует")
         
         # Статистика склада
         stats_fields = ["total_cells", "occupied_cells", "total_cargo", "loading_percentage"]
         for field in stats_fields:
-            if field in layout_data:
-                main_fields_check.append(f"✅ {field}: {layout_data[field]}")
+            if field in statistics:
+                main_fields_check.append(f"✅ {field}: {statistics[field]}")
             else:
                 main_fields_check.append(f"❌ {field}: отсутствует")
         
@@ -699,7 +702,9 @@ def test_frontend_display_fields(layout_data):
         cargo_fields_check = []
         occupied_cells_found = 0
         
-        blocks = layout_data.get("blocks", [])
+        layout = warehouse_info.get("layout", {})
+        blocks = layout.get("blocks", [])
+        
         for block in blocks:
             shelves = block.get("shelves", [])
             for shelf in shelves:
@@ -725,7 +730,7 @@ def test_frontend_display_fields(layout_data):
                                 missing_cargo_fields.append(field)
                         
                         if missing_cargo_fields:
-                            cargo_fields_check.append(f"Ячейка {cell.get('location_code')}: отсутствуют поля {missing_cargo_fields}")
+                            cargo_fields_check.append(f"Ячейка {cell.get('location')}: отсутствуют поля {missing_cargo_fields}")
                         
                         # Проверяем только первые 3 ячейки для краткости
                         if len(cargo_fields_check) >= 3:
