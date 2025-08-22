@@ -2813,22 +2813,32 @@ async def get_fully_placed_cargo_requests(
         fully_placed_requests = []
         
         for cargo in all_cargo:
-            # Получаем individual_items из cargo документа
-            individual_items = cargo.get('individual_items', [])
+            # Получаем cargo_items из cargo документа
+            cargo_items = cargo.get('cargo_items', [])
             
-            if not individual_items:
+            if not cargo_items:
+                # Если нет cargo_items, пропускаем эту заявку
+                continue
+            
+            # Собираем все individual_items из всех cargo_items
+            all_individual_items = []
+            for item in cargo_items:
+                individual_items = item.get('individual_items', [])
+                all_individual_items.extend(individual_items)
+            
+            if not all_individual_items:
                 # Если нет individual_items, пропускаем эту заявку
                 continue
             
             # Подсчитываем общее количество единиц и размещенные единицы из individual_items
-            total_units = len(individual_items)
-            placed_units = sum(1 for item in individual_items if item.get('is_placed', False))
+            total_units = len(all_individual_items)
+            placed_units = sum(1 for item in all_individual_items if item.get('is_placed', False))
             
             # Если все единицы размещены (5/5, 10/10, и т.д.)
             if total_units > 0 and placed_units >= total_units:
                 # Создаем individual units из individual_items
                 individual_units = []
-                for item in individual_items:
+                for item in all_individual_items:
                     if item.get('is_placed', False):
                         individual_units.append({
                             "individual_number": item.get("individual_number", ""),
