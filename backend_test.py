@@ -420,8 +420,9 @@ def test_real_cargo_display(layout_data):
         return False
     
     try:
-        occupied_cells = layout_data.get("occupied_cells", 0)
-        total_cargo = layout_data.get("total_cargo", 0)
+        statistics = layout_data.get("statistics", {})
+        occupied_cells = statistics.get("occupied_cells", 0)
+        total_cargo = statistics.get("total_cargo", 0)
         
         if occupied_cells == 0 and total_cargo == 0:
             log_test_result(
@@ -436,7 +437,10 @@ def test_real_cargo_display(layout_data):
         temp_cargo_found = []
         real_cargo_found = []
         
-        blocks = layout_data.get("blocks", [])
+        warehouse_info = layout_data.get("warehouse", {})
+        layout = warehouse_info.get("layout", {})
+        blocks = layout.get("blocks", [])
+        
         for block in blocks:
             shelves = block.get("shelves", [])
             for shelf in shelves:
