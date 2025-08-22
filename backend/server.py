@@ -8434,39 +8434,88 @@ async def get_warehouse_layout_with_cargo(
                 if operator_cargo:
                     print(f"🔍 Найден operator_cargo для {cargo_number}")
                     cargo_items = operator_cargo.get("cargo_items", [])
+                    
+                    # Сначала ищем конкретный individual_item
+                    found_specific_data = False
                     for cargo_item in cargo_items:
                         individual_items = cargo_item.get("individual_items", [])
                         for individual_item in individual_items:
                             if individual_item.get("individual_number") == individual_number:
                                 # Используем данные из найденного individual_item
-                                recipient_name = cargo_item.get("recipient_full_name", "")
-                                recipient_phone = cargo_item.get("recipient_phone", "")
-                                recipient_address = cargo_item.get("recipient_address", "")
-                                sender_name = cargo_item.get("sender_full_name", "")
-                                sender_phone = cargo_item.get("sender_phone", "")
-                                cargo_name = cargo_item.get("name", "") or cargo_item.get("cargo_name", "Груз")
-                                weight = individual_item.get("weight", 0)
-                                declared_value = individual_item.get("declared_value", 0)
-                                delivery_city = cargo_item.get("delivery_city", "") or cargo_item.get("destination_city", "")
-                                print(f"   ✅ Найдены данные для {individual_number}")
+                                recipient_name = cargo_item.get("recipient_full_name") or recipient_name
+                                recipient_phone = cargo_item.get("recipient_phone") or recipient_phone
+                                recipient_address = cargo_item.get("recipient_address") or recipient_address
+                                sender_name = cargo_item.get("sender_full_name") or sender_name
+                                sender_phone = cargo_item.get("sender_phone") or sender_phone
+                                cargo_name = cargo_item.get("name") or cargo_item.get("cargo_name") or cargo_name
+                                weight = individual_item.get("weight") or weight
+                                declared_value = individual_item.get("declared_value") or declared_value
+                                delivery_city = cargo_item.get("delivery_city") or cargo_item.get("destination_city") or delivery_city
+                                found_specific_data = True
+                                print(f"   ✅ Найдены КОНКРЕТНЫЕ данные для {individual_number}")
                                 print(f"   📋 cargo_name: {cargo_name}")
                                 print(f"   👤 recipient: {recipient_name}")
+                                print(f"   ⚖️ weight: {weight}")
                                 print(f"   🏙️ delivery_city: {delivery_city}")
                                 break
-                        if recipient_name:  # Если нашли данные, выходим из цикла
+                        if found_specific_data:
                             break
                     
-                    # Если не нашли конкретный individual_item, используем данные из первого cargo_item
-                    if not recipient_name and cargo_items:
-                        first_item = cargo_items[0]
-                        recipient_name = first_item.get("recipient_full_name", "")
-                        recipient_phone = first_item.get("recipient_phone", "")
-                        recipient_address = first_item.get("recipient_address", "")
-                        sender_name = first_item.get("sender_full_name", "")
-                        sender_phone = first_item.get("sender_phone", "")
-                        cargo_name = first_item.get("name", "") or first_item.get("cargo_name", "Груз")
-                        delivery_city = first_item.get("delivery_city", "") or first_item.get("destination_city", "")
-                        print(f"   🔄 Используем данные первого cargo_item")
+                    # Если не нашли конкретные данные, ищем в любом cargo_item с непустыми полями
+                    if not found_specific_data:
+                        print(f"   🔄 Ищем данные в любом cargo_item с данными")
+                        for cargo_item in cargo_items:
+                            # Проверяем есть ли данные в этом cargo_item
+                            if (cargo_item.get("recipient_full_name") or 
+                                cargo_item.get("name") or 
+                                cargo_item.get("cargo_name") or
+                                cargo_item.get("sender_full_name")):
+                                
+                                recipient_name = cargo_item.get("recipient_full_name") or recipient_name
+                                recipient_phone = cargo_item.get("recipient_phone") or recipient_phone
+                                recipient_address = cargo_item.get("recipient_address") or recipient_address
+                                sender_name = cargo_item.get("sender_full_name") or sender_name
+                                sender_phone = cargo_item.get("sender_phone") or sender_phone
+                                cargo_name = cargo_item.get("name") or cargo_item.get("cargo_name") or cargo_name
+                                delivery_city = cargo_item.get("delivery_city") or cargo_item.get("destination_city") or delivery_city
+                                
+                                # Получаем weight и declared_value из первого individual_item с данными
+                                individual_items = cargo_item.get("individual_items", [])
+                                for individual_item in individual_items:
+                                    if individual_item.get("weight") or individual_item.get("declared_value"):
+                                        weight = individual_item.get("weight") or weight
+                                        declared_value = individual_item.get("declared_value") or declared_value
+                                        break
+                                
+                                print(f"   📋 Используем данные из cargo_item с данными")
+                                print(f"   📋 cargo_name: {cargo_name}")
+                                print(f"   👤 recipient: {recipient_name}")
+                                print(f"   ⚖️ weight: {weight}")
+                                break
+                
+                # ДОПОЛНИТЕЛЬНЫЙ ПОИСК: Попробуем найти данные в основной коллекции cargo
+                if not recipient_name or not weight or cargo_name == "Груз":
+                    print(f"   🔍 Ищем дополнительные данные в коллекции cargo")
+                    main_cargo = db.cargo.find_one({"cargo_number": cargo_number})
+                    if main_cargo:
+                        print(f"   ✅ Найден cargo в основной коллекции")
+                        recipient_name = recipient_name or main_cargo.get("recipient_full_name", "")
+                        recipient_phone = recipient_phone or main_cargo.get("recipient_phone", "")
+                        recipient_address = recipient_address or main_cargo.get("recipient_address", "")
+                        sender_name = sender_name or main_cargo.get("sender_full_name", "")
+                        sender_phone = sender_phone or main_cargo.get("sender_phone", "")
+                        cargo_name = cargo_name if cargo_name != "Груз" else (main_cargo.get("cargo_name") or main_cargo.get("name", "Груз"))
+                        weight = weight or main_cargo.get("weight", 0)
+                        declared_value = declared_value or main_cargo.get("declared_value", 0)
+                        delivery_city = delivery_city or main_cargo.get("delivery_city", "")
+                        
+                        # Ищем данные в individual_items основной коллекции
+                        individual_items = main_cargo.get("individual_items", [])
+                        for individual_item in individual_items:
+                            if individual_item.get("individual_number") == individual_number:
+                                weight = weight or individual_item.get("weight", 0)
+                                declared_value = declared_value or individual_item.get("declared_value", 0)
+                                break
                 
                 # Fallback: если данных в operator_cargo нет, используем данные из cargo коллекции
                 if operator_cargo_details:
