@@ -7702,13 +7702,13 @@ async def get_warehouse_layout_with_cargo(
     for block in range(1, max_blocks + 1):
         blocks[f"block_{block}"] = {
             "block_number": block,
-            "shelves": {}
+            "shelves": []  # Делаем list вместо dict
         }
         
         for shelf in range(1, max_shelves + 1):
-            blocks[f"block_{block}"]["shelves"][f"shelf_{shelf}"] = {
+            shelf_data = {
                 "shelf_number": shelf,
-                "cells": {}
+                "cells": []  # Делаем list вместо dict
             }
             
             for cell in range(1, max_cells + 1):
@@ -7721,7 +7721,9 @@ async def get_warehouse_layout_with_cargo(
                     "cargo": cargo_list if cargo_list else None,
                     "cargo_count": len(cargo_list)
                 }
-                blocks[f"block_{block}"]["shelves"][f"shelf_{shelf}"]["cells"][f"cell_{cell}"] = cell_data
+                shelf_data["cells"].append(cell_data)
+            
+            blocks[f"block_{block}"]["shelves"].append(shelf_data)
     
     # Подсчитываем общее количество грузов и занятых ячеек
     total_cargo_count = sum(len(cargo_list) for cargo_list in cargo_by_location.values())
