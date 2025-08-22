@@ -28360,7 +28360,8 @@ function App() {
                                     e.preventDefault();
                                     e.stopPropagation();
                                     if (cell.is_occupied && cell.cargo && cell.cargo.length > 0) {
-                                      setSelectedCargoForWarehouse(cell.cargo);
+                                      // Если несколько грузов в ячейке, берем первый
+                                      setSelectedCargoForDetailView(cell.cargo[0]);
                                       setCargoDetailsModal(true);
                                     } else {
                                       showAlert('Ячейка свободна', 'info');
