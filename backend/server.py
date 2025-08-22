@@ -8015,22 +8015,22 @@ async def force_create_placement_record(
     try:
         db.placement_records.insert_one(placement_record)
         
-        # Обновляем статус в operator_cargo
+        # Обновляем статус в operator_cargo (ИСПРАВЛЯЕМ ОШИБКУ ARRAY FILTER)
         update_result = db.operator_cargo.update_one(
             {"cargo_number": cargo_number, "cargo_items.individual_items.individual_number": individual_number},
             {
                 "$set": {
-                    "cargo_items.$[cargo_item].individual_items.$[individual_item].is_placed": True,
-                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placement_info": f"📍 {location}",
-                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_at": datetime.utcnow(),
-                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_by_operator": current_user.full_name,
-                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_by_operator_id": current_user.id,
-                    "cargo_items.$[cargo_item].individual_items.$[individual_item].status": "placed"
+                    "cargo_items.$[cargoitem].individual_items.$[individualitem].is_placed": True,
+                    "cargo_items.$[cargoitem].individual_items.$[individualitem].placement_info": f"📍 {location}",
+                    "cargo_items.$[cargoitem].individual_items.$[individualitem].placed_at": datetime.utcnow(),
+                    "cargo_items.$[cargoitem].individual_items.$[individualitem].placed_by_operator": current_user.full_name,
+                    "cargo_items.$[cargoitem].individual_items.$[individualitem].placed_by_operator_id": current_user.id,
+                    "cargo_items.$[cargoitem].individual_items.$[individualitem].status": "placed"
                 }
             },
             array_filters=[
-                {"cargo_item.individual_items": {"$exists": True}},
-                {"individual_item.individual_number": individual_number}
+                {"cargoitem.individual_items": {"$exists": True}},
+                {"individualitem.individual_number": individual_number}
             ]
         )
         
