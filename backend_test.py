@@ -187,25 +187,25 @@ def test_layout_with_cargo_api():
                         for cargo_info in cargo_list:
                             total_cargo_found += 1
                         
-                        # Проверяем новые поля
-                        required_fields = [
-                            "cargo_name", "sender_full_name", "sender_phone",
-                            "recipient_full_name", "recipient_phone", "recipient_address",
-                            "delivery_city", "delivery_warehouse_name", "placed_by_operator"
-                        ]
-                        
-                        fields_present = []
-                        for field in required_fields:
-                            if field in cargo_info and cargo_info[field]:
-                                fields_present.append(field)
-                        
-                        if fields_present:
-                            cargo_with_new_fields += 1
-                            new_fields_found.extend(fields_present)
+                            # Проверяем новые поля
+                            required_fields = [
+                                "cargo_name", "sender_full_name", "sender_phone",
+                                "recipient_full_name", "recipient_phone", "recipient_address",
+                                "delivery_city", "delivery_warehouse_name", "placed_by_operator"
+                            ]
                             
-                            print(f"   📦 Груз в ячейке {cell.get('location_code', 'Unknown')}:")
-                            for field in fields_present:
-                                print(f"      - {field}: {cargo_info[field]}")
+                            fields_present = []
+                            for field in required_fields:
+                                if field in cargo_info and cargo_info[field]:
+                                    fields_present.append(field)
+                            
+                            if fields_present:
+                                cargo_with_new_fields += 1
+                                new_fields_found.extend(fields_present)
+                                
+                                print(f"   📦 Груз в ячейке {cell.get('location_code', 'Unknown')}:")
+                                for field in fields_present:
+                                    print(f"      - {field}: {cargo_info[field]}")
         
         # Убираем дубликаты
         unique_new_fields = list(set(new_fields_found))
