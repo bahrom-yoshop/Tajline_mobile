@@ -6017,10 +6017,17 @@ async def get_warehouse_statistics(
             "free_cells": free_cells,
             "utilization_percent": round(utilization_percent, 1),
             "total_cargo_count": total_cargo_count,
+            "total_placed_cargo": total_placed_cargo,  # НОВОЕ: количество размещенных грузов
             "total_weight": round(total_weight, 2),
             "cargo_breakdown": {
                 "operator_cargo": cargo_count_operator,
-                "general_cargo": cargo_count_general
+                "general_cargo": cargo_count_general,
+                "placed_cargo": total_placed_cargo  # НОВОЕ: размещенные грузы
+            },
+            "placement_statistics": {  # НОВОЕ: детальная статистика размещения
+                "placement_records_count": len(placement_records),
+                "unique_occupied_cells": occupied_cells,
+                "data_source": "placement_records"
             }
         }
         
