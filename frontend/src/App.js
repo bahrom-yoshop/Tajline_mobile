@@ -33596,7 +33596,7 @@ function App() {
                   <div>
                     <span className="font-medium text-gray-600">Город получения:</span>
                     <p className="font-semibold text-purple-600">
-                      🏙️ {selectedCargoForDetails.delivery_city || selectedCargoForDetails.recipient_address?.split(',')[0] || 'Не указан'}
+                      🏙️ {placementDetails.delivery_city || placementDetails.recipient_address?.split(',')[0] || 'Не указан'}
                     </p>
                   </div>
                   
@@ -33604,8 +33604,8 @@ function App() {
                   <div>
                     <span className="font-medium text-gray-600">Склад приема:</span>
                     <p className="font-semibold text-indigo-600">
-                      🏭 {selectedCargoForDetails.source_warehouse_name || 
-                           operatorWarehouses.find(w => w.id === selectedCargoForDetails.warehouse_id)?.warehouse_name ||
+                      🏭 {placementDetails.source_warehouse_name || 
+                           placementDetails.accepting_warehouse ||
                            operatorWarehouses[0]?.warehouse_name ||
                            'Не указан'}
                     </p>
@@ -33615,8 +33615,9 @@ function App() {
                   <div>
                     <span className="font-medium text-gray-600">Склад выдачи:</span>
                     <p className="font-semibold text-teal-600">
-                      🏪 {selectedCargoForDetails.target_warehouse_name || 
-                           selectedCargoForDetails.delivery_warehouse_name || 
+                      🏪 {placementDetails.target_warehouse_name || 
+                           placementDetails.delivery_warehouse_name || 
+                           placementDetails.delivery_warehouse ||
                            'Не указан'}
                     </p>
                   </div>
