@@ -2800,14 +2800,16 @@ async def get_fully_placed_cargo_requests(
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     try:
-        # Получаем все заявки оператора склада
-        cargo_query = {"operator_id": current_user.id}
+        # Получаем заявки которые имеют статус "placed_in_warehouse"
+        cargo_query = {
+            "status": "placed_in_warehouse"  # Заявки со статусом "размещен на складе"
+        }
         
-        # Если админ, показываем все заявки
-        if current_user.role == UserRole.ADMIN:
-            cargo_query = {}
-        
-        # Получаем все грузы
+        # Если оператор склада, показываем только свои заявки
+        if current_user.role == UserRole.WAREHOUSE_OPERATOR:
+            cargo_query["operator_id"] = current_user.id
+            
+        # Получаем все заявки со статусом "placed_in_warehouse" 
         all_cargo = list(db.operator_cargo.find(cargo_query))
         
         fully_placed_requests = []
