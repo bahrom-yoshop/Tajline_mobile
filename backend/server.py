@@ -20014,14 +20014,19 @@ async def verify_cargo_for_placement(
                 "error_code": "CARGO_REMOVED"
             }
         
-        # Проверяем, можно ли размещать этот груз
+        # ИСПРАВЛЕНИЕ: Убираем проверку статуса оплаты - разрешаем размещение независимо от payment_status
+        # Получаем payment_status для информации, но не блокируем размещение
         payment_status = cargo.get("payment_status", "unpaid")
-        if payment_status != "paid":
-            return {
-                "success": False,
-                "error": "Груз не оплачен, размещение невозможно",
-                "error_code": "CARGO_UNPAID"
-            }
+        
+        # Комментируем старую проверку:
+        # if payment_status != "paid":
+        #     return {
+        #         "success": False,
+        #         "error": "Груз не оплачен, размещение невозможно",
+        #         "error_code": "CARGO_UNPAID"
+        #     }
+        
+        print(f"✅ РАЗМЕЩЕНИЕ РАЗРЕШЕНО: Проверка оплаты отключена для груза {cargo.get('cargo_number')} (статус оплаты: {payment_status})")
         
         # Если это individual unit - проверяем его статус
         individual_unit_info = None
