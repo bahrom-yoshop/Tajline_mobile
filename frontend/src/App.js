@@ -20482,9 +20482,15 @@ function App() {
                                 />
                                 
                                 {verifiedCargo && (
-                                  <div className="mt-2 p-2 bg-green-100 rounded text-sm">
-                                    <div className="font-medium text-green-800">✅ {verifiedCargo.cargo_number}</div>
-                                    <div className="text-green-600">{verifiedCargo.sender_name}</div>
+                                  <div className="mt-2 p-3 bg-green-100 border border-green-300 rounded-lg text-sm">
+                                    <div className="font-medium text-green-800 text-lg">✅ {verifiedCargo.cargo_number}</div>
+                                    <div className="text-green-700 font-semibold mt-1">🏷️ {verifiedCargo.cargo_name || 'Груз'}</div>
+                                    <div className="text-green-600 text-xs mt-1">
+                                      📤 Отправитель: {verifiedCargo.sender_name}
+                                    </div>
+                                    <div className="text-green-600 text-xs">
+                                      📥 Получатель: {verifiedCargo.recipient_name}
+                                    </div>
                                   </div>
                                 )}
                               </div>
