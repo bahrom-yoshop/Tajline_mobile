@@ -90,6 +90,9 @@ function App() {
   const [warehouses, setWarehouses] = useState([]);
   const [warehousesStatistics, setWarehousesStatistics] = useState({}); // Статистика складов
   const [warehouseCargo, setWarehouseCargo] = useState([]);
+  const [placedCargo, setPlacedCargo] = useState([]); // Размещенный груз
+  const [placedCargoLoading, setPlacedCargoLoading] = useState(false);
+  const [placedCargoPagination, setPlacedCargoPagination] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [trackingNumber, setTrackingNumber] = useState('');
