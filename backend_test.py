@@ -115,17 +115,18 @@ def test_warehouse_operator_auth():
         return log_test("Авторизация оператора склада", False, f"HTTP {response.status_code}: {error_detail}", response_time)
 
 def test_verify_cargo_api_main_target():
-    """Тест 2: КРИТИЧЕСКАЯ ПРОВЕРКА - API verify-cargo с грузом 250101/01/02"""
+    """Тест 2: КРИТИЧЕСКАЯ ПРОВЕРКА - API verify-cargo с грузом 250101/01/01 (неразмещенный)"""
     
-    print("\n🎯 ТЕСТ 2: КРИТИЧЕСКАЯ ПРОВЕРКА - API verify-cargo с грузом 250101/01/02")
+    print("\n🎯 ТЕСТ 2: КРИТИЧЕСКАЯ ПРОВЕРКА - API verify-cargo с грузом 250101/01/01")
+    print("   📝 ПРИМЕЧАНИЕ: Используем 250101/01/01 вместо 250101/01/02, так как 250101/01/02 уже размещен")
     
-    # Тестируем основной груз из review request
-    qr_code = "250101/01/02"
+    # Тестируем неразмещенный груз из той же заявки
+    qr_code = "250101/01/01"
     
     response, response_time = make_request("POST", "/operator/placement/verify-cargo", {"qr_code": qr_code})
     
     if not response:
-        return log_test("API verify-cargo с грузом 250101/01/02", False, "Ошибка сети", response_time)
+        return log_test("API verify-cargo с грузом 250101/01/01", False, "Ошибка сети", response_time)
     
     if response.status_code == 200:
         data = response.json()
@@ -140,7 +141,8 @@ def test_verify_cargo_api_main_target():
         # Проверяем основные поля
         if not data.get("success"):
             success = False
-            issues.append("success не равен true")
+            error = data.get("error", "Неизвестная ошибка")
+            issues.append(f"success не равен true: {error}")
         
         cargo_info = data.get("cargo_info", {})
         if not cargo_info:
@@ -169,13 +171,13 @@ def test_verify_cargo_api_main_target():
         
         if success:
             details = f"✅ КРИТИЧЕСКИЙ ТЕСТ ПРОЙДЕН! cargo_name: '{cargo_info.get('cargo_name')}', cargo_number: '{cargo_info.get('cargo_number')}', individual_number: '{cargo_info.get('individual_number')}'"
-            return log_test("API verify-cargo с грузом 250101/01/02", True, details, response_time)
+            return log_test("API verify-cargo с грузом 250101/01/01", True, details, response_time)
         else:
             details = f"❌ {', '.join(issues)}"
-            return log_test("API verify-cargo с грузом 250101/01/02", False, details, response_time)
+            return log_test("API verify-cargo с грузом 250101/01/01", False, details, response_time)
     else:
         error_detail = response.json().get("detail", "Unknown error") if response.content else "Empty response"
-        return log_test("API verify-cargo с грузом 250101/01/02", False, f"HTTP {response.status_code}: {error_detail}", response_time)
+        return log_test("API verify-cargo с грузом 250101/01/01", False, f"HTTP {response.status_code}: {error_detail}", response_time)
 
 def test_verify_cargo_api_other_cargos():
     """Тест 3: Проверка API verify-cargo с другими грузами"""
