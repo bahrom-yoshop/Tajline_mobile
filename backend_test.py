@@ -508,7 +508,10 @@ def test_specific_cargo_position(layout_data):
         cargo_details = None
         found_position = None
         
-        blocks = layout_data.get("blocks", [])
+        warehouse_info = layout_data.get("warehouse", {})
+        layout = warehouse_info.get("layout", {})
+        blocks = layout.get("blocks", [])
+        
         for block in blocks:
             shelves = block.get("shelves", [])
             for shelf in shelves:
@@ -517,7 +520,7 @@ def test_specific_cargo_position(layout_data):
                     if cell.get("is_occupied", False):
                         cargo_info = cell.get("cargo", {})
                         individual_number = cargo_info.get("individual_number", "")
-                        location_code = cell.get("location_code", "")
+                        location_code = cell.get("location", "")
                         
                         # Проверяем, найден ли целевой груз
                         if target_cargo_number in individual_number:
@@ -554,7 +557,7 @@ def test_specific_cargo_position(layout_data):
                         if cell.get("is_occupied", False):
                             cargo_info = cell.get("cargo", {})
                             individual_number = cargo_info.get("individual_number", "")
-                            location_code = cell.get("location_code", "")
+                            location_code = cell.get("location", "")
                             all_cargo.append(f"{individual_number}@{location_code}")
             
             log_test_result(
