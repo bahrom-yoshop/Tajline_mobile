@@ -28368,10 +28368,14 @@ function App() {
                                   }}
                                 >
                                   <div className="font-bold">Я{cell.cell_number}</div>
-                                  {cell.cargo && (
+                                  {cell.cargo && cell.cargo.length > 0 && (
                                     <div className="mt-1">
-                                      <div className="font-semibold text-[9px]">{cell.cargo.cargo_number}</div>
-                                      <div className="text-[8px]">{cell.cargo.weight}кг</div>
+                                      <div className="font-semibold text-[9px]">
+                                        {cell.cargo.length === 1 ? cell.cargo[0].cargo_number : `${cell.cargo.length} грузов`}
+                                      </div>
+                                      <div className="text-[8px]">
+                                        {cell.cargo.length === 1 ? `${cell.cargo[0].weight || 0}кг` : `Всего: ${cell.cargo.reduce((sum, c) => sum + (c.weight || 0), 0)}кг`}
+                                      </div>
                                     </div>
                                   )}
                                 </div>
