@@ -2800,15 +2800,31 @@ async def get_fully_placed_cargo_requests(
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     try:
-        # Получаем все заявки (не только со статусом "placed_in_warehouse")
-        cargo_query = {}
+        # Используем ту же логику что и individual-units-for-placement
+        # Получаем заявки из обеих коллекций (cargo и operator_cargo)
         
-        # Если оператор склада, показываем только свои заявки
-        if current_user.role == UserRole.WAREHOUSE_OPERATOR:
-            cargo_query["operator_id"] = current_user.id
-            
-        # Получаем все заявки
-        all_cargo = list(db.operator_cargo.find(cargo_query))
+        # Формируем условия поиска (аналогично individual-units-for-placement)
+        match_conditions = {
+            "status": {"$nin": ["placed_in_warehouse", "removed_from_placement"]},
+            "$and": [
+                {"$or": [
+                    {"warehouse_location": {"$exists": False}},
+                    {"warehouse_location": None},
+                    {"warehouse_location": ""}
+                ]},
+                {"$or": [
+                    {"block_number": {"$exists": False}},
+                    {"block_number": None},
+                    {"shelf_number": {"$exists": False}}, 
+                    {"shelf_number": None},
+                    {"cell_number": {"$exists": False}},
+                    {"cell_number": None}
+                ]}
+            ]
+        }
+        
+        # Получаем заявки из обеих коллекций (как в individual-units-for-placement)
+        all_cargo = list(db.cargo.find(match_conditions)) + list(db.operator_cargo.find(match_conditions))
         
         placed_requests = []
         
