@@ -336,30 +336,36 @@ def test_operator_cargo_data_retrieval():
         total_cargo = 0
         operator_cargo_indicators = []
         
-        blocks = data.get("blocks", [])
-        for block in blocks:
+        # Check both top-level blocks and layout.blocks
+        layout_blocks = data.get("layout", {}).get("blocks", [])
+        top_level_blocks = data.get("blocks", [])
+        
+        all_blocks = layout_blocks if layout_blocks else top_level_blocks
+        
+        for block in all_blocks:
             shelves = block.get("shelves", [])
             for shelf in shelves:
                 cells = shelf.get("cells", [])
                 for cell in cells:
-                    if cell.get("is_occupied") and cell.get("cargo_info"):
-                        cargo_info = cell.get("cargo_info", {})
-                        total_cargo += 1
-                        
-                        # Проверяем индикаторы данных из operator_cargo
-                        has_cargo_name = bool(cargo_info.get("cargo_name"))
-                        has_sender_full_name = bool(cargo_info.get("sender_full_name"))
-                        has_placed_by_operator = bool(cargo_info.get("placed_by_operator"))
-                        
-                        if has_cargo_name or has_sender_full_name or has_placed_by_operator:
-                            cargo_with_operator_data += 1
+                    if cell.get("is_occupied") and cell.get("cargo"):
+                        cargo_list = cell.get("cargo", [])
+                        for cargo_info in cargo_list:
+                            total_cargo += 1
                             
-                            if has_cargo_name:
-                                operator_cargo_indicators.append("cargo_name")
-                            if has_sender_full_name:
-                                operator_cargo_indicators.append("sender_full_name")
-                            if has_placed_by_operator:
-                                operator_cargo_indicators.append("placed_by_operator")
+                            # Проверяем индикаторы данных из operator_cargo
+                            has_cargo_name = bool(cargo_info.get("cargo_name"))
+                            has_sender_full_name = bool(cargo_info.get("sender_full_name"))
+                            has_placed_by_operator = bool(cargo_info.get("placed_by_operator"))
+                            
+                            if has_cargo_name or has_sender_full_name or has_placed_by_operator:
+                                cargo_with_operator_data += 1
+                                
+                                if has_cargo_name:
+                                    operator_cargo_indicators.append("cargo_name")
+                                if has_sender_full_name:
+                                    operator_cargo_indicators.append("sender_full_name")
+                                if has_placed_by_operator:
+                                    operator_cargo_indicators.append("placed_by_operator")
         
         # Убираем дубликаты
         unique_indicators = list(set(operator_cargo_indicators))
