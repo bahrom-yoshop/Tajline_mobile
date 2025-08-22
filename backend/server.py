@@ -6659,19 +6659,19 @@ async def remove_cargo_from_cell(
             },
             {
                 "$set": {
-                    "cargo_items.$[cargo_item].individual_items.$[individual_item].is_placed": False,
-                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placement_info": None,
-                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_by_operator": None,
-                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_at": None,
-                    "cargo_items.$[cargo_item].individual_items.$[individual_item].warehouse_name": None,
-                    "cargo_items.$[cargo_item].individual_items.$[individual_item].removed_from_cell_at": datetime.utcnow(),
-                    "cargo_items.$[cargo_item].individual_items.$[individual_item].removed_by_operator": current_user.full_name,
-                    "cargo_items.$[cargo_item].individual_items.$[individual_item].removal_reason": reason
+                    "cargo_items.$[cargoItem].individual_items.$[individualItem].is_placed": False,
+                    "cargo_items.$[cargoItem].individual_items.$[individualItem].placement_info": None,
+                    "cargo_items.$[cargoItem].individual_items.$[individualItem].placed_by_operator": None,
+                    "cargo_items.$[cargoItem].individual_items.$[individualItem].placed_at": None,
+                    "cargo_items.$[cargoItem].individual_items.$[individualItem].warehouse_name": None,
+                    "cargo_items.$[cargoItem].individual_items.$[individualItem].removed_from_cell_at": datetime.utcnow(),
+                    "cargo_items.$[cargoItem].individual_items.$[individualItem].removed_by_operator": current_user.full_name,
+                    "cargo_items.$[cargoItem].individual_items.$[individualItem].removal_reason": reason
                 }
             },
             array_filters=[
-                {"cargo_item.individual_items.individual_number": individual_number},
-                {"individual_item.individual_number": individual_number}
+                {"cargoItem.individual_items.individual_number": individual_number},
+                {"individualItem.individual_number": individual_number}
             ]
         )
         
