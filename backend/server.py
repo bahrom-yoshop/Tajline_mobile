@@ -8057,6 +8057,30 @@ async def get_warehouse_layout_with_cargo(
         if not cargo:
             continue
             
+        # Дополнительно получаем информацию из operator_cargo для recipient и других деталей
+        operator_cargo_details = None
+        if individual_number:
+            cargo_query = {"cargo_number": cargo_number}
+            operator_cargo = db.operator_cargo.find_one(cargo_query)
+            if operator_cargo:
+                # Ищем конкретную individual_item для получения точных данных
+                cargo_items = operator_cargo.get("cargo_items", [])
+                for cargo_item in cargo_items:
+                    individual_items = cargo_item.get("individual_items", [])
+                    for individual_item in individual_items:
+                        if individual_item.get("individual_number") == individual_number:
+                            operator_cargo_details = {
+                                "recipient_full_name": cargo_item.get("recipient_full_name", ""),
+                                "recipient_phone": cargo_item.get("recipient_phone", ""),
+                                "recipient_address": cargo_item.get("recipient_address", ""),
+                                "cargo_name": cargo_item.get("name", ""),
+                                "weight": individual_item.get("weight", 0),
+                                "declared_value": individual_item.get("declared_value", 0)
+                            }
+                            break
+                    if operator_cargo_details:
+                        break
+            
         # Парсинг различных форматов местоположения из placement_records
         block_num = shelf_num = cell_num = None
         
