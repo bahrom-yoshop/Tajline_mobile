@@ -245,12 +245,15 @@ class WarehouseLayoutTester:
                 placement_records_found = False
                 
                 if layout_valid:
-                    for block in layout.get("blocks", []):
-                        for shelf in block.get("shelves", []):
-                            for cell in shelf.get("cells", []):
+                    for block_key in [key for key in layout.keys() if key.startswith("block_")]:
+                        block = layout[block_key]
+                        for shelf_key in [key for key in block.get("shelves", {}).keys() if key.startswith("shelf_")]:
+                            shelf = block["shelves"][shelf_key]
+                            for cell_key in [key for key in shelf.get("cells", {}).keys() if key.startswith("cell_")]:
+                                cell = shelf["cells"][cell_key]
                                 if cell.get("is_occupied", False):
                                     occupied_cells_with_cargo += 1
-                                    if cell.get("cargo_info") or cell.get("placement_record"):
+                                    if cell.get("cargo") is not None:
                                         placement_records_found = True
                 
                 self.log_test(
