@@ -19962,10 +19962,11 @@ async def verify_cargo_for_placement(
         # Дополнительно получаем информацию из operator_cargo для recipient и других деталей
         operator_cargo_details = None
         if not cargo or not cargo.get("recipient_full_name"):
-            operator_cargo = db.operator_cargo.find_one(cargo_query)
-            if operator_cargo:
+            if not operator_cargo_doc:
+                operator_cargo_doc = db.operator_cargo.find_one(cargo_query)
+            if operator_cargo_doc:
                 # Ищем конкретную individual_item для получения точных данных
-                cargo_items = operator_cargo.get("cargo_items", [])
+                cargo_items = operator_cargo_doc.get("cargo_items", [])
                 for cargo_item in cargo_items:
                     individual_items = cargo_item.get("individual_items", [])
                     for individual_item in individual_items:
