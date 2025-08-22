@@ -33626,12 +33626,14 @@ function App() {
                   <div>
                     <span className="font-medium text-gray-600">Оператор приема:</span>
                     <p className="font-semibold text-green-600">
-                      👤 {selectedCargoForDetails.operator_full_name || 
+                      👤 {placementDetails.operator_full_name || 
+                           placementDetails.accepting_operator ||
+                           placementDetails.operator_name ||
                            user?.full_name || 
                            'Тестовый Оператор Приёма Заявок'}
                     </p>
                     <p className="text-gray-500 text-xs">
-                      {selectedCargoForDetails.operator_phone || user?.phone || '+79777888999'}
+                      {placementDetails.operator_phone || user?.phone || '+79777888999'}
                     </p>
                   </div>
                   
@@ -33639,12 +33641,12 @@ function App() {
                   <div>
                     <span className="font-medium text-gray-600">Дата приема:</span>
                     <p className="font-semibold text-gray-700">
-                      📅 {selectedCargoForDetails.created_date ? 
-                          new Date(selectedCargoForDetails.created_date).toLocaleDateString('ru-RU') : 
+                      📅 {placementDetails.created_date ? 
+                          new Date(placementDetails.created_date).toLocaleDateString('ru-RU') : 
                           'Не указана'} 
-                      {selectedCargoForDetails.created_date && (
+                      {placementDetails.created_date && (
                         <span className="text-xs text-gray-500 block">
-                          в {new Date(selectedCargoForDetails.created_date).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}
+                          в {new Date(placementDetails.created_date).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}
                         </span>
                       )}
                     </p>
