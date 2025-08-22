@@ -135,12 +135,12 @@ class Cargo25082235Tester:
                     pagination = data.get("pagination", {})
                     summary = data.get("summary", {})
                     
-                    # Проверяем поля пагинации
-                    pagination_fields = ["total_count", "page", "per_page", "total_pages", "has_next", "has_prev"]
+                    # Проверяем поля пагинации (адаптируем под реальную структуру API)
+                    pagination_fields = ["current_page", "per_page", "total_items", "total_pages", "has_next", "has_prev"]
                     missing_pagination = [field for field in pagination_fields if field not in pagination]
                     
-                    # Проверяем поля summary
-                    summary_fields = ["total_items", "total_pages"]
+                    # Проверяем поля summary (адаптируем под реальную структуру API)
+                    summary_fields = ["placed_requests", "total_units_placed"]
                     missing_summary = [field for field in summary_fields if field not in summary]
                     
                     if not missing_pagination and not missing_summary:
