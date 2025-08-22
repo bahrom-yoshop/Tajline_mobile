@@ -16461,8 +16461,7 @@ function App() {
               { id: 'cargo-pickup-list', label: 'На забор' }
             ]
           },
-          { id: 'cargo-list', label: 'Список грузов' },
-          { id: 'cargo-placement', label: 'Размещение груза' },
+          { id: 'cargo-placement', label: 'Готов к размещению' },
           { id: 'cargo-pickup-history', label: 'История забора груза' },
           { id: 'cargo-history', label: 'История грузов' }
         ]
