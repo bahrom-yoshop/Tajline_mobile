@@ -2794,32 +2794,29 @@ async def get_fully_placed_cargo_requests(
     per_page: int = Query(25, ge=1, le=100, description="Количество элементов на страницу"),
     current_user: User = Depends(get_current_user)
 ):
-    """НОВЫЙ ENDPOINT: Получение заявок со всеми размещенными грузами (5/5, 10/10, и т.д.)"""
+    """ОБНОВЛЕННЫЙ ENDPOINT: Получение заявок с размещенными грузами (частично и полностью)"""
     
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     try:
-        # Получаем заявки которые имеют статус "placed_in_warehouse"
-        cargo_query = {
-            "status": "placed_in_warehouse"  # Заявки со статусом "размещен на складе"
-        }
+        # Получаем все заявки (не только со статусом "placed_in_warehouse")
+        cargo_query = {}
         
         # Если оператор склада, показываем только свои заявки
         if current_user.role == UserRole.WAREHOUSE_OPERATOR:
             cargo_query["operator_id"] = current_user.id
             
-        # Получаем все заявки со статусом "placed_in_warehouse" 
+        # Получаем все заявки
         all_cargo = list(db.operator_cargo.find(cargo_query))
         
-        fully_placed_requests = []
+        placed_requests = []
         
         for cargo in all_cargo:
             # Получаем cargo_items из cargo документа
             cargo_items = cargo.get('cargo_items', [])
             
             if not cargo_items:
-                # Если нет cargo_items, пропускаем эту заявку
                 continue
             
             # Собираем все individual_items из всех cargo_items
@@ -2829,31 +2826,31 @@ async def get_fully_placed_cargo_requests(
                 all_individual_items.extend(individual_items)
             
             if not all_individual_items:
-                # Если нет individual_items, пропускаем эту заявку
                 continue
             
-            # Подсчитываем общее количество единиц и размещенные единицы из individual_items
+            # Подсчитываем общее количество единиц и размещенные единицы
             total_units = len(all_individual_items)
             placed_units = sum(1 for item in all_individual_items if item.get('is_placed', False))
             
-            # Если все единицы размещены (5/5, 10/10, и т.д.)
-            if total_units > 0 and placed_units >= total_units:
-                # Создаем individual units из individual_items
+            # Если есть хотя бы одна размещенная единица, добавляем в список
+            if placed_units > 0:
+                # Создаем individual units из всех items (размещенных и неразмещенных)
                 individual_units = []
                 for item in all_individual_items:
-                    if item.get('is_placed', False):
-                        individual_units.append({
-                            "individual_number": item.get("individual_number", ""),
-                            "type_number": item.get("type_index", 0),
-                            "unit_index": item.get("unit_index", 0),
-                            "is_placed": True,
-                            "placement_info": item.get("placement_info", "Не указано"),
-                            "placed_by": item.get("placed_by_operator", "Неизвестно"),
-                            "placed_at": item.get("placed_at", "").isoformat() if isinstance(item.get("placed_at"), datetime) else item.get("placed_at"),
-                            "warehouse_name": item.get("warehouse_name", "Неизвестный склад")
-                        })
+                    individual_units.append({
+                        "individual_number": item.get("individual_number", ""),
+                        "type_number": item.get("type_index", 0),
+                        "unit_index": item.get("unit_index", 0),
+                        "is_placed": item.get('is_placed', False),
+                        "placement_info": item.get("placement_info", "Ждет размещения" if not item.get('is_placed', False) else "Не указано"),
+                        "placed_by": item.get("placed_by_operator", "Неизвестно"),
+                        "placed_at": item.get("placed_at", "").isoformat() if isinstance(item.get("placed_at"), datetime) else item.get("placed_at"),
+                        "warehouse_name": item.get("warehouse_name", "Неизвестный склад"),
+                        "status": "placed" if item.get('is_placed', False) else "awaiting_placement",
+                        "status_label": "Размещено" if item.get('is_placed', False) else "Ждет размещения"
+                    })
                 
-                # Добавляем заявку в список полностью размещенных
+                # Добавляем заявку в список размещенных (частично или полностью)
                 cargo_info = {
                     "id": cargo["id"],
                     "cargo_number": cargo["cargo_number"],
@@ -2871,23 +2868,24 @@ async def get_fully_placed_cargo_requests(
                     "total_units": total_units,
                     "placed_units": placed_units,
                     "progress_text": f"Размещено: {placed_units}/{total_units}",
-                    "is_fully_placed": True,
+                    "is_fully_placed": placed_units >= total_units,
+                    "is_partially_placed": placed_units > 0 and placed_units < total_units,
                     "individual_units": individual_units,
                     "created_at": cargo.get("created_at", datetime.utcnow()).isoformat() if isinstance(cargo.get("created_at"), datetime) else cargo.get("created_at"),
                     "operator_name": cargo.get("operator_name", "Неизвестный оператор"),
-                    "status": "fully_placed"
+                    "status": "fully_placed" if placed_units >= total_units else "partially_placed"
                 }
                 
-                fully_placed_requests.append(cargo_info)
+                placed_requests.append(cargo_info)
         
         # Сортируем по дате создания (новые сверху)
-        fully_placed_requests.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        placed_requests.sort(key=lambda x: x.get("created_at", ""), reverse=True)
         
         # Пагинация
         offset = (page - 1) * per_page
-        paginated_requests = fully_placed_requests[offset:offset + per_page]
+        paginated_requests = placed_requests[offset:offset + per_page]
         
-        total_count = len(fully_placed_requests)
+        total_count = len(placed_requests)
         total_pages = (total_count + per_page - 1) // per_page
         
         return {
@@ -2901,15 +2899,15 @@ async def get_fully_placed_cargo_requests(
                 "has_prev": page > 1
             },
             "summary": {
-                "fully_placed_requests": total_count,
-                "total_units_placed": sum(req["placed_units"] for req in fully_placed_requests)
+                "placed_requests": total_count,
+                "total_units_placed": sum(req["placed_units"] for req in placed_requests)
             }
         }
         
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка получения полностью размещенных заявок: {str(e)}"
+            detail=f"Ошибка получения размещенных заявок: {str(e)}"
         )
 
 @app.get("/api/operator/placement-progress")
