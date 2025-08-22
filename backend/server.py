@@ -7010,7 +7010,30 @@ async def get_cargo_placement_status(
             'overall_status': overall_status,
             'cargo_types': detailed_items,  # ИЗМЕНЕНО: cargo_types вместо cargo_items для ясности
             'created_at': cargo.get('created_at'),
-            'updated_at': cargo.get('updated_at')
+            'updated_at': cargo.get('updated_at'),
+            # НОВЫЕ ПОЛЯ ДЛЯ МОДАЛЬНОГО ОКНА:
+            'sender_full_name': cargo.get('sender_full_name', 'Не указан'),
+            'sender_phone': cargo.get('sender_phone', 'Не указан'),
+            'sender_address': cargo.get('sender_address', 'Не указан'),
+            'recipient_full_name': cargo.get('recipient_full_name', 'Не указан'),
+            'recipient_phone': cargo.get('recipient_phone', 'Не указан'),
+            'recipient_address': cargo.get('recipient_address', 'Не указан'),
+            'payment_method': cargo.get('payment_method', 'Не указан'),
+            'delivery_method': cargo.get('delivery_method', 'Не указан'),
+            'payment_status': cargo.get('payment_status', 'Не указан'),
+            'accepting_warehouse': cargo.get('accepting_warehouse', 'Не указан'),
+            'delivery_warehouse': cargo.get('delivery_warehouse', 'Не указан'),
+            'pickup_city': cargo.get('pickup_city', 'Не указан'),
+            'delivery_city': cargo.get('delivery_city', 'Не указан'),
+            'operator_name': cargo.get('operator_name', 'Неизвестный оператор'),
+            'accepting_operator': cargo.get('accepting_operator', 'Неизвестно'),
+            'created_date': cargo.get('created_at'),
+            # Дополнительные поля для совместимости с модальным окном
+            'operator_full_name': cargo.get('operator_name', 'Неизвестный оператор'),
+            'operator_phone': cargo.get('operator_phone', 'Не указан'),
+            'source_warehouse_name': cargo.get('accepting_warehouse', 'Не указан'),
+            'target_warehouse_name': cargo.get('delivery_warehouse', 'Не указан'),
+            'delivery_warehouse_name': cargo.get('delivery_warehouse', 'Не указан')
         }
         
     except HTTPException:
