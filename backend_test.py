@@ -507,8 +507,7 @@ def test_specific_cargo_position(layout_data):
         cargo_details = None
         found_position = None
         
-        warehouse_info = layout_data.get("warehouse", {})
-        layout = warehouse_info.get("layout", {})
+        layout = layout_data.get("layout", {})
         blocks = layout.get("blocks", [])
         
         for block in blocks:
@@ -517,33 +516,40 @@ def test_specific_cargo_position(layout_data):
                 cells = shelf.get("cells", [])
                 for cell in cells:
                     if cell.get("is_occupied", False):
-                        cargo_info = cell.get("cargo", {})
-                        individual_number = cargo_info.get("individual_number", "")
-                        location_code = cell.get("location", "")
+                        cargo_list = cell.get("cargo", [])
+                        location_code = cell.get("location_code", "")
                         
-                        # Проверяем, найден ли целевой груз
-                        if target_cargo_number in individual_number:
-                            target_cargo_found = True
-                            cargo_details = cargo_info
-                            found_position = location_code
-                            
-                            # Проверяем позицию
-                            if target_position in location_code:
-                                log_test_result(
-                                    "6. Проверка груза 25082235/02/02 на позиции Б1-П2-Я9",
-                                    True,
-                                    f"Груз найден на правильной позиции! Individual Number: {individual_number}, Cargo Number: {cargo_info.get('cargo_number')}, Location: {location_code}, Получатель: {cargo_info.get('recipient_name')}",
-                                    0
-                                )
-                                return True, cargo_details
-                            else:
-                                log_test_result(
-                                    "6. Проверка груза 25082235/02/02 на позиции Б1-П2-Я9",
-                                    False,
-                                    f"Груз найден, но на неправильной позиции. Ожидалось: {target_position}, Найдено: {location_code}",
-                                    0
-                                )
-                                return False, cargo_details
+                        if cargo_list:
+                            for cargo_info in cargo_list:
+                                individual_number = cargo_info.get("individual_number", "")
+                                
+                                # Проверяем, найден ли целевой груз
+                                if target_cargo_number in individual_number:
+                                    target_cargo_found = True
+                                    cargo_details = cargo_info
+                                    found_position = location_code
+                                    
+                                    # Проверяем позицию - location_code в формате "1-2-9", а target_position "Б1-П2-Я9"
+                                    # Конвертируем location_code в формат Б-П-Я для сравнения
+                                    parts = location_code.split('-')
+                                    if len(parts) == 3:
+                                        converted_position = f"Б{parts[0]}-П{parts[1]}-Я{parts[2]}"
+                                        if target_position == converted_position:
+                                            log_test_result(
+                                                "6. Проверка груза 25082235/02/02 на позиции Б1-П2-Я9",
+                                                True,
+                                                f"Груз найден на правильной позиции! Individual Number: {individual_number}, Cargo Number: {cargo_info.get('cargo_number')}, Location: {converted_position} (API: {location_code}), Получатель: {cargo_info.get('recipient_full_name')}",
+                                                0
+                                            )
+                                            return True, cargo_details
+                                        else:
+                                            log_test_result(
+                                                "6. Проверка груза 25082235/02/02 на позиции Б1-П2-Я9",
+                                                False,
+                                                f"Груз найден, но на неправильной позиции. Ожидалось: {target_position}, Найдено: {converted_position} (API: {location_code})",
+                                                0
+                                            )
+                                            return False, cargo_details
         
         if not target_cargo_found:
             # Ищем любые грузы для диагностики
@@ -554,10 +560,12 @@ def test_specific_cargo_position(layout_data):
                     cells = shelf.get("cells", [])
                     for cell in cells:
                         if cell.get("is_occupied", False):
-                            cargo_info = cell.get("cargo", {})
-                            individual_number = cargo_info.get("individual_number", "")
-                            location_code = cell.get("location", "")
-                            all_cargo.append(f"{individual_number}@{location_code}")
+                            cargo_list = cell.get("cargo", [])
+                            location_code = cell.get("location_code", "")
+                            if cargo_list:
+                                for cargo_info in cargo_list:
+                                    individual_number = cargo_info.get("individual_number", "")
+                                    all_cargo.append(f"{individual_number}@{location_code}")
             
             log_test_result(
                 "6. Проверка груза 25082235/02/02 на позиции Б1-П2-Я9",
