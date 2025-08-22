@@ -6864,11 +6864,11 @@ async def get_cargo_placement_status(
                             'warehouse_location': cargo.get('warehouse_location'),
                             'block_number': cargo.get('block_number'),
                             'shelf_number': cargo.get('shelf_number'),
-                        'cell_number': cargo.get('cell_number'),
-                        'placed_at': cargo.get('updated_at'),
-                        'placed_by': cargo.get('placed_by_operator')
-                    }
-                    placed_count += 1
+                            'cell_number': cargo.get('cell_number'),
+                            'placed_at': cargo.get('updated_at'),
+                            'placed_by': cargo.get('placed_by_operator')
+                        }
+                        placed_count += 1
                 
                 # Определяем статус конкретной единицы
                 unit_status = 'placed' if is_placed else 'awaiting_placement'
