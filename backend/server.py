@@ -20062,13 +20062,12 @@ async def verify_cargo_for_placement(
         
         # Формируем информацию о грузе
         cargo_info = {
-            "cargo_id": cargo["id"],
-            "cargo_number": cargo.get("cargo_number"),
+            "cargo_id": str(cargo.get("id", "")),
+            "cargo_number": cargo.get("cargo_number", ""),
             "individual_number": individual_number,
             "sender_name": cargo.get("sender_full_name", "Неизвестно"),
             "recipient_name": cargo.get("recipient_full_name", "Неизвестно"),
-            "cargo_items": cargo.get("cargo_items", []),
-            "warehouse_id": cargo.get("warehouse_id"),
+            "warehouse_id": cargo.get("warehouse_id", ""),
             "status": cargo_status,
             "payment_status": payment_status
         }
