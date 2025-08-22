@@ -7589,11 +7589,13 @@ async def get_warehouse_layout_with_cargo(
             
             for cell in range(1, max_cells + 1):
                 location_key = f"{block}-{shelf}-{cell}"
+                cargo_list = cargo_by_location.get(location_key, [])
                 cell_data = {
                     "cell_number": cell,
                     "location_code": location_key,
-                    "is_occupied": location_key in cargo_by_location,
-                    "cargo": cargo_by_location.get(location_key, None)
+                    "is_occupied": len(cargo_list) > 0,
+                    "cargo": cargo_list if cargo_list else None,
+                    "cargo_count": len(cargo_list)
                 }
                 blocks[f"block_{block}"]["shelves"][f"shelf_{shelf}"]["cells"][f"cell_{cell}"] = cell_data
     
