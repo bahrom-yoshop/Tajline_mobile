@@ -7599,13 +7599,18 @@ async def get_warehouse_layout_with_cargo(
                 }
                 blocks[f"block_{block}"]["shelves"][f"shelf_{shelf}"]["cells"][f"cell_{cell}"] = cell_data
     
+    # Подсчитываем общее количество грузов и занятых ячеек
+    total_cargo_count = sum(len(cargo_list) for cargo_list in cargo_by_location.values())
+    occupied_cells_count = len([key for key, cargo_list in cargo_by_location.items() if len(cargo_list) > 0])
+    total_cells_count = max_blocks * max_shelves * max_cells
+    
     return {
         "warehouse": serialize_mongo_document(warehouse),
         "layout": blocks,
-        "total_cargo": len(cargo_by_location),
-        "occupied_cells": len(cargo_by_location),
-        "total_cells": max_blocks * max_shelves * max_cells,
-        "occupancy_percentage": round((len(cargo_by_location) / (max_blocks * max_shelves * max_cells)) * 100, 2)
+        "total_cargo": total_cargo_count,
+        "occupied_cells": occupied_cells_count,
+        "total_cells": total_cells_count,
+        "occupancy_percentage": round((occupied_cells_count / total_cells_count) * 100, 2) if total_cells_count > 0 else 0
     }
 
 @app.post("/api/warehouses/{warehouse_id}/move-cargo")
