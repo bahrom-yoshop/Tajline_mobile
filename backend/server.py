@@ -2880,6 +2880,15 @@ async def get_fully_placed_cargo_requests(
                     "recipient_full_name": cargo.get("recipient_full_name", "Не указан"),
                     "recipient_phone": cargo.get("recipient_phone", "Не указан"),
                     "recipient_address": cargo.get("recipient_address", "Не указан"),
+                    # Способы оплаты и доставки
+                    "payment_method": cargo.get("payment_method", "Не указан"),
+                    "delivery_method": cargo.get("delivery_method", "Не указан"),
+                    "payment_status": cargo.get("payment_status", "Не указан"),
+                    # Информация о складах
+                    "accepting_warehouse": cargo.get("accepting_warehouse", "Не указан"),
+                    "delivery_warehouse": cargo.get("delivery_warehouse", "Не указан"),
+                    "pickup_city": cargo.get("pickup_city", "Не указан"),
+                    "delivery_city": cargo.get("delivery_city", "Не указан"),
                     # Информация о размещении
                     "total_units": total_units,
                     "placed_units": placed_units,
@@ -2887,8 +2896,22 @@ async def get_fully_placed_cargo_requests(
                     "is_fully_placed": placed_units >= total_units,
                     "is_partially_placed": placed_units > 0 and placed_units < total_units,
                     "individual_units": individual_units,
+                    # Информация об операторах
                     "created_at": cargo.get("created_at", datetime.utcnow()).isoformat() if isinstance(cargo.get("created_at"), datetime) else cargo.get("created_at"),
                     "operator_name": cargo.get("operator_name", "Неизвестный оператор"),
+                    "accepting_operator": cargo.get("accepting_operator", "Неизвестно"),
+                    "placing_operator": individual_units[0].get("placed_by", "Неизвестно") if individual_units else "Неизвестно",
+                    # Список грузов детально
+                    "cargo_items": cargo_items,
+                    # История действий (базовая)
+                    "action_history": [
+                        {
+                            "action": "cargo_accepted",
+                            "operator": cargo.get("accepting_operator", "Неизвестно"),
+                            "timestamp": cargo.get("created_at", datetime.utcnow()).isoformat() if isinstance(cargo.get("created_at"), datetime) else cargo.get("created_at"),
+                            "description": "Груз принят на склад"
+                        }
+                    ],
                     "status": "fully_placed" if placed_units >= total_units else "partially_placed"
                 }
                 
