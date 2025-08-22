@@ -171,15 +171,21 @@ def test_layout_with_cargo_api():
         cargo_with_new_fields = 0
         total_cargo_found = 0
         
-        blocks = data.get("blocks", [])
-        for block in blocks:
+        # Check both top-level blocks and layout.blocks
+        layout_blocks = data.get("layout", {}).get("blocks", [])
+        top_level_blocks = data.get("blocks", [])
+        
+        all_blocks = layout_blocks if layout_blocks else top_level_blocks
+        
+        for block in all_blocks:
             shelves = block.get("shelves", [])
             for shelf in shelves:
                 cells = shelf.get("cells", [])
                 for cell in cells:
-                    if cell.get("is_occupied") and cell.get("cargo_info"):
-                        cargo_info = cell.get("cargo_info", {})
-                        total_cargo_found += 1
+                    if cell.get("is_occupied") and cell.get("cargo"):
+                        cargo_list = cell.get("cargo", [])
+                        for cargo_info in cargo_list:
+                            total_cargo_found += 1
                         
                         # Проверяем новые поля
                         required_fields = [
