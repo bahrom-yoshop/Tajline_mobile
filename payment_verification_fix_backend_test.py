@@ -275,7 +275,7 @@ def test_placement_logs_check():
     # Мы не можем напрямую проверить логи сервера, но можем проверить ответы API
     
     verify_data = {
-        "cargo_number": test_cargo_number
+        "qr_code": test_cargo_number
     }
     
     response, response_time = make_request("POST", "/operator/placement/verify-cargo", verify_data)
