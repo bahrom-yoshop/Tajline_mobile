@@ -28352,9 +28352,14 @@ function App() {
                                       ? 'bg-red-100 border-red-300 text-red-800 hover:bg-red-200' 
                                       : 'bg-green-100 border-green-300 text-green-800 hover:bg-green-200'
                                   }`}
-                                  title={cell.cargo ? `${cell.cargo.cargo_number} - ${cell.cargo.sender_full_name}` : 'Свободная ячейка'}
-                                  onClick={() => {
-                                    if (cell.is_occupied && cell.cargo) {
+                                  title={cell.cargo && cell.cargo.length > 0 ? 
+                                    `${cell.cargo_count} грузов в ячейке: ${cell.cargo.map(c => c.cargo_number).join(', ')}` : 
+                                    'Свободная ячейка'
+                                  }
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (cell.is_occupied && cell.cargo && cell.cargo.length > 0) {
                                       setSelectedCargoForWarehouse(cell.cargo);
                                       setCargoDetailsModal(true);
                                     } else {
