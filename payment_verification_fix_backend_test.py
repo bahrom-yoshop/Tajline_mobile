@@ -171,7 +171,7 @@ def test_verify_cargo_api():
     print(f"\n🎯 ТЕСТ 3: КРИТИЧЕСКАЯ ПРОВЕРКА - API verify-cargo с грузом {test_cargo_number}")
     
     verify_data = {
-        "cargo_number": test_cargo_number
+        "qr_code": test_cargo_number
     }
     
     response, response_time = make_request("POST", "/operator/placement/verify-cargo", verify_data)
