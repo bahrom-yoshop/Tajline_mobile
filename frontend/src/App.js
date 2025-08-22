@@ -13548,6 +13548,83 @@ function App() {
     }
   };
 
+  // НОВЫЕ ФУНКЦИИ ДЛЯ НОВОЙ ВИЗУАЛЬНОЙ СХЕМЫ ЯЧЕЕК
+
+  // Обработка клика по ячейке в новой схеме
+  const handleNewSchemeeCellClick = (cell, block, shelf) => {
+    console.log('🔍 Cell clicked:', { cell, block, shelf });
+    
+    if (!cell.is_occupied || !cell.cargo || cell.cargo.length === 0) {
+      showAlert('Ячейка свободна', 'info');
+      return;
+    }
+
+    // Подготавливаем данные для показа в модальном окне
+    const cellDetails = {
+      location: `Б${block.block_number}-П${shelf.shelf_number}-Я${cell.cell_number}`,
+      location_code: cell.location_code,
+      warehouse_name: newWarehouseSchemeData?.warehouse?.name || 'Неизвестный склад',
+      cargo: cell.cargo,
+      total_cargo_count: cell.cargo.length,
+      is_occupied: cell.is_occupied,
+      block_number: block.block_number,
+      shelf_number: shelf.shelf_number,
+      cell_number: cell.cell_number
+    };
+
+    setSelectedCellForDetails(cellDetails);
+    setShowCellDetailsModal(true);
+  };
+
+  // Удаление груза из ячейки
+  const handleRemoveCargoFromNewCell = async (cargoItem) => {
+    if (!cargoItem || !cargoItem.individual_number) {
+      showAlert('Ошибка: неверные данные груза', 'error');
+      return;
+    }
+
+    const confirmRemoval = window.confirm(
+      `Вы уверены, что хотите удалить груз из ячейки?\n\n` +
+      `📦 Груз: ${cargoItem.cargo_number}\n` +
+      `🏷️ Единица: ${cargoItem.individual_number}\n` +
+      `📍 Местоположение: ${cargoItem.placement_location}\n` +
+      `👤 Получатель: ${cargoItem.recipient_full_name}\n\n` +
+      `Груз будет возвращен в статус "Ожидает размещения".`
+    );
+
+    if (!confirmRemoval) return;
+
+    try {
+      setLoading(true);
+      
+      const requestData = {
+        individual_number: cargoItem.individual_number,
+        cargo_number: cargoItem.cargo_number,
+        reason: "Удалено через визуальную схему ячеек"
+      };
+
+      await apiCall('/api/operator/cargo/remove-from-cell', 'POST', requestData);
+
+      showAlert(`Груз ${cargoItem.individual_number} успешно удален из ячейки`, 'success');
+      
+      // Перезагружаем схему склада
+      if (showNewWarehouseScheme) {
+        const response = await apiCall(`/api/warehouses/${showNewWarehouseScheme}/layout-with-cargo`);
+        setNewWarehouseSchemeData(response);
+      }
+      
+      // Закрываем модальное окно деталей
+      setShowCellDetailsModal(false);
+      setSelectedCellForDetails(null);
+
+    } catch (error) {
+      console.error('❌ Error removing cargo from cell:', error);
+      showAlert(`Ошибка удаления груза: ${error.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Открытие модального окна управления грузом
   const openCargoManagementModal = async (cargoInfo) => {
     // Создаем детальную информацию о грузе с данными о связанных грузах
