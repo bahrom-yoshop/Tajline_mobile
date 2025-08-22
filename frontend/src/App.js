@@ -34089,17 +34089,22 @@ function App() {
                                     </Badge>
                                   </div>
                                   
-                                  {unit.is_placed && unit.placement_info ? (
+                                  {unit.is_placed && unit.placement_info && unit.placement_info !== 'Ждет размещения' ? (
                                     <div className="text-center">
                                       <div className="font-bold text-lg text-blue-700 bg-blue-100 px-3 py-2 rounded-md mb-2">
-                                        Б{unit.placement_info.block_number || '?'}-П{unit.placement_info.shelf_number || '?'}-Я{unit.placement_info.cell_number || '?'}
+                                        {typeof unit.placement_info === 'object' ? 
+                                          `Б${unit.placement_info.block_number || '?'}-П${unit.placement_info.shelf_number || '?'}-Я${unit.placement_info.cell_number || '?'}` :
+                                          unit.placement_info || 'Б?-П?-Я?'
+                                        }
                                       </div>
                                       <div className="text-xs text-gray-600 space-y-1">
-                                        <div>🏭 {unit.placement_info.warehouse_name || 'Склад не указан'}</div>
-                                        {unit.placement_info.placed_at && (
+                                        {typeof unit.placement_info === 'object' && unit.placement_info.warehouse_name && (
+                                          <div>🏭 {unit.placement_info.warehouse_name}</div>
+                                        )}
+                                        {typeof unit.placement_info === 'object' && unit.placement_info.placed_at && (
                                           <div>🕒 {new Date(unit.placement_info.placed_at).toLocaleString('ru-RU')}</div>
                                         )}
-                                        {unit.placement_info.placed_by && (
+                                        {typeof unit.placement_info === 'object' && unit.placement_info.placed_by && (
                                           <div>👤 {unit.placement_info.placed_by}</div>
                                         )}
                                       </div>
