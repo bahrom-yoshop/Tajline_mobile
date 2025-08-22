@@ -6489,7 +6489,7 @@ async def place_individual_cargo_unit(
                 "$set": {
                     "cargo_items.$[cargo_item].individual_items.$[individual_item].is_placed": True,
                     "cargo_items.$[cargo_item].individual_items.$[individual_item].placement_info": location_code,
-                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_by": current_user.full_name,
+                    "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_by_operator": current_user.full_name,
                     "cargo_items.$[cargo_item].individual_items.$[individual_item].placed_at": datetime.utcnow(),
                     "cargo_items.$[cargo_item].individual_items.$[individual_item].warehouse_name": warehouse["name"]
                 }
