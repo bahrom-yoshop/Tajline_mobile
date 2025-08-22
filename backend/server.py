@@ -2866,6 +2866,28 @@ async def get_fully_placed_cargo_requests(
                         "status_label": "Размещено" if item.get('is_placed', False) else "Ждет размещения"
                     })
                 
+                # Создаем историю действий
+                action_history = [
+                    {
+                        "action": "cargo_accepted",
+                        "operator": cargo.get("accepting_operator", "Неизвестно"),
+                        "timestamp": cargo.get("created_at", datetime.utcnow()).isoformat() if isinstance(cargo.get("created_at"), datetime) else cargo.get("created_at"),
+                        "description": "Груз принят на склад"
+                    }
+                ] + [
+                    {
+                        "action": "cargo_placed",
+                        "operator": operator,
+                        "timestamp": timestamp,
+                        "description": f"Размещение груза выполнено оператором {operator}"
+                    }
+                    for operator, timestamp in set(
+                        (unit.get("placed_by", "Неизвестно"), unit.get("placed_at"))
+                        for unit in individual_units
+                        if unit.get("is_placed") and unit.get("placed_at")
+                    )
+                ]
+                
                 # Добавляем заявку в список размещенных (частично или полностью)
                 cargo_info = {
                     "id": cargo["id"],
@@ -2904,26 +2926,7 @@ async def get_fully_placed_cargo_requests(
                     # Список грузов детально
                     "cargo_items": cargo_items,
                     # История действий (расширенная)
-                    "action_history": (lambda: [
-                        {
-                            "action": "cargo_accepted",
-                            "operator": cargo.get("accepting_operator", "Неизвестно"),
-                            "timestamp": cargo.get("created_at", datetime.utcnow()).isoformat() if isinstance(cargo.get("created_at"), datetime) else cargo.get("created_at"),
-                            "description": "Груз принят на склад"
-                        }
-                    ] + [
-                        {
-                            "action": "cargo_placed",
-                            "operator": operator,
-                            "timestamp": timestamp,
-                            "description": f"Размещение груза выполнено оператором {operator}"
-                        }
-                        for operator, timestamp in set(
-                            (unit.get("placed_by", "Неизвестно"), unit.get("placed_at"))
-                            for unit in individual_units
-                            if unit.get("is_placed") and unit.get("placed_at")
-                        )
-                    ])(),
+                    "action_history": action_history,
                     "status": "fully_placed" if placed_units >= total_units else "partially_placed"
                 }
                 
