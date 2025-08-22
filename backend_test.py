@@ -679,7 +679,6 @@ def test_frontend_display_fields(layout_data):
         
         # Основная информация о складе
         warehouse_info = layout_data.get("warehouse", {})
-        statistics = layout_data.get("statistics", {})
         
         warehouse_fields = ["id", "name", "warehouse_id_number"]
         for field in warehouse_fields:
@@ -689,10 +688,10 @@ def test_frontend_display_fields(layout_data):
                 main_fields_check.append(f"❌ {field}: отсутствует")
         
         # Статистика склада
-        stats_fields = ["total_cells", "occupied_cells", "total_cargo", "loading_percentage"]
+        stats_fields = ["total_cells", "occupied_cells", "total_cargo", "occupancy_percentage"]
         for field in stats_fields:
-            if field in statistics:
-                main_fields_check.append(f"✅ {field}: {statistics[field]}")
+            if field in layout_data:
+                main_fields_check.append(f"✅ {field}: {layout_data[field]}")
             else:
                 main_fields_check.append(f"❌ {field}: отсутствует")
         
