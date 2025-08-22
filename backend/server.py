@@ -7867,6 +7867,63 @@ async def quick_cargo_placement(
         "placed_by": current_user.full_name
     }
 
+@app.post("/api/admin/cleanup-placement-records")
+async def cleanup_placement_records(current_user: User = Depends(get_current_user)):
+    """ОЧИСТКА: Удаление неактуальных placement_records"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Получаем warehouse_id оператора
+    operator_warehouse_ids = get_operator_warehouse_ids(current_user.id)
+    if not operator_warehouse_ids:
+        raise HTTPException(status_code=400, detail="Оператор не привязан к складу")
+    
+    warehouse_id = operator_warehouse_ids[0]
+    
+    print(f"🧹 ОЧИСТКА placement_records для склада {warehouse_id}")
+    
+    # Получаем все placement_records для склада
+    all_placement_records = list(db.placement_records.find({"warehouse_id": warehouse_id}))
+    print(f"   📦 Найдено placement_records: {len(all_placement_records)}")
+    
+    # Получаем актуально размещенные грузы из operator_cargo  
+    operator_cargo_list = list(db.operator_cargo.find({}))
+    currently_placed_individual_numbers = set()
+    
+    for cargo in operator_cargo_list:
+        cargo_items = cargo.get("cargo_items", [])
+        for cargo_item in cargo_items:
+            individual_items = cargo_item.get("individual_items", [])
+            for individual_item in individual_items:
+                if individual_item.get("is_placed") == True:
+                    individual_number = individual_item.get("individual_number")
+                    if individual_number:
+                        currently_placed_individual_numbers.add(individual_number)
+                        print(f"   ✅ Актуально размещен: {individual_number}")
+    
+    print(f"   📋 Всего актуально размещенных: {len(currently_placed_individual_numbers)}")
+    
+    # Удаляем placement_records которые не соответствуют актуально размещенным грузам
+    removed_count = 0
+    for record in all_placement_records:
+        individual_number = record.get("individual_number")
+        if individual_number not in currently_placed_individual_numbers:
+            db.placement_records.delete_one({"_id": record["_id"]})
+            removed_count += 1
+            print(f"   🗑️ Удален неактуальный: {individual_number}")
+    
+    remaining_count = len(all_placement_records) - removed_count
+    
+    return {
+        "success": True,
+        "message": "Очистка placement_records завершена",
+        "warehouse_id": warehouse_id,
+        "total_placement_records": len(all_placement_records),
+        "currently_placed_items": len(currently_placed_individual_numbers),
+        "removed_records": removed_count,
+        "remaining_records": remaining_count
+    }
+
 @app.post("/api/admin/force-create-placement-record")
 async def force_create_placement_record(
     request: dict,
