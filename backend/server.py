@@ -7797,6 +7797,122 @@ async def quick_cargo_placement(
         "placed_by": current_user.full_name
     }
 
+@app.get("/api/admin/fix-missing-placement-records")
+async def fix_missing_placement_records(current_user: User = Depends(get_current_user)):
+    """ЭКСТРЕННОЕ ИСПРАВЛЕНИЕ: Создание отсутствующих placement_records для размещенных грузов"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    print("🔧 ЭКСТРЕННОЕ ИСПРАВЛЕНИЕ: Начинаем восстановление missing placement_records")
+    
+    fixed_count = 0
+    processed_count = 0
+    
+    # Ищем все грузы в operator_cargo которые имеют размещенные individual_items но нет placement_records
+    all_cargo = list(db.operator_cargo.find({}))
+    
+    for cargo in all_cargo:
+        processed_count += 1
+        cargo_number = cargo.get("cargo_number")
+        warehouse_id = cargo.get("warehouse_id")
+        
+        if not cargo_number or not warehouse_id:
+            continue
+            
+        # Проверяем cargo_items с individual_items
+        cargo_items = cargo.get("cargo_items", [])
+        
+        for cargo_item in cargo_items:
+            individual_items = cargo_item.get("individual_items", [])
+            
+            for individual_item in individual_items:
+                individual_number = individual_item.get("individual_number")
+                is_placed = individual_item.get("is_placed", False)
+                placement_info = individual_item.get("placement_info", "")
+                
+                if not individual_number or not is_placed or not placement_info:
+                    continue
+                    
+                # Проверяем есть ли уже placement_record
+                existing_record = db.placement_records.find_one({"individual_number": individual_number})
+                if existing_record:
+                    continue  # Уже есть запись
+                    
+                # Парсим placement_info для получения location
+                location = placement_info.replace("📍 ", "").strip()
+                
+                # Парсим location для получения блока, полки, ячейки
+                try:
+                    if location.startswith('Б'):
+                        parts = location.split('-')
+                        if len(parts) >= 3:
+                            block_number = int(parts[0][1:])  # Убираем "Б"
+                            shelf_number = int(parts[1][1:])  # Убираем "П"
+                            cell_number = int(parts[2][1:])   # Убираем "Я"
+                            location_code = f"B{block_number}-S{shelf_number}-C{cell_number}"
+                        else:
+                            continue
+                    else:
+                        continue
+                        
+                except (ValueError, IndexError):
+                    print(f"❌ Не удалось парсить location: {location} для {individual_number}")
+                    continue
+                
+                # Получаем информацию о складе
+                warehouse = db.warehouses.find_one({"id": warehouse_id})
+                warehouse_name = warehouse.get("name", "Unknown") if warehouse else "Unknown"
+                
+                # Парсим individual_number: 25082235/01/01
+                parts = individual_number.split('/')
+                if len(parts) != 3:
+                    continue
+                    
+                type_index = int(parts[1])
+                unit_index = int(parts[2])
+                
+                # Создаем placement_record
+                placement_record = {
+                    "individual_number": individual_number,
+                    "cargo_number": cargo_number,
+                    "type_index": type_index,
+                    "unit_index": unit_index,
+                    "cargo_id": cargo.get("id"),
+                    "warehouse_id": warehouse_id,
+                    "warehouse_name": warehouse_name,
+                    "location_code": location_code,
+                    "location": location,
+                    "block_number": block_number,
+                    "shelf_number": shelf_number,
+                    "cell_number": cell_number,
+                    "placed_at": individual_item.get("placed_at", datetime.utcnow()),
+                    "placed_by_operator": individual_item.get("placed_by_operator", "System Recovery"),
+                    "placed_by_operator_id": individual_item.get("placed_by_operator_id"),
+                    "placed_by": individual_item.get("placed_by_operator", "System Recovery"),
+                    "status": "placed",
+                    "recovered": True,
+                    "recovered_at": datetime.utcnow()
+                }
+                
+                # Сохраняем placement_record
+                try:
+                    db.placement_records.insert_one(placement_record)
+                    fixed_count += 1
+                    print(f"✅ Восстановлен placement_record для {individual_number} на {location}")
+                except Exception as e:
+                    print(f"❌ Ошибка восстановления {individual_number}: {e}")
+    
+    return {
+        "success": True,
+        "message": f"Восстановление завершено",
+        "processed_cargo": processed_count,
+        "fixed_placement_records": fixed_count,
+        "details": {
+            "searched_in": "operator_cargo collection",
+            "filter_criteria": "individual_items.is_placed = True без placement_records"
+        }
+    }
+
 @app.get("/api/warehouses/{warehouse_id}/layout-with-cargo")
 async def get_warehouse_layout_with_cargo(
     warehouse_id: str,
