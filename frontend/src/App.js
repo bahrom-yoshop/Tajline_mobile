@@ -22741,22 +22741,41 @@ function App() {
                                                       )}
                                                     </div>
                                                     <div className="text-right">
-                                                      <p className="font-medium text-blue-600">
-                                                        Размещено {cargoItem.placed_count || 0}/{cargoItem.quantity || 1}
-                                                      </p>
-                                                      <p className={`text-xs ${
-                                                        (cargoItem.placed_count || 0) === (cargoItem.quantity || 1) 
-                                                          ? 'text-green-600' 
-                                                          : (cargoItem.placed_count || 0) > 0 
-                                                            ? 'text-yellow-600' 
-                                                            : 'text-red-600'
-                                                      }`}>
-                                                        {(cargoItem.placed_count || 0) === (cargoItem.quantity || 1) 
-                                                          ? 'Размещено' 
-                                                          : (cargoItem.placed_count || 0) > 0 
-                                                            ? 'Частично' 
-                                                            : 'Ждёт'}
-                                                      </p>
+                                                      {/* ИСПРАВЛЕНИЕ: Используем фактические individual_items для подсчета */}
+                                                      {(() => {
+                                                        let totalCount, placedCount;
+                                                        
+                                                        if (cargoItem.individual_items && cargoItem.individual_items.length > 0) {
+                                                          // Используем фактические individual_items
+                                                          totalCount = cargoItem.individual_items.length;
+                                                          placedCount = cargoItem.individual_items.filter(unit => unit.is_placed === true).length;
+                                                        } else {
+                                                          // Fallback к старым полям
+                                                          totalCount = cargoItem.quantity || 1;
+                                                          placedCount = cargoItem.placed_count || 0;
+                                                        }
+                                                        
+                                                        return (
+                                                          <>
+                                                            <p className="font-medium text-blue-600">
+                                                              Размещено {placedCount}/{totalCount}
+                                                            </p>
+                                                            <p className={`text-xs ${
+                                                              placedCount === totalCount && totalCount > 0
+                                                                ? 'text-green-600' 
+                                                                : placedCount > 0 
+                                                                  ? 'text-yellow-600' 
+                                                                  : 'text-red-600'
+                                                            }`}>
+                                                              {placedCount === totalCount && totalCount > 0
+                                                                ? 'Размещено' 
+                                                                : placedCount > 0 
+                                                                  ? 'Частично' 
+                                                                  : 'Ждёт'}
+                                                            </p>
+                                                          </>
+                                                        );
+                                                      })()}
                                                     </div>
                                                   </div>
                                                 </div>
