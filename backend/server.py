@@ -5995,25 +5995,55 @@ async def get_available_cargo_for_placement(
         # Объединяем списки
         cargo_list = cargo_list_main + cargo_list_operator
         
-        # ИСПРАВЛЕНИЕ ПРОБЛЕМЫ: Фильтруем полностью размещенные заявки
+        # ИСПРАВЛЕНИЕ ПРОБЛЕМЫ: Правильная фильтрация полностью размещенных заявок
         filtered_cargo_list = []
         for cargo in cargo_list:
-            # Подсчитываем общее количество единиц в заявке
-            total_units = 0
+            # Подсчитываем общее количество individual_items в заявке
+            total_individual_items = 0
+            placed_individual_items = 0
             cargo_items = cargo.get('cargo_items', [])
             
             for item in cargo_items:
-                quantity = item.get('quantity', 1)
-                total_units += quantity
+                individual_items = item.get('individual_items', [])
+                if individual_items:
+                    # Если есть individual_items, считаем их
+                    total_individual_items += len(individual_items)
+                    placed_individual_items += len([unit for unit in individual_items if unit.get('is_placed') == True])
+                else:
+                    # Fallback к quantity если individual_items нет
+                    quantity = item.get('quantity', 1)
+                    total_individual_items += quantity
+                    # Подсчитываем размещенные через placement_records для этого item
+                    placed_count = 0
+                    for i in range(1, quantity + 1):
+                        individual_number = f"{cargo['cargo_number']}/{str(len(cargo_items)).zfill(2)}/{str(i).zfill(2)}"
+                        placement_record = db.placement_records.find_one({"individual_number": individual_number})
+                        if placement_record:
+                            placed_count += 1
+                    placed_individual_items += placed_count
             
-            # Подсчитываем размещенные единицы для этой заявки
-            placed_units = db.placement_records.count_documents({"cargo_number": cargo["cargo_number"]})
-            
-            # Если НЕ все единицы размещены, добавляем в список для размещения
-            if total_units == 0 or placed_units < total_units:
+            # Если НЕ все individual_items размещены, добавляем в список для размещения
+            if total_individual_items == 0 or placed_individual_items < total_individual_items:
+                # НОВОЕ: Обновляем информацию о размещении для каждого cargo_item
+                for item in cargo_items:
+                    individual_items = item.get('individual_items', [])
+                    if individual_items:
+                        item['placed_count'] = len([unit for unit in individual_items if unit.get('is_placed') == True])
+                    else:
+                        # Подсчитываем через placement_records
+                        placed_count = 0
+                        quantity = item.get('quantity', 1)
+                        for i in range(1, quantity + 1):
+                            individual_number = f"{cargo['cargo_number']}/{str(len(cargo_items)).zfill(2)}/{str(i).zfill(2)}"
+                            placement_record = db.placement_records.find_one({"individual_number": individual_number})
+                            if placement_record:
+                                placed_count += 1
+                        item['placed_count'] = placed_count
+                
                 filtered_cargo_list.append(cargo)
+                print(f"🎯 ВКЛЮЧЕНИЕ: Заявка {cargo['cargo_number']} частично размещена ({placed_individual_items}/{total_individual_items}) - оставляем в списке размещения")
             else:
-                print(f"🎯 ИСКЛЮЧЕНИЕ: Заявка {cargo['cargo_number']} полностью размещена ({placed_units}/{total_units}) - исключаем из списка размещения")
+                print(f"🎯 ИСКЛЮЧЕНИЕ: Заявка {cargo['cargo_number']} полностью размещена ({placed_individual_items}/{total_individual_items}) - исключаем из списка размещения")
         
         # Обновляем общий счетчик после фильтрации
         total_count_after_filter = len(filtered_cargo_list)
