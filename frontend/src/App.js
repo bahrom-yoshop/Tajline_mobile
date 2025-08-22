@@ -38948,6 +38948,379 @@ function App() {
           </Dialog>
         )}
         
+        {/* НОВОЕ МОДАЛЬНОЕ ОКНО: ВИЗУАЛЬНАЯ СХЕМА ЯЧЕЕК СКЛАДА */}
+        <Dialog open={!!showNewWarehouseScheme} onOpenChange={() => setShowNewWarehouseScheme(null)}>
+          <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <Grid3X3 className="mr-2 h-5 w-5" />
+                🏭 Визуальная схема ячеек склада
+              </DialogTitle>
+              <DialogDescription>
+                {showNewWarehouseScheme && newWarehouseSchemeData && (
+                  <span>
+                    Склад: <strong>{newWarehouseSchemeData.warehouse?.name || 'Неизвестный склад'}</strong> 
+                    - Реальное размещение грузов операторами
+                  </span>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {showNewWarehouseScheme && (
+              <div className="space-y-6">
+                {newWarehouseSchemeLoading ? (
+                  <div className="flex justify-center items-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <span className="ml-3 text-gray-600">Загрузка схемы склада...</span>
+                  </div>
+                ) : newWarehouseSchemeData ? (
+                  <>
+                    {/* Общая статистика */}
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-blue-700">Всего ячеек</p>
+                            <p className="text-2xl font-bold text-blue-900">
+                              {newWarehouseSchemeData.total_cells || 0}
+                            </p>
+                          </div>
+                          <Grid3X3 className="h-8 w-8 text-blue-600" />
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-red-700">Занято</p>
+                            <p className="text-2xl font-bold text-red-900">
+                              {newWarehouseSchemeData.occupied_cells || 0}
+                            </p>
+                          </div>
+                          <Package className="h-8 w-8 text-red-600" />
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-green-700">Свободно</p>
+                            <p className="text-2xl font-bold text-green-900">
+                              {(newWarehouseSchemeData.total_cells - newWarehouseSchemeData.occupied_cells) || 0}
+                            </p>
+                          </div>
+                          <CheckCircle className="h-8 w-8 text-green-600" />
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-purple-700">Загрузка</p>
+                            <p className="text-2xl font-bold text-purple-900">
+                              {newWarehouseSchemeData.occupancy_percentage || 0}%
+                            </p>
+                          </div>
+                          <BarChart className="h-8 w-8 text-purple-600" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Схема блоков и ячеек */}
+                    <div className="space-y-8">
+                      {newWarehouseSchemeData.layout?.blocks?.map((block) => (
+                        <div key={block.block_number} className="border-2 border-gray-200 rounded-xl p-6 bg-gradient-to-br from-gray-50 to-white">
+                          <div className="flex justify-between items-center mb-6">
+                            <h3 className="font-bold text-2xl text-gray-800 flex items-center">
+                              <Building className="mr-2 h-6 w-6 text-blue-600" />
+                              Блок {block.block_number}
+                            </h3>
+                            <div className="text-sm text-gray-600 bg-gray-100 px-4 py-2 rounded-lg">
+                              Полок: {block.shelves?.length || 0}
+                            </div>
+                          </div>
+                          
+                          {/* Полки блока */}
+                          <div className="space-y-6">
+                            {block.shelves?.map((shelf) => (
+                              <div key={shelf.shelf_number} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                                <div className="flex items-center justify-between mb-4">
+                                  <h4 className="font-semibold text-lg text-gray-700 flex items-center">
+                                    <Package className="mr-2 h-5 w-5 text-green-600" />
+                                    Полка {shelf.shelf_number}
+                                  </h4>
+                                  <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                                    {shelf.cells?.filter(c => c.is_occupied).length || 0}/{shelf.cells?.length || 0} занято
+                                  </span>
+                                </div>
+                                
+                                {/* Сетка ячеек для полки */}
+                                <div className="grid gap-3" style={{
+                                  gridTemplateColumns: `repeat(${Math.min(shelf.cells?.length || 0, 10)}, 1fr)`
+                                }}>
+                                  {shelf.cells?.map((cell) => (
+                                    <div
+                                      key={cell.cell_number}
+                                      className={`
+                                        relative border-2 rounded-lg p-3 text-center cursor-pointer transition-all hover:scale-105 min-h-20 shadow-sm
+                                        ${cell.is_occupied 
+                                          ? 'bg-gradient-to-br from-red-100 to-red-200 border-red-300 hover:from-red-200 hover:to-red-300' 
+                                          : 'bg-gradient-to-br from-green-100 to-green-200 border-green-300 hover:from-green-200 hover:to-green-300'
+                                        }
+                                      `}
+                                      onClick={() => handleNewSchemeeCellClick(cell, block, shelf)}
+                                      title={cell.is_occupied ? 
+                                        `Занятая ячейка: ${cell.cargo?.length || 0} груз(ов)` : 
+                                        'Свободная ячейка'
+                                      }
+                                    >
+                                      <div className="text-xs font-bold text-gray-800 mb-1">
+                                        Я{cell.cell_number}
+                                      </div>
+                                      {cell.is_occupied ? (
+                                        <div className="space-y-1">
+                                          <div className="text-xs font-bold text-red-800">
+                                            {cell.cargo?.length || 0} груз
+                                          </div>
+                                          {cell.cargo && cell.cargo.length > 0 && (
+                                            <div className="text-xs text-red-700 truncate" title={cell.cargo[0].cargo_number}>
+                                              {cell.cargo[0].cargo_number?.substring(0, 8)}...
+                                            </div>
+                                          )}
+                                          <div className="text-xs text-red-600">
+                                            📦 ЗАНЯТА
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="text-xs font-bold text-green-800">
+                                          ✅ СВОБОДНА
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Действия */}
+                    <div className="flex justify-between items-center space-x-4 pt-4 border-t border-gray-200">
+                      <div className="text-sm text-gray-600">
+                        💡 Кликните на занятую ячейку для просмотра деталей груза
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" onClick={() => setShowNewWarehouseScheme(null)}>
+                          Закрыть
+                        </Button>
+                        <Button 
+                          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                          onClick={() => {
+                            // Перезагрузить данные схемы
+                            if (showNewWarehouseScheme) {
+                              setNewWarehouseSchemeLoading(true);
+                              apiCall(`/api/warehouses/${showNewWarehouseScheme}/layout-with-cargo`)
+                                .then(response => setNewWarehouseSchemeData(response))
+                                .catch(error => console.error('Error reloading scheme:', error))
+                                .finally(() => setNewWarehouseSchemeLoading(false));
+                            }
+                          }}
+                          disabled={newWarehouseSchemeLoading}
+                        >
+                          {newWarehouseSchemeLoading ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                          ) : (
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                          )}
+                          Обновить
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-gray-500 mb-4">Не удалось загрузить схему склада</div>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        if (showNewWarehouseScheme) {
+                          setNewWarehouseSchemeLoading(true);
+                          apiCall(`/api/warehouses/${showNewWarehouseScheme}/layout-with-cargo`)
+                            .then(response => setNewWarehouseSchemeData(response))
+                            .catch(error => console.error('Error reloading scheme:', error))
+                            .finally(() => setNewWarehouseSchemeLoading(false));
+                        }
+                      }}
+                    >
+                      Повторить попытку
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* МОДАЛЬНОЕ ОКНО ДЕТАЛЕЙ ЯЧЕЙКИ */}
+        <Dialog open={showCellDetailsModal} onOpenChange={setShowCellDetailsModal}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <Package className="mr-2 h-5 w-5" />
+                Детали ячейки: {selectedCellForDetails?.location}
+              </DialogTitle>
+              <DialogDescription>
+                Полная информация о размещенных грузах в ячейке
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedCellForDetails && (
+              <div className="space-y-6">
+                {/* Информация о ячейке */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Card className="border-l-4 border-l-blue-500">
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-3">
+                        <MapPin className="h-8 w-8 text-blue-600" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Местоположение</p>
+                          <p className="text-lg font-bold text-blue-900">{selectedCellForDetails.location}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-l-4 border-l-green-500">
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-3">
+                        <Package className="h-8 w-8 text-green-600" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Количество грузов</p>
+                          <p className="text-lg font-bold text-green-900">{selectedCellForDetails.total_cargo_count}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-l-4 border-l-purple-500">
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-3">
+                        <Warehouse className="h-8 w-8 text-purple-600" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Склад</p>
+                          <p className="text-lg font-bold text-purple-900">{selectedCellForDetails.warehouse_name}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Список грузов в ячейке */}
+                {selectedCellForDetails.cargo && selectedCellForDetails.cargo.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                      <Package className="mr-2 h-5 w-5" />
+                      Грузы в ячейке
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      {selectedCellForDetails.cargo.map((cargoItem, index) => (
+                        <Card key={index} className="border border-gray-200 hover:shadow-md transition-shadow">
+                          <CardContent className="p-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {/* Левая колонка - основная информация */}
+                              <div className="space-y-3">
+                                <div>
+                                  <p className="text-sm font-medium text-gray-500">Номер заявки</p>
+                                  <p className="text-lg font-bold text-blue-900">{cargoItem.cargo_number}</p>
+                                </div>
+                                
+                                <div>
+                                  <p className="text-sm font-medium text-gray-500">Индивидуальный номер</p>
+                                  <p className="text-md font-semibold text-gray-800">{cargoItem.individual_number}</p>
+                                </div>
+                                
+                                <div>
+                                  <p className="text-sm font-medium text-gray-500">Название груза</p>
+                                  <p className="text-md text-gray-800">{cargoItem.cargo_name}</p>
+                                </div>
+                                
+                                <div className="flex space-x-4">
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-500">Вес</p>
+                                    <p className="text-md text-gray-800">{cargoItem.weight} кг</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-500">Стоимость</p>
+                                    <p className="text-md text-gray-800">{cargoItem.declared_value} ₽</p>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Правая колонка - получатель и размещение */}
+                              <div className="space-y-3">
+                                <div>
+                                  <p className="text-sm font-medium text-gray-500">Получатель</p>
+                                  <p className="text-md font-semibold text-gray-800">{cargoItem.recipient_full_name}</p>
+                                  <p className="text-sm text-gray-600">{cargoItem.recipient_phone}</p>
+                                </div>
+                                
+                                <div>
+                                  <p className="text-sm font-medium text-gray-500">Оператор размещения</p>
+                                  <p className="text-md text-gray-800">{cargoItem.placed_by}</p>
+                                </div>
+                                
+                                <div>
+                                  <p className="text-sm font-medium text-gray-500">Дата размещения</p>
+                                  <p className="text-md text-gray-800">
+                                    {cargoItem.placed_at ? new Date(cargoItem.placed_at).toLocaleString() : 'Не указана'}
+                                  </p>
+                                </div>
+                                
+                                <div>
+                                  <p className="text-sm font-medium text-gray-500">Город доставки</p>
+                                  <p className="text-md text-gray-800">{cargoItem.recipient_address || 'Не указан'}</p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Кнопка удаления */}
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleRemoveCargoFromNewCell(cargoItem)}
+                                disabled={newWarehouseSchemeLoading}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                {newWarehouseSchemeLoading ? (
+                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                                ) : (
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                )}
+                                Удалить из ячейки
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Действия */}
+                <div className="flex justify-end space-x-2 pt-4 border-t border-gray-200">
+                  <Button variant="outline" onClick={() => setShowCellDetailsModal(false)}>
+                    Закрыть
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+        
         {/* Компонент управления номерами разработчика */}
         <DevControl />
     </div>
