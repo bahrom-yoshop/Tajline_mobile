@@ -5973,70 +5973,74 @@ async def get_warehouse_statistics(
             warehouse.get("cells_per_shelf", 0)
         )
         
-        # ИСПРАВЛЕНИЕ: Используем ту же логику что и в layout-with-cargo API
-        # Получаем актуально размещенные грузы из placement_records (они уже отфильтрованы по warehouse_id)
-        all_placement_records = list(db.placement_records.find({"warehouse_id": warehouse_id}))
+        # ИСПРАВЛЕНИЕ: Используем точно ту же логику что и layout-with-cargo API
+        # Берем все placement_records для склада (без дополнительной фильтрации по is_placed)
+        placement_records = list(db.placement_records.find({"warehouse_id": warehouse_id}))
         
-        print(f"🔍 ВСЕ PLACEMENT RECORDS ДЛЯ СКЛАДА:")
-        print(f"   📦 Всего placement_records: {len(all_placement_records)}")
+        print(f"🔍 PLACEMENT RECORDS ДЛЯ СКЛАДА (как в layout-with-cargo):")
+        print(f"   📦 Всего placement_records: {len(placement_records)}")
         
-        # Проверяем какие из этих placement_records соответствуют актуально размещенным грузам
-        # Используем fully-placed API логику для проверки статуса
-        valid_placement_records = []
-        
-        for record in all_placement_records:
-            individual_number = record.get("individual_number")
-            cargo_number = record.get("cargo_number")
-            
-            if not individual_number or not cargo_number:
-                continue
-                
-            # Проверяем статус в operator_cargo
-            operator_cargo = db.operator_cargo.find_one({"cargo_number": cargo_number})
-            is_currently_placed = False
-            
-            if operator_cargo:
-                cargo_items = operator_cargo.get("cargo_items", [])
-                for cargo_item in cargo_items:
-                    individual_items = cargo_item.get("individual_items", [])
-                    for individual_item in individual_items:
-                        if (individual_item.get("individual_number") == individual_number and 
-                            individual_item.get("is_placed") == True):
-                            is_currently_placed = True
-                            print(f"   ✅ {individual_number}: актуально размещен")
-                            break
-                    if is_currently_placed:
-                        break
-            
-            if is_currently_placed:
-                valid_placement_records.append(record)
-        
-        # Создаем множество уникальных ячеек из валидных placement_records  
+        # Создаем множество уникальных ячеек (точно как в layout-with-cargo)
         unique_cells = set()
-        for record in valid_placement_records:
-            location_code = record.get("location_code")
-            if location_code:
-                unique_cells.add(location_code)
-            else:
-                # Fallback: создаем location_code из компонентов
-                block_num = record.get("block_number", 0)
-                shelf_num = record.get("shelf_number", 0) 
-                cell_num = record.get("cell_number", 0)
+        for record in placement_records:
+            individual_number = record.get("individual_number", "")
+            location = record.get("location", "")
+            
+            print(f"   📋 {individual_number}: {location}")
+            
+            # Парсинг location (точно как в layout-with-cargo)
+            block_num = shelf_num = cell_num = None
+            
+            try:
+                # НОВЫЙ ФОРМАТ QR: "001-01-02-002" (warehouse-block-shelf-cell)
+                if len(location.split('-')) == 4:
+                    parts = location.split('-')
+                    warehouse_num = parts[0]  # 001
+                    block_num = int(parts[1])  # 01
+                    shelf_num = int(parts[2])  # 02  
+                    cell_num = int(parts[3])   # 002
+                    
+                # Формат "Б1-П2-Я15" (кириллица)
+                elif location.startswith('Б'):
+                    parts = location.split('-')
+                    if len(parts) >= 3:
+                        block_num = int(parts[0][1:])  # Убираем "Б" и берем число
+                        shelf_num = int(parts[1][1:])  # Убираем "П" и берем число
+                        cell_num = int(parts[2][1:])   # Убираем "Я" и берем число
+                
+                # Формат "B1-S1-C1" (латиница)
+                elif location.startswith('B'):
+                    parts = location.split('-')
+                    if len(parts) >= 3:
+                        block_num = int(parts[0][1:])  # Убираем "B" и берем число
+                        shelf_num = int(parts[1][1:])  # Убираем "S" и берем число
+                        cell_num = int(parts[2][1:])   # Убираем "C" и берем число
+                
+                # Числовой формат "1-2-15"
+                elif '-' in location and len(location.split('-')) == 3:
+                    parts = location.split('-')
+                    if len(parts) >= 3:
+                        block_num = int(parts[0])
+                        shelf_num = int(parts[1])
+                        cell_num = int(parts[2])
+                
                 if block_num and shelf_num and cell_num:
-                    unique_cells.add(f"{block_num}-{shelf_num}-{cell_num}")
+                    location_key = f"{block_num}-{shelf_num}-{cell_num}"
+                    unique_cells.add(location_key)
+                    print(f"      🎯 Ячейка: {location_key}")
+                        
+            except (ValueError, IndexError):
+                print(f"      ❌ Не удалось парсить location: {location}")
+                continue
         
         occupied_cells = len(unique_cells)
-        total_placed_cargo = len(valid_placement_records)
+        total_placed_cargo = len(placement_records)
         
-        print(f"📊 КОРРЕКТНАЯ СТАТИСТИКА СКЛАДА {warehouse_id}:")
-        print(f"   📦 Всего placement_records в базе: {len(all_placement_records)}")
-        print(f"   📋 Актуально размещенных: {len(valid_placement_records)}")
-        print(f"   📍 РЕАЛЬНО занятых ячеек: {occupied_cells}")  
+        print(f"📊 ИТОГОВАЯ СТАТИСТИКА (как layout-with-cargo):")
+        print(f"   📦 Всего placement_records: {len(placement_records)}")
+        print(f"   📍 Уникальных занятых ячеек: {occupied_cells}")  
         print(f"   🏷️ Размещенных грузов: {total_placed_cargo}")
         print(f"   📏 Общее количество ячеек: {total_cells}")
-        
-        # Используем valid_placement_records для обратной совместимости
-        placement_records = valid_placement_records
         
         # Подсчитываем статистику
         free_cells = max(0, total_cells - occupied_cells)
