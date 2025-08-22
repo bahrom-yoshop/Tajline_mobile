@@ -191,18 +191,25 @@ class WarehouseLayoutTester:
                 shelves_count = 0
                 cells_count = 0
                 
-                if isinstance(layout, dict) and "blocks" in layout:
-                    blocks = layout.get("blocks", [])
-                    if isinstance(blocks, list):
-                        blocks_count = len(blocks)
+                if isinstance(layout, dict):
+                    # Подсчитываем блоки (ключи вида "block_1", "block_2", etc.)
+                    block_keys = [key for key in layout.keys() if key.startswith("block_")]
+                    blocks_count = len(block_keys)
+                    
+                    if blocks_count > 0:
                         layout_valid = True
                         
-                        for block in blocks:
-                            if "shelves" in block and isinstance(block["shelves"], list):
-                                shelves_count += len(block["shelves"])
-                                for shelf in block["shelves"]:
-                                    if "cells" in shelf and isinstance(shelf["cells"], list):
-                                        cells_count += len(shelf["cells"])
+                        for block_key in block_keys:
+                            block = layout[block_key]
+                            if "shelves" in block and isinstance(block["shelves"], dict):
+                                shelf_keys = [key for key in block["shelves"].keys() if key.startswith("shelf_")]
+                                shelves_count += len(shelf_keys)
+                                
+                                for shelf_key in shelf_keys:
+                                    shelf = block["shelves"][shelf_key]
+                                    if "cells" in shelf and isinstance(shelf["cells"], dict):
+                                        cell_keys = [key for key in shelf["cells"].keys() if key.startswith("cell_")]
+                                        cells_count += len(cell_keys)
                 
                 self.log_test(
                     "Layout содержит блоки, полки и ячейки",
