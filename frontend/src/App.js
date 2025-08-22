@@ -5876,6 +5876,10 @@ function App() {
   const [fullyPlacedPage, setFullyPlacedPage] = useState(1);
   const [fullyPlacedPerPage, setFullyPlacedPerPage] = useState(25);
   const [fullyPlacedLoading, setFullyPlacedLoading] = useState(false);
+  
+  // Состояния для Individual Units режима в размещенном грузе
+  const [placedCargoViewMode, setPlacedCargoViewMode] = useState('table'); // 'table' или 'individual'
+  const [selectedPlacedCargo, setSelectedPlacedCargo] = useState(null);
 
   // Transport states
   const [transports, setTransports] = useState([]);
