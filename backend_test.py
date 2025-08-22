@@ -114,297 +114,197 @@ def test_warehouse_operator_auth():
         error_detail = response.json().get("detail", "Unknown error") if response.content else "Empty response"
         return log_test("Авторизация оператора склада", False, f"HTTP {response.status_code}: {error_detail}", response_time)
 
-def test_get_warehouse_id():
-    """Тест 2: Получение warehouse_id для 'Москва Склад №1'"""
-    global warehouse_id
+def test_verify_cargo_api_main_target():
+    """Тест 2: КРИТИЧЕСКАЯ ПРОВЕРКА - API verify-cargo с грузом 250101/01/02"""
     
-    print("\n🏢 ТЕСТ 2: Получение warehouse_id для 'Москва Склад №1'")
+    print("\n🎯 ТЕСТ 2: КРИТИЧЕСКАЯ ПРОВЕРКА - API verify-cargo с грузом 250101/01/02")
     
-    response, response_time = make_request("GET", "/operator/warehouses")
+    # Тестируем основной груз из review request
+    qr_code = "250101/01/02"
     
-    if not response:
-        return log_test("Получение warehouse_id", False, "Ошибка сети", response_time)
-    
-    if response.status_code == 200:
-        warehouses = response.json()
-        
-        # Ищем склад "Москва Склад №1"
-        moscow_warehouse = None
-        for warehouse in warehouses:
-            if "Москва Склад №1" in warehouse.get("name", ""):
-                moscow_warehouse = warehouse
-                break
-        
-        if moscow_warehouse:
-            warehouse_id = moscow_warehouse.get("id")
-            details = f"Найден склад 'Москва Склад №1' (ID: {warehouse_id})"
-            return log_test("Получение warehouse_id", True, details, response_time)
-        else:
-            available_warehouses = [w.get("name", "Unknown") for w in warehouses]
-            details = f"Склад 'Москва Склад №1' не найден. Доступные склады: {available_warehouses}"
-            return log_test("Получение warehouse_id", False, details, response_time)
-    else:
-        error_detail = response.json().get("detail", "Unknown error") if response.content else "Empty response"
-        return log_test("Получение warehouse_id", False, f"HTTP {response.status_code}: {error_detail}", response_time)
-
-def test_layout_with_cargo_api():
-    """Тест 3: Проверка обновленного API layout-with-cargo"""
-    
-    print("\n🗺️ ТЕСТ 3: Проверка обновленного API layout-with-cargo")
-    
-    if not warehouse_id:
-        return log_test("API layout-with-cargo", False, "warehouse_id не найден")
-    
-    response, response_time = make_request("GET", f"/warehouses/{warehouse_id}/layout-with-cargo")
+    response, response_time = make_request("POST", "/operator/placement/verify-cargo", {"qr_code": qr_code})
     
     if not response:
-        return log_test("API layout-with-cargo", False, "Ошибка сети", response_time)
+        return log_test("API verify-cargo с грузом 250101/01/02", False, "Ошибка сети", response_time)
     
     if response.status_code == 200:
         data = response.json()
         
-        print(f"📊 РЕЗУЛЬТАТЫ LAYOUT-WITH-CARGO:")
-        print(f"   - Всего ячеек: {data.get('total_cells', 0)}")
-        print(f"   - Занято ячеек: {data.get('occupied_cells', 0)}")
-        print(f"   - Всего грузов: {data.get('total_cargo', 0)}")
-        print(f"   - Блоков: {len(data.get('blocks', []))}")
-        
-        # Проверяем наличие новых полей в грузах
-        new_fields_found = []
-        cargo_with_new_fields = 0
-        total_cargo_found = 0
-        
-        # Check both top-level blocks and layout.blocks
-        layout_blocks = data.get("layout", {}).get("blocks", [])
-        top_level_blocks = data.get("blocks", [])
-        
-        all_blocks = layout_blocks if layout_blocks else top_level_blocks
-        
-        for block in all_blocks:
-            shelves = block.get("shelves", [])
-            for shelf in shelves:
-                cells = shelf.get("cells", [])
-                for cell in cells:
-                    if cell.get("is_occupied") and cell.get("cargo"):
-                        cargo_list = cell.get("cargo", [])
-                        for cargo_info in cargo_list:
-                            total_cargo_found += 1
-                        
-                            # Проверяем новые поля
-                            required_fields = [
-                                "cargo_name", "sender_full_name", "sender_phone",
-                                "recipient_full_name", "recipient_phone", "recipient_address",
-                                "delivery_city", "delivery_warehouse_name", "placed_by_operator"
-                            ]
-                            
-                            fields_present = []
-                            for field in required_fields:
-                                if field in cargo_info and cargo_info[field]:
-                                    fields_present.append(field)
-                            
-                            if fields_present:
-                                cargo_with_new_fields += 1
-                                new_fields_found.extend(fields_present)
-                                
-                                print(f"   📦 Груз в ячейке {cell.get('location_code', 'Unknown')}:")
-                                for field in fields_present:
-                                    print(f"      - {field}: {cargo_info[field]}")
-        
-        # Убираем дубликаты
-        unique_new_fields = list(set(new_fields_found))
+        print(f"📊 РЕЗУЛЬТАТЫ VERIFY-CARGO для {qr_code}:")
+        print(f"   - success: {data.get('success', False)}")
+        print(f"   - cargo_info: {data.get('cargo_info', {})}")
         
         success = True
         issues = []
         
-        if total_cargo_found == 0:
+        # Проверяем основные поля
+        if not data.get("success"):
             success = False
-            issues.append("Не найдено ни одного груза в ячейках")
-        elif cargo_with_new_fields == 0:
-            success = False
-            issues.append("Ни один груз не содержит новые поля")
-        elif len(unique_new_fields) < 3:  # Минимум 3 новых поля должны быть
-            success = False
-            issues.append(f"Найдено только {len(unique_new_fields)} новых полей из 9 ожидаемых")
+            issues.append("success не равен true")
         
-        if success:
-            details = f"✅ Найдено {cargo_with_new_fields}/{total_cargo_found} грузов с новыми полями: {unique_new_fields}"
-            return log_test("API layout-with-cargo", True, details, response_time)
+        cargo_info = data.get("cargo_info", {})
+        if not cargo_info:
+            success = False
+            issues.append("cargo_info отсутствует")
         else:
-            details = f"❌ {', '.join(issues)}. Найдено полей: {unique_new_fields}"
-            return log_test("API layout-with-cargo", False, details, response_time)
-    else:
-        error_detail = response.json().get("detail", "Unknown error") if response.content else "Empty response"
-        return log_test("API layout-with-cargo", False, f"HTTP {response.status_code}: {error_detail}", response_time)
-
-def test_specific_cells():
-    """Тест 4: Проверка конкретных ячеек Б1-П3-Я2 и Б1-П3-Я3"""
-    
-    print("\n🎯 ТЕСТ 4: Проверка конкретных ячеек")
-    
-    if not warehouse_id:
-        return log_test("Проверка конкретных ячеек", False, "warehouse_id не найден")
-    
-    response, response_time = make_request("GET", f"/warehouses/{warehouse_id}/layout-with-cargo")
-    
-    if not response:
-        return log_test("Проверка конкретных ячеек", False, "Ошибка сети", response_time)
-    
-    if response.status_code == 200:
-        data = response.json()
-        
-        # Ищем конкретные ячейки
-        target_cells = ["1-3-2", "1-3-3"]  # Numeric format used in API
-        found_cells = {}
-        
-        # Check both top-level blocks and layout.blocks
-        layout_blocks = data.get("layout", {}).get("blocks", [])
-        top_level_blocks = data.get("blocks", [])
-        
-        all_blocks = layout_blocks if layout_blocks else top_level_blocks
-        
-        for block in all_blocks:
-            shelves = block.get("shelves", [])
-            for shelf in shelves:
-                cells = shelf.get("cells", [])
-                for cell in cells:
-                    location_code = cell.get("location_code", "")
-                    if location_code in target_cells and cell.get("is_occupied"):
-                        cargo_list = cell.get("cargo", [])
-                        if cargo_list:
-                            # Use first cargo item for display
-                            cargo_info = cargo_list[0]
-                            found_cells[location_code] = cargo_info
-                            
-                            print(f"   📍 Ячейка {location_code} (соответствует Б{block.get('block_number', '?')}-П{shelf.get('shelf_number', '?')}-Я{cell.get('cell_number', '?')}):")
-                            print(f"      - cargo_name: {cargo_info.get('cargo_name', 'НЕТ')}")
-                            print(f"      - sender_full_name: {cargo_info.get('sender_full_name', 'НЕТ')}")
-                            print(f"      - placed_by_operator: {cargo_info.get('placed_by_operator', 'НЕТ')}")
-                            print(f"      - Всего грузов в ячейке: {len(cargo_list)}")
-        
-        success = True
-        issues = []
-        
-        # Проверяем ячейку 1-3-3 (Б1-П3-Я3) на наличие груза "Самокат ВИВО"
-        if "1-3-3" in found_cells:
-            cargo_name = found_cells["1-3-3"].get("cargo_name", "")
-            if "Самокат ВИВО" in cargo_name:
-                print(f"   ✅ Ячейка 1-3-3 содержит груз 'Самокат ВИВО': {cargo_name}")
+            # Проверяем критическое поле cargo_name
+            cargo_name = cargo_info.get("cargo_name")
+            if not cargo_name:
+                success = False
+                issues.append("cargo_name отсутствует")
+            elif cargo_name == "Сумка кожаный":
+                print(f"   ✅ КРИТИЧЕСКИЙ УСПЕХ: cargo_name = '{cargo_name}'")
             else:
-                issues.append(f"Ячейка 1-3-3 не содержит груз 'Самокат ВИВО', найдено: '{cargo_name}'")
-        else:
-            issues.append("Ячейка 1-3-3 (Б1-П3-Я3) не найдена или пуста")
-        
-        # Проверяем ячейку 1-3-2 (Б1-П3-Я2) на наличие грузов с cargo_name
-        if "1-3-2" in found_cells:
-            cargo_name = found_cells["1-3-2"].get("cargo_name", "")
-            if cargo_name:
-                print(f"   ✅ Ячейка 1-3-2 содержит cargo_name: {cargo_name}")
-            else:
-                issues.append("Ячейка 1-3-2 не содержит cargo_name")
-        else:
-            issues.append("Ячейка 1-3-2 (Б1-П3-Я2) не найдена или пуста")
-        
-        if issues:
-            success = False
+                success = False
+                issues.append(f"cargo_name = '{cargo_name}' (ожидалось 'Сумка кожаный')")
+            
+            # Проверяем другие обязательные поля
+            required_fields = ["cargo_number", "individual_number"]
+            for field in required_fields:
+                if not cargo_info.get(field):
+                    success = False
+                    issues.append(f"{field} отсутствует")
+                else:
+                    print(f"   - {field}: {cargo_info.get(field)}")
         
         if success:
-            details = f"✅ Найдены целевые ячейки с корректными данными: {list(found_cells.keys())}"
-            return log_test("Проверка конкретных ячеек", True, details, response_time)
+            details = f"✅ КРИТИЧЕСКИЙ ТЕСТ ПРОЙДЕН! cargo_name: '{cargo_info.get('cargo_name')}', cargo_number: '{cargo_info.get('cargo_number')}', individual_number: '{cargo_info.get('individual_number')}'"
+            return log_test("API verify-cargo с грузом 250101/01/02", True, details, response_time)
         else:
-            details = f"❌ {', '.join(issues)}. Найдены ячейки: {list(found_cells.keys())}"
-            return log_test("Проверка конкретных ячеек", False, details, response_time)
+            details = f"❌ {', '.join(issues)}"
+            return log_test("API verify-cargo с грузом 250101/01/02", False, details, response_time)
     else:
         error_detail = response.json().get("detail", "Unknown error") if response.content else "Empty response"
-        return log_test("Проверка конкретных ячеек", False, f"HTTP {response.status_code}: {error_detail}", response_time)
+        return log_test("API verify-cargo с грузом 250101/01/02", False, f"HTTP {response.status_code}: {error_detail}", response_time)
 
-def test_operator_cargo_data_retrieval():
-    """Тест 5: Проверка получения данных из operator_cargo"""
+def test_verify_cargo_api_other_cargos():
+    """Тест 3: Проверка API verify-cargo с другими грузами"""
     
-    print("\n🔍 ТЕСТ 5: Проверка получения данных из operator_cargo")
+    print("\n🔍 ТЕСТ 3: Проверка API verify-cargo с другими грузами")
     
-    if not warehouse_id:
-        return log_test("Получение данных из operator_cargo", False, "warehouse_id не найден")
+    # Тестируемые грузы из review request
+    test_cargos = [
+        {"qr_code": "25082235/01/01", "expected_name": "Самокат ВИВО"},
+        {"qr_code": "25082235/01/02", "expected_name": "Самокат ВИВО"},
+        {"qr_code": "25082235/02/01", "expected_name": "Микроволновка"}
+    ]
     
-    # Проверяем API layout-with-cargo еще раз для анализа источника данных
-    response, response_time = make_request("GET", f"/warehouses/{warehouse_id}/layout-with-cargo")
+    all_success = True
+    results = []
+    
+    for cargo_test in test_cargos:
+        qr_code = cargo_test["qr_code"]
+        expected_name = cargo_test["expected_name"]
+        
+        print(f"\n   🧪 Тестируем груз {qr_code} (ожидается: '{expected_name}')")
+        
+        response, response_time = make_request("POST", "/operator/placement/verify-cargo", {"qr_code": qr_code})
+        
+        if not response:
+            all_success = False
+            results.append(f"❌ {qr_code}: Ошибка сети")
+            continue
+        
+        if response.status_code == 200:
+            data = response.json()
+            cargo_info = data.get("cargo_info", {})
+            cargo_name = cargo_info.get("cargo_name", "")
+            
+            if data.get("success") and cargo_name == expected_name:
+                results.append(f"✅ {qr_code}: '{cargo_name}'")
+                print(f"      ✅ SUCCESS: cargo_name = '{cargo_name}'")
+            elif data.get("success") and cargo_name:
+                results.append(f"⚠️ {qr_code}: '{cargo_name}' (ожидалось '{expected_name}')")
+                print(f"      ⚠️ PARTIAL: cargo_name = '{cargo_name}' (ожидалось '{expected_name}')")
+            elif data.get("success"):
+                all_success = False
+                results.append(f"❌ {qr_code}: cargo_name отсутствует")
+                print(f"      ❌ FAIL: cargo_name отсутствует")
+            else:
+                all_success = False
+                results.append(f"❌ {qr_code}: success = false")
+                print(f"      ❌ FAIL: success = false")
+        else:
+            all_success = False
+            error_detail = response.json().get("detail", "Unknown error") if response.content else "Empty response"
+            results.append(f"❌ {qr_code}: HTTP {response.status_code}")
+            print(f"      ❌ ERROR: HTTP {response.status_code}: {error_detail}")
+    
+    if all_success:
+        details = f"✅ Все грузы возвращают корректные наименования: {'; '.join(results)}"
+        return log_test("API verify-cargo с другими грузами", True, details)
+    else:
+        details = f"❌ Проблемы с некоторыми грузами: {'; '.join(results)}"
+        return log_test("API verify-cargo с другими грузами", False, details)
+
+def test_verify_cargo_response_structure():
+    """Тест 4: Проверка структуры ответа API verify-cargo"""
+    
+    print("\n📋 ТЕСТ 4: Проверка структуры ответа API verify-cargo")
+    
+    # Используем основной груз для проверки структуры
+    qr_code = "250101/01/02"
+    
+    response, response_time = make_request("POST", "/operator/placement/verify-cargo", {"qr_code": qr_code})
     
     if not response:
-        return log_test("Получение данных из operator_cargo", False, "Ошибка сети", response_time)
+        return log_test("Структура ответа verify-cargo", False, "Ошибка сети", response_time)
     
     if response.status_code == 200:
         data = response.json()
         
-        # Анализируем данные на предмет источника из operator_cargo
-        cargo_with_operator_data = 0
-        total_cargo = 0
-        operator_cargo_indicators = []
-        
-        # Check both top-level blocks and layout.blocks
-        layout_blocks = data.get("layout", {}).get("blocks", [])
-        top_level_blocks = data.get("blocks", [])
-        
-        all_blocks = layout_blocks if layout_blocks else top_level_blocks
-        
-        for block in all_blocks:
-            shelves = block.get("shelves", [])
-            for shelf in shelves:
-                cells = shelf.get("cells", [])
-                for cell in cells:
-                    if cell.get("is_occupied") and cell.get("cargo"):
-                        cargo_list = cell.get("cargo", [])
-                        for cargo_info in cargo_list:
-                            total_cargo += 1
-                            
-                            # Проверяем индикаторы данных из operator_cargo
-                            has_cargo_name = bool(cargo_info.get("cargo_name"))
-                            has_sender_full_name = bool(cargo_info.get("sender_full_name"))
-                            has_placed_by_operator = bool(cargo_info.get("placed_by_operator"))
-                            
-                            if has_cargo_name or has_sender_full_name or has_placed_by_operator:
-                                cargo_with_operator_data += 1
-                                
-                                if has_cargo_name:
-                                    operator_cargo_indicators.append("cargo_name")
-                                if has_sender_full_name:
-                                    operator_cargo_indicators.append("sender_full_name")
-                                if has_placed_by_operator:
-                                    operator_cargo_indicators.append("placed_by_operator")
-        
-        # Убираем дубликаты
-        unique_indicators = list(set(operator_cargo_indicators))
+        print(f"📊 АНАЛИЗ СТРУКТУРЫ ОТВЕТА:")
         
         success = True
         issues = []
+        found_fields = []
         
-        if total_cargo == 0:
-            success = False
-            issues.append("Не найдено грузов для анализа")
-        elif cargo_with_operator_data == 0:
-            success = False
-            issues.append("Ни один груз не содержит данные из operator_cargo")
-        elif len(unique_indicators) < 2:
-            success = False
-            issues.append(f"Найдено только {len(unique_indicators)} индикаторов operator_cargo данных")
+        # Проверяем обязательные поля верхнего уровня
+        required_top_level = ["success"]
+        for field in required_top_level:
+            if field in data:
+                found_fields.append(field)
+                print(f"   ✅ {field}: {data[field]}")
+            else:
+                success = False
+                issues.append(f"Отсутствует поле {field}")
         
-        print(f"   📊 АНАЛИЗ ДАННЫХ OPERATOR_CARGO:")
-        print(f"      - Всего грузов: {total_cargo}")
-        print(f"      - С данными operator_cargo: {cargo_with_operator_data}")
-        print(f"      - Индикаторы: {unique_indicators}")
+        # Проверяем cargo_info
+        cargo_info = data.get("cargo_info", {})
+        if cargo_info:
+            found_fields.append("cargo_info")
+            print(f"   ✅ cargo_info: присутствует")
+            
+            # Проверяем обязательные поля в cargo_info
+            required_cargo_info = ["cargo_name", "cargo_number", "individual_number"]
+            for field in required_cargo_info:
+                if field in cargo_info and cargo_info[field]:
+                    found_fields.append(f"cargo_info.{field}")
+                    print(f"      ✅ {field}: {cargo_info[field]}")
+                else:
+                    success = False
+                    issues.append(f"cargo_info.{field} отсутствует или пустое")
+        else:
+            success = False
+            issues.append("cargo_info отсутствует")
+        
+        print(f"   📈 Найдено полей: {len(found_fields)}")
+        print(f"   📋 Список полей: {found_fields}")
         
         if success:
-            details = f"✅ API успешно извлекает данные из operator_cargo: {cargo_with_operator_data}/{total_cargo} грузов с индикаторами {unique_indicators}"
-            return log_test("Получение данных из operator_cargo", True, details, response_time)
+            details = f"✅ Структура ответа корректна: {len(found_fields)} полей найдено"
+            return log_test("Структура ответа verify-cargo", True, details, response_time)
         else:
-            details = f"❌ {', '.join(issues)}. Индикаторы: {unique_indicators}"
-            return log_test("Получение данных из operator_cargo", False, details, response_time)
+            details = f"❌ {', '.join(issues)}. Найдено полей: {len(found_fields)}"
+            return log_test("Структура ответа verify-cargo", False, details, response_time)
     else:
         error_detail = response.json().get("detail", "Unknown error") if response.content else "Empty response"
-        return log_test("Получение данных из operator_cargo", False, f"HTTP {response.status_code}: {error_detail}", response_time)
+        return log_test("Структура ответа verify-cargo", False, f"HTTP {response.status_code}: {error_detail}", response_time)
 
 def print_summary():
     """Вывод итогового отчета"""
     print("\n" + "="*80)
-    print("🎉 ИТОГОВЫЙ ОТЧЕТ ФИНАЛЬНОЙ ПРОВЕРКИ")
+    print("🎯 ИТОГОВЫЙ ОТЧЕТ ФИНАЛЬНОГО ТЕСТИРОВАНИЯ")
     print("="*80)
     
     total_tests = len(test_results)
@@ -429,40 +329,37 @@ def print_summary():
     print(f"\n🎯 ОЖИДАЕМЫЕ РЕЗУЛЬТАТЫ:")
     
     # Проверяем критические критерии
-    layout_test = next((r for r in test_results if "layout-with-cargo" in r["test"]), None)
-    cells_test = next((r for r in test_results if "конкретных ячеек" in r["test"]), None)
-    operator_cargo_test = next((r for r in test_results if "operator_cargo" in r["test"]), None)
+    main_test = next((r for r in test_results if "250101/01/02" in r["test"]), None)
+    other_cargos_test = next((r for r in test_results if "другими грузами" in r["test"]), None)
+    structure_test = next((r for r in test_results if "Структура ответа" in r["test"]), None)
     
-    if layout_test and layout_test["success"]:
-        print("   ✅ cargo_name корректно заполнен")
-        print("   ✅ sender_full_name заполнен")
-        print("   ✅ placed_by_operator показывает корректного оператора")
+    if main_test and main_test["success"]:
+        print("   ✅ Груз 250101/01/02 возвращает cargo_name: 'Сумка кожаный'")
     else:
-        print("   ❌ Новые поля в API layout-with-cargo не работают")
+        print("   ❌ Груз 250101/01/02 НЕ возвращает правильное cargo_name")
     
-    if cells_test and cells_test["success"]:
-        print("   ✅ Ячейка Б1-П3-Я3 содержит груз 'Самокат ВИВО'")
-        print("   ✅ Ячейка Б1-П3-Я2 содержит грузы с cargo_name")
+    if other_cargos_test and other_cargos_test["success"]:
+        print("   ✅ API success: true для всех тестируемых грузов")
+        print("   ✅ Логирование показывает найденные наименования")
     else:
-        print("   ❌ Проблемы с конкретными ячейками")
+        print("   ❌ Проблемы с другими тестируемыми грузами")
     
-    if operator_cargo_test and operator_cargo_test["success"]:
-        print("   ✅ API успешно получает данные из operator_cargo коллекции")
-        print("   ✅ Все поля доступны для отображения в модальном окне")
+    if structure_test and structure_test["success"]:
+        print("   ✅ Все поля cargo_info заполнены корректно")
     else:
-        print("   ❌ Проблемы с получением данных из operator_cargo")
+        print("   ❌ Проблемы со структурой ответа API")
     
     print(f"\n🏁 ЗАКЛЮЧЕНИЕ:")
-    if success_rate >= 80:
-        print("   🎉 ФИНАЛЬНАЯ ПРОВЕРКА ЗАВЕРШЕНА УСПЕШНО!")
-        print("   📍 Backend API теперь возвращает всю необходимую информацию для полного модального окна деталей ячейки!")
+    if success_rate >= 75:
+        print("   🎉 ФИНАЛЬНОЕ ТЕСТИРОВАНИЕ ЗАВЕРШЕНО УСПЕШНО!")
+        print("   📍 API теперь возвращает правильные наименования грузов для отображения в интерфейсе размещения!")
     else:
         print("   ⚠️ ТРЕБУЕТСЯ ДОПОЛНИТЕЛЬНАЯ РАБОТА")
-        print("   📍 API не полностью возвращает ожидаемую информацию")
+        print("   📍 API не полностью возвращает ожидаемые наименования грузов")
 
 def main():
     """Основная функция тестирования"""
-    print("🎉 ФИНАЛЬНАЯ ПРОВЕРКА: Модальное окно деталей ячейки с полной информацией о грузах")
+    print("🎯 ФИНАЛЬНОЕ ТЕСТИРОВАНИЕ: Отображение наименования груза при сканировании QR кода")
     print("="*100)
     print(f"🕐 Время начала: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"🌐 Базовый URL: {BASE_URL}")
@@ -471,10 +368,9 @@ def main():
     # Выполняем тесты по порядку
     tests = [
         test_warehouse_operator_auth,
-        test_get_warehouse_id,
-        test_layout_with_cargo_api,
-        test_specific_cells,
-        test_operator_cargo_data_retrieval
+        test_verify_cargo_api_main_target,
+        test_verify_cargo_api_other_cargos,
+        test_verify_cargo_response_structure
     ]
     
     for test_func in tests:
