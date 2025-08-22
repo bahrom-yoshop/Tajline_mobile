@@ -5757,13 +5757,13 @@ function App() {
   
   // НОВЫЕ СОСТОЯНИЯ: Счетчики для бокового меню
   const [menuCounters, setMenuCounters] = useState({
-    cargo_list: 0,                    // Список грузов
-    cargo_placement: 0,               // Размещение груза  
+    cargo_placement: 0,               // Готов к размещению  
     cargo_pickup_list: 0,             // На забор
     cargo_history: 0,                 // История грузов
     couriers_list: 0,                 // Список курьеров
     couriers_inactive: 0,             // Неактивные курьеры
     warehouses_list: 0,               // Список складов
+    warehouses_placed_cargo: 0,       // Размещенный груз
     notifications_orders: 0,          // Новые заказы
     notifications_requests: 0,        // Новые заявки
     notifications_system: 0,          // Уведомления
