@@ -24229,11 +24229,11 @@ function App() {
                                       {/* Кнопки управления */}
                                       <div className="flex flex-wrap gap-3">
                                         <Button 
-                                          onClick={() => setShowWarehouseScheme(warehouse.id)}
-                                          className="bg-blue-600 hover:bg-blue-700"
+                                          onClick={() => setShowNewWarehouseScheme(warehouse.id)}
+                                          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg"
                                         >
                                           <Grid3X3 className="mr-2 h-4 w-4" />
-                                          Просмотр схемы склада
+                                          🏭 Визуальная схема ячеек
                                         </Button>
                                         <Button 
                                           variant="outline"
