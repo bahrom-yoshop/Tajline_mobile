@@ -271,7 +271,6 @@ def test_layout_with_cargo_api():
             
             # Проверяем основные поля в новой структуре API
             warehouse_info = layout_data.get("warehouse", {})
-            statistics = layout_data.get("statistics", {})
             layout = warehouse_info.get("layout", {})
             
             # Проверяем обязательные поля
@@ -279,7 +278,7 @@ def test_layout_with_cargo_api():
             missing_warehouse_fields = [field for field in required_warehouse_fields if field not in warehouse_info]
             
             required_stats_fields = ["total_cells", "occupied_cells"]
-            missing_stats_fields = [field for field in required_stats_fields if field not in statistics]
+            missing_stats_fields = [field for field in required_stats_fields if field not in layout_data]
             
             if missing_warehouse_fields or missing_stats_fields or "blocks" not in layout:
                 missing_fields = missing_warehouse_fields + missing_stats_fields + (["blocks"] if "blocks" not in layout else [])
@@ -291,10 +290,10 @@ def test_layout_with_cargo_api():
                 )
                 return False, None
             
-            total_cells = statistics.get("total_cells", 0)
-            occupied_cells = statistics.get("occupied_cells", 0)
-            total_cargo = statistics.get("total_cargo", 0)
-            loading_percentage = statistics.get("loading_percentage", 0)
+            total_cells = layout_data.get("total_cells", 0)
+            occupied_cells = layout_data.get("occupied_cells", 0)
+            total_cargo = layout_data.get("total_cargo", 0)
+            loading_percentage = layout_data.get("occupancy_percentage", 0)
             blocks = layout.get("blocks", [])
             
             log_test_result(
