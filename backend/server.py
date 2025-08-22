@@ -8429,23 +8429,63 @@ async def get_warehouse_layout_with_cargo(
                 delivery_city = ""
                 delivery_warehouse_name = ""
                 
+                # НОВАЯ ЛОГИКА: Получаем данные из operator_cargo для заполнения пустых полей
+                operator_cargo = db.operator_cargo.find_one({"cargo_number": cargo_number})
+                if operator_cargo:
+                    print(f"🔍 Найден operator_cargo для {cargo_number}")
+                    cargo_items = operator_cargo.get("cargo_items", [])
+                    for cargo_item in cargo_items:
+                        individual_items = cargo_item.get("individual_items", [])
+                        for individual_item in individual_items:
+                            if individual_item.get("individual_number") == individual_number:
+                                # Используем данные из найденного individual_item
+                                recipient_name = cargo_item.get("recipient_full_name", "")
+                                recipient_phone = cargo_item.get("recipient_phone", "")
+                                recipient_address = cargo_item.get("recipient_address", "")
+                                sender_name = cargo_item.get("sender_full_name", "")
+                                sender_phone = cargo_item.get("sender_phone", "")
+                                cargo_name = cargo_item.get("name", "") or cargo_item.get("cargo_name", "Груз")
+                                weight = individual_item.get("weight", 0)
+                                declared_value = individual_item.get("declared_value", 0)
+                                delivery_city = cargo_item.get("delivery_city", "") or cargo_item.get("destination_city", "")
+                                print(f"   ✅ Найдены данные для {individual_number}")
+                                print(f"   📋 cargo_name: {cargo_name}")
+                                print(f"   👤 recipient: {recipient_name}")
+                                print(f"   🏙️ delivery_city: {delivery_city}")
+                                break
+                        if recipient_name:  # Если нашли данные, выходим из цикла
+                            break
+                    
+                    # Если не нашли конкретный individual_item, используем данные из первого cargo_item
+                    if not recipient_name and cargo_items:
+                        first_item = cargo_items[0]
+                        recipient_name = first_item.get("recipient_full_name", "")
+                        recipient_phone = first_item.get("recipient_phone", "")
+                        recipient_address = first_item.get("recipient_address", "")
+                        sender_name = first_item.get("sender_full_name", "")
+                        sender_phone = first_item.get("sender_phone", "")
+                        cargo_name = first_item.get("name", "") or first_item.get("cargo_name", "Груз")
+                        delivery_city = first_item.get("delivery_city", "") or first_item.get("destination_city", "")
+                        print(f"   🔄 Используем данные первого cargo_item")
+                
+                # Fallback: если данных в operator_cargo нет, используем данные из cargo коллекции
                 if operator_cargo_details:
-                    recipient_name = operator_cargo_details.get("recipient_full_name", "")
-                    recipient_phone = operator_cargo_details.get("recipient_phone", "")
-                    recipient_address = operator_cargo_details.get("recipient_address", "")
-                    cargo_name = operator_cargo_details.get("cargo_name", "Груз")
-                    weight = operator_cargo_details.get("weight", 0)
-                    declared_value = operator_cargo_details.get("declared_value", 0)
+                    recipient_name = operator_cargo_details.get("recipient_full_name", "") or recipient_name
+                    recipient_phone = operator_cargo_details.get("recipient_phone", "") or recipient_phone
+                    recipient_address = operator_cargo_details.get("recipient_address", "") or recipient_address
+                    cargo_name = operator_cargo_details.get("cargo_name", "Груз") or cargo_name
+                    weight = operator_cargo_details.get("weight", 0) or weight
+                    declared_value = operator_cargo_details.get("declared_value", 0) or declared_value
                 elif cargo:
-                    recipient_name = cargo.get("recipient_full_name", "")
-                    recipient_phone = cargo.get("recipient_phone", "")
-                    recipient_address = cargo.get("recipient_address", "")
-                    sender_name = cargo.get("sender_full_name", "")
-                    sender_phone = cargo.get("sender_phone", "")
-                    cargo_name = cargo.get("cargo_name") or cargo.get("name", "Груз")
-                    weight = cargo.get("weight", 0)
-                    declared_value = cargo.get("declared_value", 0)
-                    delivery_city = cargo.get("delivery_city", "")
+                    recipient_name = recipient_name or cargo.get("recipient_full_name", "")
+                    recipient_phone = recipient_phone or cargo.get("recipient_phone", "")
+                    recipient_address = recipient_address or cargo.get("recipient_address", "")
+                    sender_name = sender_name or cargo.get("sender_full_name", "")
+                    sender_phone = sender_phone or cargo.get("sender_phone", "")
+                    cargo_name = cargo_name if cargo_name != "Груз" else (cargo.get("cargo_name") or cargo.get("name", "Груз"))
+                    weight = weight or cargo.get("weight", 0)
+                    declared_value = declared_value or cargo.get("declared_value", 0)
+                    delivery_city = delivery_city or cargo.get("delivery_city", "")
                 
                 # Получаем информацию о складе доставки по городу
                 if delivery_city:
