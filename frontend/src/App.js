@@ -22778,21 +22778,33 @@ function App() {
                                                 <span className="font-medium">Общий прогресс:</span>
                                                 <div className="flex items-center space-x-2">
                                                   {(() => {
-                                                    // Подсчитываем общий прогресс размещения
-                                                    const totalItems = (item.cargo_items || []).reduce((sum, cargoItem) => sum + (cargoItem.quantity || 1), 0);
-                                                    const placedItems = (item.cargo_items || []).reduce((sum, cargoItem) => sum + (cargoItem.placed_count || 0), 0);
+                                                    // ИСПРАВЛЕНИЕ: Подсчитываем прогресс на основе фактических individual_items
+                                                    let totalItems = 0;
+                                                    let placedItems = 0;
+                                                    
+                                                    (item.cargo_items || []).forEach(cargoItem => {
+                                                      if (cargoItem.individual_items && cargoItem.individual_items.length > 0) {
+                                                        // Используем фактические individual_items
+                                                        totalItems += cargoItem.individual_items.length;
+                                                        placedItems += cargoItem.individual_items.filter(unit => unit.is_placed === true).length;
+                                                      } else {
+                                                        // Fallback к quantity если individual_items нет
+                                                        totalItems += (cargoItem.quantity || 1);
+                                                        placedItems += (cargoItem.placed_count || 0);
+                                                      }
+                                                    });
                                                     
                                                     const progressText = `${placedItems}/${totalItems}`;
-                                                    const statusText = placedItems === totalItems ? 'Размещено' : 
+                                                    const statusText = placedItems === totalItems && totalItems > 0 ? 'Размещено' : 
                                                                       placedItems > 0 ? 'Частично размещено' : 'Ожидает размещения';
-                                                    const statusColor = placedItems === totalItems ? 'text-green-600' : 
+                                                    const statusColor = placedItems === totalItems && totalItems > 0 ? 'text-green-600' : 
                                                                        placedItems > 0 ? 'text-yellow-600' : 'text-red-600';
                                                     
                                                     return (
                                                       <>
                                                         <span className={`font-bold ${statusColor}`}>{progressText}</span>
                                                         <span className={`text-xs px-2 py-1 rounded-full ${
-                                                          placedItems === totalItems ? 'bg-green-100 text-green-700' : 
+                                                          placedItems === totalItems && totalItems > 0 ? 'bg-green-100 text-green-700' : 
                                                           placedItems > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
                                                         }`}>
                                                           {statusText}
