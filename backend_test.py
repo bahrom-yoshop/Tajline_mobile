@@ -334,7 +334,9 @@ def test_data_structure(layout_data):
         return False
     
     try:
-        blocks = layout_data.get("blocks", [])
+        warehouse_info = layout_data.get("warehouse", {})
+        layout = warehouse_info.get("layout", {})
+        blocks = layout.get("blocks", [])
         
         if not blocks:
             log_test_result(
@@ -349,36 +351,36 @@ def test_data_structure(layout_data):
         total_cells_found = 0
         
         for block in blocks:
-            block_id = block.get("block_id", "unknown")
+            block_number = block.get("number", "unknown")
             
             # Проверяем обязательные поля блока
-            block_required_fields = ["block_id", "block_number", "shelves"]
+            block_required_fields = ["number", "name", "shelves"]
             block_missing_fields = [field for field in block_required_fields if field not in block]
             if block_missing_fields:
-                structure_issues.append(f"Блок {block_id}: отсутствуют поля {block_missing_fields}")
+                structure_issues.append(f"Блок {block_number}: отсутствуют поля {block_missing_fields}")
                 continue
             
             shelves = block.get("shelves", [])
             for shelf in shelves:
-                shelf_id = shelf.get("shelf_id", "unknown")
+                shelf_number = shelf.get("number", "unknown")
                 
                 # Проверяем обязательные поля полки
-                shelf_required_fields = ["shelf_id", "shelf_number", "cells"]
+                shelf_required_fields = ["number", "name", "cells"]
                 shelf_missing_fields = [field for field in shelf_required_fields if field not in shelf]
                 if shelf_missing_fields:
-                    structure_issues.append(f"Полка {shelf_id}: отсутствуют поля {shelf_missing_fields}")
+                    structure_issues.append(f"Полка {shelf_number}: отсутствуют поля {shelf_missing_fields}")
                     continue
                 
                 cells = shelf.get("cells", [])
                 for cell in cells:
                     total_cells_found += 1
-                    cell_id = cell.get("cell_id", "unknown")
+                    cell_number = cell.get("number", "unknown")
                     
                     # Проверяем обязательные поля ячейки
-                    cell_required_fields = ["cell_id", "cell_number", "is_occupied", "location_code"]
+                    cell_required_fields = ["number", "name", "location", "is_occupied"]
                     cell_missing_fields = [field for field in cell_required_fields if field not in cell]
                     if cell_missing_fields:
-                        structure_issues.append(f"Ячейка {cell_id}: отсутствуют поля {cell_missing_fields}")
+                        structure_issues.append(f"Ячейка {cell_number}: отсутствуют поля {cell_missing_fields}")
         
         if structure_issues:
             log_test_result(
