@@ -32,7 +32,7 @@ API_BASE = f"{BACKEND_URL}/api"
 
 # Тестовые данные администратора
 ADMIN_CREDENTIALS = {
-    "phone": "+79777888777",
+    "phone": "+79999888777",
     "password": "admin123"
 }
 
