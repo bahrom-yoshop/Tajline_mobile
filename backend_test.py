@@ -250,24 +250,33 @@ def test_specific_cells():
         data = response.json()
         
         # Ищем конкретные ячейки
-        target_cells = ["Б1-П3-Я2", "Б1-П3-Я3"]
+        target_cells = ["1-3-2", "1-3-3"]  # Numeric format used in API
         found_cells = {}
         
-        blocks = data.get("blocks", [])
-        for block in blocks:
+        # Check both top-level blocks and layout.blocks
+        layout_blocks = data.get("layout", {}).get("blocks", [])
+        top_level_blocks = data.get("blocks", [])
+        
+        all_blocks = layout_blocks if layout_blocks else top_level_blocks
+        
+        for block in all_blocks:
             shelves = block.get("shelves", [])
             for shelf in shelves:
                 cells = shelf.get("cells", [])
                 for cell in cells:
                     location_code = cell.get("location_code", "")
                     if location_code in target_cells and cell.get("is_occupied"):
-                        cargo_info = cell.get("cargo_info", {})
-                        found_cells[location_code] = cargo_info
-                        
-                        print(f"   📍 Ячейка {location_code}:")
-                        print(f"      - cargo_name: {cargo_info.get('cargo_name', 'НЕТ')}")
-                        print(f"      - sender_full_name: {cargo_info.get('sender_full_name', 'НЕТ')}")
-                        print(f"      - placed_by_operator: {cargo_info.get('placed_by_operator', 'НЕТ')}")
+                        cargo_list = cell.get("cargo", [])
+                        if cargo_list:
+                            # Use first cargo item for display
+                            cargo_info = cargo_list[0]
+                            found_cells[location_code] = cargo_info
+                            
+                            print(f"   📍 Ячейка {location_code} (соответствует Б{block.get('block_number', '?')}-П{shelf.get('shelf_number', '?')}-Я{cell.get('cell_number', '?')}):")
+                            print(f"      - cargo_name: {cargo_info.get('cargo_name', 'НЕТ')}")
+                            print(f"      - sender_full_name: {cargo_info.get('sender_full_name', 'НЕТ')}")
+                            print(f"      - placed_by_operator: {cargo_info.get('placed_by_operator', 'НЕТ')}")
+                            print(f"      - Всего грузов в ячейке: {len(cargo_list)}")
         
         success = True
         issues = []
