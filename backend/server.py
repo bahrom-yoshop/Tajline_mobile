@@ -2903,15 +2903,27 @@ async def get_fully_placed_cargo_requests(
                     "placing_operator": individual_units[0].get("placed_by", "Неизвестно") if individual_units else "Неизвестно",
                     # Список грузов детально
                     "cargo_items": cargo_items,
-                    # История действий (базовая)
-                    "action_history": [
+                    # История действий (расширенная)
+                    "action_history": (lambda: [
                         {
                             "action": "cargo_accepted",
                             "operator": cargo.get("accepting_operator", "Неизвестно"),
                             "timestamp": cargo.get("created_at", datetime.utcnow()).isoformat() if isinstance(cargo.get("created_at"), datetime) else cargo.get("created_at"),
                             "description": "Груз принят на склад"
                         }
-                    ],
+                    ] + [
+                        {
+                            "action": "cargo_placed",
+                            "operator": operator,
+                            "timestamp": timestamp,
+                            "description": f"Размещение груза выполнено оператором {operator}"
+                        }
+                        for operator, timestamp in set(
+                            (unit.get("placed_by", "Неизвестно"), unit.get("placed_at"))
+                            for unit in individual_units
+                            if unit.get("is_placed") and unit.get("placed_at")
+                        )
+                    ])(),
                     "status": "fully_placed" if placed_units >= total_units else "partially_placed"
                 }
                 
