@@ -157,12 +157,12 @@ class FullyPlacedEndpointTester:
                 if not missing_base_fields:
                     # Проверяем структуру pagination
                     pagination = data.get("pagination", {})
-                    required_pagination_fields = ["total_count", "page", "per_page", "total_pages", "has_next", "has_prev"]
+                    required_pagination_fields = ["current_page", "per_page", "total_items", "total_pages", "has_next", "has_prev"]
                     missing_pagination_fields = [field for field in required_pagination_fields if field not in pagination]
                     
                     # Проверяем структуру summary
                     summary = data.get("summary", {})
-                    required_summary_fields = ["total_applications", "total_units"]
+                    required_summary_fields = ["placed_requests", "total_units_placed"]
                     missing_summary_fields = [field for field in required_summary_fields if field not in summary]
                     
                     if not missing_pagination_fields and not missing_summary_fields:
