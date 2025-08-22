@@ -24362,9 +24362,15 @@ function App() {
                                         
                                         {/* Оператор */}
                                         <div className="text-sm">
-                                          <div className="font-medium">{cargoItem.placing_operator || cargoItem.operator_name || 'Не указан'}</div>
+                                          <div className="font-medium">
+                                            {cargoItem.placing_operator && cargoItem.placing_operator !== 'Неизвестно' 
+                                              ? cargoItem.placing_operator 
+                                              : cargoItem.operator_name || 'Не указан'}
+                                          </div>
                                           <div className="text-xs text-gray-500">
-                                            Разместил: {cargoItem.placing_operator || 'Неизвестно'}
+                                            Разместил: {cargoItem.placing_operator && cargoItem.placing_operator !== 'Неизвестно' 
+                                              ? cargoItem.placing_operator 
+                                              : 'Неизвестно'}
                                           </div>
                                         </div>
                                         
