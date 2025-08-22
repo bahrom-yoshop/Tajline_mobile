@@ -6484,7 +6484,15 @@ async def place_individual_cargo_unit(
             db.create_collection('placement_records')
         
         # Сохраняем запись о размещении
-        db.placement_records.insert_one(placement_record)
+        print(f"🔄 Сохраняем placement_record для {placement_data.individual_number}")
+        print(f"📝 placement_record: {placement_record}")
+        
+        try:
+            db.placement_records.insert_one(placement_record)
+            print(f"✅ placement_record успешно сохранен для {placement_data.individual_number}")
+        except Exception as e:
+            print(f"❌ ОШИБКА сохранения placement_record: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to save placement record: {e}")
         
         # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Синхронизируем данные с основным документом груза
         # Обновляем individual_items.is_placed = True в основном cargo документе
