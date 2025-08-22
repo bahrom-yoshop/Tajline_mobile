@@ -201,7 +201,7 @@ class FullyPlacedEndpointTester:
                     pagination = data.get("pagination", {})
                     
                     # Проверяем корректность пагинации
-                    if (pagination.get("page") == params["page"] and 
+                    if (pagination.get("current_page") == params["page"] and 
                         pagination.get("per_page") == params["per_page"]):
                         success_count += 1
                         print(f"    ✅ Пагинация работает для page={params['page']}, per_page={params['per_page']}")
