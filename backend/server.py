@@ -7816,6 +7816,28 @@ async def get_warehouse_layout_with_cargo(
     # а не просто по полю warehouse_location
     placement_records = list(db.placement_records.find({"warehouse_id": warehouse_id}))
     
+    # ДИАГНОСТИКА: Логируем информацию о найденных placement_records
+    print(f"🔍 ДИАГНОСТИКА layout-with-cargo: склад {warehouse_id}")
+    print(f"📦 Найдено placement_records: {len(placement_records)}")
+    
+    # Также проверим placement_records без фильтра по warehouse_id
+    all_placement_records = list(db.placement_records.find())
+    print(f"📦 Всего placement_records в базе: {len(all_placement_records)}")
+    
+    # Проверим конкретные записи 25082235/01/01 и 25082235/01/02
+    target_record_1 = db.placement_records.find_one({"individual_number": "25082235/01/01"})
+    target_record_2 = db.placement_records.find_one({"individual_number": "25082235/01/02"})
+    
+    if target_record_1:
+        print(f"✅ Найден 25082235/01/01: warehouse_id={target_record_1.get('warehouse_id')}, location={target_record_1.get('location')}")
+    else:
+        print(f"❌ Не найден 25082235/01/01")
+        
+    if target_record_2:
+        print(f"✅ Найден 25082235/01/02: warehouse_id={target_record_2.get('warehouse_id')}, location={target_record_2.get('location')}")
+    else:
+        print(f"❌ Не найден 25082235/01/02")
+    
     # Создаем карту грузов по ячейкам на основе placement_records
     cargo_by_location = {}
     
