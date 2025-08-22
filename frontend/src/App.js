@@ -28399,7 +28399,13 @@ function App() {
                                   onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
+                                    console.log('🔍 Клик по ячейке:', cell);
+                                    console.log('🔍 cell.is_occupied:', cell.is_occupied);
+                                    console.log('🔍 cell.cargo:', cell.cargo);
+                                    console.log('🔍 cell.cargo_count:', cell.cargo_count);
+                                    
                                     if (cell.is_occupied && cell.cargo && cell.cargo.length > 0) {
+                                      console.log('✅ Открываем модальное окно для груза:', cell.cargo[0]);
                                       // Если несколько грузов в ячейке, берем первый
                                       setSelectedCargoForDetailView(cell.cargo[0]);
                                       setCargoDetailsModal(true);
