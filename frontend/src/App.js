@@ -12483,19 +12483,6 @@ function App() {
     }
   };
 
-  const handleRemoveCargoFromCell = async (cargo) => {
-    if (window.confirm(`Вы уверены, что хотите удалить груз ${cargo.cargo_number} из ячейки?`)) {
-      try {
-        await apiCall(`/api/warehouse/cargo/${cargo.id}/remove`, 'DELETE');
-        showAlert('Груз удален из ячейки!', 'success');
-        setCargoDetailModal(false);
-        fetchOperatorCargo();
-      } catch (error) {
-        console.error('Remove cargo error:', error);
-      }
-    }
-  };
-
   // Print transport cargo list
   const printTransportCargoList = (transport, cargoList) => {
     const printWindow = window.open('', '_blank');
