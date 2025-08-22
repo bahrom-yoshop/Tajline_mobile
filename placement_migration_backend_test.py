@@ -507,10 +507,13 @@ class PlacementMigrationTester:
             print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось получить warehouse_id")
             return False
         
-        # Шаг 5: Проверка схемы склада после миграции
+        # Шаг 5: Попытка создания placement_record если он отсутствует
+        self.create_placement_record_if_missing()
+        
+        # Шаг 6: Проверка схемы склада после миграции
         layout_test_result = self.test_warehouse_layout_after_migration()
         
-        # Шаг 6: Проверка корректности данных о грузе
+        # Шаг 7: Проверка корректности данных о грузе
         cargo_data_test_result = self.verify_cargo_data_correctness()
         
         # Подведение итогов
