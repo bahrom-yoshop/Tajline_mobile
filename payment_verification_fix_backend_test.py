@@ -238,7 +238,7 @@ def test_verify_cargo_with_different_payment_statuses():
         if payment_status not in tested_statuses:
             tested_statuses.add(payment_status)
             
-            verify_data = {"cargo_number": cargo_number}
+            verify_data = {"qr_code": cargo_number}
             verify_response, verify_time = make_request("POST", "/operator/placement/verify-cargo", verify_data)
             
             total_tests += 1
