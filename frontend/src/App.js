@@ -5965,9 +5965,16 @@ function App() {
   // Operator-specific states
   const [operatorWarehouses, setOperatorWarehouses] = useState([]);
   const [routeWarehouses, setRouteWarehouses] = useState([]);  // Склады по выбранному маршруту
-  const [showWarehouseScheme, setShowWarehouseScheme] = useState(null); // ID склада для показа схемы
-  const [warehouseSchemeData, setWarehouseSchemeData] = useState([]); // Данные схемы склада
-  const [warehouseSchemeLoading, setWarehouseSchemeLoading] = useState(false); // Загрузка схемы склада
+  const [showWarehouseScheme, setShowWarehouseScheme] = useState(null); // ID склада для показа старой схемы
+  const [warehouseSchemeData, setWarehouseSchemeData] = useState([]); // Данные старой схемы склада
+  const [warehouseSchemeLoading, setWarehouseSchemeLoading] = useState(false); // Загрузка старой схемы склада
+  
+  // НОВАЯ ВИЗУАЛЬНАЯ СХЕМА ЯЧЕЕК
+  const [showNewWarehouseScheme, setShowNewWarehouseScheme] = useState(null); // ID склада для новой схемы
+  const [newWarehouseSchemeData, setNewWarehouseSchemeData] = useState(null); // Данные новой схемы
+  const [newWarehouseSchemeLoading, setNewWarehouseSchemeLoading] = useState(false); // Загрузка новой схемы
+  const [selectedCellForDetails, setSelectedCellForDetails] = useState(null); // Выбранная ячейка для показа деталей
+  const [showCellDetailsModal, setShowCellDetailsModal] = useState(false); // Модальное окно деталей ячейки
   const [warehouseCells, setWarehouseCells] = useState([]); // Ячейки склада
   const [showCargoManagementModal, setShowCargoManagementModal] = useState(false); // Модальное окно управления грузом
   const [selectedCargoForManagement, setSelectedCargoForManagement] = useState(null); // Выбранный груз для управления
