@@ -36,21 +36,15 @@ const DevBadge = ({ id, type = 'page', label, className = '' }) => {
 
   return (
     <div 
-      className={`fixed top-2 right-2 z-[9999] ${className}`}
+      className={`absolute top-1 right-1 z-50 pointer-events-none ${className}`}
       title={`${title}: ${label || id}`}
-      style={{ 
-        position: 'absolute',
-        top: '4px',
-        right: '4px',
-        pointerEvents: 'none'
-      }}
     >
       <div className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-mono font-bold shadow-lg ${color}`}>
         <span className="mr-1">{prefix}</span>
         <span>{id}</span>
       </div>
       {label && (
-        <div className="text-xs text-gray-500 mt-1 text-right font-mono">
+        <div className="text-xs text-gray-500 mt-1 text-right font-mono max-w-24 truncate">
           {label}
         </div>
       )}
