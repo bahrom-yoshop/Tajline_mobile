@@ -225,7 +225,7 @@ class FullyPlacedEndpointTester:
                     pagination2 = data2.get("pagination", {})
                     
                     # Проверяем корректность пагинации
-                    if (pagination1.get("page") == 1 and pagination2.get("page") == 2 and
+                    if (pagination1.get("current_page") == 1 and pagination2.get("current_page") == 2 and
                         pagination1.get("per_page") == 5 and pagination2.get("per_page") == 5):
                         
                         self.log_test(
