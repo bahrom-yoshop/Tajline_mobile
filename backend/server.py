@@ -19939,14 +19939,23 @@ async def verify_cargo_for_placement(
         
         # Получаем информацию о грузе из коллекции cargo или operator_cargo
         cargo = db.cargo.find_one(cargo_query)
+        operator_cargo_doc = None
+        
         if not cargo:
             # Пробуем найти в operator_cargo
-            operator_cargo = db.operator_cargo.find_one(cargo_query)
-            if operator_cargo:
-                # Получаем данные из первого cargo_item
-                cargo_items = operator_cargo.get("cargo_items", [])
+            operator_cargo_doc = db.operator_cargo.find_one(cargo_query)
+            if operator_cargo_doc:
+                # Получаем данные из первого cargo_item, но сохраняем ссылку на документ
+                cargo_items = operator_cargo_doc.get("cargo_items", [])
                 if cargo_items:
                     cargo = cargo_items[0]  # Используем первый item как основной груз
+                    # Добавляем недостающие поля из operator_cargo документа
+                    cargo["id"] = operator_cargo_doc.get("id")
+                    cargo["cargo_number"] = operator_cargo_doc.get("cargo_number")
+                    cargo["status"] = operator_cargo_doc.get("status", "created")
+                    cargo["payment_status"] = operator_cargo_doc.get("payment_status", "unpaid")
+                    cargo["warehouse_id"] = operator_cargo_doc.get("warehouse_id")
+                    cargo["cargo_items"] = cargo_items
                     
         print(f"🔍 Cargo найден для {individual_number}: {bool(cargo)}")
         
