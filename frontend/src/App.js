@@ -24290,104 +24290,221 @@ function App() {
                           </div>
                         ) : (
                           <div className="space-y-4">
-                            {/* Заголовок таблицы */}
-                            <div className="grid grid-cols-8 gap-4 p-4 bg-gray-100 rounded-lg font-semibold text-sm text-gray-700">
-                              <div>Номер заявки</div>
-                              <div>Отправитель</div>
-                              <div>Получатель</div>
-                              <div>Телефон получателя</div>
-                              <div>Ячейка</div>
-                              <div>Размещение</div>
-                              <div>Оператор</div>
-                              <div>Действия</div>
-                            </div>
-                            
-                            {/* Список размещенных грузов */}
-                            {fullyPlacedCargo.map((cargoItem) => (
-                              <Card key={cargoItem.id} className="border-l-4 border-l-green-500 bg-gradient-to-r from-green-50 to-white">
-                                <CardContent className="p-4">
-                                  <div className="grid grid-cols-8 gap-4 items-center">
-                                    {/* Номер заявки */}
-                                    <div className="font-semibold text-blue-600">
-                                      {cargoItem.request_number || cargoItem.cargo_number}
-                                    </div>
-                                    
-                                    {/* Отправитель */}
-                                    <div className="text-sm">
-                                      <div className="font-medium">{cargoItem.sender_full_name || 'Не указан'}</div>
-                                      <div className="text-gray-500">{cargoItem.sender_phone || ''}</div>
-                                    </div>
-                                    
-                                    {/* Получатель */}
-                                    <div className="text-sm">
-                                      <div className="font-medium">{cargoItem.recipient_full_name || 'Не указан'}</div>
-                                      <div className="text-gray-500">{cargoItem.recipient_address || ''}</div>
-                                    </div>
-                                    
-                                    {/* Телефон получателя */}
-                                    <div className="text-sm font-medium">
-                                      {cargoItem.recipient_phone || 'Не указан'}
-                                    </div>
-                                    
-                                    {/* Ячейка */}
-                                    <div className="text-sm">
-                                      {cargoItem.individual_units && cargoItem.individual_units.length > 0 ? (
-                                        <div className="flex flex-wrap gap-1">
-                                          {cargoItem.individual_units
-                                            .filter(unit => unit.is_placed)
-                                            .map((unit, index) => (
-                                              <Badge key={index} variant="outline" className="text-xs">
-                                                {unit.placement_info || unit.warehouse_name || 'Не указано'}
-                                              </Badge>
-                                            ))
-                                          }
+                            {placedCargoViewMode === 'table' ? (
+                              // Табличный режим
+                              <>
+                                {/* Заголовок таблицы */}
+                                <div className="grid grid-cols-8 gap-4 p-4 bg-gray-100 rounded-lg font-semibold text-sm text-gray-700">
+                                  <div>Номер заявки</div>
+                                  <div>Отправитель</div>
+                                  <div>Получатель</div>
+                                  <div>Телефон получателя</div>
+                                  <div>Ячейка</div>
+                                  <div>Размещение</div>
+                                  <div>Оператор</div>
+                                  <div>Действия</div>
+                                </div>
+                                
+                                {/* Список размещенных грузов */}
+                                {fullyPlacedCargo.map((cargoItem) => (
+                                  <Card key={cargoItem.id} className={`border-l-4 ${cargoItem.is_fully_placed ? 'border-l-green-500 bg-gradient-to-r from-green-50 to-white' : 'border-l-yellow-500 bg-gradient-to-r from-yellow-50 to-white'}`}>
+                                    <CardContent className="p-4">
+                                      <div className="grid grid-cols-8 gap-4 items-center">
+                                        {/* Номер заявки */}
+                                        <div className="font-semibold text-blue-600">
+                                          {cargoItem.request_number || cargoItem.cargo_number}
                                         </div>
-                                      ) : (
-                                        <span className="text-gray-500">Не указано</span>
-                                      )}
-                                    </div>
-                                    
-                                    {/* Размещение */}
-                                    <div className="text-sm">
-                                      <Badge variant="success" className="bg-green-100 text-green-800">
-                                        {cargoItem.progress_text || `${cargoItem.placed_units}/${cargoItem.total_units}`}
-                                      </Badge>
-                                      <div className="text-xs text-gray-500 mt-1">
-                                        {cargoItem.created_at ? new Date(cargoItem.created_at).toLocaleDateString() : ''}
+                                        
+                                        {/* Отправитель */}
+                                        <div className="text-sm">
+                                          <div className="font-medium">{cargoItem.sender_full_name || 'Не указан'}</div>
+                                          <div className="text-gray-500">{cargoItem.sender_phone || ''}</div>
+                                        </div>
+                                        
+                                        {/* Получатель */}
+                                        <div className="text-sm">
+                                          <div className="font-medium">{cargoItem.recipient_full_name || 'Не указан'}</div>
+                                          <div className="text-gray-500">{cargoItem.recipient_address || ''}</div>
+                                        </div>
+                                        
+                                        {/* Телефон получателя */}
+                                        <div className="text-sm font-medium">
+                                          {cargoItem.recipient_phone || 'Не указан'}
+                                        </div>
+                                        
+                                        {/* Ячейка */}
+                                        <div className="text-sm">
+                                          {cargoItem.individual_units && cargoItem.individual_units.length > 0 ? (
+                                            <div className="flex flex-wrap gap-1">
+                                              {cargoItem.individual_units
+                                                .filter(unit => unit.is_placed)
+                                                .map((unit, index) => (
+                                                  <Badge key={index} variant="outline" className="text-xs">
+                                                    {unit.placement_info || unit.warehouse_name || 'Не указано'}
+                                                  </Badge>
+                                                ))
+                                              }
+                                            </div>
+                                          ) : (
+                                            <span className="text-gray-500">Не указано</span>
+                                          )}
+                                        </div>
+                                        
+                                        {/* Размещение */}
+                                        <div className="text-sm">
+                                          <Badge variant={cargoItem.is_fully_placed ? "success" : "secondary"} className={cargoItem.is_fully_placed ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
+                                            {cargoItem.progress_text || `${cargoItem.placed_units}/${cargoItem.total_units}`}
+                                          </Badge>
+                                          <div className="text-xs text-gray-500 mt-1">
+                                            {cargoItem.created_at ? new Date(cargoItem.created_at).toLocaleDateString() : ''}
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Оператор */}
+                                        <div className="text-sm">
+                                          <div className="font-medium">{cargoItem.operator_name || 'Не указан'}</div>
+                                          {cargoItem.individual_units && cargoItem.individual_units.length > 0 && (
+                                            <div className="text-xs text-gray-500">
+                                              {cargoItem.individual_units[0]?.placed_by || ''}
+                                            </div>
+                                          )}
+                                        </div>
+                                        
+                                        {/* Действия */}
+                                        <div className="flex space-x-2">
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm"
+                                            onClick={() => {
+                                              setSelectedPlacedCargo(cargoItem);
+                                              setPlacedCargoViewMode('individual');
+                                            }}
+                                          >
+                                            <Grid className="h-4 w-4" />
+                                          </Button>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm"
+                                            onClick={() => {
+                                              // Показать детали заявки
+                                              setSelectedCargoForDetails(cargoItem);
+                                              setShowPlacementDetailsModal(true);
+                                            }}
+                                          >
+                                            <Eye className="h-4 w-4" />
+                                          </Button>
+                                        </div>
                                       </div>
-                                    </div>
-                                    
-                                    {/* Оператор */}
-                                    <div className="text-sm">
-                                      <div className="font-medium">{cargoItem.operator_name || 'Не указан'}</div>
-                                      {cargoItem.individual_units && cargoItem.individual_units.length > 0 && (
-                                        <div className="text-xs text-gray-500">
-                                          {cargoItem.individual_units[0]?.placed_by || ''}
-                                        </div>
-                                      )}
-                                    </div>
-                                    
-                                    {/* Действия */}
-                                    <div className="flex space-x-2">
+                                    </CardContent>
+                                  </Card>
+                                ))}
+                              </>
+                            ) : (
+                              // Individual Units режим
+                              <div className="space-y-4">
+                                {selectedPlacedCargo ? (
+                                  <div>
+                                    {/* Заголовок с кнопкой возврата */}
+                                    <div className="flex items-center justify-between mb-4">
+                                      <h3 className="text-lg font-semibold">
+                                        Individual Units - Заявка {selectedPlacedCargo.cargo_number}
+                                      </h3>
                                       <Button 
-                                        variant="ghost" 
-                                        size="sm"
+                                        variant="outline" 
                                         onClick={() => {
-                                          // Показать детали заявки
-                                          setSelectedCargoForDetails(cargoItem);
-                                          setShowPlacementDetailsModal(true);
+                                          setSelectedPlacedCargo(null);
+                                          setPlacedCargoViewMode('table');
                                         }}
                                       >
-                                        <Eye className="h-4 w-4" />
+                                        <ArrowLeft className="mr-2 h-4 w-4" />
+                                        Назад к списку
                                       </Button>
                                     </div>
+                                    
+                                    {/* Информация о заявке */}
+                                    <Card className="mb-4">
+                                      <CardContent className="p-4">
+                                        <div className="grid grid-cols-4 gap-4 text-sm">
+                                          <div>
+                                            <span className="font-medium">Отправитель:</span>
+                                            <p>{selectedPlacedCargo.sender_full_name}</p>
+                                            <p className="text-gray-600">{selectedPlacedCargo.sender_phone}</p>
+                                          </div>
+                                          <div>
+                                            <span className="font-medium">Получатель:</span>
+                                            <p>{selectedPlacedCargo.recipient_full_name}</p>
+                                            <p className="text-gray-600">{selectedPlacedCargo.recipient_phone}</p>
+                                          </div>
+                                          <div>
+                                            <span className="font-medium">Прогресс:</span>
+                                            <p className="text-lg font-semibold">{selectedPlacedCargo.progress_text}</p>
+                                          </div>
+                                          <div>
+                                            <span className="font-medium">Статус:</span>
+                                            <Badge variant={selectedPlacedCargo.is_fully_placed ? "success" : "secondary"} className={selectedPlacedCargo.is_fully_placed ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
+                                              {selectedPlacedCargo.is_fully_placed ? "Полностью размещено" : "Частично размещено"}
+                                            </Badge>
+                                          </div>
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                    
+                                    {/* Individual Units карточки */}
+                                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                      {selectedPlacedCargo.individual_units?.map((unit, index) => (
+                                        <Card key={index} className={`${unit.is_placed ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}`}>
+                                          <CardContent className="p-4">
+                                            <div className="space-y-2">
+                                              <div className="flex items-center justify-between">
+                                                <h4 className="font-semibold text-sm">{unit.individual_number}</h4>
+                                                <Badge variant={unit.is_placed ? "success" : "secondary"} className={unit.is_placed ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
+                                                  {unit.status_label}
+                                                </Badge>
+                                              </div>
+                                              {unit.is_placed && (
+                                                <div className="text-xs text-gray-600">
+                                                  <p><span className="font-medium">Ячейка:</span> {unit.placement_info}</p>
+                                                  <p><span className="font-medium">Оператор:</span> {unit.placed_by}</p>
+                                                  {unit.placed_at && (
+                                                    <p><span className="font-medium">Размещено:</span> {new Date(unit.placed_at).toLocaleString()}</p>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </div>
+                                          </CardContent>
+                                        </Card>
+                                      ))}
+                                    </div>
                                   </div>
-                                </CardContent>
-                              </Card>
-                            ))}
+                                ) : (
+                                  // Выбор заявки для Individual Units режима
+                                  <div className="space-y-4">
+                                    <h3 className="text-lg font-semibold mb-4">Выберите заявку для просмотра Individual Units</h3>
+                                    {fullyPlacedCargo.map((cargoItem) => (
+                                      <Card key={cargoItem.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSelectedPlacedCargo(cargoItem)}>
+                                        <CardContent className="p-4">
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <h4 className="font-semibold">{cargoItem.cargo_number}</h4>
+                                              <p className="text-sm text-gray-600">{cargoItem.sender_full_name} → {cargoItem.recipient_full_name}</p>
+                                            </div>
+                                            <div className="text-right">
+                                              <Badge variant={cargoItem.is_fully_placed ? "success" : "secondary"} className={cargoItem.is_fully_placed ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
+                                                {cargoItem.progress_text}
+                                              </Badge>
+                                              <p className="text-xs text-gray-500 mt-1">{cargoItem.total_units} единиц</p>
+                                            </div>
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             
                             {/* Пагинация */}
-                            {fullyPlacedPagination && fullyPlacedPagination.total_pages > 1 && (
+                            {placedCargoViewMode === 'table' && fullyPlacedPagination && fullyPlacedPagination.total_pages > 1 && (
                               <div className="mt-6">
                                 <DataPagination
                                   currentPage={fullyPlacedPagination.page || 1}
