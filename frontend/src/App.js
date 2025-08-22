@@ -34009,14 +34009,14 @@ function App() {
               </div>
 
               {/* НОВОЕ: История действий оператора */}
-              {selectedCargoForDetails.action_history && selectedCargoForDetails.action_history.length > 0 && (
+              {placementDetails.action_history && placementDetails.action_history.length > 0 && (
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h4 className="font-medium mb-3 text-gray-800 flex items-center">
                     <Clock className="mr-2 h-5 w-5 text-gray-600" />
                     История действий оператора
                   </h4>
                   <div className="space-y-3">
-                    {selectedCargoForDetails.action_history.map((action, index) => (
+                    {placementDetails.action_history.map((action, index) => (
                       <div key={index} className="flex items-start space-x-3 p-3 bg-white rounded-lg border border-gray-200">
                         <div className={`w-3 h-3 rounded-full mt-1 ${
                           action.action === 'cargo_accepted' ? 'bg-blue-500' :
