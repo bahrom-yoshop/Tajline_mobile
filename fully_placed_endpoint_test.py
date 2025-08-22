@@ -240,7 +240,7 @@ class FullyPlacedEndpointTester:
                             False,
                             f"Неверная логика пагинации",
                             "page=1,2 per_page=5,5",
-                            f"page={pagination1.get('page')},{pagination2.get('page')} per_page={pagination1.get('per_page')},{pagination2.get('per_page')}"
+                            f"page={pagination1.get('current_page')},{pagination2.get('current_page')} per_page={pagination1.get('per_page')},{pagination2.get('per_page')}"
                         )
                         return False
                 else:
