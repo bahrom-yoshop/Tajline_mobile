@@ -452,12 +452,12 @@ class FullyPlacedEndpointTester:
                     items_with_action_history += 1
                     
                     # Проверяем наличие действий cargo_accepted и cargo_placed
-                    has_accepted = any(action.get("action_type") == "cargo_accepted" for action in action_history)
-                    has_placed = any(action.get("action_type") == "cargo_placed" for action in action_history)
+                    has_accepted = any(action.get("action") == "cargo_accepted" for action in action_history)
+                    has_placed = any(action.get("action") == "cargo_placed" for action in action_history)
                     
                     # Проверяем наличие операторов и временных меток
                     has_operators_and_time = all(
-                        action.get("operator_name") and action.get("timestamp") 
+                        action.get("operator") and action.get("timestamp") 
                         for action in action_history
                     )
                     
