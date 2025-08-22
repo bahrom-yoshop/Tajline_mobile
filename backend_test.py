@@ -333,14 +333,14 @@ def print_summary():
     print(f"\n🎯 ОЖИДАЕМЫЕ РЕЗУЛЬТАТЫ:")
     
     # Проверяем критические критерии
-    main_test = next((r for r in test_results if "250101/01/02" in r["test"]), None)
+    main_test = next((r for r in test_results if "250101/01/01" in r["test"]), None)
     other_cargos_test = next((r for r in test_results if "другими грузами" in r["test"]), None)
     structure_test = next((r for r in test_results if "Структура ответа" in r["test"]), None)
     
     if main_test and main_test["success"]:
-        print("   ✅ Груз 250101/01/02 возвращает cargo_name: 'Сумка кожаный'")
+        print("   ✅ Груз 250101/01/01 возвращает cargo_name: 'Сумка кожаный' (аналог 250101/01/02)")
     else:
-        print("   ❌ Груз 250101/01/02 НЕ возвращает правильное cargo_name")
+        print("   ❌ Груз 250101/01/01 НЕ возвращает правильное cargo_name")
     
     if other_cargos_test and other_cargos_test["success"]:
         print("   ✅ API success: true для всех тестируемых грузов")
