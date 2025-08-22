@@ -33545,7 +33545,7 @@ function App() {
               <RefreshCw className="h-8 w-8 animate-spin text-purple-600 mb-4" />
               <p className="text-sm text-gray-600">Загрузка деталей размещения...</p>
             </div>
-          ) : placementDetails && selectedCargoForDetails ? (
+          ) : placementDetails ? (
             <div className="space-y-6">
               {/* Общая информация о заявке */}
               <div className="bg-blue-50 p-4 rounded-lg">
@@ -33553,17 +33553,17 @@ function App() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
                   <div>
                     <span className="font-medium text-gray-600">Номер заявки:</span>
-                    <p>№{selectedCargoForDetails.cargo_number}</p>
+                    <p>№{placementDetails.cargo_number}</p>
                   </div>
                   <div>
                     <span className="font-medium text-gray-600">Отправитель:</span>
-                    <p>{selectedCargoForDetails.sender_full_name}</p>
-                    <p className="text-gray-500">{selectedCargoForDetails.sender_phone}</p>
+                    <p>{placementDetails.sender_full_name}</p>
+                    <p className="text-gray-500">{placementDetails.sender_phone}</p>
                   </div>
                   <div>
                     <span className="font-medium text-gray-600">Получатель:</span>
-                    <p>{selectedCargoForDetails.recipient_full_name}</p>
-                    <p className="text-gray-500">{selectedCargoForDetails.recipient_phone}</p>
+                    <p>{placementDetails.recipient_full_name}</p>
+                    <p className="text-gray-500">{placementDetails.recipient_phone}</p>
                   </div>
                   
                   {/* ИСПРАВЛЕНО: Способ получения груза */}
