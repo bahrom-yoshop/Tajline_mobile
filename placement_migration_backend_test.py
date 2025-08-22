@@ -245,7 +245,8 @@ class PlacementMigrationTester:
                 
                 # Проверяем основные поля ответа
                 warehouse_info = data.get("warehouse", {})
-                layout = data.get("layout", [])
+                layout_data = data.get("layout", {})
+                blocks = layout_data.get("blocks", []) if isinstance(layout_data, dict) else []
                 total_cargo = data.get("total_cargo", 0)
                 occupied_cells = data.get("occupied_cells", 0)
                 total_cells = data.get("total_cells", 0)
@@ -267,7 +268,7 @@ class PlacementMigrationTester:
                 temp_data_found = False
                 cell_b1_p2_y9_details = ""
                 
-                for block in layout:
+                for block in blocks:
                     if block.get("block_number") == 1:  # Блок 1
                         for shelf in block.get("shelves", []):
                             if shelf.get("shelf_number") == 2:  # Полка 2
@@ -275,22 +276,37 @@ class PlacementMigrationTester:
                                     if cell.get("cell_number") == 9:  # Ячейка 9
                                         cell_b1_p2_y9_details = f"Ячейка Б1-П2-Я9 найдена: занята={cell.get('is_occupied', False)}"
                                         
-                                        if cell.get("is_occupied") and cell.get("cargo_info"):
-                                            cargo_info = cell.get("cargo_info", {})
-                                            individual_number = cargo_info.get("individual_number", "")
-                                            cargo_number = cargo_info.get("cargo_number", "")
-                                            operator_info = cargo_info.get("placed_by", "")
-                                            
-                                            cell_b1_p2_y9_details += f", груз: {individual_number}, заявка: {cargo_number}, оператор: {operator_info}"
-                                            
-                                            # Проверяем что это именно груз 25082235/02/02
-                                            if individual_number == "25082235/02/02" and cargo_number == "25082235":
-                                                cargo_25082235_found = True
-                                                cargo_details = f"Груз 25082235/02/02 найден на позиции Б1-П2-Я9, оператор: {operator_info}"
-                                            
-                                            # Проверяем на наличие TEMP- данных
-                                            if "TEMP-" in individual_number or "TEMP-" in cargo_number:
-                                                temp_data_found = True
+                                        if cell.get("is_occupied") and cell.get("cargo"):
+                                            cargo_list = cell.get("cargo", [])
+                                            if cargo_list and len(cargo_list) > 0:
+                                                # Берем первый груз из списка
+                                                cargo_info = cargo_list[0]
+                                                individual_number = cargo_info.get("individual_number", "")
+                                                cargo_number = cargo_info.get("cargo_number", "")
+                                                operator_info = cargo_info.get("placed_by", "")
+                                                
+                                                cell_b1_p2_y9_details += f", груз: {individual_number}, заявка: {cargo_number}, оператор: {operator_info}"
+                                                
+                                                # Проверяем что это именно груз 25082235/02/02
+                                                if individual_number == "25082235/02/02" and cargo_number == "25082235":
+                                                    cargo_25082235_found = True
+                                                    cargo_details = f"Груз 25082235/02/02 найден на позиции Б1-П2-Я9, оператор: {operator_info}"
+                                                
+                                                # Проверяем на наличие TEMP- данных
+                                                if "TEMP-" in individual_number or "TEMP-" in cargo_number:
+                                                    temp_data_found = True
+                
+                # Дополнительная проверка на TEMP- данные во всех ячейках
+                for block in blocks:
+                    for shelf in block.get("shelves", []):
+                        for cell in shelf.get("cells", []):
+                            if cell.get("is_occupied") and cell.get("cargo"):
+                                cargo_list = cell.get("cargo", [])
+                                for cargo_info in cargo_list:
+                                    individual_number = cargo_info.get("individual_number", "")
+                                    cargo_number = cargo_info.get("cargo_number", "")
+                                    if "TEMP-" in individual_number or "TEMP-" in cargo_number:
+                                        temp_data_found = True
                 
                 # 3. Проверяем что груз 25082235/02/02 найден на правильной позиции
                 self.log_test(
