@@ -2927,7 +2927,7 @@ async def get_fully_placed_cargo_requests(
                     "created_at": cargo.get("created_at", datetime.utcnow()).isoformat() if isinstance(cargo.get("created_at"), datetime) else cargo.get("created_at"),
                     "operator_name": cargo.get("operator_name", "Неизвестный оператор"),
                     "accepting_operator": cargo.get("accepting_operator", "Неизвестно"),
-                    "placing_operator": individual_units[0].get("placed_by", "Неизвестно") if individual_units else "Неизвестно",
+                    "placing_operator": next((unit.get("placed_by", "Неизвестно") for unit in individual_units if unit.get("is_placed") and unit.get("placed_by") and unit.get("placed_by") != "Неизвестно"), "Неизвестно"),
                     # Список грузов детально
                     "cargo_items": cargo_items,
                     # История действий (расширенная)
