@@ -2846,7 +2846,7 @@ async def get_fully_placed_cargo_requests(
                     "id": cargo["id"],
                     "cargo_number": cargo["cargo_number"],
                     "request_number": cargo["cargo_number"],
-                    "cargo_name": individual_items[0].get('cargo_name', 'Груз без названия') if individual_items else 'Груз без названия',
+                    "cargo_name": cargo.get('cargo_name', '') or (cargo.get('cargo_items', [{}])[0].get('cargo_name', 'Груз без названия') if cargo.get('cargo_items') else 'Груз без названия'),
                     # Данные отправителя
                     "sender_full_name": cargo.get("sender_full_name", "Не указан"),
                     "sender_phone": cargo.get("sender_phone", "Не указан"),
