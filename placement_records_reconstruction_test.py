@@ -303,35 +303,54 @@ class PlacementRecordsReconstructionTester:
                 cargo_details = {}
                 temp_data_found = False
                 
-                # Проходим по всей структуре склада
-                for block_key, block_data in layout.items():
-                    if isinstance(block_data, dict) and "shelves" in block_data:
-                        for shelf_key, shelf_data in block_data["shelves"].items():
-                            if isinstance(shelf_data, dict) and "cells" in shelf_data:
-                                for cell_key, cell_data in shelf_data["cells"].items():
-                                    if isinstance(cell_data, dict):
-                                        # Проверяем на фиктивные TEMP- данные
-                                        for field_name, field_value in cell_data.items():
-                                            if isinstance(field_value, str) and "TEMP-" in field_value:
-                                                temp_data_found = True
-                                        
-                                        # Ищем груз 25082235/02/02
-                                        individual_number = cell_data.get("individual_number", "")
-                                        if individual_number == "25082235/02/02":
-                                            # Проверяем позицию ячейки
-                                            location_code = cell_data.get("location_code", "")
-                                            if "Б1-П2-Я9" in location_code or "1-2-9" in location_code:
-                                                cargo_found = True
-                                                cargo_details = {
-                                                    "individual_number": individual_number,
-                                                    "cargo_number": cell_data.get("cargo_number", ""),
-                                                    "cargo_name": cell_data.get("cargo_name", ""),
-                                                    "sender_name": cell_data.get("sender_name", ""),
-                                                    "recipient_name": cell_data.get("recipient_name", ""),
-                                                    "placed_by": cell_data.get("placed_by", ""),
-                                                    "location_code": location_code,
-                                                    "is_occupied": cell_data.get("is_occupied", False)
-                                                }
+                # Проходим по всей структуре склада (новый формат с blocks как список)
+                blocks = layout.get("blocks", [])
+                for block in blocks:
+                    if not isinstance(block, dict):
+                        continue
+                        
+                    block_num = block.get("block_number")
+                    shelves = block.get("shelves", [])
+                    
+                    for shelf in shelves:
+                        if not isinstance(shelf, dict):
+                            continue
+                            
+                        shelf_num = shelf.get("shelf_number")
+                        cells = shelf.get("cells", [])
+                        
+                        for cell in cells:
+                            if not isinstance(cell, dict):
+                                continue
+                            
+                            cell_num = cell.get("cell_number")
+                            
+                            # Проверяем на фиктивные TEMP- данные
+                            cargo_list = cell.get("cargo", [])
+                            if cargo_list:
+                                for cargo_info in cargo_list:
+                                    cargo_number = cargo_info.get("cargo_number", "")
+                                    individual_number = cargo_info.get("individual_number", "")
+                                    
+                                    if "TEMP-" in cargo_number or "TEMP-" in individual_number:
+                                        temp_data_found = True
+                                    
+                                    # Ищем конкретный груз 25082235/02/02
+                                    if individual_number == "25082235/02/02":
+                                        # Проверяем позицию Б1-П2-Я9 (блок 1, полка 2, ячейка 9)
+                                        if block_num == 1 and shelf_num == 2 and cell_num == 9:
+                                            cargo_found = True
+                                            cargo_details = {
+                                                "individual_number": individual_number,
+                                                "cargo_number": cargo_info.get("cargo_number", ""),
+                                                "cargo_name": cargo_info.get("cargo_name", ""),
+                                                "sender_name": cargo_info.get("sender_full_name", ""),
+                                                "recipient_name": cargo_info.get("recipient_full_name", ""),
+                                                "placed_by": cargo_info.get("placed_by", ""),
+                                                "location_code": f"Б{block_num}-П{shelf_num}-Я{cell_num}",
+                                                "is_occupied": cell.get("is_occupied", False),
+                                                "placement_location": cargo_info.get("placement_location", "")
+                                            }
                 
                 # Проверяем что груз 25082235/02/02 найден на позиции Б1-П2-Я9
                 self.log_test(
