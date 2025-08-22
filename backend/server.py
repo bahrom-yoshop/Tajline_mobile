@@ -6793,15 +6793,20 @@ async def reconstruct_placement_records(current_user: User = Depends(get_current
                             block_num = shelf_num = cell_num = 1  # Значения по умолчанию
                             
                             if placement_info:
+                                # Убираем эмодзи и пробелы из начала строки
+                                clean_placement_info = placement_info.strip()
+                                if "📍" in clean_placement_info:
+                                    clean_placement_info = clean_placement_info.replace("📍", "").strip()
+                                
                                 # Парсим placement_info в различных форматах
-                                if placement_info.startswith("Б"):
+                                if clean_placement_info.startswith("Б"):
                                     # Формат "Б1-П2-Я9"
-                                    parts = placement_info.split("-")
+                                    parts = clean_placement_info.split("-")
                                     if len(parts) >= 3:
                                         block_num = int(parts[0][1:])
                                         shelf_num = int(parts[1][1:])
                                         cell_num = int(parts[2][1:])
-                                        location = placement_info
+                                        location = clean_placement_info
                                 elif placement_info.startswith("B"):
                                     # Формат "B1-S2-C9"
                                     parts = placement_info.split("-")
