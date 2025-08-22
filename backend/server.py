@@ -7807,9 +7807,11 @@ async def fix_missing_placement_records(current_user: User = Depends(get_current
     
     fixed_count = 0
     processed_count = 0
+    errors = []
     
     # Ищем все грузы в operator_cargo которые имеют размещенные individual_items но нет placement_records
     all_cargo = list(db.operator_cargo.find({}))
+    print(f"📦 Найдено {len(all_cargo)} грузов в operator_cargo")
     
     for cargo in all_cargo:
         processed_count += 1
@@ -7819,25 +7821,33 @@ async def fix_missing_placement_records(current_user: User = Depends(get_current
         if not cargo_number or not warehouse_id:
             continue
             
+        print(f"🔍 Обрабатываем груз {cargo_number}")
+        
         # Проверяем cargo_items с individual_items
         cargo_items = cargo.get("cargo_items", [])
         
         for cargo_item in cargo_items:
             individual_items = cargo_item.get("individual_items", [])
+            print(f"   📋 Найдено {len(individual_items)} individual_items")
             
             for individual_item in individual_items:
                 individual_number = individual_item.get("individual_number")
                 is_placed = individual_item.get("is_placed", False)
                 placement_info = individual_item.get("placement_info", "")
                 
-                if not individual_number or not is_placed or not placement_info:
+                print(f"   🔍 Проверяем {individual_number}: is_placed={is_placed}, placement_info='{placement_info}'")
+                
+                if not individual_number or not is_placed or not placement_info or placement_info == "Ждет размещения":
                     continue
                     
                 # Проверяем есть ли уже placement_record
                 existing_record = db.placement_records.find_one({"individual_number": individual_number})
                 if existing_record:
+                    print(f"   ✅ placement_record уже существует для {individual_number}")
                     continue  # Уже есть запись
                     
+                print(f"   🚨 MISSING: создаем placement_record для {individual_number}")
+                
                 # Парсим placement_info для получения location
                 location = placement_info.replace("📍 ", "").strip()
                 
@@ -7851,12 +7861,16 @@ async def fix_missing_placement_records(current_user: User = Depends(get_current
                             cell_number = int(parts[2][1:])   # Убираем "Я"
                             location_code = f"B{block_number}-S{shelf_number}-C{cell_number}"
                         else:
+                            errors.append(f"Неверный формат location: {location} для {individual_number}")
                             continue
                     else:
+                        errors.append(f"Неподдерживаемый формат location: {location} для {individual_number}")
                         continue
                         
-                except (ValueError, IndexError):
-                    print(f"❌ Не удалось парсить location: {location} для {individual_number}")
+                except (ValueError, IndexError) as e:
+                    error_msg = f"Ошибка парсинга location: {location} для {individual_number}: {e}"
+                    print(f"❌ {error_msg}")
+                    errors.append(error_msg)
                     continue
                 
                 # Получаем информацию о складе
@@ -7866,10 +7880,15 @@ async def fix_missing_placement_records(current_user: User = Depends(get_current
                 # Парсим individual_number: 25082235/01/01
                 parts = individual_number.split('/')
                 if len(parts) != 3:
+                    errors.append(f"Неверный формат individual_number: {individual_number}")
                     continue
                     
-                type_index = int(parts[1])
-                unit_index = int(parts[2])
+                try:
+                    type_index = int(parts[1])
+                    unit_index = int(parts[2])
+                except ValueError:
+                    errors.append(f"Ошибка парсинга индексов в individual_number: {individual_number}")
+                    continue
                 
                 # Создаем placement_record
                 placement_record = {
@@ -7900,13 +7919,21 @@ async def fix_missing_placement_records(current_user: User = Depends(get_current
                     fixed_count += 1
                     print(f"✅ Восстановлен placement_record для {individual_number} на {location}")
                 except Exception as e:
-                    print(f"❌ Ошибка восстановления {individual_number}: {e}")
+                    error_msg = f"Ошибка сохранения placement_record для {individual_number}: {e}"
+                    print(f"❌ {error_msg}")
+                    errors.append(error_msg)
+        
+        # Ограничиваем количество обрабатываемых грузов для тестирования
+        if processed_count >= 10:
+            break
     
     return {
         "success": True,
         "message": f"Восстановление завершено",
         "processed_cargo": processed_count,
         "fixed_placement_records": fixed_count,
+        "errors": errors[:10],  # Первые 10 ошибок
+        "total_errors": len(errors),
         "details": {
             "searched_in": "operator_cargo collection",
             "filter_criteria": "individual_items.is_placed = True без placement_records"
