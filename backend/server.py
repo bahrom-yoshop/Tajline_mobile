@@ -19846,17 +19846,39 @@ async def verify_cargo_for_placement(
                         if individual_item.get("individual_number") == individual_number:
                             operator_cargo_details = {
                                 "recipient_full_name": cargo_item.get("recipient_full_name", ""),
-                                "recipient_phone": cargo_item.get("recipient_phone", ""),
+                                "recipient_phone": cargo_item.get("recipient_phone", ""), 
                                 "recipient_address": cargo_item.get("recipient_address", ""),
-                                "cargo_name": cargo_item.get("name", ""),
+                                "sender_full_name": cargo_item.get("sender_full_name", ""),
+                                "sender_phone": cargo_item.get("sender_phone", ""),
+                                "cargo_name": cargo_item.get("name", "") or cargo_item.get("cargo_name", ""),
                                 "weight": individual_item.get("weight", 0),
-                                "declared_value": individual_item.get("declared_value", 0)
+                                "declared_value": individual_item.get("declared_value", 0),
+                                "delivery_city": cargo_item.get("delivery_city", "") or cargo_item.get("destination_city", ""),
+                                "description": cargo_item.get("description", "")
                             }
                             break
                     if operator_cargo_details:
                         break
                         
+                # Если не нашли specific item, берем данные из первого cargo_item
+                if not operator_cargo_details and cargo_items:
+                    first_item = cargo_items[0]
+                    operator_cargo_details = {
+                        "recipient_full_name": first_item.get("recipient_full_name", ""),
+                        "recipient_phone": first_item.get("recipient_phone", ""),
+                        "recipient_address": first_item.get("recipient_address", ""),
+                        "sender_full_name": first_item.get("sender_full_name", ""),
+                        "sender_phone": first_item.get("sender_phone", ""),
+                        "cargo_name": first_item.get("name", "") or first_item.get("cargo_name", ""),
+                        "delivery_city": first_item.get("delivery_city", "") or first_item.get("destination_city", ""),
+                        "description": first_item.get("description", "")
+                    }
+                        
         print(f"🔍 operator_cargo_details найдены для {individual_number}: {bool(operator_cargo_details)}")
+        if operator_cargo_details:
+            print(f"   📋 cargo_name: {operator_cargo_details.get('cargo_name', 'N/A')}")
+            print(f"   👤 recipient_full_name: {operator_cargo_details.get('recipient_full_name', 'N/A')}")
+            print(f"   🏙️ delivery_city: {operator_cargo_details.get('delivery_city', 'N/A')}")
         
         if not cargo:
             print(f"⚠️ Cargo не найден для {cargo_number}, пропускаем запись")
