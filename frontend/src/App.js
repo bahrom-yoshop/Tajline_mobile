@@ -24253,7 +24253,7 @@ function App() {
                           </div>
                         </CardTitle>
                         <CardDescription>
-                          Все заявки с полностью размещенным грузом
+                          Все заявки с размещенным грузом (частично и полностью размещенные)
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
