@@ -8847,6 +8847,33 @@ function App() {
     loadRouteWarehouses();
   }, [operatorCargoForm.route, user]);
 
+  // НОВЫЙ USEEFFECT: Загрузка новой визуальной схемы ячеек
+  useEffect(() => {
+    const loadNewWarehouseScheme = async () => {
+      if (showNewWarehouseScheme) {
+        setNewWarehouseSchemeLoading(true);
+        try {
+          console.log('🏭 Loading new warehouse scheme for ID:', showNewWarehouseScheme);
+          
+          const response = await apiCall(`/api/warehouses/${showNewWarehouseScheme}/layout-with-cargo`);
+          console.log('🏭 New warehouse scheme data received:', response);
+          
+          setNewWarehouseSchemeData(response);
+        } catch (error) {
+          console.error('❌ Error loading new warehouse scheme:', error);
+          showAlert('Ошибка загрузки схемы склада', 'error');
+          setNewWarehouseSchemeData(null);
+        } finally {
+          setNewWarehouseSchemeLoading(false);
+        }
+      } else {
+        setNewWarehouseSchemeData(null);
+      }
+    };
+
+    loadNewWarehouseScheme();
+  }, [showNewWarehouseScheme]);
+
   // НОВЫЙ USEEFFECT: Загрузка схемы склада при открытии модального окна
   useEffect(() => {
     const loadWarehouseScheme = async () => {
