@@ -10672,13 +10672,13 @@ function App() {
   // ФУНКЦИЯ: Получение счетчика для пункта меню
   const getMenuCounter = (itemId) => {
     const counterMap = {
-      'cargo-list': menuCounters.cargo_list,
       'cargo-placement': menuCounters.cargo_placement,
       'cargo-pickup-list': menuCounters.cargo_pickup_list,
       'cargo-history': menuCounters.cargo_history,
       'couriers-tracking-list': menuCounters.couriers_list,
       'couriers-inactive': menuCounters.couriers_inactive,
       'warehouses-list': menuCounters.warehouses_list,
+      'warehouses-placed-cargo': menuCounters.warehouses_placed_cargo || 0,
       'notifications-client-orders': menuCounters.notifications_orders,
       'notifications-requests': menuCounters.notifications_requests,
       'notifications-system': menuCounters.notifications_system,
