@@ -5973,37 +5973,47 @@ async def get_warehouse_statistics(
             warehouse.get("cells_per_shelf", 0)
         )
         
-        # ИСПРАВЛЕНИЕ: Подсчитываем только АКТУАЛЬНО размещенные ячейки
-        # Сначала получаем список всех актуально размещенных individual_numbers из operator_cargo
-        operator_cargo_pipeline = [
-            {"$match": {"warehouse_id": warehouse_id}},
-            {"$unwind": "$cargo_items"},
-            {"$unwind": "$cargo_items.individual_items"},
-            {"$match": {"cargo_items.individual_items.is_placed": True}},
-            {"$project": {
-                "individual_number": "$cargo_items.individual_items.individual_number",
-                "placement_info": "$cargo_items.individual_items.placement_info",
-                "cargo_number": "$cargo_number"
-            }}
-        ]
+        # ИСПРАВЛЕНИЕ: Используем ту же логику что и в layout-with-cargo API
+        # Получаем актуально размещенные грузы из placement_records (они уже отфильтрованы по warehouse_id)
+        all_placement_records = list(db.placement_records.find({"warehouse_id": warehouse_id}))
         
-        # Получаем актуально размещенные gruzы из operator_cargo
-        current_placed_items = list(db.operator_cargo.aggregate(operator_cargo_pipeline))
-        current_individual_numbers = {item["individual_number"] for item in current_placed_items}
+        print(f"🔍 ВСЕ PLACEMENT RECORDS ДЛЯ СКЛАДА:")
+        print(f"   📦 Всего placement_records: {len(all_placement_records)}")
         
-        print(f"🔍 АКТУАЛЬНО РАЗМЕЩЕННЫЕ ГРУЗЫ:")
-        for item in current_placed_items:
-            print(f"   📦 {item['individual_number']}: {item['placement_info']}")
+        # Проверяем какие из этих placement_records соответствуют актуально размещенным грузам
+        # Используем fully-placed API логику для проверки статуса
+        valid_placement_records = []
         
-        # Теперь получаем placement_records только для актуально размещенных грузов
-        placement_records = list(db.placement_records.find({
-            "warehouse_id": warehouse_id,
-            "individual_number": {"$in": list(current_individual_numbers)}
-        }))
+        for record in all_placement_records:
+            individual_number = record.get("individual_number")
+            cargo_number = record.get("cargo_number")
+            
+            if not individual_number or not cargo_number:
+                continue
+                
+            # Проверяем статус в operator_cargo
+            operator_cargo = db.operator_cargo.find_one({"cargo_number": cargo_number})
+            is_currently_placed = False
+            
+            if operator_cargo:
+                cargo_items = operator_cargo.get("cargo_items", [])
+                for cargo_item in cargo_items:
+                    individual_items = cargo_item.get("individual_items", [])
+                    for individual_item in individual_items:
+                        if (individual_item.get("individual_number") == individual_number and 
+                            individual_item.get("is_placed") == True):
+                            is_currently_placed = True
+                            print(f"   ✅ {individual_number}: актуально размещен")
+                            break
+                    if is_currently_placed:
+                        break
+            
+            if is_currently_placed:
+                valid_placement_records.append(record)
         
-        # Создаем множество уникальных ячеек из актуальных placement_records
+        # Создаем множество уникальных ячеек из валидных placement_records  
         unique_cells = set()
-        for record in placement_records:
+        for record in valid_placement_records:
             location_code = record.get("location_code")
             if location_code:
                 unique_cells.add(location_code)
@@ -6016,14 +6026,17 @@ async def get_warehouse_statistics(
                     unique_cells.add(f"{block_num}-{shelf_num}-{cell_num}")
         
         occupied_cells = len(unique_cells)
-        total_placed_cargo = len(placement_records)
+        total_placed_cargo = len(valid_placement_records)
         
         print(f"📊 КОРРЕКТНАЯ СТАТИСТИКА СКЛАДА {warehouse_id}:")
-        print(f"   📦 Актуально размещенных individual_numbers: {len(current_individual_numbers)}")
-        print(f"   📋 Соответствующих placement_records: {len(placement_records)}")
+        print(f"   📦 Всего placement_records в базе: {len(all_placement_records)}")
+        print(f"   📋 Актуально размещенных: {len(valid_placement_records)}")
         print(f"   📍 РЕАЛЬНО занятых ячеек: {occupied_cells}")  
         print(f"   🏷️ Размещенных грузов: {total_placed_cargo}")
         print(f"   📏 Общее количество ячеек: {total_cells}")
+        
+        # Используем valid_placement_records для обратной совместимости
+        placement_records = valid_placement_records
         
         # Подсчитываем статистику
         free_cells = max(0, total_cells - occupied_cells)
