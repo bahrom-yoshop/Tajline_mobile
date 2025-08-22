@@ -6741,6 +6741,76 @@ async def remove_cargo_from_cell(
             detail=f"Ошибка удаления груза из ячейки: {str(e)}"
         )
 
+@app.post("/api/admin/migrate-placement-records")
+async def migrate_placement_records(current_user: User = Depends(get_current_user)):
+    """
+    Миграция существующих placement_records для добавления отсутствующих полей
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can run migrations")
+    
+    try:
+        # Найти все записи placement_records без warehouse_id или location
+        records_to_migrate = list(db.placement_records.find({
+            "$or": [
+                {"warehouse_id": {"$exists": False}},
+                {"warehouse_id": None},
+                {"location": {"$exists": False}}
+            ]
+        }))
+        
+        migrated_count = 0
+        
+        for record in records_to_migrate:
+            updates = {}
+            
+            # Если нет warehouse_id, попробуем найти по warehouse_name
+            if not record.get("warehouse_id"):
+                warehouse_name = record.get("warehouse_name")
+                if warehouse_name:
+                    warehouse = db.warehouses.find_one({"name": warehouse_name})
+                    if warehouse:
+                        updates["warehouse_id"] = warehouse["id"]
+            
+            # Если нет location, создаем из блоков/полок/ячеек
+            if not record.get("location"):
+                block = record.get("block_number")
+                shelf = record.get("shelf_number") 
+                cell = record.get("cell_number")
+                
+                if all([block, shelf, cell]):
+                    updates["location"] = f"Б{block}-П{shelf}-Я{cell}"
+            
+            # Добавляем placed_by если отсутствует
+            if not record.get("placed_by") and record.get("placed_by_operator"):
+                updates["placed_by"] = record.get("placed_by_operator")
+            
+            # Обновляем запись если есть что обновить
+            if updates:
+                db.placement_records.update_one(
+                    {"_id": record["_id"]},
+                    {"$set": updates}
+                )
+                migrated_count += 1
+        
+        return {
+            "success": True,
+            "message": f"Migration completed successfully",
+            "records_found": len(records_to_migrate),
+            "records_migrated": migrated_count,
+            "migration_details": {
+                "added_warehouse_id_count": sum(1 for r in records_to_migrate if not r.get("warehouse_id")),
+                "added_location_count": sum(1 for r in records_to_migrate if not r.get("location")),
+                "added_placed_by_count": sum(1 for r in records_to_migrate if not r.get("placed_by"))
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Migration failed: {str(e)}"
+        )
+
 @app.get("/api/operator/cargo/individual-units-for-placement")
 async def get_individual_units_for_placement(
     page: int = 1,
