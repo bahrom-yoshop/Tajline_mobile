@@ -95,7 +95,7 @@ class PlacementMigrationTester:
                 if user_response.status_code == 200:
                     self.admin_user = user_response.json()
                     self.log_test(
-                        "Авторизация администратора (+79777888777/admin123)",
+                        "Авторизация администратора (+79999888777/admin123)",
                         True,
                         f"Успешная авторизация: {self.admin_user.get('full_name')} (роль: {self.admin_user.get('role')})"
                     )
