@@ -281,21 +281,25 @@ def test_specific_cells():
         success = True
         issues = []
         
-        # Проверяем ячейку Б1-П3-Я3 на наличие груза "Самокат ВИВО"
-        if "Б1-П3-Я3" in found_cells:
-            cargo_name = found_cells["Б1-П3-Я3"].get("cargo_name", "")
-            if "Самокат ВИВО" not in cargo_name:
-                issues.append(f"Ячейка Б1-П3-Я3 не содержит груз 'Самокат ВИВО', найдено: '{cargo_name}'")
+        # Проверяем ячейку 1-3-3 (Б1-П3-Я3) на наличие груза "Самокат ВИВО"
+        if "1-3-3" in found_cells:
+            cargo_name = found_cells["1-3-3"].get("cargo_name", "")
+            if "Самокат ВИВО" in cargo_name:
+                print(f"   ✅ Ячейка 1-3-3 содержит груз 'Самокат ВИВО': {cargo_name}")
+            else:
+                issues.append(f"Ячейка 1-3-3 не содержит груз 'Самокат ВИВО', найдено: '{cargo_name}'")
         else:
-            issues.append("Ячейка Б1-П3-Я3 не найдена или пуста")
+            issues.append("Ячейка 1-3-3 (Б1-П3-Я3) не найдена или пуста")
         
-        # Проверяем ячейку Б1-П3-Я2 на наличие грузов с cargo_name
-        if "Б1-П3-Я2" in found_cells:
-            cargo_name = found_cells["Б1-П3-Я2"].get("cargo_name", "")
-            if not cargo_name:
-                issues.append("Ячейка Б1-П3-Я2 не содержит cargo_name")
+        # Проверяем ячейку 1-3-2 (Б1-П3-Я2) на наличие грузов с cargo_name
+        if "1-3-2" in found_cells:
+            cargo_name = found_cells["1-3-2"].get("cargo_name", "")
+            if cargo_name:
+                print(f"   ✅ Ячейка 1-3-2 содержит cargo_name: {cargo_name}")
+            else:
+                issues.append("Ячейка 1-3-2 не содержит cargo_name")
         else:
-            issues.append("Ячейка Б1-П3-Я2 не найдена или пуста")
+            issues.append("Ячейка 1-3-2 (Б1-П3-Я2) не найдена или пуста")
         
         if issues:
             success = False
