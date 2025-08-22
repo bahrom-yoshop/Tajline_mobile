@@ -24236,6 +24236,158 @@ function App() {
                     </Card>
                   )}
 
+                  {/* Размещенный груз */}
+                  {activeTab === 'warehouses-placed-cargo' && (user?.role === 'admin' || user?.role === 'warehouse_operator') && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Package className="mr-2 h-5 w-5" />
+                            Размещенный груз ({fullyPlacedCargo.length})
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button 
+                              variant="outline"
+                              onClick={() => fetchFullyPlacedCargo(fullyPlacedPage, fullyPlacedPerPage)}
+                              className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                            >
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Обновить
+                            </Button>
+                          </div>
+                        </CardTitle>
+                        <CardDescription>
+                          Все заявки с полностью размещенным грузом
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {fullyPlacedLoading ? (
+                          <div className="flex items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <span className="ml-2 text-gray-600">Загрузка размещенного груза...</span>
+                          </div>
+                        ) : fullyPlacedCargo.length === 0 ? (
+                          <div className="text-center py-8">
+                            <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                            <p className="text-gray-500 mb-4">Нет размещенного груза</p>
+                            <p className="text-sm text-gray-400">Все заявки с полностью размещенными грузами будут отображены здесь</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {/* Заголовок таблицы */}
+                            <div className="grid grid-cols-8 gap-4 p-4 bg-gray-100 rounded-lg font-semibold text-sm text-gray-700">
+                              <div>Номер заявки</div>
+                              <div>Отправитель</div>
+                              <div>Получатель</div>
+                              <div>Телефон получателя</div>
+                              <div>Ячейка</div>
+                              <div>Размещение</div>
+                              <div>Оператор</div>
+                              <div>Действия</div>
+                            </div>
+                            
+                            {/* Список размещенных грузов */}
+                            {fullyPlacedCargo.map((cargoItem) => (
+                              <Card key={cargoItem.id} className="border-l-4 border-l-green-500 bg-gradient-to-r from-green-50 to-white">
+                                <CardContent className="p-4">
+                                  <div className="grid grid-cols-8 gap-4 items-center">
+                                    {/* Номер заявки */}
+                                    <div className="font-semibold text-blue-600">
+                                      {cargoItem.request_number || cargoItem.cargo_number}
+                                    </div>
+                                    
+                                    {/* Отправитель */}
+                                    <div className="text-sm">
+                                      <div className="font-medium">{cargoItem.sender_full_name || 'Не указан'}</div>
+                                      <div className="text-gray-500">{cargoItem.sender_phone || ''}</div>
+                                    </div>
+                                    
+                                    {/* Получатель */}
+                                    <div className="text-sm">
+                                      <div className="font-medium">{cargoItem.recipient_full_name || 'Не указан'}</div>
+                                      <div className="text-gray-500">{cargoItem.recipient_address || ''}</div>
+                                    </div>
+                                    
+                                    {/* Телефон получателя */}
+                                    <div className="text-sm font-medium">
+                                      {cargoItem.recipient_phone || 'Не указан'}
+                                    </div>
+                                    
+                                    {/* Ячейка */}
+                                    <div className="text-sm">
+                                      {cargoItem.individual_units && cargoItem.individual_units.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1">
+                                          {cargoItem.individual_units
+                                            .filter(unit => unit.is_placed)
+                                            .map((unit, index) => (
+                                              <Badge key={index} variant="outline" className="text-xs">
+                                                {unit.placement_info || unit.warehouse_name || 'Не указано'}
+                                              </Badge>
+                                            ))
+                                          }
+                                        </div>
+                                      ) : (
+                                        <span className="text-gray-500">Не указано</span>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Размещение */}
+                                    <div className="text-sm">
+                                      <Badge variant="success" className="bg-green-100 text-green-800">
+                                        {cargoItem.progress_text || `${cargoItem.placed_units}/${cargoItem.total_units}`}
+                                      </Badge>
+                                      <div className="text-xs text-gray-500 mt-1">
+                                        {cargoItem.created_at ? new Date(cargoItem.created_at).toLocaleDateString() : ''}
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Оператор */}
+                                    <div className="text-sm">
+                                      <div className="font-medium">{cargoItem.operator_name || 'Не указан'}</div>
+                                      {cargoItem.individual_units && cargoItem.individual_units.length > 0 && (
+                                        <div className="text-xs text-gray-500">
+                                          {cargoItem.individual_units[0]?.placed_by || ''}
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Действия */}
+                                    <div className="flex space-x-2">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm"
+                                        onClick={() => {
+                                          // Показать детали заявки
+                                          setSelectedCargoForDetails(cargoItem);
+                                          setShowCargoDetailsModal(true);
+                                        }}
+                                      >
+                                        <Eye className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                            
+                            {/* Пагинация */}
+                            {fullyPlacedPagination && fullyPlacedPagination.total_pages > 1 && (
+                              <div className="mt-6">
+                                <DataPagination
+                                  currentPage={fullyPlacedPagination.page || 1}
+                                  totalPages={fullyPlacedPagination.total_pages || 1}
+                                  onPageChange={(page) => fetchFullyPlacedCargo(page, fullyPlacedPerPage)}
+                                  itemsPerPage={fullyPlacedPerPage}
+                                  onItemsPerPageChange={(perPage) => fetchFullyPlacedCargo(1, perPage)}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
                   {/* АДМИНИСТРАТИВНЫЙ ИНТЕРФЕЙС (ТОЛЬКО ДЛЯ АДМИНОВ) */}
                   {/* Создание склада */}
                   {activeTab === 'warehouses-create' && user?.role === 'admin' && (
