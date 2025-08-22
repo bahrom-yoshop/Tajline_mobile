@@ -7870,8 +7870,17 @@ async def get_warehouse_layout_with_cargo(
         block_num = shelf_num = cell_num = None
         
         try:
+            # НОВЫЙ ФОРМАТ QR: "001-01-02-002" (warehouse-block-shelf-cell)
+            if len(location.split('-')) == 4:
+                parts = location.split('-')
+                warehouse_num = parts[0]  # 001
+                block_num = int(parts[1])  # 01
+                shelf_num = int(parts[2])  # 02  
+                cell_num = int(parts[3])   # 002
+                print(f"🔍 Парсинг QR формата warehouse-block-shelf-cell: {location} -> B{block_num}-S{shelf_num}-C{cell_num}")
+            
             # Формат "Б1-П2-Я15" (кириллица)
-            if location.startswith('Б'):
+            elif location.startswith('Б'):
                 parts = location.split('-')
                 if len(parts) >= 3:
                     block_num = int(parts[0][1:])  # Убираем "Б" и берем число
@@ -7887,7 +7896,7 @@ async def get_warehouse_layout_with_cargo(
                     cell_num = int(parts[2][1:])   # Убираем "C" и берем число
             
             # Числовой формат "1-2-15"
-            elif '-' in location:
+            elif '-' in location and len(location.split('-')) == 3:
                 parts = location.split('-')
                 if len(parts) >= 3:
                     block_num = int(parts[0])
