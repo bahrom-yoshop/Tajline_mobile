@@ -8421,9 +8421,13 @@ async def get_warehouse_layout_with_cargo(
                 recipient_name = ""
                 recipient_phone = ""
                 recipient_address = ""
+                sender_name = ""
+                sender_phone = ""
                 cargo_name = "Груз"
                 weight = 0
                 declared_value = 0
+                delivery_city = ""
+                delivery_warehouse_name = ""
                 
                 if operator_cargo_details:
                     recipient_name = operator_cargo_details.get("recipient_full_name", "")
@@ -8436,9 +8440,18 @@ async def get_warehouse_layout_with_cargo(
                     recipient_name = cargo.get("recipient_full_name", "")
                     recipient_phone = cargo.get("recipient_phone", "")
                     recipient_address = cargo.get("recipient_address", "")
+                    sender_name = cargo.get("sender_full_name", "")
+                    sender_phone = cargo.get("sender_phone", "")
                     cargo_name = cargo.get("cargo_name") or cargo.get("name", "Груз")
                     weight = cargo.get("weight", 0)
                     declared_value = cargo.get("declared_value", 0)
+                    delivery_city = cargo.get("delivery_city", "")
+                
+                # Получаем информацию о складе доставки по городу
+                if delivery_city:
+                    delivery_warehouse = db.warehouses.find_one({"city": delivery_city})
+                    if delivery_warehouse:
+                        delivery_warehouse_name = delivery_warehouse.get("name", "")
                 
                 cargo_by_location[location_key].append({
                     "id": record.get("cargo_id", cargo_number),
@@ -8447,15 +8460,18 @@ async def get_warehouse_layout_with_cargo(
                     "cargo_name": cargo_name,
                     "weight": weight,
                     "declared_value": declared_value,
-                    "sender_full_name": cargo.get("sender_full_name", "") if cargo else "",
-                    "sender_phone": cargo.get("sender_phone", "") if cargo else "",
+                    "sender_full_name": sender_name or (cargo.get("sender_full_name", "") if cargo else ""),
+                    "sender_phone": sender_phone or (cargo.get("sender_phone", "") if cargo else ""),
                     "recipient_full_name": recipient_name,
                     "recipient_phone": recipient_phone,
                     "recipient_address": recipient_address,
+                    "delivery_city": delivery_city,
+                    "delivery_warehouse_name": delivery_warehouse_name,
                     "description": cargo.get("description", "") if cargo else "",
                     "placement_location": location,
                     "placed_at": record.get("placed_at"),
                     "placed_by": record.get("placed_by"),
+                    "placed_by_operator": record.get("placed_by_operator") or record.get("placed_by"),
                     "block_number": block_num,
                     "shelf_number": shelf_num,
                     "cell_number": cell_num
