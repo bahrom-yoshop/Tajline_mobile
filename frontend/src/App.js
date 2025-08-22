@@ -24247,6 +24247,22 @@ function App() {
                           </div>
                           <div className="flex items-center space-x-2">
                             <Button 
+                              variant={placedCargoViewMode === 'table' ? 'default' : 'outline'}
+                              onClick={() => setPlacedCargoViewMode('table')}
+                              size="sm"
+                            >
+                              <List className="mr-2 h-4 w-4" />
+                              Таблица
+                            </Button>
+                            <Button 
+                              variant={placedCargoViewMode === 'individual' ? 'default' : 'outline'}
+                              onClick={() => setPlacedCargoViewMode('individual')}
+                              size="sm"
+                            >
+                              <Grid className="mr-2 h-4 w-4" />
+                              Individual Units
+                            </Button>
+                            <Button 
                               variant="outline"
                               onClick={() => fetchFullyPlacedCargo(fullyPlacedPage, fullyPlacedPerPage)}
                               className="text-blue-600 border-blue-300 hover:bg-blue-50"
