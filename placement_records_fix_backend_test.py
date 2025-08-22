@@ -243,7 +243,7 @@ def test_fix_missing_placement_records():
         )
         return False
     
-    response, response_time = make_request("POST", "/admin/fix-missing-placement-records", {}, token=admin_token)
+    response, response_time = make_request("GET", "/admin/fix-missing-placement-records", token=admin_token)
     
     if not response:
         log_test_result(
