@@ -8152,7 +8152,7 @@ async def get_warehouse_layout_with_cargo(
                     "cell_number": cell,
                     "location_code": location_key,
                     "is_occupied": len(cargo_list) > 0,
-                    "cargo": cargo_list if cargo_list else None,
+                    "cargo": cargo_list,  # Всегда возвращаем список, даже если пустой
                     "cargo_count": len(cargo_list)
                 }
                 shelf_data["cells"].append(cell_data)
