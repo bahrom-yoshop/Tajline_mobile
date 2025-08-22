@@ -24356,7 +24356,7 @@ function App() {
                                         onClick={() => {
                                           // Показать детали заявки
                                           setSelectedCargoForDetails(cargoItem);
-                                          setShowCargoDetailsModal(true);
+                                          setShowPlacementDetailsModal(true);
                                         }}
                                       >
                                         <Eye className="h-4 w-4" />
