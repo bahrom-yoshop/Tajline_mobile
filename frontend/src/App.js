@@ -39228,10 +39228,14 @@ function App() {
                     <div className="space-y-4">
                       {selectedCellForDetails.cargo.map((cargoItem, index) => (
                         <Card key={index} className="border border-gray-200 hover:shadow-md transition-shadow">
-                          <CardContent className="p-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {/* Левая колонка - основная информация */}
-                              <div className="space-y-3">
+                          <CardContent className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                              {/* Левая колонка - основная информация о грузе */}
+                              <div className="space-y-4">
+                                <h4 className="text-lg font-semibold text-blue-800 border-b border-blue-200 pb-2">
+                                  📦 Информация о грузе
+                                </h4>
+                                
                                 <div>
                                   <p className="text-sm font-medium text-gray-500">Номер заявки</p>
                                   <p className="text-lg font-bold text-blue-900">{cargoItem.cargo_number}</p>
@@ -39243,51 +39247,130 @@ function App() {
                                 </div>
                                 
                                 <div>
-                                  <p className="text-sm font-medium text-gray-500">Название груза</p>
-                                  <p className="text-md text-gray-800">{cargoItem.cargo_name}</p>
+                                  <p className="text-sm font-medium text-gray-500">🏷️ Наименование груза</p>
+                                  <p className="text-md font-semibold text-gray-800">{cargoItem.cargo_name || 'Не указано'}</p>
                                 </div>
                                 
-                                <div className="flex space-x-4">
+                                <div className="grid grid-cols-2 gap-3">
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Вес</p>
-                                    <p className="text-md text-gray-800">{cargoItem.weight} кг</p>
+                                    <p className="text-md text-gray-800">{cargoItem.weight || 0} кг</p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Стоимость</p>
-                                    <p className="text-md text-gray-800">{cargoItem.declared_value} ₽</p>
+                                    <p className="text-md text-gray-800">{cargoItem.declared_value || 0} ₽</p>
                                   </div>
                                 </div>
+                                
+                                {cargoItem.description && (
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-500">Описание</p>
+                                    <p className="text-sm text-gray-800">{cargoItem.description}</p>
+                                  </div>
+                                )}
                               </div>
                               
-                              {/* Правая колонка - получатель и размещение */}
-                              <div className="space-y-3">
-                                <div>
-                                  <p className="text-sm font-medium text-gray-500">Получатель</p>
-                                  <p className="text-md font-semibold text-gray-800">{cargoItem.recipient_full_name}</p>
-                                  <p className="text-sm text-gray-600">{cargoItem.recipient_phone}</p>
+                              {/* Средняя колонка - получатель и отправитель */}
+                              <div className="space-y-4">
+                                <h4 className="text-lg font-semibold text-green-800 border-b border-green-200 pb-2">
+                                  👥 Получатель и отправитель
+                                </h4>
+                                
+                                <div className="bg-green-50 p-3 rounded-lg">
+                                  <p className="text-sm font-medium text-green-700">📤 Отправитель</p>
+                                  <p className="text-md font-semibold text-gray-800">
+                                    {cargoItem.sender_full_name || 'Не указан'}
+                                  </p>
+                                  {cargoItem.sender_phone && (
+                                    <p className="text-sm text-gray-600">📞 {cargoItem.sender_phone}</p>
+                                  )}
+                                </div>
+                                
+                                <div className="bg-blue-50 p-3 rounded-lg">
+                                  <p className="text-sm font-medium text-blue-700">📥 Получатель</p>
+                                  <p className="text-md font-semibold text-gray-800">
+                                    {cargoItem.recipient_full_name || 'ФИО не указано'}
+                                  </p>
+                                  {cargoItem.recipient_phone && (
+                                    <p className="text-sm text-gray-600">📞 {cargoItem.recipient_phone}</p>
+                                  )}
                                 </div>
                                 
                                 <div>
-                                  <p className="text-sm font-medium text-gray-500">Оператор размещения</p>
-                                  <p className="text-md text-gray-800">{cargoItem.placed_by}</p>
+                                  <p className="text-sm font-medium text-gray-500">📍 Адрес получения груза</p>
+                                  <p className="text-sm text-gray-800">
+                                    {cargoItem.recipient_address || 'Адрес не указан'}
+                                  </p>
+                                </div>
+                                
+                                {cargoItem.delivery_city && (
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-500">🏙️ Город выдачи груза</p>
+                                    <p className="text-md font-semibold text-gray-800">{cargoItem.delivery_city}</p>
+                                  </div>
+                                )}
+                                
+                                {cargoItem.delivery_warehouse_name && (
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-500">🏭 Склад для выдачи</p>
+                                    <p className="text-sm text-gray-800">{cargoItem.delivery_warehouse_name}</p>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Правая колонка - размещение и операторы */}
+                              <div className="space-y-4">
+                                <h4 className="text-lg font-semibold text-purple-800 border-b border-purple-200 pb-2">
+                                  🏭 Размещение на складе
+                                </h4>
+                                
+                                <div className="bg-purple-50 p-3 rounded-lg">
+                                  <p className="text-sm font-medium text-purple-700">📍 Местоположение</p>
+                                  <p className="text-lg font-bold text-purple-900">{cargoItem.placement_location}</p>
                                 </div>
                                 
                                 <div>
-                                  <p className="text-sm font-medium text-gray-500">Дата размещения</p>
-                                  <p className="text-md text-gray-800">
-                                    {cargoItem.placed_at ? new Date(cargoItem.placed_at).toLocaleString() : 'Не указана'}
+                                  <p className="text-sm font-medium text-gray-500">👤 Оператор размещения</p>
+                                  <p className="text-md font-semibold text-gray-800">
+                                    {cargoItem.placed_by_operator || cargoItem.placed_by || 'Не указан'}
                                   </p>
                                 </div>
                                 
                                 <div>
-                                  <p className="text-sm font-medium text-gray-500">Город доставки</p>
-                                  <p className="text-md text-gray-800">{cargoItem.recipient_address || 'Не указан'}</p>
+                                  <p className="text-sm font-medium text-gray-500">📅 Дата размещения</p>
+                                  <p className="text-sm text-gray-800">
+                                    {cargoItem.placed_at ? new Date(cargoItem.placed_at).toLocaleString('ru-RU', {
+                                      year: 'numeric',
+                                      month: 'long', 
+                                      day: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    }) : 'Не указана'}
+                                  </p>
+                                </div>
+                                
+                                <div className="bg-orange-50 p-3 rounded-lg">
+                                  <p className="text-sm font-medium text-orange-700">📊 Статистика</p>
+                                  <div className="grid grid-cols-2 gap-2 mt-2">
+                                    <div className="text-center">
+                                      <p className="text-xs text-gray-500">Блок</p>
+                                      <p className="text-lg font-bold text-orange-800">Б{cargoItem.block_number}</p>
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-xs text-gray-500">Полка</p>
+                                      <p className="text-lg font-bold text-orange-800">П{cargoItem.shelf_number}</p>
+                                    </div>
+                                  </div>
+                                  <div className="text-center mt-2">
+                                    <p className="text-xs text-gray-500">Ячейка</p>
+                                    <p className="text-lg font-bold text-orange-800">Я{cargoItem.cell_number}</p>
+                                  </div>
                                 </div>
                               </div>
                             </div>
                             
                             {/* Кнопка удаления */}
-                            <div className="mt-4 pt-4 border-t border-gray-200">
+                            <div className="mt-6 pt-4 border-t border-gray-200">
                               <Button
                                 variant="destructive"
                                 size="sm"
