@@ -34047,14 +34047,14 @@ function App() {
               )}
 
               {/* НОВОЕ: Детальный список грузов с размещением */}
-              {selectedCargoForDetails.cargo_items && selectedCargoForDetails.cargo_items.length > 0 && (
+              {placementDetails.cargo_types && placementDetails.cargo_types.length > 0 && (
                 <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
                   <h4 className="font-medium mb-3 text-gray-800 flex items-center">
                     <Package className="mr-2 h-5 w-5 text-blue-600" />
                     Список грузов с размещением
                   </h4>
                   <div className="space-y-4">
-                    {selectedCargoForDetails.cargo_items.map((cargoItem, itemIndex) => (
+                    {placementDetails.cargo_types.map((cargoItem, itemIndex) => (
                       <div key={itemIndex} className="bg-white p-4 rounded-lg border border-blue-200">
                         <div className="flex justify-between items-start mb-3">
                           <div>
