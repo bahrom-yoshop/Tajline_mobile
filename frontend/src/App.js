@@ -33494,16 +33494,40 @@ function App() {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-xl text-blue-600">
-                            {cargoType.placed_count}/{cargoType.quantity}
-                          </p>
-                          <p className={`text-sm font-medium ${
-                            cargoType.placement_status === 'fully_placed' ? 'text-green-600' :
-                            cargoType.placement_status === 'partially_placed' ? 'text-yellow-600' :
-                            'text-red-600'
-                          }`}>
-                            {cargoType.placement_status_label}
-                          </p>
+                          {(() => {
+                            // ИСПРАВЛЕНИЕ: Пересчитываем прогресс для каждого типа груза на основе фактических individual_units
+                            let totalCount, placedCount, placementStatus;
+                            
+                            if (cargoType.individual_units && cargoType.individual_units.length > 0) {
+                              totalCount = cargoType.individual_units.length;
+                              placedCount = cargoType.individual_units.filter(unit => unit.is_placed === true).length;
+                            } else {
+                              // Fallback к старым полям
+                              totalCount = cargoType.quantity || 0;
+                              placedCount = cargoType.placed_count || 0;
+                            }
+                            
+                            placementStatus = totalCount > 0 && placedCount === totalCount ? 'fully_placed' : 
+                                            placedCount > 0 ? 'partially_placed' : 'pending';
+                            
+                            const statusLabel = placementStatus === 'fully_placed' ? 'Размещено' :
+                                              placementStatus === 'partially_placed' ? 'Частично' : 'Ждёт';
+                            
+                            return (
+                              <>
+                                <p className="font-bold text-xl text-blue-600">
+                                  {placedCount}/{totalCount}
+                                </p>
+                                <p className={`text-sm font-medium ${
+                                  placementStatus === 'fully_placed' ? 'text-green-600' :
+                                  placementStatus === 'partially_placed' ? 'text-yellow-600' :
+                                  'text-red-600'
+                                }`}>
+                                  {statusLabel}
+                                </p>
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
 
