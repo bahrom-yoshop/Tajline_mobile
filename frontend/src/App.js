@@ -31,7 +31,7 @@ import {
   DollarSign, FileText, Grid3X3, Package2, Home, CreditCard, Printer, Zap, MessageCircle,
   QrCode, Camera, Download, Calculator, ShoppingCart, RefreshCw, Eye, XCircle, Save, Filter,
   ArrowUp, Ban, Settings, Copy, Minus, Palette, UserCheck, BarChart, Maximize, ArrowLeft, Edit3, BarChart3,
-  Scan, Target, Circle, MousePointer, Phone, MessageSquare, Send, ExternalLink, UserX, Lock, Grid, List, RotateCw
+  Scan, Target, Circle, MousePointer, Phone, MessageSquare, Send, ExternalLink, UserX, Lock, Grid, List, RotateCw, Trash2
 } from 'lucide-react';
 
 const BACKEND_URL = 'https://tajline-cargo-8.preview.emergentagent.com';
