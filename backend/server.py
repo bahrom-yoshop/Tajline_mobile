@@ -7730,7 +7730,9 @@ async def get_warehouse_layout_with_cargo(
     
     return {
         "warehouse": serialize_mongo_document(warehouse),
-        "layout": blocks,
+        "layout": {
+            "blocks": list(blocks.values())  # Преобразуем dict в list для frontend
+        },
         "total_cargo": total_cargo_count,
         "occupied_cells": occupied_cells_count,
         "total_cells": total_cells_count,
