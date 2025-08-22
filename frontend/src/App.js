@@ -33999,6 +33999,44 @@ function App() {
                 </div>
               </div>
 
+              {/* НОВОЕ: История действий оператора */}
+              {selectedCargoForDetails.action_history && selectedCargoForDetails.action_history.length > 0 && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium mb-3 text-gray-800 flex items-center">
+                    <Clock className="mr-2 h-5 w-5 text-gray-600" />
+                    История действий оператора
+                  </h4>
+                  <div className="space-y-3">
+                    {selectedCargoForDetails.action_history.map((action, index) => (
+                      <div key={index} className="flex items-start space-x-3 p-3 bg-white rounded-lg border border-gray-200">
+                        <div className={`w-3 h-3 rounded-full mt-1 ${
+                          action.action === 'cargo_accepted' ? 'bg-blue-500' :
+                          action.action === 'cargo_placed' ? 'bg-green-500' : 'bg-gray-400'
+                        }`}></div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <h5 className="font-medium text-sm">
+                              {action.action === 'cargo_accepted' ? '📋 Принятие груза' :
+                               action.action === 'cargo_placed' ? '📦 Размещение груза' : action.action}
+                            </h5>
+                            <span className="text-xs text-gray-500">
+                              {action.timestamp ? new Date(action.timestamp).toLocaleString('ru-RU', {
+                                day: '2-digit', month: '2-digit', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit'
+                              }) : 'Время не указано'}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 mt-1">{action.description}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            👤 Оператор: {action.operator}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Действия для всей заявки */}
               <div className="bg-purple-50 p-4 rounded-lg">
                 <h4 className="font-medium mb-3 text-gray-800">🔧 Действия с заявкой</h4>
