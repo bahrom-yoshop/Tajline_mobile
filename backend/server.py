@@ -19465,6 +19465,44 @@ async def verify_cargo_for_placement(
             # Простой формат - номер груза
             cargo_query = {"cargo_number": qr_code}
         
+        # Получаем информацию о грузе из коллекции cargo или operator_cargo
+        cargo = db.cargo.find_one(cargo_query)
+        if not cargo:
+            # Пробуем найти в operator_cargo
+            operator_cargo = db.operator_cargo.find_one(cargo_query)
+            if operator_cargo:
+                # Получаем данные из первого cargo_item
+                cargo_items = operator_cargo.get("cargo_items", [])
+                if cargo_items:
+                    cargo = cargo_items[0]  # Используем первый item как основной груз
+                    
+        print(f"🔍 Cargo найден для {individual_number}: {bool(cargo)}")
+        
+        # Дополнительно получаем информацию из operator_cargo для recipient и других деталей
+        operator_cargo_details = None
+        if not cargo or not cargo.get("recipient_full_name"):
+            operator_cargo = db.operator_cargo.find_one(cargo_query)
+            if operator_cargo:
+                # Ищем конкретную individual_item для получения точных данных
+                cargo_items = operator_cargo.get("cargo_items", [])
+                for cargo_item in cargo_items:
+                    individual_items = cargo_item.get("individual_items", [])
+                    for individual_item in individual_items:
+                        if individual_item.get("individual_number") == individual_number:
+                            operator_cargo_details = {
+                                "recipient_full_name": cargo_item.get("recipient_full_name", ""),
+                                "recipient_phone": cargo_item.get("recipient_phone", ""),
+                                "recipient_address": cargo_item.get("recipient_address", ""),
+                                "cargo_name": cargo_item.get("name", ""),
+                                "weight": individual_item.get("weight", 0),
+                                "declared_value": individual_item.get("declared_value", 0)
+                            }
+                            break
+                    if operator_cargo_details:
+                        break
+                        
+        print(f"🔍 operator_cargo_details найдены для {individual_number}: {bool(operator_cargo_details)}")
+        
         # Ищем груз в базе данных
         cargo = db.operator_cargo.find_one(cargo_query)
         
