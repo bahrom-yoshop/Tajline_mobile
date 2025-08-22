@@ -435,8 +435,7 @@ def test_real_cargo_display(layout_data):
         temp_cargo_found = []
         real_cargo_found = []
         
-        warehouse_info = layout_data.get("warehouse", {})
-        layout = warehouse_info.get("layout", {})
+        layout = layout_data.get("layout", {})
         blocks = layout.get("blocks", [])
         
         for block in blocks:
@@ -445,15 +444,17 @@ def test_real_cargo_display(layout_data):
                 cells = shelf.get("cells", [])
                 for cell in cells:
                     if cell.get("is_occupied", False):
-                        cargo_info = cell.get("cargo", {})
-                        individual_number = cargo_info.get("individual_number", "")
-                        cargo_number = cargo_info.get("cargo_number", "")
-                        
-                        # Проверяем на TEMP данные
-                        if "TEMP" in individual_number.upper() or "TEMP" in cargo_number.upper():
-                            temp_cargo_found.append(individual_number or cargo_number)
-                        else:
-                            real_cargo_found.append(individual_number or cargo_number)
+                        cargo_list = cell.get("cargo", [])
+                        if cargo_list:
+                            for cargo_info in cargo_list:
+                                individual_number = cargo_info.get("individual_number", "")
+                                cargo_number = cargo_info.get("cargo_number", "")
+                                
+                                # Проверяем на TEMP данные
+                                if "TEMP" in individual_number.upper() or "TEMP" in cargo_number.upper():
+                                    temp_cargo_found.append(individual_number or cargo_number)
+                                else:
+                                    real_cargo_found.append(individual_number or cargo_number)
         
         if temp_cargo_found:
             log_test_result(
