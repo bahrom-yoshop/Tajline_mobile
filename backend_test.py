@@ -246,8 +246,8 @@ def test_verify_cargo_response_structure():
     
     print("\n📋 ТЕСТ 4: Проверка структуры ответа API verify-cargo")
     
-    # Используем основной груз для проверки структуры
-    qr_code = "250101/01/02"
+    # Используем неразмещенный груз для проверки структуры
+    qr_code = "250101/01/01"
     
     response, response_time = make_request("POST", "/operator/placement/verify-cargo", {"qr_code": qr_code})
     
