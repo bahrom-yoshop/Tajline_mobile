@@ -21790,7 +21790,7 @@ function App() {
                   )}
 
                   {/* ПРОБЛЕМА 3: Список полностью размещенных грузов */}
-                  {(activeTab === 'cargo-list' || !activeTab || activeTab === 'cargo-management') && (
+                  {(!activeTab || activeTab === 'cargo-management') && (
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center justify-between">
