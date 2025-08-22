@@ -34070,11 +34070,11 @@ function App() {
                         </div>
                         
                         {/* Individual units для каждого груза */}
-                        {cargoItem.individual_items && cargoItem.individual_items.length > 0 && (
+                        {cargoItem.individual_units && cargoItem.individual_units.length > 0 && (
                           <div className="mt-3">
                             <h6 className="font-medium text-sm text-gray-700 mb-2">Единицы груза:</h6>
                             <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-                              {cargoItem.individual_items.map((unit, unitIndex) => (
+                              {cargoItem.individual_units.map((unit, unitIndex) => (
                                 <div key={unitIndex} className={`p-3 rounded-lg border-2 ${
                                   unit.is_placed ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
                                 }`}>
