@@ -378,8 +378,7 @@ class Stage3CargoTransportTester:
             for status in test_statuses:
                 update_data = {
                     "cargo_number": test_cargo,
-                    "new_status": status,
-                    "updated_by": self.operator_info.get("id") if self.operator_info else "test_operator",
+                    "status": status,
                     "notes": f"Тестовое обновление статуса на {status}"
                 }
                 
