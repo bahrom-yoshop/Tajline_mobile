@@ -97,7 +97,7 @@ class TransportStatusEnumTester:
             self.mongo_client = MongoClient(MONGO_URL)
             self.db = self.mongo_client[DB_NAME]
             # Проверяем подключение
-            self.db.admin.command('ping')
+            self.mongo_client.admin.command('ping')
             self.log("✅ Подключение к MongoDB установлено")
             return True
         except Exception as e:
