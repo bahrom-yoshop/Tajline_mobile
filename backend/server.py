@@ -7568,13 +7568,25 @@ async def get_cargo_placement_status(
                         cargo.get('target_city') or 
                         extract_city_from_address(cargo.get('recipient_address')))
         
-        # 4. УЛУЧШЕННОЕ ОПРЕДЕЛЕНИЕ СКЛАДОВ ПО ГОРОДАМ
+        # 4. УЛУЧШЕННОЕ ОПРЕДЕЛЕНИЕ СКЛАДОВ ПО ГОРОДАМ (поиск реальных складов)
         def get_warehouse_by_city(city):
-            """Определяет склад по городу"""
+            """Определяет реальный склад по городу доставки из коллекции warehouses"""
             if not city:
                 return None
             
-            # Ищем склад в коллекции warehouses по городу
+            # 1. Ищем склад который напрямую обслуживает этот город
+            warehouse = db.warehouses.find_one({
+                "$or": [
+                    {"served_cities": {"$regex": city, "$options": "i"}},  # Список обслуживаемых городов
+                    {"service_area": {"$regex": city, "$options": "i"}},   # Зона обслуживания
+                    {"delivery_cities": {"$regex": city, "$options": "i"}} # Города доставки
+                ]
+            })
+            
+            if warehouse:
+                return warehouse.get('name'), warehouse.get('id')
+            
+            # 2. Если прямого соответствия нет, ищем склад в том же регионе
             warehouse = db.warehouses.find_one({
                 "$or": [
                     {"city": {"$regex": city, "$options": "i"}},
@@ -7584,33 +7596,33 @@ async def get_cargo_placement_status(
             })
             
             if warehouse:
-                return warehouse.get('name')
+                return warehouse.get('name'), warehouse.get('id')
             
-            # Fallback: определяем склад по популярным городам
+            # 3. Fallback: ищем склады по известным маршрутам (реальные склады из системы)
             city_warehouse_map = {
-                'москва': 'Москва Центральный',
-                'душанбе': 'Душанбе Центральный', 
-                'худжанд': 'Худжанд Склад №1',
-                'куляб': 'Куляб Склад №1',
-                'курган-тюбе': 'Курган-Тюбе Склад №1',
-                'истаравшан': 'Истаравшан Склад №1',
-                'турсунзаде': 'Турсунзаде Склад №1',
-                'яван': 'Яван Склад №1',
-                'гиссар': 'Гиссар Склад №1',
-                'файзабад': 'Файзабад Склад №1'
+                'яван': ('Душанбе Склад №3', '003'),  # Яван обслуживается из Душанбе Склад №3
+                'гиссар': ('Душанбе Склад №3', '003'),
+                'турсунзаде': ('Душанбе Склад №3', '003'),
+                'душанбе': ('Душанбе Центральный', '001'),
+                'худжанд': ('Худжанд Склад №1', '002'),
+                'куляб': ('Куляб Склад №1', '004'),
+                'курган-тюбе': ('Курган-Тюбе Склад №1', '005'),
+                'истаравшан': ('Худжанд Склад №1', '002'),  # Обслуживается из Худжанда
+                'файзабад': ('Худжанд Склад №1', '002')      # Обслуживается из Худжанда
             }
             
             city_lower = city.lower().strip()
-            for city_key, warehouse_name in city_warehouse_map.items():
+            for city_key, (warehouse_name, warehouse_id) in city_warehouse_map.items():
                 if city_key in city_lower or city_lower in city_key:
-                    return warehouse_name
+                    return warehouse_name, warehouse_id
             
-            # Если не найден, возвращаем город + "Склад №1"
-            return f"{city} Склад №1"
+            # 4. Если ничего не найдено, возвращаем главный склад в Душанбе
+            return 'Душанбе Центральный', '001'
         
         # Определяем склады
         default_source_warehouse = "Москва Центральный"  # Основной склад приёма
-        target_warehouse_by_city = get_warehouse_by_city(delivery_city) if delivery_city else "Душанбе Центральный"
+        target_warehouse_result = get_warehouse_by_city(delivery_city) if delivery_city else ('Душанбе Центральный', '001')
+        target_warehouse_by_city, target_warehouse_id = target_warehouse_result if target_warehouse_result else ('Душанбе Центральный', '001')
         
         return {
             'cargo_id': cargo_id,
