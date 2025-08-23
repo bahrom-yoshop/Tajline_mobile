@@ -14568,8 +14568,8 @@ function App() {
   };
   
   const handleSelectAllTransportsQR = () => {
-    const allIds = allTransportsList.map(t => t.id);
-    setSelectedTransports(selectedTransports.length === allIds.length ? [] : allIds);
+    // Эта функция не нужна для индивидуальной печати QR
+    return;
   };
   
   const handleBulkGenerateQR = async () => {
