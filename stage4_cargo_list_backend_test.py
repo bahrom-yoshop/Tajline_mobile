@@ -418,6 +418,15 @@ class Stage4CargoListTester:
             if response.status_code == 200:
                 data = response.json()
                 
+                # Проверяем что ответ содержит statistics
+                if "statistics" not in data:
+                    self.log("❌ Ответ не содержит поле 'statistics'", "ERROR")
+                    self.test_results["statistics_tests"]["basic"] = False
+                    return False
+                
+                statistics_data = data["statistics"]
+                self.log(f"✅ Получена статистика: {data.get('message', 'N/A')}")
+                
                 # Проверяем основные разделы статистики
                 required_sections = [
                     "cargo_overview", 
