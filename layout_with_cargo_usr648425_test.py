@@ -133,11 +133,9 @@ class LayoutWithCargoUSR648425Tester:
             return None
         
         try:
-            response = self.session.get(f"{API_BASE}/operator/cargo/layout-with-cargo", params={
-                "warehouse_id": self.warehouse_id
-            })
+            response = self.session.get(f"{API_BASE}/warehouses/{self.warehouse_id}/layout-with-cargo")
             
-            self.log(f"📡 Запрос к API: GET /api/operator/cargo/layout-with-cargo?warehouse_id={self.warehouse_id}")
+            self.log(f"📡 Запрос к API: GET /api/warehouses/{self.warehouse_id}/layout-with-cargo")
             self.log(f"📊 Статус ответа: {response.status_code}")
             
             if response.status_code == 500:
