@@ -17486,6 +17486,9 @@ function App() {
                                   // Специальная обработка для страницы размещенных грузов
                                   setActiveTab('logistics-placed-cargo');
                                   fetchPlacedCargoOnTransport();
+                                } else if (sub.id === 'cargo-list-all') {
+                                  // Специальная обработка для страницы списка всех грузов
+                                  openCargoListPage();
                                 } else {
                                   setActiveTab(sub.id);
                                 }
