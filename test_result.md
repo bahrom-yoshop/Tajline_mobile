@@ -1041,6 +1041,15 @@ When invoking testing agents, follow these rules:
 # The testing data must be entered in yaml format Below is the data structure:
 # 
 frontend:
+  - task: "🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Frontend компоненты для QR кодов транспорта (TransportQRGenerationModal)"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history: []
+
   - task: "🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Новые Individual Units карточки для размещения груза в TAJLINE.TJ"
     implemented: false
     working: false
