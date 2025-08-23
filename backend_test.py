@@ -183,6 +183,51 @@ class TransportQRTester:
                 "Не удалось создать тестовые транспорты"
             )
             return False
+
+    def find_test_transports(self) -> bool:
+        """Найти транспорты для тестирования"""
+        try:
+            response = requests.get(f"{self.api_url}/transport/list", headers=self.get_headers())
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Проверяем разные возможные структуры ответа
+                if isinstance(data, list):
+                    transports = data
+                elif isinstance(data, dict):
+                    transports = data.get("items", data.get("transports", data.get("data", [])))
+                else:
+                    transports = []
+                
+                # Берем первые 3 транспорта для тестирования
+                if transports:
+                    self.transport_ids = [t["id"] for t in transports[:3]]
+                    
+                    self.log_test(
+                        "Поиск транспортов для тестирования",
+                        True,
+                        f"Найдено {len(transports)} транспортов, выбрано {len(self.transport_ids)} для тестирования"
+                    )
+                    return len(self.transport_ids) > 0
+                else:
+                    self.log_test(
+                        "Поиск транспортов для тестирования",
+                        False,
+                        "Список транспортов пуст"
+                    )
+                    return False
+            else:
+                self.log_test(
+                    "Поиск транспортов для тестирования",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_test("Поиск транспортов для тестирования", False, f"Exception: {str(e)}")
+            return False
         """Найти транспорты для тестирования"""
         try:
             response = requests.get(f"{self.api_url}/transport/list", headers=self.get_headers())
