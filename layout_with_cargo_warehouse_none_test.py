@@ -102,7 +102,7 @@ class LayoutWithCargoWarehouseNoneTester:
     
     def test_layout_with_cargo_api(self):
         """Тестирование API layout-with-cargo для склада 001"""
-        self.log(f"📋 Запрос к /api/operator/warehouse/{TARGET_WAREHOUSE_ID}/layout-with-cargo...")
+        self.log(f"📋 Запрос к /api/warehouses/{TARGET_WAREHOUSE_ID}/layout-with-cargo...")
         
         try:
             # Сначала получим ID склада 001
