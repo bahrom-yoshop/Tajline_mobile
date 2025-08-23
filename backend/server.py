@@ -14994,12 +14994,9 @@ async def generate_transport_qr(
         raise HTTPException(status_code=404, detail="Transport not found")
     
     try:
-        # Генерируем уникальный QR код в том же формате что и заявки
+        # QR код содержит только номер транспорта (как у грузов и ячеек)
         current_time = datetime.utcnow()
-        timestamp = int(current_time.timestamp())
-        
-        # QR код в формате TAJLINE для сканера
-        qr_data = f"TAJLINE|TRANSPORT|{transport['transport_number']}|{timestamp}"
+        qr_data = transport['transport_number']
         
         # Генерируем QR изображение
         qr = qrcode.QRCode(
@@ -15025,7 +15022,7 @@ async def generate_transport_qr(
             {"id": transport_id},
             {
                 "$set": {
-                    "qr_code": qr_data,  # Сохраняем QR данные для сканирования
+                    "qr_code": qr_data,  # Сохраняем только номер транспорта
                     "qr_image_base64": qr_image_base64,  # Сохраняем изображение для отображения
                     "qr_generated_at": current_time,
                     "qr_generated_by": current_user.id,
