@@ -8601,6 +8601,41 @@ async def get_warehouse_layout_with_cargo(
                             warehouse_match = True
                     
                     if warehouse_match:
+                        # КРИТИЧНО: Получаем детальную информацию о грузе из основной коллекции
+                        main_cargo_info = db.cargo.find_one({"cargo_number": cargo_number})
+                        
+                        # Получаем информацию о получателе и отправителе
+                        recipient_full_name = ""
+                        recipient_phone = ""
+                        sender_full_name = ""
+                        delivery_city = ""
+                        cargo_name = ""
+                        weight = 0
+                        declared_value = 0
+                        
+                        if main_cargo_info:
+                            recipient_full_name = main_cargo_info.get("recipient_full_name", "")
+                            recipient_phone = main_cargo_info.get("recipient_phone", "")  
+                            sender_full_name = main_cargo_info.get("sender_full_name", "")
+                            delivery_city = main_cargo_info.get("delivery_city", "")
+                            
+                            # Получаем информацию о грузе из cargo_items
+                            main_cargo_items = main_cargo_info.get("cargo_items", [])
+                            for main_item in main_cargo_items:
+                                if main_item.get("cargo_name"):
+                                    cargo_name = main_item.get("cargo_name", "")
+                                    weight = main_item.get("weight", 0)
+                                    declared_value = main_item.get("declared_value", 0)
+                                    break
+                        
+                        # Если не найдено в cargo, берем из operator_cargo
+                        if not cargo_name:
+                            cargo_name = cargo_item.get("cargo_name", individual_item.get("cargo_name", f"Груз {cargo_number}"))
+                        if weight == 0:
+                            weight = cargo_item.get("weight", individual_item.get("weight", 0))
+                        if declared_value == 0:
+                            declared_value = cargo_item.get("declared_value", individual_item.get("declared_value", 0))
+                        
                         # Создаем синтетический placement_record
                         synthetic_record = {
                             "cargo_number": cargo_number,
@@ -8611,12 +8646,20 @@ async def get_warehouse_layout_with_cargo(
                             "placed_at": individual_item.get("placed_at") or cargo_record.get("updated_at"),
                             "placed_by": individual_item.get("placed_by") or cargo_record.get("operator_name"),
                             "placed_by_operator": individual_item.get("placed_by_operator") or cargo_record.get("operator_name"),
-                            "source": "operator_cargo"  # Помечаем источник
+                            "source": "operator_cargo",  # Помечаем источник
+                            # НОВЫЕ ПОЛЯ для полной совместимости с placement_records
+                            "cargo_name": cargo_name,
+                            "weight": weight,
+                            "declared_value": declared_value,
+                            "recipient_full_name": recipient_full_name,
+                            "recipient_phone": recipient_phone,
+                            "sender_full_name": sender_full_name,
+                            "delivery_city": delivery_city
                         }
                         
                         synthetic_placement_records.append(synthetic_record)
                         
-                        print(f"   ✅ Найден размещенный груз: {cargo_number}/{individual_item.get('individual_number')} в {placement_location}")
+                        print(f"   ✅ Найден размещенный груз: {cargo_number}/{individual_item.get('individual_number')} в {placement_location} (оператор: {synthetic_record['placed_by_operator']})")
     
     # Объединяем данные из обеих источников
     placement_records.extend(synthetic_placement_records)
