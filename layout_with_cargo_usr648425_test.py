@@ -150,6 +150,15 @@ class LayoutWithCargoUSR648425Tester:
                 data = response.json()
                 self.log(f"📋 Получены данные от API (тип: {type(data)})")
                 
+                # Детальный анализ структуры данных
+                if isinstance(data, dict):
+                    self.log(f"🔍 Ключи в ответе: {list(data.keys())}")
+                    if 'cargo_info' in data:
+                        cargo_info = data['cargo_info']
+                        self.log(f"📦 cargo_info содержит {len(cargo_info)} элементов")
+                        if len(cargo_info) > 0:
+                            self.log(f"📋 Первый элемент cargo_info: {json.dumps(cargo_info[0], indent=2, ensure_ascii=False)}")
+                
                 return data
             else:
                 self.log(f"⚠️ API вернул неожиданный статус: {response.status_code}", "WARNING")
