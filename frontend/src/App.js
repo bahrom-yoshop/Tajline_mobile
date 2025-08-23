@@ -5913,6 +5913,14 @@ function App() {
   const [manualTransportQR, setManualTransportQR] = useState(''); // Ручной ввод QR транспорта
   const [manualCargoQR, setManualCargoQR] = useState(''); // Ручной ввод QR груза
   
+  // ЭТАП 3: СОСТОЯНИЯ ДЛЯ УПРАВЛЕНИЯ РАЗМЕЩЕННЫМИ ГРУЗАМИ
+  const [placedCargoList, setPlacedCargoList] = useState([]); // Список размещенных на транспорт грузов
+  const [selectedCargoForDetails, setSelectedCargoForDetails] = useState(null); // Выбранный груз для просмотра деталей
+  const [cargoTransportModal, setCargoTransportModal] = useState(false); // Модальное окно деталей груза на транспорте
+  const [cargoReturnModal, setCargoReturnModal] = useState(false); // Модальное окно возврата груза
+  const [returnReason, setReturnReason] = useState(''); // Причина возврата груза
+  const [placedCargoLoading, setPlacedCargoLoading] = useState(false); // Загрузка списка размещенных грузов
+  
   const [contactModal, setContactModal] = useState(false);
 
   // Notification management states
