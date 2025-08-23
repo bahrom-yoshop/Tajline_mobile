@@ -107,7 +107,82 @@ class TransportQRTester:
             "Content-Type": "application/json"
         }
 
-    def find_test_transports(self) -> bool:
+    def create_test_transport(self, transport_number: str) -> Optional[str]:
+        """Создать тестовый транспорт"""
+        try:
+            transport_data = {
+                "driver_name": f"Тестовый Водитель {transport_number}",
+                "driver_phone": f"+7999{transport_number[-6:]}",
+                "transport_number": transport_number,
+                "capacity_kg": 5000.0,
+                "direction": "Москва-Душанбе"
+            }
+            
+            response = requests.post(
+                f"{self.api_url}/transport/create",
+                json=transport_data,
+                headers=self.get_headers()
+            )
+            
+            if response.status_code in [200, 201]:
+                data = response.json()
+                transport_id = data.get("transport_id") or data.get("id")
+                
+                self.log_test(
+                    f"Создание тестового транспорта {transport_number}",
+                    True,
+                    f"Создан транспорт ID: {transport_id}"
+                )
+                return transport_id
+            else:
+                self.log_test(
+                    f"Создание тестового транспорта {transport_number}",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}"
+                )
+                return None
+                
+        except Exception as e:
+            self.log_test(f"Создание тестового транспорта {transport_number}", False, f"Exception: {str(e)}")
+            return None
+
+    def find_or_create_test_transports(self) -> bool:
+        """Найти или создать транспорты для тестирования"""
+        # Сначала пытаемся найти существующие транспорты
+        if self.find_test_transports():
+            return True
+        
+        # Если не найдены, создаем тестовые транспорты
+        self.log_test("Создание тестовых транспортов", True, "Создаем тестовые транспорты для QR тестирования")
+        
+        test_transport_numbers = [
+            f"TEST{datetime.now().strftime('%m%d%H%M%S')}01",
+            f"TEST{datetime.now().strftime('%m%d%H%M%S')}02", 
+            f"TEST{datetime.now().strftime('%m%d%H%M%S')}03"
+        ]
+        
+        created_ids = []
+        for transport_number in test_transport_numbers:
+            transport_id = self.create_test_transport(transport_number)
+            if transport_id:
+                created_ids.append(transport_id)
+        
+        self.transport_ids = created_ids
+        
+        if len(self.transport_ids) > 0:
+            self.log_test(
+                "Создание тестовых транспортов",
+                True,
+                f"Создано {len(self.transport_ids)} тестовых транспортов"
+            )
+            return True
+        else:
+            self.log_test(
+                "Создание тестовых транспортов",
+                False,
+                "Не удалось создать тестовые транспорты"
+            )
+            return False
         """Найти транспорты для тестирования"""
         try:
             response = requests.get(f"{self.api_url}/transport/list", headers=self.get_headers())
