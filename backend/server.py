@@ -21373,31 +21373,12 @@ async def scan_transport_qr(
         raise HTTPException(status_code=403, detail="Access denied")
     
     try:
-        # Парсим QR код транспорта 
-        # Поддерживаем два формата:
-        # 1. Новый: TAJLINE|TRANSPORT|{transport_number}|{timestamp}
-        # 2. Старый: TRANSPORT_{transport_number}_{timestamp}
-        
+        # QR код транспорта теперь содержит только номер транспорта (как у грузов)
         qr_code = scan_data.qr_code.strip()
-        transport_number = None
-        
-        if '|' in qr_code:
-            # Новый формат TAJLINE QR кода
-            qr_parts = qr_code.split('|')
-            if len(qr_parts) >= 3 and qr_parts[0] == 'TAJLINE' and qr_parts[1] == 'TRANSPORT':
-                transport_number = qr_parts[2]
-            else:
-                raise HTTPException(status_code=400, detail="Invalid TAJLINE transport QR code format")
-        else:
-            # Старый формат (для совместимости)
-            qr_parts = qr_code.split('_')
-            if len(qr_parts) >= 2 and qr_parts[0] == 'TRANSPORT':
-                transport_number = qr_parts[1]
-            else:
-                raise HTTPException(status_code=400, detail="Invalid transport QR code format")
+        transport_number = qr_code  # QR код содержит только номер транспорта
         
         if not transport_number:
-            raise HTTPException(status_code=400, detail="Cannot parse transport number from QR code")
+            raise HTTPException(status_code=400, detail="QR code cannot be empty")
         
         # Ищем транспорт по номеру
         transport = db.transports.find_one({"transport_number": transport_number})
