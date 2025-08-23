@@ -486,6 +486,11 @@ class Transport(BaseModel):
     updated_at: datetime
     dispatched_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+    # НОВЫЕ ПОЛЯ ДЛЯ QR КОДОВ:
+    qr_code: Optional[str] = None  # QR код транспорта
+    qr_generated_at: Optional[datetime] = None  # Время генерации QR
+    qr_generated_by: Optional[str] = None  # ID оператора, создавшего QR
+    qr_print_count: int = 0  # Количество распечаток
 
 class TransportCargoPlacement(BaseModel):
     transport_id: str
