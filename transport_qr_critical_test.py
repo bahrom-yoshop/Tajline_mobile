@@ -161,11 +161,23 @@ class TransportQRCriticalTester:
             response = self.session.post(f"{API_BASE}/transport/create", json=transport_data)
             
             if response.status_code == 200:
-                transport = response.json()
-                self.log(f"✅ Создан тестовый транспорт: {transport.get('transport_number')} (ID: {transport.get('id')})")
-                self.log(f"🔍 Полный ответ создания транспорта: {transport}")
-                self.test_results["transport_found"] = True
-                return transport
+                creation_response = response.json()
+                transport_id = creation_response.get('transport_id')
+                
+                if transport_id:
+                    # Получаем полную информацию о созданном транспорте
+                    transport_response = self.session.get(f"{API_BASE}/transport/{transport_id}")
+                    if transport_response.status_code == 200:
+                        transport = transport_response.json()
+                        self.log(f"✅ Создан тестовый транспорт: {transport.get('transport_number')} (ID: {transport.get('id')})")
+                        self.test_results["transport_found"] = True
+                        return transport
+                    else:
+                        self.log(f"❌ Не удалось получить данные созданного транспорта: {transport_response.status_code}", "ERROR")
+                        return None
+                else:
+                    self.log(f"❌ Не получен transport_id в ответе создания", "ERROR")
+                    return None
             else:
                 self.log(f"❌ Ошибка создания транспорта: {response.status_code} - {response.text}", "ERROR")
                 return None
