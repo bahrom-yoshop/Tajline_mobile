@@ -6451,6 +6451,15 @@ async def get_available_cargo_for_placement(
                         'status': 'placed' if is_placed else 'awaiting_placement'
                     })
                 
+                # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Синхронизация placed_count с фактическими is_placed флагами
+                actual_placed_items = [item for item in individual_items if item.get('is_placed') == True]
+                actual_placed_count = len(actual_placed_items)
+                
+                # ВАЖНО: Обновляем placed_count на основе фактических individual_items
+                if actual_placed_count != item_info['placed_count']:
+                    print(f"⚠️ СИНХРОНИЗАЦИЯ: Cargo {type_number} '{item_info['cargo_name']}' - исправляем placed_count с {item_info['placed_count']} на {actual_placed_count}")
+                    item_info['placed_count'] = actual_placed_count
+                
                 # Определяем общий статус типа груза на основе фактического размещения
                 if item_info['placed_count'] == 0:
                     item_info['placement_status'] = 'awaiting_placement'
