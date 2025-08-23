@@ -25495,6 +25495,27 @@ function App() {
                                     <p><strong>Телефон водителя:</strong> {transport.driver_phone}</p>
                                     <p><strong>Направление:</strong> {transport.direction}</p>
                                     <p><strong>Объём:</strong> {transport.current_load_kg} / {transport.capacity_kg} кг</p>
+                                    
+                                    {/* НОВОЕ: QR статус */}
+                                    <div className="flex items-center space-x-2">
+                                      <strong>QR код:</strong>
+                                      {transport.has_qr_code ? (
+                                        <div className="flex items-center space-x-1">
+                                          <Badge variant="default" className="bg-green-100 text-green-700">
+                                            Есть
+                                          </Badge>
+                                          {transport.qr_print_count > 0 && (
+                                            <span className="text-xs text-gray-500">
+                                              (печать: {transport.qr_print_count})
+                                            </span>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                                          Нет
+                                        </Badge>
+                                      )}
+                                    </div>
                                   </div>
                                   
                                   <div className="flex space-x-2">
@@ -25511,6 +25532,35 @@ function App() {
                                       <Truck className="mr-1 h-3 w-3" />
                                       Управление
                                     </Button>
+                                    
+                                    {/* НОВАЯ КНОПКА: QR код */}
+                                    {transport.has_qr_code ? (
+                                      <Button 
+                                        onClick={() => handleViewTransportQR(transport)}
+                                        variant="outline"
+                                        size="sm"
+                                        title="Просмотр QR кода"
+                                      >
+                                        <div className="h-3 w-3 border border-gray-400" style={{
+                                          background: 'repeating-conic-gradient(from 0deg, transparent 0deg 90deg, currentColor 90deg 180deg)',
+                                          backgroundSize: '2px 2px'
+                                        }} />
+                                      </Button>
+                                    ) : (
+                                      <Button 
+                                        onClick={() => handleGenerateTransportQR(transport)}
+                                        variant="outline"
+                                        size="sm"
+                                        title="Генерировать QR код"
+                                        disabled={qrGenerationLoading}
+                                      >
+                                        {qrGenerationLoading ? (
+                                          <div className="h-3 w-3 animate-spin border border-gray-400 rounded-full border-t-transparent" />
+                                        ) : (
+                                          <Plus className="h-3 w-3" />
+                                        )}
+                                      </Button>
+                                    )}
                                     
                                     <Button 
                                       onClick={() => openTransportVisualization(transport)}
