@@ -488,7 +488,7 @@ class Stage4CargoListTester:
                         all_sections_present = False
                 
                 # Проверяем логичность числовых значений
-                cargo_overview = data.get("cargo_overview", {})
+                cargo_overview = statistics_data.get("cargo_overview", {})
                 total_cargo = cargo_overview.get("total_cargo", 0)
                 placed_in_warehouse = cargo_overview.get("placed_in_warehouse", 0)
                 loaded_on_transport = cargo_overview.get("loaded_on_transport", 0)
