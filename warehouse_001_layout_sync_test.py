@@ -172,7 +172,7 @@ class WarehouseLayoutSyncTester:
         self.log(f"🎯 Тестирование API layout-with-cargo для склада 001 (ID: {self.warehouse_001_id})...")
         
         try:
-            response = self.session.get(f"{API_BASE}/operator/warehouses/{self.warehouse_001_id}/layout-with-cargo")
+            response = self.session.get(f"{API_BASE}/warehouses/{self.warehouse_001_id}/layout-with-cargo")
             
             if response.status_code == 200:
                 data = response.json()
