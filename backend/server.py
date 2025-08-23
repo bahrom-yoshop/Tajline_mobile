@@ -14994,29 +14994,56 @@ async def generate_transport_qr(
         raise HTTPException(status_code=404, detail="Transport not found")
     
     try:
-        # Генерируем уникальный QR код
+        # Генерируем уникальный QR код в том же формате что и заявки
         current_time = datetime.utcnow()
-        qr_code = f"TRANSPORT_{transport['transport_number']}_{current_time.strftime('%Y%m%d_%H%M%S')}"
+        timestamp = int(current_time.timestamp())
+        
+        # QR код в формате TAJLINE для сканера
+        qr_data = f"TAJLINE|TRANSPORT|{transport['transport_number']}|{timestamp}"
+        
+        # Генерируем QR изображение
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        
+        # Создаем изображение QR кода
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        
+        # Конвертируем изображение в base64
+        qr_image_base64 = base64.b64encode(buffer.getvalue()).decode()
         
         # Обновляем транспорт с QR данными
         db.transports.update_one(
             {"id": transport_id},
             {
                 "$set": {
-                    "qr_code": qr_code,
+                    "qr_code": qr_data,  # Сохраняем QR данные для сканирования
+                    "qr_image_base64": qr_image_base64,  # Сохраняем изображение для отображения
                     "qr_generated_at": current_time,
                     "qr_generated_by": current_user.id,
+                    "qr_print_count": 0,  # Обнуляем счетчик печати при новой генерации
                     "updated_at": current_time
                 }
             }
         )
         
-        print(f"🔲 QR код сгенерирован для транспорта {transport_id}: {qr_code}")
+        print(f"🔲 QR код сгенерирован для транспорта {transport_id}: {qr_data}")
         
         return {
+            "success": True,
             "message": "QR code generated successfully",
             "transport_id": transport_id,
-            "qr_code": qr_code,
+            "transport_number": transport['transport_number'],
+            "qr_code": qr_data,
+            "qr_image": f"data:image/png;base64,{qr_image_base64}",
             "generated_at": current_time,
             "generated_by": current_user.full_name
         }
