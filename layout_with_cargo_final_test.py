@@ -125,7 +125,7 @@ class LayoutWithCargoFinalTester:
         self.log("\n🔍 ДИАГНОСТИКА СОСТОЯНИЯ БАЗЫ ДАННЫХ:")
         self.log("=" * 60)
         
-        if not self.db:
+        if self.db is None:
             self.log("❌ База данных недоступна", "ERROR")
             return
         
