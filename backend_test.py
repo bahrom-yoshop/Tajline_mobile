@@ -1,26 +1,27 @@
 #!/usr/bin/env python3
 """
-ДЕТАЛЬНЫЙ АНАЛИЗ ДАННЫХ individual_items ДЛЯ ЗАЯВКИ 250101
-==========================================================
+ФИНАЛЬНОЕ ТЕСТИРОВАНИЕ СИНХРОНИЗАЦИИ placed_count С is_placed ФЛАГАМИ
+====================================================================
 
-ЦЕЛЬ: Проанализировать структуру данных `individual_items` в ответе API available-for-placement для заявки 250101
+ЦЕЛЬ: Убедиться что после исправления backend возвращает консистентные данные 
+где `placed_count` соответствует количеству `individual_items` с `is_placed=true`
 
-ДЕТАЛЬНЫЕ ПРОВЕРКИ:
+КРИТИЧЕСКИЕ ПРОВЕРКИ:
 1. Авторизация оператора склада (+79777888999/warehouse123)
 2. Запрос к `/api/operator/cargo/available-for-placement`
 3. Найти заявку 250101
-4. ДЕТАЛЬНО проанализировать каждый cargo_item:
-   - Поля `placed_count` и `quantity` для каждого cargo_item
-   - Структуру и содержимое массива `individual_items` для каждого cargo_item
-   - Значения `is_placed` для каждого individual_item
-   - Соответствие между `placed_count` и количеством individual_items с `is_placed: true`
+4. ГЛАВНАЯ ПРОВЕРКА: Для каждого cargo_item проверить:
+   - `placed_count` должен равняться `individual_items.filter(item => item.is_placed === true).length`
+   - Больше не должно быть расхождений между backend подсчетом и frontend подсчетом
+5. Убедиться что `total_placed` для всей заявки соответствует фактическому количеству размещенных единиц
 
-КРИТИЧЕСКАЯ ПРОВЕРКА: Frontend подсчитывает прогресс на основе 
-`individual_items.filter(unit => unit.is_placed === true).length`, 
-поэтому нужно убедиться что в `individual_items` правильно установлены флаги `is_placed`.
+ИСПРАВЛЕНИЕ: Добавлена логика синхронизации, которая автоматически исправляет 
+`placed_count` на основе фактических `is_placed` флагов в `individual_items`.
 
-ПРОБЛЕМА: Backend возвращает `total_placed=2`, но frontend показывает 1/4, 
-что означает проблему в данных `individual_items`.
+ОЖИДАЕМЫЙ РЕЗУЛЬТАТ: 
+- Консистентные данные между `placed_count` и `individual_items`
+- Frontend и backend должны показывать одинаковый прогресс размещения
+- Логи должны показать исправления если были расхождения
 """
 
 import requests
