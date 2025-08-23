@@ -17205,7 +17205,12 @@ function App() {
                           <button
                             onClick={() => {
                               if (!sub.subsections) {
-                                setActiveTab(sub.id);
+                                if (sub.id === 'logistics-cargo-to-transport') {
+                                  // Специальная обработка для страницы размещения грузов на транспорт
+                                  openCargoToTransportPage();
+                                } else {
+                                  setActiveTab(sub.id);
+                                }
                               }
                             }}
                             className={`block w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
