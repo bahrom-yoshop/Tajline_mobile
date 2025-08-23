@@ -158,6 +158,7 @@ class TransportQRCriticalTester:
             if response.status_code == 200:
                 transport = response.json()
                 self.log(f"✅ Создан тестовый транспорт: {transport.get('transport_number')} (ID: {transport.get('id')})")
+                self.log(f"🔍 Полный ответ создания транспорта: {transport}")
                 self.test_results["transport_found"] = True
                 return transport
             else:
