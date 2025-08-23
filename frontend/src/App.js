@@ -26451,28 +26451,33 @@ function App() {
                                       Управление
                                     </Button>
                                     
-                                    {/* НОВАЯ КНОПКА: QR код */}
+                                    {/* ИСПРАВЛЕННАЯ КНОПКА: Печать QR код */}
                                     {transport.has_qr_code ? (
                                       <Button 
-                                        onClick={() => handleViewTransportQR(transport)}
+                                        onClick={() => handleViewAndPrintTransportQR(transport)}
                                         variant="outline"
                                         size="sm"
-                                        title="Просмотр QR кода"
+                                        title="Печать QR кода"
+                                        disabled={transportQRLoading[transport.id]}
                                       >
-                                        <div className="h-3 w-3 border border-gray-400" style={{
-                                          background: 'repeating-conic-gradient(from 0deg, transparent 0deg 90deg, currentColor 90deg 180deg)',
-                                          backgroundSize: '2px 2px'
-                                        }} />
+                                        {transportQRLoading[transport.id] ? (
+                                          <div className="h-3 w-3 animate-spin border border-gray-400 rounded-full border-t-transparent" />
+                                        ) : (
+                                          <div className="h-3 w-3 border border-gray-400" style={{
+                                            background: 'repeating-conic-gradient(from 0deg, transparent 0deg 90deg, currentColor 90deg 180deg)',
+                                            backgroundSize: '2px 2px'
+                                          }} />
+                                        )}
                                       </Button>
                                     ) : (
                                       <Button 
-                                        onClick={() => handleGenerateTransportQR(transport)}
+                                        onClick={() => handleGenerateAndPrintTransportQR(transport)}
                                         variant="outline"
                                         size="sm"
-                                        title="Генерировать QR код"
-                                        disabled={qrGenerationLoading}
+                                        title="Сгенерировать и печать QR код"
+                                        disabled={transportQRLoading[transport.id]}
                                       >
-                                        {qrGenerationLoading ? (
+                                        {transportQRLoading[transport.id] ? (
                                           <div className="h-3 w-3 animate-spin border border-gray-400 rounded-full border-t-transparent" />
                                         ) : (
                                           <Plus className="h-3 w-3" />
