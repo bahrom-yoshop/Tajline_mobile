@@ -5920,6 +5920,22 @@ function App() {
   const [returnReason, setReturnReason] = useState(''); // Причина возврата груза
   const [placedCargoLoading, setPlacedCargoLoading] = useState(false); // Загрузка списка размещенных грузов
   
+  // ЭТАП 4: СОСТОЯНИЯ ДЛЯ НОВОГО РАЗДЕЛА "СПИСОК ГРУЗОВ"
+  const [cargoListPage, setCargoListPage] = useState(false); // Страница списка грузов
+  const [allCargoList, setAllCargoList] = useState([]); // Список всех грузов
+  const [cargoListLoading, setCargoListLoading] = useState(false); // Загрузка списка грузов
+  const [cargoListPagination, setCargoListPagination] = useState({}); // Пагинация для списка грузов
+  const [cargoListFilters, setCargoListFilters] = useState({ // Фильтры для списка грузов
+    status: 'all',
+    search: ''
+  });
+  const [selectedCargoForHistory, setSelectedCargoForHistory] = useState(null); // Выбранный груз для просмотра истории
+  const [cargoHistoryModal, setCargoHistoryModal] = useState(false); // Модальное окно истории груза
+  const [cargoHistory, setCargoHistory] = useState([]); // История операций с грузом
+  const [cargoHistoryLoading, setCargoHistoryLoading] = useState(false); // Загрузка истории груза
+  const [cargoStatistics, setCargoStatistics] = useState(null); // Общая статистика грузов
+  const [statisticsLoading, setStatisticsLoading] = useState(false); // Загрузка статистики
+  
   const [contactModal, setContactModal] = useState(false);
 
   // Notification management states
