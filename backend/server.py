@@ -7505,6 +7505,33 @@ async def get_cargo_placement_status(
         elif total_placed > 0:
             overall_status = 'partially_placed'
         
+        # РАСШИРЕННАЯ ИНФОРМАЦИЯ: Получаем дополнительные данные из связанных коллекций
+        operator_info = None
+        warehouse_info = None
+        
+        # Получаем информацию об операторе из коллекции users
+        operator_id = cargo.get('accepting_operator_id') or cargo.get('operator_id')
+        if operator_id:
+            operator_info = db.users.find_one({"id": operator_id})
+        
+        # Получаем информацию об операторе по номеру телефона если ID нет
+        operator_phone = cargo.get('accepting_operator_phone') or cargo.get('operator_phone')
+        if not operator_info and operator_phone:
+            operator_info = db.users.find_one({"phone": operator_phone})
+        
+        # Получаем информацию о складах
+        source_warehouse_id = cargo.get('source_warehouse_id') or cargo.get('warehouse_id')
+        target_warehouse_id = cargo.get('target_warehouse_id') or cargo.get('delivery_warehouse_id')
+        
+        source_warehouse_info = None
+        target_warehouse_info = None
+        
+        if source_warehouse_id:
+            source_warehouse_info = db.warehouses.find_one({"id": source_warehouse_id})
+        
+        if target_warehouse_id:
+            target_warehouse_info = db.warehouses.find_one({"id": target_warehouse_id})
+        
         return {
             'cargo_id': cargo_id,
             'cargo_number': cargo.get('cargo_number'),
@@ -7515,29 +7542,35 @@ async def get_cargo_placement_status(
             'cargo_types': detailed_items,  # ИЗМЕНЕНО: cargo_types вместо cargo_items для ясности
             'created_at': cargo.get('created_at'),
             'updated_at': cargo.get('updated_at'),
-            # НОВЫЕ ПОЛЯ ДЛЯ МОДАЛЬНОГО ОКНА:
-            'sender_full_name': cargo.get('sender_full_name', 'Не указан'),
-            'sender_phone': cargo.get('sender_phone', 'Не указан'),
-            'sender_address': cargo.get('sender_address', 'Не указан'),
-            'recipient_full_name': cargo.get('recipient_full_name', 'Не указан'),
-            'recipient_phone': cargo.get('recipient_phone', 'Не указан'),
-            'recipient_address': cargo.get('recipient_address', 'Не указан'),
-            'payment_method': cargo.get('payment_method', 'Не указан'),
-            'delivery_method': cargo.get('delivery_method', 'Не указан'),
-            'payment_status': cargo.get('payment_status', 'Не указан'),
-            'accepting_warehouse': cargo.get('accepting_warehouse', 'Не указан'),
-            'delivery_warehouse': cargo.get('delivery_warehouse', 'Не указан'),
-            'pickup_city': cargo.get('pickup_city', 'Не указан'),
-            'delivery_city': cargo.get('delivery_city', 'Не указан'),
-            'operator_name': cargo.get('operator_name', 'Неизвестный оператор'),
-            'accepting_operator': cargo.get('accepting_operator', 'Неизвестно'),
-            'created_date': cargo.get('created_at'),
-            # Дополнительные поля для совместимости с модальным окном
-            'operator_full_name': cargo.get('operator_name', 'Неизвестный оператор'),
-            'operator_phone': cargo.get('operator_phone', 'Не указан'),
-            'source_warehouse_name': cargo.get('accepting_warehouse', 'Не указан'),
-            'target_warehouse_name': cargo.get('delivery_warehouse', 'Не указан'),
-            'delivery_warehouse_name': cargo.get('delivery_warehouse', 'Не указан')
+            # ОСНОВНАЯ ИНФОРМАЦИЯ О ЗАЯВКЕ:
+            'sender_full_name': cargo.get('sender_full_name') or cargo.get('sender_name') or 'Не указан',
+            'sender_phone': cargo.get('sender_phone') or 'Не указан',
+            'sender_address': cargo.get('sender_address') or 'Не указан',
+            'recipient_full_name': cargo.get('recipient_full_name') or cargo.get('recipient_name') or 'Не указан',
+            'recipient_phone': cargo.get('recipient_phone') or 'Не указан',
+            'recipient_address': cargo.get('recipient_address') or 'Не указан',
+            'payment_method': cargo.get('payment_method') or 'Не указан',
+            'delivery_method': cargo.get('delivery_method') or 'Не указан',
+            'payment_status': cargo.get('payment_status') or 'Не указан',
+            # ИНФОРМАЦИЯ О ГОРОДАХ:
+            'pickup_city': cargo.get('pickup_city') or cargo.get('source_city') or 'Не указан',
+            'delivery_city': cargo.get('delivery_city') or cargo.get('target_city') or 'Не указан',
+            # ИНФОРМАЦИЯ О СКЛАДАХ (с данными из коллекции warehouses):
+            'source_warehouse_name': (source_warehouse_info.get('name') if source_warehouse_info 
+                                    else cargo.get('accepting_warehouse') or cargo.get('source_warehouse_name') or 'Не указан'),
+            'target_warehouse_name': (target_warehouse_info.get('name') if target_warehouse_info 
+                                    else cargo.get('delivery_warehouse') or cargo.get('target_warehouse_name') or 'Не указан'),
+            'accepting_warehouse': cargo.get('accepting_warehouse') or 'Не указан',
+            'delivery_warehouse': cargo.get('delivery_warehouse') or 'Не указан',
+            'delivery_warehouse_name': cargo.get('delivery_warehouse') or 'Не указан',
+            # ИНФОРМАЦИЯ ОБ ОПЕРАТОРЕ (с данными из коллекции users):
+            'operator_full_name': (operator_info.get('full_name') if operator_info 
+                                 else cargo.get('operator_name') or cargo.get('accepting_operator') or 'Неизвестный оператор'),
+            'operator_phone': (operator_info.get('phone') if operator_info 
+                             else cargo.get('operator_phone') or cargo.get('accepting_operator_phone') or 'Не указан'),
+            'operator_name': cargo.get('operator_name') or cargo.get('accepting_operator') or 'Неизвестный оператор',
+            'accepting_operator': cargo.get('accepting_operator') or 'Неизвестно',
+            'created_date': cargo.get('created_at')
         }
         
     except HTTPException:
