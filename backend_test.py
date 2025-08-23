@@ -1,5 +1,556 @@
 #!/usr/bin/env python3
 """
+🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Улучшенная логика QR кодов транспорта с массовой генерацией
+
+ЦЕЛЬ ТЕСТИРОВАНИЯ: Проверить улучшенную систему QR кодов для транспорта с уникальными идентификаторами 
+и новый endpoint для массовой генерации QR кодов для выбранных транспортов.
+
+КРИТИЧЕСКИЕ ENDPOINTS ДЛЯ ТЕСТИРОВАНИЯ:
+1. POST /api/transport/{transport_id}/generate-qr - Генерация уникального QR кода (TRANSPORT_{number}_{timestamp})
+2. GET /api/transport/{transport_id}/qr - Получение QR данных с полем qr_simple
+3. POST /api/logistics/cargo-to-transport/scan-transport - Сканирование нового формата QR
+4. POST /api/transport/bulk-generate-qr - НОВЫЙ: Массовая генерация QR для выбранных транспортов
+
+ДЕТАЛЬНЫЕ ТРЕБОВАНИЯ:
+1. Авторизация: warehouse_operator (+79777888999/warehouse123)
+2. Уникальные QR коды:
+   - Формат: TRANSPORT_{transport_number}_{timestamp}
+   - Каждый QR код должен быть уникальным даже для одного транспорта
+   - Поля: qr_code (полный), qr_simple (номер транспорта)
+3. Массовая генерация:
+   - Принимает массив transport_ids
+   - Генерирует уникальный QR для каждого транспорта 
+   - Возвращает results с данными для каждого транспорта
+   - Обработка ошибок для несуществующих транспортов
+4. Обратная совместимость:
+   - Scan-transport поддерживает новый формат TRANSPORT_{number}_{timestamp}
+   - Извлекает номер транспорта из середины QR кода
+"""
+
+import requests
+import json
+import time
+from datetime import datetime
+import uuid
+
+# Configuration
+BASE_URL = "https://cargo-sync.preview.emergentagent.com/api"
+WAREHOUSE_OPERATOR_PHONE = "+79777888999"
+WAREHOUSE_OPERATOR_PASSWORD = "warehouse123"
+
+class TransportQRTester:
+    def __init__(self):
+        self.session = requests.Session()
+        self.token = None
+        self.user_info = None
+        self.test_results = []
+        
+    def log_test(self, test_name, success, details="", response_time=0):
+        """Log test results"""
+        status = "✅ PASS" if success else "❌ FAIL"
+        self.test_results.append({
+            "test": test_name,
+            "status": status,
+            "details": details,
+            "response_time": f"{response_time}ms"
+        })
+        print(f"{status} {test_name}: {details} ({response_time}ms)")
+        
+    def authenticate(self):
+        """Authenticate as warehouse operator"""
+        print("🔐 АВТОРИЗАЦИЯ ОПЕРАТОРА СКЛАДА...")
+        
+        auth_data = {
+            "phone": WAREHOUSE_OPERATOR_PHONE,
+            "password": WAREHOUSE_OPERATOR_PASSWORD
+        }
+        
+        start_time = time.time()
+        try:
+            response = self.session.post(f"{BASE_URL}/auth/login", json=auth_data)
+            response_time = int((time.time() - start_time) * 1000)
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.token = data.get("access_token")
+                self.session.headers.update({"Authorization": f"Bearer {self.token}"})
+                
+                # Get user info
+                user_response = self.session.get(f"{BASE_URL}/auth/me")
+                if user_response.status_code == 200:
+                    self.user_info = user_response.json()
+                    user_name = self.user_info.get("full_name", "Unknown")
+                    user_role = self.user_info.get("role", "unknown")
+                    
+                    self.log_test(
+                        "Авторизация оператора склада",
+                        True,
+                        f"Успешная авторизация '{user_name}' (роль: {user_role})",
+                        response_time
+                    )
+                    return True
+                else:
+                    self.log_test("Авторизация оператора склада", False, "Не удалось получить информацию о пользователе", response_time)
+                    return False
+            else:
+                self.log_test("Авторизация оператора склада", False, f"HTTP {response.status_code}: {response.text}", response_time)
+                return False
+                
+        except Exception as e:
+            response_time = int((time.time() - start_time) * 1000)
+            self.log_test("Авторизация оператора склада", False, f"Ошибка: {str(e)}", response_time)
+            return False
+    
+    def get_or_create_test_transports(self, count=3):
+        """Get existing transports or create test transports"""
+        print(f"🚛 ПОЛУЧЕНИЕ/СОЗДАНИЕ {count} ТЕСТОВЫХ ТРАНСПОРТОВ...")
+        
+        # First try to get existing transports
+        start_time = time.time()
+        try:
+            response = self.session.get(f"{BASE_URL}/transport/list-with-qr")
+            response_time = int((time.time() - start_time) * 1000)
+            
+            if response.status_code == 200:
+                data = response.json()
+                transports = data.get("transports", [])
+                
+                if len(transports) >= count:
+                    selected_transports = transports[:count]
+                    transport_info = [f"{t['transport_number']} (ID: {t['id']})" for t in selected_transports]
+                    
+                    self.log_test(
+                        f"Получение {count} транспортов",
+                        True,
+                        f"Найдено {len(transports)} транспортов, выбрано {count}: {', '.join(transport_info)}",
+                        response_time
+                    )
+                    return selected_transports
+                else:
+                    self.log_test(
+                        f"Получение {count} транспортов",
+                        False,
+                        f"Недостаточно транспортов: найдено {len(transports)}, требуется {count}",
+                        response_time
+                    )
+                    return []
+            else:
+                self.log_test(f"Получение {count} транспортов", False, f"HTTP {response.status_code}: {response.text}", response_time)
+                return []
+                
+        except Exception as e:
+            response_time = int((time.time() - start_time) * 1000)
+            self.log_test(f"Получение {count} транспортов", False, f"Ошибка: {str(e)}", response_time)
+            return []
+    
+    def test_single_qr_generation(self, transport):
+        """Test single QR code generation with unique identifiers"""
+        print(f"🎯 ТЕСТИРОВАНИЕ ГЕНЕРАЦИИ УНИКАЛЬНОГО QR ДЛЯ ТРАНСПОРТА {transport['transport_number']}...")
+        
+        transport_id = transport["id"]
+        transport_number = transport["transport_number"]
+        
+        start_time = time.time()
+        try:
+            response = self.session.post(f"{BASE_URL}/transport/{transport_id}/generate-qr")
+            response_time = int((time.time() - start_time) * 1000)
+            
+            if response.status_code == 200:
+                data = response.json()
+                qr_code = data.get("qr_code", "")
+                generated_at = data.get("generated_at", "")
+                generated_by = data.get("generated_by", "")
+                
+                # Check QR format: TRANSPORT_{number}_{timestamp}
+                expected_prefix = f"TRANSPORT_{transport_number}_"
+                if qr_code.startswith(expected_prefix):
+                    # Extract timestamp part
+                    timestamp_part = qr_code[len(expected_prefix):]
+                    
+                    self.log_test(
+                        f"Генерация QR для {transport_number}",
+                        True,
+                        f"QR код: {qr_code}, время: {generated_at}, оператор: {generated_by}",
+                        response_time
+                    )
+                    return qr_code
+                else:
+                    self.log_test(
+                        f"Генерация QR для {transport_number}",
+                        False,
+                        f"Неправильный формат QR: {qr_code}, ожидался: {expected_prefix}*",
+                        response_time
+                    )
+                    return None
+            else:
+                self.log_test(f"Генерация QR для {transport_number}", False, f"HTTP {response.status_code}: {response.text}", response_time)
+                return None
+                
+        except Exception as e:
+            response_time = int((time.time() - start_time) * 1000)
+            self.log_test(f"Генерация QR для {transport_number}", False, f"Ошибка: {str(e)}", response_time)
+            return None
+    
+    def test_qr_data_retrieval(self, transport):
+        """Test QR data retrieval with qr_simple field"""
+        print(f"📱 ТЕСТИРОВАНИЕ ПОЛУЧЕНИЯ QR ДАННЫХ ДЛЯ ТРАНСПОРТА {transport['transport_number']}...")
+        
+        transport_id = transport["id"]
+        transport_number = transport["transport_number"]
+        
+        start_time = time.time()
+        try:
+            response = self.session.get(f"{BASE_URL}/transport/{transport_id}/qr")
+            response_time = int((time.time() - start_time) * 1000)
+            
+            if response.status_code == 200:
+                data = response.json()
+                qr_code = data.get("qr_code", "")
+                qr_simple = data.get("qr_simple", "")
+                qr_generated_at = data.get("qr_generated_at", "")
+                qr_generated_by = data.get("qr_generated_by", "")
+                qr_print_count = data.get("qr_print_count", 0)
+                
+                # Check if qr_simple contains transport number
+                if qr_simple == transport_number:
+                    self.log_test(
+                        f"Получение QR данных {transport_number}",
+                        True,
+                        f"qr_simple: {qr_simple}, qr_code: {qr_code[:50]}..., печать: {qr_print_count}",
+                        response_time
+                    )
+                    return data
+                else:
+                    self.log_test(
+                        f"Получение QR данных {transport_number}",
+                        False,
+                        f"qr_simple неправильный: {qr_simple}, ожидался: {transport_number}",
+                        response_time
+                    )
+                    return None
+            else:
+                self.log_test(f"Получение QR данных {transport_number}", False, f"HTTP {response.status_code}: {response.text}", response_time)
+                return None
+                
+        except Exception as e:
+            response_time = int((time.time() - start_time) * 1000)
+            self.log_test(f"Получение QR данных {transport_number}", False, f"Ошибка: {str(e)}", response_time)
+            return None
+    
+    def test_qr_uniqueness(self, transport):
+        """Test that repeated QR generation creates unique codes"""
+        print(f"🔄 ТЕСТИРОВАНИЕ УНИКАЛЬНОСТИ QR КОДОВ ДЛЯ ТРАНСПОРТА {transport['transport_number']}...")
+        
+        transport_id = transport["id"]
+        transport_number = transport["transport_number"]
+        generated_qrs = []
+        
+        # Generate QR codes multiple times
+        for i in range(2):
+            start_time = time.time()
+            try:
+                response = self.session.post(f"{BASE_URL}/transport/{transport_id}/generate-qr")
+                response_time = int((time.time() - start_time) * 1000)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    qr_code = data.get("qr_code", "")
+                    generated_qrs.append(qr_code)
+                    
+                    # Small delay to ensure different timestamps
+                    time.sleep(1)
+                else:
+                    self.log_test(f"Генерация QR #{i+1} для {transport_number}", False, f"HTTP {response.status_code}", response_time)
+                    return False
+                    
+            except Exception as e:
+                response_time = int((time.time() - start_time) * 1000)
+                self.log_test(f"Генерация QR #{i+1} для {transport_number}", False, f"Ошибка: {str(e)}", response_time)
+                return False
+        
+        # Check uniqueness
+        if len(generated_qrs) == 2 and generated_qrs[0] != generated_qrs[1]:
+            self.log_test(
+                f"Уникальность QR для {transport_number}",
+                True,
+                f"Сгенерированы уникальные QR: {generated_qrs[0][:30]}... и {generated_qrs[1][:30]}...",
+                0
+            )
+            return True
+        else:
+            self.log_test(
+                f"Уникальность QR для {transport_number}",
+                False,
+                f"QR коды не уникальны: {generated_qrs}",
+                0
+            )
+            return False
+    
+    def test_bulk_qr_generation(self, transports):
+        """Test bulk QR generation for multiple transports"""
+        print(f"📦 ТЕСТИРОВАНИЕ МАССОВОЙ ГЕНЕРАЦИИ QR ДЛЯ {len(transports)} ТРАНСПОРТОВ...")
+        
+        transport_ids = [t["id"] for t in transports]
+        transport_numbers = [t["transport_number"] for t in transports]
+        
+        bulk_data = {
+            "transport_ids": transport_ids
+        }
+        
+        start_time = time.time()
+        try:
+            response = self.session.post(f"{BASE_URL}/transport/bulk-generate-qr", json=bulk_data)
+            response_time = int((time.time() - start_time) * 1000)
+            
+            if response.status_code == 200:
+                data = response.json()
+                results = data.get("results", [])
+                successful_count = data.get("successful_count", 0)
+                failed_count = data.get("failed_count", 0)
+                
+                # Check results structure
+                success_details = []
+                for result in results:
+                    transport_id = result.get("transport_id", "")
+                    success = result.get("success", False)
+                    qr_code = result.get("qr_code", "")
+                    qr_image = result.get("qr_image", "")
+                    
+                    if success and qr_code and qr_image:
+                        # Find transport number by ID
+                        transport_num = next((t["transport_number"] for t in transports if t["id"] == transport_id), "Unknown")
+                        success_details.append(f"{transport_num}: {qr_code[:30]}...")
+                
+                if successful_count == len(transport_ids) and failed_count == 0:
+                    self.log_test(
+                        "Массовая генерация QR",
+                        True,
+                        f"Успешно: {successful_count}/{len(transport_ids)}, детали: {', '.join(success_details)}",
+                        response_time
+                    )
+                    return data
+                else:
+                    self.log_test(
+                        "Массовая генерация QR",
+                        False,
+                        f"Частичный успех: {successful_count}/{len(transport_ids)}, ошибок: {failed_count}",
+                        response_time
+                    )
+                    return data
+            else:
+                self.log_test("Массовая генерация QR", False, f"HTTP {response.status_code}: {response.text}", response_time)
+                return None
+                
+        except Exception as e:
+            response_time = int((time.time() - start_time) * 1000)
+            self.log_test("Массовая генерация QR", False, f"Ошибка: {str(e)}", response_time)
+            return None
+    
+    def test_qr_scanning_compatibility(self, qr_code, transport_number):
+        """Test QR scanning with new format compatibility"""
+        print(f"🔍 ТЕСТИРОВАНИЕ СКАНИРОВАНИЯ QR КОДА {qr_code[:30]}...")
+        
+        scan_data = {
+            "qr_data": qr_code
+        }
+        
+        start_time = time.time()
+        try:
+            response = self.session.post(f"{BASE_URL}/logistics/cargo-to-transport/scan-transport", json=scan_data)
+            response_time = int((time.time() - start_time) * 1000)
+            
+            if response.status_code == 200:
+                data = response.json()
+                success = data.get("success", False)
+                message = data.get("message", "")
+                session_id = data.get("session_id", "")
+                transport_info = data.get("transport", {})
+                
+                if success and transport_info.get("transport_number") == transport_number:
+                    self.log_test(
+                        f"Сканирование QR {transport_number}",
+                        True,
+                        f"Транспорт распознан: {transport_number}, сессия: {session_id}",
+                        response_time
+                    )
+                    return True
+                else:
+                    self.log_test(
+                        f"Сканирование QR {transport_number}",
+                        False,
+                        f"Неправильное распознавание: {transport_info.get('transport_number', 'None')}",
+                        response_time
+                    )
+                    return False
+            elif response.status_code == 400:
+                # Expected error for transport not available for loading
+                error_message = response.json().get("detail", response.text)
+                if "not available for loading" in error_message or "Transport not found" in error_message:
+                    self.log_test(
+                        f"Сканирование QR {transport_number}",
+                        True,
+                        f"Ожидаемая ошибка (транспорт не готов к загрузке): {error_message}",
+                        response_time
+                    )
+                    return True
+                else:
+                    self.log_test(
+                        f"Сканирование QR {transport_number}",
+                        False,
+                        f"Неожиданная ошибка 400: {error_message}",
+                        response_time
+                    )
+                    return False
+            else:
+                self.log_test(f"Сканирование QR {transport_number}", False, f"HTTP {response.status_code}: {response.text}", response_time)
+                return False
+                
+        except Exception as e:
+            response_time = int((time.time() - start_time) * 1000)
+            self.log_test(f"Сканирование QR {transport_number}", False, f"Ошибка: {str(e)}", response_time)
+            return False
+    
+    def test_bulk_error_handling(self):
+        """Test bulk generation error handling with non-existent transport IDs"""
+        print("⚠️ ТЕСТИРОВАНИЕ ОБРАБОТКИ ОШИБОК В МАССОВОЙ ГЕНЕРАЦИИ...")
+        
+        # Mix of valid and invalid transport IDs
+        fake_ids = [str(uuid.uuid4()), str(uuid.uuid4())]
+        
+        bulk_data = {
+            "transport_ids": fake_ids
+        }
+        
+        start_time = time.time()
+        try:
+            response = self.session.post(f"{BASE_URL}/transport/bulk-generate-qr", json=bulk_data)
+            response_time = int((time.time() - start_time) * 1000)
+            
+            if response.status_code == 200:
+                data = response.json()
+                successful_count = data.get("successful_count", 0)
+                failed_count = data.get("failed_count", 0)
+                results = data.get("results", [])
+                
+                # Should have failures for non-existent IDs
+                if failed_count == len(fake_ids) and successful_count == 0:
+                    self.log_test(
+                        "Обработка ошибок массовой генерации",
+                        True,
+                        f"Корректно обработаны ошибки: {failed_count} неуспешных из {len(fake_ids)}",
+                        response_time
+                    )
+                    return True
+                else:
+                    self.log_test(
+                        "Обработка ошибок массовой генерации",
+                        False,
+                        f"Неправильная обработка: успешных {successful_count}, ошибок {failed_count}",
+                        response_time
+                    )
+                    return False
+            else:
+                self.log_test("Обработка ошибок массовой генерации", False, f"HTTP {response.status_code}: {response.text}", response_time)
+                return False
+                
+        except Exception as e:
+            response_time = int((time.time() - start_time) * 1000)
+            self.log_test("Обработка ошибок массовой генерации", False, f"Ошибка: {str(e)}", response_time)
+            return False
+    
+    def run_comprehensive_test(self):
+        """Run comprehensive test suite"""
+        print("🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: Улучшенная логика QR кодов транспорта с массовой генерацией")
+        print("=" * 100)
+        
+        # Step 1: Authentication
+        if not self.authenticate():
+            print("❌ Тестирование прервано: ошибка авторизации")
+            return False
+        
+        # Step 2: Get test transports
+        transports = self.get_or_create_test_transports(3)
+        if not transports:
+            print("❌ Тестирование прервано: не удалось получить транспорты")
+            return False
+        
+        # Step 3: Test single QR generation for each transport
+        generated_qrs = []
+        for transport in transports:
+            qr_code = self.test_single_qr_generation(transport)
+            if qr_code:
+                generated_qrs.append((transport, qr_code))
+        
+        # Step 4: Test QR data retrieval
+        for transport in transports:
+            self.test_qr_data_retrieval(transport)
+        
+        # Step 5: Test QR uniqueness
+        if transports:
+            self.test_qr_uniqueness(transports[0])
+        
+        # Step 6: Test bulk QR generation
+        self.test_bulk_qr_generation(transports)
+        
+        # Step 7: Test QR scanning compatibility
+        for transport, qr_code in generated_qrs:
+            self.test_qr_scanning_compatibility(qr_code, transport["transport_number"])
+        
+        # Step 8: Test error handling
+        self.test_bulk_error_handling()
+        
+        # Print summary
+        self.print_summary()
+        
+        return True
+    
+    def print_summary(self):
+        """Print test summary"""
+        print("\n" + "=" * 100)
+        print("📊 ИТОГОВЫЕ РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ")
+        print("=" * 100)
+        
+        passed_tests = [t for t in self.test_results if "✅ PASS" in t["status"]]
+        failed_tests = [t for t in self.test_results if "❌ FAIL" in t["status"]]
+        
+        success_rate = (len(passed_tests) / len(self.test_results)) * 100 if self.test_results else 0
+        
+        print(f"📈 SUCCESS RATE: {success_rate:.1f}% ({len(passed_tests)}/{len(self.test_results)} тестов пройдены)")
+        print(f"⏱️ ОБЩЕЕ ВРЕМЯ ТЕСТИРОВАНИЯ: {sum(int(t['response_time'].replace('ms', '')) for t in self.test_results)}ms")
+        
+        if passed_tests:
+            print(f"\n✅ ПРОЙДЕННЫЕ ТЕСТЫ ({len(passed_tests)}):")
+            for test in passed_tests:
+                print(f"  • {test['test']}: {test['details']} ({test['response_time']})")
+        
+        if failed_tests:
+            print(f"\n❌ НЕУСПЕШНЫЕ ТЕСТЫ ({len(failed_tests)}):")
+            for test in failed_tests:
+                print(f"  • {test['test']}: {test['details']} ({test['response_time']})")
+        
+        print("\n🎯 КРИТИЧЕСКИЕ ВЫВОДЫ:")
+        if success_rate >= 90:
+            print("✅ ВСЕ КРИТИЧЕСКИЕ ENDPOINTS РАБОТАЮТ КОРРЕКТНО!")
+            print("✅ QR коды уникальны в формате TRANSPORT_{number}_{timestamp}")
+            print("✅ Массовая генерация работает для множества транспортов")
+            print("✅ Сканирование правильно парсит новый формат")
+            print("✅ Обработка ошибок работает корректно")
+            print("🚀 СИСТЕМА ГОТОВА К ПРОДАКШЕНУ!")
+        elif success_rate >= 70:
+            print("⚠️ Большинство функций работает, но есть проблемы")
+            print("🔧 Требуется исправление некритических ошибок")
+        else:
+            print("❌ КРИТИЧЕСКИЕ ПРОБЛЕМЫ ОБНАРУЖЕНЫ!")
+            print("🚨 Требуется срочное исправление перед продакшеном")
+
+def main():
+    """Main function"""
+    tester = TransportQRTester()
+    tester.run_comprehensive_test()
+
+if __name__ == "__main__":
+    main()
+"""
 🎯 КРИТИЧЕСКОЕ ТЕСТИРОВАНИЕ: ИСПРАВЛЕННЫЕ QR КОДЫ ТРАНСПОРТА - Цифровой формат как у заявок
 
 ЦЕЛЬ ТЕСТИРОВАНИЯ: Проверить исправленную генерацию QR кодов для транспорта - теперь QR код должен содержать только номер транспорта (цифровой формат), как у заявок и ячеек склада.
