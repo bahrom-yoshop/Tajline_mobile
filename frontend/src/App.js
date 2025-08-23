@@ -5910,6 +5910,8 @@ function App() {
   const [loadedCargo, setLoadedCargo] = useState([]); // Загруженные грузы в текущей сессии
   const [cargoScanLoading, setCargoScanLoading] = useState(false); // Загрузка при сканировании груза
   const [qrScannerActive, setQrScannerActive] = useState(false); // Активность QR сканера
+  const [manualTransportQR, setManualTransportQR] = useState(''); // Ручной ввод QR транспорта
+  const [manualCargoQR, setManualCargoQR] = useState(''); // Ручной ввод QR груза
   
   const [contactModal, setContactModal] = useState(false);
 
