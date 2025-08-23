@@ -97,12 +97,35 @@ class DetailedIndividualItemsAnalyzer:
         """Найти заявку 250101 в списке"""
         self.log(f"🔍 Поиск заявки {TARGET_APPLICATION}...")
         
-        for app in applications:
-            if app.get("cargo_number") == TARGET_APPLICATION:
-                self.log(f"✅ Заявка {TARGET_APPLICATION} найдена!")
-                return app
+        # Проверяем структуру ответа
+        if isinstance(applications, dict):
+            # Если это объект с полями, ищем в items или аналогичном поле
+            if 'items' in applications:
+                applications = applications['items']
+            elif 'data' in applications:
+                applications = applications['data']
+            else:
+                # Если это единичный объект, проверяем его
+                if applications.get("cargo_number") == TARGET_APPLICATION:
+                    self.log(f"✅ Заявка {TARGET_APPLICATION} найдена!")
+                    return applications
+                else:
+                    self.log(f"❌ Заявка {TARGET_APPLICATION} НЕ найдена", "ERROR")
+                    return None
+        
+        # Если это список
+        if isinstance(applications, list):
+            for app in applications:
+                if isinstance(app, dict) and app.get("cargo_number") == TARGET_APPLICATION:
+                    self.log(f"✅ Заявка {TARGET_APPLICATION} найдена!")
+                    return app
         
         self.log(f"❌ Заявка {TARGET_APPLICATION} НЕ найдена в списке", "ERROR")
+        self.log(f"🔍 Структура ответа: {type(applications)}")
+        if isinstance(applications, list) and len(applications) > 0:
+            self.log(f"🔍 Первый элемент: {type(applications[0])}")
+            if isinstance(applications[0], dict):
+                self.log(f"🔍 Ключи первого элемента: {list(applications[0].keys())}")
         return None
     
     def analyze_application_overview(self, application):
