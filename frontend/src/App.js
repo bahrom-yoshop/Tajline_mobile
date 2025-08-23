@@ -5931,7 +5931,7 @@ function App() {
   });
   const [selectedCargoForHistory, setSelectedCargoForHistory] = useState(null); // Выбранный груз для просмотра истории
   const [cargoHistoryModal, setCargoHistoryModal] = useState(false); // Модальное окно истории груза
-  const [cargoHistory, setCargoHistory] = useState([]); // История операций с грузом
+  const [cargoFullHistory, setCargoFullHistory] = useState([]); // Полная история операций с грузом
   const [cargoHistoryLoading, setCargoHistoryLoading] = useState(false); // Загрузка истории груза
   const [cargoStatistics, setCargoStatistics] = useState(null); // Общая статистика грузов
   const [statisticsLoading, setStatisticsLoading] = useState(false); // Загрузка статистики
