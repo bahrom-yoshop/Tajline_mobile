@@ -7073,6 +7073,59 @@ async def get_individual_units_for_placement(
         
         print(f"📦 Найдено {len(cargo_list)} заявок ожидающих размещения")
         
+        # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Фильтруем полностью размещенные заявки (аналогично available-for-placement)
+        print(f"🔍 Фильтруем {len(cargo_list)} заявок, исключая полностью размещенные")
+        
+        filtered_cargo_list = []
+        for cargo in cargo_list:
+            cargo_number = cargo.get('cargo_number')
+            print(f"   📦 Проверяем заявку {cargo_number}")
+            
+            # Подсчитываем общее количество individual_items в заявке
+            total_individual_items = 0
+            placed_individual_items_via_is_placed = 0
+            placed_individual_items_via_placement_records = 0
+            
+            cargo_items = cargo.get('cargo_items', [])
+            
+            # Способ 1: Подсчет через individual_items.is_placed
+            for item in cargo_items:
+                individual_items = item.get('individual_items', [])
+                if individual_items:
+                    total_individual_items += len(individual_items)
+                    placed_individual_items_via_is_placed += len([unit for unit in individual_items if unit.get('is_placed') == True])
+                else:
+                    # Fallback к quantity если individual_items нет
+                    quantity = item.get('quantity', 1)
+                    total_individual_items += quantity
+            
+            # Способ 2: Подсчет через placement_records (более надежный)
+            if cargo_number:
+                placement_count = db.placement_records.count_documents({"cargo_number": cargo_number})
+                placed_individual_items_via_placement_records = placement_count
+            
+            # Используем максимум из двух способов подсчета размещенных единиц
+            placed_individual_items = max(placed_individual_items_via_is_placed, placed_individual_items_via_placement_records)
+            
+            print(f"      📊 Всего единиц: {total_individual_items}")
+            print(f"      📍 Размещено (is_placed): {placed_individual_items_via_is_placed}")
+            print(f"      📍 Размещено (placement_records): {placed_individual_items_via_placement_records}")
+            print(f"      📍 Итого размещено: {placed_individual_items}")
+            
+            # КРИТИЧЕСКАЯ ЛОГИКА: Заявка исключается только если ВСЕ единицы размещены
+            is_fully_placed = (total_individual_items > 0 and placed_individual_items >= total_individual_items)
+            
+            if is_fully_placed:
+                print(f"      ❌ ИСКЛЮЧЕНА: заявка {cargo_number} полностью размещена ({placed_individual_items}/{total_individual_items})")
+            else:
+                print(f"      ✅ ВКЛЮЧЕНА: заявка {cargo_number} не полностью размещена ({placed_individual_items}/{total_individual_items})")
+                filtered_cargo_list.append(cargo)
+        
+        print(f"📋 Результат фильтрации individual-units: {len(filtered_cargo_list)}/{len(cargo_list)} заявок показаны (исключено {len(cargo_list) - len(filtered_cargo_list)} полностью размещенных)")
+        
+        # Используем отфильтрованный список
+        cargo_list = filtered_cargo_list
+        
         # DEBUG: Проверяем первую заявку
         if cargo_list:
             first_cargo = cargo_list[0]
