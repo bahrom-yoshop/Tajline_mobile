@@ -22544,6 +22544,113 @@ async def get_cargo_statistics(
         raise HTTPException(status_code=500, detail=f"Error getting cargo statistics: {str(e)}")
 
 
+@app.post("/api/transport/bulk-generate-qr")
+async def bulk_generate_transport_qr(
+    transport_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Массовая генерация QR кодов для выбранных транспортов"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        transport_ids = transport_data.get("transport_ids", [])
+        
+        if not transport_ids:
+            raise HTTPException(status_code=400, detail="No transport IDs provided")
+        
+        results = []
+        current_time = datetime.utcnow()
+        
+        for transport_id in transport_ids:
+            try:
+                # Проверяем существование транспорта
+                transport = db.transports.find_one({"id": transport_id})
+                if not transport:
+                    results.append({
+                        "transport_id": transport_id,
+                        "success": False,
+                        "error": "Transport not found"
+                    })
+                    continue
+                
+                # Генерируем уникальный QR код для каждого транспорта
+                unique_suffix = current_time.strftime("%Y%m%d%H%M%S") + str(len(results))  # Добавляем индекс для уникальности
+                qr_data = f"TRANSPORT_{transport['transport_number']}_{unique_suffix}"
+                
+                # Генерируем QR изображение
+                qr = qrcode.QRCode(
+                    version=1,
+                    error_correction=qrcode.constants.ERROR_CORRECT_L,
+                    box_size=10,
+                    border=4,
+                )
+                qr.add_data(qr_data)
+                qr.make(fit=True)
+                
+                # Создаем изображение QR кода
+                img = qr.make_image(fill_color="black", back_color="white")
+                buffer = BytesIO()
+                img.save(buffer, format='PNG')
+                buffer.seek(0)
+                
+                # Конвертируем изображение в base64
+                qr_image_base64 = base64.b64encode(buffer.getvalue()).decode()
+                
+                # Обновляем транспорт с QR данными
+                db.transports.update_one(
+                    {"id": transport_id},
+                    {
+                        "$set": {
+                            "qr_code": qr_data,
+                            "qr_simple": transport['transport_number'],
+                            "qr_image_base64": qr_image_base64,
+                            "qr_generated_at": current_time,
+                            "qr_generated_by": current_user.id,
+                            "qr_print_count": 0,
+                            "updated_at": current_time
+                        }
+                    }
+                )
+                
+                results.append({
+                    "transport_id": transport_id,
+                    "transport_number": transport['transport_number'],
+                    "driver_name": transport.get('driver_name', 'Не указан'),
+                    "direction": transport.get('direction', 'Не указано'),
+                    "success": True,
+                    "qr_code": qr_data,
+                    "qr_simple": transport['transport_number'],
+                    "qr_image": f"data:image/png;base64,{qr_image_base64}"
+                })
+                
+            except Exception as e:
+                results.append({
+                    "transport_id": transport_id,
+                    "success": False,
+                    "error": str(e)
+                })
+        
+        successful_count = len([r for r in results if r.get("success")])
+        
+        return {
+            "success": True,
+            "message": f"QR codes generated for {successful_count} out of {len(transport_ids)} transports",
+            "results": results,
+            "total_requested": len(transport_ids),
+            "successful_count": successful_count,
+            "failed_count": len(transport_ids) - successful_count,
+            "generated_by": current_user.full_name,
+            "generated_at": current_time
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка массовой генерации QR: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error in bulk QR generation: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
