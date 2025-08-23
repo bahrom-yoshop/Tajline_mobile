@@ -14524,6 +14524,170 @@ function App() {
     return icons[eventType] || '📝';
   };
 
+  // === ФУНКЦИИ ДЛЯ УЛУЧШЕННЫХ QR КОДОВ ТРАНСПОРТА ===
+  
+  const openTransportListPage = () => {
+    setTransportListPage(true);
+    setActiveTab('transport-qr-management');
+    fetchAllTransportsList();
+  };
+  
+  const closeTransportListPage = () => {
+    setTransportListPage(false);
+    setActiveTab('main');
+  };
+  
+  const fetchAllTransportsList = async () => {
+    try {
+      setTransportListLoading(true);
+      
+      const response = await apiCall('/api/transport/list-with-qr');
+      
+      if (response.success || response.transports) {
+        setAllTransportsList(response.transports || []);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching transports list:', error);
+      showAlert('Ошибка загрузки списка транспортов', 'error');
+      setAllTransportsList([]);
+    } finally {
+      setTransportListLoading(false);
+    }
+  };
+  
+  const handleTransportSelection = (transportId, isSelected) => {
+    setSelectedTransports(prev => {
+      if (isSelected) {
+        return [...prev, transportId];
+      } else {
+        return prev.filter(id => id !== transportId);
+      }
+    });
+  };
+  
+  const handleSelectAllTransports = () => {
+    const allIds = allTransportsList.map(t => t.id);
+    setSelectedTransports(selectedTransports.length === allIds.length ? [] : allIds);
+  };
+  
+  const handleBulkGenerateQR = async () => {
+    if (selectedTransports.length === 0) {
+      showAlert('Выберите хотя бы один транспорт для генерации QR', 'warning');
+      return;
+    }
+    
+    try {
+      setTransportBulkQRLoading(true);
+      
+      const response = await apiCall('/api/transport/bulk-generate-qr', 'POST', {
+        transport_ids: selectedTransports
+      });
+      
+      if (response.success) {
+        setTransportBulkQRResults(response.results);
+        setTransportQRGenerationModal(true);
+        showAlert(`QR коды сгенерированы для ${response.successful_count} транспортов`, 'success');
+        
+        // Обновляем список транспортов
+        await fetchAllTransportsList();
+        
+        // Очищаем выбор
+        setSelectedTransports([]);
+      }
+      
+    } catch (error) {
+      console.error('Error generating bulk QR:', error);
+      showAlert(error.detail || 'Ошибка генерации QR кодов', 'error');
+    } finally {
+      setTransportBulkQRLoading(false);
+    }
+  };
+  
+  const handlePrintAllQR = () => {
+    if (transportBulkQRResults.length === 0) {
+      showAlert('Нет QR кодов для печати', 'warning');
+      return;
+    }
+    
+    // Создаем окно для печати всех QR кодов
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showAlert('Не удалось открыть окно печати. Разрешите всплывающие окна.', 'error');
+      return;
+    }
+    
+    let printContent = `
+      <html>
+        <head>
+          <title>QR коды транспортов - Массовая печать</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .qr-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+            .qr-item { 
+              border: 2px solid #333; 
+              padding: 15px; 
+              text-align: center;
+              page-break-inside: avoid;
+            }
+            .qr-header { font-weight: bold; font-size: 16px; margin-bottom: 10px; }
+            .qr-info { font-size: 12px; margin: 5px 0; }
+            .qr-image { margin: 10px 0; }
+            @media print { 
+              body { margin: 0; }
+              .print-btn { display: none; }
+              .qr-item { break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h1>QR коды транспортов TAJLINE.TJ</h1>
+            <p>Дата генерации: ${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU')}</p>
+            <button class="print-btn" onclick="window.print()" style="
+              padding: 10px 20px; 
+              font-size: 16px; 
+              background: #007bff; 
+              color: white; 
+              border: none; 
+              border-radius: 5px; 
+              cursor: pointer; 
+              margin: 10px;
+            ">Печать</button>
+          </div>
+          <div class="qr-grid">
+    `;
+    
+    transportBulkQRResults.forEach(result => {
+      if (result.success) {
+        printContent += `
+          <div class="qr-item">
+            <div class="qr-header">TAJLINE.TJ</div>
+            <div class="qr-info"><strong>Транспорт:</strong> ${result.transport_number}</div>
+            <div class="qr-info"><strong>Водитель:</strong> ${result.driver_name}</div>
+            <div class="qr-info"><strong>Направление:</strong> ${result.direction}</div>
+            <div class="qr-image">
+              <img src="${result.qr_image}" alt="QR код ${result.transport_number}" style="width: 150px; height: 150px;" />
+            </div>
+            <div class="qr-info"><strong>QR код:</strong> ${result.qr_simple}</div>
+            <div class="qr-info" style="font-size: 10px; color: #666;">ID: ${result.qr_code}</div>
+          </div>
+        `;
+      }
+    });
+    
+    printContent += `
+          </div>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    showAlert(`Отправлено на печать ${transportBulkQRResults.filter(r => r.success).length} QR кодов`, 'success');
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoggingIn(true);
