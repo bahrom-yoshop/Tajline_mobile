@@ -211,33 +211,49 @@ class YavanWarehouseMappingTester:
         self.log(f"🏢 Проверка существования реального склада '{EXPECTED_WAREHOUSE_NAME}'...")
         
         try:
-            # Получаем список всех складов
+            # Получаем список всех складов и городов
             response = self.session.get(f"{API_BASE}/warehouses/all-cities")
             
             if response.status_code == 200:
                 data = response.json()
-                warehouses = data.get("warehouses", [])
+                cities = data.get("cities", [])
                 
-                # Ищем склад с нужным названием
-                target_warehouse = None
-                for warehouse in warehouses:
-                    if warehouse.get("name") == EXPECTED_WAREHOUSE_NAME:
-                        target_warehouse = warehouse
+                # Ищем город Яванский район и проверяем какой склад его обслуживает
+                yavan_city = None
+                for city in cities:
+                    if "яван" in city.get("city_name", "").lower():
+                        yavan_city = city
                         break
                 
-                if target_warehouse:
-                    warehouse_id = target_warehouse.get("warehouse_id_number", "")
-                    self.log(f"✅ Реальный склад найден: {EXPECTED_WAREHOUSE_NAME} (ID: {warehouse_id})")
+                if yavan_city:
+                    city_name = yavan_city.get("city_name")
+                    warehouses = yavan_city.get("available_warehouses", [])
                     
-                    # Проверяем ID склада
-                    if warehouse_id == EXPECTED_WAREHOUSE_ID:
-                        self.log(f"✅ ID склада корректен: {EXPECTED_WAREHOUSE_ID}")
-                        return True
-                    else:
-                        self.log(f"⚠️ ID склада не соответствует ожидаемому: получен {warehouse_id}, ожидался {EXPECTED_WAREHOUSE_ID}")
-                        return True  # Склад существует, но ID может отличаться
+                    self.log(f"✅ Найден город: {city_name}")
+                    self.log(f"📦 Обслуживающие склады: {len(warehouses)}")
+                    
+                    # Проверяем склады
+                    for warehouse in warehouses:
+                        warehouse_name = warehouse.get("warehouse_name")
+                        warehouse_id_number = warehouse.get("warehouse_id_number")
+                        
+                        self.log(f"   🏢 {warehouse_name} (ID: {warehouse_id_number})")
+                        
+                        if warehouse_name == EXPECTED_WAREHOUSE_NAME:
+                            self.log(f"✅ Реальный склад найден: {EXPECTED_WAREHOUSE_NAME} (ID: {warehouse_id_number})")
+                            
+                            # Проверяем ID склада
+                            if warehouse_id_number == EXPECTED_WAREHOUSE_ID:
+                                self.log(f"✅ ID склада корректен: {EXPECTED_WAREHOUSE_ID}")
+                            else:
+                                self.log(f"⚠️ ID склада отличается: получен {warehouse_id_number}, ожидался {EXPECTED_WAREHOUSE_ID}")
+                            
+                            return True
+                    
+                    self.log(f"❌ Склад '{EXPECTED_WAREHOUSE_NAME}' НЕ найден среди обслуживающих город Яван!", "ERROR")
+                    return False
                 else:
-                    self.log(f"❌ Реальный склад '{EXPECTED_WAREHOUSE_NAME}' НЕ найден в системе!", "ERROR")
+                    self.log("❌ Город с названием содержащим 'Яван' не найден!", "ERROR")
                     return False
             else:
                 self.log(f"❌ Ошибка получения списка складов: {response.status_code}", "ERROR")
