@@ -11,7 +11,7 @@ from datetime import datetime
 import uuid
 
 # Конфигурация
-BACKEND_URL = "https://tajline-manage-1.preview.emergentagent.com/api"
+BACKEND_URL = "https://cargo-sync.preview.emergentagent.com/api"
 
 # Учетные данные для тестирования
 ADMIN_CREDENTIALS = {

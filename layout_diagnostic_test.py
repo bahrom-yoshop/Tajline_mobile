@@ -29,7 +29,7 @@ from datetime import datetime
 import time
 
 # Configuration
-BACKEND_URL = "https://tajline-manage-1.preview.emergentagent.com/api"
+BACKEND_URL = "https://cargo-sync.preview.emergentagent.com/api"
 WAREHOUSE_OPERATOR_PHONE = "+79777888999"
 WAREHOUSE_OPERATOR_PASSWORD = "warehouse123"
 

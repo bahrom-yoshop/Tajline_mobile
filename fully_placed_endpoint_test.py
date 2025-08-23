@@ -33,7 +33,7 @@ from datetime import datetime
 import os
 
 # Конфигурация для тестирования
-BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://tajline-manage-1.preview.emergentagent.com')
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cargo-sync.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 # Тестовые данные оператора склада
@@ -662,7 +662,7 @@ from datetime import datetime
 import os
 
 # Конфигурация для тестирования
-BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://tajline-manage-1.preview.emergentagent.com')
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cargo-sync.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 # Тестовые данные оператора склада
@@ -1257,7 +1257,7 @@ from datetime import datetime
 import os
 
 # Конфигурация для тестирования
-BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://tajline-manage-1.preview.emergentagent.com')
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cargo-sync.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 # Тестовые данные оператора склада
@@ -1904,7 +1904,7 @@ import sys
 from datetime import datetime
 
 # Конфигурация
-BACKEND_URL = "https://tajline-manage-1.preview.emergentagent.com/api"
+BACKEND_URL = "https://cargo-sync.preview.emergentagent.com/api"
 
 # Тестовые пользователи
 TEST_USERS = {

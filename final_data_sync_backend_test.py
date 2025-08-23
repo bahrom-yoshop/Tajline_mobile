@@ -32,7 +32,7 @@ from datetime import datetime
 import time
 
 # Конфигурация
-BASE_URL = "https://tajline-manage-1.preview.emergentagent.com/api"
+BASE_URL = "https://cargo-sync.preview.emergentagent.com/api"
 WAREHOUSE_OPERATOR_PHONE = "+79777888999"
 WAREHOUSE_OPERATOR_PASSWORD = "warehouse123"
 TARGET_APPLICATION = "250101"

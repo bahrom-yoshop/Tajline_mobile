@@ -7,7 +7,7 @@ import requests
 import json
 
 def debug_pickup_acceptance():
-    base_url = "https://tajline-manage-1.preview.emergentagent.com"
+    base_url = "https://cargo-sync.preview.emergentagent.com"
     
     # Login as courier
     courier_login = {
