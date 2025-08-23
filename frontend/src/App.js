@@ -17046,6 +17046,9 @@ function App() {
                                     if (sub.subsections) {
                                       // Если есть вложенные подразделы, показываем их
                                       // Можно добавить состояние для показа/скрытия вложенных
+                                    } else if (sub.id === 'logistics-cargo-to-transport') {
+                                      // Специальная обработка для страницы размещения грузов на транспорт
+                                      openCargoToTransportPage();
                                     } else {
                                       setActiveTab(sub.id);
                                     }
