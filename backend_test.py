@@ -491,8 +491,8 @@ class TransportQRTester:
             print("❌ Тестирование прервано: не удалось авторизоваться")
             return
         
-        # Поиск транспортов
-        if not self.find_test_transports():
+        # Поиск или создание транспортов
+        if not self.find_or_create_test_transports():
             print("❌ Тестирование прервано: не найдены транспорты")
             return
         
