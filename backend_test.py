@@ -114,17 +114,32 @@ class TransportQRTester:
             
             if response.status_code == 200:
                 data = response.json()
-                transports = data.get("items", [])
+                
+                # Проверяем разные возможные структуры ответа
+                if isinstance(data, list):
+                    transports = data
+                elif isinstance(data, dict):
+                    transports = data.get("items", data.get("transports", data.get("data", [])))
+                else:
+                    transports = []
                 
                 # Берем первые 3 транспорта для тестирования
-                self.transport_ids = [t["id"] for t in transports[:3]]
-                
-                self.log_test(
-                    "Поиск транспортов для тестирования",
-                    True,
-                    f"Найдено {len(transports)} транспортов, выбрано {len(self.transport_ids)} для тестирования"
-                )
-                return len(self.transport_ids) > 0
+                if transports:
+                    self.transport_ids = [t["id"] for t in transports[:3]]
+                    
+                    self.log_test(
+                        "Поиск транспортов для тестирования",
+                        True,
+                        f"Найдено {len(transports)} транспортов, выбрано {len(self.transport_ids)} для тестирования"
+                    )
+                    return len(self.transport_ids) > 0
+                else:
+                    self.log_test(
+                        "Поиск транспортов для тестирования",
+                        False,
+                        "Список транспортов пуст"
+                    )
+                    return False
             else:
                 self.log_test(
                     "Поиск транспортов для тестирования",
