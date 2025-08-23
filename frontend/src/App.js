@@ -5895,6 +5895,12 @@ function App() {
   const [availableCargoForTransport, setAvailableCargoForTransport] = useState([]);
   const [selectedCargoForPlacement, setSelectedCargoForPlacement] = useState([]);
   const [transportCargoList, setTransportCargoList] = useState([]);
+  
+  // НОВЫЕ STATE ДЛЯ QR КОДОВ ТРАНСПОРТА:
+  const [qrGenerationModal, setQrGenerationModal] = useState(false); // Модальное окно генерации QR
+  const [selectedTransportForQR, setSelectedTransportForQR] = useState(null); // Выбранный транспорт для QR
+  const [transportQRData, setTransportQRData] = useState(null); // Данные QR кода
+  const [qrGenerationLoading, setQrGenerationLoading] = useState(false); // Загрузка генерации QR
   const [contactModal, setContactModal] = useState(false);
 
   // Notification management states
