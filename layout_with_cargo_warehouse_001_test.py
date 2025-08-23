@@ -314,26 +314,32 @@ class LayoutWithCargoTester:
             return False
     
     def diagnose_warehouse_id_formats(self):
-        """Диагностика форматов warehouse_id в placement_records"""
-        self.log("🔍 Диагностика форматов warehouse_id...")
+        """Диагностика форматов placement_location в размещенных грузах"""
+        self.log("🔍 Диагностика форматов placement_location...")
         
         warehouse_id_formats = self.test_results["warehouse_id_formats"]
         
         if not warehouse_id_formats:
-            self.log("⚠️ Нет данных о форматах warehouse_id", "WARNING")
+            self.log("⚠️ Нет данных о форматах placement_location", "WARNING")
             return
         
-        self.log(f"📋 Найденные форматы warehouse_id в placement_records:")
+        self.log(f"📋 Найденные форматы placement_location в размещенных грузах:")
         for i, format_id in enumerate(warehouse_id_formats, 1):
             self.log(f"   {i}. {format_id}")
             
             # Анализ формата
-            if len(format_id) == 36 and '-' in format_id:
-                self.log(f"      → UUID формат")
-            elif format_id.isdigit() and len(format_id) == 3:
-                self.log(f"      → Номерной формат (warehouse_id_number)")
+            if '-' in format_id and len(format_id.split('-')) == 4:
+                parts = format_id.split('-')
+                if parts[0] == "001":
+                    self.log(f"      → QR формат склада 001: {format_id}")
+                else:
+                    self.log(f"      → QR формат другого склада: {format_id}")
+            elif format_id.startswith('Б'):
+                self.log(f"      → Кириллический формат: {format_id}")
+            elif format_id.startswith('B'):
+                self.log(f"      → Латинский формат: {format_id}")
             else:
-                self.log(f"      → Неизвестный формат")
+                self.log(f"      → Неизвестный формат: {format_id}")
         
         # Проверка соответствия с нашим складом 001
         warehouse_001_id = self.warehouse_001_info.get("id") if self.warehouse_001_info else None
@@ -343,15 +349,18 @@ class LayoutWithCargoTester:
         self.log(f"   - UUID склада 001: {warehouse_001_id}")
         self.log(f"   - Номер склада 001: {warehouse_001_number}")
         
-        uuid_found = warehouse_001_id in warehouse_id_formats if warehouse_001_id else False
-        number_found = warehouse_001_number in warehouse_id_formats
+        # Проверяем есть ли placement_location начинающиеся с "001-"
+        warehouse_001_locations = [loc for loc in warehouse_id_formats if loc.startswith("001-")]
         
-        self.log(f"   - UUID найден в placement_records: {'✅' if uuid_found else '❌'}")
-        self.log(f"   - Номер найден в placement_records: {'✅' if number_found else '❌'}")
+        self.log(f"   - Найдено placement_location для склада 001: {len(warehouse_001_locations)}")
         
-        if not uuid_found and not number_found:
-            self.log("⚠️ ПРОБЛЕМА: Ни UUID, ни номер склада 001 не найдены в placement_records!", "WARNING")
-            self.test_results["sync_issues"].append("Склад 001 не найден в placement_records по UUID или номеру")
+        if warehouse_001_locations:
+            self.log("✅ Склад 001 найден в размещенных грузах!")
+            for loc in warehouse_001_locations:
+                self.log(f"     - {loc}")
+        else:
+            self.log("⚠️ ПРОБЛЕМА: Склад 001 не найден в placement_location размещенных грузов!", "WARNING")
+            self.test_results["sync_issues"].append("Склад 001 не найден в placement_location размещенных грузов")
     
     def generate_final_report(self):
         """Генерация финального отчета"""
