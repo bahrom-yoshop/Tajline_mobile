@@ -276,11 +276,11 @@ class LayoutWithCargoUSR648425Tester:
             cargo_number = item.get("cargo_number", "")
             application_number = item.get("application_number", "")
             
-            # Проверяем наличие USR648425
+            # Проверяем наличие USR648425 или Юлдашев
             for field in operator_fields:
-                if field and TARGET_OPERATOR in str(field):
+                if field and (TARGET_OPERATOR in str(field) or "Юлдашев" in str(field)):
                     usr648425_items.append(item)
-                    self.log(f"✅ Найден элемент от {TARGET_OPERATOR}: {item.get('cargo_number', 'N/A')}")
+                    self.log(f"✅ Найден элемент от {TARGET_OPERATOR}/Юлдашев: {item.get('cargo_number', 'N/A')} - {field}")
                     break
             
             # Проверяем заявку 25082298
