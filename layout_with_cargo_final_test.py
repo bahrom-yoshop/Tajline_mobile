@@ -181,7 +181,7 @@ class LayoutWithCargoFinalTester:
         
         try:
             # Запрос к API с warehouse_id для склада 001
-            response = self.session.get(f"{API_BASE}/operator/warehouses/{WAREHOUSE_001_ID}/layout-with-cargo")
+            response = self.session.get(f"{API_BASE}/warehouses/{WAREHOUSE_001_ID}/layout-with-cargo")
             
             if response.status_code != 200:
                 self.log(f"❌ API недоступен: {response.status_code} - {response.text}", "ERROR")
