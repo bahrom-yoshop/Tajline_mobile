@@ -169,6 +169,20 @@ class TransportQRCriticalTester:
                     transport_response = self.session.get(f"{API_BASE}/transport/{transport_id}")
                     if transport_response.status_code == 200:
                         transport = transport_response.json()
+                        
+                        # Обновляем статус транспорта на "available" для тестирования QR сканирования
+                        try:
+                            update_response = self.session.put(f"{API_BASE}/transport/{transport_id}", json={
+                                "status": "available"
+                            })
+                            if update_response.status_code == 200:
+                                transport["status"] = "available"
+                                self.log(f"✅ Статус транспорта обновлен на 'available'")
+                            else:
+                                self.log(f"⚠️ Не удалось обновить статус транспорта: {update_response.status_code}")
+                        except Exception as e:
+                            self.log(f"⚠️ Ошибка обновления статуса: {e}")
+                        
                         self.log(f"✅ Создан тестовый транспорт: {transport.get('transport_number')} (ID: {transport.get('id')})")
                         self.test_results["transport_found"] = True
                         return transport
