@@ -13957,6 +13957,57 @@ async def create_interwarehouse_transport(
         "created_by": current_user.full_name
     }
 
+@app.get("/api/transport/list-with-qr")
+async def get_transports_with_qr_status(
+    current_user: User = Depends(get_current_user)
+):
+    """Получение списка транспортов с информацией о QR кодах"""
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        # Получаем все транспорты
+        transports = list(db.transports.find())
+        
+        transport_list = []
+        for transport in transports:
+            transport_info = {
+                "id": transport["id"],
+                "transport_number": transport["transport_number"],
+                "driver_name": transport["driver_name"],
+                "driver_phone": transport["driver_phone"],
+                "capacity_kg": transport["capacity_kg"],
+                "direction": transport["direction"],
+                "status": transport["status"],
+                "current_load_kg": transport.get("current_load_kg", 0),
+                "cargo_count": len(transport.get("cargo_list", [])),
+                "created_at": transport["created_at"],
+                # QR информация
+                "has_qr_code": bool(transport.get("qr_code")),
+                "qr_generated_at": transport.get("qr_generated_at"),
+                "qr_generated_by": transport.get("qr_generated_by"),
+                "qr_print_count": transport.get("qr_print_count", 0)
+            }
+            transport_list.append(transport_info)
+        
+        # Сортируем по времени создания (новые сначала)
+        transport_list.sort(key=lambda x: x["created_at"], reverse=True)
+        
+        return {
+            "transports": transport_list,
+            "total_count": len(transport_list),
+            "with_qr_count": len([t for t in transport_list if t["has_qr_code"]]),
+            "without_qr_count": len([t for t in transport_list if not t["has_qr_code"]])
+        }
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения списка транспорта: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching transport list: {str(e)}"
+        )
+
 @app.get("/api/transport/{transport_id}")
 async def get_transport(
     transport_id: str,
