@@ -33793,26 +33793,25 @@ function App() {
                     </p>
                   </div>
                   
-                  {/* НОВОЕ: Город получения груза */}
+                  {/* ИСПРАВЛЕНО: Город получения груза */}
                   <div>
                     <span className="font-medium text-gray-600">Город получения:</span>
                     <p className="font-semibold text-purple-600">
-                      🏙️ {placementDetails.delivery_city || placementDetails.recipient_address?.split(',')[0] || 'Не указан'}
+                      🏙️ {placementDetails.delivery_city || placementDetails.pickup_city || 'Не указан'}
                     </p>
                   </div>
                   
                   {/* ИСПРАВЛЕНО: Склад приема - показать название склада оператора */}
                   <div>
-                    <span className="font-medium text-gray-600">Склад приема:</span>
+                    <span className="font-medium text-gray-600">Склад приёма:</span>
                     <p className="font-semibold text-indigo-600">
                       🏭 {placementDetails.source_warehouse_name || 
                            placementDetails.accepting_warehouse ||
-                           operatorWarehouses[0]?.warehouse_name ||
                            'Не указан'}
                     </p>
                   </div>
                   
-                  {/* НОВОЕ: Склад который будет выдавать груз */}
+                  {/* ИСПРАВЛЕНО: Склад выдачи груза */}
                   <div>
                     <span className="font-medium text-gray-600">Склад выдачи:</span>
                     <p className="font-semibold text-teal-600">
@@ -33825,16 +33824,15 @@ function App() {
                   
                   {/* ИСПРАВЛЕНО: Информация об операторе - показать ФИО */}
                   <div>
-                    <span className="font-medium text-gray-600">Оператор приема:</span>
+                    <span className="font-medium text-gray-600">Оператор приёма:</span>
                     <p className="font-semibold text-green-600">
                       👤 {placementDetails.operator_full_name || 
-                           placementDetails.accepting_operator ||
                            placementDetails.operator_name ||
-                           user?.full_name || 
-                           'Тестовый Оператор Приёма Заявок'}
+                           placementDetails.accepting_operator ||
+                           'Неизвестный оператор'}
                     </p>
                     <p className="text-gray-500 text-xs">
-                      {placementDetails.operator_phone || user?.phone || '+79777888999'}
+                      {placementDetails.operator_phone || 'Телефон не указан'}
                     </p>
                   </div>
                   
