@@ -286,11 +286,14 @@ class TransportType(str, Enum):
     ON_FOOT = "on_foot"  # Пешком
 
 class TransportStatus(str, Enum):
-    EMPTY = "empty"
-    FILLED = "filled"
-    IN_TRANSIT = "in_transit"
-    ARRIVED = "arrived"
-    COMPLETED = "completed"
+    AVAILABLE = "available"    # Транспорт доступен для загрузки
+    EMPTY = "empty"           # Транспорт пустой
+    LOADING = "loading"       # Транспорт загружается
+    LOADED = "loaded"         # Транспорт загружен
+    FILLED = "filled"         # Транспорт заполнен (альтернатива loaded)
+    IN_TRANSIT = "in_transit" # В пути
+    ARRIVED = "arrived"       # Прибыл
+    COMPLETED = "completed"   # Завершен
 
 class CourierStatus(str, Enum):
     OFFLINE = "offline"  # Не в сети / отслеживание выключено
