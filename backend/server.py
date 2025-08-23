@@ -7610,7 +7610,7 @@ async def get_cargo_placement_status(
         
         # Определяем склады
         default_source_warehouse = "Москва Центральный"  # Основной склад приёма
-        default_target_warehouse = get_warehouse_by_city(delivery_city) if delivery_city else "Душанбе Центральный"
+        target_warehouse_by_city = get_warehouse_by_city(delivery_city) if delivery_city else "Душанбе Центральный"
         
         return {
             'cargo_id': cargo_id,
@@ -7639,10 +7639,10 @@ async def get_cargo_placement_status(
             'source_warehouse_name': (source_warehouse_info.get('name') if source_warehouse_info 
                                     else cargo.get('accepting_warehouse') or default_source_warehouse),
             'target_warehouse_name': (target_warehouse_info.get('name') if target_warehouse_info 
-                                    else cargo.get('delivery_warehouse') or default_target_warehouse),
+                                    else cargo.get('delivery_warehouse') or target_warehouse_by_city),
             'accepting_warehouse': cargo.get('accepting_warehouse') or default_source_warehouse,
-            'delivery_warehouse': cargo.get('delivery_warehouse') or default_target_warehouse,
-            'delivery_warehouse_name': cargo.get('delivery_warehouse') or default_target_warehouse,
+            'delivery_warehouse': cargo.get('delivery_warehouse') or target_warehouse_by_city,
+            'delivery_warehouse_name': cargo.get('delivery_warehouse') or target_warehouse_by_city,
             # ИНФОРМАЦИЯ ОБ ОПЕРАТОРЕ (с данными из коллекции users):
             'operator_full_name': (operator_info.get('full_name') if operator_info 
                                  else cargo.get('operator_name') or cargo.get('accepting_operator') or 'Неизвестный оператор'),
