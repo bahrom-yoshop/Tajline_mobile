@@ -39557,6 +39557,144 @@ function App() {
           </DialogContent>
         </Dialog>
         
+        {/* МОДАЛЬНОЕ ОКНО: QR КОД ТРАНСПОРТА */}
+        <Dialog open={transportQRModal} onOpenChange={setTransportQRModal}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <div className="h-5 w-5 border border-gray-400" style={{
+                  background: 'repeating-conic-gradient(from 0deg, transparent 0deg 90deg, currentColor 90deg 180deg)',
+                  backgroundSize: '2px 2px'
+                }} />
+                <span>QR код транспорта</span>
+              </DialogTitle>
+              <DialogDescription>
+                QR код для транспорта {selectedTransportForQR?.transport_number}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {transportQRData && (
+                <>
+                  {/* Информация о транспорте */}
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                    <h3 className="font-semibold text-lg">Информация о транспорте</h3>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium">Номер транспорта:</span>
+                        <p className="text-gray-700">{transportQRData.transport_number}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium">QR код:</span>
+                        <p className="text-gray-700 font-mono text-xs bg-white px-2 py-1 rounded border">
+                          {transportQRData.qr_code}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Создан:</span>
+                        <p className="text-gray-700">
+                          {new Date(transportQRData.qr_generated_at).toLocaleString('ru-RU')}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Количество печатей:</span>
+                        <p className="text-gray-700">
+                          {transportQRData.qr_print_count || 0}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* QR код визуально */}
+                  <div className="text-center space-y-4">
+                    <div className="inline-block p-6 bg-white border-2 border-gray-300 rounded-lg">
+                      {/* Простая визуализация QR кода */}
+                      <div className="w-48 h-48 bg-gray-100 border border-gray-300 rounded flex items-center justify-center">
+                        <div className="text-center space-y-2">
+                          <div className="w-32 h-32 mx-auto" style={{
+                            background: `
+                              repeating-conic-gradient(from 0deg, 
+                                transparent 0deg 30deg, 
+                                black 30deg 60deg, 
+                                transparent 60deg 90deg,
+                                black 90deg 120deg
+                              ),
+                              repeating-linear-gradient(45deg,
+                                transparent 0px 5px,
+                                black 5px 10px
+                              )
+                            `,
+                            backgroundSize: '8px 8px, 4px 4px'
+                          }} />
+                          <p className="text-xs text-gray-500 font-mono">
+                            QR: {transportQRData.qr_code.slice(-8)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <p className="text-sm text-gray-600">
+                      Распечатайте этот QR код и прикрепите к транспорту
+                    </p>
+                  </div>
+
+                  {/* Кнопки управления */}
+                  <div className="flex space-x-3">
+                    <Button
+                      onClick={() => handlePrintTransportQR(transportQRData.transport_id)}
+                      className="flex-1"
+                      variant="default"
+                    >
+                      <div className="mr-2 h-4 w-4" style={{
+                        background: 'currentColor',
+                        mask: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z\' /%3E%3C/svg%3E") no-repeat center/contain'
+                      }} />
+                      Печать QR кода
+                    </Button>
+                    
+                    <Button
+                      onClick={() => {
+                        // Копируем QR код в буфер обмена
+                        navigator.clipboard.writeText(transportQRData.qr_code);
+                        showAlert('QR код скопирован в буфер обмена', 'success');
+                      }}
+                      variant="outline"
+                    >
+                      <div className="mr-2 h-4 w-4" style={{
+                        background: 'currentColor',
+                        mask: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z\' /%3E%3C/svg%3E") no-repeat center/contain'
+                      }} />
+                      Копировать
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {!transportQRData && (
+                <div className="text-center py-8">
+                  <div className="h-12 w-12 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <div className="h-6 w-6 animate-spin border-2 border-gray-300 border-t-blue-600 rounded-full" />
+                  </div>
+                  <p className="text-gray-500">Загрузка QR данных...</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setTransportQRModal(false);
+                  setSelectedTransportForQR(null);
+                  setTransportQRData(null);
+                }}
+              >
+                Закрыть
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+        
         {/* Компонент управления номерами разработчика */}
         <DevControl />
     </div>
