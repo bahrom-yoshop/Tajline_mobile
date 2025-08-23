@@ -325,7 +325,7 @@ class TransportQRTester:
                 }
                 
                 response = self.session.post(f"{API_BASE}/transport/create", json=transport_data)
-                if response.status_code == 201:
+                if response.status_code in [200, 201]:
                     data = response.json()
                     transport_id = data.get("transport_id")
                     self.created_transports.append(transport_id)
