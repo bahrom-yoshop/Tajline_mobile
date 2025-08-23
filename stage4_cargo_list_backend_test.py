@@ -439,8 +439,8 @@ class Stage4CargoListTester:
                 all_sections_present = True
                 
                 for section in required_sections:
-                    if section in data:
-                        section_data = data[section]
+                    if section in statistics_data:
+                        section_data = statistics_data[section]
                         self.log(f"✅ Раздел {section}: {section_data}")
                         
                         # Детальная проверка каждого раздела
