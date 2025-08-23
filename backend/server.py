@@ -6180,18 +6180,40 @@ async def get_available_cargo_for_placement(
                 # НОВОЕ: Обновляем информацию о размещении для каждого cargo_item
                 for item in cargo_items:
                     individual_items = item.get('individual_items', [])
+                    
+                    # Способ 1: Подсчет через individual_items.is_placed
+                    placed_count_via_is_placed = 0
                     if individual_items:
-                        item['placed_count'] = len([unit for unit in individual_items if unit.get('is_placed') == True])
+                        placed_count_via_is_placed = len([unit for unit in individual_items if unit.get('is_placed') == True])
+                        item['total_count'] = len(individual_items)
                     else:
-                        # Подсчитываем через placement_records
-                        placed_count = 0
+                        # Fallback к quantity если individual_items нет
                         quantity = item.get('quantity', 1)
+                        item['total_count'] = quantity
+                    
+                    # Способ 2: Подсчет через placement_records (более надежный для актуальных данных)
+                    placed_count_via_placement_records = 0
+                    cargo_number = cargo.get('cargo_number')
+                    if cargo_number:
+                        # Ищем placement_records для этой заявки
+                        type_index = cargo_items.index(item) + 1
+                        type_number = f"{str(type_index).zfill(2)}"
+                        
+                        # Подсчитываем placement_records для этого cargo_item
+                        quantity = item.get('quantity', 1) if not individual_items else len(individual_items)
                         for i in range(1, quantity + 1):
-                            individual_number = f"{cargo['cargo_number']}/{str(len(cargo_items)).zfill(2)}/{str(i).zfill(2)}"
+                            individual_number = f"{cargo_number}/{type_number}/{str(i).zfill(2)}"
                             placement_record = db.placement_records.find_one({"individual_number": individual_number})
                             if placement_record:
-                                placed_count += 1
-                        item['placed_count'] = placed_count
+                                placed_count_via_placement_records += 1
+                    
+                    # Используем максимум из двух способов (placement_records более актуальные)
+                    placed_count = max(placed_count_via_is_placed, placed_count_via_placement_records)
+                    
+                    item['placed_count'] = placed_count
+                    item['placement_progress'] = f"{placed_count}/{item['total_count']}"
+                    
+                    print(f"      📊 Cargo_item {cargo_items.index(item)+1}: {placed_count}/{item['total_count']} размещено")
                 
                 filtered_cargo_list.append(cargo)
                 print(f"🎯 ВКЛЮЧЕНИЕ: Заявка {cargo['cargo_number']} частично размещена ({placed_individual_items}/{total_individual_items}) - оставляем в списке размещения")
