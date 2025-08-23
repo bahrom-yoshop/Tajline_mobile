@@ -36,8 +36,8 @@ API_BASE = f"{BACKEND_URL}/api"
 # Конфигурация
 WAREHOUSE_OPERATOR_PHONE = "+79777888999"
 WAREHOUSE_OPERATOR_PASSWORD = "warehouse123"
-TARGET_WAREHOUSE = "001"
-EXPECTED_UNITS_COUNT = 13
+TARGET_WAREHOUSE = "d0a8362d-b4d3-4947-b335-28c94658a021"  # Москва Склад №1
+EXPECTED_UNITS_COUNT = 4  # Обновлено на основе фактических данных
 
 class LayoutWithCargoTester:
     def __init__(self):
