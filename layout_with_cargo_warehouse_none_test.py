@@ -38,7 +38,7 @@ API_BASE = f"{BACKEND_URL}/api"
 # Конфигурация
 WAREHOUSE_OPERATOR_PHONE = "+79777888999"
 WAREHOUSE_OPERATOR_PASSWORD = "warehouse123"
-TARGET_WAREHOUSE_ID = "001"  # Склад 001
+TARGET_WAREHOUSE_ID = "003"  # Склад 003
 TARGET_OPERATOR = "USR648425"  # Оператор Юлдашев Жасурбек Бахтиёрович
 TARGET_APPLICATION = "25082298"  # Заявка с 7 единицами
 EXPECTED_OPERATOR_NAME = "Юлдашев Жасурбек Бахтиёрович"
