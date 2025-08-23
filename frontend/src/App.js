@@ -14386,6 +14386,138 @@ function App() {
     }
   };
 
+  // === ЭТАП 4: ФУНКЦИИ ДЛЯ НОВОГО РАЗДЕЛА "СПИСОК ГРУЗОВ" ===
+  
+  const openCargoListPage = () => {
+    setCargoListPage(true);
+    setActiveTab('cargo-list');
+    fetchAllCargoList();
+    fetchCargoStatistics();
+  };
+  
+  const closeCargoListPage = () => {
+    setCargoListPage(false);
+    setActiveTab('main');
+  };
+  
+  const fetchAllCargoList = async (page = 1, filters = cargoListFilters) => {
+    try {
+      setCargoListLoading(true);
+      
+      const params = new URLSearchParams({
+        page: page.toString(),
+        per_page: '25'
+      });
+      
+      if (filters.status && filters.status !== 'all') {
+        params.append('status', filters.status);
+      }
+      
+      if (filters.search && filters.search.trim()) {
+        params.append('search', filters.search.trim());
+      }
+      
+      const response = await apiCall(`/api/cargo/list-by-status?${params}`);
+      
+      if (response.success) {
+        setAllCargoList(response.cargo_list || []);
+        setCargoListPagination(response.pagination || {});
+        setCargoListFilters(filters);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching cargo list:', error);
+      showAlert('Ошибка загрузки списка грузов', 'error');
+      setAllCargoList([]);
+      setCargoListPagination({});
+    } finally {
+      setCargoListLoading(false);
+    }
+  };
+  
+  const handleCargoListSearch = (searchTerm) => {
+    const newFilters = { ...cargoListFilters, search: searchTerm };
+    fetchAllCargoList(1, newFilters);
+  };
+  
+  const handleCargoListStatusFilter = (status) => {
+    const newFilters = { ...cargoListFilters, status: status };
+    fetchAllCargoList(1, newFilters);
+  };
+  
+  const handleCargoListPageChange = (page) => {
+    fetchAllCargoList(page, cargoListFilters);
+  };
+  
+  const openCargoHistoryModal = async (cargo) => {
+    try {
+      setSelectedCargoForHistory(cargo);
+      setCargoHistoryModal(true);
+      setCargoHistoryLoading(true);
+      
+      const response = await apiCall(`/api/cargo/${cargo.cargo_number}/full-history`);
+      
+      if (response.success) {
+        setCargoFullHistory(response.history || []);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching cargo history:', error);
+      showAlert('Ошибка загрузки истории груза', 'error');
+      setCargoFullHistory([]);
+    } finally {
+      setCargoHistoryLoading(false);
+    }
+  };
+  
+  const fetchCargoStatistics = async () => {
+    try {
+      setStatisticsLoading(true);
+      
+      const response = await apiCall('/api/cargo/statistics');
+      
+      if (response.success) {
+        setCargoStatistics(response.statistics);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching cargo statistics:', error);
+      showAlert('Ошибка загрузки статистики', 'error');
+    } finally {
+      setStatisticsLoading(false);
+    }
+  };
+  
+  const getStatusBadgeColor = (status) => {
+    const statusColors = {
+      'created': 'bg-gray-100 text-gray-800',
+      'accepted': 'bg-blue-100 text-blue-800',
+      'placed_in_warehouse': 'bg-green-100 text-green-800',
+      'loaded_on_transport': 'bg-purple-100 text-purple-800',
+      'in_transit': 'bg-yellow-100 text-yellow-800',
+      'arrived_destination': 'bg-orange-100 text-orange-800',
+      'completed': 'bg-emerald-100 text-emerald-800',
+      'delivered': 'bg-emerald-100 text-emerald-800'
+    };
+    
+    return statusColors[status] || 'bg-gray-100 text-gray-800';
+  };
+  
+  const getEventIcon = (eventType) => {
+    const icons = {
+      'created': '📦',
+      'placed_in_warehouse': '🏢',
+      'loaded_on_transport': '🚛',
+      'loading_session': '⚡',
+      'status_updated': '🔄',
+      'in_transit': '🚚',
+      'arrived': '📍',
+      'delivered': '✅'
+    };
+    
+    return icons[eventType] || '📝';
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoggingIn(true);
