@@ -5941,8 +5941,8 @@ function App() {
   const [allTransportsList, setAllTransportsList] = useState([]); // Список всех транспортов
   const [selectedTransports, setSelectedTransports] = useState([]); // Выбранные транспорты для QR
   const [transportQRGenerationModal, setTransportQRGenerationModal] = useState(false); // Модальное окно генерации QR
-  const [bulkQRResults, setBulkQRResults] = useState([]); // Результаты массовой генерации QR
-  const [bulkQRLoading, setBulkQRLoading] = useState(false); // Загрузка массовой генерации
+  const [transportBulkQRResults, setTransportBulkQRResults] = useState([]); // Результаты массовой генерации QR для транспорта
+  const [transportBulkQRLoading, setTransportBulkQRLoading] = useState(false); // Загрузка массовой генерации для транспорта
   const [transportListLoading, setTransportListLoading] = useState(false); // Загрузка списка транспортов
   
   const [contactModal, setContactModal] = useState(false);
