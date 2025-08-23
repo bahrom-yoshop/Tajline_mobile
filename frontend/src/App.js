@@ -14022,6 +14022,90 @@ function App() {
     }
   };
 
+  // === ФУНКЦИИ ДЛЯ QR КОДОВ ТРАНСПОРТА ===
+  
+  const handleGenerateTransportQR = async (transport) => {
+    try {
+      setQrGenerationLoading(true);
+      setSelectedTransportForQR(transport);
+      
+      // Генерируем QR код
+      const data = await apiCall(`/api/transport/${transport.id}/generate-qr`, 'POST');
+      
+      // Получаем полные данные QR
+      const qrData = await apiCall(`/api/transport/${transport.id}/qr`);
+      
+      setTransportQRData(qrData);
+      setTransportQRModal(true);
+      
+      showAlert(`QR код сгенерирован для транспорта ${transport.transport_number}`, 'success');
+      
+      // Обновляем список транспортов
+      fetchTransportsList();
+      
+    } catch (error) {
+      console.error('Error generating transport QR:', error);
+      showAlert('Ошибка генерации QR кода: ' + error.message, 'error');
+    } finally {
+      setQrGenerationLoading(false);
+    }
+  };
+
+  const handlePrintTransportQR = async (transportId) => {
+    try {
+      const response = await apiCall(`/api/transport/${transportId}/print-qr`, 'POST');
+      
+      showAlert(`QR код отправлен на печать. Количество печатей: ${response.print_count}`, 'success');
+      
+      // Обновляем данные QR
+      if (transportQRData && transportQRData.transport_id === transportId) {
+        setTransportQRData({
+          ...transportQRData,
+          qr_print_count: response.print_count
+        });
+      }
+      
+      // Обновляем список транспортов
+      fetchTransportsList();
+      
+    } catch (error) {
+      console.error('Error printing transport QR:', error);
+      showAlert('Ошибка печати QR кода: ' + error.message, 'error');
+    }
+  };
+
+  const handleViewTransportQR = async (transport) => {
+    try {
+      // Проверяем, есть ли уже QR код
+      const qrData = await apiCall(`/api/transport/${transport.id}/qr`);
+      
+      setSelectedTransportForQR(transport);
+      setTransportQRData(qrData);
+      setTransportQRModal(true);
+      
+    } catch (error) {
+      console.error('Error fetching transport QR:', error);
+      showAlert('QR код для этого транспорта не найден. Сначала сгенерируйте QR код.', 'warning');
+    }
+  };
+
+  const fetchTransportsWithQR = async () => {
+    try {
+      const data = await apiCall('/api/transport/list-with-qr');
+      setTransports(data.transports);
+      
+      // Обновляем статистику в состоянии приложения
+      setNavigationCounts(prev => ({
+        ...prev,
+        logistics_transport: data.transports.length
+      }));
+      
+    } catch (error) {
+      console.error('Error fetching transports with QR:', error);
+      showAlert('Ошибка загрузки списка транспортов', 'error');
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoggingIn(true);
