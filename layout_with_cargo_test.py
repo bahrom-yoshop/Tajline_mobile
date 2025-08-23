@@ -274,6 +274,7 @@ class LayoutWithCargoTester:
             self.log(f"  Всего единиц: {details['total_units']}")
             self.log(f"  Валидных единиц: {details['valid_units']}")
             self.log(f"  Единиц с проблемами: {details['units_with_issues']}")
+            self.log(f"  Процент успеха: {details['success_rate']:.1%}")
             self.log(f"  Обязательные поля: {', '.join(details['required_fields'])}")
             
             if details['issues_found']:
