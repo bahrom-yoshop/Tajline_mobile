@@ -5897,7 +5897,7 @@ function App() {
   const [transportCargoList, setTransportCargoList] = useState([]);
   
   // НОВЫЕ STATE ДЛЯ QR КОДОВ ТРАНСПОРТА:
-  const [qrGenerationModal, setQrGenerationModal] = useState(false); // Модальное окно генерации QR
+  const [transportQRModal, setTransportQRModal] = useState(false); // Модальное окно QR транспорта
   const [selectedTransportForQR, setSelectedTransportForQR] = useState(null); // Выбранный транспорт для QR
   const [transportQRData, setTransportQRData] = useState(null); // Данные QR кода
   const [qrGenerationLoading, setQrGenerationLoading] = useState(false); // Загрузка генерации QR
