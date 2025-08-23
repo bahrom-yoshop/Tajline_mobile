@@ -15060,7 +15060,7 @@ async def get_transport_qr(
     transport_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Получение QR данных транспорта"""
+    """Получение QR данных и изображения транспорта"""
     # Проверка доступа
     if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
         raise HTTPException(status_code=403, detail="Access denied")
@@ -15073,10 +15073,43 @@ async def get_transport_qr(
     if not transport.get("qr_code"):
         raise HTTPException(status_code=404, detail="QR code not generated for this transport")
     
+    # Если нет изображения, но есть QR данные - регенерируем изображение
+    qr_image_base64 = transport.get("qr_image_base64")
+    if not qr_image_base64 and transport.get("qr_code"):
+        try:
+            # Регенерируем изображение QR кода
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(transport["qr_code"])
+            qr.make(fit=True)
+            
+            img = qr.make_image(fill_color="black", back_color="white")
+            buffer = BytesIO()
+            img.save(buffer, format='PNG')
+            buffer.seek(0)
+            
+            qr_image_base64 = base64.b64encode(buffer.getvalue()).decode()
+            
+            # Сохраняем в базу для следующих запросов
+            db.transports.update_one(
+                {"id": transport_id},
+                {"$set": {"qr_image_base64": qr_image_base64}}
+            )
+        except Exception as e:
+            print(f"❌ Ошибка регенерации изображения QR: {str(e)}")
+    
     return {
+        "success": True,
         "transport_id": transport_id,
         "transport_number": transport["transport_number"],
+        "driver_name": transport.get("driver_name", "Не указан"),
+        "direction": transport.get("direction", "Не указано"),
         "qr_code": transport["qr_code"],
+        "qr_image": f"data:image/png;base64,{qr_image_base64}" if qr_image_base64 else None,
         "qr_generated_at": transport.get("qr_generated_at"),
         "qr_generated_by": transport.get("qr_generated_by"),
         "qr_print_count": transport.get("qr_print_count", 0)
