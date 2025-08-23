@@ -86,6 +86,50 @@ class TransportQRTester:
             self.log(f"❌ Исключение при авторизации: {e}", "ERROR")
             return False
     
+    def create_test_transport(self):
+        """Создание тестового транспорта"""
+        self.log("🚛 Создание тестового транспорта...")
+        
+        try:
+            # Генерируем уникальный номер транспорта
+            import random
+            transport_number = f"TEST{random.randint(1000, 9999)}"
+            
+            transport_data = {
+                "driver_name": "Тестовый Водитель",
+                "driver_phone": "+992123456789",
+                "transport_number": transport_number,
+                "capacity_kg": 5000.0,
+                "direction": "Москва-Душанбе"
+            }
+            
+            response = self.session.post(f"{API_BASE}/transport/create", json=transport_data)
+            
+            if response.status_code == 200:
+                data = response.json()
+                transport_id = data.get("transport_id")
+                
+                self.log(f"✅ Тестовый транспорт создан:")
+                self.log(f"  🚛 Номер: {transport_number}")
+                self.log(f"  🆔 ID: {transport_id}")
+                
+                # Сохраняем данные транспорта для тестирования
+                self.test_results["test_transport"] = {
+                    "id": transport_id,
+                    "transport_number": transport_number,
+                    "driver_name": "Тестовый Водитель",
+                    "driver_phone": "+992123456789"
+                }
+                
+                return True
+            else:
+                self.log(f"❌ Ошибка создания транспорта: {response.status_code} - {response.text}", "ERROR")
+                return False
+                
+        except Exception as e:
+            self.log(f"❌ Исключение при создании транспорта: {e}", "ERROR")
+            return False
+
     def test_transport_list_with_qr(self):
         """Тестирование GET /api/transport/list-with-qr"""
         self.log("📋 Тестирование API GET /api/transport/list-with-qr...")
@@ -113,6 +157,23 @@ class TransportQRTester:
                 self.log(f"  📊 Всего транспортов: {total_count}")
                 self.log(f"  🔲 С QR кодами: {with_qr_count}")
                 self.log(f"  ⚪ Без QR кодов: {without_qr_count}")
+                
+                if total_count == 0:
+                    self.log("⚠️ Нет транспортов в системе, создаем тестовый транспорт", "WARNING")
+                    if not self.create_test_transport():
+                        return False
+                    
+                    # Повторно получаем список после создания
+                    response = self.session.get(f"{API_BASE}/transport/list-with-qr")
+                    if response.status_code != 200:
+                        self.log("❌ Не удалось получить список после создания транспорта", "ERROR")
+                        return False
+                    
+                    data = response.json()
+                    transports = data.get("transports", [])
+                    total_count = data.get("total_count", 0)
+                    
+                    self.log(f"✅ Обновленный список транспортов: {total_count}")
                 
                 # Проверяем структуру каждого транспорта
                 if transports:
@@ -142,6 +203,9 @@ class TransportQRTester:
                         self.log("⚠️ Все транспорты уже имеют QR коды", "WARNING")
                         # Используем первый транспорт для тестирования
                         self.test_results["transport_without_qr"] = transports[0]
+                else:
+                    self.log("❌ Нет транспортов для тестирования", "ERROR")
+                    return False
                 
                 self.test_results["transport_list_success"] = True
                 return True
