@@ -5901,6 +5901,16 @@ function App() {
   const [selectedTransportForQR, setSelectedTransportForQR] = useState(null); // Выбранный транспорт для QR
   const [transportQRData, setTransportQRData] = useState(null); // Данные QR кода
   const [qrGenerationLoading, setQrGenerationLoading] = useState(false); // Загрузка генерации QR
+  
+  // ЭТАП 2: СОСТОЯНИЯ ДЛЯ РАЗМЕЩЕНИЯ ГРУЗОВ НА ТРАНСПОРТ
+  const [cargoToTransportPage, setCargoToTransportPage] = useState(false); // Страница размещения грузов на транспорт
+  const [loadingSession, setLoadingSession] = useState(null); // Текущая сессия размещения
+  const [transportScanMode, setTransportScanMode] = useState(true); // true = сканируем транспорт, false = сканируем грузы
+  const [scannedTransport, setScannedTransport] = useState(null); // Отсканированный транспорт
+  const [loadedCargo, setLoadedCargo] = useState([]); // Загруженные грузы в текущей сессии
+  const [cargoScanLoading, setCargoScanLoading] = useState(false); // Загрузка при сканировании груза
+  const [qrScannerActive, setQrScannerActive] = useState(false); // Активность QR сканера
+  
   const [contactModal, setContactModal] = useState(false);
 
   // Notification management states
