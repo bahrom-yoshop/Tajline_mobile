@@ -7635,11 +7635,12 @@ async def get_cargo_placement_status(
             # ИНФОРМАЦИЯ О ГОРОДАХ (с улучшенным парсингом):
             'pickup_city': pickup_city or 'Москва',  # Default: Москва
             'delivery_city': delivery_city or 'Душанбе',  # Default: Душанбе
-            # ИНФОРМАЦИЯ О СКЛАДАХ (с данными из коллекции warehouses):
+            # ИНФОРМАЦИЯ О СКЛАДАХ (приоритет городам над существующими данными):
             'source_warehouse_name': (source_warehouse_info.get('name') if source_warehouse_info 
                                     else cargo.get('accepting_warehouse') or default_source_warehouse),
-            'target_warehouse_name': (target_warehouse_info.get('name') if target_warehouse_info 
-                                    else cargo.get('delivery_warehouse') or target_warehouse_by_city),
+            'target_warehouse_name': (target_warehouse_by_city or  # ИСПРАВЛЕНО: Приоритет городу доставки
+                                    (target_warehouse_info.get('name') if target_warehouse_info else None) or
+                                    cargo.get('delivery_warehouse') or "Душанбе Центральный"),
             'accepting_warehouse': cargo.get('accepting_warehouse') or default_source_warehouse,
             'delivery_warehouse': cargo.get('delivery_warehouse') or target_warehouse_by_city,
             'delivery_warehouse_name': cargo.get('delivery_warehouse') or target_warehouse_by_city,
