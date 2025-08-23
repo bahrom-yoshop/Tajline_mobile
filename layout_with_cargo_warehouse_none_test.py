@@ -101,30 +101,36 @@ class LayoutWithCargoWarehouseNoneTester:
             return False
     
     def test_layout_with_cargo_api(self):
-        """Тестирование API layout-with-cargo для склада 001"""
+        """Тестирование API layout-with-cargo для склада 003"""
         self.log(f"📋 Запрос к /api/warehouses/{TARGET_WAREHOUSE_ID}/layout-with-cargo...")
         
         try:
-            # Сначала получим ID склада 001
-            warehouses_response = self.session.get(f"{API_BASE}/operator/warehouses")
+            # Сначала получим ID склада 003
+            warehouses_response = self.session.get(f"{API_BASE}/warehouses/all-cities")
             if warehouses_response.status_code != 200:
                 self.log(f"❌ Не удалось получить список складов: {warehouses_response.status_code}", "ERROR")
                 return None
             
-            warehouses = warehouses_response.json()
-            warehouse_001 = None
+            warehouses_data = warehouses_response.json()
+            warehouse_003 = None
             
-            for warehouse in warehouses:
-                if warehouse.get("warehouse_id_number") == TARGET_WAREHOUSE_ID:
-                    warehouse_001 = warehouse
-                    break
+            # Ищем склад 003 в структуре cities
+            if "cities" in warehouses_data:
+                for city in warehouses_data["cities"]:
+                    if "available_warehouses" in city:
+                        for warehouse in city["available_warehouses"]:
+                            if warehouse.get("warehouse_id_number") == TARGET_WAREHOUSE_ID:
+                                warehouse_003 = warehouse
+                                break
+                    if warehouse_003:
+                        break
             
-            if not warehouse_001:
+            if not warehouse_003:
                 self.log(f"❌ Склад {TARGET_WAREHOUSE_ID} не найден", "ERROR")
                 return None
             
-            warehouse_id = warehouse_001.get("id")
-            self.log(f"✅ Найден склад {TARGET_WAREHOUSE_ID}: {warehouse_001.get('name')} (ID: {warehouse_id})")
+            warehouse_id = warehouse_003.get("warehouse_id")
+            self.log(f"✅ Найден склад {TARGET_WAREHOUSE_ID}: {warehouse_003.get('warehouse_name')} (ID: {warehouse_id})")
             
             # Запрос к layout-with-cargo API
             response = self.session.get(f"{API_BASE}/warehouses/{warehouse_id}/layout-with-cargo")
