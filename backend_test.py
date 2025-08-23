@@ -324,7 +324,7 @@ class TransportQRTester:
                     "direction": f"Тест-Маршрут-{i+1}"
                 }
                 
-                response = self.session.post(f"{API_BASE}/admin/transports", json=transport_data)
+                response = self.session.post(f"{API_BASE}/transport/create", json=transport_data)
                 if response.status_code == 201:
                     data = response.json()
                     transport_id = data.get("transport_id")
