@@ -127,7 +127,7 @@ class LayoutWithCargoWarehouseNoneTester:
             self.log(f"✅ Найден склад {TARGET_WAREHOUSE_ID}: {warehouse_001.get('name')} (ID: {warehouse_id})")
             
             # Запрос к layout-with-cargo API
-            response = self.session.get(f"{API_BASE}/operator/warehouse/{warehouse_id}/layout-with-cargo")
+            response = self.session.get(f"{API_BASE}/warehouses/{warehouse_id}/layout-with-cargo")
             
             if response.status_code == 200:
                 data = response.json()
