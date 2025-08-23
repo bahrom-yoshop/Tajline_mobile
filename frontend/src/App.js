@@ -14545,13 +14545,13 @@ function App() {
       const response = await apiCall('/api/transport/list-with-qr');
       
       if (response.success || response.transports) {
-        setAllTransportsList(response.transports || []);
+        // Используем существующий список транспортов
+        setTransports(response.transports || []);
       }
       
     } catch (error) {
       console.error('Error fetching transports list:', error);
       showAlert('Ошибка загрузки списка транспортов', 'error');
-      setAllTransportsList([]);
     } finally {
       setTransportListLoading(false);
     }
