@@ -82,7 +82,10 @@ def main():
         print(f"✅ Всего складов в системе: {len(all_warehouses)}")
         
         for warehouse in all_warehouses:
-            print(f"  🏢 {warehouse.get('name')} (ID: {warehouse.get('id')}, Номер: {warehouse.get('warehouse_id_number', 'N/A')})")
+            if isinstance(warehouse, dict):
+                print(f"  🏢 {warehouse.get('name')} (ID: {warehouse.get('id')}, Номер: {warehouse.get('warehouse_id_number', 'N/A')})")
+            else:
+                print(f"  🏢 {warehouse}")
 
 if __name__ == "__main__":
     main()
