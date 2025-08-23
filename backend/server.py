@@ -7568,9 +7568,49 @@ async def get_cargo_placement_status(
                         cargo.get('target_city') or 
                         extract_city_from_address(cargo.get('recipient_address')))
         
-        # 4. ОПРЕДЕЛЕНИЕ СКЛАДОВ ПО МАРШРУТУ (если не найдены в данных)
+        # 4. УЛУЧШЕННОЕ ОПРЕДЕЛЕНИЕ СКЛАДОВ ПО ГОРОДАМ
+        def get_warehouse_by_city(city):
+            """Определяет склад по городу"""
+            if not city:
+                return None
+            
+            # Ищем склад в коллекции warehouses по городу
+            warehouse = db.warehouses.find_one({
+                "$or": [
+                    {"city": {"$regex": city, "$options": "i"}},
+                    {"name": {"$regex": city, "$options": "i"}},
+                    {"address": {"$regex": city, "$options": "i"}}
+                ]
+            })
+            
+            if warehouse:
+                return warehouse.get('name')
+            
+            # Fallback: определяем склад по популярным городам
+            city_warehouse_map = {
+                'москва': 'Москва Центральный',
+                'душанбе': 'Душанбе Центральный', 
+                'худжанд': 'Худжанд Склад №1',
+                'куляб': 'Куляб Склад №1',
+                'курган-тюбе': 'Курган-Тюбе Склад №1',
+                'истаравшан': 'Истаравшан Склад №1',
+                'турсунзаде': 'Турсунзаде Склад №1',
+                'яван': 'Яван Склад №1',
+                'гиссар': 'Гиссар Склад №1',
+                'файзабад': 'Файзабад Склад №1'
+            }
+            
+            city_lower = city.lower().strip()
+            for city_key, warehouse_name in city_warehouse_map.items():
+                if city_key in city_lower or city_lower in city_key:
+                    return warehouse_name
+            
+            # Если не найден, возвращаем город + "Склад №1"
+            return f"{city} Склад №1"
+        
+        # Определяем склады
         default_source_warehouse = "Москва Центральный"  # Основной склад приёма
-        default_target_warehouse = delivery_city if delivery_city else "Душанбе Центральный"
+        default_target_warehouse = get_warehouse_by_city(delivery_city) if delivery_city else "Душанбе Центральный"
         
         return {
             'cargo_id': cargo_id,
