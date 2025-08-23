@@ -15115,6 +15115,7 @@ async def get_transport_qr(
         "driver_name": transport.get("driver_name", "Не указан"),
         "direction": transport.get("direction", "Не указано"),
         "qr_code": transport["qr_code"],
+        "qr_simple": transport.get("qr_simple", transport["transport_number"]),  # Fallback to transport_number
         "qr_image": f"data:image/png;base64,{qr_image_base64}" if qr_image_base64 else None,
         "qr_generated_at": transport.get("qr_generated_at"),
         "qr_generated_by": transport.get("qr_generated_by"),
