@@ -192,7 +192,7 @@ class TransportStatusEnumTester:
         """Обновить статус транспорта на 'available' через MongoDB"""
         self.log("🔄 Обновляем статус транспорта на 'available' через MongoDB...")
         
-        if not self.db or not self.test_transport_id:
+        if self.db is None or not self.test_transport_id:
             self.add_test_result("Обновление статуса транспорта", False, "Нет подключения к БД или ID транспорта")
             return False
         
