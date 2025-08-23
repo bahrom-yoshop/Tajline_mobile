@@ -17330,6 +17330,10 @@ function App() {
                                 if (sub.id === 'logistics-cargo-to-transport') {
                                   // Специальная обработка для страницы размещения грузов на транспорт
                                   openCargoToTransportPage();
+                                } else if (sub.id === 'logistics-placed-cargo') {
+                                  // Специальная обработка для страницы размещенных грузов
+                                  setActiveTab('logistics-placed-cargo');
+                                  fetchPlacedCargoOnTransport();
                                 } else {
                                   setActiveTab(sub.id);
                                 }
