@@ -164,10 +164,10 @@ class LayoutWithCargoTester:
             "individual_number", 
             "cargo_name",
             "location",
-            "recipient",
+            "recipient_full_name",  # Updated field name
             "weight",
             "placed_at",
-            "placed_by"
+            "placed_by_operator"    # Updated field name
         ]
         
         units_with_issues = []
