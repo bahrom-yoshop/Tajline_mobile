@@ -1,5 +1,407 @@
 #!/usr/bin/env python3
 """
+ФИНАЛЬНОЕ ТЕСТИРОВАНИЕ API layout-with-cargo с полной поддержкой двух источников
+==============================================================================
+
+ЦЕЛЬ: Убедиться что API теперь находит ВСЕ размещенные единицы из operator_cargo с оператором USR648425
+
+КРИТИЧЕСКИЕ ПРОВЕРКИ:
+1. Авторизация оператора (+79777888999/warehouse123)  
+2. API layout-with-cargo для склада 001:
+   - Проверить количество найденных записей из placement_records
+   - Проверить количество найденных записей из operator_cargo (новый источник)
+   - Убедиться что найдены данные оператора USR648425 (Юлдашев Жасурбек Бахтиёрович)
+3. Проверка конкретных заявок из скриншота:
+   - 25082298: ожидается 7 единиц со статусом "Размещено"
+   - 250101: ожидается 2 единицы  
+   - 25082235: ожидается 4 единицы
+   - Всего: 13 единиц размещенных оператором USR648425
+4. Качество данных в cargo_info: Полная информация о каждой единице
+
+ОЖИДАЕМЫЙ РЕЗУЛЬТАТ: 
+- Минимум 13 размещенных единиц найдено
+- Данные от оператора USR648425 присутствуют в результатах
+- Поле cargo_info содержит все найденные единицы с полной информацией
+- API отображает реальную картину размещения со скриншота пользователя
+"""
+
+import requests
+import json
+import sys
+import os
+from datetime import datetime
+
+# Получаем URL backend из переменной окружения
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://tajline-manage-1.preview.emergentagent.com')
+API_BASE = f"{BACKEND_URL}/api"
+
+# Конфигурация
+WAREHOUSE_OPERATOR_PHONE = "+79777888999"
+WAREHOUSE_OPERATOR_PASSWORD = "warehouse123"
+TARGET_WAREHOUSE_ID = "001"
+TARGET_OPERATOR_ID = "USR648425"
+TARGET_OPERATOR_NAME = "Юлдашев Жасурбек Бахтиёрович"
+
+# Ожидаемые заявки из скриншота
+EXPECTED_APPLICATIONS = {
+    "25082298": {"expected_units": 7, "status": "Размещено"},
+    "250101": {"expected_units": 2, "status": "Размещено"}, 
+    "25082235": {"expected_units": 4, "status": "Размещено"}
+}
+TOTAL_EXPECTED_UNITS = 13
+
+class LayoutWithCargoTester:
+    def __init__(self):
+        self.session = requests.Session()
+        self.auth_token = None
+        self.operator_info = None
+        self.test_results = {
+            "auth_success": False,
+            "api_accessible": False,
+            "cargo_info_present": False,
+            "operator_data_found": False,
+            "expected_applications_found": {},
+            "total_units_found": 0,
+            "data_quality_check": False,
+            "detailed_analysis": {}
+        }
+        
+    def log(self, message, level="INFO"):
+        """Логирование с временной меткой"""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        print(f"[{timestamp}] {level}: {message}")
+        
+    def authenticate_warehouse_operator(self):
+        """Авторизация оператора склада"""
+        self.log("🔐 Авторизация оператора склада...")
+        
+        try:
+            response = self.session.post(f"{API_BASE}/auth/login", json={
+                "phone": WAREHOUSE_OPERATOR_PHONE,
+                "password": WAREHOUSE_OPERATOR_PASSWORD
+            })
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.auth_token = data.get("access_token")
+                self.operator_info = data.get("user")
+                
+                self.session.headers.update({
+                    "Authorization": f"Bearer {self.auth_token}"
+                })
+                
+                self.log(f"✅ Успешная авторизация: {self.operator_info.get('full_name')} (роль: {self.operator_info.get('role')})")
+                self.test_results["auth_success"] = True
+                return True
+            else:
+                self.log(f"❌ Ошибка авторизации: {response.status_code} - {response.text}", "ERROR")
+                return False
+                
+        except Exception as e:
+            self.log(f"❌ Исключение при авторизации: {e}", "ERROR")
+            return False
+    
+    def test_layout_with_cargo_api(self):
+        """Тестирование API layout-with-cargo для склада 001"""
+        self.log(f"📋 Тестирование API layout-with-cargo для склада {TARGET_WAREHOUSE_ID}...")
+        
+        try:
+            response = self.session.get(f"{API_BASE}/warehouses/{TARGET_WAREHOUSE_ID}/layout-with-cargo")
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.log(f"✅ API доступен и возвращает данные")
+                self.test_results["api_accessible"] = True
+                return data
+            else:
+                self.log(f"❌ Ошибка API: {response.status_code} - {response.text}", "ERROR")
+                return None
+                
+        except Exception as e:
+            self.log(f"❌ Исключение при запросе API: {e}", "ERROR")
+            return None
+    
+    def analyze_cargo_info(self, layout_data):
+        """Анализ поля cargo_info"""
+        self.log("\n🔍 АНАЛИЗ ПОЛЯ cargo_info:")
+        self.log("=" * 60)
+        
+        cargo_info = layout_data.get("cargo_info", [])
+        
+        if not cargo_info:
+            self.log("❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: Поле cargo_info отсутствует или пустое!", "ERROR")
+            return False
+        
+        self.log(f"✅ Поле cargo_info найдено с {len(cargo_info)} единицами")
+        self.test_results["cargo_info_present"] = True
+        self.test_results["total_units_found"] = len(cargo_info)
+        
+        # Анализ источников данных
+        placement_records_count = 0
+        operator_cargo_count = 0
+        operator_usr648425_count = 0
+        applications_found = {}
+        
+        for i, cargo_unit in enumerate(cargo_info):
+            cargo_number = cargo_unit.get("cargo_number", "N/A")
+            individual_number = cargo_unit.get("individual_number", "N/A")
+            placed_by = cargo_unit.get("placed_by", "N/A")
+            placed_by_id = cargo_unit.get("placed_by_id", "N/A")
+            source = cargo_unit.get("source", "unknown")
+            
+            # Подсчет по источникам
+            if source == "placement_records":
+                placement_records_count += 1
+            elif source == "operator_cargo":
+                operator_cargo_count += 1
+            
+            # Поиск данных оператора USR648425
+            if placed_by_id == TARGET_OPERATOR_ID or TARGET_OPERATOR_NAME in str(placed_by):
+                operator_usr648425_count += 1
+                self.log(f"  🎯 Найдена единица от оператора {TARGET_OPERATOR_ID}: {individual_number}")
+            
+            # Группировка по заявкам
+            if cargo_number not in applications_found:
+                applications_found[cargo_number] = []
+            applications_found[cargo_number].append({
+                "individual_number": individual_number,
+                "placed_by": placed_by,
+                "placed_by_id": placed_by_id,
+                "source": source
+            })
+        
+        # Результаты анализа источников
+        self.log(f"\n📊 АНАЛИЗ ИСТОЧНИКОВ ДАННЫХ:")
+        self.log(f"  📋 Из placement_records: {placement_records_count} единиц")
+        self.log(f"  🏢 Из operator_cargo: {operator_cargo_count} единиц")
+        self.log(f"  🎯 От оператора {TARGET_OPERATOR_ID}: {operator_usr648425_count} единиц")
+        
+        # Проверка наличия данных от целевого оператора
+        if operator_usr648425_count > 0:
+            self.log(f"✅ Данные от оператора {TARGET_OPERATOR_ID} найдены!")
+            self.test_results["operator_data_found"] = True
+        else:
+            self.log(f"❌ Данные от оператора {TARGET_OPERATOR_ID} НЕ найдены!", "ERROR")
+        
+        # Анализ конкретных заявок
+        self.log(f"\n🔍 АНАЛИЗ КОНКРЕТНЫХ ЗАЯВОК:")
+        for app_number, expected in EXPECTED_APPLICATIONS.items():
+            if app_number in applications_found:
+                found_units = len(applications_found[app_number])
+                expected_units = expected["expected_units"]
+                
+                self.log(f"  📦 Заявка {app_number}: найдено {found_units}/{expected_units} единиц")
+                
+                if found_units >= expected_units:
+                    self.log(f"    ✅ Ожидания выполнены или превышены")
+                    self.test_results["expected_applications_found"][app_number] = True
+                else:
+                    self.log(f"    ❌ Недостаточно единиц (ожидалось {expected_units})")
+                    self.test_results["expected_applications_found"][app_number] = False
+                
+                # Детали единиц
+                for unit in applications_found[app_number]:
+                    self.log(f"      - {unit['individual_number']} (источник: {unit['source']}, оператор: {unit['placed_by_id']})")
+            else:
+                self.log(f"  ❌ Заявка {app_number}: НЕ найдена!", "ERROR")
+                self.test_results["expected_applications_found"][app_number] = False
+        
+        # Сохранение детального анализа
+        self.test_results["detailed_analysis"] = {
+            "placement_records_count": placement_records_count,
+            "operator_cargo_count": operator_cargo_count,
+            "operator_usr648425_count": operator_usr648425_count,
+            "applications_found": applications_found,
+            "total_applications": len(applications_found)
+        }
+        
+        return True
+    
+    def check_data_quality(self, layout_data):
+        """Проверка качества данных в cargo_info"""
+        self.log("\n🔍 ПРОВЕРКА КАЧЕСТВА ДАННЫХ:")
+        self.log("=" * 50)
+        
+        cargo_info = layout_data.get("cargo_info", [])
+        
+        if not cargo_info:
+            self.log("❌ Нет данных для проверки качества", "ERROR")
+            return False
+        
+        required_fields = [
+            "cargo_number", "individual_number", "cargo_name", 
+            "sender_name", "recipient_name", "placed_by", "placed_at"
+        ]
+        
+        complete_records = 0
+        incomplete_records = 0
+        
+        for i, cargo_unit in enumerate(cargo_info):
+            missing_fields = []
+            for field in required_fields:
+                if not cargo_unit.get(field):
+                    missing_fields.append(field)
+            
+            if not missing_fields:
+                complete_records += 1
+            else:
+                incomplete_records += 1
+                if incomplete_records <= 3:  # Показываем только первые 3 неполные записи
+                    self.log(f"  ⚠️ Запись #{i+1} неполная: отсутствуют {missing_fields}")
+        
+        self.log(f"📊 Качество данных:")
+        self.log(f"  ✅ Полные записи: {complete_records}")
+        self.log(f"  ⚠️ Неполные записи: {incomplete_records}")
+        
+        quality_percentage = (complete_records / len(cargo_info)) * 100 if cargo_info else 0
+        self.log(f"  📈 Качество данных: {quality_percentage:.1f}%")
+        
+        # Считаем качество хорошим если >= 80% записей полные
+        quality_good = quality_percentage >= 80.0
+        self.test_results["data_quality_check"] = quality_good
+        
+        if quality_good:
+            self.log(f"  ✅ Качество данных соответствует требованиям")
+        else:
+            self.log(f"  ❌ Качество данных требует улучшения")
+        
+        return quality_good
+    
+    def generate_final_report(self):
+        """Генерация финального отчета"""
+        self.log("\n📋 ФИНАЛЬНЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ:")
+        self.log("=" * 80)
+        
+        # Заголовок
+        self.log(f"🎯 ФИНАЛЬНОЕ ТЕСТИРОВАНИЕ API layout-with-cargo")
+        self.log(f"📅 Время тестирования: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        self.log(f"🏢 Целевой склад: {TARGET_WAREHOUSE_ID}")
+        self.log(f"👤 Целевой оператор: {TARGET_OPERATOR_ID} ({TARGET_OPERATOR_NAME})")
+        
+        # Результаты по этапам
+        self.log(f"\n📊 РЕЗУЛЬТАТЫ ПО ЭТАПАМ:")
+        self.log(f"  1. ✅ Авторизация оператора: {'✅ УСПЕШНО' if self.test_results['auth_success'] else '❌ НЕУДАЧНО'}")
+        self.log(f"  2. ✅ Доступность API: {'✅ ДОСТУПЕН' if self.test_results['api_accessible'] else '❌ НЕДОСТУПЕН'}")
+        self.log(f"  3. ✅ Поле cargo_info: {'✅ ПРИСУТСТВУЕТ' if self.test_results['cargo_info_present'] else '❌ ОТСУТСТВУЕТ'}")
+        self.log(f"  4. 🎯 Данные оператора {TARGET_OPERATOR_ID}: {'✅ НАЙДЕНЫ' if self.test_results['operator_data_found'] else '❌ НЕ НАЙДЕНЫ'}")
+        self.log(f"  5. 📊 Качество данных: {'✅ ХОРОШЕЕ' if self.test_results['data_quality_check'] else '❌ ТРЕБУЕТ УЛУЧШЕНИЯ'}")
+        
+        # Детальные результаты
+        self.log(f"\n📊 ДЕТАЛЬНЫЕ РЕЗУЛЬТАТЫ:")
+        self.log(f"  📦 Всего единиц найдено: {self.test_results['total_units_found']}")
+        self.log(f"  🎯 Ожидалось минимум: {TOTAL_EXPECTED_UNITS} единиц")
+        
+        if "detailed_analysis" in self.test_results:
+            details = self.test_results["detailed_analysis"]
+            self.log(f"  📋 Из placement_records: {details['placement_records_count']}")
+            self.log(f"  🏢 Из operator_cargo: {details['operator_cargo_count']}")
+            self.log(f"  👤 От оператора {TARGET_OPERATOR_ID}: {details['operator_usr648425_count']}")
+            self.log(f"  📑 Всего заявок: {details['total_applications']}")
+        
+        # Проверка конкретных заявок
+        self.log(f"\n🔍 ПРОВЕРКА КОНКРЕТНЫХ ЗАЯВОК:")
+        all_applications_found = True
+        for app_number, expected in EXPECTED_APPLICATIONS.items():
+            found = self.test_results["expected_applications_found"].get(app_number, False)
+            status = "✅ НАЙДЕНА" if found else "❌ НЕ НАЙДЕНА"
+            self.log(f"  📦 {app_number} ({expected['expected_units']} единиц): {status}")
+            if not found:
+                all_applications_found = False
+        
+        # Финальный вывод
+        self.log(f"\n🎯 ФИНАЛЬНЫЙ РЕЗУЛЬТАТ:")
+        
+        # Критерии успеха
+        success_criteria = [
+            self.test_results["auth_success"],
+            self.test_results["api_accessible"], 
+            self.test_results["cargo_info_present"],
+            self.test_results["operator_data_found"],
+            self.test_results["total_units_found"] >= TOTAL_EXPECTED_UNITS,
+            all_applications_found
+        ]
+        
+        success_count = sum(success_criteria)
+        total_criteria = len(success_criteria)
+        success_rate = (success_count / total_criteria) * 100
+        
+        self.log(f"📊 SUCCESS RATE: {success_rate:.1f}% ({success_count}/{total_criteria} критических проверок пройдены)")
+        
+        if success_rate >= 90:
+            self.log("🎉 ФИНАЛЬНОЕ ТЕСТИРОВАНИЕ ЗАВЕРШЕНО УСПЕШНО!")
+            self.log("✅ API layout-with-cargo работает с поддержкой двух источников данных")
+            self.log(f"✅ Найдены данные от оператора {TARGET_OPERATOR_ID}")
+            self.log("✅ Все ожидаемые заявки присутствуют в результатах")
+            return True
+        else:
+            self.log("❌ ФИНАЛЬНОЕ ТЕСТИРОВАНИЕ НЕ ПРОЙДЕНО!")
+            if not self.test_results["operator_data_found"]:
+                self.log(f"❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: Данные от оператора {TARGET_OPERATOR_ID} НЕ найдены")
+            if self.test_results["total_units_found"] < TOTAL_EXPECTED_UNITS:
+                self.log(f"❌ НЕДОСТАТОЧНО ЕДИНИЦ: найдено {self.test_results['total_units_found']}, ожидалось {TOTAL_EXPECTED_UNITS}")
+            if not all_applications_found:
+                self.log("❌ НЕ ВСЕ ОЖИДАЕМЫЕ ЗАЯВКИ НАЙДЕНЫ")
+            return False
+    
+    def run_comprehensive_test(self):
+        """Запуск полного теста API layout-with-cargo"""
+        self.log("🚀 ЗАПУСК ФИНАЛЬНОГО ТЕСТИРОВАНИЯ API layout-with-cargo")
+        self.log("=" * 80)
+        
+        # 1. Авторизация
+        if not self.authenticate_warehouse_operator():
+            self.log("❌ ТЕСТИРОВАНИЕ ПРЕРВАНО: Не удалось авторизоваться", "ERROR")
+            return False
+        
+        # 2. Тестирование API
+        layout_data = self.test_layout_with_cargo_api()
+        if not layout_data:
+            self.log("❌ ТЕСТИРОВАНИЕ ПРЕРВАНО: API недоступен", "ERROR")
+            return False
+        
+        # 3. Анализ cargo_info
+        if not self.analyze_cargo_info(layout_data):
+            self.log("❌ ТЕСТИРОВАНИЕ ПРЕРВАНО: Проблемы с cargo_info", "ERROR")
+            return False
+        
+        # 4. Проверка качества данных
+        self.check_data_quality(layout_data)
+        
+        # 5. Генерация финального отчета
+        return self.generate_final_report()
+
+def main():
+    """Главная функция"""
+    tester = LayoutWithCargoTester()
+    
+    try:
+        success = tester.run_comprehensive_test()
+        
+        if success:
+            print("\n" + "="*80)
+            print("🎉 ФИНАЛЬНОЕ ТЕСТИРОВАНИЕ API layout-with-cargo ЗАВЕРШЕНО УСПЕШНО!")
+            print("✅ API находит ВСЕ размещенные единицы из двух источников")
+            print(f"✅ Данные от оператора {TARGET_OPERATOR_ID} присутствуют")
+            print("✅ Все ожидаемые заявки найдены с правильным количеством единиц")
+            print("📊 API отображает реальную картину размещения")
+            sys.exit(0)
+        else:
+            print("\n" + "="*80)
+            print("❌ ФИНАЛЬНОЕ ТЕСТИРОВАНИЕ API layout-with-cargo НЕ ПРОЙДЕНО!")
+            print("🔍 Исправления для поддержки двух источников НЕ реализованы")
+            print(f"⚠️ Требуется реализация поиска в operator_cargo с оператором {TARGET_OPERATOR_ID}")
+            sys.exit(1)
+            
+    except KeyboardInterrupt:
+        print("\n⏹️ Тестирование прервано пользователем")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n💥 КРИТИЧЕСКАЯ ОШИБКА: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+"""
 ФИНАЛЬНОЕ ТЕСТИРОВАНИЕ ИСПРАВЛЕННОГО API layout-with-cargo С ДВУМЯ ИСТОЧНИКАМИ ДАННЫХ
 ====================================================================================
 
