@@ -1,5 +1,439 @@
 #!/usr/bin/env python3
 """
+КРИТИЧЕСКОЕ СРАВНИТЕЛЬНОЕ ТЕСТИРОВАНИЕ ДВУХ РЕЖИМОВ ОТОБРАЖЕНИЯ ГРУЗОВ В TAJLINE.TJ
+=================================================================================
+
+ПРОБЛЕМА: Пользователь сообщает о расхождении данных между режимами:
+- Режим "Карточки заявок" показывает 1/4 (1 груз размещен)  
+- Режим "Individual Units карточки" показывает 2/2 (2 груза размещены) и 2 груза в ожидании
+
+ЦЕЛЬ ТЕСТИРОВАНИЯ: 
+1. Протестировать API `/api/operator/cargo/available-for-placement` (режим "Карточки заявок")
+2. Протестировать API `/api/operator/cargo/individual-units-for-placement` (режим "Individual Units")
+3. Сравнить данные о заявке 250101 в обоих API
+4. Найти причину расхождения в подсчете размещенных единиц
+
+КРИТИЧЕСКИЕ ПРОВЕРКИ:
+1. Авторизация оператора склада (+79777888999/warehouse123)
+2. Сравнение данных заявки 250101 в обоих API
+3. Проверка individual_items в обоих режимах
+4. Выявить источник расхождения между 1/4 и 2/2
+"""
+
+import requests
+import json
+import sys
+from datetime import datetime
+
+# Конфигурация
+BASE_URL = "https://tajline-manage-1.preview.emergentagent.com/api"
+WAREHOUSE_OPERATOR_PHONE = "+79777888999"
+WAREHOUSE_OPERATOR_PASSWORD = "warehouse123"
+
+class TajlineComparativeTest:
+    def __init__(self):
+        self.session = requests.Session()
+        self.token = None
+        self.test_results = []
+        self.start_time = datetime.now()
+        
+    def log_test(self, test_name, success, details, duration_ms=0):
+        """Логирование результатов тестирования"""
+        status = "✅ ПРОЙДЕН" if success else "❌ НЕ ПРОЙДЕН"
+        self.test_results.append({
+            "test": test_name,
+            "success": success,
+            "details": details,
+            "duration_ms": duration_ms
+        })
+        print(f"{status}: {test_name}")
+        if details:
+            print(f"   Детали: {details}")
+        if duration_ms > 0:
+            print(f"   Время выполнения: {duration_ms}ms")
+        print()
+
+    def authenticate_warehouse_operator(self):
+        """Авторизация оператора склада"""
+        print("🔐 ЭТАП 1: АВТОРИЗАЦИЯ ОПЕРАТОРА СКЛАДА")
+        print("=" * 60)
+        
+        start_time = datetime.now()
+        
+        try:
+            response = self.session.post(f"{BASE_URL}/auth/login", json={
+                "phone": WAREHOUSE_OPERATOR_PHONE,
+                "password": WAREHOUSE_OPERATOR_PASSWORD
+            })
+            
+            duration = int((datetime.now() - start_time).total_seconds() * 1000)
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.token = data.get("access_token")
+                user_info = data.get("user", {})
+                
+                if self.token and user_info.get("role") == "warehouse_operator":
+                    self.session.headers.update({"Authorization": f"Bearer {self.token}"})
+                    details = f"Успешная авторизация '{user_info.get('full_name')}' (роль: {user_info.get('role')})"
+                    self.log_test("Авторизация оператора склада", True, details, duration)
+                    return True
+                else:
+                    self.log_test("Авторизация оператора склада", False, f"Неверная роль или отсутствует токен", duration)
+                    return False
+            else:
+                self.log_test("Авторизация оператора склада", False, f"HTTP {response.status_code}: {response.text}", duration)
+                return False
+                
+        except Exception as e:
+            duration = int((datetime.now() - start_time).total_seconds() * 1000)
+            self.log_test("Авторизация оператора склада", False, f"Ошибка: {str(e)}", duration)
+            return False
+
+    def test_available_for_placement_api(self):
+        """Тестирование API 'Карточки заявок' - /api/operator/cargo/available-for-placement"""
+        print("📦 ЭТАП 2: ТЕСТИРОВАНИЕ API 'КАРТОЧКИ ЗАЯВОК'")
+        print("=" * 60)
+        
+        start_time = datetime.now()
+        
+        try:
+            response = self.session.get(f"{BASE_URL}/operator/cargo/available-for-placement")
+            duration = int((datetime.now() - start_time).total_seconds() * 1000)
+            
+            if response.status_code == 200:
+                data = response.json()
+                items = data.get("items", [])
+                
+                # Ищем заявку 250101
+                cargo_250101 = None
+                for item in items:
+                    if item.get("cargo_number") == "250101":
+                        cargo_250101 = item
+                        break
+                
+                if cargo_250101:
+                    total_placed = cargo_250101.get("total_placed", 0)
+                    placement_progress = cargo_250101.get("placement_progress", "")
+                    overall_status = cargo_250101.get("overall_placement_status", "")
+                    cargo_items = cargo_250101.get("cargo_items", [])
+                    
+                    details = f"Заявка 250101 найдена! total_placed: {total_placed}, placement_progress: '{placement_progress}', status: '{overall_status}', cargo_items: {len(cargo_items)}"
+                    
+                    # Детальный анализ cargo_items
+                    print(f"   📊 ДЕТАЛЬНЫЙ АНАЛИЗ ЗАЯВКИ 250101 В РЕЖИМЕ 'КАРТОЧКИ ЗАЯВОК':")
+                    print(f"   - total_placed: {total_placed}")
+                    print(f"   - placement_progress: '{placement_progress}'")
+                    print(f"   - overall_placement_status: '{overall_status}'")
+                    print(f"   - Количество cargo_items: {len(cargo_items)}")
+                    
+                    for i, cargo_item in enumerate(cargo_items):
+                        placed_count = cargo_item.get("placed_count", 0)
+                        total_units = cargo_item.get("total_units", 0)
+                        cargo_name = cargo_item.get("cargo_name", "")
+                        individual_items = cargo_item.get("individual_items", [])
+                        
+                        print(f"   - Cargo Item {i+1}: '{cargo_name}' - {placed_count}/{total_units} размещено, individual_items: {len(individual_items)}")
+                        
+                        # Анализ individual_items
+                        for j, individual_item in enumerate(individual_items):
+                            is_placed = individual_item.get("is_placed", False)
+                            individual_number = individual_item.get("individual_number", "")
+                            placement_info = individual_item.get("placement_info", "")
+                            print(f"     - {individual_number}: is_placed={is_placed}, placement_info='{placement_info}'")
+                    
+                    self.log_test("API available-for-placement - поиск заявки 250101", True, details, duration)
+                    return cargo_250101
+                else:
+                    details = f"Заявка 250101 НЕ найдена в списке. Всего заявок: {len(items)}"
+                    self.log_test("API available-for-placement - поиск заявки 250101", False, details, duration)
+                    return None
+            else:
+                self.log_test("API available-for-placement", False, f"HTTP {response.status_code}: {response.text}", duration)
+                return None
+                
+        except Exception as e:
+            duration = int((datetime.now() - start_time).total_seconds() * 1000)
+            self.log_test("API available-for-placement", False, f"Ошибка: {str(e)}", duration)
+            return None
+
+    def test_individual_units_for_placement_api(self):
+        """Тестирование API 'Individual Units карточки' - /api/operator/cargo/individual-units-for-placement"""
+        print("🔢 ЭТАП 3: ТЕСТИРОВАНИЕ API 'INDIVIDUAL UNITS КАРТОЧКИ'")
+        print("=" * 60)
+        
+        start_time = datetime.now()
+        
+        try:
+            response = self.session.get(f"{BASE_URL}/operator/cargo/individual-units-for-placement")
+            duration = int((datetime.now() - start_time).total_seconds() * 1000)
+            
+            if response.status_code == 200:
+                data = response.json()
+                items = data.get("items", [])
+                grouped_data = data.get("grouped_data", {})
+                
+                # Ищем заявку 250101 в grouped_data
+                cargo_250101_grouped = grouped_data.get("250101")
+                
+                if cargo_250101_grouped:
+                    total_units = cargo_250101_grouped.get("total_units", 0)
+                    placed_units = cargo_250101_grouped.get("placed_units", 0)
+                    pending_units = cargo_250101_grouped.get("pending_units", 0)
+                    placement_progress = cargo_250101_grouped.get("placement_progress", "")
+                    individual_units = cargo_250101_grouped.get("individual_units", [])
+                    
+                    details = f"Заявка 250101 найдена! total_units: {total_units}, placed_units: {placed_units}, pending_units: {pending_units}, progress: '{placement_progress}'"
+                    
+                    # Детальный анализ individual_units
+                    print(f"   📊 ДЕТАЛЬНЫЙ АНАЛИЗ ЗАЯВКИ 250101 В РЕЖИМЕ 'INDIVIDUAL UNITS':")
+                    print(f"   - total_units: {total_units}")
+                    print(f"   - placed_units: {placed_units}")
+                    print(f"   - pending_units: {pending_units}")
+                    print(f"   - placement_progress: '{placement_progress}'")
+                    print(f"   - Количество individual_units: {len(individual_units)}")
+                    
+                    for i, unit in enumerate(individual_units):
+                        individual_number = unit.get("individual_number", "")
+                        is_placed = unit.get("is_placed", False)
+                        placement_info = unit.get("placement_info", "")
+                        status = unit.get("status", "")
+                        cargo_name = unit.get("cargo_name", "")
+                        
+                        print(f"   - Unit {i+1}: {individual_number} - '{cargo_name}' - is_placed={is_placed}, status='{status}', placement_info='{placement_info}'")
+                    
+                    self.log_test("API individual-units-for-placement - поиск заявки 250101", True, details, duration)
+                    return cargo_250101_grouped
+                else:
+                    details = f"Заявка 250101 НЕ найдена в grouped_data. Всего групп: {len(grouped_data)}"
+                    print(f"   Доступные группы: {list(grouped_data.keys())}")
+                    self.log_test("API individual-units-for-placement - поиск заявки 250101", False, details, duration)
+                    return None
+            else:
+                self.log_test("API individual-units-for-placement", False, f"HTTP {response.status_code}: {response.text}", duration)
+                return None
+                
+        except Exception as e:
+            duration = int((datetime.now() - start_time).total_seconds() * 1000)
+            self.log_test("API individual-units-for-placement", False, f"Ошибка: {str(e)}", duration)
+            return None
+
+    def verify_placement_records(self):
+        """Проверка фактических записей размещения через verify-cargo API"""
+        print("🔍 ЭТАП 4: ПРОВЕРКА ФАКТИЧЕСКИХ ЗАПИСЕЙ РАЗМЕЩЕНИЯ")
+        print("=" * 60)
+        
+        # Проверяем конкретные единицы заявки 250101
+        individual_numbers = ["250101/01/01", "250101/01/02", "250101/02/01", "250101/02/02"]
+        placement_results = {}
+        
+        for individual_number in individual_numbers:
+            start_time = datetime.now()
+            
+            try:
+                response = self.session.post(f"{BASE_URL}/operator/placement/verify-cargo", json={
+                    "qr_code": individual_number
+                })
+                
+                duration = int((datetime.now() - start_time).total_seconds() * 1000)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    success = data.get("success", False)
+                    cargo_info = data.get("cargo_info", {})
+                    
+                    if success:
+                        placement_results[individual_number] = {
+                            "status": "не размещен",
+                            "cargo_name": cargo_info.get("cargo_name", ""),
+                            "details": "Груз найден и готов к размещению"
+                        }
+                    else:
+                        placement_results[individual_number] = {
+                            "status": "возможно размещен",
+                            "details": data.get("message", "Неизвестная ошибка")
+                        }
+                        
+                elif response.status_code == 400:
+                    # Груз уже размещен
+                    placement_results[individual_number] = {
+                        "status": "размещен",
+                        "details": "Груз уже размещен на складе"
+                    }
+                else:
+                    placement_results[individual_number] = {
+                        "status": "ошибка",
+                        "details": f"HTTP {response.status_code}: {response.text}"
+                    }
+                    
+                print(f"   {individual_number}: {placement_results[individual_number]['status']} - {placement_results[individual_number]['details']}")
+                
+            except Exception as e:
+                placement_results[individual_number] = {
+                    "status": "ошибка",
+                    "details": f"Ошибка: {str(e)}"
+                }
+                print(f"   {individual_number}: ошибка - {str(e)}")
+        
+        # Подсчитываем размещенные единицы
+        placed_count = sum(1 for result in placement_results.values() if result["status"] == "размещен")
+        total_count = len(individual_numbers)
+        
+        details = f"Фактически размещено: {placed_count}/{total_count} единиц заявки 250101"
+        self.log_test("Проверка фактических записей размещения", True, details)
+        
+        return placement_results, placed_count, total_count
+
+    def compare_apis_data(self, available_data, individual_data, actual_placed, actual_total):
+        """Сравнение данных между двумя API"""
+        print("⚖️ ЭТАП 5: СРАВНИТЕЛЬНЫЙ АНАЛИЗ ДАННЫХ")
+        print("=" * 60)
+        
+        print("📊 СРАВНЕНИЕ ДАННЫХ О ЗАЯВКЕ 250101:")
+        print("-" * 50)
+        
+        # Данные из API available-for-placement
+        if available_data:
+            available_placed = available_data.get("total_placed", 0)
+            available_progress = available_data.get("placement_progress", "")
+            print(f"API 'Карточки заявок':")
+            print(f"  - total_placed: {available_placed}")
+            print(f"  - placement_progress: '{available_progress}'")
+        else:
+            available_placed = "НЕ НАЙДЕНО"
+            available_progress = "НЕ НАЙДЕНО"
+            print(f"API 'Карточки заявок': ЗАЯВКА НЕ НАЙДЕНА")
+        
+        # Данные из API individual-units-for-placement
+        if individual_data:
+            individual_placed = individual_data.get("placed_units", 0)
+            individual_total = individual_data.get("total_units", 0)
+            individual_progress = individual_data.get("placement_progress", "")
+            print(f"API 'Individual Units':")
+            print(f"  - placed_units: {individual_placed}")
+            print(f"  - total_units: {individual_total}")
+            print(f"  - placement_progress: '{individual_progress}'")
+        else:
+            individual_placed = "НЕ НАЙДЕНО"
+            individual_total = "НЕ НАЙДЕНО"
+            individual_progress = "НЕ НАЙДЕНО"
+            print(f"API 'Individual Units': ЗАЯВКА НЕ НАЙДЕНА")
+        
+        # Фактические данные
+        print(f"Фактические данные (через verify-cargo):")
+        print(f"  - размещено: {actual_placed}")
+        print(f"  - всего: {actual_total}")
+        print(f"  - прогресс: {actual_placed}/{actual_total}")
+        
+        print("\n🔍 АНАЛИЗ РАСХОЖДЕНИЙ:")
+        print("-" * 30)
+        
+        # Проверяем расхождения
+        discrepancies = []
+        
+        if available_data and available_placed != actual_placed:
+            discrepancies.append(f"API 'Карточки заявок' показывает {available_placed} размещенных, фактически {actual_placed}")
+        
+        if individual_data and individual_placed != actual_placed:
+            discrepancies.append(f"API 'Individual Units' показывает {individual_placed} размещенных, фактически {actual_placed}")
+        
+        if available_data and individual_data and available_placed != individual_placed:
+            discrepancies.append(f"Расхождение между API: 'Карточки заявок' ({available_placed}) vs 'Individual Units' ({individual_placed})")
+        
+        if discrepancies:
+            print("❌ ОБНАРУЖЕНЫ РАСХОЖДЕНИЯ:")
+            for i, discrepancy in enumerate(discrepancies, 1):
+                print(f"  {i}. {discrepancy}")
+            
+            self.log_test("Сравнительный анализ данных", False, f"Обнаружено {len(discrepancies)} расхождений")
+        else:
+            print("✅ РАСХОЖДЕНИЙ НЕ ОБНАРУЖЕНО - все API показывают одинаковые данные")
+            self.log_test("Сравнительный анализ данных", True, "Данные между API синхронизированы")
+
+    def run_comprehensive_test(self):
+        """Запуск полного сравнительного тестирования"""
+        print("🎯 КРИТИЧЕСКОЕ СРАВНИТЕЛЬНОЕ ТЕСТИРОВАНИЕ ДВУХ РЕЖИМОВ ОТОБРАЖЕНИЯ ГРУЗОВ")
+        print("=" * 80)
+        print(f"Время начала: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Цель: Найти причину расхождения данных между режимами отображения")
+        print()
+        
+        # Этап 1: Авторизация
+        if not self.authenticate_warehouse_operator():
+            print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось авторизоваться как оператор склада")
+            return False
+        
+        # Этап 2: Тестирование API "Карточки заявок"
+        available_data = self.test_available_for_placement_api()
+        
+        # Этап 3: Тестирование API "Individual Units"
+        individual_data = self.test_individual_units_for_placement_api()
+        
+        # Этап 4: Проверка фактических записей размещения
+        placement_results, actual_placed, actual_total = self.verify_placement_records()
+        
+        # Этап 5: Сравнительный анализ
+        self.compare_apis_data(available_data, individual_data, actual_placed, actual_total)
+        
+        # Финальный отчет
+        self.generate_final_report()
+        
+        return True
+
+    def generate_final_report(self):
+        """Генерация финального отчета"""
+        print("\n" + "=" * 80)
+        print("📋 ФИНАЛЬНЫЙ ОТЧЕТ СРАВНИТЕЛЬНОГО ТЕСТИРОВАНИЯ")
+        print("=" * 80)
+        
+        total_tests = len(self.test_results)
+        passed_tests = sum(1 for result in self.test_results if result["success"])
+        success_rate = (passed_tests / total_tests * 100) if total_tests > 0 else 0
+        
+        print(f"Общее количество тестов: {total_tests}")
+        print(f"Пройдено успешно: {passed_tests}")
+        print(f"Не пройдено: {total_tests - passed_tests}")
+        print(f"Процент успешности: {success_rate:.1f}%")
+        
+        total_duration = (datetime.now() - self.start_time).total_seconds()
+        print(f"Общее время выполнения: {total_duration:.2f} секунд")
+        
+        print("\n📊 ДЕТАЛЬНЫЕ РЕЗУЛЬТАТЫ:")
+        print("-" * 50)
+        
+        for i, result in enumerate(self.test_results, 1):
+            status = "✅" if result["success"] else "❌"
+            print(f"{i}. {status} {result['test']}")
+            if result["details"]:
+                print(f"   {result['details']}")
+            if result["duration_ms"] > 0:
+                print(f"   Время: {result['duration_ms']}ms")
+        
+        print("\n🎯 ЗАКЛЮЧЕНИЕ:")
+        print("-" * 20)
+        
+        if success_rate >= 80:
+            print("✅ ТЕСТИРОВАНИЕ ЗАВЕРШЕНО УСПЕШНО!")
+            print("Основные API функционируют корректно, расхождения выявлены и проанализированы.")
+        else:
+            print("❌ ОБНАРУЖЕНЫ КРИТИЧЕСКИЕ ПРОБЛЕМЫ!")
+            print("Требуется дополнительное исследование и исправление выявленных проблем.")
+        
+        print(f"\nОТЧЕТ СГЕНЕРИРОВАН: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+if __name__ == "__main__":
+    print("🚀 ЗАПУСК КРИТИЧЕСКОГО СРАВНИТЕЛЬНОГО ТЕСТИРОВАНИЯ TAJLINE.TJ")
+    print("=" * 70)
+    
+    tester = TajlineComparativeTest()
+    success = tester.run_comprehensive_test()
+    
+    if success:
+        print("\n✅ ТЕСТИРОВАНИЕ ЗАВЕРШЕНО")
+    else:
+        print("\n❌ ТЕСТИРОВАНИЕ ПРЕРВАНО ИЗ-ЗА КРИТИЧЕСКИХ ОШИБОК")
+        sys.exit(1)
+"""
 🎯 ФИНАЛЬНОЕ ТЕСТИРОВАНИЕ: Отображение наименования груза при сканировании QR кода
 
 ПРОБЛЕМА:
