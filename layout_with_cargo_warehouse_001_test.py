@@ -371,7 +371,7 @@ class LayoutWithCargoTester:
         
         # Критические результаты
         self.log(f"\n🎯 КРИТИЧЕСКИЕ РЕЗУЛЬТАТЫ:")
-        self.log(f"  📊 Найдено placement_records: {self.test_results['placement_records_count']}")
+        self.log(f"  📦 Найдено размещенных грузов: {self.test_results['placement_records_count']}")
         self.log(f"  🏢 Занятые ячейки: {self.test_results['occupied_cells_count']}")
         
         # Сравнение с другими API
@@ -382,9 +382,9 @@ class LayoutWithCargoTester:
             self.log(f"  statistics occupied_cells: {stats['stats_occupied']}")
             self.log(f"  Синхронизация: {'✅ КОРРЕКТНА' if stats['synchronized'] else '❌ РАСХОЖДЕНИЕ'}")
         
-        # Диагностика warehouse_id
+        # Диагностика warehouse_id (теперь из placement_location)
         if self.test_results["warehouse_id_formats"]:
-            self.log(f"\n🔍 ФОРМАТЫ warehouse_id В placement_records:")
+            self.log(f"\n🔍 ФОРМАТЫ placement_location В РАЗМЕЩЕННЫХ ГРУЗАХ:")
             for format_id in self.test_results["warehouse_id_formats"]:
                 self.log(f"  - {format_id}")
         
@@ -417,7 +417,7 @@ class LayoutWithCargoTester:
         else:
             self.log("❌ ИСПРАВЛЕНИЕ НЕ ПОЛНОСТЬЮ УСПЕШНО!")
             if not self.test_results["placement_records_found"]:
-                self.log("🔍 Основная проблема: placement_records все еще не найдены")
+                self.log("🔍 Основная проблема: размещенные грузы все еще не найдены")
             self.log("⚠️ Требуется дополнительная диагностика логики поиска")
         
         return success
