@@ -195,7 +195,7 @@ class LayoutWithCargoTester:
                     self.log(f"  ❌ {field}: отсутствует или пустое")
             
             # Дополнительные поля для информации
-            additional_fields = ["sender", "status", "warehouse_name"]
+            additional_fields = ["recipient_phone", "delivery_city", "declared_value", "block_number", "shelf_number", "cell_number"]
             for field in additional_fields:
                 if field in unit and unit[field] is not None:
                     self.log(f"  ℹ️ {field}: {unit[field]}")
