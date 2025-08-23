@@ -8933,11 +8933,39 @@ async def get_warehouse_layout_with_cargo(
     occupied_cells_count = len([key for key, cargo_list in cargo_by_location.items() if len(cargo_list) > 0])
     total_cells_count = max_blocks * max_shelves * max_cells
     
+    # ИСПРАВЛЕНИЕ: Добавляем плоский список cargo_info для фронтенда
+    cargo_info = []
+    for location_key, cargo_list in cargo_by_location.items():
+        for cargo_item in cargo_list:
+            cargo_info.append({
+                "cargo_number": cargo_item["cargo_number"],
+                "individual_number": cargo_item["individual_number"],
+                "cargo_name": cargo_item["cargo_name"],
+                "weight": cargo_item["weight"],
+                "declared_value": cargo_item["declared_value"],
+                "recipient_full_name": cargo_item["recipient_full_name"],
+                "recipient_phone": cargo_item["recipient_phone"],
+                "delivery_city": cargo_item["delivery_city"],
+                "location": cargo_item["placement_location"],
+                "block_number": cargo_item["block_number"],
+                "shelf_number": cargo_item["shelf_number"],
+                "cell_number": cargo_item["cell_number"],
+                "placed_at": cargo_item["placed_at"],
+                "placed_by_operator": cargo_item["placed_by_operator"]
+            })
+    
+    print(f"\n🎯 ИТОГОВАЯ СТАТИСТИКА LAYOUT-WITH-CARGO:")
+    print(f"   📦 Всего размещенных единиц: {total_cargo_count}")
+    print(f"   🏠 Занятых ячеек: {occupied_cells_count}")
+    print(f"   📋 Записей в cargo_info: {len(cargo_info)}")
+    print(f"   🗺️ Блоков: {len(blocks)}")
+    
     return {
         "warehouse": serialize_mongo_document(warehouse),
         "layout": {
             "blocks": list(blocks.values())  # Преобразуем dict в list для frontend
         },
+        "cargo_info": cargo_info,  # НОВОЕ: Плоский список всех размещенных единиц
         "total_cargo": total_cargo_count,
         "occupied_cells": occupied_cells_count,
         "total_cells": total_cells_count,
