@@ -21285,6 +21285,361 @@ async def undo_last_placement(
             detail=f"Ошибка отмены размещения: {str(e)}"
         )
 
+# === ЭТАП 2: API ДЛЯ РАЗМЕЩЕНИЯ ГРУЗОВ НА ТРАНСПОРТ ===
+
+# Модель для сессии размещения грузов
+class TransportLoadingSession(BaseModel):
+    session_id: str
+    transport_id: str
+    operator_id: str
+    started_at: datetime
+    status: str = "active"  # active, completed
+    loaded_cargo: List[Dict[str, Any]] = []
+    
+class TransportScanRequest(BaseModel):
+    qr_code: str
+    
+class CargoScanRequest(BaseModel):
+    qr_code: str
+    session_id: str
+
+@app.post("/api/logistics/cargo-to-transport/scan-transport")
+async def scan_transport_qr(
+    scan_data: TransportScanRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Сканирование QR кода транспорта для начала сессии размещения"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        # Парсим QR код транспорта (формат: TRANSPORT_{transport_number}_{timestamp})
+        qr_parts = scan_data.qr_code.split('_')
+        if len(qr_parts) < 2 or qr_parts[0] != 'TRANSPORT':
+            raise HTTPException(status_code=400, detail="Invalid transport QR code format")
+        
+        transport_number = qr_parts[1]
+        
+        # Ищем транспорт по номеру
+        transport = db.transports.find_one({"transport_number": transport_number})
+        if not transport:
+            raise HTTPException(status_code=404, detail="Transport not found")
+        
+        # Проверяем статус транспорта
+        if transport.get("status") != "available":
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Transport is not available for loading. Current status: {transport.get('status')}"
+            )
+        
+        # Проверяем есть ли активная сессия для этого транспорта
+        existing_session = db.transport_loading_sessions.find_one({
+            "transport_id": transport["id"],
+            "status": "active"
+        })
+        
+        if existing_session:
+            return {
+                "success": True,
+                "message": "Active session found",
+                "session_id": existing_session["session_id"],
+                "transport": {
+                    "id": transport["id"],
+                    "transport_number": transport["transport_number"],
+                    "driver_name": transport.get("driver_name", "Не указан"),
+                    "capacity": transport.get("capacity", "Не указана"),
+                    "direction": transport.get("direction", "Не указано")
+                },
+                "loaded_cargo_count": len(existing_session.get("loaded_cargo", []))
+            }
+        
+        # Создаем новую сессию размещения
+        session_id = f"SESSION_{str(uuid.uuid4())[:8].upper()}"
+        
+        session = {
+            "session_id": session_id,
+            "transport_id": transport["id"],
+            "operator_id": current_user.id,
+            "operator_name": current_user.full_name,
+            "started_at": datetime.utcnow(),
+            "status": "active",
+            "loaded_cargo": []
+        }
+        
+        db.transport_loading_sessions.insert_one(session)
+        
+        # Обновляем статус транспорта
+        db.transports.update_one(
+            {"id": transport["id"]},
+            {"$set": {"status": "loading", "updated_at": datetime.utcnow()}}
+        )
+        
+        return {
+            "success": True,
+            "message": "Loading session started",
+            "session_id": session_id,
+            "transport": {
+                "id": transport["id"],
+                "transport_number": transport["transport_number"],
+                "driver_name": transport.get("driver_name", "Не указан"),
+                "capacity": transport.get("capacity", "Не указана"),
+                "direction": transport.get("direction", "Не указано")
+            },
+            "loaded_cargo_count": 0
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка сканирования QR транспорта: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error scanning transport QR: {str(e)}")
+
+@app.post("/api/logistics/cargo-to-transport/scan-cargo")
+async def scan_cargo_qr(
+    scan_data: CargoScanRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Сканирование QR кода груза для размещения на транспорт"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        # Проверяем активную сессию
+        session = db.transport_loading_sessions.find_one({
+            "session_id": scan_data.session_id,
+            "status": "active"
+        })
+        
+        if not session:
+            raise HTTPException(status_code=404, detail="Active loading session not found")
+        
+        # Парсим QR код груза (может быть в разных форматах)
+        qr_code = scan_data.qr_code.strip()
+        
+        # Попробуем найти груз по QR коду (формат: TAJLINE|INDIVIDUAL|individual_number|timestamp)
+        individual_number = None
+        cargo_number = None
+        
+        if '|' in qr_code:
+            # Формат TAJLINE QR кода
+            qr_parts = qr_code.split('|')
+            if len(qr_parts) >= 3 and qr_parts[0] == 'TAJLINE' and qr_parts[1] == 'INDIVIDUAL':
+                individual_number = qr_parts[2]
+                cargo_number = individual_number.split('/')[0] if '/' in individual_number else individual_number
+        else:
+            # Простой формат - номер заявки или individual_number
+            if '/' in qr_code:
+                individual_number = qr_code
+                cargo_number = qr_code.split('/')[0]
+            else:
+                cargo_number = qr_code
+        
+        if not cargo_number:
+            raise HTTPException(status_code=400, detail="Invalid cargo QR code format")
+        
+        # Ищем груз в placement_records (размещенные грузы)
+        placement_query = {"cargo_number": cargo_number}
+        if individual_number:
+            placement_query["individual_number"] = individual_number
+        
+        placement_record = db.placement_records.find_one(placement_query)
+        
+        if not placement_record:
+            raise HTTPException(status_code=404, detail=f"Груз {cargo_number} не найден среди размещенных")
+        
+        # Проверяем что груз не уже на транспорте
+        already_loaded = any(
+            cargo.get("individual_number") == placement_record.get("individual_number") 
+            for cargo in session.get("loaded_cargo", [])
+        )
+        
+        if already_loaded:
+            raise HTTPException(status_code=400, detail="Этот груз уже размещен на данном транспорте")
+        
+        # Получаем полную информацию о грузе
+        cargo = db.operator_cargo.find_one({"cargo_number": cargo_number})
+        if not cargo:
+            cargo = db.cargo.find_one({"cargo_number": cargo_number})
+        
+        if not cargo:
+            raise HTTPException(status_code=404, detail="Cargo details not found")
+        
+        # Добавляем груз в сессию
+        cargo_entry = {
+            "cargo_number": cargo_number,
+            "individual_number": placement_record.get("individual_number", cargo_number),
+            "cargo_name": cargo.get("cargo_name", "Груз"),
+            "weight": cargo.get("weight", 0),
+            "sender_full_name": cargo.get("sender_full_name", "Не указан"),
+            "recipient_full_name": cargo.get("recipient_full_name", "Не указан"),
+            "warehouse_location": placement_record.get("placement_info", ""),
+            "loaded_at": datetime.utcnow(),
+            "loaded_by": current_user.full_name
+        }
+        
+        # Обновляем сессию
+        db.transport_loading_sessions.update_one(
+            {"session_id": scan_data.session_id},
+            {
+                "$push": {"loaded_cargo": cargo_entry},
+                "$set": {"updated_at": datetime.utcnow()}
+            }
+        )
+        
+        # Обновляем статус груза в placement_records
+        db.placement_records.update_one(
+            placement_query,
+            {
+                "$set": {
+                    "status": "loaded_on_transport",
+                    "transport_id": session["transport_id"],
+                    "loaded_at": datetime.utcnow(),
+                    "loaded_by": current_user.id
+                }
+            }
+        )
+        
+        # Получаем обновленную статистику сессии
+        updated_session = db.transport_loading_sessions.find_one({"session_id": scan_data.session_id})
+        total_loaded = len(updated_session.get("loaded_cargo", []))
+        
+        return {
+            "success": True,
+            "message": f"Груз {cargo_number} успешно размещен на транспорт",
+            "cargo": cargo_entry,
+            "session_summary": {
+                "total_loaded": total_loaded,
+                "session_id": scan_data.session_id
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка сканирования QR груза: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error scanning cargo QR: {str(e)}")
+
+@app.get("/api/logistics/cargo-to-transport/session")
+async def get_current_session(
+    session_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить текущую сессию размещения"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        query = {"status": "active"}
+        
+        if session_id:
+            query["session_id"] = session_id
+        else:
+            # Ищем активную сессию оператора
+            query["operator_id"] = current_user.id
+        
+        session = db.transport_loading_sessions.find_one(query)
+        
+        if not session:
+            return {
+                "active_session": False,
+                "message": "No active loading session found"
+            }
+        
+        # Получаем информацию о транспорте
+        transport = db.transports.find_one({"id": session["transport_id"]})
+        
+        return {
+            "active_session": True,
+            "session": {
+                "session_id": session["session_id"],
+                "started_at": session["started_at"],
+                "operator_name": session.get("operator_name", current_user.full_name),
+                "loaded_cargo": session.get("loaded_cargo", []),
+                "total_loaded": len(session.get("loaded_cargo", []))
+            },
+            "transport": {
+                "id": transport["id"] if transport else None,
+                "transport_number": transport["transport_number"] if transport else "Не найден",
+                "driver_name": transport.get("driver_name", "Не указан") if transport else "Не указан",
+                "direction": transport.get("direction", "Не указано") if transport else "Не указано"
+            }
+        }
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения сессии: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error getting session: {str(e)}")
+
+@app.delete("/api/logistics/cargo-to-transport/session")
+async def complete_loading_session(
+    session_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Завершить сессию размещения"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        # Находим активную сессию
+        session = db.transport_loading_sessions.find_one({
+            "session_id": session_id,
+            "status": "active"
+        })
+        
+        if not session:
+            raise HTTPException(status_code=404, detail="Active session not found")
+        
+        # Завершаем сессию
+        db.transport_loading_sessions.update_one(
+            {"session_id": session_id},
+            {
+                "$set": {
+                    "status": "completed",
+                    "completed_at": datetime.utcnow(),
+                    "completed_by": current_user.full_name
+                }
+            }
+        )
+        
+        # Обновляем статус транспорта
+        loaded_cargo_count = len(session.get("loaded_cargo", []))
+        
+        if loaded_cargo_count > 0:
+            # Если есть груз - статус "loaded"
+            new_status = "loaded"
+        else:
+            # Если нет груза - возвращаем в "available"
+            new_status = "available"
+        
+        db.transports.update_one(
+            {"id": session["transport_id"]},
+            {
+                "$set": {
+                    "status": new_status,
+                    "loaded_cargo_count": loaded_cargo_count,
+                    "last_loading_completed": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        return {
+            "success": True,
+            "message": f"Loading session completed successfully",
+            "session_summary": {
+                "session_id": session_id,
+                "total_loaded": loaded_cargo_count,
+                "duration_minutes": int((datetime.utcnow() - session["started_at"]).total_seconds() / 60),
+                "transport_status": new_status
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка завершения сессии: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error completing session: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
