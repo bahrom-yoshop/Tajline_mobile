@@ -21381,12 +21381,23 @@ async def scan_transport_qr(
         raise HTTPException(status_code=403, detail="Access denied")
     
     try:
-        # QR код транспорта теперь содержит только номер транспорта (как у грузов)
+        # QR код транспорта может быть в новом формате TRANSPORT_{number}_{timestamp} или старом формате (только номер)
         qr_code = scan_data.qr_code.strip()
-        transport_number = qr_code  # QR код содержит только номер транспорта
         
-        if not transport_number:
+        if not qr_code:
             raise HTTPException(status_code=400, detail="QR code cannot be empty")
+        
+        # Определяем формат QR кода и извлекаем номер транспорта
+        if qr_code.startswith("TRANSPORT_"):
+            # Новый формат: TRANSPORT_{transport_number}_{timestamp}
+            parts = qr_code.split("_")
+            if len(parts) >= 3:
+                transport_number = parts[1]  # Извлекаем номер транспорта из середины
+            else:
+                raise HTTPException(status_code=400, detail="Invalid QR code format")
+        else:
+            # Старый формат: только номер транспорта
+            transport_number = qr_code
         
         # Ищем транспорт по номеру
         transport = db.transports.find_one({"transport_number": transport_number})
