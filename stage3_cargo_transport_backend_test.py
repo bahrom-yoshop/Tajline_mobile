@@ -298,8 +298,7 @@ class Stage3CargoTransportTester:
             # Данные для возврата груза
             return_data = {
                 "cargo_number": self.test_cargo_number,
-                "reason": "Тестовый возврат груза для проверки API",
-                "returned_by": self.operator_info.get("id") if self.operator_info else "test_operator"
+                "reason": "Тестовый возврат груза для проверки API"
             }
             
             response = self.session.post(f"{API_BASE}/cargo/return-from-transport", json=return_data)
