@@ -510,10 +510,31 @@ class CargoToTransportCorrectedTester:
         self.log("🧹 Очищаем тестовые данные...")
         
         try:
+            # Очищаем активные сессии если есть
+            if self.current_session_id:
+                try:
+                    self.session.delete(f"{API_BASE}/logistics/cargo-to-transport/session")
+                    self.log("Активная сессия завершена")
+                except:
+                    pass
+            
+            # Не удаляем транспорт если мы использовали существующий
+            # Только если мы создали тестовый транспорт с префиксом TEST
             if self.test_transport_id:
-                # Удаляем тестовый транспорт
-                self.session.delete(f"{API_BASE}/admin/transport/{self.test_transport_id}")
-                self.log("Тестовый транспорт удален")
+                try:
+                    transport_response = self.session.get(f"{API_BASE}/transport/{self.test_transport_id}")
+                    if transport_response.status_code == 200:
+                        transport_data = transport_response.json()
+                        transport_number = transport_data.get("transport_number", "")
+                        if transport_number.startswith("TEST"):
+                            # Это наш тестовый транспорт, можно удалить
+                            self.session.delete(f"{API_BASE}/transport/{self.test_transport_id}")
+                            self.log("Тестовый транспорт удален")
+                        else:
+                            self.log("Использовался существующий транспорт, не удаляем")
+                except Exception as e:
+                    self.log(f"Информация: {str(e)}", "INFO")
+                    
         except Exception as e:
             self.log(f"Ошибка при очистке: {str(e)}", "WARNING")
     
