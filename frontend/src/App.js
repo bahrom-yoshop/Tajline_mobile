@@ -5936,11 +5936,8 @@ function App() {
   const [cargoStatistics, setCargoStatistics] = useState(null); // Общая статистика грузов
   const [statisticsLoading, setStatisticsLoading] = useState(false); // Загрузка статистики
   
-  // СОСТОЯНИЯ ДЛЯ УЛУЧШЕННЫХ QR КОДОВ ТРАНСПОРТА
+  // СОСТОЯНИЯ ДЛЯ УЛУЧШЕННЫХ QR КОДОВ ТРАНСПОРТА  
   const [transportListPage, setTransportListPage] = useState(false); // Страница списка транспортов с QR
-  const [allTransportsList, setAllTransportsList] = useState([]); // Список всех транспортов
-  const [selectedTransports, setSelectedTransports] = useState([]); // Выбранные транспорты для QR
-  const [transportQRGenerationModal, setTransportQRGenerationModal] = useState(false); // Модальное окно генерации QR
   const [transportBulkQRResults, setTransportBulkQRResults] = useState([]); // Результаты массовой генерации QR для транспорта
   const [transportBulkQRLoading, setTransportBulkQRLoading] = useState(false); // Загрузка массовой генерации для транспорта
   const [transportListLoading, setTransportListLoading] = useState(false); // Загрузка списка транспортов
