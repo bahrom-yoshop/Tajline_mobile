@@ -5938,9 +5938,7 @@ function App() {
   
   // СОСТОЯНИЯ ДЛЯ УЛУЧШЕННЫХ QR КОДОВ ТРАНСПОРТА  
   const [transportListPage, setTransportListPage] = useState(false); // Страница списка транспортов с QR
-  const [allTransportsList, setAllTransportsList] = useState([]); // Список всех транспортов
-  const [selectedTransports, setSelectedTransports] = useState([]); // Выбранные транспорты для QR
-  const [transportQRGenerationModal, setTransportQRGenerationModal] = useState(false); // Модальное окно генерации QR
+  const [transportQRLoading, setTransportQRLoading] = useState({}); // Индивидуальная загрузка QR для каждого транспорта
   const [transportBulkQRResults, setTransportBulkQRResults] = useState([]); // Результаты массовой генерации QR для транспорта
   const [transportBulkQRLoading, setTransportBulkQRLoading] = useState(false); // Загрузка массовой генерации для транспорта
   const [transportListLoading, setTransportListLoading] = useState(false); // Загрузка списка транспортов
