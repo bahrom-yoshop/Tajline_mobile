@@ -14566,7 +14566,7 @@ function App() {
     });
   };
   
-  const handleSelectAllTransports = () => {
+  const handleSelectAllTransportsQR = () => {
     const allIds = allTransportsList.map(t => t.id);
     setSelectedTransports(selectedTransports.length === allIds.length ? [] : allIds);
   };
