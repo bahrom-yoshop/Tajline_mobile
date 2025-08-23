@@ -18066,6 +18066,290 @@ function App() {
             </div>
           ) : 
           
+          /* ЭТАП 2: СТРАНИЦА РАЗМЕЩЕНИЯ ГРУЗОВ НА ТРАНСПОРТ */
+          currentPage === 'cargo-to-transport' ? (
+            <div className="min-h-screen bg-gray-50 relative">
+              <DevBadge id={getDevNumber('pages', 'cargo-to-transport').id} type="page" label={getDevNumber('pages', 'cargo-to-transport').label} />
+              
+              {/* Page Header */}
+              <div className="bg-white shadow-sm rounded-lg mb-6 p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={closeCargoToTransportPage}
+                      className="mr-4 text-gray-600 hover:text-gray-800"
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Назад
+                    </Button>
+                    <div>
+                      <h1 className="text-2xl font-bold text-gray-900">🚛 Размещение груза на транспорт</h1>
+                      <p className="text-gray-600 mt-1">Сканируйте QR код транспорта, затем QR коды грузов для размещения</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Main Content */}
+              <div className="max-w-4xl mx-auto">
+                
+                {/* Progress Steps */}
+                <div className="mb-8">
+                  <div className="flex items-center justify-center space-x-8">
+                    <div className={`flex items-center ${transportScanMode ? 'text-blue-600' : scannedTransport ? 'text-green-600' : 'text-gray-400'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        transportScanMode ? 'bg-blue-600 text-white' : 
+                        scannedTransport ? 'bg-green-600 text-white' : 'bg-gray-200'
+                      }`}>
+                        {scannedTransport ? '✓' : '1'}
+                      </div>
+                      <span className="ml-2 font-medium">Выбрать транспорт</span>
+                    </div>
+                    <div className={`h-px flex-1 max-w-32 ${scannedTransport ? 'bg-green-300' : 'bg-gray-300'}`}></div>
+                    <div className={`flex items-center ${!transportScanMode && scannedTransport ? 'text-blue-600' : 'text-gray-400'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        !transportScanMode && scannedTransport ? 'bg-blue-600 text-white' : 'bg-gray-200'
+                      }`}>
+                        2
+                      </div>
+                      <span className="ml-2 font-medium">Сканировать грузы</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 1: Scan Transport */}
+                {transportScanMode && (
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Truck className="mr-2 h-5 w-5" />
+                        Шаг 1: Выбор транспорта
+                      </CardTitle>
+                      <CardDescription>
+                        Отсканируйте QR код транспорта для начала загрузки
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        
+                        {/* QR Scanner для транспорта */}
+                        <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                          <QrCode className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">Сканирование QR кода транспорта</h3>
+                          <p className="text-gray-600 mb-4">Наведите камеру на QR код, прикрепленный к транспорту</p>
+                          
+                          <Button
+                            onClick={() => setQrScannerActive(!qrScannerActive)}
+                            className="mb-4"
+                            disabled={cargoScanLoading}
+                          >
+                            <Camera className="mr-2 h-4 w-4" />
+                            {qrScannerActive ? 'Остановить сканер' : 'Начать сканирование'}
+                          </Button>
+                          
+                          {/* Индикатор загрузки */}
+                          {cargoScanLoading && (
+                            <div className="flex items-center justify-center mt-4">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                              <span className="ml-2 text-gray-600">Обработка QR кода...</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Manual Input для тестирования */}
+                        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                          <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                            Или введите QR код транспорта вручную (для тестирования):
+                          </Label>
+                          <div className="flex space-x-2">
+                            <Input
+                              placeholder="TRANSPORT_001_1234567890"
+                              value={manualTransportQR}
+                              onChange={(e) => setManualTransportQR(e.target.value)}
+                              className="flex-1"
+                            />
+                            <Button
+                              onClick={() => handleScanTransportQR(manualTransportQR)}
+                              disabled={!manualTransportQR.trim() || cargoScanLoading}
+                              variant="outline"
+                            >
+                              Подтвердить
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Step 2: Transport Selected & Cargo Scanning */}
+                {scannedTransport && !transportScanMode && (
+                  <>
+                    {/* Selected Transport Info */}
+                    <Card className="mb-6 border-green-200 bg-green-50">
+                      <CardHeader>
+                        <CardTitle className="flex items-center text-green-800">
+                          <CheckCircle className="mr-2 h-5 w-5" />
+                          Выбранный транспорт
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <p className="text-sm text-gray-600">Номер транспорта</p>
+                            <p className="font-semibold text-green-800">{scannedTransport.transport_number}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Водитель</p>
+                            <p className="font-semibold text-green-800">{scannedTransport.driver_name}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Направление</p>
+                            <p className="font-semibold text-green-800">{scannedTransport.direction}</p>
+                          </div>
+                        </div>
+                        
+                        {loadingSession && (
+                          <div className="mt-4 flex items-center text-sm text-green-700">
+                            <Clock className="mr-2 h-4 w-4" />
+                            Сессия активна • Загружено грузов: {loadingSession.loaded_cargo_count || 0}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Cargo Scanning */}
+                    <Card className="mb-6">
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Package className="mr-2 h-5 w-5" />
+                          Шаг 2: Сканирование грузов
+                        </CardTitle>
+                        <CardDescription>
+                          Сканируйте QR коды грузов для размещения на транспорт
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          
+                          {/* QR Scanner для грузов */}
+                          <div className="text-center p-8 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50">
+                            <Package className="mx-auto h-16 w-16 text-blue-500 mb-4" />
+                            <h3 className="text-lg font-medium text-blue-900 mb-2">Сканирование QR кода груза</h3>
+                            <p className="text-blue-700 mb-4">Наведите камеру на QR код груза для размещения на транспорт</p>
+                            
+                            <Button
+                              onClick={() => setQrScannerActive(!qrScannerActive)}
+                              className="mb-4 bg-blue-600 hover:bg-blue-700"
+                              disabled={cargoScanLoading}
+                            >
+                              <Camera className="mr-2 h-4 w-4" />
+                              {qrScannerActive ? 'Остановить сканер' : 'Сканировать груз'}
+                            </Button>
+                            
+                            {/* Индикатор загрузки */}
+                            {cargoScanLoading && (
+                              <div className="flex items-center justify-center mt-4">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                                <span className="ml-2 text-blue-700">Размещение груза...</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Manual Input для тестирования */}
+                          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                            <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                              Или введите QR код груза вручную (для тестирования):
+                            </Label>
+                            <div className="flex space-x-2">
+                              <Input
+                                placeholder="250101 или 250101/01/01"
+                                value={manualCargoQR}
+                                onChange={(e) => setManualCargoQR(e.target.value)}
+                                className="flex-1"
+                              />
+                              <Button
+                                onClick={() => handleScanCargoQR(manualCargoQR)}
+                                disabled={!manualCargoQR.trim() || cargoScanLoading}
+                                variant="outline"
+                              >
+                                Разместить
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Loaded Cargo List */}
+                    {loadedCargo.length > 0 && (
+                      <Card className="mb-6">
+                        <CardHeader>
+                          <CardTitle className="flex items-center">
+                            <List className="mr-2 h-5 w-5" />
+                            Размещенные грузы ({loadedCargo.length})
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {loadedCargo.map((cargo, index) => (
+                              <div key={index} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <div className="flex items-center">
+                                  <CheckCircle className="h-5 w-5 text-green-600 mr-3" />
+                                  <div>
+                                    <p className="font-medium text-green-800">{cargo.cargo_number}</p>
+                                    <p className="text-sm text-green-600">{cargo.cargo_name}</p>
+                                    <p className="text-xs text-gray-600">
+                                      {cargo.sender_full_name} → {cargo.recipient_full_name}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm text-gray-600">Размещен</p>
+                                  <p className="text-xs text-gray-500">
+                                    {new Date(cargo.loaded_at).toLocaleTimeString('ru-RU')}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex justify-center space-x-4">
+                      <Button 
+                        onClick={completeLoadingSession}
+                        disabled={loadedCargo.length === 0}
+                        size="lg"
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Завершить загрузку ({loadedCargo.length} грузов)
+                      </Button>
+                      
+                      <Button 
+                        onClick={() => {
+                          setTransportScanMode(true);
+                          setScannedTransport(null);
+                        }}
+                        variant="outline"
+                        size="lg"
+                      >
+                        <RotateCw className="mr-2 h-4 w-4" />
+                        Выбрать другой транспорт
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+              </div>
+            </div>
+          ) : 
+          
           /* Main content for different user roles */
           user?.role === 'user' ? (
             <div className="space-y-6">
