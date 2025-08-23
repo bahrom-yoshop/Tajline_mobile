@@ -433,7 +433,11 @@ class TransportQRTester:
             deleted_count = 0
             for transport_id in self.created_transports:
                 try:
-                    response = self.session.delete(f"{API_BASE}/admin/transports/{transport_id}")
+                    # Пробуем оба возможных endpoint'а для удаления
+                    response = self.session.delete(f"{API_BASE}/transport/{transport_id}")
+                    if response.status_code not in [200, 204]:
+                        response = self.session.delete(f"{API_BASE}/admin/transports/{transport_id}")
+                    
                     if response.status_code in [200, 204]:
                         deleted_count += 1
                 except:
