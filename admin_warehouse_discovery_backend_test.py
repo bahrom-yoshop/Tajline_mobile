@@ -19,7 +19,7 @@ BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://tajline-manage-1.
 API_BASE = f"{BACKEND_URL}/api"
 
 # Конфигурация для админа
-ADMIN_PHONE = "+79777888888"
+ADMIN_PHONE = "+79999888777"
 ADMIN_PASSWORD = "admin123"
 
 # Конфигурация для оператора
