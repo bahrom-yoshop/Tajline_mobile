@@ -46,6 +46,7 @@ class TransportQRTester:
             "qr_retrieval_success": False,
             "qr_printing_success": False,
             "transport_without_qr": None,
+            "test_transport": None,
             "generated_qr_code": None,
             "print_count_incremented": False,
             "detailed_results": []
