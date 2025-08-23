@@ -7312,6 +7312,7 @@ async def get_individual_units_for_placement(
         return {
             "items": list(grouped_units.values()),
             "individual_units": paginated_units,  # Плоский список для совместимости
+            "grouped_data": grouped_units,  # ИСПРАВЛЕНИЕ: Добавляем grouped_data для совместимости с фронтендом
             "total": total_units,
             "page": page,
             "per_page": per_page,
