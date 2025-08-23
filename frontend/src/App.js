@@ -17118,6 +17118,7 @@ function App() {
               { id: 'cargo-pickup-list', label: 'На забор' }
             ]
           },
+          { id: 'cargo-list-all', label: '📋 Список всех грузов' },
           { id: 'cargo-placement', label: 'Готов к размещению' },
           { id: 'cargo-pickup-history', label: 'История забора груза' },
           { id: 'cargo-history', label: 'История грузов' }
