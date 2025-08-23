@@ -8530,6 +8530,9 @@ async def get_warehouse_layout_with_cargo(
     # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Ищем размещенные грузы в ДВУХ источниках
     print(f"🔍 КРИТИЧЕСКАЯ ДИАГНОСТИКА layout-with-cargo: склад {warehouse_id}")
     
+    # Получаем информацию о складе (нужно для всей функции)
+    warehouse_info = db.warehouses.find_one({"id": warehouse_id})
+    
     # ИСТОЧНИК 1: placement_records (существующая логика)
     placement_records = []
     
@@ -8539,7 +8542,6 @@ async def get_warehouse_layout_with_cargo(
     
     # 2. Если не найдено, ищем по номеру склада
     if len(placement_records_direct) == 0:
-        warehouse_info = db.warehouses.find_one({"id": warehouse_id})
         if warehouse_info:
             warehouse_number = warehouse_info.get("warehouse_id_number") or warehouse_info.get("number")
             if warehouse_number:
