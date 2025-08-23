@@ -14262,6 +14262,114 @@ function App() {
     }
   };
 
+  // === ЭТАП 3: ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ РАЗМЕЩЕННЫМИ ГРУЗАМИ ===
+  
+  const fetchPlacedCargoOnTransport = async () => {
+    try {
+      setPlacedCargoLoading(true);
+      
+      const response = await apiCall('/api/logistics/cargo-to-transport/placed-cargo');
+      
+      if (response.success) {
+        setPlacedCargoList(response.placed_cargo || []);
+        return response.placed_cargo || [];
+      }
+      
+    } catch (error) {
+      console.error('Error fetching placed cargo:', error);
+      showAlert('Ошибка загрузки размещенных грузов', 'error');
+      setPlacedCargoList([]);
+      return [];
+    } finally {
+      setPlacedCargoLoading(false);
+    }
+  };
+  
+  const handleOpenCargoTransportDetails = async (cargo) => {
+    try {
+      setSelectedTransportCargo(cargo);
+      setCargoTransportModal(true);
+      
+      // Получаем дополнительные детали из API
+      const response = await apiCall(`/api/cargo/${cargo.cargo_number}/transport-details`);
+      
+      if (response.success) {
+        setSelectedTransportCargo({
+          ...cargo,
+          transport_details: response.transport_details
+        });
+      }
+      
+    } catch (error) {
+      console.error('Error getting cargo transport details:', error);
+      showAlert('Ошибка получения деталей груза', 'error');
+    }
+  };
+  
+  const handleReturnCargoFromTransport = async () => {
+    if (!selectedTransportCargo || !returnReason.trim()) {
+      showAlert('Укажите причину возврата', 'warning');
+      return;
+    }
+    
+    try {
+      const response = await apiCall('/api/cargo/return-from-transport', 'POST', {
+        cargo_number: selectedTransportCargo.cargo_number,
+        reason: returnReason
+      });
+      
+      if (response.success) {
+        showAlert(`Груз ${selectedTransportCargo.cargo_number} возвращен на склад`, 'success');
+        
+        // Обновляем список размещенных грузов
+        await fetchPlacedCargoOnTransport();
+        
+        // Закрываем модальные окна
+        setCargoReturnModal(false);
+        setCargoTransportModal(false);
+        setReturnReason('');
+        setSelectedTransportCargo(null);
+      }
+      
+    } catch (error) {
+      console.error('Error returning cargo from transport:', error);
+      showAlert(error.detail || 'Ошибка возврата груза', 'error');
+    }
+  };
+  
+  const handleUpdateCargoTransportStatus = async (newStatus, notes = '') => {
+    if (!selectedTransportCargo) return;
+    
+    try {
+      const response = await apiCall('/api/cargo/update-status-to-transport', 'PUT', {
+        cargo_number: selectedTransportCargo.cargo_number,
+        status: newStatus,
+        notes: notes
+      });
+      
+      if (response.success) {
+        showAlert(`Статус груза обновлен: ${response.status_name}`, 'success');
+        
+        // Обновляем список размещенных грузов
+        await fetchPlacedCargoOnTransport();
+        
+        // Обновляем выбранный груз
+        setSelectedTransportCargo(prev => ({
+          ...prev,
+          status: newStatus,
+          transport_info: {
+            ...prev.transport_info,
+            status: newStatus
+          }
+        }));
+      }
+      
+    } catch (error) {
+      console.error('Error updating cargo status:', error);
+      showAlert(error.detail || 'Ошибка обновления статуса', 'error');
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoggingIn(true);
