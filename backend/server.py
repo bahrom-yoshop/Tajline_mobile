@@ -14994,9 +14994,15 @@ async def generate_transport_qr(
         raise HTTPException(status_code=404, detail="Transport not found")
     
     try:
-        # QR код содержит только номер транспорта (как у грузов и ячеек)
+        # Генерируем уникальный QR код для транспорта
+        # Формат: TRANSPORT_{transport_number}_{unique_id}
         current_time = datetime.utcnow()
-        qr_data = transport['transport_number']
+        
+        # Создаем уникальный суффикс из даты и времени
+        unique_suffix = current_time.strftime("%Y%m%d%H%M%S")
+        
+        # QR код содержит номер транспорта + уникальный суффикс для идентификации
+        qr_data = f"TRANSPORT_{transport['transport_number']}_{unique_suffix}"
         
         # Генерируем QR изображение
         qr = qrcode.QRCode(
@@ -15022,8 +15028,9 @@ async def generate_transport_qr(
             {"id": transport_id},
             {
                 "$set": {
-                    "qr_code": qr_data,  # Сохраняем только номер транспорта
-                    "qr_image_base64": qr_image_base64,  # Сохраняем изображение для отображения
+                    "qr_code": qr_data,  # Полный QR код для сканирования
+                    "qr_simple": transport['transport_number'],  # Простой номер для отображения
+                    "qr_image_base64": qr_image_base64,  # Изображение для отображения и печати
                     "qr_generated_at": current_time,
                     "qr_generated_by": current_user.id,
                     "qr_print_count": 0,  # Обнуляем счетчик печати при новой генерации
@@ -15032,14 +15039,15 @@ async def generate_transport_qr(
             }
         )
         
-        print(f"🔲 QR код сгенерирован для транспорта {transport_id}: {qr_data}")
+        print(f"🔲 Уникальный QR код сгенерирован для транспорта {transport_id}: {qr_data}")
         
         return {
             "success": True,
             "message": "QR code generated successfully",
             "transport_id": transport_id,
             "transport_number": transport['transport_number'],
-            "qr_code": qr_data,
+            "qr_code": qr_data,  # Полный QR код
+            "qr_simple": transport['transport_number'],  # Простой номер
             "qr_image": f"data:image/png;base64,{qr_image_base64}",
             "generated_at": current_time,
             "generated_by": current_user.full_name
