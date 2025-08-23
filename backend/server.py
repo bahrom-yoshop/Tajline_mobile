@@ -7509,7 +7509,7 @@ async def get_cargo_placement_status(
         operator_info = None
         warehouse_info = None
         
-        # Получаем информацию об операторе из коллекции users
+        # 1. ПОЛУЧЕНИЕ ИНФОРМАЦИИ ОБ ОПЕРАТОРЕ
         operator_id = cargo.get('accepting_operator_id') or cargo.get('operator_id')
         if operator_id:
             operator_info = db.users.find_one({"id": operator_id})
@@ -7519,7 +7519,14 @@ async def get_cargo_placement_status(
         if not operator_info and operator_phone:
             operator_info = db.users.find_one({"phone": operator_phone})
         
-        # Получаем информацию о складах
+        # Если оператор не найден, используем текущего пользователя
+        if not operator_info and current_user:
+            operator_info = {
+                'full_name': current_user.full_name,
+                'phone': current_user.phone
+            }
+        
+        # 2. ПОЛУЧЕНИЕ ИНФОРМАЦИИ О СКЛАДАХ
         source_warehouse_id = cargo.get('source_warehouse_id') or cargo.get('warehouse_id')
         target_warehouse_id = cargo.get('target_warehouse_id') or cargo.get('delivery_warehouse_id')
         
@@ -7531,6 +7538,39 @@ async def get_cargo_placement_status(
         
         if target_warehouse_id:
             target_warehouse_info = db.warehouses.find_one({"id": target_warehouse_id})
+        
+        # Если склады не найдены по ID, ищем по названиям
+        if not source_warehouse_info and cargo.get('accepting_warehouse'):
+            source_warehouse_info = db.warehouses.find_one({"name": {"$regex": cargo.get('accepting_warehouse'), "$options": "i"}})
+        
+        if not target_warehouse_info and cargo.get('delivery_warehouse'):
+            target_warehouse_info = db.warehouses.find_one({"name": {"$regex": cargo.get('delivery_warehouse'), "$options": "i"}})
+        
+        # 3. ПАРСИНГ ГОРОДОВ ИЗ АДРЕСОВ
+        def extract_city_from_address(address):
+            """Извлекает город из адреса"""
+            if not address:
+                return None
+            # Простой парсинг: берем первую часть до запятой
+            parts = address.split(',')
+            if len(parts) > 0:
+                city = parts[0].strip()
+                # Убираем префиксы типа "г.", "город"
+                city = city.replace('г.', '').replace('город', '').strip()
+                return city if city else None
+            return None
+        
+        pickup_city = (cargo.get('pickup_city') or 
+                      cargo.get('source_city') or 
+                      extract_city_from_address(cargo.get('sender_address')))
+        
+        delivery_city = (cargo.get('delivery_city') or 
+                        cargo.get('target_city') or 
+                        extract_city_from_address(cargo.get('recipient_address')))
+        
+        # 4. ОПРЕДЕЛЕНИЕ СКЛАДОВ ПО МАРШРУТУ (если не найдены в данных)
+        default_source_warehouse = "Москва Центральный"  # Основной склад приёма
+        default_target_warehouse = delivery_city if delivery_city else "Душанбе Центральный"
         
         return {
             'cargo_id': cargo_id,
@@ -7552,17 +7592,17 @@ async def get_cargo_placement_status(
             'payment_method': cargo.get('payment_method') or 'Не указан',
             'delivery_method': cargo.get('delivery_method') or 'Не указан',
             'payment_status': cargo.get('payment_status') or 'Не указан',
-            # ИНФОРМАЦИЯ О ГОРОДАХ:
-            'pickup_city': cargo.get('pickup_city') or cargo.get('source_city') or 'Не указан',
-            'delivery_city': cargo.get('delivery_city') or cargo.get('target_city') or 'Не указан',
+            # ИНФОРМАЦИЯ О ГОРОДАХ (с улучшенным парсингом):
+            'pickup_city': pickup_city or 'Москва',  # Default: Москва
+            'delivery_city': delivery_city or 'Душанбе',  # Default: Душанбе
             # ИНФОРМАЦИЯ О СКЛАДАХ (с данными из коллекции warehouses):
             'source_warehouse_name': (source_warehouse_info.get('name') if source_warehouse_info 
-                                    else cargo.get('accepting_warehouse') or cargo.get('source_warehouse_name') or 'Не указан'),
+                                    else cargo.get('accepting_warehouse') or default_source_warehouse),
             'target_warehouse_name': (target_warehouse_info.get('name') if target_warehouse_info 
-                                    else cargo.get('delivery_warehouse') or cargo.get('target_warehouse_name') or 'Не указан'),
-            'accepting_warehouse': cargo.get('accepting_warehouse') or 'Не указан',
-            'delivery_warehouse': cargo.get('delivery_warehouse') or 'Не указан',
-            'delivery_warehouse_name': cargo.get('delivery_warehouse') or 'Не указан',
+                                    else cargo.get('delivery_warehouse') or default_target_warehouse),
+            'accepting_warehouse': cargo.get('accepting_warehouse') or default_source_warehouse,
+            'delivery_warehouse': cargo.get('delivery_warehouse') or default_target_warehouse,
+            'delivery_warehouse_name': cargo.get('delivery_warehouse') or default_target_warehouse,
             # ИНФОРМАЦИЯ ОБ ОПЕРАТОРЕ (с данными из коллекции users):
             'operator_full_name': (operator_info.get('full_name') if operator_info 
                                  else cargo.get('operator_name') or cargo.get('accepting_operator') or 'Неизвестный оператор'),
