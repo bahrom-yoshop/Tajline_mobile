@@ -8527,14 +8527,14 @@ async def get_warehouse_layout_with_cargo(
     # Получаем все ячейки склада с грузами
     warehouse_cells = list(db.warehouse_cells.find({"warehouse_id": warehouse_id}))
     
-    # ИСПРАВЛЕНИЕ: Получаем реальные грузы более гибким поиском
-    print(f"🔍 ДИАГНОСТИКА layout-with-cargo: склад {warehouse_id}")
+    # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Более агрессивный поиск placement_records
+    print(f"🔍 КРИТИЧЕСКАЯ ДИАГНОСТИКА layout-with-cargo: склад {warehouse_id}")
     
     # 1. Сначала пробуем найти по точному warehouse_id
     placement_records = list(db.placement_records.find({"warehouse_id": warehouse_id}))
     print(f"📦 Найдено placement_records по точному ID: {len(placement_records)}")
     
-    # 2. Если не найдено, ищем по номеру склада (для совместимости)
+    # 2. Если не найдено, ищем по номеру склада
     if len(placement_records) == 0:
         warehouse_info = db.warehouses.find_one({"id": warehouse_id})
         if warehouse_info:
@@ -8544,46 +8544,87 @@ async def get_warehouse_layout_with_cargo(
                 placement_records = list(db.placement_records.find({"warehouse_id": warehouse_number}))
                 print(f"📦 Найдено placement_records по номеру: {len(placement_records)}")
     
-    # 3. Если всё ещё пусто, ищем по названию склада
+    # 3. НОВОЕ: Ищем по названию склада в placement_records
     if len(placement_records) == 0:
         warehouse_info = db.warehouses.find_one({"id": warehouse_id})
         if warehouse_info:
             warehouse_name = warehouse_info.get("name")
             if warehouse_name:
                 print(f"🔍 Ищем placement_records по названию склада: {warehouse_name}")
-                placement_records = list(db.placement_records.find({"warehouse_name": {"$regex": warehouse_name, "$options": "i"}}))
+                placement_records = list(db.placement_records.find({"warehouse_name": {"$regex": warehouse_name.replace(" ", ".*"), "$options": "i"}}))
                 print(f"📦 Найдено placement_records по названию: {len(placement_records)}")
     
-    # 4. Диагностируем все placement_records в системе
+    # 4. КРИТИЧНО: Анализируем ВСЕ placement_records в системе
     all_placement_records = list(db.placement_records.find())
-    print(f"📦 Всего placement_records в базе: {len(all_placement_records)}")
+    print(f"📦 ВСЕГО placement_records в базе: {len(all_placement_records)}")
     
-    if len(all_placement_records) > 0 and len(placement_records) == 0:
-        print(f"⚠️ ПРОБЛЕМА: В системе есть placement_records, но ни один не найден для склада {warehouse_id}")
-        print("📋 Анализируем warehouse_id в существующих записях:")
+    if len(all_placement_records) > 0:
+        print(f"📋 АНАЛИЗ ВСЕХ placement_records для поиска склада 001:")
         
-        warehouse_ids_in_records = set()
-        for record in all_placement_records[:5]:  # Показываем первые 5 для анализа
-            record_warehouse_id = record.get("warehouse_id")
-            warehouse_ids_in_records.add(record_warehouse_id)
-            print(f"   🔸 individual_number: {record.get('individual_number')}, warehouse_id: '{record_warehouse_id}', location: {record.get('location')}")
+        warehouse_ids_in_records = {}
+        location_patterns = {}
         
-        print(f"🔍 Уникальные warehouse_id в placement_records: {warehouse_ids_in_records}")
+        for record in all_placement_records:
+            record_warehouse_id = record.get("warehouse_id", "N/A")
+            cargo_number = record.get("cargo_number", "N/A")
+            individual_number = record.get("individual_number", "N/A")
+            location = record.get("location", "N/A")
+            warehouse_name = record.get("warehouse_name", "N/A")
+            
+            # Собираем статистику по warehouse_id
+            if record_warehouse_id in warehouse_ids_in_records:
+                warehouse_ids_in_records[record_warehouse_id] += 1
+            else:
+                warehouse_ids_in_records[record_warehouse_id] = 1
+            
+            # Анализируем location patterns
+            if location and location != "N/A":
+                location_pattern = "UNKNOWN"
+                if location.startswith("Б") and "-" in location:
+                    location_pattern = "CYRILLIC_FORMAT"  # Б1-П2-Я5
+                elif location.count("-") == 3:
+                    location_pattern = "QR_FORMAT"  # 001-01-02-005
+                
+                if location_pattern in location_patterns:
+                    location_patterns[location_pattern] += 1
+                else:
+                    location_patterns[location_pattern] = 1
+            
+            print(f"   📋 {cargo_number}/{individual_number}: warehouse_id='{record_warehouse_id}', warehouse_name='{warehouse_name}', location='{location}'")
         
-        # Если есть записи с warehouse_id = "001" (номер склада), используем их
-        if "001" in warehouse_ids_in_records and (warehouse_id.startswith("d0a8362d") or warehouse_id == "001"):
-            print(f"🎯 НАЙДЕНО РЕШЕНИЕ: Используем placement_records с warehouse_id='001' для Москва Склад №1")
-            placement_records = list(db.placement_records.find({"warehouse_id": "001"}))
-            print(f"📦 ИСПРАВЛЕНО: Найдено placement_records: {len(placement_records)}")
+        print(f"\n🔍 СТАТИСТИКА warehouse_id в placement_records:")
+        for wid, count in warehouse_ids_in_records.items():
+            print(f"   '{wid}': {count} записей")
+        
+        print(f"\n🗺️ СТАТИСТИКА форматов location:")
+        for pattern, count in location_patterns.items():
+            print(f"   {pattern}: {count} записей")
+        
+        # КРИТИЧНО: Пытаемся найти записи для "Москва" или "001"
+        moscow_records = []
+        for record in all_placement_records:
+            warehouse_id_val = str(record.get("warehouse_id", "")).lower()
+            warehouse_name_val = str(record.get("warehouse_name", "")).lower()
+            location_val = str(record.get("location", "")).lower()
+            
+            if ("001" in warehouse_id_val or 
+                "москва" in warehouse_name_val or 
+                "moscow" in warehouse_name_val or
+                "001" in location_val):
+                moscow_records.append(record)
+        
+        if len(moscow_records) > 0:
+            print(f"\n🎯 НАЙДЕНЫ ЗАПИСИ для МОСКВЫ/001: {len(moscow_records)} записей")
+            placement_records = moscow_records
+            
+            for record in moscow_records[:5]:  # Первые 5 для анализа
+                print(f"   🏢 {record.get('cargo_number')}/{record.get('individual_number')}: warehouse_id='{record.get('warehouse_id')}', location='{record.get('location')}'")
+        else:
+            print(f"\n❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: НЕ найдены записи для склада 001/Москва")
+    else:
+        print(f"❌ В системе вообще НЕТ placement_records!")
     
-    # Проверим конкретные записи для отладки
-    target_record_1 = db.placement_records.find_one({"individual_number": "25082235/01/01"})
-    target_record_2 = db.placement_records.find_one({"individual_number": "25082235/01/02"})
-    
-    if target_record_1:
-        print(f"✅ Найден 25082235/01/01: warehouse_id={target_record_1.get('warehouse_id')}, location={target_record_1.get('location')}")
-    if target_record_2:
-        print(f"✅ Найден 25082235/01/02: warehouse_id={target_record_2.get('warehouse_id')}, location={target_record_2.get('location')}")
+    print(f"\n📊 ИТОГОВЫЙ РЕЗУЛЬТАТ ПОИСКА: {len(placement_records)} placement_records для отображения")
     
     # Создаем карту грузов по ячейкам на основе placement_records
     cargo_by_location = {}
