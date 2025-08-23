@@ -123,6 +123,11 @@ class TransportQRCriticalTester:
                 data = response.json()
                 transports = data.get("items", []) if isinstance(data, dict) else data
                 
+                self.log(f"🔍 Получен ответ списка транспортов: {type(data)}")
+                if isinstance(data, dict):
+                    self.log(f"🔍 Ключи ответа: {list(data.keys())}")
+                self.log(f"🔍 Количество транспортов: {len(transports) if isinstance(transports, list) else 'N/A'}")
+                
                 if transports and len(transports) > 0:
                     # Используем первый доступный транспорт
                     transport = transports[0]
