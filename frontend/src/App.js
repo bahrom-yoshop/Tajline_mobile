@@ -14095,7 +14095,7 @@ function App() {
       setTransports(data.transports);
       
       // Обновляем статистику в состоянии приложения
-      setNavigationCounts(prev => ({
+      setMenuCounters(prev => ({
         ...prev,
         logistics_transport: data.transports.length
       }));
