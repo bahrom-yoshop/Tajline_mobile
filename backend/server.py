@@ -22058,6 +22058,414 @@ async def update_cargo_status_to_transport(
         raise HTTPException(status_code=500, detail=f"Error updating cargo status: {str(e)}")
 
 
+# === ЭТАП 4: API ДЛЯ НОВОГО РАЗДЕЛА "СПИСОК ГРУЗОВ" ===
+
+@app.get("/api/cargo/list-by-status")
+async def get_cargo_list_by_status(
+    status: Optional[str] = None,
+    page: int = 1,
+    per_page: int = 25,
+    search: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить список грузов по статусам с фильтрацией и пагинацией"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        # Базовый запрос для поиска грузов
+        query = {}
+        
+        # Фильтр по статусу
+        if status and status != "all":
+            if status == "loaded_on_transport":
+                # Ищем грузы размещенные на транспорт через placement_records
+                placement_cargo_numbers = list(db.placement_records.find({
+                    "status": "loaded_on_transport"
+                }).distinct("cargo_number"))
+                query["cargo_number"] = {"$in": placement_cargo_numbers}
+            elif status == "in_transit":
+                query["status"] = "in_transit"
+            elif status == "arrived_destination":
+                query["status"] = "arrived_destination"
+            elif status == "completed":
+                query["status"] = {"$in": ["completed", "delivered"]}
+            elif status == "placed_in_warehouse":
+                query["status"] = "placed_in_warehouse"
+            else:
+                query["status"] = status
+        
+        # Поиск по номеру груза, имени отправителя/получателя
+        if search:
+            search_regex = {"$regex": search, "$options": "i"}
+            query["$or"] = [
+                {"cargo_number": search_regex},
+                {"sender_full_name": search_regex},
+                {"recipient_full_name": search_regex},
+                {"cargo_name": search_regex}
+            ]
+        
+        # Поиск в обеих коллекциях
+        operator_cargo_list = list(db.operator_cargo.find(query))
+        regular_cargo_list = list(db.cargo.find(query))
+        
+        # Объединяем результаты и убираем дубликаты по cargo_number
+        all_cargo = {}
+        
+        for cargo in operator_cargo_list + regular_cargo_list:
+            cargo_number = cargo.get("cargo_number")
+            if cargo_number not in all_cargo:
+                all_cargo[cargo_number] = cargo
+        
+        cargo_list = list(all_cargo.values())
+        
+        # Обогащаем данными о размещении на транспорт
+        enriched_cargo = []
+        for cargo in cargo_list:
+            # Получаем информацию о размещении на транспорт
+            placement = db.placement_records.find_one({
+                "cargo_number": cargo.get("cargo_number"),
+                "status": "loaded_on_transport"
+            })
+            
+            transport_info = None
+            if placement:
+                transport = db.transports.find_one({"id": placement.get("transport_id")})
+                if transport:
+                    transport_info = {
+                        "transport_id": transport.get("id"),
+                        "transport_number": transport.get("transport_number"),
+                        "driver_name": transport.get("driver_name"),
+                        "direction": transport.get("direction"),
+                        "loaded_at": placement.get("loaded_at"),
+                        "status": transport.get("status")
+                    }
+            
+            # Получаем информацию о размещении на складе
+            warehouse_placement = db.placement_records.find_one({
+                "cargo_number": cargo.get("cargo_number"),
+                "status": {"$in": ["placed", "placed_in_warehouse"]}
+            })
+            
+            warehouse_info = None
+            if warehouse_placement:
+                warehouse = db.warehouses.find_one({"id": warehouse_placement.get("warehouse_id")})
+                warehouse_info = {
+                    "warehouse_name": warehouse.get("name") if warehouse else "Неизвестный склад",
+                    "location": warehouse_placement.get("placement_info", ""),
+                    "placed_at": warehouse_placement.get("placed_at")
+                }
+            
+            enriched_item = {
+                "id": cargo.get("id"),
+                "cargo_number": cargo.get("cargo_number"),
+                "cargo_name": cargo.get("cargo_name", "Груз"),
+                "weight": cargo.get("weight", 0),
+                "declared_value": cargo.get("declared_value", 0),
+                "sender_full_name": cargo.get("sender_full_name", "Не указан"),
+                "sender_phone": cargo.get("sender_phone", ""),
+                "recipient_full_name": cargo.get("recipient_full_name", "Не указан"),
+                "recipient_phone": cargo.get("recipient_phone", ""),
+                "recipient_address": cargo.get("recipient_address", ""),
+                "status": cargo.get("status", "unknown"),
+                "created_at": cargo.get("created_at"),
+                "updated_at": cargo.get("updated_at"),
+                
+                # Информация о транспорте (если размещен)
+                "transport_info": transport_info,
+                
+                # Информация о складе (если размещен)
+                "warehouse_info": warehouse_info,
+                
+                # Определяем актуальный статус для отображения
+                "display_status": placement.get("status") if placement else cargo.get("status", "unknown"),
+                "display_status_name": {
+                    "loaded_on_transport": "Размещено на транспорт",
+                    "in_transit": "В пути",
+                    "arrived_destination": "Прибыл в пункт назначения",
+                    "completed": "Доставлено",
+                    "delivered": "Доставлено",
+                    "placed_in_warehouse": "Размещено на складе",
+                    "created": "Создано",
+                    "accepted": "Принято"
+                }.get(placement.get("status") if placement else cargo.get("status"), "Неизвестно")
+            }
+            
+            enriched_cargo.append(enriched_item)
+        
+        # Сортировка по дате создания (новые сначала)
+        enriched_cargo.sort(key=lambda x: x.get("created_at", datetime.min), reverse=True)
+        
+        # Применяем пагинацию
+        total_count = len(enriched_cargo)
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        paginated_cargo = enriched_cargo[start_idx:end_idx]
+        
+        return {
+            "success": True,
+            "cargo_list": paginated_cargo,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total_count": total_count,
+                "total_pages": math.ceil(total_count / per_page) if total_count > 0 else 1,
+                "has_next": end_idx < total_count,
+                "has_prev": page > 1
+            },
+            "filters": {
+                "status": status,
+                "search": search
+            },
+            "message": f"Найдено {total_count} грузов"
+        }
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения списка грузов: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error getting cargo list: {str(e)}")
+
+@app.get("/api/cargo/{cargo_number}/full-history")
+async def get_cargo_full_history(
+    cargo_number: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получить полную историю операций с грузом"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        # Ищем груз в обеих коллекциях
+        cargo = db.operator_cargo.find_one({"cargo_number": cargo_number})
+        if not cargo:
+            cargo = db.cargo.find_one({"cargo_number": cargo_number})
+        
+        if not cargo:
+            raise HTTPException(status_code=404, detail=f"Груз {cargo_number} не найден")
+        
+        # Собираем историю из разных источников
+        history_events = []
+        
+        # 1. Создание груза
+        history_events.append({
+            "event_type": "created",
+            "event_name": "Груз создан",
+            "timestamp": cargo.get("created_at"),
+            "description": f"Груз '{cargo.get('cargo_name', 'Не указано')}' создан в системе",
+            "details": {
+                "weight": cargo.get("weight"),
+                "declared_value": cargo.get("declared_value"),
+                "sender": cargo.get("sender_full_name"),
+                "recipient": cargo.get("recipient_full_name")
+            },
+            "performed_by": cargo.get("created_by_operator", "Система"),
+            "icon": "package"
+        })
+        
+        # 2. История размещений из placement_records
+        placements = list(db.placement_records.find({"cargo_number": cargo_number}).sort("placed_at", 1))
+        for placement in placements:
+            if placement.get("status") == "placed":
+                warehouse = db.warehouses.find_one({"id": placement.get("warehouse_id")})
+                warehouse_name = warehouse.get("name") if warehouse else "Неизвестный склад"
+                
+                history_events.append({
+                    "event_type": "placed_in_warehouse",
+                    "event_name": "Размещено на складе",
+                    "timestamp": placement.get("placed_at"),
+                    "description": f"Груз размещен на складе '{warehouse_name}' в ячейке {placement.get('placement_info', 'Не указана')}",
+                    "details": {
+                        "warehouse": warehouse_name,
+                        "location": placement.get("placement_info"),
+                        "placement_method": placement.get("placement_method", "manual")
+                    },
+                    "performed_by": placement.get("placed_by_operator", "Система"),
+                    "icon": "building"
+                })
+            
+            elif placement.get("status") == "loaded_on_transport":
+                transport = db.transports.find_one({"id": placement.get("transport_id")})
+                transport_number = transport.get("transport_number") if transport else "Неизвестный"
+                
+                history_events.append({
+                    "event_type": "loaded_on_transport",
+                    "event_name": "Размещено на транспорт",
+                    "timestamp": placement.get("loaded_at"),
+                    "description": f"Груз размещен на транспорт {transport_number}",
+                    "details": {
+                        "transport_number": transport_number,
+                        "driver_name": transport.get("driver_name") if transport else "Не указан",
+                        "direction": transport.get("direction") if transport else "Не указано"
+                    },
+                    "performed_by": placement.get("loaded_by_operator", "Система"),
+                    "icon": "truck"
+                })
+        
+        # 3. История изменений статуса из transport_loading_sessions
+        sessions = list(db.transport_loading_sessions.find({
+            "loaded_cargo.cargo_number": cargo_number
+        }).sort("started_at", 1))
+        
+        for session in sessions:
+            for loaded_cargo in session.get("loaded_cargo", []):
+                if loaded_cargo.get("cargo_number") == cargo_number:
+                    history_events.append({
+                        "event_type": "loading_session",
+                        "event_name": "Участие в сессии загрузки",
+                        "timestamp": loaded_cargo.get("loaded_at"),
+                        "description": f"Груз участвовал в сессии загрузки {session.get('session_id')}",
+                        "details": {
+                            "session_id": session.get("session_id"),
+                            "operator": session.get("operator_name"),
+                            "transport_id": session.get("transport_id")
+                        },
+                        "performed_by": loaded_cargo.get("loaded_by", "Система"),
+                        "icon": "activity"
+                    })
+        
+        # 4. Обновления статуса груза
+        if cargo.get("updated_at") and cargo.get("updated_at") != cargo.get("created_at"):
+            history_events.append({
+                "event_type": "status_updated",
+                "event_name": "Статус обновлен",
+                "timestamp": cargo.get("updated_at"),
+                "description": f"Статус груза обновлен: {cargo.get('status', 'Неизвестно')}",
+                "details": {
+                    "new_status": cargo.get("status"),
+                    "update_reason": "Автоматическое обновление"
+                },
+                "performed_by": "Система",
+                "icon": "refresh"
+            })
+        
+        # Сортируем события по времени (новые сначала)
+        history_events.sort(key=lambda x: x.get("timestamp", datetime.min), reverse=True)
+        
+        return {
+            "success": True,
+            "cargo_info": {
+                "cargo_number": cargo_number,
+                "cargo_name": cargo.get("cargo_name", "Груз"),
+                "weight": cargo.get("weight", 0),
+                "declared_value": cargo.get("declared_value", 0),
+                "sender_full_name": cargo.get("sender_full_name", "Не указан"),
+                "recipient_full_name": cargo.get("recipient_full_name", "Не указан"),
+                "status": cargo.get("status", "unknown"),
+                "created_at": cargo.get("created_at")
+            },
+            "history": history_events,
+            "total_events": len(history_events),
+            "message": f"История груза {cargo_number} содержит {len(history_events)} событий"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка получения истории груза: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error getting cargo history: {str(e)}")
+
+@app.get("/api/cargo/statistics")
+async def get_cargo_statistics(
+    current_user: User = Depends(get_current_user)
+):
+    """Получить общую статистику грузов"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        # Статистика из operator_cargo
+        operator_cargo_count = db.operator_cargo.count_documents({})
+        
+        # Статистика из cargo (пользовательские заявки)
+        regular_cargo_count = db.cargo.count_documents({})
+        
+        # Статистика по статусам из operator_cargo
+        operator_status_stats = list(db.operator_cargo.aggregate([
+            {"$group": {"_id": "$status", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}}
+        ]))
+        
+        # Статистика размещенных на транспорт грузов
+        loaded_on_transport_count = db.placement_records.count_documents({
+            "status": "loaded_on_transport"
+        })
+        
+        # Статистика размещенных на складе грузов
+        placed_in_warehouse_count = db.placement_records.count_documents({
+            "status": {"$in": ["placed", "placed_in_warehouse"]}
+        })
+        
+        # Статистика по транспортам
+        total_transports = db.transports.count_documents({})
+        active_transports = db.transports.count_documents({"status": {"$in": ["loading", "loaded", "in_transit"]}})
+        
+        # Статистика по складам
+        total_warehouses = db.warehouses.count_documents({"is_active": True})
+        
+        # Общий вес и стоимость грузов
+        weight_stats = list(db.operator_cargo.aggregate([
+            {"$group": {
+                "_id": None,
+                "total_weight": {"$sum": "$weight"},
+                "total_value": {"$sum": "$declared_value"},
+                "avg_weight": {"$avg": "$weight"},
+                "avg_value": {"$avg": "$declared_value"}
+            }}
+        ]))
+        
+        weight_summary = weight_stats[0] if weight_stats else {
+            "total_weight": 0,
+            "total_value": 0,
+            "avg_weight": 0,
+            "avg_value": 0
+        }
+        
+        # Активные сессии загрузки
+        active_sessions_count = db.transport_loading_sessions.count_documents({"status": "active"})
+        
+        return {
+            "success": True,
+            "statistics": {
+                "cargo_overview": {
+                    "total_cargo": operator_cargo_count + regular_cargo_count,
+                    "operator_cargo": operator_cargo_count,
+                    "user_requests": regular_cargo_count,
+                    "placed_in_warehouse": placed_in_warehouse_count,
+                    "loaded_on_transport": loaded_on_transport_count
+                },
+                
+                "status_breakdown": {
+                    "by_status": operator_status_stats,
+                    "placed_ratio": round((placed_in_warehouse_count / max(operator_cargo_count, 1)) * 100, 1),
+                    "transport_ratio": round((loaded_on_transport_count / max(operator_cargo_count, 1)) * 100, 1)
+                },
+                
+                "transport_overview": {
+                    "total_transports": total_transports,
+                    "active_transports": active_transports,
+                    "active_loading_sessions": active_sessions_count
+                },
+                
+                "warehouse_overview": {
+                    "total_warehouses": total_warehouses,
+                    "placed_cargo_count": placed_in_warehouse_count
+                },
+                
+                "weight_and_value": {
+                    "total_weight_kg": round(weight_summary.get("total_weight", 0), 2),
+                    "total_value_rub": round(weight_summary.get("total_value", 0), 2),
+                    "average_weight_kg": round(weight_summary.get("avg_weight", 0), 2),
+                    "average_value_rub": round(weight_summary.get("avg_value", 0), 2)
+                }
+            },
+            "generated_at": datetime.utcnow(),
+            "message": "Статистика грузов успешно получена"
+        }
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения статистики: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error getting cargo statistics: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
