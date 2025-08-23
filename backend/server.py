@@ -14922,6 +14922,180 @@ async def delete_transport(
     
     return {"message": "Transport deleted and moved to history"}
 
+# === QR КОДЫ ДЛЯ ТРАНСПОРТА ===
+
+@app.post("/api/transport/{transport_id}/generate-qr")
+async def generate_transport_qr(
+    transport_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Генерация QR кода для транспорта"""
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Проверка существования транспорта
+    transport = db.transports.find_one({"id": transport_id})
+    if not transport:
+        raise HTTPException(status_code=404, detail="Transport not found")
+    
+    try:
+        # Генерируем уникальный QR код
+        current_time = datetime.utcnow()
+        qr_code = f"TRANSPORT_{transport['transport_number']}_{current_time.strftime('%Y%m%d_%H%M%S')}"
+        
+        # Обновляем транспорт с QR данными
+        db.transports.update_one(
+            {"id": transport_id},
+            {
+                "$set": {
+                    "qr_code": qr_code,
+                    "qr_generated_at": current_time,
+                    "qr_generated_by": current_user.id,
+                    "updated_at": current_time
+                }
+            }
+        )
+        
+        print(f"🔲 QR код сгенерирован для транспорта {transport_id}: {qr_code}")
+        
+        return {
+            "message": "QR code generated successfully",
+            "transport_id": transport_id,
+            "qr_code": qr_code,
+            "generated_at": current_time,
+            "generated_by": current_user.full_name
+        }
+        
+    except Exception as e:
+        print(f"❌ Ошибка генерации QR кода: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating QR code: {str(e)}"
+        )
+
+@app.get("/api/transport/{transport_id}/qr")
+async def get_transport_qr(
+    transport_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Получение QR данных транспорта"""
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Получаем транспорт
+    transport = db.transports.find_one({"id": transport_id})
+    if not transport:
+        raise HTTPException(status_code=404, detail="Transport not found")
+    
+    if not transport.get("qr_code"):
+        raise HTTPException(status_code=404, detail="QR code not generated for this transport")
+    
+    return {
+        "transport_id": transport_id,
+        "transport_number": transport["transport_number"],
+        "qr_code": transport["qr_code"],
+        "qr_generated_at": transport.get("qr_generated_at"),
+        "qr_generated_by": transport.get("qr_generated_by"),
+        "qr_print_count": transport.get("qr_print_count", 0)
+    }
+
+@app.post("/api/transport/{transport_id}/print-qr")
+async def print_transport_qr(
+    transport_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Печать QR кода транспорта (увеличивает счетчик печати)"""
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Проверка существования транспорта и QR кода
+    transport = db.transports.find_one({"id": transport_id})
+    if not transport:
+        raise HTTPException(status_code=404, detail="Transport not found")
+    
+    if not transport.get("qr_code"):
+        raise HTTPException(status_code=404, detail="QR code not generated for this transport")
+    
+    try:
+        # Увеличиваем счетчик печати
+        db.transports.update_one(
+            {"id": transport_id},
+            {
+                "$inc": {"qr_print_count": 1},
+                "$set": {"updated_at": datetime.utcnow()}
+            }
+        )
+        
+        print(f"🖨️ QR код транспорта {transport_id} отправлен на печать")
+        
+        return {
+            "message": "QR code sent to printer",
+            "transport_id": transport_id,
+            "qr_code": transport["qr_code"],
+            "print_count": transport.get("qr_print_count", 0) + 1
+        }
+        
+    except Exception as e:
+        print(f"❌ Ошибка печати QR кода: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error printing QR code: {str(e)}"
+        )
+
+@app.get("/api/transport/list-with-qr")
+async def get_transports_with_qr_status(
+    current_user: User = Depends(get_current_user)
+):
+    """Получение списка транспортов с информацией о QR кодах"""
+    # Проверка доступа
+    if current_user.role not in [UserRole.ADMIN, UserRole.WAREHOUSE_OPERATOR]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        # Получаем все транспорты
+        transports = list(db.transports.find())
+        
+        transport_list = []
+        for transport in transports:
+            transport_info = {
+                "id": transport["id"],
+                "transport_number": transport["transport_number"],
+                "driver_name": transport["driver_name"],
+                "driver_phone": transport["driver_phone"],
+                "capacity_kg": transport["capacity_kg"],
+                "direction": transport["direction"],
+                "status": transport["status"],
+                "current_load_kg": transport.get("current_load_kg", 0),
+                "cargo_count": len(transport.get("cargo_list", [])),
+                "created_at": transport["created_at"],
+                # QR информация
+                "has_qr_code": bool(transport.get("qr_code")),
+                "qr_generated_at": transport.get("qr_generated_at"),
+                "qr_generated_by": transport.get("qr_generated_by"),
+                "qr_print_count": transport.get("qr_print_count", 0)
+            }
+            transport_list.append(transport_info)
+        
+        # Сортируем по времени создания (новые сначала)
+        transport_list.sort(key=lambda x: x["created_at"], reverse=True)
+        
+        return {
+            "transports": transport_list,
+            "total_count": len(transport_list),
+            "with_qr_count": len([t for t in transport_list if t["has_qr_code"]]),
+            "without_qr_count": len([t for t in transport_list if not t["has_qr_code"]])
+        }
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения списка транспорта: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching transport list: {str(e)}"
+        )
+
 # === УПРАВЛЕНИЕ ЯЧЕЙКАМИ СКЛАДА ===
 
 @app.get("/api/warehouse/{warehouse_id}/cell/{location_code}/cargo")
