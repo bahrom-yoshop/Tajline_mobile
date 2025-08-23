@@ -17030,6 +17030,7 @@ function App() {
           { id: 'logistics-add-transport', label: 'Приём машину' },
           { id: 'logistics-transport-list', label: 'Список транспортов' },
           { id: 'logistics-cargo-to-transport', label: '🚛 Размещение груз на транспорт' },
+          { id: 'logistics-placed-cargo', label: '📦 Грузы на транспорте' },
           { id: 'logistics-in-transit', label: 'В пути' },
           { id: 'logistics-arrived', label: 'На место назначение' },
           { id: 'logistics-history', label: 'История Транспортировки' }
