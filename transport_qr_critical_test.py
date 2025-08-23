@@ -116,8 +116,8 @@ class TransportQRCriticalTester:
         self.log("🚛 Поиск доступного транспорта для тестирования...")
         
         try:
-            # Сначала попробуем получить список транспортов
-            response = self.session.get(f"{API_BASE}/transport/list-with-qr")
+            # Сначала попробуем получить обычный список транспортов
+            response = self.session.get(f"{API_BASE}/transport/list")
             
             if response.status_code == 200:
                 data = response.json()
@@ -153,7 +153,7 @@ class TransportQRCriticalTester:
                 "direction": "Москва-Душанбе"
             }
             
-            response = self.session.post(f"{API_BASE}/admin/transport/create", json=transport_data)
+            response = self.session.post(f"{API_BASE}/transport/create", json=transport_data)
             
             if response.status_code == 200:
                 transport = response.json()
