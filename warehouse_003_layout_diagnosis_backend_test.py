@@ -38,7 +38,8 @@ API_BASE = f"{BACKEND_URL}/api"
 # Конфигурация
 WAREHOUSE_OPERATOR_PHONE = "+79777888999"
 WAREHOUSE_OPERATOR_PASSWORD = "warehouse123"
-TARGET_WAREHOUSE_ID = "003"
+TARGET_WAREHOUSE_ID = "84d25a76-f23b-4c95-adb4-255732cd6520"  # Душанбе Склад №3
+TARGET_WAREHOUSE_ID_NUMBER = "003"
 
 class Warehouse003LayoutDiagnosisTester:
     def __init__(self):
