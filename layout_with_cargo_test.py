@@ -95,7 +95,7 @@ class LayoutWithCargoTester:
         self.log(f"📋 Тестирование API layout-with-cargo для склада {TARGET_WAREHOUSE}...")
         
         try:
-            response = self.session.get(f"{API_BASE}/operator/warehouses/{TARGET_WAREHOUSE}/layout-with-cargo")
+            response = self.session.get(f"{API_BASE}/warehouses/{TARGET_WAREHOUSE}/layout-with-cargo")
             
             if response.status_code == 200:
                 data = response.json()
