@@ -13989,10 +13989,19 @@ function App() {
 
   const fetchTransportsList = async () => {
     try {
-      const data = await apiCall('/api/transport/list');
-      setTransports(data);
+      // ИЗМЕНЕНО: Используем новый API с QR информацией
+      const data = await apiCall('/api/transport/list-with-qr');
+      setTransports(data.transports);
+      
+      // Обновляем статистику в меню
+      setMenuCounters(prev => ({
+        ...prev,
+        logistics_transport: data.transports.length
+      }));
+      
     } catch (error) {
-      console.error('Error fetching transports list:', error);
+      console.error('Error fetching transports:', error);
+      showAlert('Ошибка загрузки списка транспортов', 'error');
     }
   };
 
