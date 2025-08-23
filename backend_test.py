@@ -351,7 +351,7 @@ class TransportQRTester:
         print(f"🔍 ТЕСТИРОВАНИЕ СКАНИРОВАНИЯ QR КОДА {qr_code[:30]}...")
         
         scan_data = {
-            "qr_data": qr_code
+            "qr_code": qr_code
         }
         
         start_time = time.time()
