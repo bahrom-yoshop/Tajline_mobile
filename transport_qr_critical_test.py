@@ -201,7 +201,7 @@ class TransportQRCriticalTester:
                 data = response.json()
                 
                 # Проверяем наличие обязательных полей
-                required_fields = ["qr_code", "qr_image_base64", "qr_generated_at", "qr_generated_by"]
+                required_fields = ["qr_code", "qr_image", "generated_at", "generated_by"]
                 missing_fields = [field for field in required_fields if field not in data]
                 
                 if missing_fields:
@@ -231,17 +231,17 @@ class TransportQRCriticalTester:
                     return False
                 
                 # Проверяем base64 изображение
-                qr_image = data.get("qr_image_base64", "")
-                if not qr_image or not self.is_valid_base64_image(qr_image):
+                qr_image = data.get("qr_image", "")
+                if not qr_image or not qr_image.startswith("data:image/png;base64,"):
                     self.log(f"❌ Неправильное base64 изображение QR кода", "ERROR")
                     self.test_results["critical_issues"].append("QR Generation: Invalid base64 image")
                     return False
                 
                 self.log(f"✅ QR код сгенерирован успешно:")
                 self.log(f"   - QR данные: {qr_code}")
-                self.log(f"   - Время генерации: {data.get('qr_generated_at')}")
-                self.log(f"   - Сгенерировал: {data.get('qr_generated_by')}")
-                self.log(f"   - Base64 изображение: {'Валидное' if self.is_valid_base64_image(qr_image) else 'Невалидное'}")
+                self.log(f"   - Время генерации: {data.get('generated_at')}")
+                self.log(f"   - Сгенерировал: {data.get('generated_by')}")
+                self.log(f"   - Base64 изображение: {'Валидное' if qr_image.startswith('data:image/png;base64,') else 'Невалидное'}")
                 
                 self.test_results["qr_generation_success"] = True
                 self.test_results["detailed_results"]["qr_generation"] = data
