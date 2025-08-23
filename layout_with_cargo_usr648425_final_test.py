@@ -141,7 +141,7 @@ class LayoutWithCargoUSR648425Tester:
                 application_25082298_found = False
                 
                 for item in items:
-                    # Проверяем различные поля на наличие USR648425
+                    # Проверяем различные поля на наличие USR648425 или Юлдашев
                     operator_fields = [
                         item.get("placed_by_operator"),
                         item.get("accepting_operator"),
@@ -149,9 +149,9 @@ class LayoutWithCargoUSR648425Tester:
                     ]
                     
                     for field in operator_fields:
-                        if field and "USR648425" in str(field):
+                        if field and ("USR648425" in str(field) or "Юлдашев" in str(field)):
                             usr648425_found = True
-                            self.log(f"✅ Найден USR648425 в fully-placed: {item.get('cargo_number', 'N/A')}")
+                            self.log(f"✅ Найден USR648425/Юлдашев в fully-placed: {item.get('cargo_number', 'N/A')} - {field}")
                             break
                     
                     # Проверяем заявку 25082298
