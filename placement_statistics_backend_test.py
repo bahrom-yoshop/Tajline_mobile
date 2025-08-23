@@ -31,7 +31,7 @@ import os
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://placement-view.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-manage-1.preview.emergentagent.com/api"
 WAREHOUSE_OPERATOR_CREDENTIALS = {
     "phone": "+79777888999",
     "password": "warehouse123"

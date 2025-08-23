@@ -39,7 +39,7 @@ import time
 from datetime import datetime
 
 # Конфигурация для тестирования
-BACKEND_URL = "https://placement-view.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-manage-1.preview.emergentagent.com/api"
 
 # Тестовые данные оператора склада
 OPERATOR_CREDENTIALS = {

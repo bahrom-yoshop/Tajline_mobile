@@ -8,7 +8,7 @@ import json
 import time
 
 # Конфигурация
-BASE_URL = "https://placement-view.preview.emergentagent.com/api"
+BASE_URL = "https://tajline-manage-1.preview.emergentagent.com/api"
 WAREHOUSE_OPERATOR_PHONE = "+79777888999"
 WAREHOUSE_OPERATOR_PASSWORD = "warehouse123"
 

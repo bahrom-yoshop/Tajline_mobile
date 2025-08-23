@@ -6,7 +6,7 @@ DEBUG TEST: Check if recipient data is being saved and retrieved correctly
 import requests
 import json
 
-BACKEND_URL = "https://placement-view.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-manage-1.preview.emergentagent.com/api"
 
 WAREHOUSE_OPERATOR = {
     "phone": "+79777888999",

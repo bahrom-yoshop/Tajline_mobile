@@ -8,7 +8,7 @@ import json
 
 def test_pickup_request_100040():
     """Тестирование заявки 100040 на предмет данных плейсхолдера"""
-    base_url = "https://placement-view.preview.emergentagent.com"
+    base_url = "https://tajline-manage-1.preview.emergentagent.com"
     
     print("🚚 ДИАГНОСТИКА ПРОБЛЕМЫ ДАННЫХ ПЛЕЙСХОЛДЕРА В МОДАЛЬНОМ ОКНЕ ЗАЯВКИ НА ЗАБОР ГРУЗА")
     print("="*80)

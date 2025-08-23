@@ -48,7 +48,7 @@ from datetime import datetime
 import time
 
 # Конфигурация
-BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://placement-view.preview.emergentagent.com')
+BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://tajline-manage-1.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 # Тестовые данные оператора склада

@@ -16,7 +16,7 @@ import requests
 import json
 
 # Конфигурация
-BACKEND_URL = 'https://placement-view.preview.emergentagent.com'
+BACKEND_URL = 'https://tajline-manage-1.preview.emergentagent.com'
 API_BASE = f"{BACKEND_URL}/api"
 
 def authenticate():

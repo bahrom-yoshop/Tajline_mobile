@@ -9,7 +9,7 @@ from datetime import datetime
 import time
 
 def test_unique_pickup_acceptance():
-    base_url = "https://placement-view.preview.emergentagent.com"
+    base_url = "https://tajline-manage-1.preview.emergentagent.com"
     
     print("🎯 TESTING UNIQUE PICKUP REQUEST ACCEPTANCE")
     print("=" * 60)

@@ -9,7 +9,7 @@ import requests
 import json
 
 # Configuration
-BACKEND_URL = "https://placement-view.preview.emergentagent.com/api"
+BACKEND_URL = "https://tajline-manage-1.preview.emergentagent.com/api"
 
 # Test credentials
 WAREHOUSE_OPERATOR_CREDENTIALS = {
