@@ -14125,6 +14125,134 @@ function App() {
     }
   };
 
+  // === ЭТАП 2: ФУНКЦИИ ДЛЯ РАЗМЕЩЕНИЯ ГРУЗОВ НА ТРАНСПОРТ ===
+  
+  const openCargoToTransportPage = () => {
+    setCargoToTransportPage(true);
+    setTransportScanMode(true);
+    setScannedTransport(null);
+    setLoadedCargo([]);
+    setLoadingSession(null);
+    setCurrentPage('cargo-to-transport');
+  };
+  
+  const closeCargoToTransportPage = () => {
+    setCargoToTransportPage(false);
+    setCurrentPage('main');
+    // Завершаем активную сессию если есть
+    if (loadingSession) {
+      completeLoadingSession();
+    }
+  };
+  
+  const handleScanTransportQR = async (qrCode) => {
+    try {
+      setCargoScanLoading(true);
+      
+      const response = await apiCall('/api/logistics/cargo-to-transport/scan-transport', 'POST', {
+        qr_code: qrCode
+      });
+      
+      if (response.success) {
+        setScannedTransport(response.transport);
+        setLoadingSession({
+          session_id: response.session_id,
+          started_at: new Date(),
+          loaded_cargo_count: response.loaded_cargo_count
+        });
+        setTransportScanMode(false); // Переключаемся на сканирование грузов
+        setLoadedCargo([]); // Очищаем список грузов для новой сессии
+        
+        showAlert(`Транспорт ${response.transport.transport_number} выбран для загрузки`, 'success');
+      }
+      
+    } catch (error) {
+      console.error('Error scanning transport QR:', error);
+      showAlert(error.detail || 'Ошибка сканирования QR кода транспорта', 'error');
+    } finally {
+      setCargoScanLoading(false);
+    }
+  };
+  
+  const handleScanCargoQR = async (qrCode) => {
+    if (!loadingSession) {
+      showAlert('Сначала выберите транспорт', 'warning');
+      return;
+    }
+    
+    try {
+      setCargoScanLoading(true);
+      
+      const response = await apiCall('/api/logistics/cargo-to-transport/scan-cargo', 'POST', {
+        qr_code: qrCode,
+        session_id: loadingSession.session_id
+      });
+      
+      if (response.success) {
+        // Добавляем груз в список загруженных
+        setLoadedCargo(prev => [...prev, response.cargo]);
+        setLoadingSession(prev => ({
+          ...prev,
+          loaded_cargo_count: response.session_summary.total_loaded
+        }));
+        
+        showAlert(`Груз ${response.cargo.cargo_number} размещен на транспорт`, 'success');
+      }
+      
+    } catch (error) {
+      console.error('Error scanning cargo QR:', error);
+      showAlert(error.detail || 'Ошибка сканирования QR кода груза', 'error');
+    } finally {
+      setCargoScanLoading(false);
+    }
+  };
+  
+  const completeLoadingSession = async () => {
+    if (!loadingSession) return;
+    
+    try {
+      const response = await apiCall('/api/logistics/cargo-to-transport/session', 'DELETE', null, {
+        session_id: loadingSession.session_id
+      });
+      
+      if (response.success) {
+        showAlert(`Сессия завершена. Загружено ${response.session_summary.total_loaded} грузов`, 'success');
+        
+        // Очищаем состояние
+        setLoadingSession(null);
+        setScannedTransport(null);
+        setLoadedCargo([]);
+        setTransportScanMode(true);
+        setCargoToTransportPage(false);
+        setCurrentPage('main');
+      }
+      
+    } catch (error) {
+      console.error('Error completing session:', error);
+      showAlert('Ошибка завершения сессии', 'error');
+    }
+  };
+  
+  const getCurrentSession = async () => {
+    try {
+      const response = await apiCall('/api/logistics/cargo-to-transport/session');
+      
+      if (response.active_session) {
+        setLoadingSession({
+          session_id: response.session.session_id,
+          started_at: new Date(response.session.started_at),
+          loaded_cargo_count: response.session.total_loaded
+        });
+        setScannedTransport(response.transport);
+        setLoadedCargo(response.session.loaded_cargo || []);
+        setTransportScanMode(false);
+      }
+      
+    } catch (error) {
+      console.error('Error getting current session:', error);
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoggingIn(true);
